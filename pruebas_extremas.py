@@ -248,6 +248,47 @@ prueba("html incrustado en la frase",
        lambda: "&lt;" in ui._palabras_html(
            ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello", "hello"), True))
 
+titulo("Avisos legibles cuando algo falla")
+
+prueba("el 429 de OpenAI se cuenta en cristiano",
+       lambda: ui._humanizar(
+           "OpenAI no disponible: RuntimeError: Error code: 429 - You "
+           "exceeded your current quota", "es")[:52])
+prueba("y en ingles",
+       lambda: ui._humanizar("Error code: 429 exceeded your current quota", "en")[:44])
+prueba("la falta de clave tambien",
+       lambda: ui._humanizar("sin OPENAI_API_KEY: no hay explicacion", "es")[:40])
+prueba("un corte de red tambien",
+       lambda: ui._humanizar("Connection timed out", "es")[:40])
+prueba("un aviso desconocido se deja tal cual",
+       lambda: ui._humanizar("algo rarisimo que nadie previo", "es"))
+prueba("ningun aviso conocido llega en crudo a la ficha",
+       lambda: all("RuntimeError" not in ui._humanizar(a, i) and "429" not in ui._humanizar(a, i)
+                   for a in ("OpenAI no disponible: RuntimeError: Error code: 429 - quota",)
+                   for i in ("es", "en")))
+
+
+def _sin_seccion_inexistente():
+    """El aviso de baja afinidad no puede remitir a una seccion que falta."""
+    from types import SimpleNamespace as N
+    base = dict(palabra_superficie="x", lema_buscado="x", categoria="noun",
+                ipa_uk=None, ipa_us=None, sentido="algo", etiquetas_sentido=[],
+                n_sentidos_candidatos=3, similitud=0.10,
+                explicacion_gramatical=None, explicacion_adaptada=None,
+                ejemplo_simplificado=None, banda_lector="básico",
+                frecuencia_zipf=None, desde_cache=False, audio_generado=False,
+                audio_uk=None, audio_us=None, avisos=[])
+    sin = ui._ficha(N(**base, definicion_contextual=None), "es")
+    con = ui._ficha(N(**base, definicion_contextual="Aquí significa algo."), "es")
+    assert "Aquí significa" not in sin.split("**Diccionario")[0] + \
+        "".join(l for l in sin.split("\n\n") if l.startswith("[!]")), \
+        "manda al lector a una seccion que no existe"
+    assert any("Aquí significa" in l for l in con.split("\n\n") if l.startswith("[!]"))
+    return "remite a «Aquí significa» solo cuando existe"
+
+
+prueba("aviso de afinidad baja coherente", _sin_seccion_inexistente)
+
 titulo("Freno de gasto por IP")
 
 

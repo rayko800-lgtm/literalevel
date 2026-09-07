@@ -714,6 +714,10 @@ _ROTULOS = {
         "dudoso": ("Poca confianza en la acepción elegida (afinidad {v:.2f} "
                    "sobre 1.00). Fíjate más en «Aquí significa» que en la "
                    "definición de diccionario."),
+        "dudoso_solo": ("Poca confianza en la acepción elegida (afinidad "
+                        "{v:.2f} sobre 1.00) y esta vez no hay explicación de "
+                        "contexto. Puede no ser el sentido que tiene en tu "
+                        "frase: léela entera antes de fiarte."),
         "cache": "desde caché", "tts": "audio generado con tts-1",
         "rareza": ("muy común", "frecuente", "poco frecuente", "rara"),
     },
@@ -726,6 +730,10 @@ _ROTULOS = {
         "dudoso": ("Low confidence in the sense picked (affinity {v:.2f} of "
                    "1.00). Trust “Here it means” more than the dictionary "
                    "gloss."),
+        "dudoso_solo": ("Low confidence in the sense picked (affinity {v:.2f} "
+                        "of 1.00), and there is no contextual explanation this "
+                        "time. It may not be the sense your sentence uses: "
+                        "read the whole sentence before trusting it."),
         "cache": "from cache", "tts": "audio generated with tts-1",
         "rareza": ("very common", "common", "uncommon", "rare"),
     },
@@ -734,6 +742,46 @@ _ROTULOS = {
 # Por debajo de esto la eleccion de acepcion es practicamente un sorteo: se
 # avisa en vez de presentarla como si fuera segura.
 AFINIDAD_DUDOSA = 0.35
+
+
+# Traduccion de los avisos tecnicos a algo que un lector pueda entender. Los
+# avisos vienen de `lexicon.py` con el texto de la excepcion pegado, que es
+# util en un log y horrible en pantalla: nadie quiere leer
+# "RuntimeError: Error code: 429 - You exceeded your current quota"
+# mientras lee una novela.
+_AVISOS_HUMANOS = (
+    (("429", "quota", "insufficient_quota", "billing"), {
+        "es": "Se ha agotado el presupuesto mensual de explicaciones. El "
+              "diccionario, la fonética y el audio siguen funcionando.",
+        "en": "The monthly budget for explanations has run out. The "
+              "dictionary, phonetics and audio still work."}),
+    (("sin OPENAI_API_KEY", "api key", "authentication", "401"), {
+        "es": "Sin clave de OpenAI: no hay explicación de contexto. El resto "
+              "de la ficha no la necesita.",
+        "en": "No OpenAI key: no contextual explanation. The rest of the "
+              "card does not need it."}),
+    (("sin audio en el diccionario",), {
+        "es": "El diccionario no trae audio de esta palabra, así que la "
+              "pronunciación de arriba está generada.",
+        "en": "The dictionary has no audio for this word, so the "
+              "pronunciation above is generated."}),
+    (("sin sentido elegido",), {
+        "es": "No se pudo elegir una acepción para esta palabra.",
+        "en": "No sense could be picked for this word."}),
+    (("timeout", "timed out", "connection", "network", "getaddrinfo"), {
+        "es": "No hay conexión con OpenAI ahora mismo. El diccionario y la "
+              "fonética son locales y siguen aquí.",
+        "en": "No connection to OpenAI right now. The dictionary and "
+              "phonetics are local and still here."}),
+)
+
+
+def _humanizar(aviso: str, idioma: str) -> str:
+    bajo = aviso.lower()
+    for pistas, textos in _AVISOS_HUMANOS:
+        if any(p.lower() in bajo for p in pistas):
+            return textos.get(idioma, textos["es"])
+    return aviso
 
 
 def _ficha(r, idioma: str = "es") -> str:
@@ -768,7 +816,10 @@ def _ficha(r, idioma: str = "es") -> str:
         ya_avisado = any("margen bajo" in a or "provisional" in a for a in r.avisos)
         if (not ya_avisado and r.similitud is not None
                 and r.n_sentidos_candidatos > 1 and r.similitud < AFINIDAD_DUDOSA):
-            L.append("[!] " + t["dudoso"].format(v=r.similitud))
+            # Si OpenAI no contesto no hay "Aquí significa" a la que remitir:
+            # mandar al lector a una seccion que no existe es peor que callar.
+            clave = "dudoso" if r.definicion_contextual else "dudoso_solo"
+            L.append("[!] " + t[clave].format(v=r.similitud))
     else:
         L.append(f"_{t['sin_entrada']}_")
 
@@ -795,7 +846,7 @@ def _ficha(r, idioma: str = "es") -> str:
     if pie:
         L.append("_" + " · ".join(pie) + "_")
     for a in r.avisos:
-        L.append(f"[!] {a}")
+        L.append(f"[!] {_humanizar(a, idioma)}")
     return "\n\n".join(L)
 
 
