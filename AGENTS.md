@@ -37,7 +37,10 @@ modelo es 0..5. `public_score(y) = clip(y,0,5)*0.4`.
 - `reader.cargar(ruta) -> Libro(titulo, autor, capitulos[])`
 - `perfil.desde_cuestionario(dict) / desde_muestra(texto, puntuador) -> Perfil`
 - `catalogo.Catalogo().buscar(consulta, nivel_lector, n) -> (libros, aviso)` —
-  nunca devuelve vacío en silencio.
+  nunca devuelve vacío en silencio. **El catálogo son 1197 libros, no 12752**:
+  `wc -l` engaña porque el campo `hook` lleva saltos de línea entrecomillados.
+  Cuéntalo con pandas. Que el 60% sea A1 es deliberado (cuentos graduados de
+  StoryWeaver junto a los clásicos de Gutenberg), no un fallo de etiquetado.
 - `lexicon.ConsultorLexico().consultar(palabra, oracion, nivel) -> ResultadoLexico`
   — nunca lanza por falta de red o clave; lo que falte va en `.avisos`.
 - `voz.practicar(ruta_audio, frase) -> SesionVoz`
