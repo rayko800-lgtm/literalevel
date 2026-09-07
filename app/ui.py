@@ -60,6 +60,12 @@ NIVEL_POR_DEFECTO = 1.0   # se usa en la consulta lexica si aun no hay perfil
 # tope un visitante puede pegar cien mil caracteres y repetir.
 LIMITE_ORACION = 400
 LIMITE_FRASE_VOZ = 300
+# La palabra tambien necesita tope, y no solo por dinero. Se validaba que no
+# fueran mas de cuatro *palabras*, pero no su longitud: una sola "palabra" de
+# miles de caracteres pasaba el filtro y salia como encabezado de la ficha,
+# llenando la pantalla entera de letras. Ninguna palabra inglesa llega a 40;
+# la mas larga de un diccionario normal ronda las 30.
+LIMITE_PALABRA = 40
 TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
 
 # Gradio solo sirve archivos del directorio de trabajo o del temporal del
@@ -787,7 +793,10 @@ def _humanizar(aviso: str, idioma: str) -> str:
 def _ficha(r, idioma: str = "es") -> str:
     """La consulta lexica en markdown, diciendo de donde sale cada cosa."""
     t = _ROTULOS.get(idioma, _ROTULOS["es"])
-    cab = f"## {r.palabra_superficie}"
+    # Cinturon y tirantes: `_consultar` ya rechaza lo larguisimo, pero esta
+    # funcion se llama tambien desde otros sitios y un encabezado es lo unico
+    # de la ficha que puede llenar una pantalla de movil sin que nada lo pare.
+    cab = f"## {str(r.palabra_superficie)[:LIMITE_PALABRA]}"
     if r.lema_buscado and r.lema_buscado.lower() != r.palabra_superficie.lower():
         cab += f"  ·  _{r.lema_buscado}_"
     if r.categoria:
@@ -891,6 +900,15 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         return
     if len(palabra.split()) > 4:
         yield ("Consulta una palabra (o un phrasal verb corto), no una frase.",
+               "", None)
+        return
+    if len(palabra) > LIMITE_PALABRA:
+        yield ({"es": f"Eso son {len(palabra)} caracteres seguidos: ninguna "
+                      f"palabra inglesa pasa de {LIMITE_PALABRA}. Selecciona "
+                      f"una palabra del texto y vuelve a intentarlo.",
+                "en": f"That is {len(palabra)} characters in a row: no English "
+                      f"word goes past {LIMITE_PALABRA}. Pick a word from the "
+                      f"text and try again."}[idioma if idioma == "en" else "es"],
                "", None)
         return
 

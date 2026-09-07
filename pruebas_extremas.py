@@ -167,8 +167,34 @@ prueba("solo espacios", lambda: consulta(None, None, None, "   ", "")[0])
 prueba("None como palabra", lambda: consulta(None, None, None, None, "")[0])
 prueba("frase de 10 palabras",
        lambda: consulta(None, None, None, "a b c d e f g h i j", "")[0])
-prueba("palabra de 5000 caracteres",
-       lambda: consulta(None, None, None, "x" * 5000, "")[0][:60])
+def _sin_encabezado_gigante():
+    """Una 'palabra' larguisima no puede convertirse en el encabezado.
+
+    Lo encontro Miguel probandola desde el movil: se validaba que no fueran
+    mas de cuatro *palabras*, pero no la longitud, asi que 3000 caracteres
+    seguidos salian como titulo H2 y llenaban la pantalla entera.
+    """
+    ficha = consulta(None, None, None, "X" * 3000, "")[0]
+    assert len(ficha) < 300, f"la ficha ocupa {len(ficha)} caracteres"
+    assert not ficha.startswith("##"), "sigue siendo un encabezado"
+    # Y aunque se llame a _ficha por otro camino, el encabezado va acotado.
+    from types import SimpleNamespace as N
+    r = N(palabra_superficie="Y" * 9000, lema_buscado="y", categoria=None,
+          ipa_uk=None, ipa_us=None, sentido=None, etiquetas_sentido=[],
+          n_sentidos_candidatos=0, similitud=None, definicion_contextual=None,
+          explicacion_gramatical=None, explicacion_adaptada=None,
+          ejemplo_simplificado=None, banda_lector="b", frecuencia_zipf=None,
+          desde_cache=False, audio_generado=False, avisos=[],
+          audio_uk=None, audio_us=None)
+    assert len(ui._ficha(r)) < 300
+    return "acotado en el manejador y en el renderizado"
+
+
+prueba("palabra larguisima no llena la pantalla", _sin_encabezado_gigante)
+prueba("una palabra de 40 caracteres sigue valiendo",
+       lambda: consulta(None, None, None, "x" * 40, "")[0][:30])
+prueba("mensaje de palabra larga en ingles",
+       lambda: consulta(None, None, None, "x" * 100, "", "en")[0][:40])
 
 prueba("oracion localizada en el capitulo",
        lambda: ui._oracion_de(libro_ok.capitulos[0].texto, "fox")[:50])
