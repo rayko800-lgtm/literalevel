@@ -51,6 +51,14 @@ def consulta(*args):
     return ultima
 
 
+def abrir_catalogo(*args):
+    """`_abrir_del_catalogo` tambien es generadora. Interesa el ultimo tramo."""
+    ultima = None
+    for tramo in ui._abrir_del_catalogo(*args):
+        ultima = tramo
+    return ultima
+
+
 def titulo(t: str):
     print(f"\n--- {t} " + "-" * max(0, 60 - len(t)))
 
@@ -241,12 +249,12 @@ prueba("audio None", lambda: ui._local(None))
 
 titulo("Abrir un libro del catalogo")
 
-prueba("id vacio", lambda: ui._abrir_del_catalogo("")[3])
-prueba("id None", lambda: ui._abrir_del_catalogo(None)[3])
+prueba("id vacio", lambda: abrir_catalogo("")[-1])
+prueba("id None", lambda: abrir_catalogo(None)[-1])
 prueba("StoryWeaver no es de Gutenberg",
-       lambda: ui._abrir_del_catalogo("SWgdlgdl42")[3][:60])
-prueba("id sin digitos", lambda: ui._abrir_del_catalogo("PG")[3][:60])
-prueba("id con inyeccion", lambda: ui._abrir_del_catalogo("PG1;rm -rf /")[3][:60])
+       lambda: abrir_catalogo("SWgdlgdl42")[-1][:60])
+prueba("id sin digitos", lambda: abrir_catalogo("PG")[-1][:60])
+prueba("id con inyeccion", lambda: abrir_catalogo("PG1;rm -rf /")[-1][:60])
 prueba("opciones vacias", lambda: ui._opciones_libros([]))
 
 

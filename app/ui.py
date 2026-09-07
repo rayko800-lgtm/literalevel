@@ -411,30 +411,32 @@ def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
 def _tabla_libros(libros, aviso: str = "") -> str:
     if not libros:
         return _aviso(aviso or "Sin resultados.")
-    filas = ["| | Libro | Autor | Nivel | De qué va |", "|---|---|---|---|---|"]
-    abribles = 0
+    # Tres columnas, no cinco: a 390 px una tabla de cinco se aplasta hasta
+    # dejar una palabra por linea. El autor y el nivel caben debajo del titulo.
+    abribles = sum(str(b.id).upper().startswith("PG") for b in libros)
+    cabecera = []
+    if abribles:
+        cabecera.append(f"**▸ {abribles} de {len(libros)}** se abren aquí "
+                        f"mismo, con el botón de debajo de la tabla. Los "
+                        f"demás son de StoryWeaver y no hay de dónde "
+                        f"descargarlos.")
+    else:
+        cabecera.append("Ninguno de estos se puede abrir aquí: son de "
+                        "StoryWeaver. Prueba a describirlo de otra manera "
+                        "para que salgan clásicos de Project Gutenberg.")
+    # La leyenda va ARRIBA: si va debajo, en un movil el simbolo ▸ queda a una
+    # pantalla de distancia de lo que lo explica.
+    filas = cabecera + ["", "| | Libro | De qué va |", "|---|---|---|"]
     for b in libros:
         aqui = str(b.id).upper().startswith("PG")
-        abribles += aqui
         enlace = f"[{b.titulo}]({b.url_gutenberg})" if b.url_gutenberg else b.titulo
         gancho = (b.gancho or "").replace("\n", " ").replace("|", "/")
-        if len(gancho) > 110:
-            gancho = gancho[:107] + "..."
-        # La primera columna dice de un vistazo cuales estan en el desplegable
-        # de abajo: sin esto, la tabla y el desplegable parecen no cuadrar.
-        filas.append(f"| {'▸' if aqui else ''} | {enlace} | {b.autor} | "
-                     f"{b.nivel} | {gancho} |")
-    filas.append("")
-    if abribles:
-        filas.append(f"_**▸ {abribles} de {len(libros)}** se abren aquí mismo, "
-                     f"en el desplegable de abajo. Los demás son de "
-                     f"StoryWeaver y no hay de dónde descargarlos._")
-    else:
-        filas.append("_Ninguno de estos se puede abrir aquí: son de "
-                     "StoryWeaver. Prueba a describirlo de otra manera para "
-                     "que salgan clásicos de Project Gutenberg._")
+        if len(gancho) > 70:
+            gancho = gancho[:67] + "..."
+        ficha = f"**{enlace}**<br><small>{b.autor} · {b.nivel}</small>"
+        filas.append(f"| {'▸' if aqui else ''} | {ficha} | {gancho} |")
     if aviso:
-        filas.append(f"_{aviso}_")
+        filas += ["", f"_{aviso}_"]
     return "\n".join(filas)
 
 
@@ -521,19 +523,32 @@ def _descargar_gutenberg(id_libro: str) -> str:
 
 
 def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
-    """Abre en el lector un libro elegido en el buscador, sin salir de la app."""
+    """Abre en el lector un libro elegido en el buscador, sin salir de la app.
+
+    Es generadora y su primer valor va a un aviso de la pestana del BUSCADOR,
+    no de la de lectura. Descargar de Gutenberg puede tardar, y antes el
+    usuario pulsaba el boton y no veia nada: ni espera, ni error, porque todas
+    las salidas estaban en una pestana a la que no se saltaba si algo fallaba.
+    """
     vacio = gr.update(choices=[], value=None)
+    quieto = (None, vacio, _html_lectura(""), gr.update(), gr.Tabs())
     if not id_libro:
-        return (None, vacio, _html_lectura(""),
-                "Elige un libro de los resultados.", gr.Tabs())
+        yield quieto[:3] + ("Elige un libro de la lista.", gr.Tabs(),
+                            "Elige un libro de la lista.")
+        return
+    yield quieto[:3] + (gr.update(), gr.Tabs(),
+                        "Descargando de Project Gutenberg… la primera vez "
+                        "puede tardar; después queda guardado.")
     try:
         ruta = _descargar_gutenberg(id_libro)
     except (ValueError, ConnectionError) as e:
-        return None, vacio, _html_lectura(""), _aviso(e), gr.Tabs()
+        yield quieto[:3] + (gr.update(), gr.Tabs(), _aviso(e))
+        return
     libro, upd, html, resumen = _abrir(ruta, peticion)
-    # Solo se salta a la pestana de lectura si de verdad hay algo que leer.
-    destino = gr.Tabs(selected="leer") if libro is not None else gr.Tabs()
-    return libro, upd, html, resumen, destino
+    if libro is None:
+        yield None, vacio, _html_lectura(""), resumen, gr.Tabs(), _aviso(resumen)
+        return
+    yield libro, upd, html, resumen, gr.Tabs(selected="leer"), ""
 
 
 def _recomendar(p, n):
@@ -545,8 +560,16 @@ def _recomendar(p, n):
     except Exception as e:
         return _aviso(e), vacio
     lo, hi = p.rango_recomendado
+    # Los niveles del catalogo son seis valores discretos, asi que un lector
+    # que salga del cuestionario en 0.62 puede no tener NINGUN libro dentro de
+    # la holgura. Decirlo y decir que hacer, en vez del generico "Sin
+    # resultados" que dejaba en un callejon.
+    si_no_hay = (f"No hay libros etiquetados entre {lo:.2f} y {hi:.2f}. Prueba "
+                 f"a describir lo que te apetece leer en el buscador de "
+                 f"arriba: ahí sí se ajusta a tu nivel sin exigir una "
+                 f"coincidencia exacta.")
     return (f"Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:\n\n"
-            + _tabla_libros(libros), _opciones_libros(libros))
+            + _tabla_libros(libros, si_no_hay), _opciones_libros(libros))
 
 
 # --- Punto 3: lector, y punto 4 dentro de el ------------------------------
@@ -611,6 +634,10 @@ JS_SELECCION = r"""
     var setter = Object.getOwnPropertyDescriptor(proto.prototype, 'value').set;
     setter.call(caja, txt);
     caja.dispatchEvent(new Event('input', { bubbles: true }));
+    // En un movil la caja queda fuera de pantalla, debajo del lector: sin
+    // esto el usuario selecciona una palabra y no ve que haya pasado nada.
+    try { caja.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    catch (e) { caja.scrollIntoView(); }
   }
 
   function programar(ms) {
@@ -788,16 +815,28 @@ def _capitulo(libro, idx, peticion: gr.Request = None):
 
 
 def _medir(libro, idx):
+    """Mide el capitulo con el modelo v4, avisando de la espera.
+
+    La primera vez construye el `Puntuador`, que son 328 MB. Sin este primer
+    `yield` la pantalla se queda quieta cerca de un minuto y parece colgada.
+    """
     c = _cap(libro, idx)
     if c is None:
-        return "Abre un libro y elige un capítulo."
+        yield "Abre un libro y elige un capítulo."
+        return
+    if _puntuador is None:
+        yield ("Midiendo… la primera vez carga el modelo v4 (328 MB) y puede "
+               "tardar cerca de un minuto. Después es inmediato.")
+    else:
+        yield "Midiendo el capítulo…"
     try:
         r = puntuador().puntuar(c.texto)
     except (ValueError, FileNotFoundError) as e:
-        return _aviso(e)
-    return (f"**{r.puntuacion:.2f} / 2.00** ({r.banda}) · orientativo "
-            f"**{r.nivel_orientativo}** · {r.n_bloques} bloques · "
-            f"confianza {r.confianza}")
+        yield _aviso(e)
+        return
+    yield (f"**{r.puntuacion:.2f} / 2.00** ({r.banda}) · orientativo "
+           f"**{r.nivel_orientativo}** · {r.n_bloques} bloques · "
+           f"confianza {r.confianza}")
 
 
 def _oracion_de(texto: str, palabra: str) -> str:
@@ -1067,19 +1106,39 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         banda=r.banda_lector, zipf=r.frecuencia_zipf,
         ruta=_archivo_lector("cuaderno.db", peticion))
 
-    contexto = "Contexto" if idioma == "es" else "Context"
-    ficha = _ficha(r, idioma) + f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
+    if oracion == palabra:
+        # Ni capitulo abierto ni oracion escrita. Antes el pie decia
+        # "Contexto: sin contexto: la desambiguacion sera peor", que se
+        # contradice solo, y encima citaba la palabra suelta como si fuera
+        # una frase del libro. Mejor decir la verdad y no fingir contexto.
+        cola = ("\n\n_No había ningún capítulo abierto ni escribiste una "
+                "oración, así que busqué la palabra suelta: el sentido "
+                "elegido puede no ser el que te interesa._"
+                if idioma != "en" else
+                "\n\n_No chapter was open and you did not type a sentence, so "
+                "I looked the word up on its own: the sense picked may not be "
+                "the one you need._")
+    else:
+        contexto = "Contexto" if idioma == "es" else "Context"
+        cola = f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
+    ficha = _ficha(r, idioma) + cola
     local = _local(r.audio_us) or _local(r.audio_uk)
     yield ficha, _reproductores(r), gr.update(value=local, visible=bool(local))
 
 
 def _frase_del_capitulo(libro, idx):
-    """Manda la primera oracion de largo razonable a la practica de voz."""
+    """Manda la primera oracion de largo razonable a la practica de voz.
+
+    Devuelve `gr.update()` -es decir, no toca nada- cuando no hay frase que
+    traer. Antes devolvia cadena vacia, asi que quien habia escrito su frase
+    a mano y pulsaba el boton por curiosidad **se quedaba sin ella**, sin un
+    solo mensaje que lo explicara.
+    """
     if libro is None or idx is None:
-        return ""
+        return gr.update()
     c = _cap(libro, idx)
     if c is None:
-        return ""
+        return gr.update()
     # Por parrafos, no por el capitulo entero: los encabezados ("I", "The Dead
     # House") no llevan punto, asi que la primera "oracion" del texto crudo se
     # los traga enteros y sale una frase absurda para leer en voz alta.
@@ -1091,7 +1150,7 @@ def _frase_del_capitulo(libro, idx):
             f = " ".join(frase.split())
             if 6 <= len(f.split()) <= 25:
                 return f
-    return ""
+    return gr.update()
 
 
 # --- Punto 5: pronunciacion ----------------------------------------------
@@ -1171,8 +1230,11 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         for d in s.correccion.detalles:
             L.append(f"- **{d.palabra}** — {d.sonido_que_falla}. "
                      f"{d.como_colocar_la_boca}")
-    return (_palabras_html(ev, s.transcripcion_ok),
-            "\n\n".join(L), s.audio_correcto)
+    # El reproductor nace oculto, asi que devolver la ruta pelada asignaria el
+    # valor y lo dejaria invisible: se generaba el audio, se pagaba y no se
+    # veia nunca. Hay que encenderlo explicitamente.
+    return (_palabras_html(ev, s.transcripcion_ok), "\n\n".join(L),
+            gr.update(value=s.audio_correcto, visible=bool(s.audio_correcto)))
 
 
 def _debiles(peticion: gr.Request = None):
@@ -1194,8 +1256,9 @@ def _mis_palabras(peticion: gr.Request = None):
     total, lemas, libros = cuaderno.contar(db)
     if not total:
         return ("Todavía no has consultado ninguna palabra.\n\n"
-                "Abre un libro en **Leer**, haz doble clic en una palabra que "
-                "no conozcas y aparecerá aquí, con la frase en la que la "
+                "Abre un libro en **Leer**, selecciona una palabra que no "
+                "conozcas —doble clic con el ratón, o mantenla pulsada en "
+                "el móvil— y aparecerá aquí, con la frase en la que la "
                 "encontraste.")
     L = [f"**{lemas}** palabras distintas, en **{total}** consultas "
          f"sobre **{libros}** libro{'s' if libros != 1 else ''}.", ""]
@@ -1272,7 +1335,11 @@ def _diagnostico():
 def construir() -> gr.Blocks:
     with gr.Blocks(title="LiteraLevel") as demo:
         gr.HTML(_CSS_GLOBAL, elem_id="ll-css")
-        gr.Markdown("# LiteraLevel\nLee en inglés al nivel que te toca.")
+        gr.Markdown(
+            "# LiteraLevel\nLee en inglés al nivel que te toca.\n\n"
+            "**1)** Fija tu nivel · **2)** busca algo que te apetezca leer · "
+            "**3)** léelo aquí y consulta las palabras que se te atraganten. "
+            "Las pestañas están en ese orden.")
         # Vacio a proposito: lo rellena _perfil_inicial en demo.load, que
         # si sabe de que lector se trata. Construir la interfaz ocurre una
         # vez por proceso, no una vez por visitante.
@@ -1335,17 +1402,23 @@ def construir() -> gr.Blocks:
                     n_res = gr.Number(value=10, label="Resultados", precision=0,
                                       minimum=1, maximum=50, scale=1)
                 ajustar = gr.Checkbox(value=True, label="Ajustar a mi nivel")
+                # El aviso va ENCIMA del boton que provoca la espera. Debajo
+                # de los resultados, en un movil, queda fuera de pantalla y se
+                # lee cuando ya no sirve.
+                gr.Markdown("_La primera búsqueda del día indexa los 1.197 "
+                            "libros del catálogo: puede tardar cerca de un "
+                            "minuto. Las siguientes son instantáneas._")
                 with gr.Row():
                     b_buscar = gr.Button("Buscar", variant="primary")
                     b_recom = gr.Button("Recomiéndame por nivel")
                 resultados = gr.Markdown()
-                with gr.Row():
-                    elegido = gr.Dropdown(label="Ábrelo aquí mismo", choices=[],
-                                          scale=4)
-                    b_abrir = gr.Button("Leerlo ahora", variant="primary", scale=1)
-                gr.Markdown("_La primera búsqueda indexa el catálogo; luego va "
-                            "sola. Los libros de Gutenberg se descargan una vez "
-                            "y se quedan guardados._")
+                # Los mensajes de "Leerlo ahora" tienen que caer AQUI, en la
+                # pestana donde esta el boton. Antes iban a `libro_md`, que
+                # vive en la pestana de lectura: el usuario pulsaba y no veia
+                # absolutamente nada, ni el error ni la espera.
+                estado_abrir = gr.Markdown()
+                elegido = gr.Dropdown(label="Ábrelo aquí mismo", choices=[])
+                b_abrir = gr.Button("Leerlo ahora", variant="primary")
 
                 entradas_busq = [est_perfil, consulta, ajustar, n_res]
                 b_buscar.click(_buscar, entradas_busq, [resultados, elegido])
@@ -1358,23 +1431,30 @@ def construir() -> gr.Blocks:
                                       file_types=[".epub", ".pdf", ".txt"],
                                       type="filepath", scale=2)
                     libro_md = gr.Markdown()
+                # Cuatro controles en una fila no caben en un movil: a 390 px
+                # "Medir dificultad" se queda con unos 80 px. Se parte.
                 with gr.Row():
                     b_prev = gr.Button("‹ Anterior", scale=1)
-                    cap = gr.Dropdown(label="Capítulo", choices=[], scale=5)
+                    cap = gr.Dropdown(label="Capítulo", choices=[], scale=4)
                     b_next = gr.Button("Siguiente ›", scale=1)
-                    b_medir = gr.Button("Medir dificultad", scale=2)
                 cap_md = gr.Markdown()
+                b_medir = gr.Button("Medir la dificultad de este capítulo")
+                # Su propio hueco: antes la medicion pisaba la posicion del
+                # capitulo y cambiar de capitulo borraba la medicion.
+                medicion_md = gr.Markdown()
                 texto = gr.HTML(_html_lectura(""))
 
                 gr.Markdown("### Consultar una palabra\n"
-                            "**Haz doble clic en una palabra del texto** y se copia "
-                            "aquí sola. La oración de contexto se busca en el "
-                            "capítulo abierto.")
+                            "**Selecciona una palabra del texto** y se copia aquí "
+                            "sola: doble clic con el ratón, o mantenla pulsada "
+                            "si estás en el móvil. La oración de contexto se "
+                            "busca en el capítulo abierto.")
                 with gr.Row():
-                    palabra = gr.Textbox(label="Palabra", scale=2, elem_id="ll-palabra")
-                    oracion = gr.Textbox(label="Oración (opcional, si quieres forzarla)",
-                                         scale=4)
+                    palabra = gr.Textbox(label="Palabra", scale=3,
+                                         elem_id="ll-palabra")
                     b_palabra = gr.Button("Consultar", variant="primary", scale=1)
+                oracion = gr.Textbox(label="Oración (opcional, solo si quieres "
+                                           "forzar otra)")
                 idioma = gr.Radio(
                     choices=[("Explícamelo en español", "es"),
                              ("Explain it in English", "en")],
@@ -1392,7 +1472,7 @@ def construir() -> gr.Blocks:
                 cap.change(_capitulo, [est_libro, cap], [texto, cap_md])
                 b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
                 b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
-                b_medir.click(_medir, [est_libro, cap], cap_md)
+                b_medir.click(_medir, [est_libro, cap], medicion_md)
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,
                                 [ficha, audio_web, audio_local])
@@ -1439,7 +1519,7 @@ def construir() -> gr.Blocks:
         # buscador porque necesita componentes de la pestana de lectura, que
         # se declaran despues.
         b_abrir.click(_abrir_del_catalogo, elegido,
-                      [est_libro, cap, texto, libro_md, pestanas])
+                      [est_libro, cap, texto, libro_md, pestanas, estado_abrir])
 
         # Al abrir: primero de quien son los datos, luego donde se quedo.
         demo.load(_perfil_inicial, None, [est_perfil, perfil_md])

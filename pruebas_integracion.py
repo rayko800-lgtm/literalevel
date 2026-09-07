@@ -110,7 +110,11 @@ paso("el marcapaginas sigue al lector",
 # --- 3. Medir la dificultad con el modelo v4 -------------------------------
 
 print("\n3) Medir la dificultad (modelo v4)")
-veredicto = ui._medir(libro, siguiente)
+# `_medir` es generadora: avisa de la espera y luego da el resultado.
+tramos_medir = list(ui._medir(libro, siguiente))
+paso("avisa antes de cargar el modelo", len(tramos_medir) >= 2,
+     tramos_medir[0][:52] if tramos_medir else "")
+veredicto = tramos_medir[-1]
 paso("devuelve una puntuacion, no un aviso", "/ 2.00" in veredicto,
      veredicto.split("·")[0].strip()[:46])
 paso("dice cuantos bloques uso", "bloques" in veredicto)
