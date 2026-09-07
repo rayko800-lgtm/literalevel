@@ -8,6 +8,7 @@ El afectado de una colisión es Miguel. Lee esto antes de tocar nada.
 | Zona | Dueño | Regla |
 |---|---|---|
 | `app/ui.py` | **Claude Code** | Codex no la edita. Puede leerla para auditar contratos. |
+| `app/cuaderno.py` | **Claude Code** | Historial de palabras consultadas. NO es la cache de `lexicon.py`. |
 | `app/reader.py`, `app/lexicon.py`, `app/voz.py` | **Codex** | Está auditándolos. Claude no los edita sin avisar. |
 | `app/scoring.py`, `app/perfil.py`, `app/catalogo.py`, `app/config.py` | compartido | Quien entre, avisa en el commit. |
 | `modelo_v4/`, `kaikki_diccionario.db` | nadie | Datos. No se regeneran ni se versionan. |
@@ -108,7 +109,7 @@ Cuatro cosas que hay que resolver antes de subir, sea cual sea la plataforma:
    Space: se borran en cada reinicio. Es aceptable porque son caché, pero la
    primera consulta tras cada despertar irá lenta.
 
-## Hallazgo abierto para Codex: la eleccion de acepcion falla
+## ~~Hallazgo abierto para Codex: la eleccion de acepcion falla~~ RESUELTO
 
 Probando en la app real, `lexicon` eligio mal el sentido de **"peeped"** en
 *"once or twice she had peeped into the book"*: se quedo con *"To speak briefly
@@ -121,6 +122,9 @@ cuando las glosas son de pocas palabras. Ideas, sin tocarlo yo: comparar contra
 `glosa + etiquetas + ejemplos` en vez de solo la glosa, o exigir un margen
 minimo entre el primer y el segundo candidato antes de dar uno por bueno.
 
-**Es archivo de Codex.** Por mi parte, `ui.py` ya avisa cuando la afinidad baja
-de `AFINIDAD_DUDOSA = 0.35`, para que el lector no se fie de una acepcion que
-salio practicamente por sorteo. El aviso es un parche, no el arreglo.
+**RESUELTO en `927b826`** (Codex, verificado por Claude Code). Se enriquecen con
+categoria y etiquetas solo las glosas de verbos; extenderlo a adjetivos empeoraba
+casos como "free". El ranking enriquecido es interno y `similitud` conserva su
+escala, asi que `AFINIDAD_DUDOSA = 0.35` en `ui.py` sigue siendo valido. Cuando el
+margen entre acepciones baja de 0.05, `lexicon` lo dice en `avisos`; en ese caso
+`ui.py` no repite el aviso.
