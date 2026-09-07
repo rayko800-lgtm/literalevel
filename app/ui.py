@@ -334,8 +334,8 @@ def _desde_cuestionario(p_actual, nombre, *valores, peticion: gr.Request = None)
         p.guardar(_archivo_lector("perfil.json", peticion))
     except (ValueError, OSError) as e:
         # Se conserva el perfil anterior: un fallo al estimar no debe borrarlo.
-        return p_actual, _aviso(e)
-    return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
+        return p_actual, _aviso(e), _aviso(e)
+    return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas.", _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
 
 
 def _muestra_de_libro(libro, palabras: int = 2400) -> str:
@@ -373,37 +373,41 @@ def _nivel_desde_libro(p_actual, nombre, archivo, peticion: gr.Request = None):
     hacer la maquina: si ya tiene el libro, que lo suba.
     """
     if not archivo:
-        return p_actual, "Sube un `.epub`, `.pdf` o `.txt` que ya hayas leído."
+        pide = "Sube un `.epub`, `.pdf` o `.txt` que ya hayas leído."
+        return p_actual, pide, pide
     try:
         libro = reader.cargar(archivo)
     except Exception as e:
-        return p_actual, _aviso(f"No pude abrir el archivo ({type(e).__name__}): {e}")
+        roto = _aviso(f"No pude abrir el archivo ({type(e).__name__}): {e}")
+        return p_actual, roto, roto
     muestra = _muestra_de_libro(libro)
     if len(muestra.split()) < 150:
-        return p_actual, _aviso(
-            "Ese archivo tiene muy poco texto corrido para medirlo. Prueba con "
-            "un libro completo, o pega un fragmento a mano.")
+        corto = _aviso("Ese archivo tiene muy poco texto corrido para medirlo. "
+                       "Prueba con un libro completo, o pega un fragmento a mano.")
+        return p_actual, corto, corto
     try:
         p = perfil_mod.desde_muestra(muestra, puntuador(), nombre=nombre or "")
         p.guardar(_archivo_lector("perfil.json", peticion))
     except (ValueError, FileNotFoundError, OSError) as e:
-        return p_actual, _aviso(e)
-    return p, (f"Medido con **{libro.titulo}**"
-               + (f" — {libro.autor}" if libro.autor else "")
-               + f", tomando muestras de {min(8, len(libro.capitulos))} partes "
-                 f"del libro.\n\n" + _describir(p)
-               + "\n\nGuardado. Ya puedo recomendarte lecturas.")
+        return p_actual, _aviso(e), _aviso(e)
+    texto = (f"Medido con **{libro.titulo}**"
+             + (f" — {libro.autor}" if libro.autor else "")
+             + f", tomando muestras de {min(8, len(libro.capitulos))} partes "
+               f"del libro.\n\n" + _describir(p)
+             + "\n\nGuardado. Ya puedo recomendarte lecturas.")
+    return p, texto, texto
 
 
 def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
     if not (texto or "").strip():
-        return p_actual, "Pega un fragmento que leas sin dificultad."
+        pide = "Pega un fragmento que leas sin dificultad."
+        return p_actual, pide, pide
     try:
         p = perfil_mod.desde_muestra(texto, puntuador(), nombre=nombre or "")
         p.guardar(_archivo_lector("perfil.json", peticion))
     except (ValueError, FileNotFoundError, OSError) as e:
-        return p_actual, _aviso(e)
-    return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
+        return p_actual, _aviso(e), _aviso(e)
+    return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas.", _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
 
 
 # --- Punto 2: buscador del catalogo --------------------------------------
@@ -429,7 +433,9 @@ def _tabla_libros(libros, aviso: str = "") -> str:
     filas = cabecera + ["", "| | Libro | De qué va |", "|---|---|---|"]
     for b in libros:
         aqui = str(b.id).upper().startswith("PG")
-        enlace = f"[{b.titulo}]({b.url_gutenberg})" if b.url_gutenberg else b.titulo
+        # Sin enlace: tocar el titulo en un movil sacaba de la app a
+        # gutenberg.org, cuando lo que se quiere es abrirlo AQUI.
+        enlace = b.titulo
         gancho = (b.gancho or "").replace("\n", " ").replace("|", "/")
         if len(gancho) > 70:
             gancho = gancho[:67] + "..."
@@ -1096,15 +1102,18 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     except (FileNotFoundError, OSError) as e:
         yield _aviso(e), "", gr.update(visible=False)
         return
-    # Al cuaderno, con su frase y su libro: es el unico rastro que queda de
-    # una sesion de lectura. Si no se puede escribir, no pasa nada.
-    cuaderno.registrar(
-        palabra=r.palabra_superficie, lema=r.lema_buscado or r.lema,
-        oracion=oracion, categoria=r.categoria, sentido=r.sentido,
-        libro=(libro.titulo if libro is not None else None),
-        capitulo=(int(idx) + 1 if _cap(libro, idx) is not None else None),
-        banda=r.banda_lector, zipf=r.frecuencia_zipf,
-        ruta=_archivo_lector("cuaderno.db", peticion))
+    # Al cuaderno **solo si el diccionario encontro algo**. Sin este filtro
+    # acababan dentro las pruebas y los errores de dedo, y la pestana "Mis
+    # palabras" se llenaba de cadenas sin sentido. Una palabra que el
+    # diccionario no reconoce no es vocabulario aprendido.
+    if r.sentido:
+        cuaderno.registrar(
+            palabra=r.palabra_superficie, lema=r.lema_buscado or r.lema,
+            oracion=oracion, categoria=r.categoria, sentido=r.sentido,
+            libro=(libro.titulo if libro is not None else None),
+            capitulo=(int(idx) + 1 if _cap(libro, idx) is not None else None),
+            banda=r.banda_lector, zipf=r.frecuencia_zipf,
+            ruta=_archivo_lector("cuaderno.db", peticion))
 
     if oracion == palabra:
         # Ni capitulo abierto ni oracion escrita. Antes el pie decia
@@ -1251,28 +1260,54 @@ def _debiles(peticion: gr.Request = None):
 
 # --- Cuaderno: lo unico que sobrevive a cerrar la app ---------------------
 
+_CSS_CUADERNO = """<style>
+#ll-cuaderno{display:flex;flex-direction:column;gap:.7rem}
+#ll-cuaderno .ll-c{padding:.75rem .9rem;border:1px solid rgba(143,211,232,.20);
+  border-radius:9px;background:rgba(8,16,28,.55)}
+/* Sin esto, una palabra larguisima o una URL desbordan la pantalla del movil
+   y la pestana entera se convierte en un muro ilegible. */
+#ll-cuaderno .ll-c *{overflow-wrap:anywhere;word-break:break-word}
+#ll-cuaderno .ll-p{font-weight:700;font-size:1.05rem}
+#ll-cuaderno .ll-d{opacity:.62;font-size:.82rem;font-weight:400}
+#ll-cuaderno .ll-f{margin:.4rem 0 .3rem;padding-left:.7rem;
+  border-left:3px solid rgba(143,211,232,.45);
+  font-family:Georgia,serif;line-height:1.5}
+#ll-cuaderno .ll-s{font-size:.9rem;opacity:.85}
+</style>"""
+
+
+def _recortar(t, n: int) -> str:
+    """Texto de una linea y acotado: nada puede desbordar una pantalla."""
+    t = " ".join(str(t or "").split())
+    return t if len(t) <= n else t[:n - 1] + "…"
+
+
 def _mis_palabras(peticion: gr.Request = None):
     db = _archivo_lector("cuaderno.db", peticion)
     total, lemas, libros = cuaderno.contar(db)
     if not total:
-        return ("Todavía no has consultado ninguna palabra.\n\n"
-                "Abre un libro en **Leer**, selecciona una palabra que no "
-                "conozcas —doble clic con el ratón, o mantenla pulsada en "
-                "el móvil— y aparecerá aquí, con la frase en la que la "
-                "encontraste.")
-    L = [f"**{lemas}** palabras distintas, en **{total}** consultas "
-         f"sobre **{libros}** libro{'s' if libros != 1 else ''}.", ""]
+        return ("<p>Todavía no has consultado ninguna palabra. Abre un libro "
+                "en <b>Leer</b>, selecciona una que no conozcas —doble clic "
+                "con el ratón, o mantenla pulsada en el móvil— y aparecerá "
+                "aquí con la frase en la que la encontraste.</p>")
+    tarjetas = []
     for a in cuaderno.ultimas(20, db):
-        donde = f" · {a.libro}" if a.libro else ""
+        donde = f" · {_recortar(a.libro, 40)}" if a.libro else ""
         if a.libro and a.capitulo:
             donde += f", cap. {a.capitulo}"
         rareza = f" · {a.rareza}" if a.rareza else ""
-        L.append(f"**{a.palabra}**{rareza}{donde}")
-        L.append(f"> {a.oracion}")
+        partes = [f'<div class="ll-p">{_html.escape(_recortar(a.palabra, 40))}'
+                  f'<span class="ll-d">{_html.escape(rareza + donde)}</span></div>',
+                  f'<div class="ll-f">{_html.escape(_recortar(a.oracion, 220))}</div>']
         if a.sentido:
-            L.append(f"_{a.sentido}_")
-        L.append("")
-    return "\n\n".join(L)
+            partes.append(f'<div class="ll-s">'
+                          f'{_html.escape(_recortar(a.sentido, 160))}</div>')
+        tarjetas.append('<div class="ll-c">' + "".join(partes) + "</div>")
+    cabecera = (f"<p><b>{lemas}</b> palabras distintas, en <b>{total}</b> "
+                f"consultas sobre <b>{libros}</b> "
+                f"libro{'s' if libros != 1 else ''}.</p>")
+    return (_CSS_CUADERNO + cabecera
+            + '<div id="ll-cuaderno">' + "".join(tarjetas) + "</div>")
 
 
 def _repasar(peticion: gr.Request = None):
@@ -1285,21 +1320,28 @@ def _repasar(peticion: gr.Request = None):
     except Exception:
         debiles = []
     if not anotaciones and not debiles:
-        return ("No hay nada que repasar todavía. Consulta alguna palabra "
-                "mientras lees, o practica una frase en voz alta.")
-    L = []
+        return ("<p>No hay nada que repasar todavía. Consulta alguna palabra "
+                "mientras lees, o practica una frase en voz alta.</p>")
+    trozos = [_CSS_CUADERNO]
     if anotaciones:
-        L.append("### Del cuaderno")
+        trozos.append("<p><b>Del cuaderno</b> — ¿las recuerdas?</p>"
+                      '<div id="ll-cuaderno">')
         for a in anotaciones:
-            L.append(f"**{a.palabra}** — ¿la recuerdas?")
-            L.append(f"> {a.oracion}")
-            if a.sentido:
-                L.append(f"<details><summary>Ver el sentido</summary>\n\n"
-                         f"{a.sentido}\n\n</details>")
+            sentido = (f'<details><summary class="ll-s">Ver el sentido</summary>'
+                       f'<div class="ll-s">'
+                       f'{_html.escape(_recortar(a.sentido, 160))}</div></details>'
+                       if a.sentido else "")
+            trozos.append(
+                f'<div class="ll-c"><div class="ll-p">'
+                f'{_html.escape(_recortar(a.palabra, 40))}</div>'
+                f'<div class="ll-f">{_html.escape(_recortar(a.oracion, 220))}'
+                f'</div>{sentido}</div>')
+        trozos.append("</div>")
     if debiles:
-        L.append("### De la práctica en voz alta")
-        L.append(", ".join(f"**{w}** ({n})" for w, n in debiles))
-    return "\n\n".join(L)
+        lista = ", ".join(f"<b>{_html.escape(_recortar(w, 30))}</b> ({n})"
+                          for w, n in debiles)
+        trozos.append(f"<p><b>De la práctica en voz alta</b><br>{lista}</p>")
+    return "".join(trozos)
 
 
 # --- Punto 6: diagnostico para la demo -----------------------------------
@@ -1371,6 +1413,10 @@ def construir() -> gr.Blocks:
                             label=f["pregunta"]))
 
                 b_cuest = gr.Button("Estimar mi nivel", variant="primary")
+                # El resultado, tambien AQUI ABAJO. Arriba del todo se queda
+                # fuera de pantalla en un movil y no te enteras de que ha
+                # terminado; es la misma salida pintada dos veces.
+                perfil_md_abajo = gr.Markdown()
                 with gr.Accordion("O mídelo con un libro que ya hayas leído",
                                   open=False):
                     gr.Markdown("Si ya leíste un libro en inglés y te resultó "
@@ -1388,12 +1434,13 @@ def construir() -> gr.Blocks:
                     b_muestra = gr.Button("Medir con este texto")
                     gr.Markdown("_La primera vez tarda: carga el modelo v4 (328 MB)._")
 
+                salidas_nivel = [est_perfil, perfil_md, perfil_md_abajo]
                 b_cuest.click(_desde_cuestionario, [est_perfil, nombre] + radios,
-                              [est_perfil, perfil_md])
+                              salidas_nivel)
                 b_libro.click(_nivel_desde_libro, [est_perfil, nombre, libro_nivel],
-                              [est_perfil, perfil_md])
+                              salidas_nivel)
                 b_muestra.click(_desde_muestra, [est_perfil, nombre, muestra],
-                                [est_perfil, perfil_md])
+                                salidas_nivel)
 
             with gr.Tab("Buscar lectura", id="buscar"):
                 with gr.Row():
@@ -1417,7 +1464,10 @@ def construir() -> gr.Blocks:
                 # vive en la pestana de lectura: el usuario pulsaba y no veia
                 # absolutamente nada, ni el error ni la espera.
                 estado_abrir = gr.Markdown()
-                elegido = gr.Dropdown(label="Ábrelo aquí mismo", choices=[])
+                # Lista visible, no desplegable: en un movil un dropdown
+                # largo cuesta de manejar y es facil quedarse en el primero
+                # sin darse cuenta de que se puede cambiar.
+                elegido = gr.Radio(label="Elige cuál abrir", choices=[])
                 b_abrir = gr.Button("Leerlo ahora", variant="primary")
 
                 entradas_busq = [est_perfil, consulta, ajustar, n_res]
@@ -1453,8 +1503,13 @@ def construir() -> gr.Blocks:
                     palabra = gr.Textbox(label="Palabra", scale=3,
                                          elem_id="ll-palabra")
                     b_palabra = gr.Button("Consultar", variant="primary", scale=1)
-                oracion = gr.Textbox(label="Oración (opcional, solo si quieres "
-                                           "forzar otra)")
+                with gr.Accordion("¿Y la oración? La busco yo sola", open=False):
+                    gr.Markdown("No hace falta que copies nada: cuando "
+                                "seleccionas la palabra, busco la frase del "
+                                "capítulo donde aparece y la uso como "
+                                "contexto. Esta caja solo sirve para forzar "
+                                "otra distinta.")
+                    oracion = gr.Textbox(label="Oración (opcional)")
                 idioma = gr.Radio(
                     choices=[("Explícamelo en español", "es"),
                              ("Explain it in English", "en")],
@@ -1505,7 +1560,9 @@ def construir() -> gr.Blocks:
                 with gr.Row():
                     b_cuaderno = gr.Button("Ver mis palabras", variant="primary")
                     b_repasar = gr.Button("Repasa 5")
-                cuaderno_md = gr.Markdown()
+                # gr.HTML y no gr.Markdown: hace falta el CSS que parte las
+                # palabras largas, o una sola desborda la pantalla del movil.
+                cuaderno_md = gr.HTML()
 
                 b_cuaderno.click(_mis_palabras, None, cuaderno_md)
                 b_repasar.click(_repasar, None, cuaderno_md)
