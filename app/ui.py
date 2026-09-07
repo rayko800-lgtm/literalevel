@@ -315,8 +315,19 @@ def _describir(p) -> str:
     return perfil_mod.describir(p)
 
 
+def _claves_cuestionario() -> list[str]:
+    """Las claves, en el mismo orden en que se pintan los controles.
+
+    Primero las preguntas de opinion y despues los fragmentos de lectura.
+    `perfil.desde_cuestionario` los distingue por la clave: promedia las
+    opiniones y se queda con el techo mas dificil de los fragmentos.
+    """
+    return ([c for c, _, _ in perfil_mod.PREGUNTAS]
+            + [f["clave"] for f in getattr(perfil_mod, "FRAGMENTOS", [])])
+
+
 def _desde_cuestionario(p_actual, nombre, *valores, peticion: gr.Request = None):
-    claves = [c for c, _, _ in perfil_mod.PREGUNTAS]
+    claves = _claves_cuestionario()
     respuestas = {k: v for k, v in zip(claves, valores) if v is not None}
     try:
         p = perfil_mod.desde_cuestionario(respuestas, nombre=nombre or "")
@@ -1272,12 +1283,27 @@ def construir() -> gr.Blocks:
             with gr.Tab("Mi nivel", id="nivel"):
                 perfil_md = gr.Markdown(_describir(None))
                 nombre = gr.Textbox(label="Tu nombre (opcional)")
-                with gr.Accordion("Cuestionario rápido", open=True):
+                with gr.Accordion("Cuéntame cómo lees", open=True):
                     radios = [
                         gr.Radio(choices=[(t, v) for t, v in opciones], label=pregunta)
                         for _, pregunta, opciones in perfil_mod.PREGUNTAS
                     ]
-                    b_cuest = gr.Button("Estimar mi nivel", variant="primary")
+
+                with gr.Accordion("Y ahora lee esto, con sinceridad", open=True):
+                    gr.Markdown("Tres fragmentos de verdad, de menos a más "
+                                "difícil. Pesan más que lo anterior: delante "
+                                "de un texto real uno se juzga mejor que "
+                                "describiéndose.")
+                    for f in getattr(perfil_mod, "FRAGMENTOS", []):
+                        # Con la tipografia del lector, para que se lea como
+                        # un libro y no como un formulario.
+                        gr.HTML(_html_lectura(f["texto"]))
+                        gr.Markdown(f"_{f['obra']} — {f['autor']}_")
+                        radios.append(gr.Radio(
+                            choices=[(t, v) for t, v in f["opciones"]],
+                            label=f["pregunta"]))
+
+                b_cuest = gr.Button("Estimar mi nivel", variant="primary")
                 with gr.Accordion("O mídelo con un libro que ya hayas leído",
                                   open=False):
                     gr.Markdown("Si ya leíste un libro en inglés y te resultó "

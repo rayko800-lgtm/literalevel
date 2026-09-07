@@ -1,41 +1,41 @@
-# Tarea para Codex — desambiguación de acepciones en `lexicon.py`
+# Tarea para Codex — rehacer el cuestionario de nivel
 
-Trabaja en `C:\Users\laura\literalevel`. **Lee `AGENTS.md` primero**: lleva el reparto de archivos entre tú y Claude Code, el contrato entre módulos y las trampas del repo.
+Trabaja en `C:\Users\laura\literalevel`. Lee **`AGENTS.md`** primero: reparto de archivos, contrato entre módulos y trampas del repo.
 
-## El fallo, con su caso reproducible
+**Tu archivo en esta tarea es `app/perfil.py`.** No toques `app/ui.py` — la interfaz la cableo yo con lo que dejes. Avisa en la primera línea del commit si cambias alguna firma.
 
-`ConsultorLexico.consultar` elige mal el sentido de **"peeped"** en la oración de *Alice's Adventures in Wonderland*:
+## El problema, en palabras del usuario
 
-> *"once or twice she had peeped into the book her sister was reading"*
+Miguel probó la app y dijo del cuestionario: *«se me hizo muy básico»*, *«para niveles avanzados sí es rápido… pero alguien que no sabe gramática no entiende eso»*. Quiere algo **más completo y más amigable**, y sugiere **poner fragmentos: "lee esto y dime cuánto entiendes, sé sincero"**.
 
-Se queda con la glosa **"To speak briefly with a quiet voice"** (afinidad **0.23** entre 6 acepciones) en lugar del sentido de *mirar de reojo*. La explicación de OpenAI lo desmiente sola: *"la definición dada es otro sentido de peep y no aplica aquí"*.
+Mira `PREGUNTAS` en `app/perfil.py`. Son tres. La tercera dice literalmente *«¿Y las frases largas con varias subordinadas?»* — y ese es el fallo: **un lector normal no sabe qué es una subordinada**. Es un usuario final, no un lingüista.
 
-Reprodúcelo antes de tocar nada:
+## Lo que no se puede romper
 
-```bash
-python -X utf8 -c "import sys; sys.path.insert(0,'app'); from lexicon import ConsultorLexico; r = ConsultorLexico().consultar('peeped', 'Once or twice she had peeped into the book her sister was reading.', 1.0); print(r.sentido, r.similitud, r.n_sentidos_candidatos)"
-```
+- El resultado es un número en la **escala pública 0..2**: básico <0.8, intermedio <1.6, avanzado. Anclajes CEFR: A1=0.0, A2=0.4, B1=0.8, B2=1.2, C1=1.6, C2=2.0.
+- `desde_cuestionario(respuestas: dict, nombre="") -> Perfil` **tiene que seguir existiendo y aceptando el mismo tipo de entrada** (clave de pregunta → valor). `ui.py` la llama así, y también `pruebas_extremas.py`.
+- Todo lo que ve el usuario, en **español**. Los fragmentos de lectura, en inglés.
+- `perfil.py` **no puede llamarse `profile.py`** ni importar nada nuevo pesado: se carga al arrancar la app.
 
-## Diagnóstico de partida
+## Qué hay que dejar hecho, en `app/perfil.py`
 
-`_elegir_sentido` compara por coseno la oración contra cada glosa con `all-MiniLM-L6-v2`. Las glosas de Wiktionary son de pocas palabras, así que la señal es escasa y con 6 candidatos la elección se acerca al azar. Dos vías, evalúalas tú:
+**1. De 5 a 7 preguntas de opinión**, sin jerga gramatical. Nada de «subordinadas», «cláusulas» ni «tiempos verbales». Pregunta por hechos observables: qué lee y con qué frecuencia, si necesita diccionario, si ve series en inglés sin subtítulos, si ha terminado un libro entero en inglés. Cada una con 4-5 opciones y su valor en la escala 0..2, razonado en un comentario.
 
-1. Enriquecer el texto que se compara: `glosa + etiquetas + ejemplos` en vez de solo la glosa.
-2. Exigir un margen mínimo entre el primer y el segundo candidato; si no lo hay, dejarlo explícito en lugar de dar uno por bueno.
+**2. Tres o cuatro fragmentos reales de lectura**, en una estructura nueva y exportada (por ejemplo `FRAGMENTOS`), con dificultad escalonada: uno fácil de verdad (A2/B1), uno medio (B2), uno difícil (C1/C2). Cada uno con:
+- el texto exacto, **40-70 palabras**, entendible sin contexto previo
+- obra y autor, **de dominio público** (Project Gutenberg). No inventes citas ni las atribuyas mal
+- su nivel CEFR
+- la pregunta de autoevaluación y sus opciones con valor: *«lo entiendo todo» / «capto la idea, se me escapan palabras» / «me pierdo»*
 
-## Restricciones, no negociables
+**3. Cómo se combinan** opinión y fragmentos. Mi opinión, discútela si no la compartes: **los fragmentos deberían pesar más**, porque delante de un texto real la gente se autoevalúa mejor que describiéndose. Deja el peso en una constante con nombre.
 
-- **No toques `app/ui.py`.** Es de Claude Code.
-- **`consultar()` ya recibe `idioma` ('es'/'en')**, que entra en la clave de caché. No lo rompas.
-- **Si cambias una firma pública, dilo en la primera línea del commit.** `ui.py` depende de siete módulos y se rompe en silencio.
-- La regla de degradación elegante sigue vigente: sin `OPENAI_API_KEY` ni red, `consultar()` **nunca** lanza excepción; lo que falte va en `.avisos`.
-- `ui.py` avisa cuando la afinidad baja de 0.35 (`AFINIDAD_DUDOSA`). Si tu arreglo cambia la escala de `similitud`, **dilo en el commit** para que se ajuste ese umbral.
+**4. Que `desde_cuestionario` siga funcionando** aunque solo se respondan algunas preguntas, como ahora.
 
-## Qué entregar
+## Cómo entregarlo
 
-1. El arreglo en `app/lexicon.py`.
-2. Prueba de que "peeped" ahora elige un sentido de *mirar*, y de que no has empeorado los casos que ya funcionaban: **"brook"** (sustantivo vs verbo según la oración), **"set off"** (phrasal verb) y **"notwithstanding"** (spaCy la etiqueta ADP, cae fuera del mapa POS y debe usar todos los sentidos). `pruebas_lexicon.py` los cubre: ejecútalo.
-3. `python -X utf8 pruebas_extremas.py` tiene que seguir dando **75 pruebas OK**. Es de Claude Code y prueba la interfaz; si algo ahí se rompe, tu cambio rompió el contrato.
-4. **Haz commit, pero no hagas push.** Lo revisamos antes de subirlo.
+- Comenta el porqué de las decisiones, en el estilo del resto del repo: qué problema resuelve cada cosa, no qué hace cada línea.
+- `python -X utf8 pruebas_extremas.py` tiene que seguir dando **118 OK** y `python -X utf8 tests_smoke.py` **TODO OK**. Si algo se rompe ahí, tu cambio rompió el contrato.
+- Añade una prueba tuya que compruebe que las combinaciones extremas dan lo esperado: todo lo más fácil → cerca de 0, todo lo más difícil → cerca de 2.
+- **Haz commit, no hagas push.** Lo reviso antes de subirlo.
 
-Si concluyes que no se puede arreglar bien sin rehacer algo mayor, dilo claramente en vez de forzar un apaño: es información útil.
+Si algo de esto te parece mala idea, dilo en el commit en vez de hacerlo a regañadientes.
