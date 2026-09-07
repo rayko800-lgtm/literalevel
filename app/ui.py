@@ -43,6 +43,7 @@ if str(AQUI) not in sys.path:
 
 import gradio as gr
 
+import biblioteca
 import config
 import cuaderno
 import perfil as perfil_mod
@@ -798,6 +799,10 @@ def _abrir(archivo, peticion: gr.Request = None):
         resumen += (f"\n\n_Empiezo en el capítulo {inicial + 1}: "
                     f"los anteriores son portadilla._")
     _guardar_sesion(archivo, libro.titulo, inicial, peticion)
+    biblioteca.anotar(ruta_libro=archivo, titulo=libro.titulo,
+                      autor=libro.autor, capitulos=len(libro.capitulos),
+                      capitulo=inicial, palabras=libro.palabras,
+                      ruta=_archivo_lector("biblioteca.json", peticion))
     return (libro, gr.update(choices=opciones, value=inicial),
             _html_lectura(libro.capitulos[inicial].texto), resumen)
 
@@ -827,6 +832,10 @@ def _capitulo(libro, idx, peticion: gr.Request = None):
     s = _leer_sesion(peticion)
     if s and s.get("titulo") == libro.titulo:
         _guardar_sesion(s["ruta"], libro.titulo, int(idx), peticion)
+        biblioteca.anotar(ruta_libro=s["ruta"], titulo=libro.titulo,
+                          autor=libro.autor, capitulos=len(libro.capitulos),
+                          capitulo=int(idx), palabras=libro.palabras,
+                          ruta=_archivo_lector("biblioteca.json", peticion))
     return (_html_lectura(c.texto),
             f"**{c.titulo}** · {c.palabras:,} palabras · "
             f"capítulo {int(idx) + 1} de {len(libro.capitulos)}")
@@ -1486,6 +1495,98 @@ def _repasar(peticion: gr.Request = None):
     return "".join(trozos)
 
 
+# --- Mis libros: lo que se esta leyendo y por donde se va ----------------
+
+_CSS_BIBLIO = """<style>
+#ll-biblio{display:flex;flex-direction:column;gap:.7rem}
+#ll-biblio .ll-l{padding:.8rem .95rem;border:1px solid rgba(143,211,232,.20);
+  border-radius:9px;background:rgba(8,16,28,.55)}
+#ll-biblio .ll-l *{overflow-wrap:anywhere}
+#ll-biblio .ll-t{font-weight:700;font-size:1.05rem}
+#ll-biblio .ll-a{opacity:.65;font-size:.85rem}
+#ll-biblio .ll-b{height:7px;border-radius:4px;margin:.5rem 0 .35rem;
+  background:rgba(143,211,232,.16);overflow:hidden}
+#ll-biblio .ll-b i{display:block;height:100%;
+  background:linear-gradient(90deg,#3aa9cf,#8fd3e8)}
+#ll-biblio .ll-n{font-size:.85rem;opacity:.8}
+#ll-biblio .ll-x{font-size:.82rem;opacity:.6;font-style:italic}
+</style>"""
+
+
+def _mis_libros(peticion: gr.Request = None):
+    """La estanteria: que se esta leyendo, por donde y cuanto se ha consultado."""
+    libros = biblioteca.listar(_archivo_lector("biblioteca.json", peticion))
+    if not libros:
+        return ("<p>Todavía no has abierto ningún libro. Búscalo en "
+                "<b>Buscar lectura</b> o sube el tuyo en <b>Leer</b>, y "
+                "aparecerá aquí con el punto donde lo dejaste.</p>",
+                gr.update(choices=[], value=None))
+
+    db = _archivo_lector("cuaderno.db", peticion)
+    por_libro = {}
+    for a in cuaderno.ultimas(500, db):
+        if a.libro:
+            por_libro[a.libro] = por_libro.get(a.libro, 0) + 1
+
+    tarjetas, opciones = [], []
+    for e in libros:
+        pct = int(round(e.avance * 100))
+        consultadas = por_libro.get(e.titulo, 0)
+        nota = (f"Capítulo {e.capitulo + 1} de {e.capitulos} · {pct}% · "
+                f"{e.palabras:,} palabras")
+        if consultadas:
+            nota += f" · {consultadas} palabra{'s' if consultadas != 1 else ''} consultada{'s' if consultadas != 1 else ''}"
+        perdido = ("" if e.existe else
+                   '<div class="ll-x">El archivo ya no está en su sitio: '
+                   'vuelve a abrirlo para seguir.</div>')
+        tarjetas.append(
+            f'<div class="ll-l"><div class="ll-t">'
+            f'{_html.escape(_recortar(e.titulo, 60))}</div>'
+            f'<div class="ll-a">{_html.escape(_recortar(e.autor or "autor desconocido", 50))}</div>'
+            f'<div class="ll-b"><i style="width:{pct}%"></i></div>'
+            f'<div class="ll-n">{_html.escape(nota)}</div>{perdido}</div>')
+        if e.existe:
+            opciones.append((f"{e.titulo} — cap. {e.capitulo + 1} de {e.capitulos}",
+                             e.ruta))
+    return (_CSS_BIBLIO + '<div id="ll-biblio">' + "".join(tarjetas) + "</div>",
+            gr.update(choices=opciones, value=opciones[0][1] if opciones else None))
+
+
+def _seguir_leyendo(ruta_libro, peticion: gr.Request = None):
+    """Reabre un libro de la estanteria por el capitulo donde se quedo."""
+    vacio = gr.update(choices=[], value=None)
+    if not ruta_libro:
+        yield (None, vacio, _html_lectura(""), gr.update(), gr.Tabs(),
+               "Elige uno de tus libros.")
+        return
+    yield (None, vacio, _html_lectura(""), gr.update(), gr.Tabs(),
+           "Abriendo…")
+    # El capitulo guardado se lee ANTES de abrir: `_abrir` vuelve a anotar el
+    # libro en la biblioteca con su capitulo inicial, asi que leerlo despues
+    # devolvia siempre el principio y "retomar" no retomaba nada.
+    guardado = next((e for e in biblioteca.listar(
+        _archivo_lector("biblioteca.json", peticion)) if e.ruta == str(ruta_libro)), None)
+    libro, upd, html, resumen = _abrir(ruta_libro, peticion)
+    if libro is None:
+        yield None, vacio, _html_lectura(""), resumen, gr.Tabs(), resumen
+        return
+    idx = upd["value"]
+    if guardado and 0 <= guardado.capitulo < len(libro.capitulos):
+        idx = guardado.capitulo
+        # Y se devuelve el marcapaginas al capitulo de verdad.
+        _guardar_sesion(ruta_libro, libro.titulo, idx, peticion)
+        biblioteca.anotar(ruta_libro=str(ruta_libro), titulo=libro.titulo,
+                          autor=libro.autor, capitulos=len(libro.capitulos),
+                          capitulo=idx, palabras=libro.palabras,
+                          ruta=_archivo_lector("biblioteca.json", peticion))
+    c = libro.capitulos[idx]
+    yield (libro, gr.update(choices=upd["choices"], value=idx),
+           _html_lectura(c.texto),
+           f"**{libro.titulo}** — retomas en el capítulo {idx + 1} de "
+           f"{len(libro.capitulos)}: _{c.titulo}_.",
+           gr.Tabs(selected="leer"), "")
+
+
 # --- Punto 6: diagnostico para la demo -----------------------------------
 
 def _diagnostico():
@@ -1711,6 +1812,18 @@ def construir() -> gr.Blocks:
                                   [palabras_html, veredicto, audio_ref])
                 b_debiles.click(_debiles, None, veredicto)
 
+            with gr.Tab("Mis libros", id="biblioteca"):
+                gr.Markdown("Los libros que has abierto, por dónde vas en cada "
+                            "uno y cuántas palabras consultaste en ellos. Se "
+                            "guardan solos mientras lees.")
+                b_biblio = gr.Button("Ver mis libros", variant="primary")
+                biblio_html = gr.HTML()
+                seguir = gr.Radio(label="Seguir leyendo", choices=[])
+                b_seguir = gr.Button("Retomar donde lo dejé")
+                estado_seguir = gr.Markdown()
+
+                b_biblio.click(_mis_libros, None, [biblio_html, seguir])
+
             with gr.Tab("Mis palabras", id="cuaderno"):
                 gr.Markdown("Se llena solo mientras lees. Cada palabra con la "
                             "frase en la que la encontraste, que es lo que "
@@ -1742,6 +1855,11 @@ def construir() -> gr.Blocks:
         demo.load(_perfil_inicial, None, [est_perfil, perfil_md])
         demo.load(_reanudar, None,
                   [est_libro, cap, texto, libro_md, pestanas])
+
+        b_seguir.click(_seguir_leyendo, seguir,
+                       [est_libro, cap, texto, libro_md, pestanas, estado_seguir])
+        b_seguir.click(_limpiar_consulta, None,
+                       [ficha, palabra, oracion, audio_web, audio_local])
 
         # Engancha el doble clic del lector a la caja de consulta.
         demo.load(None, None, None, js=JS_SELECCION)

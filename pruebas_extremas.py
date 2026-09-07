@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import sys
+import pathlib
 import tempfile
 import traceback
 import zipfile
@@ -575,6 +576,51 @@ def _rutas_permitidas():
 
 prueba("allowed_paths: sirve el audio y nada mas", _rutas_permitidas)
 
+
+
+titulo("Mis libros")
+
+import biblioteca  # noqa: E402
+
+_BIB = str(TMP / "biblioteca.json")
+
+prueba("estanteria vacia", lambda: biblioteca.listar(_BIB))
+prueba("anotar un libro",
+       lambda: biblioteca.anotar(ruta_libro=str(TMP / "l.epub"), titulo="T",
+                                 autor="A", capitulos=10, capitulo=3,
+                                 palabras=5000, ruta=_BIB))
+prueba("sin ruta se rechaza",
+       lambda: biblioteca.anotar(ruta_libro="", titulo="T", autor="", capitulos=1,
+                                 capitulo=0, palabras=1, ruta=_BIB))
+prueba("sin titulo se rechaza",
+       lambda: biblioteca.anotar(ruta_libro="x", titulo="", autor="", capitulos=1,
+                                 capitulo=0, palabras=1, ruta=_BIB))
+prueba("ruta imposible no lanza",
+       lambda: (biblioteca.anotar(ruta_libro="x", titulo="t", autor="", capitulos=1,
+                                  capitulo=0, palabras=1, ruta="Z:/no/b.json"),
+                biblioteca.listar("Z:/no/b.json")))
+prueba("json corrupto no lanza",
+       lambda: (pathlib.Path(_BIB).write_text("{roto", encoding="utf-8"),
+                biblioteca.listar(_BIB))[1])
+prueba("re-anotar no duplica",
+       lambda: (biblioteca.anotar(ruta_libro="a", titulo="T", autor="", capitulos=9,
+                                  capitulo=1, palabras=9, ruta=_BIB),
+                biblioteca.anotar(ruta_libro="a", titulo="T", autor="", capitulos=9,
+                                  capitulo=5, palabras=9, ruta=_BIB),
+                [(e.ruta, e.capitulo) for e in biblioteca.listar(_BIB)])[2])
+prueba("avance con un solo capitulo",
+       lambda: biblioteca.Entrada("r", "t", "a", 1, 0, 10, "").avance)
+prueba("avance con capitulo fuera de rango",
+       lambda: biblioteca.Entrada("r", "t", "a", 5, 99, 10, "").avance)
+prueba("libro que ya no existe se marca",
+       lambda: biblioteca.Entrada("Z:/no.epub", "t", "a", 5, 1, 10, "").existe)
+prueba("seguir sin elegir",
+       lambda: list(ui._seguir_leyendo(""))[-1][-1])
+prueba("seguir con ruta muerta",
+       lambda: list(ui._seguir_leyendo(str(TMP / "fantasma.epub")))[-1][-1][:40])
+prueba("olvidar un libro",
+       lambda: (biblioteca.olvidar("a", _BIB),
+                [e.ruta for e in biblioteca.listar(_BIB)])[1])
 
 # --- Resultado ------------------------------------------------------------
 
