@@ -26,6 +26,7 @@ Uso:  python -X utf8 app/ui.py
 from __future__ import annotations
 
 import html as _html
+import json
 import os
 import re
 import sys
@@ -394,6 +395,53 @@ _RELLENO_RE = re.compile(
     r"further reading|bibliograph|glossar)", re.IGNORECASE)
 
 
+RUTA_SESION = Path(os.path.expanduser("~")) / ".literalevel" / "sesion.json"
+
+
+def _guardar_sesion(ruta_libro: str, titulo: str, capitulo: int) -> None:
+    """Deja constancia de por donde ibas. Nunca estorba si falla."""
+    try:
+        RUTA_SESION.parent.mkdir(parents=True, exist_ok=True)
+        RUTA_SESION.write_text(json.dumps(
+            {"ruta": str(ruta_libro), "titulo": titulo, "capitulo": int(capitulo)},
+            ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass          # no poder guardar el marcapaginas no puede romper la lectura
+
+
+def _leer_sesion() -> dict | None:
+    try:
+        d = json.loads(RUTA_SESION.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return d if d.get("ruta") and os.path.exists(d["ruta"]) else None
+
+
+def _reanudar():
+    """Al abrir la app, vuelve al libro y al capitulo donde lo dejaste.
+
+    Es la mecanica de retencion mas barata que hay: no premia ni castiga, solo
+    evita que quien vuelve tenga que reconstruir donde estaba. Si el archivo
+    ya no existe, no se dice nada y se empieza limpio.
+    """
+    vacio = (None, gr.update(choices=[], value=None), _html_lectura(""), "",
+             gr.Tabs())
+    s = _leer_sesion()
+    if not s:
+        return vacio
+    libro, upd, html, resumen = _abrir(s["ruta"])
+    if libro is None:
+        return vacio
+    idx = s.get("capitulo", 0)
+    if not (isinstance(idx, int) and 0 <= idx < len(libro.capitulos)):
+        idx = upd["value"]
+    c = libro.capitulos[idx]
+    aviso = (f"**{libro.titulo}** — seguías en el capítulo {idx + 1} de "
+             f"{len(libro.capitulos)}: _{c.titulo}_.")
+    return (libro, gr.update(choices=upd["choices"], value=idx),
+            _html_lectura(c.texto), aviso, gr.Tabs(selected="leer"))
+
+
 def _abrir(archivo):
     vacio = gr.update(choices=[], value=None)
     if not archivo:
@@ -432,6 +480,7 @@ def _abrir(archivo):
     if inicial:
         resumen += (f"\n\n_Empiezo en el capítulo {inicial + 1}: "
                     f"los anteriores son portadilla._")
+    _guardar_sesion(archivo, libro.titulo, inicial)
     return (libro, gr.update(choices=opciones, value=inicial),
             _html_lectura(libro.capitulos[inicial].texto), resumen)
 
@@ -456,6 +505,11 @@ def _capitulo(libro, idx):
     c = _cap(libro, idx)
     if c is None:
         return _html_lectura(""), ""
+    # Mueve el marcapaginas. Se conserva la ruta ya guardada y solo se cambia
+    # el capitulo, y solo si el marcador es de este mismo libro.
+    s = _leer_sesion()
+    if s and s.get("titulo") == libro.titulo:
+        _guardar_sesion(s["ruta"], libro.titulo, int(idx))
     return (_html_lectura(c.texto),
             f"**{c.titulo}** · {c.palabras:,} palabras · "
             f"capítulo {int(idx) + 1} de {len(libro.capitulos)}")
@@ -882,6 +936,10 @@ def construir() -> gr.Blocks:
         # se declaran despues.
         b_abrir.click(_abrir_del_catalogo, elegido,
                       [est_libro, cap, texto, libro_md, pestanas])
+
+        # Al abrir, volver al libro y capitulo donde se dejo la lectura.
+        demo.load(_reanudar, None,
+                  [est_libro, cap, texto, libro_md, pestanas])
 
         # Engancha el doble clic del lector a la caja de consulta.
         demo.load(None, None, None, js=JS_SELECCION)

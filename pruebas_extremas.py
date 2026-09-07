@@ -240,6 +240,36 @@ prueba("html incrustado en la frase",
        lambda: "&lt;" in ui._palabras_html(
            ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello", "hello"), True))
 
+titulo("Reanudar la sesion")
+
+# El marcapaginas de verdad no se toca: se apunta a uno de usar y tirar.
+ui.RUTA_SESION = TMP / "sesion.json"
+
+prueba("sin sesion guardada", lambda: repr(ui._reanudar()[3]))
+prueba("json corrupto",
+       lambda: (ui.RUTA_SESION.write_text("{roto", encoding="utf-8"),
+                repr(ui._reanudar()[3]))[1])
+prueba("apunta a un archivo borrado",
+       lambda: (ui._guardar_sesion(str(TMP / "fantasma.epub"), "X", 3),
+                repr(ui._reanudar()[3]))[1])
+prueba("capitulo fuera de rango en el marcapaginas",
+       lambda: (ui._guardar_sesion(str(TMP / "libro.txt"), "libro", 9999),
+                ui._reanudar()[1]["value"])[1])
+prueba("capitulo negativo",
+       lambda: (ui._guardar_sesion(str(TMP / "libro.txt"), "libro", -7),
+                ui._reanudar()[1]["value"])[1])
+prueba("capitulo no numerico",
+       lambda: (ui._guardar_sesion(str(TMP / "libro.txt"), "libro", 0),
+                ui.RUTA_SESION.write_text('{"ruta":"%s","titulo":"libro",'
+                                          '"capitulo":"tres"}'
+                                          % str(TMP / "libro.txt").replace("\\", "/"),
+                                          encoding="utf-8"),
+                ui._reanudar()[1]["value"])[2])
+prueba("guardar en una ruta imposible no revienta",
+       lambda: (setattr(ui, "RUTA_SESION", Path("Z:/no/existe/sesion.json")),
+                ui._guardar_sesion("x", "y", 0),
+                setattr(ui, "RUTA_SESION", TMP / "sesion.json"), "sin excepcion")[3])
+
 titulo("Idioma de la explicacion")
 
 prueba("idioma invalido no revienta",
