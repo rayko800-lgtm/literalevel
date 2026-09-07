@@ -530,14 +530,26 @@ def _medir(libro, idx):
 
 
 def _oracion_de(texto: str, palabra: str) -> str:
-    """Primera oracion del capitulo que contiene la palabra."""
+    """Primera oracion con cuerpo del capitulo que contiene la palabra.
+
+    Se prefiere una oracion de verdad a un encabezado. Los titulos ("CHAPTER
+    X.", "The Dead House") tambien casan con el patron, y devolver uno como
+    contexto deja a la desambiguacion sin nada a lo que agarrarse: la palabra
+    llegaria practicamente desnuda. Si no hay mas que el encabezado, se
+    devuelve, que es mejor que nada.
+    """
     if not texto or not palabra:
         return ""
     patron = re.compile(rf"\b{re.escape(palabra.strip())}\b", re.IGNORECASE)
+    respaldo = ""
     for frase in scoring.SENT_RE.findall(texto):
-        if patron.search(frase):
-            return " ".join(frase.split())
-    return ""
+        if not patron.search(frase):
+            continue
+        limpia = " ".join(frase.split())
+        if len(limpia.split()) >= 6:
+            return limpia
+        respaldo = respaldo or limpia
+    return respaldo
 
 
 # Rotulos de la ficha en las dos lenguas. Si el lector pide la explicacion en
