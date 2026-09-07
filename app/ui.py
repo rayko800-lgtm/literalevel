@@ -253,6 +253,11 @@ button.primary,.primary button{{
   background:rgba(143,211,232,.38);color:#f4fcff}}
 #ll-voz{{background:rgba(8,16,28,.62);border-color:rgba(143,211,232,.20)}}
 footer{{opacity:.45}}
+/* El reproductor trae un boton de descarga que aqui no pinta nada: el
+   audio es para oirlo en el momento, no para llevarselo. */
+#ll-audio-ref a[download],#ll-audio-palabra a[download],
+#ll-audio-ref a[href^="blob:"],#ll-audio-palabra a[href^="blob:"]{{
+  display:none !important}}
 </style>"""
 
 
@@ -338,15 +343,29 @@ def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
 def _tabla_libros(libros, aviso: str = "") -> str:
     if not libros:
         return _aviso(aviso or "Sin resultados.")
-    filas = ["| Libro | Autor | Nivel | De qué va |", "|---|---|---|---|"]
+    filas = ["| | Libro | Autor | Nivel | De qué va |", "|---|---|---|---|---|"]
+    abribles = 0
     for b in libros:
+        aqui = str(b.id).upper().startswith("PG")
+        abribles += aqui
         enlace = f"[{b.titulo}]({b.url_gutenberg})" if b.url_gutenberg else b.titulo
         gancho = (b.gancho or "").replace("\n", " ").replace("|", "/")
         if len(gancho) > 110:
             gancho = gancho[:107] + "..."
-        filas.append(f"| {enlace} | {b.autor} | {b.nivel} | {gancho} |")
+        # La primera columna dice de un vistazo cuales estan en el desplegable
+        # de abajo: sin esto, la tabla y el desplegable parecen no cuadrar.
+        filas.append(f"| {'▸' if aqui else ''} | {enlace} | {b.autor} | "
+                     f"{b.nivel} | {gancho} |")
+    filas.append("")
+    if abribles:
+        filas.append(f"_**▸ {abribles} de {len(libros)}** se abren aquí mismo, "
+                     f"en el desplegable de abajo. Los demás son de "
+                     f"StoryWeaver y no hay de dónde descargarlos._")
+    else:
+        filas.append("_Ninguno de estos se puede abrir aquí: son de "
+                     "StoryWeaver. Prueba a describirlo de otra manera para "
+                     "que salgan clásicos de Project Gutenberg._")
     if aviso:
-        filas.append("")
         filas.append(f"_{aviso}_")
     return "\n".join(filas)
 
@@ -358,17 +377,15 @@ def _opciones_libros(libros):
     no hay de donde bajarlos. Mas vale decirlo en la etiqueta que dejar que el
     usuario lo descubra al pulsar.
     """
-    opciones = []
-    for b in libros:
-        etiqueta = f"{b.titulo} — {b.autor} ({b.nivel})"
-        if not str(b.id).upper().startswith("PG"):
-            etiqueta += "  · no descargable"
-        opciones.append((etiqueta, b.id))
-    # Preseleccionar uno que se pueda abrir: dejar arriba un "no descargable"
-    # es ofrecer un boton que solo sabe dar una disculpa.
-    abrible = next((v for _, v in opciones if str(v).upper().startswith("PG")), None)
-    inicial = abrible or (opciones[0][1] if opciones else None)
-    return gr.update(choices=opciones, value=inicial)
+    # **Solo los que se pueden abrir.** Antes se listaban todos, marcando los
+    # de StoryWeaver como "no descargable", y como son 1.049 de los 1.197 del
+    # catalogo, el desplegable se llenaba de opciones inservibles: habia que
+    # rebuscar entre ellas el unico libro que si se abria. Un desplegable
+    # donde casi nada funciona es peor que uno corto donde todo funciona.
+    opciones = [(f"{b.titulo} — {b.autor} ({b.nivel})", b.id)
+                for b in libros if str(b.id).upper().startswith("PG")]
+    return gr.update(choices=opciones,
+                     value=opciones[0][1] if opciones else None)
 
 
 def _buscar(p, consulta, ajustar, n):
@@ -496,19 +513,49 @@ JS_SELECCION = r"""
 () => {
   if (window.__llSel) return;
   window.__llSel = true;
-  document.addEventListener('mouseup', () => {
-    const sel = window.getSelection();
-    const txt = (sel.toString() || '').trim();
-    if (!txt || txt.split(/\s+/).length > 4) return;
-    if (!sel.anchorNode) return;
-    const nodo = sel.anchorNode.nodeType === 1 ? sel.anchorNode
-                                               : sel.anchorNode.parentElement;
-    if (!nodo || !nodo.closest('#ll-lector')) return;
-    const caja = document.querySelector('#ll-palabra textarea, #ll-palabra input');
-    if (!caja) return;
-    caja.value = txt;
+
+  // Antes esto solo escuchaba 'mouseup', y por eso en el movil no pasaba
+  // nada: al seleccionar una palabra con el dedo, iOS **no** emite mouseup.
+  // Lo unico que llega de forma fiable en tactil es 'selectionchange', que
+  // ademas se dispara muchas veces mientras se arrastra, asi que hay que
+  // esperar a que la seleccion se estabilice.
+  var espera = null;
+
+  function enElLector(nodo) {
+    if (!nodo) return false;
+    var el = nodo.nodeType === 1 ? nodo : nodo.parentElement;
+    return !!(el && el.closest && el.closest('#ll-lector'));
+  }
+
+  function capturar() {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    var txt = (sel.toString() || '').trim();
+    // Una palabra o un phrasal verb corto. Si es mas, se esta subrayando
+    // para leer, no para consultar.
+    if (!txt || txt.split(/\s+/).length > 4 || txt.length > 40) return;
+    if (!enElLector(sel.anchorNode)) return;
+    var caja = document.querySelector('#ll-palabra textarea, #ll-palabra input');
+    if (!caja || caja.value === txt) return;
+    // Svelte no se entera si se asigna .value a secas: hay que usar el setter
+    // nativo del prototipo y despues emitir 'input'.
+    var proto = caja.tagName === 'TEXTAREA' ? HTMLTextAreaElement : HTMLInputElement;
+    var setter = Object.getOwnPropertyDescriptor(proto.prototype, 'value').set;
+    setter.call(caja, txt);
     caja.dispatchEvent(new Event('input', { bubbles: true }));
-  });
+  }
+
+  function programar(ms) {
+    clearTimeout(espera);
+    espera = setTimeout(capturar, ms);
+  }
+
+  // Tactil: la seleccion tarda en asentarse y las manijas de iOS siguen
+  // moviendola un rato.
+  document.addEventListener('selectionchange', function () { programar(400); });
+  document.addEventListener('touchend', function () { programar(400); });
+  // Raton: llega enseguida y no hace falta esperar.
+  document.addEventListener('mouseup', function () { programar(10); });
 }
 """
 
@@ -896,11 +943,11 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     """
     palabra = (palabra or "").strip()
     if not palabra:
-        yield "Escribe la palabra que quieres consultar.", "", None
+        yield "Escribe la palabra que quieres consultar.", "", gr.update(visible=False)
         return
     if len(palabra.split()) > 4:
         yield ("Consulta una palabra (o un phrasal verb corto), no una frase.",
-               "", None)
+               "", gr.update(visible=False))
         return
     if len(palabra) > LIMITE_PALABRA:
         yield ({"es": f"Eso son {len(palabra)} caracteres seguidos: ninguna "
@@ -909,7 +956,7 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
                 "en": f"That is {len(palabra)} characters in a row: no English "
                       f"word goes past {LIMITE_PALABRA}. Pick a word from the "
                       f"text and try again."}[idioma if idioma == "en" else "es"],
-               "", None)
+               "", gr.update(visible=False))
         return
 
     esperando = ("es" if idioma != "en" else "en")
@@ -933,14 +980,14 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         origen = "sin contexto: la desambiguación será peor"
 
     if not _dentro_del_limite(peticion, "lexico", LIMITE_CONSULTAS_HORA):
-        yield _aviso(_mensaje_limite(idioma, 60)), "", None
+        yield _aviso(_mensaje_limite(idioma, 60)), "", gr.update(visible=False)
         return
 
     nivel = p.nivel if p is not None else NIVEL_POR_DEFECTO
     try:
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma)
     except (FileNotFoundError, OSError) as e:
-        yield _aviso(e), "", None
+        yield _aviso(e), "", gr.update(visible=False)
         return
     # Al cuaderno, con su frase y su libro: es el unico rastro que queda de
     # una sesion de lectura. Si no se puede escribir, no pasa nada.
@@ -954,7 +1001,8 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
 
     contexto = "Contexto" if idioma == "es" else "Context"
     ficha = _ficha(r, idioma) + f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
-    yield ficha, _reproductores(r), _local(r.audio_us) or _local(r.audio_uk)
+    local = _local(r.audio_us) or _local(r.audio_uk)
+    yield ficha, _reproductores(r), gr.update(value=local, visible=bool(local))
 
 
 def _frase_del_capitulo(libro, idx):
@@ -1027,11 +1075,11 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     # cache (el nombre lleva marca de tiempo), asi que el tope va aqui.
     frase = (frase or "").strip()[:LIMITE_FRASE_VOZ]
     if not frase:
-        return "", "Escribe la frase que vas a leer en voz alta.", None
+        return "", "Escribe la frase que vas a leer en voz alta.", gr.update(visible=False)
     if not ruta_audio:
-        return "", "Graba tu voz con el micrófono (o sube un audio).", None
+        return "", "Graba tu voz con el micrófono (o sube un audio).", gr.update(visible=False)
     if not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
-        return "", _aviso(_mensaje_limite("es", 60)), None
+        return "", _aviso(_mensaje_limite("es", 60)), gr.update(visible=False)
     try:
         # Los fallos se registran aparte, en la base de ESTE lector: las
         # palabras que a uno se le atragantan no son asunto de los demas.
@@ -1040,7 +1088,7 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                  ruta=_archivo_lector("voz.db", peticion))
     except Exception as e:
-        return "", _aviso(e), None
+        return "", _aviso(e), gr.update(visible=False)
 
     ev = s.evaluacion
     L = [f"## {ev.puntuacion:.0f} / 100"]
@@ -1240,7 +1288,9 @@ def construir() -> gr.Blocks:
                          "de contexto y gramática.")
                 ficha = gr.Markdown()
                 audio_web = gr.HTML()
-                audio_local = gr.Audio(label="Pronunciación generada", type="filepath")
+                audio_local = gr.Audio(label="Pronunciación generada",
+                                   type="filepath", elem_id="ll-audio-palabra",
+                                   visible=False)
 
                 archivo.change(_abrir, archivo, [est_libro, cap, texto, libro_md])
                 cap.change(_capitulo, [est_libro, cap], [texto, cap_md])
@@ -1264,7 +1314,8 @@ def construir() -> gr.Blocks:
                     b_debiles = gr.Button("Mis puntos débiles")
                 palabras_html = gr.HTML()
                 veredicto = gr.Markdown()
-                audio_ref = gr.Audio(label="Cómo debería sonar", type="filepath")
+                audio_ref = gr.Audio(label="Cómo debería sonar", type="filepath",
+                                 elem_id="ll-audio-ref", visible=False)
 
                 b_traer.click(_frase_del_capitulo, [est_libro, cap], frase)
                 b_practicar.click(_practicar, [mi_audio, frase],

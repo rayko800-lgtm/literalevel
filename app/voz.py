@@ -294,10 +294,16 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
         registrar_fallos(evaluacion.palabras_falladas)
 
     correccion = None
-    audio_correcto = None
     if evaluacion.palabras_falladas:
         correccion = explicar_correccion(evaluacion.palabras_falladas)
-        audio_correcto = generar_audio_correcto(frase_objetivo)
+
+    # El audio de referencia se genera SIEMPRE, no solo cuando algo falla.
+    # Antes iba dentro del `if`: quien pronunciaba bien se encontraba el
+    # rotulo "Cómo debería sonar" con el reproductor vacio, que es justo
+    # cuando uno quiere oirlo para confirmar que lo hizo bien. Y repetir una
+    # frase ya generada no cuesta nada: `generar_audio_correcto` cachea por
+    # contenido.
+    audio_correcto = generar_audio_correcto(frase_objetivo)
 
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
                      audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None)

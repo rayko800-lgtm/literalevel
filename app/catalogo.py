@@ -47,7 +47,17 @@ class Libro:
 
     @property
     def url_gutenberg(self) -> str:
-        num = "".join(c for c in str(self.id) if c.isdigit())
+        """El enlace a Gutenberg, y solo si el libro es DE Gutenberg.
+
+        Antes se sacaban los digitos de cualquier id, asi que un libro de
+        StoryWeaver con id `SWgdlgdl201` acababa enlazando al ebook 201 de
+        Gutenberg, que es otra obra completamente distinta. Un enlace a un
+        libro equivocado es peor que no tener enlace.
+        """
+        ident = str(self.id).upper()
+        if not ident.startswith("PG"):
+            return ""
+        num = "".join(c for c in ident if c.isdigit())
         return f"https://www.gutenberg.org/ebooks/{num}" if num else ""
 
 
