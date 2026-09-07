@@ -149,6 +149,23 @@ class Puntuador:
             salida = self.modelo(**ent).logits.squeeze(-1).float().cpu().numpy()
         return [float(v) for v in np.clip(np.atleast_1d(salida), 0, 5)]
 
+
+    def perfil_de_texto(self, texto: str, tope: int = 0) -> list[float]:
+        """Puntuacion publica de CADA ventana del texto, sin muestrear.
+
+        `puntuar()` se queda con 8 bloques repartidos porque su trabajo es dar un
+        numero rapido. Esto es lo contrario: recorre el texto entero, ventana a
+        ventana, para poder dibujar como sube y baja la dificultad a lo largo de
+        un libro. Con `tope` mayor que cero se limita el numero de ventanas, para
+        libros muy largos.
+
+        Devuelve la lista vacia si el texto no da ni para una ventana; no lanza.
+        """
+        bloques = fixed_blocks(texto, cap=tope if tope > 0 else 10 ** 9)
+        if not bloques:
+            return []
+        return [round(public_score(v), 3) for v in self._puntuar_bloques(bloques)]
+
     def puntuar(self, texto: str) -> Resultado:
         """Puntua un texto. Lanza ValueError si no es prosa continua valida.
 

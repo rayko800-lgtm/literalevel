@@ -857,6 +857,123 @@ def _medir(libro, idx):
            f"confianza {r.confianza}")
 
 
+RUTA_ANALISIS = BASE_DATOS_LECTOR / "analisis"
+
+
+def _clave_libro(libro) -> str:
+    """Identifica un libro por su contenido, no por el nombre del archivo."""
+    import hashlib
+    h = hashlib.sha256(f"{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
+    for c in libro.capitulos[:40]:
+        h.update(f"{c.titulo}\x1f{c.palabras}".encode("utf-8"))
+    return h.hexdigest()[:20]
+
+
+def _analisis_guardado(libro):
+    try:
+        ruta = RUTA_ANALISIS / f"{_clave_libro(libro)}.json"
+        return json.loads(ruta.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _guardar_analisis(libro, datos) -> None:
+    try:
+        RUTA_ANALISIS.mkdir(parents=True, exist_ok=True)
+        (RUTA_ANALISIS / f"{_clave_libro(libro)}.json").write_text(
+            json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass          # el analisis es util, no imprescindible
+
+
+def _analizar_libro(libro, peticion: gr.Request = None):
+    """Perfil de dificultad del libro ENTERO, capitulo a capitulo.
+
+    Aqui no se muestrea: cada capitulo se recorre ventana a ventana con el
+    modelo v4. Es la respuesta a "¿de verdad lo lee todo?" -si, para esto lo
+    lee todo- y es lo que permite ver que un libro empieza duro y se ablanda,
+    o al reves. Tarda, asi que se guarda en disco y solo se calcula una vez
+    por libro.
+
+    Es generadora: va diciendo por donde va, porque en un libro largo esto
+    son minutos y una pantalla quieta parece una pantalla rota.
+    """
+    if libro is None or not libro.capitulos:
+        yield "Abre un libro primero, en esta misma pestaña.", None
+        return
+
+    datos = _analisis_guardado(libro)
+    if datos is None:
+        cuerpo = [(i, c) for i, c in enumerate(libro.capitulos)
+                  if c.palabras >= 150 and not _RELLENO_RE.search(c.titulo)]
+        if not cuerpo:
+            yield ("Este libro no tiene capítulos con prosa suficiente para "
+                   "analizarlos."), None
+            return
+        try:
+            p = puntuador()
+        except (FileNotFoundError, OSError) as e:
+            yield _aviso(e), None
+            return
+        filas, ventanas = [], 0
+        for n, (i, c) in enumerate(cuerpo, 1):
+            yield (f"Leyendo el libro entero con el modelo v4: capítulo "
+                   f"**{n} de {len(cuerpo)}**… Esto se calcula una sola vez y "
+                   f"luego queda guardado."), None
+            vs = p.perfil_de_texto(c.texto)
+            if not vs:
+                continue
+            ventanas += len(vs)
+            filas.append({"capitulo": n, "titulo": c.titulo[:40],
+                          "indice": i, "dificultad": round(sum(vs) / len(vs), 3),
+                          "min": round(min(vs), 3), "max": round(max(vs), 3),
+                          "ventanas": len(vs), "palabras": c.palabras})
+        if not filas:
+            yield "No pude medir ningún capítulo de este libro.", None
+            return
+        datos = {"titulo": libro.titulo, "autor": libro.autor,
+                 "palabras": libro.palabras, "ventanas": ventanas, "filas": filas}
+        _guardar_analisis(libro, datos)
+
+    yield _resumen_analisis(datos), _grafica_analisis(datos)
+
+
+def _grafica_analisis(datos):
+    import pandas as pd
+    return pd.DataFrame([{"Capítulo": f["capitulo"], "Dificultad": f["dificultad"]}
+                         for f in datos["filas"]])
+
+
+def _resumen_analisis(datos) -> str:
+    filas = datos["filas"]
+    medias = [f["dificultad"] for f in filas]
+    global_ = sum(medias) / len(medias)
+    facil = min(filas, key=lambda f: f["dificultad"])
+    dificil = max(filas, key=lambda f: f["dificultad"])
+    mitad = len(medias) // 2 or 1
+    principio = sum(medias[:mitad]) / mitad
+    final = sum(medias[mitad:]) / max(1, len(medias) - mitad)
+    if final - principio > 0.12:
+        forma = "**se va complicando**: la segunda mitad es más dura que la primera"
+    elif principio - final > 0.12:
+        forma = "**se va soltando**: cuesta más al principio que al final"
+    else:
+        forma = "mantiene un nivel **parejo de principio a fin**"
+    return (
+        f"### {datos['titulo']}" + (f" — {datos['autor']}" if datos["autor"] else "")
+        + f"\n\n**{global_:.2f} / 2.00** de media ({scoring.public_band(global_)}), "
+          f"medido leyendo **{datos['ventanas']} ventanas** de 250 palabras "
+          f"sobre {datos['palabras']:,} en total. Aquí no se muestrea: el "
+          f"modelo recorre cada capítulo entero.\n\n"
+        + f"El libro {forma}.\n\n"
+        + f"- Lo más llevadero: **capítulo {facil['capitulo']}** "
+          f"({facil['titulo']}) con {facil['dificultad']:.2f}\n"
+        + f"- Lo más exigente: **capítulo {dificil['capitulo']}** "
+          f"({dificil['titulo']}) con {dificil['dificultad']:.2f}\n"
+        + f"- Recorrido de dificultad entre capítulos: "
+          f"{min(medias):.2f} a {max(medias):.2f}")
+
+
 def _oracion_de(texto: str, palabra: str) -> str:
     """Primera oracion con cuerpo del capitulo que contiene la palabra.
 
@@ -1522,9 +1639,13 @@ def construir() -> gr.Blocks:
                     b_next = gr.Button("Siguiente ›", scale=1)
                 cap_md = gr.Markdown()
                 b_medir = gr.Button("Medir la dificultad de este capítulo")
+                b_analizar = gr.Button("Analizar el libro entero")
                 # Su propio hueco: antes la medicion pisaba la posicion del
                 # capitulo y cambiar de capitulo borraba la medicion.
                 medicion_md = gr.Markdown()
+                analisis_md = gr.Markdown()
+                grafica = gr.BarPlot(x="Capítulo", y="Dificultad", height=260,
+                                     y_lim=[0, 2], title="Dificultad capítulo a capítulo")
                 texto = gr.HTML(_html_lectura(""))
 
                 gr.Markdown("### Consultar una palabra\n"
@@ -1563,6 +1684,8 @@ def construir() -> gr.Blocks:
                 b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
                 b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
                 b_medir.click(_medir, [est_libro, cap], medicion_md)
+                b_analizar.click(_analizar_libro, est_libro,
+                                 [analisis_md, grafica])
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,
                                 [ficha, audio_web, audio_local])
