@@ -41,8 +41,13 @@ modelo es 0..5. `public_score(y) = clip(y,0,5)*0.4`.
 - `catalogo.Catalogo().buscar(consulta, nivel_lector, n) -> (libros, aviso)` —
   nunca devuelve vacío en silencio. **El catálogo son 1197 libros, no 12752**:
   `wc -l` engaña porque el campo `hook` lleva saltos de línea entrecomillados.
-  Cuéntalo con pandas. Que el 60% sea A1 es deliberado (cuentos graduados de
-  StoryWeaver junto a los clásicos de Gutenberg), no un fallo de etiquetado.
+  Cuéntalo con pandas. **Corrección:** antes decía aquí que el sesgo hacia A1
+  era deliberado. Era una suposición mía y es falsa. Las etiquetas salieron
+  del modelo v1 aplicado a las primeras ~190 palabras de cada obra, con
+  cortes CEFR por cuantiles; el propio cuaderno del proyecto concluyó que esa
+  correspondencia no se sostiene. Reparto real: A1 723, A2 185, B1 69, B2 52,
+  C1 53, C2 115. El tramo B1-B2, donde está la mayoría de los lectores, son
+  121 libros de 1.197.
 - `lexicon.ConsultorLexico().consultar(palabra, oracion, nivel) -> ResultadoLexico`
   — nunca lanza por falta de red o clave; lo que falte va en `.avisos`.
 - `voz.practicar(ruta_audio, frase) -> SesionVoz`

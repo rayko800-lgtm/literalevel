@@ -1,5 +1,9 @@
 """Verifica que el pipeline local reproduce la validacion externa de Colab.
 
+Uso:  python -X utf8 validar_local.py [carpeta_con_los_pdf]
+El modelo se busca en ./modelo_v4 o en LITERALEVEL_MODELO; el corpus en
+el argumento, en LITERALEVEL_CORPUS o en ~/Downloads.
+
 Usa los PDFs de British Council de Downloads, con el nivel en el nombre.
 Replica el anclaje de ll_paso_30.py ("Reading text" .. "Tasks") para quedarse
 solo con el cuerpo del articulo.
@@ -31,12 +35,23 @@ def cuerpo(lineas):
     return " ".join(utiles) or None
 
 
-p = Puntuador(r"C:/Users/laura/literalevel/modelo_v4")
+# Sin rutas clavadas a una maquina concreta: el profesor clona el repo y
+# tiene que poder ejecutarlo. Se admiten variables de entorno y argumentos.
+RUTA_MODELO = os.environ.get("LITERALEVEL_MODELO",
+                             os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                          "modelo_v4"))
+CORPUS = (sys.argv[1] if len(sys.argv) > 1
+          else os.environ.get("LITERALEVEL_CORPUS",
+                              os.path.join(os.path.expanduser("~"), "Downloads")))
+if not os.path.isdir(RUTA_MODELO):
+    sys.exit(f"No encuentro el modelo en {RUTA_MODELO}. "
+             "Ponlo en ./modelo_v4 o define LITERALEVEL_MODELO.")
+p = Puntuador(RUTA_MODELO)
 print("modelo v4 cargado\n")
 
 por_nivel = {}
 saltados = 0
-for ruta in sorted(glob.glob(r"C:/Users/laura/Downloads/*LearnEnglish-Reading*.pdf")):
+for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))):
     m = RE_NIVEL.search(os.path.basename(ruta))
     if not m:
         continue

@@ -1,4 +1,7 @@
 """Pruebas de humo: la logica de bloques y escala no necesita el modelo."""
+import os
+import tempfile
+from pathlib import Path
 import sys, importlib.util, re
 import numpy as np
 
@@ -18,7 +21,20 @@ def cargar(nombre, ruta):
 sc = cargar("scoring", "app/scoring.py")
 rd = cargar("reader", "app/reader.py")
 
-libro = rd.cargar(r"C:/Users/laura/Downloads/dokumen.pub_notes-from-a-dead-house.epub")
+# Sin rutas clavadas a una maquina concreta: si no hay libro a mano, se genera
+# uno. Estas pruebas tienen que correr en el ordenador del profesor tambien.
+_LIBRO = os.environ.get("LITERALEVEL_LIBRO_PRUEBA") or next(
+    (str(c) for c in (
+        Path.home() / ".literalevel" / "libros" / "pg11.epub",
+        Path.home() / "Downloads" / "dokumen.pub_notes-from-a-dead-house.epub",
+    ) if c.exists()), None)
+if _LIBRO is None:
+    _LIBRO = str(Path(tempfile.mkdtemp()) / "libro.txt")
+    _p = ("The prison stood at the edge of the fortress, right by the rampart. "
+          "You could look at the world through the chinks in the fence, and "
+          "the sentries paced up and down the wall by day and by night. ")
+    Path(_LIBRO).write_text("CHAPTER I\n\n" + _p * 14, encoding="utf-8")
+libro = rd.cargar(_LIBRO)
 cap = max(libro.capitulos, key=lambda c: c.palabras)
 print(f"libro    : {libro.titulo} — {libro.autor}")
 print(f"capitulo : {cap.titulo[:45]} ({cap.palabras:,} palabras)")

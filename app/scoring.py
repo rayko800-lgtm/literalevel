@@ -150,11 +150,20 @@ class Puntuador:
         return [float(v) for v in np.clip(np.atleast_1d(salida), 0, 5)]
 
     def puntuar(self, texto: str) -> Resultado:
-        """Puntua un texto. Lanza ValueError si no es prosa continua valida."""
-        limpio = normalize(texto)
-        ok, motivo = continuous_prose(limpio)
+        """Puntua un texto. Lanza ValueError si no es prosa continua valida.
+
+        **El filtro va sobre el texto CRUDO, antes de normalizar.** Antes se
+        normalizaba primero, y `normalize` colapsa todos los espacios en uno:
+        `continuous_prose` recibia siempre una sola linea, asi que sus dos
+        comprobaciones de maquetado -dos o mas vinetas, seis o mas lineas- no
+        podian dispararse jamas. El detector de listas, menus y tablas era
+        codigo muerto en produccion, y una carta de menu de 432 palabras se
+        puntuaba como si fuera prosa. Normalizar despues, solo para trocear.
+        """
+        ok, motivo = continuous_prose(texto)
         if not ok:
             raise ValueError(_MOTIVOS.get(motivo, motivo))
+        limpio = normalize(texto)
         bloques = fixed_blocks(limpio)
         if not bloques:
             raise ValueError(_MOTIVOS["corto"])
