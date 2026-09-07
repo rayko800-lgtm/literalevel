@@ -248,6 +248,43 @@ prueba("html incrustado en la frase",
        lambda: "&lt;" in ui._palabras_html(
            ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello", "hello"), True))
 
+titulo("Freno de gasto por IP")
+
+
+class _Pet:
+    def __init__(self, ip=None, host=None):
+        self.headers = {"x-forwarded-for": ip} if ip else {}
+        self.client = type("c", (), {"host": host})() if host else None
+
+
+prueba("saca la IP de x-forwarded-for",
+       lambda: ui._ip(_Pet(ip="203.0.113.7, 10.0.0.1")))
+prueba("cae al host del cliente si no hay cabecera",
+       lambda: ui._ip(_Pet(host="198.51.100.9")))
+prueba("sin peticion no revienta", lambda: ui._ip(None))
+prueba("cabeceras raras no rompen", lambda: ui._ip(_Pet(ip=None, host=None)))
+prueba("el tope se respeta",
+       lambda: sum(ui._dentro_del_limite(_Pet(ip="10.1.1.1"), "p1", 4)
+                   for _ in range(9)))
+prueba("una IP no consume la cuota de otra",
+       lambda: (all(ui._dentro_del_limite(_Pet(ip="10.2.2.2"), "p2", 2)
+                    for _ in range(2)),
+                ui._dentro_del_limite(_Pet(ip="10.3.3.3"), "p2", 2)))
+prueba("tope 0 significa sin limite",
+       lambda: all(ui._dentro_del_limite(_Pet(ip="10.4.4.4"), "p3", 0)
+                   for _ in range(200)))
+prueba("cubos distintos no se mezclan",
+       lambda: (ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "lexico", 1),
+                ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "voz", 1)))
+prueba("el mensaje de limite existe en los dos idiomas",
+       lambda: (len(ui._mensaje_limite("es", 60)) > 40,
+                len(ui._mensaje_limite("en", 60)) > 40))
+prueba("consultar por encima del tope no llama a OpenAI",
+       lambda: consulta(None, None, None, "word", "A sentence with the word.",
+                        "es", _Pet(ip="10.6.6.6"))[0][:40]
+       if not all(ui._dentro_del_limite(_Pet(ip="10.6.6.6"), "lexico", 0)
+                  for _ in range(1)) else "tope generoso, no aplica")
+
 titulo("Datos de cada lector, no de todos")
 
 

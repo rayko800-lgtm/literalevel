@@ -31,6 +31,7 @@ import os
 import re
 import sys
 import threading
+import time
 from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
@@ -99,6 +100,70 @@ def _dir_lector(peticion=None) -> Path:
     h = getattr(peticion, "session_hash", None) if peticion is not None else None
     limpio = _SESION_SEGURA.sub("", str(h))[:64] if h else ""
     return BASE_DATOS_LECTOR / "lectores" / (limpio or "anonimo")
+
+
+# --- Freno de gasto: cuantas veces por hora puede costar dinero -----------
+# Cada consulta lexica puede llamar a gpt-5 y generar audio con tts-1, y cada
+# practica de voz usa whisper-1, gpt-5 y tts-1. Todo eso lo paga la clave del
+# dueño. Recortar las entradas abarata el peor caso; esto lo *frena*.
+#
+# Los limites son por IP y por hora, generosos para leer de verdad -treinta
+# palabras consultadas en una hora es mucha lectura- y estrechos para un bot.
+# Las acciones que no cuestan dinero (leer, buscar, medir un capitulo) no se
+# limitan: son locales.
+
+LIMITE_CONSULTAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_CONSULTAS", "30"))
+LIMITE_VOZ_HORA = int(os.environ.get("LITERALEVEL_LIMITE_VOZ", "10"))
+_VENTANA = 3600.0
+
+_gasto: dict[str, list[float]] = {}
+_CANDADO_GASTO = threading.Lock()
+
+
+def _ip(peticion) -> str:
+    """La IP del visitante. Detras de un proxy viene en x-forwarded-for."""
+    if peticion is None:
+        return "local"
+    cabeceras = getattr(peticion, "headers", None) or {}
+    try:
+        reenviada = cabeceras.get("x-forwarded-for")
+    except AttributeError:
+        reenviada = None
+    if reenviada:
+        return str(reenviada).split(",")[0].strip()[:64]
+    cliente = getattr(peticion, "client", None)
+    return str(getattr(cliente, "host", None) or "desconocida")[:64]
+
+
+def _dentro_del_limite(peticion, cubo: str, tope: int) -> bool:
+    """Consume una ficha del cubo. False si ya no quedan en esta hora."""
+    if tope <= 0:
+        return True                        # 0 o negativo = sin limite
+    clave = f"{cubo}:{_ip(peticion)}"
+    ahora = time.time()
+    with _CANDADO_GASTO:
+        marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]
+        if len(marcas) >= tope:
+            _gasto[clave] = marcas
+            return False
+        marcas.append(ahora)
+        _gasto[clave] = marcas
+        # Limpieza barata: sin esto el diccionario crece con cada IP nueva.
+        if len(_gasto) > 5000:
+            for k in [k for k, v in _gasto.items()
+                      if not any(ahora - t < _VENTANA for t in v)]:
+                del _gasto[k]
+    return True
+
+
+def _mensaje_limite(idioma: str, minutos: int) -> str:
+    if idioma == "en":
+        return (f"You have reached this hour's limit of paid lookups. "
+                f"Try again in about {minutos} minutes. Reading, searching and "
+                f"measuring a chapter keep working: they cost nothing.")
+    return (f"Has llegado al límite de consultas de esta hora. Vuelve a "
+            f"intentarlo en unos {minutos} minutos. Leer, buscar y medir un "
+            f"capítulo siguen funcionando: no cuestan nada.")
 
 
 def _archivo_lector(nombre: str, peticion=None) -> str:
@@ -798,6 +863,10 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         oracion = palabra
         origen = "sin contexto: la desambiguación será peor"
 
+    if not _dentro_del_limite(peticion, "lexico", LIMITE_CONSULTAS_HORA):
+        yield _aviso(_mensaje_limite(idioma, 60)), "", None
+        return
+
     nivel = p.nivel if p is not None else NIVEL_POR_DEFECTO
     try:
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma)
@@ -892,6 +961,8 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         return "", "Escribe la frase que vas a leer en voz alta.", None
     if not ruta_audio:
         return "", "Graba tu voz con el micrófono (o sube un audio).", None
+    if not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
+        return "", _aviso(_mensaje_limite("es", 60)), None
     try:
         # Los fallos se registran aparte, en la base de ESTE lector: las
         # palabras que a uno se le atragantan no son asunto de los demas.
