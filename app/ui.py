@@ -46,6 +46,7 @@ import gradio as gr
 import biblioteca
 import config
 import cuaderno
+import ficha as ficha
 import perfil as perfil_mod
 import reader
 import scoring
@@ -857,7 +858,7 @@ def _medir(libro, idx):
     else:
         yield "Midiendo el capítulo…"
     try:
-        r = puntuador().puntuar(c.texto)
+        r = puntuador().puntuar(ficha.sin_licencia(c.texto))
     except (ValueError, FileNotFoundError) as e:
         yield _aviso(e)
         return
@@ -872,7 +873,11 @@ RUTA_ANALISIS = BASE_DATOS_LECTOR / "analisis"
 def _clave_libro(libro) -> str:
     """Identifica un libro por su contenido, no por el nombre del archivo."""
     import hashlib
-    h = hashlib.sha256(f"{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
+    # La version entra en la clave: al empezar a recortar la licencia de
+    # Gutenberg antes de puntuar, los analisis ya guardados dejaron de ser
+    # comparables con los nuevos. Sin esto seguirian sirviendose los viejos.
+    h = hashlib.sha256(
+        f"v2-sin-licencia\x1f{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
     for c in libro.capitulos[:40]:
         h.update(f"{c.titulo}\x1f{c.palabras}".encode("utf-8"))
     return h.hexdigest()[:20]
@@ -929,7 +934,7 @@ def _analizar_libro(libro, peticion: gr.Request = None):
             yield (f"Leyendo el libro entero con el modelo v4: capítulo "
                    f"**{n} de {len(cuerpo)}**… Esto se calcula una sola vez y "
                    f"luego queda guardado."), None
-            vs = p.perfil_de_texto(c.texto)
+            vs = p.perfil_de_texto(ficha.sin_licencia(c.texto))
             if not vs:
                 continue
             ventanas += len(vs)
@@ -945,6 +950,103 @@ def _analizar_libro(libro, peticion: gr.Request = None):
         _guardar_analisis(libro, datos)
 
     yield _resumen_analisis(datos), _grafica_analisis(datos)
+
+
+def _ficha_libro(libro, p=None) -> str:
+    """Como es de leer este libro. Se calcula contando, asi que es instantaneo.
+
+    Sale solo al abrir el libro y no cuesta nada: no hay red, no hay modelo, no
+    hay nada que pueda fallar salvo que el libro este vacio. Lo que si depende
+    del lector es el tiempo estimado, porque leer por encima de tu nivel no es
+    la misma velocidad que leer por debajo.
+    """
+    if libro is None or not libro.capitulos:
+        return ""
+    try:
+        c = ficha.caracteristicas(libro)
+    except Exception:
+        return ""          # una ficha es un adorno; jamas puede tapar el libro
+    if not c.palabras:
+        return ""
+    # Sin nivel del lector no se puede decir si el libro le queda cuesta
+    # arriba, asi que se dan las dos velocidades en vez de elegir una al azar.
+    if p is None:
+        tiempo = (f"entre {ficha.reloj(c.minutos(False))} y "
+                  f"{ficha.reloj(c.minutos(True))} de lectura")
+    else:
+        guardado = _analisis_guardado(libro)
+        nivel_libro = (sum(f["dificultad"] for f in guardado["filas"])
+                       / len(guardado["filas"])) if guardado else None
+        exigente = nivel_libro is not None and nivel_libro > p.nivel + 0.15
+        tiempo = ficha.reloj(c.minutos(exigente))
+        tiempo += (" (va por encima de tu nivel)" if exigente
+                   else " a tu ritmo de lectura")
+    lineas = [
+        "#### Cómo es de leer",
+        f"- **{c.palabras:,} palabras** en {c.capitulos} "
+        f"{'capítulo' if c.capitulos == 1 else 'capítulos'} · {tiempo}",
+        f"- Frases de **{c.frase_media:.0f} palabras** de media",
+        f"- Diálogo: **{c.dialogo * 100:.0f}%** de las frases llevan voz — "
+        f"{c.forma_del_dialogo}",
+        f"- Variedad de vocabulario: **{c.riqueza * 100:.1f}** palabras "
+        f"distintas por cada 100",
+    ]
+    if c.distintivas:
+        lineas.append("- Lo que más se repite: "
+                      + ", ".join(f"`{w}`" for w in c.distintivas[:10]))
+    lineas.append("\n_Todo esto está contado sobre el texto del archivo, "
+                  "no lo dice ningún modelo._")
+    return "\n".join(lineas)
+
+
+def _sinopsis_guardada(libro):
+    try:
+        ruta = RUTA_ANALISIS / f"{_clave_libro(libro)}-sinopsis.json"
+        return json.loads(ruta.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _de_que_trata(libro):
+    """Resumen en espanol de que va el libro. Es lo unico de la ficha que sale
+    a la red, asi que va detras de un boton y se guarda: un libro se resume una
+    vez y ya. Generadora, porque tarda unos segundos.
+    """
+    if libro is None or not libro.capitulos:
+        yield "Abre un libro primero."
+        return
+    datos = _sinopsis_guardada(libro)
+    if datos is None:
+        cliente = consultor()._cliente()
+        if cliente is None:
+            yield ("Para el resumen hace falta la clave de OpenAI. Todo lo "
+                   "demás de la ficha —lo que está contado sobre el texto— "
+                   "ya lo tienes arriba y no necesita clave.")
+            return
+        yield "Leyendo pasajes del principio, del medio y del final…"
+        datos = ficha.sinopsis(libro, cliente)
+        if datos is None:
+            yield ("No pude preparar el resumen ahora mismo. Vuelve a "
+                   "intentarlo; el resto de la ficha no depende de esto.")
+            return
+        try:
+            RUTA_ANALISIS.mkdir(parents=True, exist_ok=True)
+            (RUTA_ANALISIS / f"{_clave_libro(libro)}-sinopsis.json").write_text(
+                json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
+    partes = ["#### De qué trata", datos.get("de_que_trata", "").strip()]
+    temas = [t for t in (datos.get("temas") or []) if str(t).strip()]
+    if temas:
+        partes.append("**Temas:** " + " · ".join(str(t) for t in temas))
+    if datos.get("para_quien", "").strip():
+        partes.append(f"**Para quién:** {datos['para_quien'].strip()}")
+    if datos.get("aviso", "").strip():
+        partes.append(f"**Antes de empezar:** {datos['aviso'].strip()}")
+    partes.append("\n_Resumen escrito por un modelo de lenguaje a partir de "
+                  "pasajes del propio archivo. Las cifras de arriba no: esas "
+                  "están contadas._")
+    yield "\n\n".join(partes)
 
 
 def _grafica_analisis(datos):
@@ -1739,6 +1841,14 @@ def construir() -> gr.Blocks:
                     cap = gr.Dropdown(label="Capítulo", choices=[], scale=4)
                     b_next = gr.Button("Siguiente ›", scale=1)
                 cap_md = gr.Markdown()
+                # La ficha aparece sola al abrir: esta contada, es instantanea
+                # y no cuesta nada. Lo de abajo son los dos botones que si
+                # tardan -uno lee el libro entero con el modelo, el otro pide
+                # el resumen a OpenAI- y por eso hay que pedirlos.
+                with gr.Accordion("Ficha del libro", open=True):
+                    ficha_md = gr.Markdown()
+                    b_trata = gr.Button("¿De qué trata? (resumen)")
+                    sinopsis_md = gr.Markdown()
                 b_medir = gr.Button("Medir la dificultad de este capítulo")
                 b_analizar = gr.Button("Analizar el libro entero")
                 # Su propio hueco: antes la medicion pisaba la posicion del
@@ -1787,6 +1897,12 @@ def construir() -> gr.Blocks:
                 b_medir.click(_medir, [est_libro, cap], medicion_md)
                 b_analizar.click(_analizar_libro, est_libro,
                                  [analisis_md, grafica])
+                # Va colgado del State y no de `archivo`, para que la ficha
+                # salga tambien cuando el libro llega del buscador y no de una
+                # subida. Lo unico que los dos caminos comparten es este State.
+                est_libro.change(_ficha_libro, [est_libro, est_perfil], ficha_md)
+                est_libro.change(lambda: "", None, sinopsis_md)
+                b_trata.click(_de_que_trata, est_libro, sinopsis_md)
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,
                                 [ficha, audio_web, audio_local])

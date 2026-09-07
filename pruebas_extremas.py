@@ -22,6 +22,8 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, "app")
+import ficha as ficha_mod  # noqa: E402
+import reader  # noqa: E402
 import ui  # noqa: E402
 
 FALLOS: list[str] = []
@@ -621,6 +623,27 @@ prueba("seguir con ruta muerta",
 prueba("olvidar un libro",
        lambda: (biblioteca.olvidar("a", _BIB),
                 [e.ruta for e in biblioteca.listar(_BIB)])[1])
+
+
+titulo("Ficha del libro")
+
+prueba("ficha de None", lambda: ui._ficha_libro(None))
+prueba("ficha sin capitulos",
+       lambda: ui._ficha_libro(reader.Libro("t", "a", [])))
+prueba("ficha de un capitulo vacio",
+       lambda: ui._ficha_libro(reader.Libro("t", "a", [reader.Capitulo("I", "")])))
+prueba("ficha de texto basura",
+       lambda: ui._ficha_libro(reader.Libro("t", "a",
+                                            [reader.Capitulo("I", chr(0) * 500)])))
+prueba("de que trata sin libro", lambda: list(ui._de_que_trata(None))[-1][:40])
+prueba("de que trata con libro vacio",
+       lambda: list(ui._de_que_trata(reader.Libro("t", "a", [])))[-1][:40])
+prueba("sinopsis guardada de un libro inexistente",
+       lambda: ui._sinopsis_guardada(reader.Libro("t", "a",
+                                                  [reader.Capitulo("I", "x")])))
+prueba("sin_licencia con None dentro", lambda: ficha_mod.sin_licencia(""))
+prueba("reloj con cero", lambda: ficha_mod.reloj(0))
+prueba("reloj con un numero enorme", lambda: ficha_mod.reloj(10 ** 7))
 
 # --- Resultado ------------------------------------------------------------
 
