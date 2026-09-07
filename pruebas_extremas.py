@@ -240,6 +240,43 @@ prueba("html incrustado en la frase",
        lambda: "&lt;" in ui._palabras_html(
            ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello", "hello"), True))
 
+titulo("Datos de cada lector, no de todos")
+
+
+class _Peticion:
+    def __init__(self, h): self.session_hash = h
+
+
+def _con_nube(fn):
+    """Ejecuta algo como si la app estuviera desplegada."""
+    antes = ui.EN_LA_NUBE
+    ui.EN_LA_NUBE = True
+    try:
+        return fn()
+    finally:
+        ui.EN_LA_NUBE = antes
+
+
+prueba("en local no se parte lo ya guardado",
+       lambda: ui._dir_lector(_Peticion("x")) == ui.BASE_DATOS_LECTOR)
+prueba("desplegada, una carpeta por sesion",
+       lambda: _con_nube(lambda: ui._dir_lector(_Peticion("abc123")).name))
+prueba("dos sesiones no comparten carpeta",
+       lambda: _con_nube(lambda: ui._dir_lector(_Peticion("aaa"))
+                         != ui._dir_lector(_Peticion("bbb"))))
+prueba("session_hash con ../ no escapa",
+       lambda: _con_nube(lambda: (
+           ui.BASE_DATOS_LECTOR / "lectores") in ui._dir_lector(
+               _Peticion("../../etc/passwd")).parents))
+prueba("session_hash vacio cae en 'anonimo'",
+       lambda: _con_nube(lambda: ui._dir_lector(_Peticion("")).name))
+prueba("sin peticion tampoco revienta",
+       lambda: _con_nube(lambda: ui._dir_lector(None).name))
+prueba("session_hash larguisimo se recorta",
+       lambda: _con_nube(lambda: len(ui._dir_lector(_Peticion("z" * 500)).name)))
+prueba("session_hash raro no deja el nombre vacio",
+       lambda: _con_nube(lambda: ui._dir_lector(_Peticion("///")).name))
+
 titulo("Cuaderno de palabras")
 
 import cuaderno  # noqa: E402

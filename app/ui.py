@@ -72,6 +72,42 @@ TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
 # que escribiera la ruta, y los nombres estan en este mismo repositorio.
 RUTAS_PERMITIDAS = [os.path.join(os.path.expanduser("~"), ".literalevel", "audio")]
 
+# --- Datos personales: uno por lector, no uno para todos ------------------
+# En local hay un solo lector y todo vive en ~/.literalevel. En un despliegue
+# el proceso es UNO para todos los visitantes, asi que un unico cuaderno.db,
+# perfil.json o sesion.json significa que quien entra ve el libro que subio
+# otro y las palabras que consulto otro. El marcapaginas es el caso mas feo:
+# `demo.load` se ejecuta en cada carga de pagina y pintaria el capitulo del
+# PDF privado del visitante anterior.
+
+BASE_DATOS_LECTOR = Path(os.path.expanduser("~")) / ".literalevel"
+EN_LA_NUBE = bool(os.environ.get("SPACE_ID") or os.environ.get("PORT"))
+_SESION_SEGURA = re.compile(r"[^A-Za-z0-9_-]")
+
+
+def _dir_lector(peticion=None) -> Path:
+    """Carpeta de datos de ESTE lector.
+
+    En local, la de siempre, para no partir en dos lo que ya haya guardado.
+    Desplegada, una por sesion de navegador. No es autenticacion -quien
+    recupere su `session_hash` vuelve a sus datos- pero impide lo que de
+    verdad importa: que un visitante tropiece con lo de otro sin buscarlo.
+    """
+    if not EN_LA_NUBE:
+        return BASE_DATOS_LECTOR
+    h = getattr(peticion, "session_hash", None) if peticion is not None else None
+    limpio = _SESION_SEGURA.sub("", str(h))[:64] if h else ""
+    return BASE_DATOS_LECTOR / "lectores" / (limpio or "anonimo")
+
+
+def _archivo_lector(nombre: str, peticion=None) -> str:
+    d = _dir_lector(peticion)
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    return str(d / nombre)
+
 
 # --- Aspecto: hielo sobre espacio ----------------------------------------
 # Azul de iceberg -claro arriba, profundo abajo- sobre negro espacial con
@@ -190,24 +226,24 @@ def _describir(p) -> str:
     return perfil_mod.describir(p)
 
 
-def _desde_cuestionario(p_actual, nombre, *valores):
+def _desde_cuestionario(p_actual, nombre, *valores, peticion: gr.Request = None):
     claves = [c for c, _, _ in perfil_mod.PREGUNTAS]
     respuestas = {k: v for k, v in zip(claves, valores) if v is not None}
     try:
         p = perfil_mod.desde_cuestionario(respuestas, nombre=nombre or "")
-        p.guardar()
+        p.guardar(_archivo_lector("perfil.json", peticion))
     except (ValueError, OSError) as e:
         # Se conserva el perfil anterior: un fallo al estimar no debe borrarlo.
         return p_actual, _aviso(e)
     return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
 
 
-def _desde_muestra(p_actual, nombre, texto):
+def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
     if not (texto or "").strip():
         return p_actual, "Pega un fragmento que leas sin dificultad."
     try:
         p = perfil_mod.desde_muestra(texto, puntuador(), nombre=nombre or "")
-        p.guardar()
+        p.guardar(_archivo_lector("perfil.json", peticion))
     except (ValueError, FileNotFoundError, OSError) as e:
         return p_actual, _aviso(e)
     return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
@@ -315,7 +351,7 @@ def _descargar_gutenberg(id_libro: str) -> str:
     raise ConnectionError(f"No pude descargarlo de Gutenberg: {ultimo}")
 
 
-def _abrir_del_catalogo(id_libro):
+def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
     """Abre en el lector un libro elegido en el buscador, sin salir de la app."""
     vacio = gr.update(choices=[], value=None)
     if not id_libro:
@@ -325,7 +361,7 @@ def _abrir_del_catalogo(id_libro):
         ruta = _descargar_gutenberg(id_libro)
     except (ValueError, ConnectionError) as e:
         return None, vacio, _html_lectura(""), _aviso(e), gr.Tabs()
-    libro, upd, html, resumen = _abrir(ruta)
+    libro, upd, html, resumen = _abrir(ruta, peticion)
     # Solo se salta a la pestana de lectura si de verdad hay algo que leer.
     destino = gr.Tabs(selected="leer") if libro is not None else gr.Tabs()
     return libro, upd, html, resumen, destino
@@ -408,41 +444,65 @@ _RELLENO_RE = re.compile(
     r"further reading|bibliograph|glossar)", re.IGNORECASE)
 
 
-RUTA_SESION = Path(os.path.expanduser("~")) / ".literalevel" / "sesion.json"
+# Se conserva por compatibilidad con lo ya guardado en local y con las
+# pruebas; el marcapaginas real se resuelve por lector con `_ruta_sesion`.
+RUTA_SESION = BASE_DATOS_LECTOR / "sesion.json"
 
 
-def _guardar_sesion(ruta_libro: str, titulo: str, capitulo: int) -> None:
+def _ruta_sesion(peticion=None) -> Path:
+    if not EN_LA_NUBE:
+        return RUTA_SESION
+    return Path(_archivo_lector("sesion.json", peticion))
+
+
+def _guardar_sesion(ruta_libro: str, titulo: str, capitulo: int,
+                    peticion=None) -> None:
     """Deja constancia de por donde ibas. Nunca estorba si falla."""
+    destino = _ruta_sesion(peticion)
     try:
-        RUTA_SESION.parent.mkdir(parents=True, exist_ok=True)
-        RUTA_SESION.write_text(json.dumps(
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        destino.write_text(json.dumps(
             {"ruta": str(ruta_libro), "titulo": titulo, "capitulo": int(capitulo)},
             ensure_ascii=False), encoding="utf-8")
     except OSError:
         pass          # no poder guardar el marcapaginas no puede romper la lectura
 
 
-def _leer_sesion() -> dict | None:
+def _leer_sesion(peticion=None) -> dict | None:
     try:
-        d = json.loads(RUTA_SESION.read_text(encoding="utf-8"))
+        d = json.loads(_ruta_sesion(peticion).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     return d if d.get("ruta") and os.path.exists(d["ruta"]) else None
 
 
-def _reanudar():
+def _perfil_inicial(peticion: gr.Request = None):
+    """El perfil de ESTE lector, al abrir la app.
+
+    No puede resolverse al construir la interfaz: eso ocurre una vez por
+    proceso, y desplegada la app hay un proceso para todos los visitantes.
+    Quien entrara segundo se encontraria con el nombre y el nivel del primero.
+    """
+    p = perfil_mod.cargar(_archivo_lector("perfil.json", peticion))
+    return p, _describir(p)
+
+
+def _reanudar(peticion: gr.Request = None):
     """Al abrir la app, vuelve al libro y al capitulo donde lo dejaste.
 
     Es la mecanica de retencion mas barata que hay: no premia ni castiga, solo
     evita que quien vuelve tenga que reconstruir donde estaba. Si el archivo
     ya no existe, no se dice nada y se empieza limpio.
+
+    Desplegada, el marcapaginas es el de ESTA sesion de navegador. Si no lo
+    fuera, cada visitante abriria la app en el libro del anterior.
     """
     vacio = (None, gr.update(choices=[], value=None), _html_lectura(""), "",
              gr.Tabs())
-    s = _leer_sesion()
+    s = _leer_sesion(peticion)
     if not s:
         return vacio
-    libro, upd, html, resumen = _abrir(s["ruta"])
+    libro, upd, html, resumen = _abrir(s["ruta"], peticion)
     if libro is None:
         return vacio
     idx = s.get("capitulo", 0)
@@ -455,7 +515,7 @@ def _reanudar():
             _html_lectura(c.texto), aviso, gr.Tabs(selected="leer"))
 
 
-def _abrir(archivo):
+def _abrir(archivo, peticion: gr.Request = None):
     vacio = gr.update(choices=[], value=None)
     if not archivo:
         return None, vacio, _html_lectura(""), "Sube un `.epub`, `.pdf` o `.txt`."
@@ -493,7 +553,7 @@ def _abrir(archivo):
     if inicial:
         resumen += (f"\n\n_Empiezo en el capítulo {inicial + 1}: "
                     f"los anteriores son portadilla._")
-    _guardar_sesion(archivo, libro.titulo, inicial)
+    _guardar_sesion(archivo, libro.titulo, inicial, peticion)
     return (libro, gr.update(choices=opciones, value=inicial),
             _html_lectura(libro.capitulos[inicial].texto), resumen)
 
@@ -514,15 +574,15 @@ def _cap(libro, idx):
     return libro.capitulos[i] if 0 <= i < len(libro.capitulos) else None
 
 
-def _capitulo(libro, idx):
+def _capitulo(libro, idx, peticion: gr.Request = None):
     c = _cap(libro, idx)
     if c is None:
         return _html_lectura(""), ""
     # Mueve el marcapaginas. Se conserva la ruta ya guardada y solo se cambia
     # el capitulo, y solo si el marcador es de este mismo libro.
-    s = _leer_sesion()
+    s = _leer_sesion(peticion)
     if s and s.get("titulo") == libro.titulo:
-        _guardar_sesion(s["ruta"], libro.titulo, int(idx))
+        _guardar_sesion(s["ruta"], libro.titulo, int(idx), peticion)
     return (_html_lectura(c.texto),
             f"**{c.titulo}** · {c.palabras:,} palabras · "
             f"capítulo {int(idx) + 1} de {len(libro.capitulos)}")
@@ -683,7 +743,8 @@ def _local(url):
     return None
 
 
-def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es"):
+def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
+               peticion: gr.Request = None):
     palabra = (palabra or "").strip()
     if not palabra:
         return "Escribe la palabra que quieres consultar.", "", None
@@ -716,7 +777,8 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es"):
         oracion=oracion, categoria=r.categoria, sentido=r.sentido,
         libro=(libro.titulo if libro is not None else None),
         capitulo=(int(idx) + 1 if _cap(libro, idx) is not None else None),
-        banda=r.banda_lector, zipf=r.frecuencia_zipf)
+        banda=r.banda_lector, zipf=r.frecuencia_zipf,
+        ruta=_archivo_lector("cuaderno.db", peticion))
 
     contexto = "Contexto" if idioma == "es" else "Context"
     ficha = _ficha(r, idioma) + f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
@@ -788,7 +850,7 @@ def _palabras_html(ev, transcripcion_ok: bool) -> str:
               f'entendió como esa palabra ({len(fallo)}).</span></div>')
 
 
-def _practicar(ruta_audio, frase):
+def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     # Cada practica genera un audio de referencia de pago y nunca acierta en
     # cache (el nombre lleva marca de tiempo), asi que el tope va aqui.
     frase = (frase or "").strip()[:LIMITE_FRASE_VOZ]
@@ -797,7 +859,12 @@ def _practicar(ruta_audio, frase):
     if not ruta_audio:
         return "", "Graba tu voz con el micrófono (o sube un audio).", None
     try:
-        s = voz.practicar(ruta_audio, frase)
+        # Los fallos se registran aparte, en la base de ESTE lector: las
+        # palabras que a uno se le atragantan no son asunto de los demas.
+        s = voz.practicar(ruta_audio, frase, guardar_fallos=False)
+        if s.evaluacion.palabras_falladas and s.transcripcion_ok:
+            voz.registrar_fallos(s.evaluacion.palabras_falladas,
+                                 ruta=_archivo_lector("voz.db", peticion))
     except Exception as e:
         return "", _aviso(e), None
 
@@ -818,9 +885,9 @@ def _practicar(ruta_audio, frase):
             "\n\n".join(L), s.audio_correcto)
 
 
-def _debiles():
+def _debiles(peticion: gr.Request = None):
     try:
-        filas = voz.puntos_debiles(n=15)
+        filas = voz.puntos_debiles(n=15, ruta=_archivo_lector("voz.db", peticion))
     except Exception as e:
         return _aviso(e)
     if not filas:
@@ -832,8 +899,9 @@ def _debiles():
 
 # --- Cuaderno: lo unico que sobrevive a cerrar la app ---------------------
 
-def _mis_palabras():
-    total, lemas, libros = cuaderno.contar()
+def _mis_palabras(peticion: gr.Request = None):
+    db = _archivo_lector("cuaderno.db", peticion)
+    total, lemas, libros = cuaderno.contar(db)
     if not total:
         return ("Todavía no has consultado ninguna palabra.\n\n"
                 "Abre un libro en **Leer**, haz doble clic en una palabra que "
@@ -841,7 +909,7 @@ def _mis_palabras():
                 "encontraste.")
     L = [f"**{lemas}** palabras distintas, en **{total}** consultas "
          f"sobre **{libros}** libro{'s' if libros != 1 else ''}.", ""]
-    for a in cuaderno.ultimas(20):
+    for a in cuaderno.ultimas(20, db):
         donde = f" · {a.libro}" if a.libro else ""
         if a.libro and a.capitulo:
             donde += f", cap. {a.capitulo}"
@@ -854,13 +922,13 @@ def _mis_palabras():
     return "\n\n".join(L)
 
 
-def _repasar():
+def _repasar(peticion: gr.Request = None):
     """Cinco palabras para repasar: las mas raras que has mirado, mas las
     que fallaste al leerlas en voz alta. Sin nota y sin racha: es un
     recordatorio, no un examen."""
-    anotaciones = cuaderno.para_repasar(5)
+    anotaciones = cuaderno.para_repasar(5, _archivo_lector("cuaderno.db", peticion))
     try:
-        debiles = voz.puntos_debiles(n=5)
+        debiles = voz.puntos_debiles(n=5, ruta=_archivo_lector("voz.db", peticion))
     except Exception:
         debiles = []
     if not anotaciones and not debiles:
@@ -915,12 +983,15 @@ def construir() -> gr.Blocks:
     with gr.Blocks(title="LiteraLevel") as demo:
         gr.HTML(_CSS_GLOBAL, elem_id="ll-css")
         gr.Markdown("# LiteraLevel\nLee en inglés al nivel que te toca.")
-        est_perfil = gr.State(perfil_mod.cargar())
+        # Vacio a proposito: lo rellena _perfil_inicial en demo.load, que
+        # si sabe de que lector se trata. Construir la interfaz ocurre una
+        # vez por proceso, no una vez por visitante.
+        est_perfil = gr.State(None)
         est_libro = gr.State(None)
 
         with gr.Tabs() as pestanas:
             with gr.Tab("Mi nivel", id="nivel"):
-                perfil_md = gr.Markdown(_describir(perfil_mod.cargar()))
+                perfil_md = gr.Markdown(_describir(None))
                 nombre = gr.Textbox(label="Tu nombre (opcional)")
                 with gr.Accordion("Cuestionario rápido", open=True):
                     radios = [
@@ -1049,7 +1120,8 @@ def construir() -> gr.Blocks:
         b_abrir.click(_abrir_del_catalogo, elegido,
                       [est_libro, cap, texto, libro_md, pestanas])
 
-        # Al abrir, volver al libro y capitulo donde se dejo la lectura.
+        # Al abrir: primero de quien son los datos, luego donde se quedo.
+        demo.load(_perfil_inicial, None, [est_perfil, perfil_md])
         demo.load(_reanudar, None,
                   [est_libro, cap, texto, libro_md, pestanas])
 

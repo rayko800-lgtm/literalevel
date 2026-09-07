@@ -128,3 +128,25 @@ casos como "free". El ranking enriquecido es interno y `similitud` conserva su
 escala, asi que `AFINIDAD_DUDOSA = 0.35` en `ui.py` sigue siendo valido. Cuando el
 margen entre acepciones baja de 0.05, `lexicon` lo dice en `avisos`; en ese caso
 `ui.py` no repite el aviso.
+
+## Datos personales: uno por lector
+
+En local todo vive en `~/.literalevel`. **Desplegada, la app es un solo proceso
+para todos los visitantes**, asi que `cuaderno.db`, `voz.db`, `perfil.json` y
+`sesion.json` se resuelven por sesion de navegador con `_dir_lector(peticion)`
+(`ui.py`), que usa `gr.Request.session_hash`. Sin eso, quien entraba se
+encontraba el libro que subio otro: `demo.load` corre en cada carga de pagina.
+
+`lexicon.db` **si** se comparte y debe seguir asi: es cache de definiciones, no
+historial, y compartirla ahorra dinero.
+
+Si anades un manejador que escriba o lea datos del lector, dale
+`peticion: gr.Request = None` como ultimo parametro (Gradio lo inyecta solo) y
+saca la ruta con `_archivo_lector("loquesea", peticion)`. No uses rutas fijas.
+
+## Nunca subas el proyecto con upload_folder
+
+`huggingface_hub.upload_folder` **no lee `.gitignore`** (dicho en su propio
+docstring). Un `upload_folder(folder_path=".")` subiria `CLAVES.txt` y `.env` a
+un repositorio publico. El Space se sube con `git push`, o con
+`ignore_patterns=[".env", "CLAVES.txt", "*.env"]` explicito.
