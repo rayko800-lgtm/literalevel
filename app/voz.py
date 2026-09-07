@@ -14,15 +14,17 @@ OPENAI_API_KEY, `transcribir_audio`, `explicar_correccion` y
 que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
-import difflib, hashlib, os, re, sqlite3
+import difflib, hashlib, os, re, sqlite3, tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
 import config
 
 RUTA_DB_POR_DEFECTO = os.path.join(os.path.expanduser("~"), ".literalevel", "voz.db")
+RUTA_AUDIO_GENERADO = Path(os.path.expanduser("~")) / ".literalevel" / "audio"
 
 # Modelos: gpt-4o-mini basta y abarata la explicacion breve; whisper-1 y
 # tts-1 son los unicos disponibles para voz.
@@ -30,6 +32,11 @@ MODELO_TRANSCRIPCION = "whisper-1"
 MODELO_EXPLICACION = "gpt-4o-mini"
 MODELO_VOZ = "tts-1"
 VOZ_POR_DEFECTO = "alloy"
+# Invalida los mp3 creados antes de que la escritura fuera atomica. Un clip
+# corto pero decodificable no se puede separar con certeza de uno correcto;
+# versionar la huella hace que todos se regeneren una vez y evita conservar
+# para siempre un archivo que ya llego recortado.
+VERSION_AUDIO_TTS = "v2-pausa-atomico"
 
 _PUNTUACION_RE = re.compile(r"[^\w\s'-]", re.UNICODE)
 _GUION_SOLO_RE = re.compile(r"(^[-']+|[-']+$)")
@@ -160,6 +167,39 @@ def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles") ->
 
 # --- Respuesta hablada (TTS, necesita red) -----------------------------
 
+def _texto_para_tts(texto: str) -> str:
+    """Anade una pausa final a entradas breves sin cambiar lo pronunciado."""
+    limpio = texto.strip()
+    if limpio and limpio[-1] not in ".,;:!?":
+        limpio += ","
+    return limpio
+
+
+def _ruta_audio_cache(texto: str, voz: str) -> Path:
+    legible = re.sub(r"[^a-z0-9]+", "_", texto.lower())[:40].strip("_") or "frase"
+    clave = hashlib.sha256("\x1f".join(
+        (VERSION_AUDIO_TTS, MODELO_VOZ, voz, texto)).encode("utf-8")).hexdigest()[:24]
+    return RUTA_AUDIO_GENERADO / f"{legible}_{clave}.mp3"
+
+
+def _escribir_audio_atomico(respuesta, ruta: Path) -> None:
+    """Escribe junto al destino y lo publica con un unico `os.replace`."""
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, nombre_temporal = tempfile.mkstemp(
+        dir=str(ruta.parent), prefix=f".{ruta.name}.", suffix=".tmp")
+    os.close(descriptor)
+    temporal = Path(nombre_temporal)
+    try:
+        respuesta.write_to_file(str(temporal))
+        if temporal.stat().st_size == 0:
+            raise OSError("OpenAI devolvio un audio vacio")
+        with temporal.open("ab") as archivo:
+            archivo.flush()
+            os.fsync(archivo.fileno())
+        os.replace(temporal, ruta)
+    finally:
+        temporal.unlink(missing_ok=True)
+
 def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = None,
                            voz: str = VOZ_POR_DEFECTO) -> str | None:
     """Genera un audio con tts-1 de la pronunciacion correcta de `texto`.
@@ -180,15 +220,11 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
     # se devuelve aunque no haya clave ni red.
     reutilizable = None
     if ruta_salida is None:
-        carpeta = os.path.join(os.path.expanduser("~"), ".literalevel", "audio")
-        legible = re.sub(r"[^a-z0-9]+", "_", texto.lower())[:40].strip("_") or "frase"
-        clave = hashlib.sha256(
-            "\x1f".join((MODELO_VOZ, voz, texto)).encode("utf-8")).hexdigest()[:24]
-        reutilizable = os.path.join(carpeta, f"{legible}_{clave}.mp3")
-        if os.path.exists(reutilizable) and os.path.getsize(reutilizable) > 0:
-            return reutilizable
+        reutilizable = _ruta_audio_cache(texto, voz)
+        if reutilizable.is_file() and reutilizable.stat().st_size > 0:
+            return str(reutilizable)
         try:
-            os.makedirs(carpeta, exist_ok=True)
+            reutilizable.parent.mkdir(parents=True, exist_ok=True)
         except OSError:
             return None
         ruta_salida = reutilizable
@@ -197,10 +233,12 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
     if cliente is None:
         return None
     try:
-        respuesta = cliente.audio.speech.create(model=MODELO_VOZ, voice=voz, input=texto,
+        respuesta = cliente.audio.speech.create(model=MODELO_VOZ, voice=voz,
+                                                input=_texto_para_tts(texto),
                                                 response_format="mp3")
-        respuesta.write_to_file(ruta_salida)
-        return str(ruta_salida)
+        destino = Path(ruta_salida)
+        _escribir_audio_atomico(respuesta, destino)
+        return str(destino)
     except Exception:
         return None
 

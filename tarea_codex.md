@@ -1,41 +1,38 @@
-# Tarea para Codex — rehacer el cuestionario de nivel
+# Tarea para Codex — el audio de pronunciación sale cortado
 
-Trabaja en `C:\Users\laura\literalevel`. Lee **`AGENTS.md`** primero: reparto de archivos, contrato entre módulos y trampas del repo.
+Trabaja en `C:\Users\laura\literalevel`. Lee **`AGENTS.md`** primero.
 
-**Tu archivo en esta tarea es `app/perfil.py`.** No toques `app/ui.py` — la interfaz la cableo yo con lo que dejes. Avisa en la primera línea del commit si cambias alguna firma.
+**Tus archivos en esta tarea: `app/lexicon.py` y `app/voz.py`.** No toques `app/ui.py` ni `app/catalogo.py`: estoy dentro de ellos ahora mismo.
 
-## El problema, en palabras del usuario
+## El fallo, reproducido por el usuario en un móvil Android
 
-Miguel probó la app y dijo del cuestionario: *«se me hizo muy básico»*, *«para niveles avanzados sí es rápido… pero alguien que no sabe gramática no entiende eso»*. Quiere algo **más completo y más amigable**, y sugiere **poner fragmentos: "lee esto y dime cuánto entiendes, sé sincero"**.
+Miguel consultó dos palabras y escuchó el audio generado:
 
-Mira `PREGUNTAS` en `app/perfil.py`. Son tres. La tercera dice literalmente *«¿Y las frases largas con varias subordinadas?»* — y ese es el fallo: **un lector normal no sabe qué es una subordinada**. Es un usuario final, no un lingüista.
+- **«pick on»** → el audio dice solo **«pic»**
+- **«fortress»** → el audio dice solo **«fortre»**
 
-## Lo que no se puede romper
+Es decir: el mp3 que genera `tts-1` **está truncado**, le falta el final. No es un problema de reproductor: pasa con palabras distintas y siempre corta por el final.
 
-- El resultado es un número en la **escala pública 0..2**: básico <0.8, intermedio <1.6, avanzado. Anclajes CEFR: A1=0.0, A2=0.4, B1=0.8, B2=1.2, C1=1.6, C2=2.0.
-- `desde_cuestionario(respuestas: dict, nombre="") -> Perfil` **tiene que seguir existiendo y aceptando el mismo tipo de entrada** (clave de pregunta → valor). `ui.py` la llama así, y también `pruebas_extremas.py`.
-- Todo lo que ve el usuario, en **español**. Los fragmentos de lectura, en inglés.
-- `perfil.py` **no puede llamarse `profile.py`** ni importar nada nuevo pesado: se carga al arrancar la app.
+## Por dónde empezar
 
-## Qué hay que dejar hecho, en `app/perfil.py`
+`_generar_audio_tts` en `app/lexicon.py` (alrededor de la línea 512) y `generar_audio_correcto` en `app/voz.py`. Sospechas que merecen comprobación, en este orden:
 
-**1. De 5 a 7 preguntas de opinión**, sin jerga gramatical. Nada de «subordinadas», «cláusulas» ni «tiempos verbales». Pregunta por hechos observables: qué lee y con qué frecuencia, si necesita diccionario, si ve series en inglés sin subtítulos, si ha terminado un libro entero en inglés. Cada una con 4-5 opciones y su valor en la escala 0..2, razonado en un comentario.
+1. **Escritura sin cerrar.** Mira cómo se escribe el archivo (`respuesta.write_to_file(...)` o equivalente) y si el contenido está completamente volcado y cerrado antes de que la ruta se devuelva. Si Gradio sirve el archivo mientras todavía se está escribiendo, el navegador recibe un mp3 a medias.
+2. **La caché por contenido que puse yo.** `generar_audio_correcto` ahora reutiliza el archivo si ya existe, comprobando solo `os.path.getsize(...) > 0`. **Un archivo a medio escribir tiene tamaño mayor que cero**, así que una vez que se guarda truncado, se sirve truncado para siempre. Ojo también a `_generar_audio_tts` en `lexicon.py`, que cachea la ruta en SQLite.
+3. **El texto que se manda.** Comprueba que a la API se le envía la palabra o frase entera, no un fragmento.
 
-**2. Tres o cuatro fragmentos reales de lectura**, en una estructura nueva y exportada (por ejemplo `FRAGMENTOS`), con dificultad escalonada: uno fácil de verdad (A2/B1), uno medio (B2), uno difícil (C1/C2). Cada uno con:
-- el texto exacto, **40-70 palabras**, entendible sin contexto previo
-- obra y autor, **de dominio público** (Project Gutenberg). No inventes citas ni las atribuyas mal
-- su nivel CEFR
-- la pregunta de autoevaluación y sus opciones con valor: *«lo entiendo todo» / «capto la idea, se me escapan palabras» / «me pierdo»*
+Verifica midiendo, no mirando: genera el audio de «fortress» y de «pick on», mira el **tamaño en bytes y la duración real** del mp3, y compáralo con lo que debería durar. Un mp3 de `tts-1` de una palabra ronda los 8 KB; si sale mucho menor, está truncado.
 
-**3. Cómo se combinan** opinión y fragmentos. Mi opinión, discútela si no la compartes: **los fragmentos deberían pesar más**, porque delante de un texto real la gente se autoevalúa mejor que describiéndose. Deja el peso en una constante con nombre.
+## Qué entregar
 
-**4. Que `desde_cuestionario` siga funcionando** aunque solo se respondan algunas preguntas, como ahora.
+1. **El diagnóstico**, dicho con el dato que lo demuestra.
+2. **El arreglo**, con la escritura hecha de forma atómica: escribir a un archivo temporal y renombrar al final. Así un corte a media escritura nunca deja un archivo válido a medias en la caché.
+3. **Limpiar los que ya estén truncados** en `~/.literalevel/audio/`, o hacer que la caché los detecte y los regenere. Si no, Miguel seguirá oyendo «fortre» aunque el código esté bien.
+4. Una prueba que lo cubra, en el estilo de `pruebas_desambiguacion.py`.
 
-## Cómo entregarlo
+## Reglas
 
-- Comenta el porqué de las decisiones, en el estilo del resto del repo: qué problema resuelve cada cosa, no qué hace cada línea.
-- `python -X utf8 pruebas_extremas.py` tiene que seguir dando **118 OK** y `python -X utf8 tests_smoke.py` **TODO OK**. Si algo se rompe ahí, tu cambio rompió el contrato.
-- Añade una prueba tuya que compruebe que las combinaciones extremas dan lo esperado: todo lo más fácil → cerca de 0, todo lo más difícil → cerca de 2.
-- **Haz commit, no hagas push.** Lo reviso antes de subirlo.
-
-Si algo de esto te parece mala idea, dilo en el commit en vez de hacerlo a regañadientes.
+- **No cambies ninguna firma pública** sin decirlo en la primera línea del commit.
+- La degradación elegante sigue vigente: sin clave ni red, nada puede lanzar excepción.
+- `python -X utf8 pruebas_extremas.py` y `python -X utf8 tests_smoke.py` tienen que seguir en verde.
+- **Haz commit, no hagas push.** Si tu sandbox no te deja escribir en `.git`, dilo al final y lo commiteo yo.

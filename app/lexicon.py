@@ -44,6 +44,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -81,6 +82,12 @@ MODELO_OPENAI_POR_DEFECTO = "gpt-5"
 ESFUERZO_RAZONAMIENTO = "low"
 MODELO_TTS = "tts-1"
 VOZ_TTS = "alloy"
+# Cambiar esta version invalida tanto la fila SQLite como el nombre del mp3.
+# Los audios anteriores se generaban con el lema simple ("pick" en vez de
+# "pick on") y tts-1 recortaba a veces el ultimo fonema de entradas muy
+# breves. No se pueden distinguir con fiabilidad de un mp3 corto correcto,
+# asi que todos los anteriores se consideran obsoletos una sola vez.
+VERSION_AUDIO_TTS = "v2-superficie-pausa-atomico"
 
 # Heuristica conservadora, no una probabilidad calibrada de acierto.
 # Se aplica al ranking interno, no a ResultadoLexico.similitud.
@@ -509,16 +516,51 @@ def _pedir_explicacion_openai(
     return respuesta.output_parsed.model_dump()
 
 
+def _texto_para_tts(texto: str) -> str:
+    """Conserva la expresion entera y da a tts-1 un final que pueda cerrar.
+
+    En entradas aisladas tts-1 puede terminar justo tras el ultimo fonema.
+    Una coma final fuerza una pausa breve sin anadir otra palabra al audio.
+    """
+    limpio = texto.strip()
+    if limpio and limpio[-1] not in ".,;:!?":
+        limpio += ","
+    return limpio
+
+
+def _escribir_audio_atomico(respuesta, ruta: Path) -> None:
+    """Publica el mp3 solo despues de que `write_to_file` haya terminado."""
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, nombre_temporal = tempfile.mkstemp(
+        dir=str(ruta.parent), prefix=f".{ruta.name}.", suffix=".tmp")
+    os.close(descriptor)
+    temporal = Path(nombre_temporal)
+    try:
+        respuesta.write_to_file(str(temporal))
+        if temporal.stat().st_size == 0:
+            raise OSError("OpenAI devolvio un audio vacio")
+        # write_to_file ya cerro su descriptor. Este fsync adicional garantiza
+        # que tampoco queda contenido pendiente antes del os.replace atomico.
+        with temporal.open("ab") as archivo:
+            archivo.flush()
+            os.fsync(archivo.fileno())
+        os.replace(temporal, ruta)
+    finally:
+        temporal.unlink(missing_ok=True)
+
+
 def _generar_audio_tts(cliente, palabra: str, destino_dir: Path) -> str:
     """Genera audio de respaldo con tts-1 cuando la BD no trae ninguno.
     Devuelve la ruta del mp3 (se cachea tambien como archivo, ademas de la
     entrada en CacheLexico que evita repetir la llamada)."""
-    destino_dir.mkdir(parents=True, exist_ok=True)
-    nombre = hashlib.sha256(palabra.encode("utf-8")).hexdigest() + ".mp3"
+    texto_tts = _texto_para_tts(palabra)
+    huella = "\x1f".join((VERSION_AUDIO_TTS, MODELO_TTS, VOZ_TTS, texto_tts))
+    nombre = hashlib.sha256(huella.encode("utf-8")).hexdigest() + ".mp3"
     ruta = destino_dir / nombre
     if not ruta.exists():
-        respuesta = cliente.audio.speech.create(model=MODELO_TTS, voice=VOZ_TTS, input=palabra)
-        respuesta.write_to_file(str(ruta))
+        respuesta = cliente.audio.speech.create(
+            model=MODELO_TTS, voice=VOZ_TTS, input=texto_tts, response_format="mp3")
+        _escribir_audio_atomico(respuesta, ruta)
     return str(ruta)
 
 
@@ -607,12 +649,16 @@ class ConsultorLexico:
         # Que falta y que ya estaba guardado.
         falta_audio = not audio_uk and not audio_us
         ruta_audio_cacheada = None
+        texto_audio = palabra_superficie.strip() or lema_buscado
+        partes_cache_audio = (
+            "audio", VERSION_AUDIO_TTS, MODELO_TTS, VOZ_TTS, texto_audio,
+        )
         if falta_audio:
             avisos.append("sin audio en el diccionario")
             if cliente is None:
                 avisos.append("sin OPENAI_API_KEY: no se genero audio de respaldo")
             else:
-                ruta_audio_cacheada = self.cache.obtener_audio("audio", lema_buscado)
+                ruta_audio_cacheada = self.cache.obtener_audio(*partes_cache_audio)
 
         definicion_contextual = explicacion_gramatical = None
         explicacion_adaptada = ejemplo_simplificado = None
@@ -642,7 +688,7 @@ class ConsultorLexico:
             from concurrent.futures import ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=2) as grupo:
                 f_audio = grupo.submit(
-                    _generar_audio_tts, cliente, lema_buscado, RUTA_AUDIO_GENERADO
+                    _generar_audio_tts, cliente, texto_audio, RUTA_AUDIO_GENERADO
                 ) if pedir_audio else None
                 f_expl = grupo.submit(
                     _pedir_explicacion_openai, cliente,
@@ -665,7 +711,7 @@ class ConsultorLexico:
 
         # Ya fuera de los hilos: guardar en la cache y componer el resultado.
         if ruta_audio_nueva:
-            self.cache.guardar_audio(ruta_audio_nueva, "audio", lema_buscado)
+            self.cache.guardar_audio(ruta_audio_nueva, *partes_cache_audio)
         ruta_audio = ruta_audio_nueva or ruta_audio_cacheada
         if ruta_audio:
             audio_uk = audio_us = ruta_audio
