@@ -23,6 +23,12 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
    una medida de nivel fiable libro a libro**, y no deben presentarse como tal.
 3. **Lee.** Lector integrado de epub, pdf y txt. Los libros de Project
    Gutenberg se descargan y se abren dentro de la app, sin salir a por ellos.
+   Al abrir un libro sale su **ficha**: cuánto se tarda en leerlo al ritmo de
+   quien lo abre, cuánto es diálogo, qué palabras se repiten. Todo eso está
+   contado sobre el archivo. Aparte, y detrás de un botón, un resumen de qué
+   trata escrito por un modelo de lenguaje a partir de pasajes del propio
+   libro, marcado como tal. Y **la curva de dificultad capítulo a capítulo**,
+   que sí lee el libro entero con el v4: ahí no se muestrea.
 4. **Explica una palabra.** Doble clic sobre cualquier palabra del texto:
    lema, IPA británica y americana, definición de Wiktionary, el sentido que
    tiene *en esa frase*, la gramática y el audio de pronunciación. En español
@@ -30,8 +36,10 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
 5. **Corrige la pronunciación.** Se lee una frase en voz alta y se marca
    palabra por palabra qué sonó bien y qué no, con el sonido concreto que
    falla y cómo colocar la boca.
-6. **Recuerda.** Vuelve al capítulo donde se dejó la lectura y guarda cada
-   palabra consultada con su frase y su libro.
+6. **Recuerda.** *Mis libros* guarda todos los libros empezados, con la
+   barra de avance y el capítulo por el que iba cada uno, y los reabre ahí
+   mismo. *Mis palabras* guarda cada palabra consultada con su frase y su
+   libro.
 
 ## El modelo
 
@@ -106,13 +114,15 @@ No imprime ni un fragmento de los textos: el corpus tiene derechos.
 | Archivo | Qué hace |
 |---|---|
 | `main.py` | Punto de entrada. **No renombrar a `app.py`**: chocaría con `app/` |
-| `app/ui.py` | La interfaz: seis pestañas en Gradio 6 |
+| `app/ui.py` | La interfaz: siete pestañas en Gradio 6 |
 | `app/scoring.py` | Puntuación de dificultad. Port fiel del v4 |
 | `app/reader.py` | Lector de epub, pdf y txt → capítulos |
 | `app/catalogo.py` | Buscador semántico sobre el catálogo |
 | `app/lexicon.py` | Diccionario Kaikki, IPA, audio y explicación contextual |
 | `app/voz.py` | Tutor de pronunciación (whisper-1 → difflib → tts-1) |
 | `app/cuaderno.py` | Historial de palabras consultadas, con su frase y su libro |
+| `app/biblioteca.py` | Los libros abiertos y por qué capítulo va cada uno |
+| `app/ficha.py` | Ficha del libro: lo que se cuenta, y el resumen de qué trata |
 | `app/perfil.py` | Nivel del lector y rango de lectura recomendado |
 | `app/config.py` | Claves. Nunca las imprime |
 
@@ -124,10 +134,11 @@ torch.
 
 ```bash
 python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # 124 pruebas que intentan romper la interfaz
+python -X utf8 pruebas_extremas.py     # 147 pruebas que intentan romper la interfaz
 python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
 python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
 python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel
+python -X utf8 pruebas_ficha.py        # que los números de la ficha signifiquen algo
 python -X utf8 pruebas_lexicon.py      # diccionario y caché (usa OpenAI)
 python -X utf8 pruebas_voz.py          # ciclo de voz completo (usa OpenAI)
 ```
