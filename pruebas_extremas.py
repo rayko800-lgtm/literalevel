@@ -240,6 +240,40 @@ prueba("html incrustado en la frase",
        lambda: "&lt;" in ui._palabras_html(
            ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello", "hello"), True))
 
+titulo("Cuaderno de palabras")
+
+import cuaderno  # noqa: E402
+
+_CDB = str(TMP / "cuaderno.db")
+
+prueba("base vacia", lambda: (cuaderno.contar(_CDB), cuaderno.ultimas(5, _CDB)))
+prueba("registrar una consulta",
+       lambda: cuaderno.registrar(palabra="fetters", lema="fetter",
+                                  oracion="the convicts were in fetters",
+                                  zipf=2.3, libro="Dead House", capitulo=5,
+                                  ruta=_CDB))
+prueba("palabra vacia se rechaza",
+       lambda: cuaderno.registrar(palabra="", lema="x", oracion="y", ruta=_CDB))
+prueba("oracion en blanco se rechaza",
+       lambda: cuaderno.registrar(palabra="x", lema="x", oracion="   ", ruta=_CDB))
+prueba("ruta imposible no lanza",
+       lambda: (cuaderno.registrar(palabra="a", lema="a", oracion="b",
+                                   ruta="Z:/no/existe/c.db"),
+                cuaderno.contar("Z:/no/existe/c.db"),
+                cuaderno.ultimas(3, "Z:/no/existe/c.db"),
+                cuaderno.para_repasar(3, "Z:/no/existe/c.db")))
+prueba("html y comillas en la frase",
+       lambda: cuaderno.registrar(palabra="<b>", lema="<b>",
+                                  oracion="a \"quoted\" <tag> & more", ruta=_CDB))
+prueba("n negativo o cero no rompe",
+       lambda: (len(cuaderno.ultimas(0, _CDB)), len(cuaderno.para_repasar(-3, _CDB))))
+prueba("repasar agrupa por lema",
+       lambda: (cuaderno.registrar(palabra="fetters", lema="fetter",
+                                   oracion="in fetters again", zipf=2.3, ruta=_CDB),
+                len([a for a in cuaderno.para_repasar(9, _CDB) if a.lema == "fetter"]))[1])
+prueba("rareza sin zipf", lambda: repr(cuaderno.Anotacion(
+    "x", "x", None, None, "o", None, None, None, "2026").rareza))
+
 titulo("Reanudar la sesion")
 
 # El marcapaginas de verdad no se toca: se apunta a uno de usar y tirar.

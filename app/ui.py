@@ -42,6 +42,7 @@ if str(AQUI) not in sys.path:
 import gradio as gr
 
 import config
+import cuaderno
 import perfil as perfil_mod
 import reader
 import scoring
@@ -672,6 +673,15 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es"):
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma)
     except (FileNotFoundError, OSError) as e:
         return _aviso(e), "", None
+    # Al cuaderno, con su frase y su libro: es el unico rastro que queda de
+    # una sesion de lectura. Si no se puede escribir, no pasa nada.
+    cuaderno.registrar(
+        palabra=r.palabra_superficie, lema=r.lema_buscado or r.lema,
+        oracion=oracion, categoria=r.categoria, sentido=r.sentido,
+        libro=(libro.titulo if libro is not None else None),
+        capitulo=(int(idx) + 1 if _cap(libro, idx) is not None else None),
+        banda=r.banda_lector, zipf=r.frecuencia_zipf)
+
     contexto = "Contexto" if idioma == "es" else "Context"
     ficha = _ficha(r, idioma) + f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
     return ficha, _reproductores(r), _local(r.audio_us) or _local(r.audio_uk)
@@ -779,6 +789,57 @@ def _debiles():
     return ("Tus palabras más falladas:\n\n"
             + "\n".join(f"{i + 1}. **{w}** — {n} vez{'es' if n > 1 else ''}"
                         for i, (w, n) in enumerate(filas)))
+
+
+# --- Cuaderno: lo unico que sobrevive a cerrar la app ---------------------
+
+def _mis_palabras():
+    total, lemas, libros = cuaderno.contar()
+    if not total:
+        return ("Todavía no has consultado ninguna palabra.\n\n"
+                "Abre un libro en **Leer**, haz doble clic en una palabra que "
+                "no conozcas y aparecerá aquí, con la frase en la que la "
+                "encontraste.")
+    L = [f"**{lemas}** palabras distintas, en **{total}** consultas "
+         f"sobre **{libros}** libro{'s' if libros != 1 else ''}.", ""]
+    for a in cuaderno.ultimas(20):
+        donde = f" · {a.libro}" if a.libro else ""
+        if a.libro and a.capitulo:
+            donde += f", cap. {a.capitulo}"
+        rareza = f" · {a.rareza}" if a.rareza else ""
+        L.append(f"**{a.palabra}**{rareza}{donde}")
+        L.append(f"> {a.oracion}")
+        if a.sentido:
+            L.append(f"_{a.sentido}_")
+        L.append("")
+    return "\n\n".join(L)
+
+
+def _repasar():
+    """Cinco palabras para repasar: las mas raras que has mirado, mas las
+    que fallaste al leerlas en voz alta. Sin nota y sin racha: es un
+    recordatorio, no un examen."""
+    anotaciones = cuaderno.para_repasar(5)
+    try:
+        debiles = voz.puntos_debiles(n=5)
+    except Exception:
+        debiles = []
+    if not anotaciones and not debiles:
+        return ("No hay nada que repasar todavía. Consulta alguna palabra "
+                "mientras lees, o practica una frase en voz alta.")
+    L = []
+    if anotaciones:
+        L.append("### Del cuaderno")
+        for a in anotaciones:
+            L.append(f"**{a.palabra}** — ¿la recuerdas?")
+            L.append(f"> {a.oracion}")
+            if a.sentido:
+                L.append(f"<details><summary>Ver el sentido</summary>\n\n"
+                         f"{a.sentido}\n\n</details>")
+    if debiles:
+        L.append("### De la práctica en voz alta")
+        L.append(", ".join(f"**{w}** ({n})" for w, n in debiles))
+    return "\n\n".join(L)
 
 
 # --- Punto 6: diagnostico para la demo -----------------------------------
@@ -925,6 +986,18 @@ def construir() -> gr.Blocks:
                 b_practicar.click(_practicar, [mi_audio, frase],
                                   [palabras_html, veredicto, audio_ref])
                 b_debiles.click(_debiles, None, veredicto)
+
+            with gr.Tab("Mis palabras", id="cuaderno"):
+                gr.Markdown("Se llena solo mientras lees. Cada palabra con la "
+                            "frase en la que la encontraste, que es lo que "
+                            "de verdad la fija.")
+                with gr.Row():
+                    b_cuaderno = gr.Button("Ver mis palabras", variant="primary")
+                    b_repasar = gr.Button("Repasa 5")
+                cuaderno_md = gr.Markdown()
+
+                b_cuaderno.click(_mis_palabras, None, cuaderno_md)
+                b_repasar.click(_repasar, None, cuaderno_md)
 
             with gr.Tab("Estado", id="estado"):
                 diag = gr.Markdown()
