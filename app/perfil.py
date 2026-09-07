@@ -75,9 +75,15 @@ def desde_muestra(texto: str, puntuador, nombre: str = "") -> Perfil:
 
 # --- Cuestionario alternativo -----------------------------------------
 # Las preguntas describen conductas que el lector puede recordar sin conocer
-# terminologia gramatical. Los valores siguen los anclajes publicos CEFR
-# (A1=0.0, A2=0.4, B1=0.8, B2=1.2, C1=1.6, C2=2.0); los puntos intermedios
-# reconocen que un habito aislado solo da una aproximacion del nivel.
+# terminologia gramatical. Cada entrada tiene la forma
+# (clave, pregunta, opciones, multiple): la ultima marca permite a la interfaz
+# distinguir las respuestas exclusivas de las que admiten varias opciones.
+# Los valores siguen los anclajes publicos CEFR (A1=0.0, A2=0.4, B1=0.8,
+# B2=1.2, C1=1.6, C2=2.0); los puntos intermedios reconocen que un habito
+# aislado solo da una aproximacion del nivel.
+# Solo `lecturas` es multiple: sus categorias pueden coexistir y su maximo
+# refleja el techo de exposicion. Las demas opciones son grados ordenados de
+# una misma frecuencia, ayuda o logro, por lo que elegir varias seria ambiguo.
 PREGUNTAS = [
     ("frecuencia", "¿Con qué frecuencia lees algo en inglés?", [
         ("Nunca o casi nunca", 0.0),
@@ -85,50 +91,66 @@ PREGUNTAS = [
         ("Varias veces al mes", 0.8),
         ("Varias veces por semana", 1.2),
         ("Casi todos los días", 1.6),
-    ]),
+    ], False),
     ("lecturas", "¿Qué sueles leer en inglés y entender sin traducirlo entero?", [
         ("Todavía casi nada", 0.0),
         ("Mensajes, menús o instrucciones breves", 0.4),
         ("Noticias y artículos sobre temas conocidos", 1.0),
         ("Novelas actuales", 1.4),
         ("Literatura clásica o textos especializados", 2.0),
-    ]),
+    ], True),
     ("diccionario", "Cuando lees una página en inglés, ¿cuánto usas el diccionario?", [
         ("En casi cada oración", 0.0),
         ("Varias veces por párrafo", 0.4),
         ("Unas pocas veces por página", 0.8),
         ("Solo de vez en cuando", 1.4),
         ("Casi nunca", 2.0),
-    ]),
+    ], False),
     ("series", "¿Cómo ves series o películas en inglés?", [
         ("Todavía no logro seguirlas", 0.0),
         ("Con subtítulos en español", 0.4),
         ("Con subtítulos en inglés", 0.8),
         ("Sin subtítulos, si me basta la idea general", 1.4),
         ("Sin subtítulos y entiendo también los detalles", 2.0),
-    ]),
+    ], False),
     ("libro_completo", "¿Has terminado un libro entero en inglés?", [
         ("No lo he intentado", 0.0),
         ("Empecé uno, pero no pude terminarlo", 0.4),
         ("Sí, uno adaptado o de lectura fácil", 0.8),
         ("Sí, una novela actual", 1.4),
         ("Sí, una obra clásica o especializada", 2.0),
-    ]),
+    ], False),
     ("comprension", "Después de leer una página en inglés, ¿qué puedes contar de ella?", [
         ("Me cuesta explicar de qué trataba", 0.0),
         ("La idea general", 0.6),
         ("Los hechos o argumentos principales", 1.0),
         ("También los detalles y las relaciones entre ideas", 1.4),
         ("También lo implícito, el tono o el humor", 2.0),
-    ]),
+    ], False),
 ]
 
 
 # Los fragmentos son citas literales y autocontenidas de las ediciones de
 # Project Gutenberg indicadas en `fuente`. Sus niveles son orientativos: no
 # pretenden certificar CEFR, sino enfrentar al lector con dificultad creciente.
-# "Me pierdo" vale 0 porque no demuestra haber alcanzado el nivel del pasaje;
-# las otras opciones se anclan en el nivel del propio texto.
+# El primer escalon se ancla en el nivel del pasaje. Releer resta poco; captar
+# la idea con huecos situa algo por debajo; necesitar diccionario rebaja mas
+# porque ya no hay comprension autonoma. Perder el hilo vale 0 porque no aporta
+# evidencia de haber alcanzado el nivel del pasaje. La distancia aumenta en los
+# textos dificiles: comprender a medias un C1/C2 si demuestra nivel intermedio.
+_EXPERIENCIAS_FRAGMENTO = (
+    "Lo entiendo con naturalidad, sin necesidad de releer",
+    "Lo entiendo, aunque necesito releer alguna frase",
+    "Capto bien la idea; solo se me escapan palabras sueltas",
+    "Entiendo algunas partes, pero necesitaría el diccionario para seguirlo",
+    "Me pierdo y no logro reconstruir la idea general",
+)
+
+
+def _opciones_fragmento(valores: tuple[float, ...]) -> list[tuple[str, float]]:
+    return list(zip(_EXPERIENCIAS_FRAGMENTO, valores))
+
+
 FRAGMENTOS = [
     {
         "clave": "fragmento_facil",
@@ -144,11 +166,7 @@ FRAGMENTOS = [
         "nivel_cefr": "A2/B1",
         "fuente": "https://www.gutenberg.org/ebooks/11",
         "pregunta": "Lee el fragmento y dime cuánto entiendes. Sé sincero:",
-        "opciones": [
-            ("Lo entiendo todo", 0.8),
-            ("Capto la idea, pero se me escapan palabras", 0.4),
-            ("Me pierdo", 0.0),
-        ],
+        "opciones": _opciones_fragmento((0.8, 0.6, 0.4, 0.2, 0.0)),
     },
     {
         "clave": "fragmento_medio",
@@ -165,11 +183,7 @@ FRAGMENTOS = [
         "nivel_cefr": "B2",
         "fuente": "https://www.gutenberg.org/ebooks/1661",
         "pregunta": "Lee el fragmento y dime cuánto entiendes. Sé sincero:",
-        "opciones": [
-            ("Lo entiendo todo", 1.4),
-            ("Capto la idea, pero se me escapan palabras", 1.0),
-            ("Me pierdo", 0.0),
-        ],
+        "opciones": _opciones_fragmento((1.2, 1.0, 0.8, 0.4, 0.0)),
     },
     {
         "clave": "fragmento_dificil",
@@ -185,11 +199,7 @@ FRAGMENTOS = [
         "nivel_cefr": "C1/C2",
         "fuente": "https://www.gutenberg.org/ebooks/84",
         "pregunta": "Lee el fragmento y dime cuánto entiendes. Sé sincero:",
-        "opciones": [
-            ("Lo entiendo todo", 2.0),
-            ("Capto la idea, pero se me escapan palabras", 1.6),
-            ("Me pierdo", 0.0),
-        ],
+        "opciones": _opciones_fragmento((2.0, 1.8, 1.6, 1.0, 0.0)),
     },
 ]
 
@@ -201,12 +211,23 @@ PESO_FRAGMENTOS = 0.65
 _CLAVES_FRAGMENTOS = frozenset(f["clave"] for f in FRAGMENTOS)
 
 
-def desde_cuestionario(respuestas: dict[str, float], nombre: str = "") -> Perfil:
-    """`respuestas` mapea clave de pregunta -> valor de la opcion elegida."""
-    opinion = [float(v) for k, v in respuestas.items()
-               if v is not None and k not in _CLAVES_FRAGMENTOS]
-    fragmentos = [float(v) for k, v in respuestas.items()
-                  if v is not None and k in _CLAVES_FRAGMENTOS]
+def _valor_respuesta(valor: float | list[float] | None) -> float | None:
+    """Normaliza una respuesta; en seleccion multiple conserva el techo."""
+    if isinstance(valor, list):
+        elegidos = [float(elemento) for elemento in valor
+                    if elemento is not None]
+        return max(elegidos) if elegidos else None
+    return float(valor) if valor is not None else None
+
+
+def desde_cuestionario(
+        respuestas: dict[str, float | list[float] | None],
+        nombre: str = "") -> Perfil:
+    """Estima el nivel con valores escalares o listas de opciones elegidas."""
+    normalizadas = ((k, _valor_respuesta(v)) for k, v in respuestas.items())
+    valores = [(k, v) for k, v in normalizadas if v is not None]
+    opinion = [v for k, v in valores if k not in _CLAVES_FRAGMENTOS]
+    fragmentos = [v for k, v in valores if k in _CLAVES_FRAGMENTOS]
     if not opinion and not fragmentos:
         raise ValueError("Responde al menos una pregunta para estimar tu nivel.")
 

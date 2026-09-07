@@ -9,7 +9,7 @@ huella del archivo: si el catalogo cambia, la cache se invalida sola y se
 recalcula. Es imposible que queden desincronizados.
 """
 from __future__ import annotations
-import hashlib, os
+import difflib, hashlib, os, re, unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -100,6 +100,56 @@ def _huella(ruta: Path) -> str:
     return h.hexdigest()[:16]
 
 
+_PARECIDO_NOMBRE = 0.75     # "chejov" vs "chekhov" da 0.77: por debajo
+                            # de esto ya son nombres distintos
+_PESO_NOMBRE = 0.85         # cuanto vale un nombre acertado frente al tema
+
+
+def _normalizar(t: str) -> str:
+    """Minusculas y sin acentos, para comparar nombres entre idiomas."""
+    t = unicodedata.normalize("NFD", str(t).lower())
+    return "".join(c for c in t if unicodedata.category(c) != "Mn")
+
+
+def _fichas(textos: list[str]) -> list[set[str]]:
+    return [{p for p in re.split(r"[^a-z0-9]+", _normalizar(t)) if len(p) >= 4}
+            for t in textos]
+
+
+def _similitud_nombres(consulta: str, fichas: list[set[str]]) -> np.ndarray:
+    """Cuanto se parece la consulta al titulo o al autor, letra a letra.
+
+    La busqueda semantica entiende de temas, no de ortografia. Un nombre
+    transliterado a la espanola -"dostoyevski" por "Dostoyevsky", "Chejov"
+    por "Chekhov"- no se parece nada al original en el espacio de embeddings,
+    y quien escribe el nombre de un autor espera encontrar sus libros. Esto
+    lo rescata sin estorbar a las busquedas por tema: solo puntua cuando hay
+    un parecido casi exacto con alguna palabra del titulo o del autor.
+    """
+    pistas = [p for p in re.split(r"[^a-z0-9]+", _normalizar(consulta)) if len(p) >= 4]
+    if not pistas:
+        return np.zeros(len(fichas), dtype=np.float32)
+    fuera = np.zeros(len(fichas), dtype=np.float32)
+    cache: dict[tuple[str, str], float] = {}
+    for i, ficha in enumerate(fichas):
+        mejor = 0.0
+        for pista in pistas:
+            for palabra in ficha:
+                # Descarte barato antes de la comparacion cara: longitudes muy
+                # distintas o inicial distinta nunca dan un parecido alto.
+                if abs(len(palabra) - len(pista)) > 3 or palabra[0] != pista[0]:
+                    continue
+                clave = (pista, palabra)
+                r = cache.get(clave)
+                if r is None:
+                    r = difflib.SequenceMatcher(None, pista, palabra).ratio()
+                    cache[clave] = r
+                if r > mejor:
+                    mejor = r
+        fuera[i] = mejor
+    return fuera
+
+
 class Catalogo:
     def __init__(self, ruta_csv: str | os.PathLike = CSV_POR_DEFECTO):
         self.ruta = Path(ruta_csv)
@@ -109,6 +159,7 @@ class Catalogo:
                                                  "author": "", "nivel_cefr": ""})
         self._emb: np.ndarray | None = None
         self._modelo = None
+        self._fichas: list[set[str]] | None = None
 
     # --- embeddings ---------------------------------------------------
     def _texto_indexable(self) -> list[str]:
@@ -162,6 +213,16 @@ class Catalogo:
 
         v = self._modelo_emb().encode([consulta], normalize_embeddings=True)[0]
         sim = self.embeddings @ v
+
+        # Rescate por nombre: si la consulta se parece casi exactamente al
+        # titulo o al autor de un libro, ese libro sube aunque el tema no
+        # case. Es lo que hace que "dostoyevski" encuentre a Dostoyevsky.
+        if self._fichas is None:
+            self._fichas = _fichas(
+                (self.df["title"].astype(str) + " " + self.df["author"].astype(str)).tolist())
+        lex = _similitud_nombres(consulta, self._fichas)
+        sim = np.maximum(sim, np.where(lex >= _PARECIDO_NOMBRE,
+                                       lex * _PESO_NOMBRE, 0.0))
 
         if nivel_lector is None:
             total = sim

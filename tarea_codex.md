@@ -1,38 +1,35 @@
-# Tarea para Codex — el audio de pronunciación sale cortado
+# Tarea para Codex — afinar el cuestionario de nivel
 
 Trabaja en `C:\Users\laura\literalevel`. Lee **`AGENTS.md`** primero.
 
-**Tus archivos en esta tarea: `app/lexicon.py` y `app/voz.py`.** No toques `app/ui.py` ni `app/catalogo.py`: estoy dentro de ellos ahora mismo.
+**Tu archivo: `app/perfil.py`** (y `pruebas_perfil.py`). No toques `app/ui.py`: estoy dentro. El cableado de la interfaz lo hago yo con lo que dejes.
 
-## El fallo, reproducido por el usuario en un móvil Android
+## El contexto
 
-Miguel consultó dos palabras y escuchó el audio generado:
+El cuestionario que hiciste **gustó mucho**. Miguel lo probó y dice: *«mejoró el cuestionario, me gustó muchísimo más»*. Ahora pide dos cosas concretas.
 
-- **«pick on»** → el audio dice solo **«pic»**
-- **«fortress»** → el audio dice solo **«fortre»**
+## 1. Los fragmentos: tres opciones son muy pocas
 
-Es decir: el mp3 que genera `tts-1` **está truncado**, le falta el final. No es un problema de reproductor: pasa con palabras distintas y siempre corta por el final.
+Hoy cada fragmento ofrece *«Lo entiendo todo» / «Capto la idea, pero se me escapan palabras» / «Me pierdo»*. Miguel: *«se me hace muy poquito, a lo mejor podríamos poner más opciones»*.
 
-## Por dónde empezar
+Sube a **cinco escalones** por fragmento, con el salto entre ellos bien pensado. Algo en la línea de: lo entiendo sin esfuerzo / lo entiendo pero releo alguna frase / capto la idea y se me escapan palabras sueltas / entiendo a medias, necesitaría diccionario / me pierdo. **Redáctalo tú**: lo importante es que cada escalón describa una experiencia distinta y reconocible, no que sean cinco sinónimos.
 
-`_generar_audio_tts` en `app/lexicon.py` (alrededor de la línea 512) y `generar_audio_correcto` en `app/voz.py`. Sospechas que merecen comprobación, en este orden:
+Reajusta los valores en la escala 0..2 para que la escalera siga teniendo sentido con el nivel CEFR de cada fragmento, y explica el criterio en un comentario.
 
-1. **Escritura sin cerrar.** Mira cómo se escribe el archivo (`respuesta.write_to_file(...)` o equivalente) y si el contenido está completamente volcado y cerrado antes de que la ruta se devuelva. Si Gradio sirve el archivo mientras todavía se está escribiendo, el navegador recibe un mp3 a medias.
-2. **La caché por contenido que puse yo.** `generar_audio_correcto` ahora reutiliza el archivo si ya existe, comprobando solo `os.path.getsize(...) > 0`. **Un archivo a medio escribir tiene tamaño mayor que cero**, así que una vez que se guarda truncado, se sirve truncado para siempre. Ojo también a `_generar_audio_tts` en `lexicon.py`, que cachea la ruta en SQLite.
-3. **El texto que se manda.** Comprueba que a la API se le envía la palabra o frase entera, no un fragmento.
+## 2. Selección múltiple donde tenga sentido
 
-Verifica midiendo, no mirando: genera el audio de «fortress» y de «pick on», mira el **tamaño en bytes y la duración real** del mp3, y compáralo con lo que debería durar. Un mp3 de `tts-1` de una palabra ronda los 8 KB; si sale mucho menor, está truncado.
+Miguel: *«me gustaría también que pudiésemos seleccionar más de una opción, en algunos casos»*.
 
-## Qué entregar
+Decide **tú** en qué preguntas encaja y en cuáles no, y justifícalo. Mi lectura, discútela si no la compartes: «¿qué sueles leer en inglés?» admite varias respuestas de forma natural —alguien lee noticias **y** novelas—, y ahí el nivel razonable es **el más alto marcado**, no la media, porque quien lee literatura clásica también lee menús. En cambio «¿con qué frecuencia lees?» es excluyente por definición y debe seguir siendo de una sola opción.
 
-1. **El diagnóstico**, dicho con el dato que lo demuestra.
-2. **El arreglo**, con la escritura hecha de forma atómica: escribir a un archivo temporal y renombrar al final. Así un corte a media escritura nunca deja un archivo válido a medias en la caché.
-3. **Limpiar los que ya estén truncados** en `~/.literalevel/audio/`, o hacer que la caché los detecte y los regenere. Si no, Miguel seguirá oyendo «fortre» aunque el código esté bien.
-4. Una prueba que lo cubra, en el estilo de `pruebas_desambiguacion.py`.
+Para las de selección múltiple, la estructura tiene que indicar que lo son, para que la interfaz pueda pintar un control distinto. Añade una marca clara al formato de `PREGUNTAS` (por ejemplo un cuarto elemento, o una clave `multiple`), **y dime en el commit exactamente qué forma tiene**, porque `ui.py` la recorre y tengo que adaptarme.
 
-## Reglas
+## Lo que no se puede romper
 
-- **No cambies ninguna firma pública** sin decirlo en la primera línea del commit.
-- La degradación elegante sigue vigente: sin clave ni red, nada puede lanzar excepción.
-- `python -X utf8 pruebas_extremas.py` y `python -X utf8 tests_smoke.py` tienen que seguir en verde.
-- **Haz commit, no hagas push.** Si tu sandbox no te deja escribir en `.git`, dilo al final y lo commiteo yo.
+- `desde_cuestionario(respuestas: dict, nombre="") -> Perfil` mantiene su firma. Ahora algunos valores del dict pueden ser **listas** en vez de números: trátalo.
+- Escala pública 0..2, y `PESO_FRAGMENTOS` sigue mandando sobre las opiniones.
+- Responder solo algunas preguntas debe seguir funcionando.
+- `python -X utf8 pruebas_extremas.py` → **124 OK**; `python -X utf8 tests_smoke.py` → **TODO OK**; `python -X utf8 pruebas_perfil.py` → verde. Amplía esta última con los casos nuevos: selección múltiple vacía, con una, con varias, y los extremos de los cinco escalones.
+- **Haz commit, no hagas push.** Si tu sandbox no te deja escribir en `.git`, dilo y lo commiteo yo.
+
+Si algo de esto te parece mala idea, dilo en vez de hacerlo a regañadientes.

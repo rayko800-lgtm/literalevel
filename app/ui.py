@@ -322,7 +322,7 @@ def _claves_cuestionario() -> list[str]:
     `perfil.desde_cuestionario` los distingue por la clave: promedia las
     opiniones y se queda con el techo mas dificil de los fragmentos.
     """
-    return ([c for c, _, _ in perfil_mod.PREGUNTAS]
+    return ([p[0] for p in perfil_mod.PREGUNTAS]
             + [f["clave"] for f in getattr(perfil_mod, "FRAGMENTOS", [])])
 
 
@@ -747,6 +747,18 @@ def _reanudar(peticion: gr.Request = None):
             _html_lectura(c.texto), aviso, gr.Tabs(selected="leer"))
 
 
+def _limpiar_consulta():
+    """Lo que hay que borrar al abrir un libro nuevo.
+
+    Miguel abrio The Brothers Karamazov y se encontro abajo la ficha de
+    "strip", una palabra que habia consultado en el libro ANTERIOR. Parecia
+    que la app le habia devuelto al vocabulario. Un libro nuevo empieza sin
+    restos del anterior.
+    """
+    return ("", gr.update(value=""), gr.update(value=""), "",
+            gr.update(value=None, visible=False))
+
+
 def _abrir(archivo, peticion: gr.Request = None):
     vacio = gr.update(choices=[], value=None)
     if not archivo:
@@ -1135,6 +1147,10 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     yield ficha, _reproductores(r), gr.update(value=local, visible=bool(local))
 
 
+# Por que capitulo va cada lector, para no repetir siempre la misma frase.
+_RONDA_FRASE: dict[tuple, int] = {}
+
+
 def _frase_del_capitulo(libro, idx):
     """Manda la primera oracion de largo razonable a la practica de voz.
 
@@ -1151,6 +1167,7 @@ def _frase_del_capitulo(libro, idx):
     # Por parrafos, no por el capitulo entero: los encabezados ("I", "The Dead
     # House") no llevan punto, asi que la primera "oracion" del texto crudo se
     # los traga enteros y sale una frase absurda para leer en voz alta.
+    candidatas = []
     for parrafo in re.split(r"\n\s*\n", c.texto):
         limpio = " ".join(parrafo.split())
         if len(limpio.split()) < 30:      # titulillo o linea suelta
@@ -1158,8 +1175,16 @@ def _frase_del_capitulo(libro, idx):
         for frase in scoring.SENT_RE.findall(limpio):
             f = " ".join(frase.split())
             if 6 <= len(f.split()) <= 25:
-                return f
-    return gr.update()
+                candidatas.append(f)
+    if not candidatas:
+        return gr.update()
+    # Una distinta en cada pulsacion. Antes devolvia siempre la primera del
+    # capitulo, asi que practicar dos veces seguidas era practicar lo mismo:
+    # el boton parecia roto aunque estuviera haciendo su trabajo.
+    clave = (getattr(libro, "titulo", ""), int(idx))
+    n = _RONDA_FRASE.get(clave, -1) + 1
+    _RONDA_FRASE[clave] = n
+    return candidatas[n % len(candidatas)]
 
 
 # --- Punto 5: pronunciacion ----------------------------------------------
@@ -1393,10 +1418,18 @@ def construir() -> gr.Blocks:
                 perfil_md = gr.Markdown(_describir(None))
                 nombre = gr.Textbox(label="Tu nombre (opcional)")
                 with gr.Accordion("Cuéntame cómo lees", open=True):
-                    radios = [
-                        gr.Radio(choices=[(t, v) for t, v in opciones], label=pregunta)
-                        for _, pregunta, opciones in perfil_mod.PREGUNTAS
-                    ]
+                    # `PREGUNTAS` trae un cuarto elemento que dice si admite
+                    # varias respuestas. "Que sueles leer" es de esas: quien
+                    # lee literatura clasica tambien lee menus, y marcar una
+                    # sola le obliga a mentir.
+                    radios = []
+                    for _, pregunta, opciones, multiple in perfil_mod.PREGUNTAS:
+                        elecciones = [(t, v) for t, v in opciones]
+                        radios.append(
+                            gr.CheckboxGroup(choices=elecciones, label=pregunta,
+                                             info="Puedes marcar varias")
+                            if multiple else
+                            gr.Radio(choices=elecciones, label=pregunta))
 
                 with gr.Accordion("Y ahora lee esto, con sinceridad", open=True):
                     gr.Markdown("Tres fragmentos de verdad, de menos a más "
@@ -1524,6 +1557,8 @@ def construir() -> gr.Blocks:
                                    visible=False)
 
                 archivo.change(_abrir, archivo, [est_libro, cap, texto, libro_md])
+                archivo.change(_limpiar_consulta, None,
+                               [ficha, palabra, oracion, audio_web, audio_local])
                 cap.change(_capitulo, [est_libro, cap], [texto, cap_md])
                 b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
                 b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
@@ -1577,6 +1612,8 @@ def construir() -> gr.Blocks:
         # se declaran despues.
         b_abrir.click(_abrir_del_catalogo, elegido,
                       [est_libro, cap, texto, libro_md, pestanas, estado_abrir])
+        b_abrir.click(_limpiar_consulta, None,
+                      [ficha, palabra, oracion, audio_web, audio_local])
 
         # Al abrir: primero de quien son los datos, luego donde se quedo.
         demo.load(_perfil_inicial, None, [est_perfil, perfil_md])
