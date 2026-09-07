@@ -97,7 +97,26 @@ largo de los tres, y el único sin factura.
   con los datos fuera del repositorio.
 - `requirements.txt` instala `en_core_web_sm` por URL directa, porque en un
   despliegue no hay quien ejecute `python -m spacy download`.
-- Las cachés de `~/.literalevel/` (léxico, audio, cuaderno, marcapáginas) son
-  disco efímero en un Space: se borran en cada reinicio. Es aceptable porque son
-  caché, pero la primera consulta tras cada despertar irá lenta. Si quieres que
-  el cuaderno de palabras sobreviva, hace falta almacenamiento persistente.
+## Persistencia: ahora importa más que antes
+
+`~/.literalevel/` es disco **efímero** en un Space y se borra en cada reinicio.
+Cuando ahí solo había cachés (léxico, audio) daba igual: se rehacen solas y lo
+único que se pierde es velocidad. Ya no da igual. Ahí viven también:
+
+| Archivo | Qué se pierde si desaparece |
+|---|---|
+| `biblioteca.json` | **Mis libros**: los libros empezados y por dónde iba cada uno |
+| `cuaderno.db` | **Mis palabras**: todo el vocabulario consultado |
+| `analisis/` | las curvas de dificultad ya calculadas (86 s por libro largo) |
+| `perfil.json` | el nivel del lector, y habría que rehacer el cuestionario |
+
+Un Space que se duerme y despierta con la estantería vacía deja en ridículo la
+pestaña *Mis libros*. Así que si se despliega, hay que montar almacenamiento.
+
+La buena noticia es el precio: los Storage Buckets del Hub cuestan **12 $/TB al
+mes** en repositorio público y 18 $/TB en privado. Esto ocupa unos cientos de
+megas —hoy, en local, `~/.literalevel/` entero son **7,4 MB**—, así que la
+factura de almacenamiento es despreciable. Se monta el bucket y se apunta la
+app ahí; no hace falta tocar código, solo la ruta base.
+
+## Lo que ya no hace falta resolver (continuación)
