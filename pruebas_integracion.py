@@ -130,7 +130,12 @@ paso("encuentra una palabra con su oracion en el capitulo", palabra is not None,
 
 if palabra:
     ui.consultor()._sin_clave = True          # sin red ni gasto
-    ficha, reproductores, audio = ui._consultar(None, libro, siguiente, palabra, "")
+    # _consultar es generadora: se consume y se mira el resultado final.
+    ficha = reproductores = ""
+    audio = None
+    for ficha, reproductores, audio in ui._consultar(None, libro, siguiente,
+                                                     palabra, ""):
+        pass
     paso("la ficha se construye", ficha.startswith("##"), ficha.split("\n")[0][:46])
     paso("trae fonetica o dice que no la hay",
          "Pronunciación" in ficha or "diccionario" in ficha.lower())

@@ -43,6 +43,14 @@ def prueba(nombre: str, fn):
         traceback.print_exc(limit=3)
 
 
+def consulta(*args):
+    """`_consultar` es generadora (dos etapas). Aqui interesa la ultima."""
+    ultima = ("", "", None)
+    for tramo in ui._consultar(*args):
+        ultima = tramo
+    return ultima
+
+
 def titulo(t: str):
     print(f"\n--- {t} " + "-" * max(0, 60 - len(t)))
 
@@ -154,13 +162,13 @@ prueba("una linea de 2 MB", lambda: len(ui._html_lectura("palabra " * 250000)))
 
 titulo("Consulta lexica (validacion previa)")
 
-prueba("palabra vacia", lambda: ui._consultar(None, None, None, "", "")[0])
-prueba("solo espacios", lambda: ui._consultar(None, None, None, "   ", "")[0])
-prueba("None como palabra", lambda: ui._consultar(None, None, None, None, "")[0])
+prueba("palabra vacia", lambda: consulta(None, None, None, "", "")[0])
+prueba("solo espacios", lambda: consulta(None, None, None, "   ", "")[0])
+prueba("None como palabra", lambda: consulta(None, None, None, None, "")[0])
 prueba("frase de 10 palabras",
-       lambda: ui._consultar(None, None, None, "a b c d e f g h i j", "")[0])
+       lambda: consulta(None, None, None, "a b c d e f g h i j", "")[0])
 prueba("palabra de 5000 caracteres",
-       lambda: ui._consultar(None, None, None, "x" * 5000, "")[0][:60])
+       lambda: consulta(None, None, None, "x" * 5000, "")[0][:60])
 
 prueba("oracion localizada en el capitulo",
        lambda: ui._oracion_de(libro_ok.capitulos[0].texto, "fox")[:50])
@@ -344,7 +352,7 @@ prueba("guardar en una ruta imposible no revienta",
 titulo("Idioma de la explicacion")
 
 prueba("idioma invalido no revienta",
-       lambda: ui._consultar(None, None, None, "", "", "klingon")[0])
+       lambda: consulta(None, None, None, "", "", "klingon")[0])
 prueba("idiomas admitidos", lambda: ui.ConsultorLexico.consultar.__doc__ is not None)
 
 

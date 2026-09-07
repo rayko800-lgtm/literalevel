@@ -30,6 +30,7 @@ import json
 import os
 import re
 import sys
+import threading
 from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
@@ -190,25 +191,37 @@ _puntuador = None
 _catalogo = None
 _consultor = None
 
+# Sin candado, dos peticiones que llegan a la vez construyen DOS modelos y
+# duplican la memoria: el Puntuador son 278 MB de RSS y el catalogo 285 MB.
+# La comprobacion "if es None" no es atomica frente a la carga que viene
+# detras, que dura segundos.
+_CANDADO = threading.Lock()
+
 
 def puntuador() -> scoring.Puntuador:
     global _puntuador
     if _puntuador is None:
-        _puntuador = scoring.Puntuador(RUTA_MODELO)
+        with _CANDADO:
+            if _puntuador is None:      # otro hilo pudo cargarlo mientras se esperaba
+                _puntuador = scoring.Puntuador(RUTA_MODELO)
     return _puntuador
 
 
 def catalogo() -> Catalogo:
     global _catalogo
     if _catalogo is None:
-        _catalogo = Catalogo()
+        with _CANDADO:
+            if _catalogo is None:
+                _catalogo = Catalogo()
     return _catalogo
 
 
 def consultor() -> ConsultorLexico:
     global _consultor
     if _consultor is None:
-        _consultor = ConsultorLexico()
+        with _CANDADO:
+            if _consultor is None:
+                _consultor = ConsultorLexico()
     return _consultor
 
 
@@ -745,11 +758,31 @@ def _local(url):
 
 def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
                peticion: gr.Request = None):
+    """Consulta lexica en dos etapas, porque la espera es casi toda de red.
+
+    Medido: todo el trabajo local -spaCy, el SQLite de 1,48 M entradas, la
+    desambiguacion con MiniLM, la IPA- son **40 ms** con los modelos ya
+    calientes. Los 30 segundos largos que se notan son la llamada a OpenAI.
+    Antes la pantalla se quedaba en blanco todo ese rato y parecia colgada.
+
+    Es una funcion generadora: el primer `yield` dice que se esta buscando, y
+    el segundo trae el resultado. No cambia ni un numero, solo deja de mentir
+    sobre lo que esta pasando.
+    """
     palabra = (palabra or "").strip()
     if not palabra:
-        return "Escribe la palabra que quieres consultar.", "", None
+        yield "Escribe la palabra que quieres consultar.", "", None
+        return
     if len(palabra.split()) > 4:
-        return "Consulta una palabra (o un phrasal verb corto), no una frase.", "", None
+        yield ("Consulta una palabra (o un phrasal verb corto), no una frase.",
+               "", None)
+        return
+
+    esperando = ("es" if idioma != "en" else "en")
+    yield ({"es": f"### {palabra}\n\nBuscando en el diccionario y preparando "
+                  f"la explicación de contexto…",
+            "en": f"### {palabra}\n\nLooking it up and preparing the "
+                  f"contextual explanation…"}[esperando], "", None)
 
     # La oracion viaja entera al modelo y ademas entra en la clave de cache,
     # asi que un texto largo distinto en cada intento es una llamada de pago
@@ -769,7 +802,8 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     try:
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma)
     except (FileNotFoundError, OSError) as e:
-        return _aviso(e), "", None
+        yield _aviso(e), "", None
+        return
     # Al cuaderno, con su frase y su libro: es el unico rastro que queda de
     # una sesion de lectura. Si no se puede escribir, no pasa nada.
     cuaderno.registrar(
@@ -782,7 +816,7 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
 
     contexto = "Contexto" if idioma == "es" else "Context"
     ficha = _ficha(r, idioma) + f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
-    return ficha, _reproductores(r), _local(r.audio_us) or _local(r.audio_uk)
+    yield ficha, _reproductores(r), _local(r.audio_us) or _local(r.audio_uk)
 
 
 def _frase_del_capitulo(libro, idx):

@@ -150,3 +150,32 @@ saca la ruta con `_archivo_lector("loquesea", peticion)`. No uses rutas fijas.
 docstring). Un `upload_folder(folder_path=".")` subiria `CLAVES.txt` y `.env` a
 un repositorio publico. El Space se sube con `git push`, o con
 `ignore_patterns=[".env", "CLAVES.txt", "*.env"]` explicito.
+
+## Rendimiento: donde se va el tiempo (medido, 7 sep 2026)
+
+**Ningun recurso pesado es caro. Lo caro es importar el stack**, y se paga una
+sola vez en el primer clic sea cual sea: torch 2,9 s + transformers 2,1 s +
+resolver las clases `Auto*` 5,4 s + sentence_transformers 0,8 s + spaCy 0,5 s
+= **~11,8 s**. El marginal de cada recurso es pequeno: Puntuador 0,74 s,
+catalogo 3,06 s (casi todo el modelo multilingue), consultor 1,6 s.
+
+**De los 28-44 s de una consulta lexica, 23-39 s son espera a OpenAI.** Todo el
+trabajo local -spaCy, SQLite, desambiguacion, IPA- son **40 ms** en caliente.
+Por eso `_consultar` es generadora: la primera etapa sale al instante.
+
+Medido y **descartado**, para que nadie lo reintente:
+
+- spaCy con tuberias desactivadas ahorra 0,13 s. Solo se puede quitar el NER:
+  `_resolver_lema_y_categoria` usa `.lemma_`, `.pos_` y `.dep_`.
+- El SQLite de Kaikki ya abre en `mode=ro` y ya tiene `idx_palabra`; la
+  primera SELECT sobre 1.487.639 filas tarda **0,001 s**. Los 243 MB son
+  inocentes.
+- Cambiar el multilingue del catalogo por MiniLM-L6 ahorraria 2,4 s pero
+  **rompe la busqueda**: el lector describe en espanol y el catalogo esta en
+  ingles. No se toca.
+
+Pendiente para Codex, sin hacer: la llamada de `lexicon.py` va sin
+`reasoning.effort`, o sea esfuerzo medio para cuatro campos cortos de
+Structured Outputs. Probar `low` podria quitar 10-20 s, pero hay que
+comprobar que no cae la calidad, porque la regla de "OpenAI no redefine la
+palabra" depende de que siga las instrucciones al pie de la letra.

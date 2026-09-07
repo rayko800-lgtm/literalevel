@@ -52,11 +52,22 @@ class Libro:
 
 
 def _huella(ruta: Path) -> str:
-    """Identifica la version exacta del CSV: tamano + mtime + primeros bytes."""
-    st = ruta.stat()
-    h = hashlib.sha256(f"{st.st_size}-{st.st_mtime_ns}".encode())
+    """Identifica la version exacta del CSV por su CONTENIDO, no por su fecha.
+
+    Antes entraba `st_mtime_ns` en la huella. Eso vale en la maquina donde se
+    generaron los embeddings y en ninguna otra: un clon nuevo del repositorio,
+    o un despliegue, tienen otra fecha de modificacion, asi que el nombre del
+    `.npy` no coincidiria nunca y habria que recodificar los 1197 libros. Son
+    **46,7 segundos medidos**, y en un Space que se duerme por inactividad se
+    pagan en cada despertar.
+
+    El sha256 del CSV entero cuesta 0,001 s sobre 870 KB. La fecha no compraba
+    nada y costaba tres cuartos de minuto por arranque en frio.
+    """
+    h = hashlib.sha256(str(ruta.stat().st_size).encode())
     with open(ruta, "rb") as f:
-        h.update(f.read(65536))
+        for trozo in iter(lambda: f.read(1 << 20), b""):
+            h.update(trozo)
     return h.hexdigest()[:16]
 
 
