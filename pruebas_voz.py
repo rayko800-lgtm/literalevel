@@ -8,6 +8,7 @@ Usa una base de datos SQLite aparte (no la de produccion) para no ensuciar
 ~/.literalevel/voz.db con datos de prueba.
 """
 import os, sys, tempfile
+import uuid
 
 sys.path.insert(0, "app")
 import config
@@ -72,7 +73,10 @@ config.obtener = lambda nombre: None
 try:
     check("transcribir_audio -> None sin clave", voz.transcribir_audio("no_existe.wav") is None)
     check("explicar_correccion -> None sin clave", voz.explicar_correccion(["fox"]) is None)
-    check("generar_audio_correcto -> None sin clave", voz.generar_audio_correcto("hello") is None)
+    # Una frase que nadie ha generado nunca: sin clave no hay de donde sacarla.
+    _nueva = f"a phrase never spoken before {uuid.uuid4().hex}"
+    check("generar_audio_correcto -> None sin clave",
+          voz.generar_audio_correcto(_nueva) is None)
     # evaluar_pronunciacion no depende de la clave en absoluto.
     ev_sin_clave = voz.evaluar_pronunciacion(objetivo, dicho_mal)
     check("evaluar_pronunciacion sigue funcionando sin clave",

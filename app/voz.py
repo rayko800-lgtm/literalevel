@@ -14,7 +14,7 @@ OPENAI_API_KEY, `transcribir_audio`, `explicar_correccion` y
 que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
-import difflib, os, re, sqlite3
+import difflib, hashlib, os, re, sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -164,18 +164,39 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
                            voz: str = VOZ_POR_DEFECTO) -> str | None:
     """Genera un audio con tts-1 de la pronunciacion correcta de `texto`.
 
-    Devuelve la ruta del archivo mp3 escrito, o `None` si no hay clave o
-    falla la llamada.
+    Devuelve la ruta del mp3, o `None` si hay que generarlo y no se puede
+    (sin clave, sin red o error). **Si la frase ya se genero antes, se
+    devuelve el archivo aunque no haya clave**: negar un audio que ya esta en
+    disco no protege nada y contradice la degradacion elegante del proyecto.
+
+    **El nombre sale del contenido, no de la hora.** Antes llevaba
+    `int(datetime.now().timestamp())`, asi que dos peticiones identicas
+    generaban dos archivos distintos: la misma frase se pagaba a `tts-1`
+    tantas veces como se pulsara el boton, y el disco crecia sin techo. Con la
+    huella del texto, el modelo y la voz, repetir una frase es gratis y
+    ademas instantaneo.
     """
+    # La cache se mira ANTES de pedir el cliente: si la frase ya se genero,
+    # se devuelve aunque no haya clave ni red.
+    reutilizable = None
+    if ruta_salida is None:
+        carpeta = os.path.join(os.path.expanduser("~"), ".literalevel", "audio")
+        legible = re.sub(r"[^a-z0-9]+", "_", texto.lower())[:40].strip("_") or "frase"
+        clave = hashlib.sha256(
+            "\x1f".join((MODELO_VOZ, voz, texto)).encode("utf-8")).hexdigest()[:24]
+        reutilizable = os.path.join(carpeta, f"{legible}_{clave}.mp3")
+        if os.path.exists(reutilizable) and os.path.getsize(reutilizable) > 0:
+            return reutilizable
+        try:
+            os.makedirs(carpeta, exist_ok=True)
+        except OSError:
+            return None
+        ruta_salida = reutilizable
+
     cliente = _cliente()
     if cliente is None:
         return None
     try:
-        if ruta_salida is None:
-            carpeta = os.path.join(os.path.expanduser("~"), ".literalevel", "audio")
-            os.makedirs(carpeta, exist_ok=True)
-            nombre = re.sub(r"[^a-z0-9]+", "_", texto.lower())[:40].strip("_") or "frase"
-            ruta_salida = os.path.join(carpeta, f"{nombre}_{int(datetime.now().timestamp())}.mp3")
         respuesta = cliente.audio.speech.create(model=MODELO_VOZ, voice=voz, input=texto,
                                                 response_format="mp3")
         respuesta.write_to_file(ruta_salida)

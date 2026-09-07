@@ -64,6 +64,21 @@ RUTA_AUDIO_GENERADO = Path(os.path.expanduser("~")) / ".literalevel" / "audio"
 
 MODELO_EMBEDDINGS = "all-MiniLM-L6-v2"
 MODELO_OPENAI_POR_DEFECTO = "gpt-5"
+
+# Esfuerzo de razonamiento de la explicacion contextual. Medido sobre tres
+# palabras reales (fetters, brook, peeped), llamadas de verdad:
+#
+#   por defecto (medio)  67,7 s por consulta   2048 tokens de razonamiento
+#   low                  14,9 s               256-576
+#   minimal               7,4 s                   0
+#
+# Se elige "low": es 4,5 veces mas rapido y la gramatica sigue siendo
+# correcta. **"minimal" no vale**, aunque sea el doble de rapido: con el,
+# "had peeped" se explico como "pasado simple" cuando es pasado perfecto.
+# El analisis gramatical es justo lo que se evalua, y equivocarlo por siete
+# segundos es mal negocio. Los cuatro campos son cortos y la definicion ya
+# viene dada: no hace falta razonamiento medio para redactarlos.
+ESFUERZO_RAZONAMIENTO = "low"
 MODELO_TTS = "tts-1"
 VOZ_TTS = "alloy"
 
@@ -470,6 +485,7 @@ def _pedir_explicacion_openai(
     respuesta = cliente.responses.parse(
         model=modelo, instructions=instrucciones, input=entrada,
         text_format=RespuestaContextual,
+        reasoning={"effort": ESFUERZO_RAZONAMIENTO},
     )
     return respuesta.output_parsed.model_dump()
 

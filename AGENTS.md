@@ -10,6 +10,7 @@ El afectado de una colisión es Miguel. Lee esto antes de tocar nada.
 | `app/ui.py` | **Claude Code** | Codex no la edita. Puede leerla para auditar contratos. |
 | `app/cuaderno.py` | **Claude Code** | Historial de palabras consultadas. NO es la cache de `lexicon.py`. |
 | `app/reader.py`, `app/lexicon.py`, `app/voz.py` | **Codex** | Está auditándolos. Claude no los edita sin avisar. |
+| — | — | **7 sep, 11:00:** Codex agotó su cuota y Miguel pidió a Claude Code que asumiera sus tareas. Los cambios de Claude en esos tres archivos van marcados en el commit. Cuando Codex vuelva, que lea `git log` antes de tocar nada. |
 | `app/scoring.py`, `app/perfil.py`, `app/catalogo.py`, `app/config.py` | compartido | Quien entre, avisa en el commit. |
 | `modelo_v4/`, `kaikki_diccionario.db` | nadie | Datos. No se regeneran ni se versionan. |
 
