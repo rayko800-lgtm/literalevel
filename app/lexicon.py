@@ -163,11 +163,30 @@ def _spacy_nlp():
     return _nlp
 
 
+def _ruta_local(nombre: str) -> str:
+    """La carpeta ya descargada del modelo, o su nombre si no esta.
+
+    `SentenceTransformer("nombre/modelo")` resuelve ese nombre contra el Hub
+    en CADA carga, y eso cuesta segundos aunque el modelo lleve meses en
+    disco. Pasarle la ruta local se los ahorra: medido, 2,9 s -> 0,22 s en
+    MiniLM-L6 y 5,8 s -> 2,7 s en el multilingue del catalogo.
+
+    Si no esta cacheado -maquina nueva, primer arranque de un despliegue- se
+    devuelve el nombre y se descarga como siempre. Nunca falla por esto.
+    """
+    completo = nombre if "/" in nombre else f"sentence-transformers/{nombre}"
+    try:
+        from huggingface_hub import snapshot_download
+        return snapshot_download(completo, local_files_only=True)
+    except Exception:
+        return nombre
+
+
 def _cargar_embebedor():
     global _embebedor
     if _embebedor is None:
         from sentence_transformers import SentenceTransformer
-        _embebedor = SentenceTransformer(MODELO_EMBEDDINGS)
+        _embebedor = SentenceTransformer(_ruta_local(MODELO_EMBEDDINGS))
     return _embebedor
 
 
@@ -575,31 +594,32 @@ class ConsultorLexico:
         if entradas and sentido is None:
             avisos.append("la entrada no trae sentidos con glosa utilizable")
 
+        # Las dos llamadas de red -el audio de respaldo y la explicacion- se
+        # lanzan A LA VEZ, no una detras de otra. Solo 7.003 de las 1.487.639
+        # entradas del diccionario traen audio (un 0,5 %), asi que casi
+        # cualquier palabra nueva necesita las dos, y en serie eso eran unos
+        # tres segundos regalados. Las escrituras a SQLite se quedan en el
+        # hilo principal: la cache es un fichero, no un servicio.
         ipa_uk, ipa_us, audio_uk, audio_us = _mejor_fonetica(entradas, categoria)
         audio_generado = False
-        if not audio_uk and not audio_us:
+        cliente = self._cliente()
+
+        # Que falta y que ya estaba guardado.
+        falta_audio = not audio_uk and not audio_us
+        ruta_audio_cacheada = None
+        if falta_audio:
             avisos.append("sin audio en el diccionario")
-            cliente = self._cliente()
             if cliente is None:
                 avisos.append("sin OPENAI_API_KEY: no se genero audio de respaldo")
             else:
-                ruta_cacheada = self.cache.obtener_audio("audio", lema_buscado)
-                try:
-                    if ruta_cacheada:
-                        ruta = ruta_cacheada
-                    else:
-                        ruta = _generar_audio_tts(cliente, lema_buscado, RUTA_AUDIO_GENERADO)
-                        self.cache.guardar_audio(ruta, "audio", lema_buscado)
-                    audio_uk = audio_us = ruta
-                    audio_generado = True
-                except Exception as e:
-                    avisos.append(f"no se pudo generar audio: {type(e).__name__}")
+                ruta_audio_cacheada = self.cache.obtener_audio("audio", lema_buscado)
 
         definicion_contextual = explicacion_gramatical = None
         explicacion_adaptada = ejemplo_simplificado = None
         desde_cache = False
+        partes_clave = None
+        extra = None
         if sentido is not None:
-            cliente = self._cliente()
             if cliente is None:
                 avisos.append("sin OPENAI_API_KEY: no hay explicacion contextual")
             else:
@@ -612,24 +632,51 @@ class ConsultorLexico:
                 extra = self.cache.obtener_respuesta(*partes_clave)
                 if extra is not None:
                     desde_cache = True
-                else:
+        elif entradas:
+            avisos.append("sin sentido elegido: no se pidio explicacion contextual")
+
+        pedir_audio = falta_audio and cliente is not None and not ruta_audio_cacheada
+        pedir_explicacion = partes_clave is not None and extra is None
+        ruta_audio_nueva = None
+        if pedir_audio or pedir_explicacion:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=2) as grupo:
+                f_audio = grupo.submit(
+                    _generar_audio_tts, cliente, lema_buscado, RUTA_AUDIO_GENERADO
+                ) if pedir_audio else None
+                f_expl = grupo.submit(
+                    _pedir_explicacion_openai, cliente,
+                    palabra=palabra_superficie, oracion=oracion,
+                    glosa=sentido.glosa if sentido else "", categoria=categoria,
+                    banda=banda, modelo=self.modelo_openai, idioma=idioma,
+                ) if pedir_explicacion else None
+
+                if f_audio is not None:
                     try:
-                        extra = _pedir_explicacion_openai(
-                            cliente, palabra=palabra_superficie, oracion=oracion,
-                            glosa=sentido.glosa, categoria=categoria, banda=banda,
-                            modelo=self.modelo_openai, idioma=idioma,
-                        )
-                        self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
+                        ruta_audio_nueva = f_audio.result()
+                    except Exception as e:
+                        avisos.append(f"no se pudo generar audio: {type(e).__name__}")
+                if f_expl is not None:
+                    try:
+                        extra = f_expl.result()
                     except Exception as e:
                         avisos.append(f"OpenAI no disponible: {type(e).__name__}: {e}")
                         extra = None
-                if extra:
-                    definicion_contextual = extra["definicion_contextual"]
-                    explicacion_gramatical = extra["explicacion_gramatical"]
-                    explicacion_adaptada = extra["explicacion_adaptada"]
-                    ejemplo_simplificado = extra["ejemplo_simplificado"]
-        elif entradas:
-            avisos.append("sin sentido elegido: no se pidio explicacion contextual")
+
+        # Ya fuera de los hilos: guardar en la cache y componer el resultado.
+        if ruta_audio_nueva:
+            self.cache.guardar_audio(ruta_audio_nueva, "audio", lema_buscado)
+        ruta_audio = ruta_audio_nueva or ruta_audio_cacheada
+        if ruta_audio:
+            audio_uk = audio_us = ruta_audio
+            audio_generado = True
+        if extra and pedir_explicacion:
+            self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
+        if extra:
+            definicion_contextual = extra["definicion_contextual"]
+            explicacion_gramatical = extra["explicacion_gramatical"]
+            explicacion_adaptada = extra["explicacion_adaptada"]
+            ejemplo_simplificado = extra["ejemplo_simplificado"]
 
         return ResultadoLexico(
             palabra_superficie=palabra_superficie, oracion=oracion,
