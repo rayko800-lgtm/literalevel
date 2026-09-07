@@ -114,14 +114,42 @@ def _leer_pdf(ruta: str) -> Libro:
     return Libro(meta.get("/Title") or os.path.basename(ruta), meta.get("/Author") or "", caps)
 
 
+# El corchete de apertura es opcional y queda fuera del grupo: Gutenberg
+# escribe "[Chapter I.]" en los indices y esa linea es un encabezado igual.
+_ENCABEZADO_TXT = re.compile(
+    r"(?im)^[ \t]*[\[(]?[ \t]*"
+    r"((?:chapter|cap[ií]tulo|part[e]?)\s+[\dIVXLCivxlc]+\.?[^\n]*)$")
+
+
 def _leer_txt(ruta: str) -> Libro:
+    """Un .txt partido por sus encabezados, conservando el titulo de cada uno.
+
+    Antes esto usaba `re.split` con un grupo de captura, y eso devuelve los
+    encabezados intercalados como elementos de la lista. Dos consecuencias:
+    la numeracion se desplazaba -el primer capitulo de verdad salia como
+    "Parte 3"- y el titulo real ("CHAPTER I") se tiraba a la basura, cuando
+    es justo lo que el lector necesita para orientarse en el desplegable.
+    """
     with open(ruta, encoding="utf-8", errors="replace") as f:
         texto = f.read()
-    # Partimos por encabezados tipo "CHAPTER I" / "Capitulo 3" si los hay.
-    partes = re.split(r"(?im)^\s*(chapter|cap[ií]tulo|part[e]?)\s+[\dIVXLC]+.*$", texto)
-    caps = [Capitulo(f"Parte {i}", p.strip())
-            for i, p in enumerate(partes, 1) if len(p.split()) > 50]
-    return Libro(os.path.basename(ruta), "", caps or [Capitulo("Texto completo", texto.strip())])
+
+    marcas = list(_ENCABEZADO_TXT.finditer(texto))
+    caps: list[Capitulo] = []
+    if marcas:
+        preambulo = texto[:marcas[0].start()].strip()
+        if len(preambulo.split()) > 50:
+            caps.append(Capitulo("Antes del primer capítulo", preambulo))
+        for i, m in enumerate(marcas):
+            fin = marcas[i + 1].start() if i + 1 < len(marcas) else len(texto)
+            cuerpo = texto[m.end():fin].strip()
+            if len(cuerpo.split()) > 50:
+                # Gutenberg encierra los encabezados del indice en corchetes:
+                # sin esto sale "Chapter I.]" en el desplegable.
+                titulo = " ".join(m.group(1).split()).strip("[](){}*_ .")
+                caps.append(Capitulo(titulo[:80] or "(sin título)", cuerpo))
+
+    return Libro(os.path.basename(ruta), "",
+                 caps or [Capitulo("Texto completo", texto.strip())])
 
 
 def cargar(ruta: str) -> Libro:
