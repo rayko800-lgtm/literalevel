@@ -15,8 +15,11 @@ Pipeline por consulta, portado y ampliado desde el prototipo en Streamlit:
      que spaCy etiqueta ADP y no esta en el mapa), se usan todos los
      sentidos disponibles.
   3. Si quedan varios sentidos candidatos, se elige el mas afin al contexto
-     por similitud coseno entre la oracion y cada glosa, con
-     SentenceTransformer("all-MiniLM-L6-v2").
+     por similitud coseno con SentenceTransformer("all-MiniLM-L6-v2").
+     En verbos se compara categoria + etiquetas + glosa; en las demas
+     categorias, la glosa. Un margen pequeno entre acepciones distintas
+     se comunica en avisos. La afinidad publica sigue siendo el coseno
+     oracion/glosa original, para conservar el umbral usado por la UI.
   4. OpenAI (Structured Outputs + Pydantic) SOLO aporta lo contextual y
      gramatical: nunca redefine la palabra, se le pasa la glosa elegida y se
      le prohibe explicitamente inventar otra.
@@ -63,6 +66,10 @@ MODELO_EMBEDDINGS = "all-MiniLM-L6-v2"
 MODELO_OPENAI_POR_DEFECTO = "gpt-5"
 MODELO_TTS = "tts-1"
 VOZ_TTS = "alloy"
+
+# Heuristica conservadora, no una probabilidad calibrada de acierto.
+# Se aplica al ranking interno, no a ResultadoLexico.similitud.
+_MARGEN_SENTIDO_DUDOSO = 0.05
 
 # Mapa POS de spaCy -> categoria de Kaikki. Si el POS de spaCy no esta aqui
 # (preposiciones, conjunciones, determinantes...) no se filtra por categoria.
@@ -198,7 +205,18 @@ def _resolver_lema_y_categoria(
 def _elegir_sentido(
     oracion: str, candidatos: list[tuple[EntradaDiccionario, Sentido]],
 ) -> tuple[Sentido | None, float | None, list[str]]:
-    """Elige el sentido mas afin al contexto por similitud coseno.
+    """Elige una acepcion y senala cuando la evidencia no la separa bien.
+
+    Las glosas verbales se enriquecen con categoria y etiquetas de Kaikki:
+    aportan transitividad y registro a definiciones cortas. No se anade el
+    lema (comun a todos los candidatos), ni se inventan ejemplos: el volcado
+    local no los conserva. En otras categorias se mantiene la glosa sola;
+    extender el enriquecimiento a adjetivos empeoraba casos como "free".
+
+    El ranking enriquecido es interno. La similitud devuelta conserva el
+    coseno entre la oracion y la glosa ORIGINAL de la acepcion elegida.
+    Al medir el margen se ignoran glosas repetidas, aunque procedan de
+    categorias distintas (p.ej. "notwithstanding" como prep/postp).
 
     Devuelve (sentido_elegido, similitud, avisos). Si solo hay un candidato
     no hace falta el modelo de embeddings. Si el modelo de embeddings no se
@@ -212,11 +230,36 @@ def _elegir_sentido(
     try:
         modelo = _cargar_embebedor()
         glosas = [s.glosa for _, s in candidatos]
-        vectores = modelo.encode([oracion, *glosas], normalize_embeddings=True)
-        v_contexto, v_glosas = vectores[0], vectores[1:]
-        similitudes = v_glosas @ v_contexto
+        textos = []
+        for _, s in candidatos:
+            if s.pos == "verb":
+                etiquetas = f" ({', '.join(s.etiquetas)})" if s.etiquetas else ""
+                textos.append(f"{s.pos}{etiquetas}: {s.glosa}")
+            else:
+                textos.append(s.glosa)
+        # Un solo lote; reutilizar textos identicos evita codificar dos veces
+        # glosas no enriquecidas o duplicadas dentro del diccionario.
+        unicos = list(dict.fromkeys([oracion, *textos, *glosas]))
+        vectores = modelo.encode(unicos, normalize_embeddings=True)
+        por_texto = dict(zip(unicos, vectores))
+        v_contexto = por_texto[oracion]
+        similitudes = np.array([por_texto[t] @ v_contexto for t in textos])
         idx = int(np.argmax(similitudes))
-        return candidatos[idx][1], float(similitudes[idx]), []
+        elegida = candidatos[idx][1]
+        glosa_elegida = " ".join(elegida.glosa.casefold().split())
+        rivales = [i for i, g in enumerate(glosas)
+                   if " ".join(g.casefold().split()) != glosa_elegida]
+        avisos = []
+        if rivales:
+            segundo = max(rivales, key=lambda i: similitudes[i])
+            margen = float(similitudes[idx] - similitudes[segundo])
+            if margen < _MARGEN_SENTIDO_DUDOSO:
+                avisos.append(
+                    f"acepcion provisional: margen bajo ({margen:.3f}) "
+                    f"frente a otra acepcion: {glosas[segundo]}"
+                )
+        similitud = float(por_texto[elegida.glosa] @ v_contexto)
+        return elegida, similitud, avisos
     except Exception as e:
         aviso = f"sin modelo de embeddings ({type(e).__name__}): se tomo el primer sentido"
         return candidatos[0][1], None, [aviso]

@@ -12,6 +12,8 @@ Demuestra:
      primera y `desde_cache=True`.
 
 Si algo no funciona se dice explicitamente, no se maquilla.
+Con --sin-openai se comprueba el diccionario y los modelos locales sin
+usar credenciales ni hacer llamadas a OpenAI; se omite su prueba de cache.
 """
 from __future__ import annotations
 
@@ -52,16 +54,23 @@ def mostrar(r: lexicon.ResultadoLexico) -> None:
 
 def main() -> int:
     fallos: list[str] = []
+    sin_openai = "--sin-openai" in sys.argv[1:]
 
     print("=== estado de claves ===")
-    print(config.estado())
-    tiene_clave = "OPENAI_API_KEY" not in config.falta()
+    if sin_openai:
+        print("OpenAI desactivado por --sin-openai (no se leen credenciales)")
+        tiene_clave = False
+    else:
+        print(config.estado())
+        tiene_clave = "OPENAI_API_KEY" not in config.falta()
     print(f"OPENAI_API_KEY presente: {tiene_clave}")
     linea()
 
     print("=== cargando ConsultorLexico (diccionario + cache) ===")
     t0 = time.time()
-    consultor = lexicon.ConsultorLexico()
+    ruta_cache = ":memory:" if sin_openai else lexicon.RUTA_CACHE
+    consultor = lexicon.ConsultorLexico(ruta_cache=ruta_cache)
+    consultor._sin_clave = sin_openai
     print(f"cargado en {time.time() - t0:.2f}s")
     linea()
 
@@ -98,6 +107,21 @@ def main() -> int:
         fallos.append("brook: se eligio el MISMO sentido en sustantivo y verbo (fallo de desambiguacion)")
     else:
         print("OK: 'brook' eligio sentidos distintos segun el contexto.\n")
+    if not r_sust.sentido or "small stream" not in r_sust.sentido:
+        fallos.append("brook sustantivo: se esperaba el sentido de arroyo")
+    if not r_verbo.sentido or "tolerate" not in r_verbo.sentido:
+        fallos.append("brook verbo: se esperaba el sentido de tolerar")
+
+    print("=== 2a) 'peeped' en Alice: mirar dentro del libro ===")
+    r_peep = consultor.consultar(
+        "peeped", "Once or twice she had peeped into the book her sister was reading.",
+        nivel=1.0)
+    mostrar(r_peep)
+    linea()
+    if not r_peep.sentido or "To look forth from concealment" not in r_peep.sentido:
+        fallos.append("peeped: se esperaba el sentido de mirar desde un lugar oculto")
+    if r_peep.n_sentidos_candidatos != 6:
+        fallos.append("peeped: se esperaban las seis acepciones verbales")
 
     # --- 2b) Phrasal verb "set off" ----------------------------------
     print("=== 2b) Phrasal verb: 'set off' ===")
@@ -112,6 +136,8 @@ def main() -> int:
         print("OK: la particula 'off' se detecto y 'set off' se busco como frase.\n")
     if not r_set_off.sentido:
         fallos.append("'set off': no se obtuvo ningun sentido")
+    elif "explode" not in r_set_off.sentido:
+        fallos.append("'set off': se esperaba el sentido de hacer explotar")
 
     # --- 3) Filtro POS vacio: 'notwithstanding' ----------------------
     print("=== 3) Filtro POS vacio -> usa todos los sentidos: 'notwithstanding' ===")
@@ -127,6 +153,8 @@ def main() -> int:
             f"'notwithstanding': se esperaban >=2 sentidos candidatos (todas las categorias sin filtrar), salieron {r_notw.n_sentidos_candidatos}")
     if not r_notw.sentido:
         fallos.append("'notwithstanding': no se eligio ningun sentido")
+    elif r_notw.sentido != "In spite of, despite.":
+        fallos.append("'notwithstanding': se esperaba el sentido de a pesar de")
     if not r_notw.categoria and r_notw.n_sentidos_candidatos >= 2:
         print("OK: sin categoria util, se uso el conjunto completo de sentidos.\n")
 
@@ -139,6 +167,7 @@ def main() -> int:
     print("=== 4) Cache real (misma palabra, misma oracion, mismo nivel) ===")
     ruta_cache_demo = Path(tempfile.gettempdir()) / f"lexicon_cache_demo_{uuid.uuid4().hex}.db"
     consultor_demo = lexicon.ConsultorLexico(ruta_cache=ruta_cache_demo)
+    consultor_demo._sin_clave = sin_openai
     palabra_cache = "welcome"
     oracion_cache = "You are always welcome in this house."
     try:
@@ -176,7 +205,7 @@ def main() -> int:
 
     # --- 5) Degradacion sin API key (simulada) ------------------------
     print("=== 5) Degradacion elegante simulada (sin OPENAI_API_KEY) ===")
-    consultor_sin_clave = lexicon.ConsultorLexico()
+    consultor_sin_clave = lexicon.ConsultorLexico(ruta_cache=":memory:")
     consultor_sin_clave._sin_clave = True  # fuerza la rama "sin credencial"
     try:
         r_deg = consultor_sin_clave.consultar(

@@ -600,8 +600,12 @@ def _ficha(r, idioma: str = "es") -> str:
             sim = (t["afinidad"].format(v=r.similitud)
                    if r.similitud is not None else "")
             L.append("_" + t["elegido"].format(n=r.n_sentidos_candidatos, sim=sim) + "_")
-        if (r.similitud is not None and r.n_sentidos_candidatos > 1
-                and r.similitud < AFINIDAD_DUDOSA):
+        # `lexicon` ya avisa por su cuenta cuando el margen entre acepciones es
+        # estrecho. Si lo ha hecho, no se repite el mismo aviso con otras
+        # palabras: dos advertencias seguidas diciendo lo mismo se ignoran.
+        ya_avisado = any("margen bajo" in a or "provisional" in a for a in r.avisos)
+        if (not ya_avisado and r.similitud is not None
+                and r.n_sentidos_candidatos > 1 and r.similitud < AFINIDAD_DUDOSA):
             L.append("[!] " + t["dudoso"].format(v=r.similitud))
     else:
         L.append(f"_{t['sin_entrada']}_")
