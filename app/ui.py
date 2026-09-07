@@ -53,12 +53,24 @@ from lexicon import ConsultorLexico
 RUTA_MODELO = os.environ.get("LITERALEVEL_MODELO", str(RAIZ / "modelo_v4"))
 NIVEL_POR_DEFECTO = 1.0   # se usa en la consulta lexica si aun no hay perfil
 
+# Topes de entrada, aplicados en el servidor. Existen por dinero, no por
+# estetica: la oracion y la frase acaban en llamadas de pago a OpenAI, y sin
+# tope un visitante puede pegar cien mil caracteres y repetir.
+LIMITE_ORACION = 400
+LIMITE_FRASE_VOZ = 300
+TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
+
 # Gradio solo sirve archivos del directorio de trabajo o del temporal del
 # sistema. `lexicon.py` y `voz.py` guardan los audios de tts-1 en
 # ~/.literalevel/audio, asi que sin declararla aqui la pronunciacion generada
-# muere con InvalidPathError y no llega nunca al navegador. Hay que pasarla a
-# launch(allowed_paths=...): es la razon de que exista esta constante.
-RUTAS_PERMITIDAS = [os.path.join(os.path.expanduser("~"), ".literalevel")]
+# muere con InvalidPathError y no llega nunca al navegador.
+#
+# **Solo la subcarpeta de audio, nunca `~/.literalevel` entera.** Todo lo que
+# cae bajo un allowed_path se sirve por GET /gradio_api/file=<ruta>, sin
+# autenticacion cuando el Space es publico. Apuntar al directorio padre
+# regalaba `cuaderno.db`, `voz.db`, `perfil.json` y `sesion.json` a cualquiera
+# que escribiera la ruta, y los nombres estan en este mismo repositorio.
+RUTAS_PERMITIDAS = [os.path.join(os.path.expanduser("~"), ".literalevel", "audio")]
 
 
 # --- Aspecto: hielo sobre espacio ----------------------------------------
@@ -654,9 +666,13 @@ def _reproductores(r) -> str:
     trozos = []
     for etiqueta, url in (("UK", r.audio_uk), ("US", r.audio_us)):
         if url and str(url).startswith("http"):
+            # La URL viene del volcado de Wiktionary. Hoy las 7.484 son de
+            # upload.wikimedia.org y ninguna lleva comillas, pero un dato que
+            # no controlamos no entra sin escapar en un atributo HTML.
+            seguro = _html.escape(str(url), quote=True)
             trozos.append(
                 f'<p style="margin:.2rem 0"><b>{etiqueta}</b><br>'
-                f'<audio controls preload="none" src="{url}"></audio></p>')
+                f'<audio controls preload="none" src="{seguro}"></audio></p>')
     return "".join(trozos)
 
 
@@ -674,7 +690,11 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es"):
     if len(palabra.split()) > 4:
         return "Consulta una palabra (o un phrasal verb corto), no una frase.", "", None
 
-    oracion = (oracion_manual or "").strip()
+    # La oracion viaja entera al modelo y ademas entra en la clave de cache,
+    # asi que un texto largo distinto en cada intento es una llamada de pago
+    # nueva cada vez. El recorte va en el servidor: el limite del navegador es
+    # una sugerencia, no una defensa.
+    oracion = (oracion_manual or "").strip()[:LIMITE_ORACION]
     origen = "de la oración que escribiste"
     if not oracion and libro is not None and idx is not None:
         cap_actual = _cap(libro, idx)
@@ -769,7 +789,10 @@ def _palabras_html(ev, transcripcion_ok: bool) -> str:
 
 
 def _practicar(ruta_audio, frase):
-    if not (frase or "").strip():
+    # Cada practica genera un audio de referencia de pago y nunca acierta en
+    # cache (el nombre lleva marca de tiempo), asi que el tope va aqui.
+    frase = (frase or "").strip()[:LIMITE_FRASE_VOZ]
+    if not frase:
         return "", "Escribe la frase que vas a leer en voz alta.", None
     if not ruta_audio:
         return "", "Graba tu voz con el micrófono (o sube un audio).", None
@@ -1038,4 +1061,5 @@ def construir() -> gr.Blocks:
 
 if __name__ == "__main__":
     construir().launch(theme=TEMA, inbrowser=True,
-                       allowed_paths=RUTAS_PERMITIDAS)
+                       allowed_paths=RUTAS_PERMITIDAS,
+                       max_file_size=TAMANO_MAXIMO_SUBIDA)

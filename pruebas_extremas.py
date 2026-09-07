@@ -353,24 +353,37 @@ prueba("construir() dos veces seguidas",
 
 
 def _rutas_permitidas():
-    """Regresion: sin esto, el audio de tts-1 nunca llega al navegador.
+    """Regresion doble, y las dos direcciones importan.
 
-    Gradio solo sirve archivos del directorio de trabajo o del temporal del
-    sistema. `lexicon.py` y `voz.py` escriben los mp3 en ~/.literalevel/audio,
-    asi que launch() tiene que declararla en allowed_paths o revienta con
-    InvalidPathError *despues* de haber pagado la llamada a OpenAI.
+    Hacia arriba: sin `allowed_paths`, los mp3 de tts-1 no llegan al navegador
+    y Gradio revienta con InvalidPathError *despues* de pagar la llamada.
+
+    Hacia abajo: todo lo que cae bajo un allowed_path se sirve por
+    GET /gradio_api/file=<ruta> sin autenticacion en un Space publico. Si la
+    ruta permitida fuese `~/.literalevel` entera, cualquiera se descargaria
+    `cuaderno.db`, `voz.db`, `perfil.json` y `sesion.json` de los demas.
     """
-    destino = os.path.join(os.path.expanduser("~"), ".literalevel")
-    assert any(os.path.normcase(destino).startswith(os.path.normcase(p))
-               for p in ui.RUTAS_PERMITIDAS), \
-        "~/.literalevel no esta en RUTAS_PERMITIDAS: el audio no se servira"
+    base = Path(os.path.expanduser("~")) / ".literalevel"
+    audio = base / "audio"
+
+    def cubierta(ruta):
+        return any(os.path.normcase(str(ruta)).startswith(os.path.normcase(p))
+                   for p in ui.RUTAS_PERMITIDAS)
+
+    assert cubierta(audio), "el audio de tts-1 no se podra servir"
+    for privado in ("cuaderno.db", "voz.db", "perfil.json", "sesion.json",
+                    "lexicon.db"):
+        assert not cubierta(base / privado), \
+            f"{privado} queda expuesto por allowed_paths"
     fuente = Path("main.py").read_text(encoding="utf-8")
     assert "allowed_paths=RUTAS_PERMITIDAS" in fuente, \
         "main.py no pasa allowed_paths a launch()"
-    return "declarada y usada en main.py"
+    assert "max_file_size=" in fuente, \
+        "main.py no limita el tamano de subida: un epub es un zip"
+    return "audio servible; bases de datos fuera de alcance"
 
 
-prueba("audio servible (allowed_paths)", _rutas_permitidas)
+prueba("allowed_paths: sirve el audio y nada mas", _rutas_permitidas)
 
 
 # --- Resultado ------------------------------------------------------------

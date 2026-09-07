@@ -32,7 +32,8 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(RAIZ / "app"))
 
-from ui import RUTAS_PERMITIDAS, TEMA, construir   # noqa: E402
+from ui import (RUTAS_PERMITIDAS, TAMANO_MAXIMO_SUBIDA, TEMA,  # noqa: E402
+                construir)
 
 # Nombre convencional: algunas plataformas importan el modulo y buscan `demo`
 # en vez de ejecutarlo. Construirlo es barato: no carga ninguno de los tres
@@ -54,4 +55,7 @@ if __name__ == "__main__":
         # Sin esto, los audios de tts-1 que viven en ~/.literalevel/audio no
         # llegan al navegador: Gradio los rechaza con InvalidPathError.
         allowed_paths=RUTAS_PERMITIDAS,
+        # Un epub es un zip: sin tope cabe una bomba de descompresion,
+        # y el proceso del Space es uno solo para todos los visitantes.
+        max_file_size=TAMANO_MAXIMO_SUBIDA,
     )
