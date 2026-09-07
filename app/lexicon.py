@@ -52,7 +52,10 @@ from scoring import public_band
 
 # --- Rutas y constantes -------------------------------------------------
 RAIZ = Path(__file__).resolve().parent.parent
-RUTA_DICCIONARIO = RAIZ / "kaikki_diccionario.db"
+# Configurable por entorno: al desplegar, el .db de 233 MB se monta como
+# volumen de solo lectura fuera del repositorio.
+RUTA_DICCIONARIO = Path(os.environ.get("LITERALEVEL_DICCIONARIO",
+                                       RAIZ / "kaikki_diccionario.db"))
 RUTA_CACHE = Path(os.path.expanduser("~")) / ".literalevel" / "lexicon.db"
 RUTA_AUDIO_GENERADO = Path(os.path.expanduser("~")) / ".literalevel" / "audio"
 
