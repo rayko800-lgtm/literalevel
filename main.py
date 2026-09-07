@@ -32,8 +32,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(RAIZ / "app"))
 
-import gradio as gr                    # noqa: E402
-from ui import construir               # noqa: E402
+from ui import RUTAS_PERMITIDAS, TEMA, construir   # noqa: E402
 
 # Nombre convencional: algunas plataformas importan el modulo y buscan `demo`
 # en vez de ejecutarlo. Construirlo es barato: no carga ninguno de los tres
@@ -48,8 +47,11 @@ def _en_la_nube() -> bool:
 if __name__ == "__main__":
     nube = _en_la_nube()
     demo.launch(
-        theme=gr.themes.Soft(),
+        theme=TEMA,
         server_name="0.0.0.0" if nube else "127.0.0.1",
         server_port=int(os.environ.get("PORT", 7860)),
         inbrowser=not nube,
+        # Sin esto, los audios de tts-1 que viven en ~/.literalevel/audio no
+        # llegan al navegador: Gradio los rechaza con InvalidPathError.
+        allowed_paths=RUTAS_PERMITIDAS,
     )

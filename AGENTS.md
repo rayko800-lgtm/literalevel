@@ -107,3 +107,20 @@ Cuatro cosas que hay que resolver antes de subir, sea cual sea la plataforma:
 4. **Las cachés de `~/.literalevel/`** (lexicon y voz) son disco efímero en un
    Space: se borran en cada reinicio. Es aceptable porque son caché, pero la
    primera consulta tras cada despertar irá lenta.
+
+## Hallazgo abierto para Codex: la eleccion de acepcion falla
+
+Probando en la app real, `lexicon` eligio mal el sentido de **"peeped"** en
+*"once or twice she had peeped into the book"*: se quedo con *"To speak briefly
+with a quiet voice"* (afinidad **0.23** entre 6 acepciones) en lugar del sentido
+de mirar. La explicacion de OpenAI lo desmintio sola: *"la definicion dada es
+otro sentido de peep y no aplica aqui"*.
+
+O sea, `_elegir_sentido` con coseno sobre glosas cortas se queda sin senal
+cuando las glosas son de pocas palabras. Ideas, sin tocarlo yo: comparar contra
+`glosa + etiquetas + ejemplos` en vez de solo la glosa, o exigir un margen
+minimo entre el primer y el segundo candidato antes de dar uno por bueno.
+
+**Es archivo de Codex.** Por mi parte, `ui.py` ya avisa cuando la afinidad baja
+de `AFINIDAD_DUDOSA = 0.35`, para que el lector no se fie de una acepcion que
+salio practicamente por sorteo. El aviso es un parche, no el arreglo.

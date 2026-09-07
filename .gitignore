@@ -11,3 +11,8 @@ CLAVES.txt
 
 # Volcado de Kaikki: 243 MB, se regenera desde kaikki.org
 kaikki_diccionario.db
+
+# Fotogramas y paginas intermedias del video: se regeneran capturando la app
+capturas/video/
+capturas/correccion_voz.html
+# Libros descargados de Gutenberg (cache local del lector)

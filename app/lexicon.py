@@ -366,13 +366,34 @@ def _modelo_respuesta_contextual():
     return RespuestaContextual
 
 
+IDIOMAS = ("es", "en")
+
+
 def _pedir_explicacion_openai(
     cliente, *, palabra: str, oracion: str, glosa: str,
-    categoria: str | None, banda: str, modelo: str,
+    categoria: str | None, banda: str, modelo: str, idioma: str = "es",
 ) -> dict:
     """Pide a OpenAI lo contextual/gramatical. Prohibe explicitamente
-    inventar la definicion: debe usar la glosa que se le pasa, tal cual."""
+    inventar la definicion: debe usar la glosa que se le pasa, tal cual.
+
+    `idioma` decide en que lengua se explica: 'es' para lectores que aun
+    necesitan el andamiaje en su lengua materna, 'en' para quien ya lee
+    comodo y prefiere no salir del ingles mientras lee.
+    """
     RespuestaContextual = _modelo_respuesta_contextual()
+    if idioma == "en":
+        lengua = (
+            "Answer in ENGLISH in every field. The reader is a Spanish "
+            "speaker who reads English literature and prefers to stay in "
+            "English while reading, so keep the explanations in plain, clear "
+            "English suited to their level.\n\n"
+        )
+    else:
+        lengua = (
+            "Responde en espanol en todos los campos EXCEPTO "
+            "'ejemplo_simplificado', que debe ser una frase en ingles (es "
+            "material de lectura, no un andamiaje en la lengua materna).\n\n"
+        )
     instrucciones = (
         "Eres el asistente lexico de LiteraLevel, una app para lectores "
         "hispanohablantes que leen literatura en ingles. Recibes una palabra "
@@ -385,15 +406,13 @@ def _pedir_explicacion_openai(
         "básico/intermedio/avanzado). Adapta el vocabulario y la longitud de "
         "tus explicaciones a ese nivel: mas sencillas y breves para "
         "'básico', mas ricas y precisas para 'avanzado'.\n\n"
-        "Responde en espanol en todos los campos EXCEPTO 'ejemplo_simplificado', "
-        "que debe ser una frase en ingles (es material de lectura, no un "
-        "andamiaje en la lengua materna).\n\n"
+        + lengua +
         "Campos a devolver:\n"
         "- definicion_contextual: como funciona ESTA palabra en ESTA oracion "
         "concreta, apoyandote en la definicion de diccionario dada.\n"
         "- explicacion_gramatical: forma o funcion gramatical en esta "
         "oracion (tiempo verbal, si es phrasal verb, si el sustantivo es "
-        "contable, etc.), en espanol.\n"
+        "contable, etc.).\n"
         "- explicacion_adaptada: la definicion de diccionario reformulada "
         "con palabras acordes al nivel del lector.\n"
         "- ejemplo_simplificado: una frase nueva en ingles, breve y sencilla, "
@@ -461,10 +480,18 @@ class ConsultorLexico:
         self._cliente_openai = OpenAI(api_key=clave)
         return self._cliente_openai
 
-    def consultar(self, palabra_superficie: str, oracion: str, nivel: float) -> ResultadoLexico:
+    def consultar(self, palabra_superficie: str, oracion: str, nivel: float,
+                  idioma: str = "es") -> ResultadoLexico:
         """Resuelve `palabra_superficie` dentro de `oracion` para un lector
         de nivel `nivel` (escala publica 0..2). Nunca lanza excepcion por
-        falta de red o de OPENAI_API_KEY: lo que falte queda en `avisos`."""
+        falta de red o de OPENAI_API_KEY: lo que falte queda en `avisos`.
+
+        `idioma` ('es' o 'en') es la lengua de las explicaciones. El
+        diccionario, la IPA y el audio no dependen de el: solo cambia lo que
+        aporta OpenAI. Quien ya lee comodo suele preferir 'en' para no salir
+        del ingles mientras lee.
+        """
+        idioma = idioma if idioma in IDIOMAS else "es"
         avisos: list[str] = []
         banda = public_band(nivel)
 
@@ -517,9 +544,11 @@ class ConsultorLexico:
             if cliente is None:
                 avisos.append("sin OPENAI_API_KEY: no hay explicacion contextual")
             else:
+                # El idioma va en la clave: si no, la version en espanol y la
+                # inglesa se pisarian en la cache y saldria la que llego antes.
                 partes_clave = (
                     "contextual", lema_buscado, categoria or "", sentido.glosa,
-                    oracion, banda, self.modelo_openai,
+                    oracion, banda, self.modelo_openai, idioma,
                 )
                 extra = self.cache.obtener_respuesta(*partes_clave)
                 if extra is not None:
@@ -529,7 +558,7 @@ class ConsultorLexico:
                         extra = _pedir_explicacion_openai(
                             cliente, palabra=palabra_superficie, oracion=oracion,
                             glosa=sentido.glosa, categoria=categoria, banda=banda,
-                            modelo=self.modelo_openai,
+                            modelo=self.modelo_openai, idioma=idioma,
                         )
                         self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
                     except Exception as e:
