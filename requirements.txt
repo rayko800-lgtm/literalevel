@@ -1,0 +1,22 @@
+# LiteraLevel - app local. torch CPU basta: la inferencia son 8 bloques.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.4
+transformers>=4.44
+gradio>=6.0
+pypdf>=5.0
+numpy>=1.26
+
+# Catalogo: el CSV se lee con pandas y se indexa con embeddings.
+pandas>=2.2
+sentence-transformers>=3.0
+
+# lexicon.py: lema y categoria gramatical dentro de la oracion.
+spacy>=3.7
+wordfreq>=3.1
+
+# lexicon.py y voz.py: solo lo contextual, la transcripcion y el tts.
+openai>=1.40
+pydantic>=2.7
+
+# El modelo de spaCy no se instala con pip normal; hace falta ademas:
+#   python -m spacy download en_core_web_sm

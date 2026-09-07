@@ -1,0 +1,13 @@
+modelo_v4/
+notebook_v4_dump.py
+__pycache__/
+*.pyc
+.chrome-auto/
+.literalevel/
+.env
+*.env
+!.env.example
+CLAVES.txt
+
+# Volcado de Kaikki: 243 MB, se regenera desde kaikki.org
+kaikki_diccionario.db
