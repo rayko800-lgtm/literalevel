@@ -95,14 +95,13 @@ inactividad.
 
 Cuatro cosas que hay que resolver antes de subir, sea cual sea la plataforma:
 
-1. **`app/` no es un paquete.** Los módulos se importan planos y solo funciona
-   porque `ui.py` se mete su directorio en `sys.path`. Un Space espera `app.py`
-   en la raíz: hace falta un envoltorio.
-2. **La ruta del diccionario está clavada.** `ui.py` sí permite mover el modelo
-   (`LITERALEVEL_MODELO`), pero `lexicon.py` fija
-   `RUTA_DICCIONARIO = RAIZ / "kaikki_diccionario.db"`. Con los datos montados
-   como volumen de solo lectura hay que poder cambiarla por entorno.
-   **Es archivo de Codex: que lo parametrice quien lo lleva.**
+1. ~~`app/` no es un paquete.~~ **RESUELTO:** `main.py` en la raíz mete `app/`
+   en `sys.path` y expone `demo`. **No lo renombres a `app.py`**: chocaría con
+   la carpeta `app/`. En un Space hay que declararlo en el README:
+   `app_file: main.py`.
+2. ~~La ruta del diccionario está clavada.~~ **RESUELTO:** `lexicon.py` lee
+   `LITERALEVEL_DICCIONARIO` y cae al valor de siempre si no está. Igual que
+   `LITERALEVEL_MODELO` para el modelo.
 3. **Los 562 MB están en `.gitignore`** y deben seguir estándolo. Suben como
    repo de modelo y repo de dataset aparte, montados de solo lectura.
 4. **Las cachés de `~/.literalevel/`** (lexicon y voz) son disco efímero en un
