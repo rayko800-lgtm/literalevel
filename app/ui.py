@@ -327,6 +327,63 @@ def _desde_cuestionario(p_actual, nombre, *valores, peticion: gr.Request = None)
     return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
 
 
+def _muestra_de_libro(libro, palabras: int = 2400) -> str:
+    """Un extracto representativo del libro, para medir su dificultad.
+
+    No vale con coger el principio: los primeros capitulos suelen ser
+    portadilla, prologo o dedicatoria, y ademas muchos libros empiezan facil.
+    Se toman trozos repartidos por toda la obra, saltandose el paratexto, para
+    que la medida se parezca a lo que el lector va a encontrarse de verdad.
+    """
+    cuerpo = [c for c in libro.capitulos
+              if c.palabras >= 300 and not _RELLENO_RE.search(c.titulo)]
+    if not cuerpo:
+        cuerpo = [c for c in libro.capitulos if c.palabras >= 100] or libro.capitulos
+    cuantos = min(8, len(cuerpo))
+    if cuantos == 0:
+        return ""
+    # Repartidos por el libro, no los ocho primeros.
+    paso = max(1, len(cuerpo) // cuantos)
+    elegidos = cuerpo[::paso][:cuantos]
+    por_capitulo = max(260, palabras // cuantos)
+    trozos = []
+    for c in elegidos:
+        ws = c.texto.split()
+        # Desde un poco despues del principio: los titulillos viven ahi.
+        inicio = min(40, max(0, len(ws) - por_capitulo))
+        trozos.append(" ".join(ws[inicio:inicio + por_capitulo]))
+    return "\n\n".join(trozos)
+
+
+def _nivel_desde_libro(p_actual, nombre, archivo, peticion: gr.Request = None):
+    """Situa al lector midiendo un libro entero que dice leer comodo.
+
+    Pedirle que copie y pegue doscientas palabras es trabajo suyo que puede
+    hacer la maquina: si ya tiene el libro, que lo suba.
+    """
+    if not archivo:
+        return p_actual, "Sube un `.epub`, `.pdf` o `.txt` que ya hayas leído."
+    try:
+        libro = reader.cargar(archivo)
+    except Exception as e:
+        return p_actual, _aviso(f"No pude abrir el archivo ({type(e).__name__}): {e}")
+    muestra = _muestra_de_libro(libro)
+    if len(muestra.split()) < 150:
+        return p_actual, _aviso(
+            "Ese archivo tiene muy poco texto corrido para medirlo. Prueba con "
+            "un libro completo, o pega un fragmento a mano.")
+    try:
+        p = perfil_mod.desde_muestra(muestra, puntuador(), nombre=nombre or "")
+        p.guardar(_archivo_lector("perfil.json", peticion))
+    except (ValueError, FileNotFoundError, OSError) as e:
+        return p_actual, _aviso(e)
+    return p, (f"Medido con **{libro.titulo}**"
+               + (f" — {libro.autor}" if libro.autor else "")
+               + f", tomando muestras de {min(8, len(libro.capitulos))} partes "
+                 f"del libro.\n\n" + _describir(p)
+               + "\n\nGuardado. Ya puedo recomendarte lecturas.")
+
+
 def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
     if not (texto or "").strip():
         return p_actual, "Pega un fragmento que leas sin dificultad."
@@ -1221,13 +1278,26 @@ def construir() -> gr.Blocks:
                         for _, pregunta, opciones in perfil_mod.PREGUNTAS
                     ]
                     b_cuest = gr.Button("Estimar mi nivel", variant="primary")
-                with gr.Accordion("O mídelo con un texto que leas cómodo", open=False):
+                with gr.Accordion("O mídelo con un libro que ya hayas leído",
+                                  open=False):
+                    gr.Markdown("Si ya leíste un libro en inglés y te resultó "
+                                "cómodo, súbelo: se miden ocho partes "
+                                "repartidas por toda la obra, no solo el "
+                                "principio.")
+                    libro_nivel = gr.File(label="Tu libro (.epub, .pdf, .txt)",
+                                          file_types=[".epub", ".pdf", ".txt"],
+                                          type="filepath")
+                    b_libro = gr.Button("Medir con este libro", variant="primary")
+
+                with gr.Accordion("O pega un fragmento a mano", open=False):
                     muestra = gr.Textbox(lines=8, label="Pega aquí unas 200 palabras "
                                                        "en inglés que leas sin esfuerzo")
                     b_muestra = gr.Button("Medir con este texto")
                     gr.Markdown("_La primera vez tarda: carga el modelo v4 (328 MB)._")
 
                 b_cuest.click(_desde_cuestionario, [est_perfil, nombre] + radios,
+                              [est_perfil, perfil_md])
+                b_libro.click(_nivel_desde_libro, [est_perfil, nombre, libro_nivel],
                               [est_perfil, perfil_md])
                 b_muestra.click(_desde_muestra, [est_perfil, nombre, muestra],
                                 [est_perfil, perfil_md])

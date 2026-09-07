@@ -481,6 +481,39 @@ prueba("muestra que no es prosa",
        lambda: ui._desde_muestra(None, "", "- uno\n- dos\n- tres")[1][:70])
 prueba("describir perfil None", lambda: ui._describir(None)[:60])
 
+# Medir el nivel subiendo un libro entero, en vez de copiar y pegar.
+prueba("nivel desde libro: sin archivo",
+       lambda: ui._nivel_desde_libro(None, "", None)[1][:50])
+prueba("nivel desde libro: archivo inexistente",
+       lambda: ui._nivel_desde_libro(None, "", str(TMP / "nada.epub"))[1][:50])
+prueba("nivel desde libro: epub corrupto",
+       lambda: ui._nivel_desde_libro(None, "", escribir("x.epub", b"no soy zip"))[1][:50])
+prueba("nivel desde libro: texto insuficiente",
+       lambda: ui._nivel_desde_libro(None, "", escribir("mini.txt", "hola"))[1][:50])
+
+
+def _muestreo_reparte():
+    """La muestra no puede salir toda del principio del libro."""
+    class C:
+        def __init__(s, t, n): s.titulo, s.texto = t, " ".join(f"w{i}" for i in range(n))
+        @property
+        def palabras(s): return len(s.texto.split())
+
+    class L:
+        titulo, autor = "L", "A"
+        capitulos = ([C("Foreword", 900)]
+                     + [C(f"CHAPTER {i}", 900) for i in range(1, 13)])
+    m = ui._muestra_de_libro(L())
+    assert "Foreword" not in m
+    trozos = m.split("\n\n")
+    assert len(trozos) >= 4, f"solo {len(trozos)} trozos"
+    return f"{len(trozos)} trozos de {len(L.capitulos) - 1} capítulos de cuerpo"
+
+
+prueba("la muestra se reparte por el libro", _muestreo_reparte)
+prueba("muestra de un libro sin capítulos útiles",
+       lambda: repr(ui._muestra_de_libro(type("L", (), {"capitulos": []})())))
+
 
 # --- 8. Voz ---------------------------------------------------------------
 
