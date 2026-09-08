@@ -152,11 +152,41 @@ def descargar(n: int) -> bool:
     return False
 
 
-# Empieza por los más descargados: si hay que parar a media faena, que lo
-# hecho sea lo que la gente lee de verdad.
-pendientes = [int(i) for i in en["Text#"].tolist()]
+# EL ORDEN IMPORTA, y mucho más de lo que parece. El catálogo de Gutenberg
+# viene ordenado por número de texto, y los primeros números son la
+# Declaración de Independencia, la Carta de Derechos y un discurso de Kennedy:
+# documentos, no novelas. Si el precálculo se corta a media faena —y con
+# 61.642 libros es lo más probable—, lo hecho sería justo lo que nadie va a
+# querer leer.
+#
+# Los recuentos de descargas están en la metadata del SPGC, que ya vive en
+# Drive. Con ella se empieza por lo que la gente lee de verdad.
+RUTA_SPGC = RAIZ / "SPGC-metadata-2018-07-18.csv"
+if RUTA_SPGC.exists():
+    spgc = pd.read_csv(RUTA_SPGC)
+    col = next((c for c in spgc.columns if "download" in c.lower()), None)
+    if col:
+        spgc["num"] = (spgc["id"].astype(str).str.extract(r"(\d+)")[0]
+                       .astype("Int64"))
+        popularidad = dict(zip(spgc["num"].dropna().astype(int),
+                               spgc[col].fillna(0)))
+        print(f"popularidad conocida de {len(popularidad):,} libros")
+    else:
+        popularidad = {}
+        print("la metadata del SPGC no trae descargas; se deja el orden natural")
+else:
+    popularidad = {}
+    print("sin metadata del SPGC; se deja el orden natural")
+
+pendientes = sorted((int(i) for i in en["Text#"].tolist()),
+                    key=lambda n: -popularidad.get(n, 0))
 print(f"{len(pendientes):,} libros en la lista")
 print("Ya en Drive:", len(list(TEXTOS.glob('*.txt'))))
+if popularidad:
+    cab = {int(r["Text#"]): str(r["Title"])[:44] for _, r in en.iterrows()}
+    print("\nLos diez primeros por descargas:")
+    for n in pendientes[:10]:
+        print(f"  {int(popularidad.get(n, 0)):>7} descargas · {cab.get(n, '?')}")
 
 # %%
 # --- 6b. El bucle de descarga (se puede cortar y reanudar) ---------------
