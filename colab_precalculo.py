@@ -37,11 +37,26 @@ else:
 
 # %%
 # --- 2. Drive y carpetas --------------------------------------------------
-from google.colab import drive
-drive.mount("/content/drive", force_remount=True, timeout_ms=180000)
-
-import os
+import os, time
 from pathlib import Path
+
+from google.colab import drive
+
+# Se reintenta a proposito. La primera llamada falla con `ValueError: mount
+# failed` cuando el dialogo de permiso se contesta despues de que el montaje ya
+# arranco -que es lo normal la primera vez-, y al reintentar funciona. Sin esto,
+# "Ejecutar todas" se para en la segunda celda cada vez que Colab da una VM
+# nueva, y con un trabajo de horas que hay que reanudar eso pasa a menudo.
+for intento in range(1, 4):
+    try:
+        drive.mount("/content/drive", force_remount=(intento == 1),
+                    timeout_ms=180000)
+        break
+    except Exception as e:
+        print(f"  intento {intento} de montar Drive: {type(e).__name__}: {e}")
+        if intento == 3:
+            raise
+        time.sleep(5)
 
 RAIZ = Path("/content/drive/MyDrive/literalevel_bigdata")
 TEXTOS = RAIZ / "gutenberg_txt"        # los libros descargados
