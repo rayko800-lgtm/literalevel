@@ -707,7 +707,7 @@ El modelo devuelve un número continuo, pero su escala está comprimida
 ($\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$; véase la
 figura~\ref{fig:compresion}). Presentar «1,27 sobre 2» como si fueran dos decimales de
 precisión sería mentir con exactitud. La interfaz muestra \textbf{bandas} —básico
-$< 0{,}8 \leq$ intermedio $< 1{,}6 \leq$ avanzado, tal como las dibuja la
+$< 0{,}6 \leq$ intermedio $< 1{,}4 \leq$ avanzado, tal como las dibuja la
 figura~\ref{fig:escala}— y la letra MCER únicamente como orientación, siempre junto al
 número y con la tabla de correspondencia a la vista.
 
@@ -1632,9 +1632,18 @@ los corpus de examen gradúan también la extensión de la tarea.
 \textbf{La escala está comprimida, y la aplicación lo asume.} Contra el ancla real, el
 ajuste ronda $\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$
 (figura~\ref{fig:compresion}), de modo que un texto A2 tiende a puntuar cerca de B1. Por
-eso la interfaz muestra \textbf{bandas} (básico $< 0{,}8 \leq$ intermedio $< 1{,}6 \leq$
+eso la interfaz muestra \textbf{bandas} (básico $< 0{,}6 \leq$ intermedio $< 1{,}4 \leq$
 avanzado) y la letra MCER solo como orientación, en lugar de fingir una precisión de dos
 decimales que el modelo no tiene.
+
+Los cortes de esas bandas no son tercios de la escala, y esa es una corrección posterior.
+Al principio estaban en 0,8 y 1,6 —el 0--2 partido en tres—, pero como el modelo comprime
+sus predicciones, con esos cortes un texto C1 caía en «intermedio» y «avanzado» solo lo
+alcanzaba un C2: tres de los cinco niveles medidos compartían banda. Ahora la banda se
+deriva del ancla MCER, con el agrupamiento del propio marco —usuario básico A1--A2,
+independiente B1--B2, competente C1--C2—, y las fronteras quedan en 	extbf{0,6 y 1,4}.
+Así la palabra y la letra no pueden contradecirse por construcción. Ninguna puntuación
+cambió: solo cambió cómo se agrupan.
 
 % ---------------------------------------------------- FIGURA: compresión
 \begin{figure}[htbp]
@@ -1731,7 +1740,7 @@ Promediar bloques sin ponderar & Simplicidad y reproducibilidad; ponderar por lo
 \addlinespace
 \textbf{Rechazada: escalar la lista léxica al SPGC completo por rendimiento} & Se esperaba mejorar \cod{rare\_word\_ratio} & La correlación pasa de $-0{,}330$ a $-0{,}326$. Se conserva igualmente por cobertura, no por métrica \\
 \addlinespace
-\textbf{Rechazada: cuantización dinámica int8} & $+18\pct$ de velocidad en CPU & MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de $-0{,}21$: un texto de 1,68 pasa a 1,47 y cruza la frontera de «avanzado» a «intermedio», que está en 1,6. Inaceptable \\
+\textbf{Rechazada: cuantización dinámica int8} & $+18\pct$ de velocidad en CPU & MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de $-0{,}21$. Un desplazamiento así cambia la letra MCER en el \textbf{52\pct} de la escala y la banda en el \textbf{21\pct}: no degrada la cifra, le cambia la etiqueta al libro. Inaceptable \\
 \addlinespace
 \textbf{Rechazada: precisión media (fp16) en la GPU local} & Se esperaba acelerar & Es \textbf{4,8$\times$ más lenta} que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene \emph{tensor cores}. En una A100 sí compensa, y allí la desviación medida es 0,00037 de media \\
 \addlinespace

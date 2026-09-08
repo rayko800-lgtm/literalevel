@@ -139,8 +139,17 @@ def public_band(score: float) -> str:
 
 def anchor_cefr(y: float) -> str:
     """Ancla CEFR mas cercana en la escala interna. Es orientativa: el modelo
-    no certifica CEFR, solo declara alineacion de investigacion."""
-    return ANCHORS[int(np.clip(round(y), 0, 5))]
+    no certifica CEFR, solo declara alineacion de investigacion.
+
+    Los empates se resuelven HACIA ARRIBA, con floor(y + 0,5), y no con
+    `round`. La razon es que `round` de Python redondea al par
+    -0,5 -> 0, 2,5 -> 2, 4,5 -> 4-, asi que en los tres empates de la escala
+    devolvia A1, B1 y C1 mientras la tabla de la interfaz, que usa
+    floor(x + 0,5), devolvia A2, B2 y C2 para esas mismas puntuaciones. Un
+    mismo valor daba dos letras segun quien preguntara. Ahora hay una sola
+    regla y esta escrita en los dos sitios.
+    """
+    return ANCHORS[int(np.clip(np.floor(float(y) + 0.5), 0, 5))]
 
 
 @dataclass

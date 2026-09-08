@@ -1678,7 +1678,9 @@ plt.show()
 # %% [markdown]
 # **Figura 13 — La curva que sostiene el proyecto.**
 #
-# Las líneas punteadas son los cortes de las bandas públicas: 0,8 y 1,6.
+# Las líneas punteadas son los cortes de las bandas públicas: 0,6 y 1,4.
+# Salen del agrupamiento del MCER (A1-A2, B1-B2, C1-C2), no de partir el 0-2
+# en tres trozos iguales.
 #
 # **La curva sube de forma estrictamente creciente en los cinco niveles**, sin
 # una sola inversión, sobre un corpus que el modelo no vio nunca y con niveles
@@ -1739,10 +1741,17 @@ print(decisiones.to_string(index=False))
 #
 # El motivo no es que el error sea grande en abstracto, sino **dónde cae**: un
 # MAE de 0,210 sobre una escala de 0 a 2, con sesgo sistemático a la baja de
-# −0,21, mueve un texto de 1,68 a 1,47. Y **el corte entre «intermedio» y
-# «avanzado» está en 1,60**. Es decir, la optimización no degrada la cifra: le
-# cambia la etiqueta al libro. Un lector recibiría una recomendación distinta
-# según con qué precisión se hubiera compilado el modelo.
+# −0,21. Recorriendo las 201 puntuaciones de la escala, un desplazamiento así
+# **cambia la letra MCER en 105 de ellas —el 52 %— y la banda en 42, el 21 %**.
+# Es decir, la optimización no degrada la cifra: le cambia la etiqueta al libro.
+# Un lector recibiría una recomendación distinta según con qué precisión se
+# hubiera compilado el modelo.
+#
+# (El ejemplo concreto que traía antes esta nota —1,68 pasa a 1,47 y cruza a
+# «intermedio»— era cierto con los cortes viejos en 0,8 y 1,6. Con los cortes
+# actuales esos dos valores son ambos C1 y ambos avanzados, así que se ha
+# sustituido por la medición sobre la escala completa, que no depende de qué
+# punto se elija para ilustrarlo.)
 #
 # Es el tipo de decisión que solo aparece cuando se evalúa el sistema contra el
 # uso real y no contra una métrica agregada. La misma prueba, mirando solo el

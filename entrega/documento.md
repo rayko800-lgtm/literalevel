@@ -632,8 +632,18 @@ extensión de la tarea.
 **La escala está comprimida, y la aplicación lo asume.** Contra el ancla real,
 el ajuste ronda `predicho ≈ 0,72 × real + 0,38`, de modo que un texto A2 tiende
 a puntuar cerca de B1. Por eso la interfaz muestra **bandas** (básico
-< 0,8 ≤ intermedio < 1,6 ≤ avanzado) y la letra MCER solo como orientación, en
+< 0,6 ≤ intermedio < 1,4 ≤ avanzado) y la letra MCER solo como orientación, en
 lugar de fingir una precisión de dos decimales que el modelo no tiene.
+
+Los cortes de esas bandas no son tercios de la escala, y esa es una corrección
+posterior. Al principio estaban en 0,8 y 1,6 —el 0–2 partido en tres—, pero
+como el modelo comprime sus predicciones, con esos cortes un texto C1 caía en
+«intermedio» y «avanzado» solo lo alcanzaba un C2: tres de los cinco niveles
+medidos compartían banda. Ahora la banda se deriva del ancla MCER, con el
+agrupamiento del propio marco —usuario básico A1–A2, independiente B1–B2,
+competente C1–C2—, y las fronteras quedan en **0,6 y 1,4**. Así la palabra y la
+letra no pueden contradecirse por construcción. Ninguna puntuación cambió: solo
+cambió cómo se agrupan.
 
 ### 7.6 Cuadro de decisiones metodológicas
 
@@ -649,7 +659,7 @@ resultado.
 | **Rechazada: XGBoost sobre variables clásicas** | Se esperaba que un ensamble superase al modelo lineal | No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 vs 1,39). El límite estaba en las variables |
 | **Rechazada: modelo híbrido embedding + variables** | Se esperaba complementariedad | Ganancia nula (0,37 y 0,37; 0,91 vs 0,93). El embedding ya contiene esa información |
 | **Rechazada: escalar la lista léxica al SPGC completo por rendimiento** | Se esperaba mejorar `rare_word_ratio` | La correlación pasa de −0,330 a −0,326. Se conserva igualmente por cobertura, no por métrica |
-| **Rechazada: cuantización dinámica int8** | +18 % de velocidad en CPU | MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de −0,21: un texto de 1,68 pasa a 1,47 y cruza la frontera de «avanzado» a «intermedio», que está en 1,6. Inaceptable |
+| **Rechazada: cuantización dinámica int8** | +18 % de velocidad en CPU | MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de −0,21. Un desplazamiento así cambia la letra MCER en el **52 %** de la escala y la banda en el **21 %**: no degrada la cifra, le cambia la etiqueta al libro. Inaceptable |
 | **Rechazada: precisión media (fp16) en la GPU local** | Se esperaba acelerar | Es **4,8× más lenta** que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene *tensor cores*. En una A100 sí compensa, y allí la desviación medida es 0,00037 de media |
 | **Rechazada: `inference_mode` en lugar de `no_grad`** | Se esperaba menos sobrecarga | 0,4 % de diferencia, por debajo del ruido |
 | **Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica** | Es el doble de rápido (7,4 s frente a 14,9 s) | Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa |

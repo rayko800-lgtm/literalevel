@@ -814,6 +814,26 @@ prueba("las tres bandas son alcanzables",
 prueba("banda con un valor fuera de escala",
        lambda: (ui.scoring.public_band(-5), ui.scoring.public_band(99)))
 
+
+# La letra sale por dos caminos: `ui._cefr` la calcula desde la puntuacion
+# publica para la tabla, y `scoring.anchor_cefr` desde la interna para el
+# contrato de `Resultado`. Tienen que coincidir SIEMPRE. No coincidian: una
+# usaba floor(x + 0,5) y la otra `round`, que redondea al par, asi que en los
+# empates -interno 0,5, 2,5 y 4,5- una decia A1, B1, C1 y la otra A2, B2, C2.
+def _una_sola_letra():
+    malas = []
+    for i in range(0, 50001):
+        y = i / 10000
+        a, b = ui._cefr(ui.scoring.public_score(y)), ui.scoring.anchor_cefr(y)
+        if a != b:
+            malas.append(f"interno {y} -> interfaz {a} / contrato {b}")
+    return malas[:5] or "las 50.001 coinciden"
+
+
+prueba("la interfaz y el contrato dan la misma letra", _una_sola_letra)
+prueba("los empates suben, no se van al par",
+       lambda: [ui.scoring.anchor_cefr(y) for y in (0.5, 1.5, 2.5, 3.5, 4.5)])
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)
