@@ -396,12 +396,19 @@ variables poco redundantes entre sí y con interpretación distinta:
 `avg_sentence_length` (complejidad sintáctica), `rare_word_ratio` (carga
 léxica) y `type_token_ratio` (diversidad de vocabulario).
 
-**El techo de las variables clásicas.** Con esas tres variables, un clasificador
-de seis niveles alcanza 0,29 de exactitud con regresión logística y 0,28 con
-XGBoost. Que un ensamble de árboles —capaz de capturar interacciones no
+**Hasta dónde llegan las variables clásicas.** Con esas tres variables, un
+clasificador de seis clases alcanza 0,29 de exactitud con regresión logística y
+0,28 con XGBoost. Que un ensamble de árboles —capaz de capturar interacciones no
 lineales arbitrarias— no supere a un modelo lineal es la prueba de que **el
 cuello de botella no era el modelo sino la representación del texto**. Tres
-números por documento no bastan para separar seis niveles.
+números por documento no bastan para separar seis clases.
+
+Conviene decir qué sostiene ese argumento y qué no. Lo que se comprueba es que
+**subir la capacidad del algoritmo sobre estas variables no mueve el
+resultado**, y eso se ve en cuatro modelos distintos. Lo que no se demuestra es
+que exista un límite teórico: nadie ha probado todas las combinaciones
+posibles de conteos, y el cuadernillo enseña un caso donde ampliar de tres a
+diecisiete variables sí mejora. La conclusión honesta es empírica, no un techo.
 
 **Representación densa.** Al sustituir las tres variables por un embedding de
 384 dimensiones de `all-MiniLM-L6-v2` (Reimers & Gurevych, 2019), la exactitud
@@ -446,7 +453,8 @@ evidencia.*
 | T9 | **Partición agrupada por libro** (`GroupShuffleSplit` sobre `Title`, 20 % de prueba, semilla 42) | Un mismo libro aporta varios extractos a CLEAR. Con una partición aleatoria por fila, fragmentos del mismo libro caerían a ambos lados y el modelo memorizaría el estilo del autor en lugar de aprender dificultad. Es fuga de datos por diseño, y se evita por diseño |
 | T10 | **Estandarización (`StandardScaler`) ajustada solo en entrenamiento** | Ajustar el escalador con los datos de prueba filtra su distribución al modelo |
 | T11 | **Discretización por cuantiles (`qcut`) para las versiones categóricas** | Produce grupos equifrecuentes, con lo que la exactitud entre modelos es comparable y el azar tiene una probabilidad conocida (1/6 = 16,7 %) |
-| T12 | **Lista de palabras familiares = las 3.000 más frecuentes del SPGC** | Sustituye una lista de 18 libros por una de 45.345, con muchísima más cobertura para texto nuevo |
+| T12 | **Lista de palabras familiares construida solo con el conjunto de entrenamiento** | Si se cuentan también las palabras de los extractos de prueba, esas palabras entran en la definición de una variable de entrada: es fuga de datos. Medida la diferencia, resulta despreciable —cambian 228 de 3.000 palabras y los resultados se mueven en la tercera decimal—, pero era fuga y se quitó |
+| T13 | **Lista alternativa a escala: las 3.000 más frecuentes del SPGC** | Sustituye una lista de 18 libros por una de 45.345. Es un experimento de cobertura, no la lista que usan los modelos de este cuadernillo, y **el sistema desplegado no consulta ninguna lista de palabras**: puntúa con el transformador |
 
 *Cuadro 6. Transformaciones sobre las variables tabulares.*
 
@@ -485,9 +493,19 @@ consulta en lugar de encadenarlas.
 Todos los modelos comparten la **misma partición agrupada por libro** (3.774
 extractos de entrenamiento y 950 de prueba) y la misma semilla, de modo que las
 diferencias entre ellos son atribuibles al modelo y no al reparto de los datos.
-Se comparan sobre el mismo conjunto de prueba de 950 extractos, con dos
-métricas: exactitud sobre seis niveles MCER y **error ordinal medio**, que
-penaliza proporcionalmente a la distancia del fallo.
+Se comparan sobre los mismos 950 extractos reservados, con dos métricas:
+exactitud sobre seis clases y **error ordinal medio**, que penaliza
+proporcionalmente a la distancia del fallo.
+
+Dos precisiones sobre ese conjunto, porque cambian cómo hay que leer las
+cifras. La primera: esos 950 extractos son también los que sirvieron para
+**elegir la época** del transformador, de modo que funcionan como validación de
+selección y no como un test independiente; sus números pueden ser algo
+optimistas. La segunda: las seis clases salen de partir `BT_easiness` en
+**sextiles de este corpus**, no de anotaciones del Marco Común Europeo. Se les
+dan nombres A1–C2 para poder ordenarlos, pero no son niveles MCER certificados
+ni equivalen a los del modelo desplegado, que se ancla con otro corpus. Ambas
+cosas las señaló una auditoría externa y ambas son ciertas.
 
 ### 7.2 Progresión de modelos
 

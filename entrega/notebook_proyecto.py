@@ -817,13 +817,28 @@ def contar_silabas(palabra):
     return max(1, len(re.findall(r"[aeiouy]+", palabra.lower())))
 
 
-# Lista de palabras familiares: las 3.000 más frecuentes del propio corpus.
+# --- La partición se calcula AQUÍ, y no más abajo, y hay un motivo ------
+# Uno de los seis rasgos, `palabras_raras`, necesita una lista de palabras
+# familiares. Si esa lista se construyera con el corpus entero, las palabras
+# de los extractos reservados para prueba entrarían en la definición de una
+# variable de entrada: es fuga de datos, aunque sea sutil. Así que primero se
+# parte y después se cuenta.
+#
+# `GroupShuffleSplit` reparte según los grupos, el número de filas y la
+# semilla; no mira los valores de X. Por eso puede calcularse antes de existir
+# los rasgos y da exactamente la misma partición que se usa en el bloque 5.
+grupos = clear["Title"].values
+particion = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=SEMILLA)
+idx_train, idx_test = next(
+    particion.split(np.zeros(len(clear)), clear["BT_easiness"].values, grupos))
+
+# Lista de palabras familiares: las 3.000 más frecuentes DEL ENTRENAMIENTO.
 contador = collections.Counter()
-for texto in clear["Excerpt"]:
+for texto in clear["Excerpt"].iloc[idx_train]:
     contador.update(w.lower() for w in PALABRA_RE.findall(texto))
 PALABRAS_FAMILIARES = set(w for w, _ in contador.most_common(3000))
 
-print("Vocabulario del corpus:", f"{len(contador):,}", "palabras distintas")
+print("Vocabulario del entrenamiento:", f"{len(contador):,}", "palabras distintas")
 print("Tokens totales:", f"{sum(contador.values()):,}")
 print("Umbral de 'familiar': las 3.000 más frecuentes")
 
@@ -862,18 +877,38 @@ print(asociacion_rasgos)
 # %% [markdown]
 # ### Interpretación: los rasgos propios no baten a las métricas clásicas
 #
-# El rasgo más informativo de los seis es **`palabras_raras` (−0,486)**: la
+# El rasgo más informativo de los seis es **`palabras_raras` (−0,490)**: la
 # proporción de palabras que no están entre las 3.000 más frecuentes. Le siguen
 # `polisilabas` (−0,477) y `silabas_por_palabra` (−0,447). Todos van en la
 # dirección correcta y ninguno alcanza a `CAREC_M` (−0,582).
 #
-# **Advertencia sobre ese −0,486, que es optimista.** La lista de palabras
-# familiares se ha construido aquí con el propio corpus, es decir, contando
-# también las palabras de los extractos que después sirven de prueba. Es una
-# fuga leve pero real, y por eso esta cifra no es comparable con las de la tabla
-# de abajo, todas calculadas con listas externas. Se hace así en el cuadernillo
-# para que sea autocontenido; **el sistema en producción usa una lista externa**
-# —el SPGC— precisamente para no incurrir en esto.
+# **Este número tuvo una fuga de datos, y esto es lo que costó.** En una versión
+# anterior de este cuadernillo la lista de palabras familiares se construía con
+# el corpus entero, contando también las palabras de los extractos reservados
+# para prueba. Una auditoría externa lo señaló y la lista pasó a construirse
+# solo con entrenamiento, que es como está ahora.
+#
+# Lo interesante es que **la fuga no inflaba nada**. Al medir las dos versiones
+# con todo lo demás idéntico —misma semilla, misma partición, mismos modelos—,
+# solo **228 de las 3.000 palabras** cambian de lista, y los resultados se
+# mueven en la tercera cifra decimal:
+#
+# | | Lista contaminada | Lista solo de entrenamiento |
+# |---|---|---|
+# | `palabras_raras` vs `BT_easiness` (Pearson) | −0,486 | **−0,490** |
+# | Regresión lineal, 17 variables (MAE) | 0,5948 | 0,5946 |
+# | Random Forest (Spearman) | 0,688 | 0,686 |
+# | Logística, 3 variables (exactitud) | 0,312 | 0,313 |
+# | Logística, 17 variables (exactitud) | 0,354 | 0,352 |
+#
+# Es decir: la cifra limpia es **ligeramente mejor**, no peor. La explicación es
+# la misma ley de Zipf que aparece en la tabla de abajo — con 4.724 extractos,
+# las 3.000 palabras más frecuentes son casi las mismas se cuenten sobre el
+# corpus entero o sobre el 80 % de él.
+#
+# Que el efecto sea despreciable **no lo convierte en aceptable**: era fuga y
+# había que quitarla. Pero conviene separar las dos cosas, porque una fuga
+# medida es un dato y una fuga sospechada es solo un miedo.
 #
 # Aquí hay una **hipótesis rechazada que conviene reportar** en lugar de
 # esconderla. Durante el proyecto, `palabras_raras` se recalculó tres veces con
@@ -939,18 +974,49 @@ print("Correlación de PC1 con BT_easiness:",
 # `Flesch-Reading-Ease`. Es, en una sola cifra, **la complejidad de superficie
 # del texto**: palabras largas, frases largas, vocabulario poco frecuente.
 #
-# Y correlaciona **0,614** con `BT_easiness`. Ese número es el techo de la
-# aproximación clásica y merece leerse despacio: **el mejor resumen posible de
-# todas las métricas de legibilidad juntas explica el 38 % de la varianza de la
-# dificultad percibida por lectores humanos**. El 62 % restante está en algo que
-# ninguna de esas variables mide —sintaxis, referencia, carga conceptual,
-# ambigüedad— y que solo se puede capturar leyendo el texto. Ese es el argumento
-# técnico para pasar a un transformador.
+# Y correlaciona **0,614** con `BT_easiness`, es decir, explica el **38 %** de
+# su varianza.
+#
+# **Cuidado con lo que ese 38 % significa y con lo que no.** El PCA se ajusta
+# *sin mirar la variable objetivo*: busca la dirección de máxima varianza de
+# las diecisiete entradas, no la que mejor predice la dificultad. Así que ese
+# número describe cuánta señal lleva **el resumen no supervisado** de estas
+# variables, y **no es un techo**: nada impide que una combinación supervisada,
+# otro componente o una relación no lineal saquen más. De hecho, más abajo se
+# ve que una regresión lineal sobre las mismas variables llega a Spearman
+# 0,707, por encima de ese 0,614.
+#
+# Lo que sí sostiene el experimento es la comparación completa: ninguno de los
+# modelos clásicos de este cuadernillo —lineal, bosque, logística, XGBoost—
+# despega de esa zona, por mucha capacidad que se les dé. El argumento para
+# pasar a un transformador no es el PCA por sí solo, sino que **subir la
+# capacidad del modelo sobre estas variables no mueve el resultado, y cambiar
+# la representación del texto sí**.
 
 # %%
-NIVELES_CEFR = ["C2", "C1", "B2", "B1", "A2", "A1"]
+# --- Seis sextiles de facilidad, y por qué NO son niveles MCER ----------
+# `qcut` parte `BT_easiness` en seis tramos con el mismo número de extractos
+# cada uno. Eso produce seis clases **relativas a este corpus**, no niveles del
+# Marco Común Europeo: aquí no hay ni una sola anotación institucional de MCER.
+# Se les dan nombres de la forma A1..C2 solo para poder hablar de ellos en
+# orden, y por eso en el resto del cuadernillo se llaman **sextiles**.
+#
+# El anclaje de verdad al MCER llega mucho más tarde, con otro corpus —los 654
+# documentos con nivel asignado— y es el que usa el modelo desplegado. Son dos
+# escalas distintas y no hay que confundirlas.
+#
+# Segunda salvedad, y también importante: los cortes se calculan sobre el
+# corpus entero, incluidas las filas que después sirven de prueba. La
+# definición de las clases, por tanto, ve las etiquetas reservadas. Es una
+# evaluación **transductiva**: describe bien cómo se ordenan estos 4.724
+# extractos, y no debe leerse como un test independiente. Se mantiene así
+# a propósito, porque el resultado del transformador que aparece más abajo se
+# midió contra estos mismos cortes y recalcularlos haría incomparable toda la
+# progresión de modelos.
+SEXTILES = ["C2", "C1", "B2", "B1", "A2", "A1"]
+NIVELES_CEFR = SEXTILES  # nombre antiguo, se conserva para no romper el resto
 nivel_cefr, bordes_cefr = pd.qcut(clear["BT_easiness"], q=6,
-                                  labels=NIVELES_CEFR, retbins=True)
+                                  labels=SEXTILES, retbins=True)
 clear["nivel_cefr"] = nivel_cefr
 
 plt.figure(figsize=(7, 5.5))
@@ -1040,10 +1106,10 @@ print(clear["nivel_cefr"].value_counts().sort_index())
 # evalúa, la evaluación mide memoria, no generalización.
 X_modelo = pd.concat([clear[METRICAS_CORPUS].reset_index(drop=True), rasgos], axis=1)
 y_modelo = clear["BT_easiness"].values
-grupos = clear["Title"].values
 
-particion = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=SEMILLA)
-idx_train, idx_test = next(particion.split(X_modelo, y_modelo, grupos))
+# `idx_train` e `idx_test` ya se calcularon en el bloque 4, antes de construir
+# la lista de palabras familiares, para que esa lista no viera el conjunto de
+# prueba. Se reutilizan aquí tal cual: es la misma partición, no otra.
 
 print("Entrenamiento:", X_modelo.iloc[idx_train].shape)
 print("Prueba:       ", X_modelo.iloc[idx_test].shape)
@@ -1240,17 +1306,18 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
       round(float((y_nivel.iloc[idx_test] == y_nivel.iloc[idx_train].mode()[0]).mean()), 3))
 
 # %% [markdown]
-# ### Interpretación: el techo de la aproximación clásica
+# ### Interpretación: hasta dónde llegan las variables de conteo
 #
 # Tres cifras, en orden:
 #
 # - Con las **tres variables clásicas** del experimento original: exactitud
-#   **0,312**, error ordinal **1,293 niveles**.
-# - Con las **diecisiete**: exactitud **0,354**, error ordinal **1,059**.
+#   **0,313**, error ordinal **1,295 niveles**.
+# - Con las **diecisiete**: exactitud **0,352**, error ordinal **1,061**.
 #   Catorce variables más compran cuatro puntos de exactitud.
-# - **XGBoost sobre las mismas diecisiete: 0,337 y 1,075. Es peor que la
-#   regresión logística**, con trescientos árboles y capacidad para modelar
-#   interacciones que la logística ni siquiera puede representar.
+# - **XGBoost sobre las mismas diecisiete: 0,340 y 1,081. Es peor que la
+#   regresión logística en las dos métricas**, con trescientos árboles y
+#   capacidad para modelar interacciones que la logística ni siquiera puede
+#   representar.
 #
 # Ese empate —o esa derrota— es informativo, no decepcionante. Cuando un modelo
 # lineal y un ensamble de *gradient boosting* rinden lo mismo sobre las mismas
@@ -1282,7 +1349,7 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # > **Matiz que el cuadernillo obliga a hacer.** Aquella comparación se hizo
 # > contra tres variables, y aquí se ha visto que ampliarlas a diecisiete sube la
-# > referencia clásica a 0,354 y 1,059. Es decir, **la ventaja de los embeddings
+# > referencia clásica a 0,352 y 1,061. Es decir, **la ventaja de los embeddings
 # > sobre unas variables clásicas bien surtidas es bastante menor de lo que aquel
 # > experimento sugería**. La brecha que sí es grande, y que no se cierra con más
 # > conteos, es la del transformador que lee el texto: 0,46 y 0,67.
@@ -1294,16 +1361,28 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 # **c) `roberta-base` afinado en regresión** (125 M parámetros, cabeza de
 # regresión sobre `BT_easiness`, 6 épocas, `learning rate` 2e-5, `weight decay`
 # 0,01, calentamiento, precisión mixta sobre GPU T4). RMSE **0,560** y
-# correlación de Pearson **0,89** sobre los 950 extractos de prueba.
+# correlación de Pearson **0,89** sobre los 950 extractos.
 #
-# > **Sobreajuste, atrapado en el acto.** El RMSE de validación mejoró hasta la
-# > época 3 (0,560) y a partir de ahí empeoró —época 4: 0,578; época 5: 0,637;
-# > época 6: 0,660— mientras la pérdida de entrenamiento seguía bajando. Como el
-# > entrenamiento guardaba un punto de control por época y se quedaba con el
-# > mejor por RMSE de validación (`load_best_model_at_end`), **el modelo
-# > entregado es el de la época 3, no el de la última**. Sin ese control, el
-# > resultado reportado habría sido 0,660 y el trabajo habría parecido peor de
-# > lo que era.
+# > **Sobreajuste, atrapado en el acto — y una salvedad que hay que hacer.** El
+# > RMSE mejoró hasta la época 3 (0,560) y a partir de ahí empeoró —época 4:
+# > 0,578; época 5: 0,637; época 6: 0,660— mientras la pérdida de entrenamiento
+# > seguía bajando. El entrenamiento guardaba un punto de control por época y se
+# > quedaba con el mejor (`load_best_model_at_end`), así que **el modelo
+# > entregado es el de la época 3, no el de la última**.
+# >
+# > La salvedad: esos 950 extractos son los que **eligieron la época**, y
+# > después son los que dan el 0,560 y el 0,89. Son, por tanto, un conjunto de
+# > **validación de selección**, no un test independiente, y así hay que
+# > leerlos: la cifra puede ser algo optimista porque se escogió el punto de
+# > control que mejor le sentaba. No hubo un tercer conjunto reservado en este
+# > experimento histórico. Lo señaló una auditoría externa del proyecto y es
+# > justo reconocerlo.
+# >
+# > Esto afecta a **este** experimento sobre CLEAR, que es el que cuenta por qué
+# > hizo falta un transformador. El modelo desplegado, el v4, se entrenó y se
+# > midió con otro corpus, y sus propias limitaciones —incluida la de que su
+# > conjunto de validación no puede recalcularse desde este cuadernillo— se
+# > tratan en su sección.
 #
 # **d) El modelo v4, que es el que está desplegado.** Es un afinado de
 # **`distilroberta-base`** —la variante destilada, la mitad de capas que
@@ -1797,12 +1876,12 @@ plt.show()
 #
 # ## 9.1 Lo que se concluye
 #
-# **1. El problema es real y la aproximación clásica no lo resuelve.** Las once
-# métricas de legibilidad del corpus, resumidas en su mejor combinación posible,
-# explican el 38 % de la varianza de la dificultad percibida por lectores humanos
-# (PC1 correlaciona 0,614 con `BT_easiness`). Un Random Forest sobre esas mismas
-# variables no supera a una regresión lineal. **El cuello de botella nunca fue el
-# algoritmo: fue la representación del texto.**
+# **1. El problema es real y la aproximación clásica no lo resuelve.** Sobre las
+# diecisiete variables de conteo, todos los modelos se quedan en la misma zona:
+# la regresión lineal llega a Spearman 0,707 y un Random Forest con trescientos
+# árboles se queda en 0,686, por debajo. Dar más capacidad al algoritmo no
+# cambia el resultado. **El cuello de botella nunca fue el algoritmo: fue la
+# representación del texto.**
 #
 # **2. Cada vez que se enriqueció la representación, el resultado subió.**
 # Conteos → embeddings → transformador que lee el texto: exactitud 0,29 → 0,37 →

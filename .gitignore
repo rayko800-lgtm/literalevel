@@ -16,3 +16,13 @@ kaikki_diccionario.db
 capturas/video/
 capturas/correccion_voz.html
 # Libros descargados de Gutenberg (cache local del lector)
+
+# intermedios de tectonic
+entrega/*.aux
+entrega/*.bbl
+entrega/*.bcf
+entrega/*.lof
+entrega/*.out
+entrega/*.run.xml
+entrega/*.toc
+entrega/*.blg

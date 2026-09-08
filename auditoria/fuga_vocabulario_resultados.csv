@@ -1,0 +1,15 @@
+modelo,version,MAE,RMSE,Spearman,exactitud,error_ordinal
+lineal 11 metricas,contaminado,0.6093,0.7639,0.6927,,
+lineal 17 variables,contaminado,0.5948,0.7483,0.7075,,
+random forest 300,contaminado,0.6045,0.7646,0.6882,,
+logistica 3 clasicas,contaminado,,,,0.3116,1.2926
+logistica 17 variables,contaminado,,,,0.3537,1.0589
+xgboost 17 variables,contaminado,,,,0.3368,1.0747
+corr. palabras_raras vs BT_easiness,contaminado,,,-0.5078,,
+lineal 11 metricas,limpio,0.6093,0.7639,0.6927,,
+lineal 17 variables,limpio,0.5946,0.7483,0.7068,,
+random forest 300,limpio,0.6045,0.767,0.6862,,
+logistica 3 clasicas,limpio,,,,0.3126,1.2947
+logistica 17 variables,limpio,,,,0.3516,1.0611
+xgboost 17 variables,limpio,,,,0.34,1.0811
+corr. palabras_raras vs BT_easiness,limpio,,,-0.5112,,
