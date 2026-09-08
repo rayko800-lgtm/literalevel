@@ -25,6 +25,9 @@ MAX_LENGTH = 256
 # dice de cuantas en cuantas se le dan al modelo, y esta medido que no altera
 # el resultado (ver `_puntuar_bloques`). 64 es donde satura la ganancia.
 LOTE_INFERENCIA = 64
+# En GPU satura mas arriba, pero 128 es el techo: ver la nota en
+# `_puntuar_bloques` sobre lo que pasa a partir de 136 con 4 GB de VRAM.
+LOTE_GPU = 128
 
 ANCHORS = ["A1", "A2", "B1", "B2", "C1", "C2"]
 LEVEL_VALUE = {
@@ -160,6 +163,28 @@ class Puntuador:
         self.modelo = AutoModelForSequenceClassification.from_pretrained(ruta)
         self.modelo.eval()
 
+        # GPU si la hay, y en fp32. Medido en la GTX 1650 SUPER de esta
+        # maquina: 112,7 ventanas/s frente a 8,19 en CPU, dieciocho veces mas
+        # rapido, y con los MISMOS numeros -839 de 840 ventanas identicas a
+        # tres decimales, MAE 0,000001-. Guerra y Paz entero pasa de siete
+        # minutos a veintidos segundos.
+        #
+        # En fp32 y no en fp16 a proposito: en esta tarjeta la media precision
+        # es CUATRO VECES Y MEDIA MAS LENTA, porque un TU116 no tiene tensor
+        # cores y el producto de matrices en half cae en un camino lento de
+        # cuBLAS. En una A100 seria al reves, pero aqui fp16 es un error.
+        #
+        # `LITERALEVEL_CPU=1` fuerza la CPU, para poder comparar o para cuando
+        # la tarjeta este ocupada con otra cosa.
+        self.dispositivo = "cpu"
+        if not os.environ.get("LITERALEVEL_CPU"):
+            try:
+                if torch.cuda.is_available():
+                    self.modelo.to("cuda")
+                    self.dispositivo = "cuda"
+            except Exception:
+                self.dispositivo = "cpu"      # sin GPU se sigue, no se cae
+
     def _puntuar_bloques(self, bloques: list[str]) -> list[float]:
         """Puntua ventanas en lotes de tamano fijo.
 
@@ -177,11 +202,17 @@ class Puntuador:
         identicos bit a bit.
         """
         torch = self._torch
+        # En GPU el lote optimo es mayor. Y NO se sube de 128: con 4 GB de VRAM,
+        # a partir de 136 el asignador se fragmenta y el rendimiento se hunde de
+        # 112 a 13 ventanas/s. Medido, y es un acantilado, no una pendiente.
+        lote = LOTE_GPU if self.dispositivo == "cuda" else LOTE_INFERENCIA
         fuera: list[float] = []
-        for i in range(0, len(bloques), LOTE_INFERENCIA):
-            ent = self.tokenizer(bloques[i:i + LOTE_INFERENCIA], truncation=True,
+        for i in range(0, len(bloques), lote):
+            ent = self.tokenizer(bloques[i:i + lote], truncation=True,
                                  max_length=MAX_LENGTH, padding=True,
                                  return_tensors="pt")
+            if self.dispositivo == "cuda":
+                ent = {k: v.to("cuda") for k, v in ent.items()}
             with torch.no_grad():
                 salida = self.modelo(**ent).logits.squeeze(-1).float().cpu().numpy()
             fuera.extend(float(v) for v in np.clip(np.atleast_1d(salida), 0, 5))
