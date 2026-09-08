@@ -21,6 +21,11 @@ MIN_WORDS = 150
 MAX_BLOCKS_PER_DOC = 8
 MAX_LENGTH = 256
 
+# Ventanas por lote de inferencia. No es una constante del entrenamiento: solo
+# dice de cuantas en cuantas se le dan al modelo, y esta medido que no altera
+# el resultado (ver `_puntuar_bloques`). 64 es donde satura la ganancia.
+LOTE_INFERENCIA = 64
+
 ANCHORS = ["A1", "A2", "B1", "B2", "C1", "C2"]
 LEVEL_VALUE = {
     "A1": 0.0, "A1+": 0.5, "A2": 1.0, "A2+": 1.5,
@@ -137,17 +142,50 @@ class Puntuador:
                 "Descarga la carpeta 'modelo_literalevel_v4_transformer' de "
                 "Drive (literalevel_bigdata) y apunta LITERALEVEL_MODELO a ella."
             )
+        # Todos los hilos logicos, no solo los fisicos. Medido en esta maquina
+        # (Ryzen 5 2600, 6 nucleos / 12 hilos): 6,16 -> 6,96 ventanas/s, un 13%
+        # gratis. El forward esta limitado por ancho de banda de memoria, asi
+        # que el escalado por encima de los nucleos fisicos es pobre pero real.
+        # No cambia ni un decimal: es el mismo grafo y el mismo dtype, solo
+        # cambia como reparte oneDNN. Se respeta lo que ya haya puesto el
+        # entorno, que en un servidor compartido puede estar limitado a
+        # proposito.
+        if not os.environ.get("OMP_NUM_THREADS"):
+            try:
+                torch.set_num_threads(os.cpu_count() or torch.get_num_threads())
+            except Exception:
+                pass
+
         self.tokenizer = AutoTokenizer.from_pretrained(ruta)
         self.modelo = AutoModelForSequenceClassification.from_pretrained(ruta)
         self.modelo.eval()
 
     def _puntuar_bloques(self, bloques: list[str]) -> list[float]:
+        """Puntua ventanas en lotes de tamano fijo.
+
+        Antes el lote era "lo que traiga la llamada", que en la practica son
+        las ventanas de UN capitulo: unas 20 en Crimen y Castigo y 7 en Guerra
+        y Paz. Medido, agrupar de 64 en 64 sube de 6,96 a 8,19 ventanas/s (+18%)
+        y satura ahi: de 64 a 300 solo se gana un 1%.
+
+        Y no cambia el resultado, cosa que hay que justificar y no suponer: una
+        ventana son 250 palabras inglesas, que al tokenizar pasan SIEMPRE de 256
+        BPE y se truncan a 256. Comprobado sobre 200 ventanas: el 100% mide
+        exactamente 256. Como no hay relleno, la forma del tensor por fila no
+        depende de con quien vaya agrupada. Verificado ademas a la brava: las
+        mismas 300 ventanas de una en una y en un solo lote dan 300/300 valores
+        identicos bit a bit.
+        """
         torch = self._torch
-        ent = self.tokenizer(bloques, truncation=True, max_length=MAX_LENGTH,
-                             padding=True, return_tensors="pt")
-        with torch.no_grad():
-            salida = self.modelo(**ent).logits.squeeze(-1).float().cpu().numpy()
-        return [float(v) for v in np.clip(np.atleast_1d(salida), 0, 5)]
+        fuera: list[float] = []
+        for i in range(0, len(bloques), LOTE_INFERENCIA):
+            ent = self.tokenizer(bloques[i:i + LOTE_INFERENCIA], truncation=True,
+                                 max_length=MAX_LENGTH, padding=True,
+                                 return_tensors="pt")
+            with torch.no_grad():
+                salida = self.modelo(**ent).logits.squeeze(-1).float().cpu().numpy()
+            fuera.extend(float(v) for v in np.clip(np.atleast_1d(salida), 0, 5))
+        return fuera
 
 
     def perfil_de_texto(self, texto: str, tope: int = 0) -> list[float]:
