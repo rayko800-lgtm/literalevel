@@ -736,6 +736,60 @@ prueba("rapido y completo se guardan aparte",
        lambda: ui._ruta_analisis(reader.Libro("t", "a", []), "rapido")
        != ui._ruta_analisis(reader.Libro("t", "a", []), "completo"))
 
+
+titulo("Paletas de color")
+
+import paletas as paletas_mod  # noqa: E402
+
+prueba("todas las paletas dan css",
+       lambda: [k for k in paletas_mod.PALETAS if not ui._css_paleta(k).startswith("<style>")]
+       or "las cinco")
+prueba("clave inventada vuelve a la de siempre",
+       lambda: ui._css_paleta("noexiste") == ui._css_paleta(paletas_mod.POR_DEFECTO))
+prueba("clave None", lambda: ui._css_paleta(None)[:7])
+prueba("clave vacia", lambda: ui._css_paleta("")[:7])
+prueba("clave con html dentro",
+       lambda: "<script" not in ui._css_paleta("<script>alert(1)</script>"))
+prueba("opciones del selector",
+       lambda: len(paletas_mod.opciones()) == len(paletas_mod.PALETAS))
+prueba("todas definen las mismas variables",
+       lambda: len({tuple(sorted(d["vars"])) for d in paletas_mod.PALETAS.values()}) == 1)
+
+
+def _contraste_suficiente():
+    """WCAG AA pide 4.5:1 para texto normal. Una paleta bonita e ilegible no
+    sirve: esto se anadio porque la app la va a usar gente de quince anos en
+    un movil, no un disenador en un monitor calibrado."""
+    def rgb(c):
+        c = c.strip()
+        if c.startswith("#"):
+            c = c[1:]
+            return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+        n = c[c.find("(") + 1:c.find(")")].split(",")
+        return tuple(int(float(x)) for x in n[:3])
+
+    def lum(c):
+        def f(v):
+            v /= 255
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+        r, g, b = rgb(c)
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+
+    malas = []
+    for k, d in paletas_mod.PALETAS.items():
+        v = d["vars"]
+        for etiqueta, (a, b) in {
+                "interfaz": ("--ll-texto", "--ll-fondo"),
+                "lector": ("--ll-lector-texto", "--ll-lector-fondo")}.items():
+            la, lb = lum(v[a]), lum(v[b])
+            r = (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+            if r < 4.5:
+                malas.append(f"{k}/{etiqueta}={r:.2f}")
+    return malas or "las cinco pasan AA"
+
+
+prueba("todas las paletas son legibles", _contraste_suficiente)
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)

@@ -48,6 +48,7 @@ import biblioteca
 import config
 import cuaderno
 import ficha as ficha
+import paletas as paletas_mod
 import perfil as perfil_mod
 import reader
 import scoring
@@ -228,42 +229,77 @@ def _estrellas(n: int = 90) -> str:
     return ",".join(capas)
 
 
+# Estructura, no color. Todos los colores salen de las variables que pone
+# `paletas.py`, asi que una paleta nueva no puede romper la maquetacion.
+#
+# Y hay una correccion que NO es de gusto y va para todas las paletas: la
+# primera lectora real de la app, de quince anos, dijo que la pagina se siente
+# antigua, "todo muy recto, muy marcado". Tenia razon. Esquinas de 14 px,
+# bordes finos y sombras suaves en vez de aristas y contraste duro.
+_RADIO = "14px"
+
+# Las estrellas se calculan una vez y se le pasan a la paleta que las quiera.
+_ESTRELLAS_CSS = _estrellas()
+
+
+def _css_paleta(clave: str) -> str:
+    """El `<style>` de la paleta elegida. Nunca lanza: si la clave no existe
+    -un valor viejo guardado en el navegador, por ejemplo- vuelve a la de
+    siempre en vez de dejar la pagina sin colores."""
+    try:
+        return paletas_mod.css(str(clave), _ESTRELLAS_CSS)
+    except Exception:
+        return paletas_mod.css(paletas_mod.POR_DEFECTO, _ESTRELLAS_CSS)
+
 _CSS_GLOBAL = f"""<style>
-:root{{--ll-hielo:#8fd3e8;--ll-hielo-hondo:#1d6285;--ll-noche:#05070d}}
 /* El bloque que transporta esta hoja de estilo no debe ocupar sitio; un
    <style> sigue aplicandose aunque su contenedor este oculto. */
-#ll-css{{display:none}}
+#ll-css,#ll-paleta-css{{display:none}}
 /* El indice de un libro puede tener 366 capitulos. Sin altura maxima empuja
    toda la pagina y hay que recorrerla entera para volver al texto. */
 #ll-indice .wrap{{max-height:46vh;overflow-y:auto}}
-body,gradio-app,.gradio-container{{
-  background-color:#05070d !important;
-  background-image:{_estrellas()},
-    radial-gradient(120% 62% at 50% 118%,rgba(60,150,190,.30) 0%,
-      rgba(24,74,104,.16) 42%,transparent 72%),
-    linear-gradient(180deg,#05070d 0%,#070c17 55%,#0a1522 100%) !important;
-  background-attachment:fixed !important;
-  background-repeat:no-repeat !important}}
 h1{{
-  background:linear-gradient(96deg,#eaf8ff 0%,#a8e2f4 40%,#4bb8da 100%);
+  background:linear-gradient(96deg,var(--ll-titulo-1) 0%,
+    var(--ll-titulo-2) 40%,var(--ll-titulo-3) 100%);
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;color:transparent;
   letter-spacing:-.015em;
-  filter:drop-shadow(0 0 26px rgba(120,205,235,.35))}}
-/* Los paneles, hielo translucido sobre el cielo, no cajas opacas. */
+  filter:drop-shadow(0 0 26px var(--ll-sombra-titulo))}}
+/* Paneles translucidos, no cajas opacas. */
 .block,.form,.panel,.gr-box{{
-  background-color:rgba(12,22,38,.72) !important;
-  border-color:rgba(143,211,232,.16) !important;
+  background-color:var(--ll-panel) !important;
+  border-color:var(--ll-borde) !important;
+  border-radius:{_RADIO} !important;
   backdrop-filter:blur(7px)}}
+/* Nada de aristas: botones, cajas de texto, desplegables y pestanas. */
+button,.gr-button,input,textarea,select,
+.wrap-inner,.secondary-wrap,.gr-input,.gr-text-input{{
+  border-radius:{_RADIO} !important}}
+button,.gr-button{{
+  transition:transform .08s ease,box-shadow .18s ease,filter .18s ease}}
+button:hover,.gr-button:hover{{filter:brightness(1.06)}}
+button:active,.gr-button:active{{transform:translateY(1px)}}
 button.primary,.primary button{{
-  background:linear-gradient(180deg,#3aa9cf,var(--ll-hielo-hondo)) !important;
-  border-color:rgba(143,211,232,.45) !important;color:#f2fbff !important}}
+  background:linear-gradient(180deg,var(--ll-boton-alto),
+    var(--ll-acento-hondo)) !important;
+  border-color:var(--ll-borde) !important;
+  color:var(--ll-boton-texto) !important;
+  box-shadow:0 2px 14px var(--ll-sombra-titulo)}}
 .tab-nav button.selected{{
-  color:var(--ll-hielo) !important;border-bottom-color:var(--ll-hielo) !important}}
-#ll-lector{{background:rgba(8,16,28,.62);border-color:rgba(143,211,232,.20)}}
+  color:var(--ll-acento) !important;
+  border-bottom-color:var(--ll-acento) !important}}
+/* Las opciones de una lista, como fichas que se pueden tocar. En un movil un
+   circulito de radio es un blanco de 12 px; la ficha entera es de 44. */
+label:has(input[type="radio"]),label:has(input[type="checkbox"]){{
+  border-radius:{_RADIO} !important;padding:.55rem .7rem}}
+#ll-lector{{
+  background:var(--ll-lector-fondo);border-color:var(--ll-borde);
+  border-radius:{_RADIO};color:var(--ll-lector-texto)}}
 #ll-lector::selection,#ll-lector p::selection{{
-  background:rgba(143,211,232,.38);color:#f4fcff}}
-#ll-voz{{background:rgba(8,16,28,.62);border-color:rgba(143,211,232,.20)}}
+  background:var(--ll-seleccion)}}
+#ll-voz{{
+  background:var(--ll-lector-fondo);border-color:var(--ll-borde);
+  border-radius:{_RADIO}}}
 footer{{opacity:.45}}
 /* El reproductor trae un boton de descarga que aqui no pinta nada: el
    audio es para oirlo en el momento, no para llevarselo. */
@@ -1939,6 +1975,11 @@ def _diagnostico():
 def construir() -> gr.Blocks:
     with gr.Blocks(title="LiteraLevel") as demo:
         gr.HTML(_CSS_GLOBAL, elem_id="ll-css")
+        # La paleta va en su PROPIO <style>, aparte del estructural: cambiarla
+        # solo reescribe una docena de variables y no vuelve a mandar toda la
+        # hoja de estilo ni puede descolocar nada.
+        paleta_css = gr.HTML(_css_paleta(paletas_mod.POR_DEFECTO),
+                             elem_id="ll-paleta-css")
         gr.Markdown(
             "# LiteraLevel\nLee en inglés al nivel que te toca.\n\n"
             "**1)** Fija tu nivel · **2)** busca algo que te apetezca leer · "
@@ -2021,11 +2062,16 @@ def construir() -> gr.Blocks:
 
             with gr.Tab("Buscar lectura", id="buscar"):
                 with gr.Row():
-                    consulta = gr.Textbox(label="¿Qué te apetece leer?", scale=4,
+                    consulta = gr.Textbox(label="¿De qué te apetece leer?", scale=4,
                                           placeholder="una novela de detectives victoriana")
-                    n_res = gr.Number(value=10, label="Resultados", precision=0,
-                                      minimum=1, maximum=50, scale=1)
-                ajustar = gr.Checkbox(value=True, label="Ajustar a mi nivel")
+                    n_res = gr.Number(value=10, label="¿Cuántos te propongo?",
+                                      precision=0, minimum=1, maximum=50,
+                                      scale=1,
+                                      info="Cuántos libros quieres en la lista")
+                ajustar = gr.Checkbox(value=True,
+                                      label="Solo libros que pueda leer",
+                                      info="Deja fuera lo que te quede muy "
+                                           "grande o muy pequeño para tu nivel")
                 # El aviso va ENCIMA del boton que provoca la espera. Debajo
                 # de los resultados, en un movil, queda fuera de pantalla y se
                 # lee cuando ya no sirve.
@@ -2034,7 +2080,7 @@ def construir() -> gr.Blocks:
                             "minuto. Las siguientes son instantáneas._")
                 with gr.Row():
                     b_buscar = gr.Button("Buscar", variant="primary")
-                    b_recom = gr.Button("Recomiéndame por nivel")
+                    b_recom = gr.Button("Sorpréndeme con algo de mi nivel")
                 resultados = gr.Markdown()
                 # Los mensajes de "Leerlo ahora" tienen que caer AQUI, en la
                 # pestana donde esta el boton. Antes iban a `libro_md`, que
@@ -2089,13 +2135,13 @@ def construir() -> gr.Blocks:
                          "cercana.")
                 with gr.Accordion("¿Qué significa cada nivel?", open=False):
                     gr.Markdown(_TABLA_CEFR)
-                b_medir = gr.Button("Medir la dificultad de este capítulo")
+                b_medir = gr.Button("¿Cómo de difícil es este capítulo?")
                 # Dos botones y no uno con un desplegable: son dos decisiones
                 # distintas -"echame un vistazo" y "leelo entero"- y cada una
                 # dice en su etiqueta lo que cuesta.
                 with gr.Row():
-                    b_rapido = gr.Button("Vistazo rápido a la dificultad")
-                    b_analizar = gr.Button("Analizar el libro entero",
+                    b_rapido = gr.Button("Vistazo rápido (unos segundos)")
+                    b_analizar = gr.Button("Leer el libro entero (tarda más)",
                                            variant="primary")
                 gr.Markdown("_El vistazo toma unas 80 ventanas repartidas por "
                             "toda la obra y tarda segundos. El análisis "
@@ -2234,6 +2280,16 @@ def construir() -> gr.Blocks:
 
                 b_cuaderno.click(_mis_palabras, None, cuaderno_md)
                 b_repasar.click(_repasar, None, cuaderno_md)
+
+            with gr.Tab("Colores", id="colores"):
+                gr.Markdown(
+                    "## Ponlo como te guste\n"
+                    "Se cambia al momento y no se pierde nada de lo que "
+                    "estés leyendo.")
+                paleta = gr.Radio(choices=paletas_mod.opciones(),
+                                  value=paletas_mod.POR_DEFECTO,
+                                  label="Paleta de colores")
+                paleta.change(_css_paleta, paleta, paleta_css)
 
             with gr.Tab("Estado", id="estado"):
                 diag = gr.Markdown()
