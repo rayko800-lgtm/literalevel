@@ -1,0 +1,386 @@
+% ===========================================================================
+%  LiteraLevel — Guion del vídeo (Módulo 5, 20 puntos)
+%  Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
+%
+%  Mismo estilo que documento.tex a proposito: mismos colores, misma
+%  tipografia, mismos escudos. Los dos entregables tienen que parecer del
+%  mismo trabajo.
+%
+%    tectonic guion_video.tex
+%    pdflatex guion_video (x2)
+% ===========================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{iftex}
+\usepackage{graphicx}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+
+\usepackage[spanish,es-noquoting,es-nodecimaldot]{babel}
+\usepackage[a4paper,margin=2.4cm,headheight=14pt]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{llazul}{HTML}{1F4E79}
+\definecolor{llcian}{HTML}{2E86AB}
+\definecolor{llverde}{HTML}{2A9D8F}
+\definecolor{llambar}{HTML}{E9A13B}
+\definecolor{llrojo}{HTML}{C1495B}
+\definecolor{llgris}{HTML}{5A5A5A}
+\definecolor{llgrisclaro}{HTML}{E8ECF0}
+\definecolor{llfondo}{HTML}{F7F9FB}
+
+\setstretch{1.10}
+\setlist{itemsep=2pt, topsep=4pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small\color{llgris} LiteraLevel — guion del vídeo}
+\rhead{\small\color{llgris} Módulo 5 · 20 pts}
+\cfoot{\small\thepage}
+
+\titleformat{\section}{\large\bfseries\color{llazul}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+% --- Caja de lo que se DICE -----------------------------------------------
+\newtcolorbox{dice}[1][]{
+  colback=white, colframe=llazul!55, boxrule=0.9pt, arc=2mm,
+  left=8pt, right=8pt, top=7pt, bottom=7pt,
+  fonttitle=\bfseries\small\color{white},
+  colbacktitle=llazul, title={#1}, enhanced}
+
+% --- Caja de lo que se VE / se hace ---------------------------------------
+\newtcolorbox{ve}{
+  colback=llfondo, colframe=llgrisclaro, boxrule=0.8pt, arc=2mm,
+  left=8pt, right=8pt, top=6pt, bottom=6pt}
+
+% --- Etiqueta de tiempo ----------------------------------------------------
+\newcommand{\reloj}[1]{{\small\bfseries\color{llcian}#1}}
+
+% --- Fase de ANSVA ---------------------------------------------------------
+\newcommand{\fase}[3]{%
+  \vspace{0.5em}
+  \noindent\begin{tikzpicture}
+    \node[fill=#3, text=white, rounded corners=3pt, inner xsep=8pt,
+          inner ysep=4pt, font=\bfseries] (l) {#1};
+    \node[right=8pt of l, font=\large\bfseries, text=llazul] {#2};
+  \end{tikzpicture}\par\vspace{0.3em}}
+
+\usetikzlibrary{positioning}
+
+\begin{document}
+
+% ===========================================================================
+\begin{titlepage}
+\centering
+
+\begin{minipage}{0.25\textwidth}
+    \raggedright
+    \includegraphics[height=2.4cm]{logos/logo_unam.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    \centering
+    {\large\bfseries Universidad Nacional Autónoma de México\par}
+    \vspace{0.2cm}
+    {\normalsize FACULTAD DE ESTUDIOS SUPERIORES ACATLÁN\par}
+\end{minipage}
+\hfill
+\begin{minipage}{0.25\textwidth}
+    \raggedleft
+    \includegraphics[height=2.4cm]{logos/logo_fes_acatlan.png}
+\end{minipage}
+
+\vspace{2.2cm}
+
+{\Huge\bfseries\color{llazul} Guion del vídeo\par}
+
+\vspace{0.5cm}
+
+{\LARGE LiteraLevel\par}
+
+\vspace{1.6cm}
+
+{\Large\bfseries Proyecto integrador --- Módulo 5\par}
+
+\vspace{1.0cm}
+
+{\large
+\textbf{Alumno:}\\
+Miguel Reyes Carrillo
+\par}
+
+\vspace{0.6cm}
+
+{\large
+\textbf{Profesor:}\\
+Mtro. Fernando Barranco Rodríguez
+\par}
+
+\vspace{0.6cm}
+
+{\large Diplomado en Ciencia de Datos --- Generación 34\par}
+
+\vfill
+
+\begin{tcolorbox}[colback=llfondo, colframe=llazul!35, boxrule=0.8pt,
+                  arc=3mm, width=13cm, halign=center]
+  {\large\bfseries\color{llazul} MP4 · máximo 5 minutos · cara visible todo el tiempo}\\[4pt]
+  {\small Objetivo: \textbf{4:40}. Texto hablado: \textbf{525 palabras} = 3:30 a
+   ritmo normal.\\ El resto es el tiempo que tarda la demo en vivo.}
+\end{tcolorbox}
+
+\vspace{0.6cm}
+
+{\normalsize Ciudad de México, septiembre de 2026\par}
+
+\end{titlepage}
+
+% ===========================================================================
+\section{Por qué está construido así}
+
+Sobre el método \textbf{ANSVA} de Fernando Miralles, campeón de España de
+oratoria: \textbf{A}tención, \textbf{N}ecesidad, \textbf{S}atisfacción,
+\textbf{V}isualización, \textbf{A}cción.
+
+No es un adorno. Encaja con lo que la rúbrica premia, porque el módulo declara
+que lo que evalúa es \emph{«hacer que esos modelos sean accesibles y valiosos
+para un usuario final»}. ANSVA obliga a hablar del usuario antes que del
+modelo, que es exactamente el orden que se espera.
+
+Y se cruza con la plantilla de la \textbf{presentación modelo del propio
+profesor}: cifras grandes y desnudas en vez de párrafos, objetivos numerados,
+métricas sin adornos, y sobre todo su \emph{«Ejemplo de uso y aplicación»} ---
+tomar \emph{un} caso real y recorrerlo paso a paso. Aquí ese caso es un libro
+concreto y una palabra concreta.
+
+\begin{ve}
+\textbf{Nota honesta sobre las fuentes.} ANSVA está verificado y es suyo.
+Miralles enseña además una \emph{«estructura de la sardina»}, y PAS, y ADP, de
+las que encontré el nombre pero \textbf{no su anatomía} en fuentes públicas ---
+están en su libro y su curso. No las he usado para no inventármelas.
+\end{ve}
+
+\subsection{Cómo se reparte el tiempo}
+
+\begin{center}
+\begin{tikzpicture}[font=\small]
+  \foreach \x/\w/\c/\n in {0/1.4/llcian/A, 1.6/1.7/llverde/N,
+                           3.5/5.4/llazul/S, 9.1/2.2/llambar/V, 11.5/1.3/llrojo/A}
+    \draw[fill=\c, draw=none, rounded corners=1.5pt]
+      (\x,0) rectangle (\x+\w,0.55) node[midway, text=white, font=\bfseries] {\n};
+  \node[below] at (0.7,-0.05) {12\,\%};
+  \node[below] at (2.45,-0.05) {14\,\%};
+  \node[below] at (6.2,-0.05) {45\,\%};
+  \node[below] at (10.2,-0.05) {18\,\%};
+  \node[below] at (12.15,-0.05) {11\,\%};
+\end{tikzpicture}
+\end{center}
+
+\noindent La \textbf{S} se lleva la mitad. A y N juntas no pasan de un cuarto:
+son el trampolín, no la piscina.
+
+\subsection{Tres consejos de entrega}
+
+\begin{itemize}
+  \item \textbf{Mira a la cámara, no a la pantalla.} Es lo que la rúbrica exige
+        y lo que más se nota. Pon la ventana de OBS justo debajo del objetivo.
+  \item \textbf{Las pausas no son huecos, son puntuación.} Después de cada cifra
+        grande, callarse un segundo. El silencio es lo que hace que un número
+        suene grande.
+  \item \textbf{Ensáyalo dos veces con cronómetro y una tercera grabando.} El
+        primer intento siempre sale a seis minutos.
+\end{itemize}
+
+\newpage
+% ===========================================================================
+\section{El guion}
+
+\fase{A}{ATENCIÓN}{llcian}
+\reloj{0:00 – 0:35}
+
+\begin{ve}
+\textbf{En pantalla:} portada. Solo el nombre \emph{LiteraLevel} y una frase.
+Sin logotipo animado, sin música.
+\end{ve}
+
+\begin{dice}[Miguel, a cámara]
+Un hispanohablante que quiere leer en inglés se topa siempre con el mismo
+muro. Elige un libro que suena bien, lo abre\ldots{} y a las tres páginas lo
+cierra.
+
+No porque no sepa inglés. Porque \textbf{eligió mal el libro}.
+
+Nadie le dijo que \emph{Moby Dick} le quedaba grande y que \emph{El sabueso de
+los Baskerville} le quedaba justo. Eso es lo que hace LiteraLevel.
+\end{dice}
+
+\begin{ve}
+\emph{Pausa de un segundo antes de pasar de diapositiva.}
+\end{ve}
+
+\fase{N}{NECESIDAD}{llverde}
+\reloj{0:35 – 1:15}
+
+\begin{ve}
+\textbf{En pantalla:} tres cifras grandes, una por línea. Nada más.\\
+\textbf{1.500 millones} de personas estudian inglés \quad·\quad
+\textbf{la lectura extensiva} es el método con más respaldo \quad·\quad
+\textbf{0 herramientas} te dicen si \emph{ese} libro es para ti.
+\end{ve}
+
+\begin{dice}
+La investigación sobre adquisición de segundas lenguas es bastante clara: leer
+mucho y a un nivel ligeramente por encima del tuyo es de lo que mejor funciona.
+
+El problema no es encontrar libros. Hay decenas de miles gratis en dominio
+público. El problema es \textbf{saber cuál}.
+
+Las etiquetas que existen ---A1, B2, C1--- casi nunca están puestas por alguien
+que haya leído el libro. Y un libro no tiene una sola dificultad: cambia de
+capítulo a capítulo.
+\end{dice}
+
+\fase{S}{SATISFACCIÓN}{llazul}
+\reloj{1:15 – 3:20}
+
+\begin{ve}
+\textbf{En pantalla:} compartir pantalla y \textbf{usar la aplicación de
+verdad}. Nada de capturas. Que se vea el cursor moverse.
+\end{ve}
+
+\begin{dice}
+Esto es LiteraLevel.
+
+\textbf{Uno.} Contesto seis preguntas sobre cómo leo y leo tres fragmentos
+reales. En segundos tengo mi nivel. \emph{(mostrar el resultado)}
+
+\textbf{Dos.} Le describo en español lo que me apetece leer ---\emph{una novela
+de detectives victoriana}--- y me busca entre los libros que \textbf{puedo}
+leer. No busca por título: busca por significado.
+
+\textbf{Tres.} Abro el libro y aparece su ficha. Cuánto tardo en leerlo
+\emph{a mi ritmo}, cuánto es diálogo, qué palabras se repiten. Y esta curva:
+\textbf{la dificultad capítulo a capítulo}, medida por el modelo leyendo el
+libro entero. Aquí se ve que arranca duro y se suelta.
+
+\textbf{Cuatro.} \emph{(doble clic en una palabra)} Toco una palabra y me da su
+significado \textbf{en esta frase}, no en abstracto: la definición del
+diccionario, la gramática, la fonética británica y americana, y el audio.
+
+\textbf{Cinco.} \emph{(leer una frase en voz alta al micrófono)} Y leo en voz
+alta. Me marca en verde lo que sonó bien y en rojo lo que no, palabra por
+palabra.
+\end{dice}
+
+\begin{ve}
+\textbf{En pantalla, al terminar la demo:} las métricas desnudas.\\[3pt]
+\textbf{distilroberta-base} \quad·\quad Spearman \textbf{0,908} \quad·\quad
+orden MCER estrictamente creciente \quad·\quad escala pública 0--2
+\end{ve}
+
+\begin{dice}
+El modelo es un distilroberta afinado en regresión. Correlación de Spearman de
+0,908 contra la escala de referencia, y el orden A1 a C1 sale estrictamente
+creciente en validación ciega.
+
+Y algo que quiero decir con todas las letras: \textbf{no certificamos ningún
+nivel del MCER}. La letra que enseñamos es la etiqueta más cercana en una
+escala continua. Sirve para elegir qué leer, no para acreditar nada.
+\end{dice}
+
+\fase{V}{VISUALIZACIÓN}{llambar}
+\reloj{3:20 – 4:10}
+
+\begin{ve}
+\textbf{En pantalla:} el catálogo. \textbf{61.642} libros en inglés de Project
+Gutenberg, y debajo: \emph{ya medidos, no se calcula al buscar}.
+\end{ve}
+
+\begin{dice}
+Ahora imagina esto a escala.
+
+Project Gutenberg tiene \textbf{61.642 libros en inglés} en dominio público.
+Los estamos midiendo todos, uno a uno, con el modelo leyendo cada libro
+completo. No una muestra: el libro entero.
+
+Cuando terminen, buscar un libro y ver su curva de dificultad será
+instantáneo, porque el trabajo ya está hecho.
+
+Para el lector eso significa una cosa muy concreta: \textbf{deja de abandonar
+libros}. Empieza el que le toca, entiende lo que lee, y sigue.
+\end{dice}
+
+\fase{A}{ACCIÓN}{llrojo}
+\reloj{4:10 – 4:40}
+
+\begin{ve}
+\textbf{En pantalla:} el enlace de la aplicación, grande. Y debajo, pequeño: el
+repositorio.
+\end{ve}
+
+\begin{dice}
+LiteraLevel está funcionando ahora mismo, no es una maqueta. Este es el
+enlace; se abre en el móvil y funciona.
+
+Si hablas español y alguna vez abandonaste un libro en inglés pensando que el
+problema eras tú ---no lo eras. Era el libro.
+
+Pruébalo.
+\end{dice}
+
+\begin{ve}
+\emph{Mantener la mirada un segundo después de la última palabra. No cortar en
+seco: el corte inmediato después de hablar es lo que hace que un vídeo parezca
+casero.}
+\end{ve}
+
+\newpage
+% ===========================================================================
+\section{Comprobación antes de grabar}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X l@{}}
+\toprule
+\textbf{Comprobación} & \textbf{Cómo} \\
+\midrule
+¿Dura menos de 5:00? & cronometrar el ensayo \\
+¿Se te ve la cara \textbf{todo} el rato? & requisito explícito de la rúbrica \\
+¿Es MP4? & requisito explícito \\
+¿Se oye el audio de la app en la demo? & comprobar niveles en OBS \\
+¿Funciona el micrófono para la pronunciación? & \textbf{hace falta un headset} \\
+¿El enlace del final está vivo? & pegarlo en el móvil y abrirlo \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Lo que este guion no hace, a propósito}
+
+\begin{itemize}
+  \item \textbf{No explica cómo funciona el modelo por dentro.} Eso es el
+        documento y el cuaderno. Un vídeo de cinco minutos que explica
+        arquitecturas no vende nada.
+  \item \textbf{No pide disculpas por lo que falta.} Las limitaciones van en el
+        documento, donde se leen con calma; en el vídeo restan y no suman.
+  \item \textbf{No abre con «Hola, soy Miguel y les voy a presentar\ldots»}.
+        Esa frase gasta ocho segundos de los primeros diez, que son los que
+        deciden si te siguen escuchando.
+\end{itemize}
+
+\end{document}
