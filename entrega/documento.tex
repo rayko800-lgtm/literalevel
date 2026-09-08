@@ -1,0 +1,2179 @@
+% ===========================================================================
+%  LiteraLevel — Documento final del Módulo 5 (Integrador)
+%  Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
+%  Autor: Miguel Reyes Carrillo · Profesor: Mtro. Fernando Barranco Rodríguez
+%
+%  Compila con pdflatex, lualatex, xelatex o tectonic (+ biber para APA).
+%  Todas las figuras están dibujadas con TikZ/pgfplots: no hay imágenes
+%  externas ni capturas de pantalla en este documento.
+%
+%    tectonic documento.tex          (necesita biber en el PATH)
+%    pdflatex documento && biber documento && pdflatex documento (x2)
+% ===========================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+% --- Motor y codificación -------------------------------------------------
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+
+\usepackage[spanish,es-noquoting,es-nodecimaldot]{babel}
+\usepackage{csquotes}
+
+% --- Página ---------------------------------------------------------------
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+% --- Matemáticas ----------------------------------------------------------
+\usepackage{amsmath,amssymb}
+
+% --- Cuadros --------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage[font=small,labelfont=bf,justification=justified,singlelinecheck=false]{caption}
+
+% --- Figuras: TODO se dibuja aquí -----------------------------------------
+\usepackage{xcolor}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,calc,fit,backgrounds,decorations.pathreplacing}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{
+  /pgf/number format/.cd, use comma, 1000 sep={\,},
+}
+
+% --- Referencias APA ------------------------------------------------------
+\usepackage[style=apa,backend=biber,natbib=true]{biblatex}
+\DeclareLanguageMapping{spanish}{spanish-apa}
+\addbibresource{referencias.bib}
+
+% --- Enlaces --------------------------------------------------------------
+\usepackage[colorlinks=true,linkcolor=llazul,citecolor=llazul,urlcolor=llazul]{hyperref}
+
+% ===========================================================================
+%  Paleta y estilos propios
+% ===========================================================================
+\definecolor{llazul}{HTML}{1F4E79}
+\definecolor{llcian}{HTML}{2E86AB}
+\definecolor{llverde}{HTML}{2A9D8F}
+\definecolor{llambar}{HTML}{E9A13B}
+\definecolor{llrojo}{HTML}{C1495B}
+\definecolor{llgris}{HTML}{5A5A5A}
+\definecolor{llgrisclaro}{HTML}{E8ECF0}
+\definecolor{llfondo}{HTML}{F7F9FB}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\newcommand{\cod}[1]{\texttt{\small #1}}
+% babel-spanish redefine \% con un ajuste de espaciado que choca dentro de
+% tabularx/longtable ("Incompatible glue units"). Se recupera el signo llano.
+\AtBeginDocument{\def\%{\char`\%\relax}}
+\newcommand{\pct}{\,\%}
+
+\titleformat{\section}{\normalfont\Large\bfseries\color{llazul}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries\color{llazul!85!black}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\color{llgris}}{\thesubsubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\color{llgris}LiteraLevel — Módulo 5 (Integrador)}
+\fancyhead[R]{\footnotesize\color{llgris}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Estilo común de los ejes de pgfplots -------------------------------------
+\pgfplotsset{
+  ejell/.style={
+    width=\linewidth,
+    axis line style={llgris!60},
+    tick style={llgris!60},
+    label style={font=\small},
+    tick label style={font=\footnotesize},
+    title style={font=\small\bfseries, color=llazul},
+    legend style={font=\footnotesize, draw=llgris!40, fill=white, fill opacity=0.9,
+                  text opacity=1, rounded corners=2pt},
+    grid style={llgris!20, line width=0.3pt},
+    every axis plot/.append style={line width=0.9pt},
+  },
+  barrall/.style={
+    ejell,
+    xmajorgrids=true,
+    nodes near coords style={font=\scriptsize, color=llgris},
+  },
+}
+
+\tikzset{
+  cajall/.style={
+    draw=llazul!55, fill=llfondo, rounded corners=3pt, line width=0.7pt,
+    align=center, font=\footnotesize, inner sep=4pt, minimum height=10mm,
+    text width=23mm
+  },
+  cajamodelo/.style={cajall, fill=llcian!14, draw=llcian!75, font=\footnotesize\bfseries},
+  cajasalida/.style={cajall, fill=llverde!14, draw=llverde!75},
+  cajarechazo/.style={cajall, fill=llrojo!10, draw=llrojo!65, text width=22mm},
+  flechall/.style={-{Stealth[length=2.6mm]}, draw=llgris, line width=0.8pt},
+  etiqll/.style={font=\scriptsize\itshape, color=llgris, inner sep=2pt},
+  notall/.style={font=\scriptsize\itshape, color=llgris, inner sep=1pt,
+                 align=center, text width=30mm},
+}
+
+% ===========================================================================
+\begin{document}
+% ===========================================================================
+
+% ---------------------------------------------------------------- Portada --
+\begin{titlepage}
+\centering
+\vspace*{0.6cm}
+
+\begin{tikzpicture}
+  \draw[line width=1.1pt, llazul] (0,0) -- (12,0);
+\end{tikzpicture}
+
+\vspace{0.35cm}
+{\large\scshape Universidad Nacional Autónoma de México}\\[0.25cm]
+{\large Facultad de Estudios Superiores Acatlán}\\[0.5cm]
+{\normalsize Diplomado en Ciencia de Datos \quad\textbullet\quad Generación 34}
+
+\vspace{0.35cm}
+\begin{tikzpicture}
+  \draw[line width=1.1pt, llazul] (0,0) -- (12,0);
+\end{tikzpicture}
+
+\vspace{2.2cm}
+
+{\Huge\bfseries\color{llazul} LiteraLevel\par}
+\vspace{0.9cm}
+{\LARGE Medición automática de la dificultad\\[0.25cm] de lectura en inglés y su entrega\\[0.25cm] a un lector real\par}
+
+\vspace{1.0cm}
+{\large\itshape Proyecto integrador — Módulo 5\par}
+
+\vspace{1.6cm}
+
+% --- Sello de resultados, dibujado en TikZ ---
+\begin{tikzpicture}[font=\small]
+  \node[draw=llazul!35, fill=llfondo, rounded corners=6pt, line width=0.8pt,
+        inner sep=10pt, text width=12.4cm, align=center] (caja) {
+    \begin{minipage}{12.1cm}
+      \centering
+      \begin{tabular}{@{}C{3.4cm}C{3.9cm}C{3.2cm}@{}}
+        {\Large\bfseries\color{llcian} 0,908} & {\Large\bfseries\color{llverde} A1 $<\cdots<$ C1} & {\Large\bfseries\color{llambar} 97,2\pct} \\[2pt]
+        {\footnotesize Spearman en validación ciega} & {\footnotesize orden MCER creciente en corpus externo} & {\footnotesize dentro de $\pm 1$ nivel} \\
+      \end{tabular}
+    \end{minipage}};
+\end{tikzpicture}
+
+\vfill
+
+{\large\bfseries Miguel Reyes Carrillo}\\[0.35cm]
+{\normalsize Profesor: Mtro. Fernando Barranco Rodríguez}\\[1.0cm]
+{\normalsize Septiembre de 2026}
+
+\vspace{0.6cm}
+\begin{tikzpicture}
+  \draw[line width=0.6pt, llazul!45] (0,0) -- (12,0);
+\end{tikzpicture}
+\end{titlepage}
+
+% ---------------------------------------------------------------- Resumen --
+\section*{Resumen}
+\addcontentsline{toc}{section}{Resumen}
+
+Aprender inglés leyendo funciona, pero solo si el libro está al nivel de quien lo
+abre. Un lector que elige un libro demasiado difícil no aprende: lo abandona. Y hoy
+no hay forma sencilla de saber, antes de empezar, si \emph{ese} libro concreto está a
+su alcance.
+
+LiteraLevel es una aplicación que responde esa pregunta. Le da al lector un número
+entre 0 y 2 que dice cuánta dificultad tiene un texto en inglés, y lo hace leyendo el
+texto de verdad, no contando páginas. Con ese número le busca libros que pueda
+terminar, se los abre dentro de la propia aplicación, le enseña la dificultad capítulo
+a capítulo —los libros no son igual de difíciles de principio a fin—, le explica
+cualquier palabra en la frase en la que aparece y le corrige la pronunciación cuando
+lee en voz alta.
+
+Debajo hay un modelo de lenguaje pequeño (\cod{distilroberta-base}) afinado para
+predecir dificultad como un número continuo. En validación ciega alcanza una
+correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus externo
+que nunca vio, ordena los niveles del Marco Común Europeo de forma estrictamente
+creciente: A1 0,5040 · A2 0,5480 · B1 0,9276 · B2 1,2478 · C1 1,4952. Ese orden —no el
+acierto exacto— es el resultado que sostiene el trabajo.
+
+Conviene decirlo desde la primera página: \textbf{la escala 0--2 es propia y
+LiteraLevel no certifica ningún nivel del Marco Común Europeo}. Las letras A1 a C2
+fueron el ancla con la que se entrenó el modelo, no un título que la aplicación
+expida. Sirven para elegir qué leer, no para acreditar nada.
+
+El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio 6.26
+\parencite{abid2019gradio}, probada por una lectora de quince años ajena al
+proyecto— y con un catálogo en curso de remedición: los 61.642 libros en inglés de
+dominio público de Project Gutenberg, leídos enteros por el modelo, que a la velocidad
+medida en una GPU A100 son unas 6,3 horas de cómputo.
+
+\vspace{0.4cm}
+\noindent\textbf{Palabras clave:} legibilidad automática, MCER, adquisición de
+segundas lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
+
+\vspace{0.8cm}
+\noindent\fbox{\begin{minipage}{0.97\textwidth}
+\small\textbf{Nota sobre la estructura de la entrega.} La \emph{Estrategia}, que la
+rúbrica pide como entregable propio y como sección exigida del documento, se desarrolla
+completa en el \textbf{apartado \ref{sec:estrategia}} y no en un anexo: ocupa el lugar
+que le corresponde en el orden de secciones y sostiene por sí sola el resto del texto.
+Las cifras que allí se citan y que se miden más adelante van referidas con su cuadro o
+figura. \textbf{Todas las figuras de este documento están dibujadas en \LaTeX{}}
+(TikZ/pgfplots) a partir de los datos medidos que acompañan a la entrega; no hay
+ninguna captura de pantalla ni imagen externa.
+\end{minipage}}
+
+\clearpage
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+
+% ===========================================================================
+\section{Introducción y motivación}
+% ===========================================================================
+
+Cientos de millones de personas estudian inglés como segunda lengua. De todos los
+métodos con respaldo empírico, la \textbf{lectura extensiva} —leer mucho, por gusto, en
+textos ligeramente por encima del nivel actual— es uno de los que mejor se sostiene: el
+metaanálisis de \textcite{nakanishi2015meta} sobre décadas de estudios encuentra
+efectos consistentes en comprensión y vocabulario, y \textcite{day1998extensive} la
+formalizan como programa de aula. \textcite{krashen1985input} llamó a esa franja
+«\emph{input} comprensible»: material que se entiende casi todo, con lo justo de
+novedad para aprender.
+
+El problema es operativo, no teórico. Para que la lectura extensiva funcione, el texto
+tiene que caer en esa franja, y \textcite{hu2000unknown} la cuantifican: se necesita
+reconocer alrededor del 98\pct{} de las palabras corridas de un texto para comprenderlo
+sin ayuda —umbral coherente con el trabajo posterior de \textcite{nation2013learning}
+sobre tamaño de vocabulario y cobertura léxica—. Un punto porcentual por debajo y la
+lectura se convierte en trabajo de diccionario. Es decir: \textbf{el mismo libro es
+excelente para un lector y una pérdida de tiempo para otro que está dos niveles por
+debajo}, y nada en la portada lo dice.
+
+Hoy el lector hispanohablante que quiere leer en inglés se enfrenta a decenas de miles
+de libros gratuitos en dominio público y a ninguna señal fiable sobre cuál le
+corresponde. Las etiquetas que circulan (A2, B1, C1) casi nunca las puso alguien que
+haya leído la obra completa, y además tratan el libro como si tuviera una sola
+dificultad, cuando en realidad cambia de capítulo a capítulo. La
+figura~\ref{fig:curva_wp} lo muestra sobre un libro entero medido: la dificultad de
+\emph{War and Peace} recorre casi setenta centésimas de la escala pública entre su
+capítulo más llevadero y el más exigente.
+
+\vspace{0.2cm}
+\noindent\textbf{Pregunta que guía el trabajo:} ¿es posible estimar automáticamente,
+con un modelo de lenguaje entrenado sobre corpus públicos, una medida de dificultad de
+un texto en inglés que (a) ordene correctamente los niveles del MCER
+\parencite{coe2020cefr} en material externo que el modelo nunca vio, y (b) sea lo
+bastante rápida y comprensible para ponerse en manos de un lector adolescente sin
+entrenamiento previo?
+
+Este documento responde a las dos mitades. La primera es un problema de modelado y se
+resuelve en los apartados \ref{sec:datos} a \ref{sec:modelacion}. La segunda es un
+problema de producto y de usabilidad, que es lo que el módulo declara evaluar, y se
+desarrolla en los apartados \ref{sec:estrategia} y \ref{sec:resolucion}.
+
+% ===========================================================================
+\section{Planteamiento del problema}
+% ===========================================================================
+
+\subsection{Formulación}
+\label{sec:formulacion}
+
+Sea $T$ un texto en inglés en prosa continua. Se busca una función
+$f(T) \rightarrow [0, 2]$ tal que, para dos textos $T_i$ y $T_j$ cuyos niveles
+oficiales de referencia cumplen $\text{nivel}(T_i) < \text{nivel}(T_j)$, se cumpla
+$f(T_i) < f(T_j)$ con la mayor frecuencia posible.
+
+Obsérvese que \textbf{el objetivo es ordinal, no de clasificación exacta}. La frontera
+entre B1 y B2 es una convención pedagógica, no un hecho físico: confundir B1 con B2 es
+un error muy distinto de confundir B1 con C2. Por eso las métricas principales del
+trabajo son la correlación de Spearman y el \textbf{error ordinal medio} (distancia
+media en niveles entre lo predicho y lo real), y no la exactitud de clase.
+
+Un texto largo no se puntúa de una vez. Se parte en bloques de 250 palabras (mínimo
+150) y se puntúa cada bloque; la salida del documento es la media sin ponderar de sus
+bloques. Formalmente, si $B(T) = \{b_1, \dots, b_n\}$ son los bloques de $T$ y $g$ es
+el modelo por bloque,
+
+\begin{equation}
+f(T) \;=\; 0{,}4 \cdot \operatorname{clip}\!\left(\frac{1}{n}\sum_{k=1}^{n} g(b_k),\; 0,\; 5\right),
+\label{eq:f}
+\end{equation}
+
+\noindent donde el factor 0,4 convierte la escala interna del modelo (0--5, un valor
+por cada nivel A1\dots C2) en la escala pública 0--2 que ve el usuario. La
+figura~\ref{fig:pipeline} recorre esa cadena completa, del texto crudo a la banda que
+se muestra en pantalla, y la figura~\ref{fig:escala} sitúa las anclas MCER sobre la
+recta 0--2 resultante.
+
+% --------------------------------------------------------- FIGURA: pipeline
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=7mm and 6mm]
+
+  \node[cajall] (texto) {Texto crudo\\[1pt]{\scriptsize (libro, capítulo o pegado por el usuario)}};
+  \node[cajall, right=of texto] (filtro) {Filtro de\\prosa continua\\[1pt]{\scriptsize sobre texto \emph{sin} normalizar}};
+  \node[cajall, right=of filtro] (norm) {Normalización\\de espacios\\[1pt]{\scriptsize \cod{\textbackslash s+} $\rightarrow$ espacio}};
+  \node[cajall, right=of norm] (vent) {Ventanas de\\250 palabras\\[1pt]{\scriptsize mínimo 150}};
+
+  \node[cajarechazo, below=9mm of filtro] (rech) {No es prosa:\\no se puntúa\\[1pt]{\scriptsize menú, horario, tabla}};
+
+  \node[cajamodelo, below=32mm of vent] (tok) {Tokenización\\y truncado\\a 256 \emph{tokens}};
+  \node[cajamodelo, left=of tok, text width=30mm] (modelo) {\texttt{\scriptsize distilroberta-base}\\6 capas · 82 M\\cabeza de regresión};
+  \node[cajall, left=of modelo] (media) {Media sin\\ponderar\\[1pt]{\scriptsize escala interna 0--5}};
+  \node[cajasalida, left=of media] (escala) {$\times\,0{,}4$\\Escala pública\\\textbf{0--2}};
+
+  \node[cajasalida, below=9mm of media] (banda) {Banda\\{\scriptsize básico / intermedio / avanzado}};
+  \node[cajasalida, below=9mm of escala] (letra) {Letra MCER\\{\scriptsize solo orientativa}};
+
+  \draw[flechall] (texto) -- (filtro);
+  \draw[flechall] (filtro) -- node[etiqll,above]{sí} (norm);
+  \draw[flechall] (norm) -- (vent);
+  \draw[flechall] (filtro) -- node[etiqll,right]{no} (rech);
+  \draw[flechall] (vent) -- (tok);
+  \draw[flechall] (tok) -- (modelo);
+  \draw[flechall] (modelo) -- (media);
+  \draw[flechall] (media) -- (escala);
+  \draw[flechall] (escala) -- (letra);
+  \draw[flechall] (media) -- (banda);
+
+  \node[notall, above=1mm of tok] {100\pct{} de las ventanas llega a 256};
+  \node[notall, below=1mm of modelo] {8,7 a 2.022 ventanas/s según el equipo};
+
+\end{tikzpicture}
+\caption[Cadena de medición de LiteraLevel]{Cadena de medición, de la ecuación~\eqref{eq:f}
+al número que ve el lector. El filtro de prosa se aplica sobre el texto crudo, antes de
+normalizar espacios: hacerlo al revés lo desactivaba en producción (cuadro~\ref{cuad:textos},
+T1). Todas las ventanas ocupan exactamente 256 \emph{tokens} tras truncar, de modo que no
+hay relleno y reagrupar en lotes distintos no puede mover un decimal.}
+\label{fig:pipeline}
+\end{figure}
+
+% ----------------------------------------------------------- FIGURA: escala
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=6.6cm, y=1cm]
+
+  % Bandas de la interfaz (fondo)
+  \fill[llverde!12]  (0,-0.32) rectangle (0.8,0.32);
+  \fill[llambar!14]  (0.8,-0.32) rectangle (1.6,0.32);
+  \fill[llrojo!12]   (1.6,-0.32) rectangle (2.0,0.32);
+
+  % Recta
+  \draw[line width=1.2pt, llgris] (0,0) -- (2.0,0);
+
+  % Cortes MCER (datos_figuras/escala_cefr.dat)
+  \foreach \x in {0.20,0.60,1.00,1.40,1.80}{
+    \draw[llgris!70, line width=0.6pt] (\x,-0.20) -- (\x,0.20);
+    \node[font=\scriptsize, color=llgris, below=1pt] at (\x,-0.20) {\x};
+  }
+  \node[font=\scriptsize, color=llgris, below=1pt] at (0,-0.20) {0,00};
+  \node[font=\scriptsize, color=llgris, below=1pt] at (2.0,-0.20) {2,00};
+
+  % Anclas MCER (centro de cada tramo = nivel entero x 0,4)
+  \foreach \x/\lab in {0.0/A1, 0.4/A2, 0.8/B1, 1.2/B2, 1.6/C1, 2.0/C2}{
+    \fill[llazul] (\x,0) circle (2.2pt);
+    \node[font=\small\bfseries, color=llazul, above=4pt] at (\x,0) {\lab};
+  }
+
+  % Bandas de producto
+  \node[font=\footnotesize\bfseries, color=llverde!60!black] at (0.4,-0.85) {básico};
+  \node[font=\footnotesize\bfseries, color=llambar!60!black] at (1.2,-0.85) {intermedio};
+  \node[font=\footnotesize\bfseries, color=llrojo!70!black]  at (1.8,-0.85) {avanzado};
+
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0,-0.55) -- (0.8,-0.55);
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0.8,-0.55) -- (1.6,-0.55);
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (1.6,-0.55) -- (2.0,-0.55);
+
+  \node[font=\footnotesize, color=llgris, above=16pt] at (1.0,0) {escala pública $f(T)$};
+
+\end{tikzpicture}
+\caption[La escala 0--2 y sus anclas MCER]{La escala pública 0--2 y sus anclas. Los
+puntos azules son los seis niveles MCER tal como los coloca la ecuación~\eqref{eq:f}
+(nivel entero $\times\,0{,}4$); las marcas grises son los cortes que decide qué letra se
+muestra, y las llaves inferiores, las tres bandas con las que la interfaz comunica la
+incertidumbre en lugar de fingir dos decimales de precisión. \emph{La letra es
+orientación, no certificación.} Cortes tomados de \cod{datos\_figuras/\allowbreak escala\_cefr.dat}.}
+\label{fig:escala}
+\end{figure}
+
+\subsection{Lo que el problema no es}
+
+Tres delimitaciones que evitan malentendidos y que la aplicación repite en pantalla:
+
+\begin{enumerate}[leftmargin=*, itemsep=3pt]
+  \item \textbf{No es certificación.} El modelo se ancló a etiquetas MCER durante el
+        entrenamiento; eso no lo convierte en un examinador acreditado. Devuelve una
+        posición en una recta continua, y la letra que muestra es simplemente el ancla
+        más cercana.
+  \item \textbf{No es un medidor universal de texto.} El modelo solo vio prosa continua.
+        Una carta de menú, un horario de vuelos o una tabla no son prosa, y puntuarlos
+        daría un número sin significado. La aplicación los rechaza con un filtro
+        estructural explícito (apartado~\ref{sec:proc_texto}).
+  \item \textbf{No mide el interés ni la calidad literaria.} Mide dificultad de lectura.
+        Un libro fácil puede ser magnífico y uno difícil, aburrido.
+\end{enumerate}
+
+\subsection{Criterio de éxito}
+
+El proyecto se considera resuelto si se cumplen tres condiciones simultáneas, recogidas
+en el cuadro~\ref{cuad:exito}.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}c L{6.2cm} Y@{}}
+\toprule
+\textbf{\#} & \textbf{Condición} & \textbf{Cómo se verifica} \\
+\midrule
+C1 & El orden por nivel MCER se conserva en corpus externo no visto & Medias por nivel estrictamente crecientes \\
+C2 & La señal supera a la trivial & Correlación parcial descontando la longitud del texto \\
+C3 & Un usuario sin formación técnica completa el recorrido & Prueba con lectora ajena al proyecto \\
+\bottomrule
+\end{tabularx}
+\caption{Criterios de éxito del proyecto. Se cumplen y se documentan, respectivamente,
+en los apartados~\ref{sec:validacion}, \ref{sec:baseline} y \ref{sec:esmeralda}.}
+\label{cuad:exito}
+\end{table}
+
+% ===========================================================================
+\section{Estrategia}
+\label{sec:estrategia}
+% ===========================================================================
+
+\subsection{La apuesta, en un párrafo}
+
+La lectura extensiva es uno de los métodos con más respaldo para aprender una segunda
+lengua, y sin embargo casi nadie la practica bien, porque elegir el libro adecuado es
+un problema que el lector no puede resolver solo. LiteraLevel convierte una medida
+continua de dificultad —producida por un modelo que lee el texto entero, no la
+portada— en tres decisiones cotidianas: \textbf{qué leer ahora}, \textbf{por dónde se
+va a complicar} y \textbf{qué significa esta palabra en esta frase}. El activo
+defendible no es el modelo, que es pequeño y replicable: es la cadena completa desde el
+corpus hasta el pulgar de una persona de quince años en un teléfono.
+
+\subsection{Descripción de usuarios}
+
+Tres perfiles, con lo que cada uno necesita y con lo que hoy hace en su lugar. No son
+personas inventadas para rellenar: el primero está observado directamente
+(apartado~\ref{sec:esmeralda}) y los otros dos se derivan de las peticiones reales
+recogidas durante el desarrollo.
+
+\subsubsection{Usuaria primaria: la estudiante de preparatoria}
+
+\textbf{Perfil.} 14 a 18 años. Estudia inglés en la escuela, entiende bastante más de
+lo que cree, no sabe qué es el MCER y no le interesa. Entra desde el teléfono, casi
+siempre en vertical, y en pantallas de unos 390~px de ancho. Su tolerancia a la
+fricción es de segundos. Sus necesidades y la respuesta del producto están en el
+cuadro~\ref{cuad:primaria}.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}L{5.0cm} Y@{}}
+\toprule
+\textbf{Necesidad} & \textbf{Cómo se atiende} \\
+\midrule
+Saber por dónde empezar sin sentirse examinada &
+Seis preguntas sobre hábitos observables —con qué frecuencia lee, si necesita
+diccionario, si ve series sin subtítulos, si ha terminado un libro entero— y
+\textbf{cero jerga gramatical} \\
+\addlinespace
+Juzgarse ante algo real y no ante una descripción &
+Tres fragmentos literarios en escalera (\emph{Alice}, Sherlock Holmes,
+\emph{Frankenstein}), pintados con la tipografía del lector para que se lean como un
+libro y no como un formulario. Pesan 0,65 en el cálculo del nivel: delante de un texto
+real la gente se juzga mejor que describiéndose \\
+\addlinespace
+Que le propongan algo, no una biblioteca &
+Un botón de «Sorpréndeme con algo de mi nivel» además de la búsqueda \\
+\addlinespace
+Poder usarlo con el pulgar &
+Objetivos táctiles de 44~px, controles repartidos en filas que caben en 390~px, mandos
+de navegación también debajo del texto \\
+\addlinespace
+No perderse &
+Al terminar el cuestionario, un enlace que salta directamente al buscador \textbf{con
+la recomendación ya hecha} \\
+\bottomrule
+\end{tabularx}
+\caption{Necesidades de la usuaria primaria y respuesta del producto. Qué hace hoy en
+su lugar: elige por portada o por título conocido, abandona a las tres páginas y
+concluye que el problema es ella.}
+\label{cuad:primaria}
+\end{table}
+
+\subsubsection{Usuario secundario: el adulto autodidacta}
+
+\textbf{Perfil.} 25 a 55 años. Ya lee en inglés con esfuerzo. Su problema no es
+empezar, es \textbf{subir de escalón sin abandonar}. Tiene libros a medias y no
+recuerda por dónde iba en ninguno.
+
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Continuidad.} «Mis libros» guarda cada libro empezado con su barra de
+        avance y el capítulo por el que iba, y lo reabre exactamente ahí. Es la
+        petición literal que originó el módulo: \emph{«un apartado con mis libros, los
+        que estoy leyendo, que se queden guardados, en qué partes voy»}.
+  \item \textbf{Saber a qué se enfrenta antes de comprometerse.} La ficha del libro dice
+        cuánto tarda en leerlo \textbf{a su ritmo}, cuánto es diálogo y qué palabras se
+        repiten, todo contado sobre el fichero.
+  \item \textbf{Vocabulario que persista.} «Mis palabras» guarda cada consulta con su
+        frase y su libro, que es la unidad que sirve para recordar. Deliberadamente
+        \textbf{no hay puntos ni rachas}: la evidencia sobre recompensas externas
+        \parencite{deci1999meta} indica que premiar una actividad que ya gusta la
+        deteriora, y leer ya es gratificante.
+  \item \textbf{Pronunciación.} Lee bien y suena mal, y nadie se lo corrige. La
+        aplicación marca palabra por palabra qué sonó bien y qué no.
+\end{itemize}
+
+\subsubsection{Usuario institucional: el docente de inglés}
+
+\textbf{Perfil.} Da clase a grupos heterogéneos y necesita repartir lecturas graduadas.
+No puede leerse cuarenta libros para clasificarlos.
+
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item Un catálogo \textbf{medido}, no etiquetado a ojo, con la dificultad por capítulo
+        para poder asignar fragmentos y no obras completas.
+  \item Una declaración honesta de lo que la herramienta no es, para poder usarla sin
+        incurrir en una promesa que no puede cumplir: \textbf{LiteraLevel no certifica
+        ningún nivel del MCER}.
+  \item Reproducibilidad: poder comprobar de dónde salen los números.
+\end{itemize}
+
+Este perfil es el que justifica dos decisiones que a un usuario final le dan igual:
+publicar el guion de validación y mantener el aviso de alcance visible.
+
+\subsection{El ciclo de usuario real: Esmeralda}
+\label{sec:esmeralda}
+
+La única prueba que vale es la que hace alguien que no sabe dónde hay que pulsar.
+\textbf{Esmeralda, 15 años, estudiante de preparatoria}, prima del autor, fue la primera
+persona ajena al proyecto que usó la aplicación. Lo que dijo, sin edulcorar:
+
+\begin{quote}\itshape
+«Está bien difícil de usar en celular.» — ¿Qué parte? — «Casi todo.»\par\medskip
+«No me gustan los colores\dots{} la página se siente antigua, todo muy recto, muy
+marcado.»\par\medskip
+«¿Qué es eso de 10?»\par\medskip
+«O yo soy muy tonta para esto.»
+\end{quote}
+
+La cuarta frase es la importante, y es la que ordena todo lo que vino después.
+\textbf{Cuando un usuario concluye que el tonto es él, el fallo es del diseño.}
+\textcite{krug2014dont} formula la misma idea como regla de producto: si el usuario
+tiene que pensar para entender un control, el control está mal. A partir de ahí se
+diagnosticó qué producía cada queja y se corrigió (cuadro~\ref{cuad:esmeralda}).
+
+\begin{small}
+\begin{longtable}{@{}L{3.1cm} L{3.5cm} L{4.6cm} L{2.7cm}@{}}
+\toprule
+\textbf{Lo que dijo} & \textbf{Diagnóstico} & \textbf{Corrección} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Lo que dijo} & \textbf{Diagnóstico} & \textbf{Corrección} & \textbf{Verificación} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{Del comentario de una usuaria a un cambio verificable.}
+\label{cuad:esmeralda}
+\endlastfoot
+«¿Qué es eso de 10?» & La etiqueta «Resultados» junto a un número no dice qué cuenta & «¿Cuántos te propongo?», con explicación & Etiqueta reescrita \\
+\addlinespace
+Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etiqueta prometía más de lo que hacía & «Sorpréndeme con algo de mi nivel» & Etiqueta reescrita \\
+\addlinespace
+— & «Ajustar a mi nivel» es abstracto & «Solo libros que pueda leer», con información & Etiqueta reescrita \\
+\addlinespace
+— & «Medir la dificultad de este capítulo» es lenguaje de laboratorio & «¿Cómo de difícil es este capítulo?» & Etiqueta reescrita \\
+\addlinespace
+— & «Vistazo rápido a la dificultad» no dice cuánto tarda & «Vistazo rápido (unos segundos)» & Etiqueta reescrita \\
+\addlinespace
+— & «Analizar el libro entero» no advierte del coste & «Leer el libro entero (tarda más)» & Etiqueta reescrita \\
+\addlinespace
+«No me gustan los colores» & El color es gusto, y el gusto no se discute: se ofrece & \textbf{Cinco paletas} con pestaña propia y cambio instantáneo: \emph{hielo} (la original), \emph{amanecer} (clara, crema y naranja), \emph{menta}, \emph{papel} (para leer horas) y \emph{medianoche} & Una prueba automática comprueba las cinco contra el criterio de contraste \textbf{WCAG AA (4,5:1)} \parencite{w3c2023wcag}. Las cinco pasan; la peor mide \textbf{9,51} \\
+\addlinespace
+«Todo muy recto, muy marcado» & Esto no es gusto, es diseño, y se corrige para todas las paletas & Esquinas de 14~px, bordes finos, sombras suaves y las opciones de lista como fichas tocables & — \\
+\addlinespace
+«Difícil de usar en celular\dots{} casi todo» & En un móvil, el círculo de un botón de radio es un blanco de 12~px & La ficha entera pasa a ser el blanco: \textbf{44~px} & — \\
+\end{longtable}
+\end{small}
+
+\subsubsection{Lo que ya se había corregido antes, por la misma vía}
+
+El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono real —y no
+en el navegador del escritorio— había descubierto antes fallos que \textbf{ninguna de
+las 183 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
+pantalla pequeña}:
+
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item El doble toque para consultar una palabra \textbf{no funcionaba en el móvil}: el
+        código escuchaba solo el evento del ratón, que iOS no emite al seleccionar con
+        el dedo. La instrucción en pantalla prometía algo que el dispositivo no hacía.
+  \item Los títulos de la tabla de resultados eran enlaces a \cod{gutenberg.org}, así
+        que tocarlos \textbf{sacaba al lector fuera de la aplicación}.
+  \item El resultado del nivel se pintaba en la parte superior de la página, fuera de la
+        pantalla: la usuaria no se enteraba de que había terminado.
+  \item Al pedir «traer una frase del capítulo» sin frase disponible, el campo se vaciaba
+        y \textbf{borraba lo que el usuario había escrito}, sin decir nada.
+  \item «Mis libros» mostraba 24 entradas llamadas \cod{vacio.txt}, \cod{falso.txt} y
+        similares: la batería de pruebas anotaba sus ficheros de ataque en la biblioteca
+        \textbf{real} de quien las ejecutara. Los datos personales del usuario eran el
+        banco de pruebas.
+\end{itemize}
+
+\subsubsection{La lección, en una línea}
+
+\textbf{El valor de una prueba de usuario no está en el promedio de satisfacción, sino
+en la frase que duele.} Con $n = 1$ no se puede estimar nada, pero se pueden encontrar
+los fallos que hacen que una persona se culpe a sí misma. \textcite{nielsen2000five}
+sitúa en cinco usuarios el punto donde se detecta la mayor parte de los problemas de
+usabilidad; el accionable A8 lleva la prueba hasta ahí.
+
+\subsection{Usabilidad del modelo}
+
+Un modelo es usable cuando el usuario puede confiar en él sin entenderlo. Eso se
+construye con cinco decisiones, todas medidas.
+
+\subsubsection{La espera se traslada, no se pide}
+
+Medir un libro largo son minutos. Pedirle esos minutos al lector en el momento en que
+quiere leer es perderlo. La estrategia es \textbf{mover el cómputo antes de la
+consulta}: el catálogo se precalcula fuera de línea y, cuando el lector busca, el
+trabajo ya está hecho. Los números que hacen viable esa decisión están en el
+cuadro~\ref{cuad:velocidad} y en la figura~\ref{fig:velocidad}: 8,7 ventanas/s en CPU,
+101,7 en la GPU local y \textbf{2.022 en una A100}, con lo que los 61.642 libros en
+inglés de Project Gutenberg son unas \textbf{6,3 horas} de cómputo.
+
+Cuando el cómputo sí tiene que ocurrir en vivo, se ofrecen \textbf{dos velocidades y se
+dice cuál se usó}: un vistazo (30 capítulos repartidos, 2 ventanas de cada uno) o el
+libro entero sin muestrear. Y el atajo está cuantificado, no prometido: 8 ventanas dan
+\textbf{1,784} y el recorrido completo del mismo capítulo, \textbf{1,743}.
+
+\subsubsection{La incertidumbre se comunica en bandas}
+
+El modelo devuelve un número continuo, pero su escala está comprimida
+($\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$; véase la
+figura~\ref{fig:compresion}). Presentar «1,27 sobre 2» como si fueran dos decimales de
+precisión sería mentir con exactitud. La interfaz muestra \textbf{bandas} —básico
+$< 0{,}8 \leq$ intermedio $< 1{,}6 \leq$ avanzado, tal como las dibuja la
+figura~\ref{fig:escala}— y la letra MCER únicamente como orientación, siempre junto al
+número y con la tabla de correspondencia a la vista.
+
+Un fallo real de esta decisión, encontrado y corregido, ilustra el nivel de cuidado que
+exige: el redondeo por defecto de Python resuelve los empates hacia el par, de modo que
+un 1,00 exacto caía en un nivel y la tabla publicada decía otro. Un usuario que
+comparase su cifra con la tabla habría encontrado dos respuestas para el mismo número.
+Ahora hay una sola regla, y una prueba fija los cinco límites.
+
+\subsubsection{Nada falla en silencio, y nada se rompe del todo}
+
+La regla transversal del sistema es la \textbf{degradación elegante}: sin clave de
+servicio externo, la aplicación sigue dando diccionario, fonética, audio de Wiktionary,
+buscador y puntuación, porque nada de eso usa red. Solo se apagan la explicación en
+contexto y la corrección de pronunciación, y se dice con palabras que el lector
+entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
+fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
+
+La regla que verifican las 183 pruebas de robustez es una sola: \textbf{ningún manejador
+puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
+
+\subsubsection{Cada número dice de dónde viene}
+
+En la ficha del libro conviven dos clases de información y \textbf{la separación se ve
+en pantalla}: lo \emph{contado} sobre el fichero (palabras, tiempo de lectura,
+proporción de diálogo, vocabulario) sale solo al abrirlo, es instantáneo y no necesita
+red; el \emph{resumen} escrito por un modelo generativo va detrás de un botón, se
+guarda en disco y viene marcado como lo que es. \textbf{Ninguna cifra de la ficha la
+dice un modelo generativo.} En el diccionario, la regla equivalente: el modelo de
+lenguaje explica el contexto y la gramática, y tiene prohibido redefinir la palabra; la
+definición es siempre la de Wiktionary.
+
+\subsubsection{La latencia se reparte para que la pantalla no se quede quieta}
+
+De los 28 a 44 segundos de una consulta léxica nueva, \textbf{23 a 39 son espera al
+servicio externo}; todo el trabajo local —lema, diccionario, desambiguación, fonética—
+son \textbf{40 milisegundos}. Por eso la ficha se pinta en dos etapas: lo local aparece
+al instante y la explicación se añade cuando llega. El trabajo tarda lo mismo; deja de
+parecer que la aplicación se colgó. La misma idea gobierna la curva de dificultad, que
+se repinta cada pocos capítulos mientras mide (el repintado cuesta 25~ms, medido) y los
+recursos pesados, que se cargan al primer uso y no al arrancar.
+
+\subsection{Accionables}
+
+Diez acciones concretas (cuadro~\ref{cuad:accionables}), ordenadas por puntos de rúbrica
+protegidos u obtenidos por hora de trabajo. Cada una lleva coste real y criterio de
+terminado. No son «se podría»: son «se hace».
+
+\begin{small}
+\begin{longtable}{@{}c L{3.5cm} L{4.1cm} L{2.2cm} L{3.2cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Acción} & \textbf{Por qué} & \textbf{Coste} & \textbf{Terminado cuando} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\#} & \textbf{Acción} & \textbf{Por qué} & \textbf{Coste} & \textbf{Terminado cuando} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{Accionables, con coste y criterio de terminado.}
+\label{cuad:accionables}
+\endlastfoot
+\textbf{A1} & \textbf{Publicar el modelo (328 MB) y el diccionario (243 MB)} como repositorios abiertos, con el guion de subida ya escrito & Desbloquea la reproducibilidad del cuaderno, que hoy no corre en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & El cuaderno corre de principio a fin en un Colab limpio, sin errores ni advertencias \\
+\addlinespace
+\textbf{A2} & \textbf{Desplegar en enlace permanente} (Gradio sobre plan de pago personal) & El enlace actual es un túnel temporal que muere al apagar el equipo. Es el mayor riesgo de la entrega, y no es técnico & 9 USD un mes & El enlace se abre desde un móvil ajeno y sobrevive a reiniciar el equipo del autor \\
+\addlinespace
+\textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & $\sim$6,3 h de A100, dentro del crédito disponible; descarga con 6 hilos & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
+\addlinespace
+\textbf{A4} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero & 12 USD por TB y mes; el proyecto ocupa 7,4 MB, así que el coste es despreciable & Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil \\
+\addlinespace
+\textbf{A5} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla \\
+\addlinespace
+\textbf{A6} & \textbf{Retirar del catálogo los 1.049 registros no descargables} o marcarlos como fichas informativas sin botón de lectura & Hoy son el 87,6\pct{} del catálogo y no se pueden abrir. Ya no aparecen en el desplegable, pero siguen ocupando el índice & Media jornada & El catálogo lista solo lo que se puede leer, o distingue visualmente ambas cosas sin ambigüedad \\
+\addlinespace
+\textbf{A7} & \textbf{Calibrar la escala} con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos & La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior & Una tarde & Las medias por nivel siguen estrictamente crecientes \textbf{y} se acercan a sus anclas \\
+\addlinespace
+\textbf{A8} & \textbf{Repetir la prueba de usuario con cinco lectores} de perfiles distintos, con guion de tareas y observación en silencio & $n = 1$ encuentra fallos graves; cinco encuentran la mayoría \parencite{nielsen2000five} & Cinco sesiones de 20 min & Existe una lista priorizada de hallazgos y las tres primeras correcciones están hechas \\
+\addlinespace
+\textbf{A9} & \textbf{Instrumentar la métrica que de verdad importa}: proporción de libros empezados que se terminan, con recomendación y sin ella & Todo lo demás son métricas de proceso. Esta es la única que valida la propuesta de valor & Una jornada de instrumentación, respetando el aislamiento por sesión & Hay una cifra base con la que comparar dentro de un mes \\
+\addlinespace
+\textbf{A10} & \textbf{Ampliar el corpus de anclaje MCER} más allá de los 654 documentos actuales & Es el eslabón más delgado de la cadena de evidencia y el que limita la confianza en la letra que se muestra & Trabajo de corpus, sin coste de cómputo & El corpus de anclaje supera los 1.000 documentos con niveles de fuente institucional \\
+\end{longtable}
+\end{small}
+
+\noindent\textbf{Orden de ejecución si el tiempo aprieta:} A1 $\rightarrow$ A2
+$\rightarrow$ A5 $\rightarrow$ A3 $\rightarrow$ A4. Los tres primeros son los que
+protegen o desbloquean más puntos de rúbrica por hora invertida, y ninguno de ellos es
+un problema de modelado: son despliegue, publicación y un micrófono.
+
+\subsection{Métricas de éxito}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}L{1.9cm} L{6.0cm} Y@{}}
+\toprule
+\textbf{Nivel} & \textbf{Métrica} & \textbf{Estado} \\
+\midrule
+Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textbf{Cumplido}: 0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952 \\
+Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,657 \\
+Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron 8 correcciones \\
+Producto & Accesibilidad de color & \textbf{Cumplido}: las cinco paletas superan WCAG AA; la peor, 9,51 \\
+Producto & Robustez & \textbf{Cumplido}: 183 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Operación & Enlace permanente disponible & \textbf{Pendiente} (A2) \\
+Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
+Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
+\bottomrule
+\end{tabularx}
+\caption{Métricas por nivel, con su estado real.}
+\label{cuad:metricas}
+\end{table}
+
+\subsection{Riesgos}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}L{5.2cm} L{2.4cm} Y@{}}
+\toprule
+\textbf{Riesgo} & \textbf{Impacto} & \textbf{Mitigación} \\
+\midrule
+El enlace de la demostración muere durante la evaluación & Alto & A2: despliegue permanente, probado desde un dispositivo ajeno antes de la fecha \\
+El servicio externo de lenguaje agota su presupuesto en mitad de una demostración & Medio & Ya mitigado: la aplicación degrada con un mensaje legible y conserva diccionario, fonética, audio, buscador y puntuación \\
+Que la letra MCER se lea como una certificación & Alto, reputacional & Declaración de alcance en el documento y aviso permanente en pantalla \\
+Que la remedición del catálogo no termine a tiempo & Medio & El proceso es reanudable por bloques y los resultados se guardan por lotes; lo medido ya es utilizable aunque falte el resto \\
+Sobrecarga del espejo de descarga de Project Gutenberg & Medio, ético & Seis hilos y no treinta, cada uno con su pausa entre peticiones; y el vocabulario se obtuvo del SPGC, no rascando el sitio \\
+Contenido inapropiado para una lectora menor de edad & Medio & Decisión razonada de \textbf{no filtrar por contenido} y avisar en la ficha; se argumenta en el apartado~\ref{sec:producto} \\
+\bottomrule
+\end{tabularx}
+\caption{Riesgos y mitigaciones.}
+\label{cuad:riesgos}
+\end{table}
+
+% ===========================================================================
+\section{Descripción de los datos}
+\label{sec:datos}
+% ===========================================================================
+
+Todos los datos de este trabajo provienen de \textbf{corpus académicos publicados,
+APIs y descarga directa de repositorios de dominio público}. No se usó Kaggle como
+fuente de datos en ningún punto del proyecto, conforme a la restricción del módulo.
+Cuando un corpus tiene licencia restrictiva se dice, y su texto crudo nunca sale del
+entorno de cómputo: solo estadísticas agregadas.
+
+\subsection{Inventario de fuentes}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}L{2.4cm} L{3.2cm} L{2.2cm} L{2.8cm} Y@{}}
+\toprule
+\textbf{Fuente} & \textbf{Qué aporta} & \textbf{Tamaño} & \textbf{Origen} & \textbf{Licencia / acceso} \\
+\midrule
+\textbf{CLEAR Corpus} & Etiqueta continua de legibilidad (\cod{BT\_easiness}) para el modelado supervisado & 4.724 extractos & Repositorio público del proyecto CLEAR \parencite{crossley2023clear} & Uso investigador, descarga directa \\
+\addlinespace
+\textbf{One\-Stop\-English} & Validación externa ordinal en 3 niveles & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
+\addlinespace
+\textbf{British Council Learn\-English} & Validación externa contra niveles MCER oficiales & 59 textos A1--C1 & Descarga de los PDF públicos & Con derechos: no se distribuye ni se imprime texto \\
+\addlinespace
+\textbf{SPGC} (Standar\-dized Project Guten\-berg Corpus) & Lista global de frecuencia de palabras (solo conteos, sin texto) & 45.345 libros en inglés de 55.905 & Zenodo, registro 2422561 \parencite{gerlach2018spgc,gerlach2020standardized} & Abierta \\
+\addlinespace
+\textbf{Project Gutenberg} & Catálogo de obras a medir y a leer dentro de la app & 79.337 entradas; 61.642 libros de texto en inglés & Catálogo oficial \parencite{gutenberg2026} + espejo \cod{gutenberg.\allowbreak pglaf.org} & Dominio público \\
+\addlinespace
+\textbf{Kaikki / Wiktio\-nary} & Diccionario, IPA británica y americana, audio & 1.487.639 filas en SQLite (243 MB) & Volcado de kaikki.org \parencite{ylonen2022wiktextract} & Libre \\
+\addlinespace
+\textbf{Story\-Weaver / Global Digital Library} & Lecturas graduadas del catálogo heredado & 1.049 registros & API pública de contenidos & Abierta, pero sin descarga de texto \\
+\bottomrule
+\end{tabularx}
+\caption{Fuentes de datos, con volumen y procedencia.}
+\label{cuad:fuentes}
+\end{table}
+
+\subsection{Relevancia de cada fuente}
+
+\textbf{CLEAR} es el corpus central del modelado. Su variable objetivo,
+\cod{BT\_easiness}, no es una fórmula de legibilidad: es una escala construida a partir
+de comparaciones pareadas juzgadas por lectores humanos, lo que evita que el modelo
+aprenda a reproducir un contador de sílabas. Además trae precalculadas once métricas
+clásicas (Flesch, Flesch-Kincaid, ARI, SMOG, Dale-Chall, CAREC, CAREC\_M, CML2RI,
+conteos de palabras, oraciones y párrafos) y dos variables de estratificación
+—\cod{Categ} (literario/informativo) y \cod{Lexile Band}— que permiten comprobar si el
+modelo funciona igual de bien en narrativa que en divulgación. Esa comprobación por
+dominio se hizo y aparece en el apartado~\ref{sec:dominio}.
+
+\textbf{OneStopEnglish} aporta algo que CLEAR no puede: el mismo artículo reescrito en
+tres niveles. Como el contenido es idéntico y solo cambia la complejidad lingüística,
+permite medir el orden dentro de cada artículo, una prueba mucho más exigente y limpia
+que comparar textos distintos entre sí.
+
+\textbf{British Council} es la única fuente con niveles MCER asignados por una
+institución de enseñanza de idiomas, que es exactamente la escala que el producto
+muestra al usuario. Es el juez final.
+
+\textbf{SPGC} existe por una razón de higiene: descargar decenas de miles de libros uno
+a uno desde \cod{gutenberg.org} viola su política de acceso automatizado. El SPGC
+publica los conteos de palabras ya calculados, con lo que se obtiene la distribución
+léxica del catálogo completo sin tocar el servidor de Gutenberg.
+
+\textbf{Kaikki/Wiktionary} sustituyó a una API comercial de diccionario. La decisión fue
+de producto y de derechos: un SQLite local de 1,48 millones de entradas no tiene límite
+de peticiones, no cuesta dinero por consulta y no puede desaparecer si un proveedor
+cambia sus condiciones. Se descartó explícitamente Oxford Dictionaries.
+
+\subsection{Calidad de los datos: lo que está bien y lo que no}
+\label{sec:calidad}
+
+Un apartado de calidad que solo diga «los datos están limpios» no informa. Estos son los
+problemas reales encontrados y qué se hizo con cada uno.
+
+\paragraph{(a) El corpus de validación MCER no es homogéneo.} De los 59 textos de
+British Council, una parte no es prosa: en A1 hay un menú de restaurante, un horario de
+estudio, un tablero de salidas de aeropuerto, tarjetas de visita y mensajes de texto.
+Son documentos fragmentarios que el modelo nunca vio. Se definió un filtro de prosa
+continua \textbf{antes de mirar ningún resultado}, para no incurrir en elegir el examen
+después de ver las notas, y por dos vías independientes: por palabras clave del título y
+por estructura ($\geq 7$ palabras por línea y densidad de puntuación final de frase en
+el intervalo $(0;\,0{,}11]$). Los dos criterios coinciden en 53 de 59 casos, el
+89,8\pct.
+
+\paragraph{(b) Las etiquetas del catálogo heredado no son fiables, y hay que decirlo.}
+El catálogo con el que la aplicación funciona hoy tiene \textbf{1.197 libros} —no
+12.752, como sugiere un \cod{wc -l} ingenuo: el campo \cod{hook} contiene saltos de
+línea entrecomillados y hay que contar con un lector de CSV real—. Su columna
+\cod{nivel\_cefr} \textbf{no es anotación humana ni metadato del editor}: son
+predicciones de un modelo anterior (v1) sobre las primeras $\sim$190 palabras de cada
+obra, con cortes MCER obtenidos por cuantiles. El resultado es un reparto que no resiste
+el sentido común (cuadro~\ref{cuad:catalogo} y figura~\ref{fig:catalogo}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{2.2cm} R{2.2cm}@{}}
+\toprule
+\textbf{Nivel} & \textbf{Libros} & \textbf{\%} \\
+\midrule
+A1 & 723 & 60,4 \\
+A2 & 185 & 15,5 \\
+C2 & 115 & 9,6 \\
+B1 & 69 & 5,8 \\
+C1 & 53 & 4,4 \\
+B2 & 52 & 4,3 \\
+\midrule
+\textbf{Total} & \textbf{1.197} & \textbf{100} \\
+\bottomrule
+\end{tabular}
+\caption{Reparto de niveles del catálogo heredado. Son predicciones de un modelo v1
+sobre las primeras $\sim$190 palabras, no anotación fiable.}
+\label{cuad:catalogo}
+\end{table}
+
+% ------------------------------------------------------- FIGURA: catálogo
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  barrall,
+  height=5.4cm,
+  xbar,
+  bar width=8pt,
+  xmin=0, xmax=830,
+  xlabel={Libros del catálogo heredado},
+  symbolic y coords={C1,B2,B1,C2,A2,A1},
+  ytick=data,
+  y dir=reverse,
+  enlarge y limits=0.14,
+  nodes near coords={\pgfmathprintnumber[fixed,precision=0,1000 sep={.}]{\pgfplotspointmeta}},
+  every node near coord/.append style={font=\scriptsize, color=llgris, anchor=west},
+  xmajorgrids=true,
+]
+\addplot[fill=llrojo!35, draw=llrojo!80] coordinates {
+  (723,A1) (185,A2) (69,B1) (52,B2) (53,C1) (115,C2)};
+\draw[llgris!70, dashed, line width=0.7pt]
+  (axis cs:199.5,C1) -- (axis cs:199.5,A1);
+\node[font=\scriptsize\itshape, color=llgris, anchor=south west, align=left]
+  at (axis cs:210,B1) {reparto uniforme\\(199,5 libros por nivel)};
+\end{axis}
+\end{tikzpicture}
+\caption[Reparto de niveles del catálogo heredado]{El sesgo del clasificador v1, visto de
+una vez. Seis de cada diez libros de dominio público quedaron etiquetados A1 y el tramo
+B1--B2 —donde está la mayoría de los lectores reales— reúne 121 de 1.197 obras. Una
+distribución así no describe la literatura en dominio público: describe el clasificador
+que la produjo. Datos del cuadro~\ref{cuad:catalogo}.}
+\label{fig:catalogo}
+\end{figure}
+
+Hay cuentos infantiles etiquetados C1 y clásicos muy distintos entre sí todos en C2. Y
+el tramo B1--B2, donde está la mayoría de los lectores reales, son 121 libros de 1.197.
+Estas etiquetas sirven para ordenar y filtrar de forma aproximada, \textbf{no son una
+medida fiable libro a libro}, y así se declara tanto en el repositorio como en la
+aplicación. Es la razón de ser del precálculo descrito en~\ref{sec:escalado}: remedir
+todo el catálogo, libro entero, con el modelo final.
+
+\paragraph{(c) De esos 1.197 libros, solo 148 se pueden abrir.} Son los de Project
+Gutenberg. Los otros 1.049 provienen de StoryWeaver y no tienen fichero descargable, de
+modo que aparecían en el desplegable de lectura como opciones muertas. Peor aún: su
+identificador se había usado para construir enlaces a Gutenberg extrayendo sus dígitos,
+con lo que \cod{SWgdlgdl201} apuntaba al libro 201 de Gutenberg, que es otra obra. Un
+enlace al libro equivocado es peor que ningún enlace. Hoy el desplegable lista solo lo
+que se puede abrir, la tabla marca los descargables y una línea dice cuántos de cuántos
+son.
+
+\paragraph{(d) La licencia de Project Gutenberg se estaba puntuando como si fuera
+novela.} El texto legal viene pegado al último capítulo: en \emph{Alice's Adventures in
+Wonderland}, 2.900 de las 5.042 palabras del capítulo XII son licencia. Eso contaminaba
+tanto la puntuación como las estadísticas de la ficha (\cod{gutenberg} y \cod{project}
+aparecían entre las palabras más repetidas del libro). Se recorta por las marcas
+START/END dentro del capítulo, sin descartar el capítulo, que contiene el final de la
+obra.
+
+\paragraph{(e) La portada no es un capítulo.} En un \cod{.txt} de Gutenberg, las 4.957
+palabras previas al capítulo I (portada, índice, pies de ilustración) se estaban
+puntuando como si fueran la novela. En el análisis de \emph{War and Peace}, el «capítulo
+más fácil del libro» resultó ser la portadilla. Se descarta con la etiqueta que el
+propio lector de ficheros asigna, «Antes del primer capítulo». Se probó descartar por el
+filtro de prosa continua y \textbf{no sirve}: se llevaba por delante dos capítulos reales
+de \emph{Alice}.
+
+% ===========================================================================
+\section{Análisis exploratorio}
+\label{sec:eda}
+% ===========================================================================
+
+Siguiendo la organización canónica del módulo, el análisis se presenta en tres niveles:
+univariado, bivariado y multivariado. Todas las figuras y cuadros citados se generan en
+el cuaderno que acompaña a este documento.
+
+\subsection{Análisis univariado}
+
+\textbf{La variable objetivo.} \cod{BT\_easiness} es continua y aproximadamente
+simétrica alrededor de cero. No hay clases desbalanceadas que corregir porque no hay
+clases: el problema es de regresión. Cuando se necesitó una versión categórica para
+comparar modelos, se construyó por cuantiles (\cod{qcut}), lo que garantiza seis grupos
+equifrecuentes y hace que la exactitud sea comparable entre modelos.
+
+\textbf{Las variables textuales derivadas.} Sobre cada extracto se calcularon, a partir
+de sus \emph{tokens}, seis variables de ingeniería propia: longitud media de oración,
+\emph{type-token ratio}, longitud media de palabra, proporción de palabras raras,
+sílabas medias por palabra y porcentaje de polisílabos. Todas son positivas y con cola
+derecha, como es habitual en variables de conteo sobre texto.
+
+\textbf{La distribución del vocabulario inglés.} El agregado de los 45.345 libros del
+SPGC arroja \textbf{2.838.258.803 palabras} y un vocabulario único de
+\textbf{3.295.146 formas}. La distribución sigue la ley de Zipf
+\parencite{zipf1949human} con precisión: unas pocas miles de palabras cubren la mayor
+parte del texto corrido. Este hecho, que parece de trivia, tiene una consecuencia
+práctica que se documenta en~\ref{sec:bivariado}.
+
+\textbf{El catálogo.} El cuadro~\ref{cuad:catalogo} y la figura~\ref{fig:catalogo}
+muestran el reparto de niveles del catálogo heredado. Su forma —60\pct{} en A1— es en sí
+misma un hallazgo del análisis exploratorio: una distribución así no describe la
+literatura en dominio público, describe el sesgo del clasificador que la produjo.
+
+\textbf{La dificultad dentro de un libro.} La unidad de análisis del producto no es el
+libro sino el capítulo, y la figura~\ref{fig:curva_wp} muestra por qué: los 362
+capítulos de \emph{War and Peace}, medidos sin muestrear, se reparten entre 1,333 y
+1,990 con media 1,735. La figura~\ref{fig:curvas_comp} añade dos libros más y confirma
+que la dispersión interna es la norma, no la excepción.
+
+\subsection{Análisis bivariado}
+\label{sec:bivariado}
+
+\textbf{Cada variable frente a la dificultad.} La matriz de correlación de las variables
+derivadas contra \cod{BT\_easiness} confirma el sentido esperado: los textos más fáciles
+tienen oraciones más cortas, palabras más cortas, menos polisílabos y menor proporción
+de palabras raras. La correlación de \cod{rare\_word\_ratio} con \cod{BT\_easiness} es
+negativa, como debe ser.
+
+\textbf{El experimento de saturación léxica.} La variable «palabra rara» depende de qué
+lista de palabras familiares se use. Se probaron tres, de menor a mayor
+(cuadro~\ref{cuad:saturacion}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{2.0cm} R{5.2cm}@{}}
+\toprule
+\textbf{Lista de palabras familiares} & \textbf{Libros} & \textbf{Correlación de \cod{rare\_word\_ratio} con \cod{BT\_easiness}} \\
+\midrule
+Corpus Gutenberg de NLTK & 18 & $-0{,}379$ \\
+Muestra propia de Gutenberg & 397 & $-0{,}330$ \\
+\textbf{SPGC completo, en inglés} & \textbf{45.345} & $\mathbf{-0{,}326}$ \\
+\bottomrule
+\end{tabular}
+\caption{Efecto de escalar el corpus de referencia léxica. La correlación no mejora.}
+\label{cuad:saturacion}
+\end{table}
+
+Este es un \textbf{resultado negativo y se reporta como tal}: multiplicar por 2.500 el
+corpus de referencia no mejora la señal, e incluso la baja marginalmente. La exactitud
+del clasificador de tres clases se mantuvo en 0,51 con las tres listas. La explicación
+está en la ley de Zipf: la distribución de frecuencias del inglés converge muy rápido,
+así que las 3.000 palabras más frecuentes de 18 libros y las de 45.345 libros son casi
+el mismo conjunto. El valor del paso no está en la métrica sino en la cobertura: la
+lista del SPGC generaliza mejor a texto nuevo arbitrario, que es lo que la aplicación
+recibe.
+
+\textbf{Dificultad frente a longitud, la variable incómoda.} Sobre los 45 textos de
+British Council medibles en local, contar las palabras del texto —sin modelo alguno—
+alcanza una correlación de Spearman de \textbf{0,807} con el nivel oficial. El modelo
+alcanza 0,854. Es decir: en ese corpus, nivel y longitud están confundidos, porque los
+materiales de examen gradúan también la extensión de la tarea. Publicar ese
+\emph{baseline} antes de que lo pregunte el evaluador es más creíble que omitirlo; en el
+apartado~\ref{sec:baseline} se cuantifica cuánta señal aporta el modelo por encima de él.
+
+\textbf{Dificultad frente a dominio.} El nivel del texto está correlacionado con su tipo
+documental. Al filtrar los 59 textos de British Council a prosa continua, el nivel A1
+desaparece casi por completo y el rango evaluable se encoge de seis niveles a cuatro
+(A2--C1). Por eso el \emph{baseline} de contar palabras cae de 0,879 a 0,765 al filtrar:
+parte de la señal del conjunto completo era simplemente que los textos A1 son cortos.
+Las correlaciones antes y después del filtro \textbf{no son comparables entre sí}, y se
+reportan por separado.
+
+\subsection{Análisis multivariado}
+
+\textbf{Las variables clásicas se estorban entre sí.} Las métricas de legibilidad
+tradicionales (Flesch, Flesch-Kincaid, ARI, SMOG, Dale-Chall) son transformaciones
+distintas de los mismos dos ingredientes —longitud de oración y longitud de palabra— y
+por tanto están fuertemente correlacionadas entre ellas. Meterlas todas en un modelo
+lineal no añade información: añade multicolinealidad. Por eso el conjunto de trabajo se
+redujo a \textbf{tres} variables poco redundantes entre sí y con interpretación
+distinta: \cod{avg\_sentence\_length} (complejidad sintáctica),
+\cod{rare\_word\_ratio} (carga léxica) y \cod{type\_token\_ratio} (diversidad de
+vocabulario).
+
+\textbf{El techo de las variables clásicas.} Con esas tres variables, un clasificador de
+seis niveles alcanza 0,29 de exactitud con regresión logística
+\parencite{pedregosa2011scikit} y 0,28 con XGBoost \parencite{chen2016xgboost}. Que un
+ensamble de árboles —capaz de capturar interacciones no lineales arbitrarias— no supere
+a un modelo lineal es la prueba de que \textbf{el cuello de botella no era el modelo sino
+la representación del texto}. Tres números por documento no bastan para separar seis
+niveles.
+
+\textbf{Representación densa.} Al sustituir las tres variables por un \emph{embedding} de
+384 dimensiones de \cod{all-MiniLM-L6-v2} \parencite{reimers2019sentence}, la exactitud
+salta a 0,37 y el error ordinal medio baja de 1,39 a 0,93 niveles. El modelo híbrido
+(\emph{embedding} + las tres variables clásicas) da 0,37 y 0,91: prácticamente lo mismo.
+Esto indica que \textbf{el \emph{embedding} ya contiene la información que aportaban las
+tres variables}, y bastante más. La figura~\ref{fig:progresion} recoge la progresión
+completa.
+
+\textbf{Estructura por dominio.} La comparación por subconjuntos de CLEAR (literario
+frente a informativo, y por banda Lexile) muestra que el rendimiento no es uniforme: el
+modelo funciona mejor en texto informativo que en literario, y peor en la banda más
+fácil (Lexile 500) que en la más difícil (Lexile 1300). Los números están en el
+cuadro~\ref{cuad:dominio}.
+
+% ===========================================================================
+\section{Procesamiento de datos}
+\label{sec:procesamiento}
+% ===========================================================================
+
+Cada transformación se documenta con su justificación. La regla que se siguió es la del
+módulo 1 del diplomado: \textbf{no se transforma sin medir qué se rompió}.
+
+\subsection{Sobre el texto de entrada}
+\label{sec:proc_texto}
+
+El cuadro~\ref{cuad:textos} recoge las ocho transformaciones que sufre el texto antes de
+llegar al modelo; la figura~\ref{fig:pipeline} las sitúa en la cadena completa.
+
+\begin{small}
+\begin{longtable}{@{}c L{3.2cm} L{3.4cm} L{5.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Transformación} & \textbf{Por qué} & \textbf{Evidencia / consecuencia} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\#} & \textbf{Transformación} & \textbf{Por qué} & \textbf{Evidencia / consecuencia} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{Transformaciones sobre el texto, con su justificación y su evidencia.}
+\label{cuad:textos}
+\endlastfoot
+T1 & \textbf{Filtro de prosa continua} antes de puntuar: se rechaza si hay $\geq 2$ viñetas o $\geq 6$ líneas cortas & El modelo solo vio prosa; puntuar un menú da un número sin significado & El filtro estaba muerto en producción: se normalizaba \emph{antes} de comprobar, y \cod{normalize()} colapsa los saltos de línea, así que el detector recibía siempre una sola línea. Una carta de menú de 432 palabras se puntuaba como prosa. Corregido: el filtro va sobre el texto crudo \\
+\addlinespace
+T2 & \textbf{Normalización de espacios} (\cod{\textbackslash s+} $\rightarrow$ espacio) después del filtro & Estabiliza el troceado en bloques & Sin efecto sobre la puntuación; solo sobre el corte \\
+\addlinespace
+T3 & \textbf{Troceado en bloques de 250 palabras, mínimo 150} & Es la unidad con la que se entrenó; un bloque más corto no tiene señal suficiente & Constante del entrenamiento: cambiarla invalidaría las métricas reportadas \\
+\addlinespace
+T4 & \textbf{Truncado a 256 \emph{tokens}} & Límite de contexto del modelo & Medido: de 200 bloques, el \textbf{100\pct} llega exactamente a 256 \emph{tokens} tras truncar, porque 250 palabras inglesas siempre superan 256 BPE. No hay relleno que optimizar \\
+\addlinespace
+T5 & \textbf{Recorte de la licencia de Gutenberg} por las marcas START/END, dentro del capítulo & 2.900 de las 5.042 palabras del capítulo XII de \emph{Alice} son texto legal & Sin esto, el modelo puntuaba texto jurídico como narrativa y la ficha listaba «gutenberg» entre las palabras más frecuentes del libro \\
+\addlinespace
+T6 & \textbf{Descarte de portada, índice y portadilla} por la etiqueta «Antes del primer capítulo» & 4.957 palabras de paratexto se puntuaban como novela & Se probó descartar por el filtro de prosa continua y se rechazó: eliminaba dos capítulos reales de \emph{Alice} \\
+\addlinespace
+T7 & \textbf{Muestreo de hasta 8 bloques repartidos por el documento} para la puntuación rápida & Dar un número en segundos, no en minutos & Cuantificado: 8 bloques dan 1,784 y el recorrido completo de las 23 ventanas del mismo capítulo da 1,743. El atajo se desvía 0,041 sobre una escala de 0 a 2 \\
+\addlinespace
+T8 & \textbf{Recorte de entradas del usuario en el servidor} (40 caracteres por palabra, 400 por oración, 20 MB por fichero) & El límite del navegador es una sugerencia, no una defensa & Una cadena de 3.000 caracteres pasaba el filtro de «máximo cuatro palabras» y se pintaba como encabezado: 9.312 caracteres llenando la pantalla del móvil \\
+\end{longtable}
+\end{small}
+
+\subsection{Sobre las variables del modelado clásico}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}c L{4.6cm} Y@{}}
+\toprule
+\textbf{\#} & \textbf{Transformación} & \textbf{Por qué} \\
+\midrule
+T9 & \textbf{Partición agrupada por libro} (\cod{GroupShuffleSplit} sobre \cod{Title}, 20\pct{} de prueba, semilla 42) & Un mismo libro aporta varios extractos a CLEAR. Con una partición aleatoria por fila, fragmentos del mismo libro caerían a ambos lados y el modelo memorizaría el estilo del autor en lugar de aprender dificultad. Es fuga de datos por diseño, y se evita por diseño \\
+\addlinespace
+T10 & \textbf{Estandarización} (\cod{StandardScaler}) ajustada solo en entrenamiento & Ajustar el escalador con los datos de prueba filtra su distribución al modelo \\
+\addlinespace
+T11 & \textbf{Discretización por cuantiles} (\cod{qcut}) para las versiones categóricas & Produce grupos equifrecuentes, con lo que la exactitud entre modelos es comparable y el azar tiene una probabilidad conocida ($1/6 = 16{,}7\pct$) \\
+\addlinespace
+T12 & \textbf{Lista de palabras familiares} $=$ las 3.000 más frecuentes del SPGC & Sustituye una lista de 18 libros por una de 45.345, con muchísima más cobertura para texto nuevo \\
+\bottomrule
+\end{tabularx}
+\caption{Transformaciones sobre las variables tabulares.}
+\label{cuad:tabulares}
+\end{table}
+
+\subsection{Sobre el corpus de vocabulario (procesamiento distribuido)}
+
+Los conteos del SPGC son 45.345 ficheros pequeños. Agregarlos secuencialmente es un mal
+uso del tiempo y del sistema de ficheros, de modo que la agregación se hizo con
+\textbf{PySpark} \parencite{zaharia2016spark}: los ficheros se distribuyen en 200
+particiones, un \cod{flatMap} los convierte en pares (palabra, conteo) y un
+\cod{reduceByKey} los suma en una única lista global de frecuencia. Es el patrón canónico
+de conteo distribuido y es lo que hace tratable un corpus de 2.838 millones de palabras
+en una sesión de Colab.
+
+\subsection{Sobre el diccionario}
+
+El volcado de Kaikki llega como JSONL de líneas independientes. Se filtra a entradas en
+inglés con palabra no vacía y se ingesta en SQLite con un esquema plano (\cod{palabra},
+\cod{pos}, \cod{sentidos} como JSON, \cod{ipa\_uk}, \cod{ipa\_us}, \cod{audio\_uk},
+\cod{audio\_us}) y un índice por \cod{palabra}. La justificación es de latencia: la
+primera consulta sobre 1.487.639 filas tarda \textbf{0,001~s} con el índice puesto y la
+base abierta en modo solo lectura. Los 243 MB del fichero no cuestan nada en tiempo de
+respuesta.
+
+Un dato de cobertura que condiciona el diseño de la aplicación: solo \textbf{7.003 de las
+1.487.639 entradas (0,5\pct) traen audio de pronunciación}. Es decir, casi cualquier
+palabra que un lector consulte por primera vez necesitará síntesis de voz. Esa medición
+es la que justificó paralelizar las dos llamadas de red de una consulta en lugar de
+encadenarlas.
+
+% ===========================================================================
+\section{Modelación}
+\label{sec:modelacion}
+% ===========================================================================
+
+\subsection{Diseño experimental}
+
+Todos los modelos comparten la \textbf{misma partición agrupada por libro} (3.774
+extractos de entrenamiento y 950 de prueba) y la misma semilla, de modo que las
+diferencias entre ellos son atribuibles al modelo y no al reparto de los datos. Se
+comparan sobre el mismo conjunto de prueba de 950 extractos, con dos métricas: exactitud
+sobre seis niveles MCER y \textbf{error ordinal medio}, que penaliza proporcionalmente a
+la distancia del fallo.
+
+\subsection{Progresión de modelos}
+\label{sec:progresion}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l l R{2.6cm} R{2.6cm}@{}}
+\toprule
+\textbf{Modelo} & \textbf{Representación del texto} & \textbf{Exactitud (6 niveles)} & \textbf{Error ordinal medio} \\
+\midrule
+Regresión logística & 3 variables clásicas & 0,29 & 1,39 \\
+XGBoost & 3 variables clásicas & 0,28 & 1,42 \\
+Regresión logística & \emph{Embedding} MiniLM (384 d) & 0,37 & 0,93 \\
+Regresión logística & Híbrido (\emph{embedding} + 3 variables) & 0,37 & 0,91 \\
+\textbf{Transformer afinado} & \textbf{Texto crudo, atención} & \textbf{0,46} & \textbf{0,67} \\
+\bottomrule
+\end{tabular}
+\caption{Progresión completa sobre el mismo conjunto de prueba (950 extractos). La mejora
+acompaña siempre al enriquecimiento de la representación, no a la complejidad del
+clasificador.}
+\label{cuad:progresion}
+\end{table}
+
+% ---------------------------------------------------- FIGURA: progresión
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=2 by 1, horizontal sep=0.6cm},
+  barrall,
+  width=0.47\linewidth,
+  height=5.6cm,
+  xbar,
+  symbolic y coords={Transformer,Hibrido,MiniLM,XGBoost,LogReg},
+  ytick={LogReg,XGBoost,MiniLM,Hibrido,Transformer},
+  yticklabels={Reg. logística,XGBoost,\emph{Embedding} MiniLM,Híbrido,Transformer afinado},
+  enlarge y limits=0.16,
+  every node near coord/.append style={font=\scriptsize, color=llgris, anchor=west},
+]
+
+\nextgroupplot[
+  xmin=0, xmax=0.60,
+  xlabel={Exactitud sobre 6 niveles \emph{(más es mejor)}},
+  title={Exactitud},
+  nodes near coords={\pgfmathprintnumber[fixed,precision=2]{\pgfplotspointmeta}},
+]
+\addplot[fill=llcian!35, draw=llcian!85] coordinates {
+  (0.29,LogReg) (0.28,XGBoost) (0.37,MiniLM) (0.37,Hibrido) (0.46,Transformer)};
+\draw[llrojo!80, dashed, line width=0.7pt]
+  (axis cs:0.1667,LogReg) -- (axis cs:0.1667,Transformer);
+
+\nextgroupplot[
+  xmin=0, xmax=1.75,
+  xlabel={Error ordinal medio \emph{(menos es mejor)}},
+  title={Error ordinal},
+  yticklabels={,,,,},
+  ytick={LogReg,XGBoost,MiniLM,Hibrido,Transformer},
+  nodes near coords={\pgfmathprintnumber[fixed,precision=2]{\pgfplotspointmeta}},
+]
+\addplot[fill=llambar!45, draw=llambar!90] coordinates {
+  (1.39,LogReg) (1.42,XGBoost) (0.93,MiniLM) (0.91,Hibrido) (0.67,Transformer)};
+
+\end{groupplot}
+\end{tikzpicture}
+\caption[Progresión de modelos: la representación manda]{La tesis metodológica del
+trabajo, en dos ejes. Los dos primeros modelos comparten \emph{representación} (tres
+variables clásicas) y solo cambian de clasificador: XGBoost no mejora a la regresión
+logística, incluso empeora el error ordinal. Los saltos ocurren cuando cambia la
+representación del texto: \emph{embedding} denso primero, texto crudo con atención
+después. La línea roja discontinua del panel izquierdo marca el azar
+($1/6 = 0{,}167$), que es lo que acertaría un clasificador que no leyese nada. Datos del
+cuadro~\ref{cuad:progresion}.}
+\label{fig:progresion}
+\end{figure}
+
+La lectura del cuadro~\ref{cuad:progresion} es la tesis metodológica del trabajo:
+\textbf{cada vez que se le dio al modelo una representación más rica del texto, el
+desempeño subió; y cuando solo se aumentó la potencia del clasificador sobre la misma
+representación pobre, no subió}. XGBoost sobre tres variables es marginalmente peor que
+una regresión logística sobre las mismas tres variables.
+
+El modelo afinado directamente sobre el texto, con cabeza de regresión sobre
+\cod{BT\_easiness}, alcanza además \textbf{RMSE 0,560} y \textbf{correlación de Pearson
+0,89} con la etiqueta continua real, que es un resultado sólido para este problema.
+
+\textbf{Sobreajuste, visto y controlado.} El entrenamiento corrió seis épocas con tasa de
+aprendizaje 2e-5, decaimiento de pesos 0,01, calentamiento y precisión mixta. El RMSE de
+validación mejoró hasta la época 3 (0,560) y a partir de ahí empeoró de forma monótona
+—época 4: 0,578; época 5: 0,637; época 6: 0,660— mientras la pérdida de entrenamiento
+seguía bajando (figura~\ref{fig:epocas}). Es un caso de libro. Como se guardaba un punto
+de control por época y se cargaba automáticamente el mejor al terminar, \textbf{el modelo
+reportado es el de la época 3, no el de la última}.
+
+% ------------------------------------------------------ FIGURA: épocas
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ejell,
+  width=0.72\linewidth,
+  height=5.6cm,
+  xlabel={Época de entrenamiento},
+  ylabel={RMSE de validación},
+  xmin=2.6, xmax=6.4,
+  ymin=0.53, ymax=0.70,
+  xtick={3,4,5,6},
+  ymajorgrids=true,
+  legend pos=north west,
+]
+\addplot[color=llrojo, mark=*, mark size=2.2pt, mark options={fill=llrojo}]
+  coordinates {(3,0.560) (4,0.578) (5,0.637) (6,0.660)};
+\addlegendentry{RMSE de validación}
+
+\draw[llverde, line width=0.8pt, dashed]
+  (axis cs:2.6,0.560) -- (axis cs:6.4,0.560);
+\node[font=\scriptsize, color=llverde!65!black, anchor=west]
+  at (axis cs:4.4,0.548) {mejor punto de control: época 3};
+
+\node[draw=llverde!70, fill=llverde!10, rounded corners=2pt, inner sep=3pt,
+      font=\scriptsize, anchor=south west] at (axis cs:3.05,0.575)
+  {modelo desplegado};
+\draw[-{Stealth[length=2mm]}, llverde!80] (axis cs:3.12,0.574) -- (axis cs:3.02,0.562);
+\end{axis}
+\end{tikzpicture}
+\caption[Sobreajuste visto y controlado]{El sobreajuste, medido. El RMSE de validación
+toca su mínimo en la época 3 y empeora de forma monótona después, mientras la pérdida de
+entrenamiento seguía bajando. Se guardó un punto de control por época y se cargó
+automáticamente el mejor: el modelo desplegado es el de la época 3, no el de la sexta.}
+\label{fig:epocas}
+\end{figure}
+
+\subsection{Dónde funciona y dónde no: análisis por dominio}
+\label{sec:dominio}
+
+Un modelo que se evalúa solo en agregado esconde sus propios puntos ciegos. Se midió la
+correlación con la dificultad real por subconjunto, comparando dos variantes del modelo
+entrenadas sobre corpus distintos (v1 sobre \cod{BT\_easiness}, v2 afinado sobre material
+graduado para aprendices).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{1.6cm} R{2.0cm} R{2.0cm}@{}}
+\toprule
+\textbf{Dominio} & \textbf{n} & \textbf{v1} & \textbf{v2} \\
+\midrule
+Literatura (CLEAR, \cod{Lit}) & 461 & \textbf{0,848} & 0,760 \\
+Informativo (CLEAR, \cod{Info}) & 489 & \textbf{0,905} & 0,837 \\
+Banda Lexile 500 (más fácil) & 62 & \textbf{0,651} & 0,459 \\
+Banda Lexile 1300 (más difícil) & 272 & \textbf{0,877} & 0,773 \\
+Periodístico (OneStopEnglish) & 567 & 0,458 & \textbf{0,840} \\
+Exámenes MCER (British Council) & 59 & $-0{,}239$ & \textbf{0,175} \\
+\bottomrule
+\end{tabular}
+\caption{Matriz modelo $\times$ dominio. Correlación orientada con la dificultad real;
+más alto es mejor.}
+\label{cuad:dominio}
+\end{table}
+
+% --------------------------------------------------- FIGURA: modelo x dominio
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  barrall,
+  width=0.86\linewidth,
+  height=6.8cm,
+  xbar,
+  bar width=6.5pt,
+  xmin=-0.35, xmax=1.05,
+  xlabel={Correlación orientada con la dificultad real},
+  symbolic y coords={examen,prensa,lex1300,lex500,info,lit},
+  ytick={lit,info,lex500,lex1300,prensa,examen},
+  yticklabels={Literatura (n=461),Informativo (n=489),Lexile 500 (n=62),Lexile 1300 (n=272),Periodístico (n=567),Exámenes MCER (n=59)},
+  yticklabel style={font=\scriptsize},
+  enlarge y limits=0.11,
+  legend style={at={(0.5,-0.22)}, anchor=north, legend columns=2},
+  every node near coord/.append style={font=\scriptsize, color=llgris},
+  nodes near coords={\pgfmathprintnumber[fixed,precision=3]{\pgfplotspointmeta}},
+  nodes near coords align={horizontal},
+]
+\addplot[fill=llcian!35, draw=llcian!85] coordinates {
+  (0.848,lit) (0.905,info) (0.651,lex500)
+  (0.877,lex1300) (0.458,prensa) (-0.239,examen)};
+\addlegendentry{v1 (\cod{BT\_easiness})}
+\addplot[fill=llverde!35, draw=llverde!85] coordinates {
+  (0.760,lit) (0.837,info) (0.459,lex500)
+  (0.773,lex1300) (0.840,prensa) (0.175,examen)};
+\addlegendentry{v2 (material graduado)}
+\draw[llgris!70, line width=0.6pt] (axis cs:0,lit) -- (axis cs:0,examen);
+\end{axis}
+\end{tikzpicture}
+\caption[Matriz modelo $\times$ dominio]{Los dos modelos no compiten: miden cosas
+distintas. v1 domina donde la etiqueta son juicios de lectores nativos sobre prosa
+continua (CLEAR); v2 domina donde la etiqueta es una graduación pensada para aprendices
+de segunda lengua, que es la misma construcción que mide el MCER. Como el producto
+muestra una escala anclada al MCER, se desplegó el modelo de la familia v2. Datos del
+cuadro~\ref{cuad:dominio}.}
+\label{fig:dominio}
+\end{figure}
+
+La conclusión no es que uno sea bueno y otro malo: \textbf{miden cosas distintas}. v1
+gana en dificultad de lectura tipo CLEAR —juicios de lectores nativos sobre prosa
+continua— y v2 gana donde la etiqueta es una graduación pensada para aprendices de
+segunda lengua, que es la misma construcción que mide el MCER. La decisión de qué escala
+presentar al usuario precede a la decisión de qué modelo desplegar; se eligió la escala
+anclada al MCER, y con ella el modelo correspondiente.
+
+\subsection{El modelo desplegado y su validación}
+\label{sec:validacion}
+
+El modelo en producción, \textbf{v4}, es un \cod{distilroberta-base}
+\parencite{sanh2019distilbert,liu2019roberta} de seis capas y 82 millones de parámetros,
+con cabeza de regresión, servido con \emph{Transformers} \parencite{wolf2020transformers}
+y cuyos pesos ocupan 328 MB en disco. Puntúa bloques de 250 palabras truncados a 256
+\emph{tokens} y promedia sin ponderar. Su escala interna es 0--5 —un valor por nivel
+MCER, con posiciones intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala
+multiplicada por 0,4. \textbf{El modelo es final y no se reentrena.}
+
+Su tarjeta de modelo (\cod{metricas\_literalevel\_v4.json}, 5 de septiembre de 2026)
+registra el corpus de anclaje MCER con el que se afinó: 654 documentos aceptados —57
+descartados por longitud insuficiente—, repartidos en 510 de entrenamiento y 144 de
+validación. Esos 144 documentos son el conjunto de validación ciega que produce las
+cifras de la primera fila del cuadro~\ref{cuad:desplegado}.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{1.4cm} R{1.8cm} R{3.0cm} R{2.0cm}@{}}
+\toprule
+\textbf{Conjunto} & \textbf{n} & \textbf{Exacto} & \textbf{Dentro de $\pm 1$ nivel} & \textbf{Spearman} \\
+\midrule
+Validación ciega & 144 & 53,5\pct & \textbf{97,2\pct} & \textbf{0,908} \\
+British Council (externo) & 38 & 50,0\pct & \textbf{100\pct} & 0,829 \\
+\bottomrule
+\end{tabular}
+\caption{Métricas del modelo desplegado. MAE de 0,499 niveles en el conjunto de
+validación.}
+\label{cuad:desplegado}
+\end{table}
+
+\textbf{El resultado que de verdad sostiene el trabajo no es ninguno de esos porcentajes,
+sino el orden.} Sobre textos externos con nivel MCER oficial, las medias por nivel quedan
+estrictamente crecientes (cuadro~\ref{cuad:validacion} y figura~\ref{fig:validacion}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{2.4cm} R{3.4cm} R{2.6cm}@{}}
+\toprule
+\textbf{Nivel oficial} & \textbf{n (local)} & \textbf{Media en escala 0--2} & \textbf{Desviación} \\
+\midrule
+A1 & 3 & 0,5040 & 0,111 \\
+A2 & 7 & 0,5480 & 0,237 \\
+B1 & 12 & 0,9276 & 0,198 \\
+B2 & 11 & 1,2478 & 0,246 \\
+C1 & 12 & 1,4952 & 0,172 \\
+\bottomrule
+\end{tabular}
+\caption{Reproducción local de la validación externa, sobre los 45 textos que sobreviven
+a la extracción de los PDF. Fuente: \cod{datos\_figuras/\allowbreak validacion.dat}.}
+\label{cuad:validacion}
+\end{table}
+
+% ---------------------------------------------------- FIGURA: validación
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ejell,
+  width=0.78\linewidth,
+  height=6.2cm,
+  ymin=0, ymax=1.95,
+  xmin=-0.7, xmax=4.7,
+  xtick={0,1,2,3,4},
+  xticklabels={A1,A2,B1,B2,C1},
+  xlabel={Nivel MCER oficial del texto \emph{(fuente institucional)}},
+  ylabel={Puntuación media en la escala 0--2},
+  ymajorgrids=true,
+]
+
+\addplot[
+  ybar, bar width=22pt,
+  fill=llcian!35, draw=llcian!90,
+  error bars/.cd, y dir=both, y explicit,
+  error bar style={llgris, line width=0.7pt},
+  error mark options={llgris, mark size=2.5pt},
+] table[x expr=\coordindex, y=media, y error=desv] {datos_figuras/validacion.dat};
+
+% Anclas teóricas de cada nivel (nivel entero x 0,4)
+\addplot[only marks, mark=-, mark size=11pt, llgris!85, line width=1.1pt]
+  coordinates {(0,0.0) (1,0.4) (2,0.8) (3,1.2) (4,1.6)};
+
+\node[font=\scriptsize, color=llgris, anchor=south] at (axis cs:0,0.72) {n\,=\,3};
+\node[font=\scriptsize, color=llgris, anchor=south] at (axis cs:1,0.90) {n\,=\,7};
+\node[font=\scriptsize, color=llgris, anchor=south] at (axis cs:2,1.19) {n\,=\,12};
+\node[font=\scriptsize, color=llgris, anchor=south] at (axis cs:3,1.55) {n\,=\,11};
+\node[font=\scriptsize, color=llgris, anchor=south] at (axis cs:4,1.72) {n\,=\,12};
+
+\node[font=\scriptsize\itshape, color=llgris, anchor=north west, align=left]
+  at (axis cs:-0.55,1.90) {los trazos grises son el ancla teórica\\del nivel (nivel entero $\times\,0{,}4$)};
+
+\end{axis}
+\end{tikzpicture}
+\caption[Validación externa por nivel MCER]{El resultado que sostiene el trabajo: las
+medias por nivel quedan \textbf{estrictamente crecientes} sobre textos externos con nivel
+MCER asignado por una institución de enseñanza. Las barras de error son la desviación
+dentro de cada nivel; con $n$ de 3 a 12 textos, lo que se afirma es el orden global y no
+cada comparación por pares. Datos de \cod{datos\_figuras/\allowbreak validacion.dat}
+(cuadro~\ref{cuad:validacion}).}
+\label{fig:validacion}
+\end{figure}
+
+Esta tabla se reproduce en cualquier máquina con el guion \cod{validar\_local.py}. Lo que
+se reproduce exactamente es \textbf{el orden}; las medias difieren ligeramente de las
+obtenidas en Colab (C1 coincide hasta la cuarta cifra, A2 se desvía 0,10) porque la
+extracción de texto de los PDF conserva 45 de los 59 textos originales y el anclaje de la
+sección de lectura recorta distinto. Se reporta la discrepancia en lugar de citar solo la
+cifra que coincide.
+
+\subsection{El \emph{baseline} propio, y qué aporta el modelo por encima de él}
+\label{sec:baseline}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}L{7.6cm} R{5.4cm}@{}}
+\toprule
+\textbf{Señal} & \textbf{Spearman con el nivel oficial (45 textos)} \\
+\midrule
+Modelo v4 & \textbf{0,854} \\
+Contar las palabras del texto, sin modelo & 0,807 \\
+Modelo, descontando la longitud (correlación parcial) & \textbf{0,657} \\
+\bottomrule
+\end{tabular}
+\caption{El modelo frente a la señal trivial.}
+\label{cuad:baseline}
+\end{table}
+
+Un contador de palabras llega casi tan lejos como el modelo en ese corpus, y omitirlo
+sería deshonesto. Lo que sostiene al modelo es la tercera fila: \textbf{aporta señal por
+encima de la longitud}, que es precisamente lo que un contador de palabras no puede
+hacer. Además, el modelo no recibe la longitud del documento como variable —puntúa
+bloques de tamaño fijo y promedia—, aunque su salida correlacione 0,730 con ella, porque
+los corpus de examen gradúan también la extensión de la tarea.
+
+\textbf{La escala está comprimida, y la aplicación lo asume.} Contra el ancla real, el
+ajuste ronda $\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$
+(figura~\ref{fig:compresion}), de modo que un texto A2 tiende a puntuar cerca de B1. Por
+eso la interfaz muestra \textbf{bandas} (básico $< 0{,}8 \leq$ intermedio $< 1{,}6 \leq$
+avanzado) y la letra MCER solo como orientación, en lugar de fingir una precisión de dos
+decimales que el modelo no tiene.
+
+% ---------------------------------------------------- FIGURA: compresión
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ejell,
+  width=0.70\linewidth,
+  height=7.0cm,
+  xlabel={Ancla del nivel oficial en la escala 0--2},
+  ylabel={Media predicha por el modelo},
+  xmin=-0.12, xmax=1.78,
+  ymin=-0.12, ymax=1.78,
+  xtick={0,0.4,0.8,1.2,1.6},
+  xticklabels={A1\\{\scriptsize 0,0},A2\\{\scriptsize 0,4},B1\\{\scriptsize 0,8},B2\\{\scriptsize 1,2},C1\\{\scriptsize 1,6}},
+  xticklabel style={align=center},
+  ytick={0,0.4,0.8,1.2,1.6},
+  grid=both,
+  ymajorgrids=true, xmajorgrids=true,
+  legend style={at={(0.03,0.97)}, anchor=north west},
+]
+
+% identidad
+\addplot[llgris!70, dashed, line width=0.8pt, domain=-0.1:1.75, samples=2] {x};
+\addlegendentry{calibración perfecta ($y=x$)}
+
+% recta ajustada documentada
+\addplot[llrojo, line width=1.0pt, domain=-0.1:1.75, samples=2] {0.72*x+0.38};
+\addlegendentry{$y = 0{,}72\,x + 0{,}38$}
+
+% puntos observados
+\addplot[only marks, mark=*, mark size=2.6pt, mark options={fill=llcian, draw=llazul}]
+  coordinates {(0.0,0.5040) (0.4,0.5480) (0.8,0.9276) (1.2,1.2478) (1.6,1.4952)};
+\addlegendentry{media medida por nivel}
+
+\node[font=\scriptsize, color=llazul, anchor=north west] at (axis cs:0.02,0.50) {A1};
+\node[font=\scriptsize, color=llazul, anchor=north west] at (axis cs:0.42,0.545) {A2};
+\node[font=\scriptsize, color=llazul, anchor=north west] at (axis cs:0.82,0.925) {B1};
+\node[font=\scriptsize, color=llazul, anchor=north west] at (axis cs:1.22,1.245) {B2};
+\node[font=\scriptsize, color=llazul, anchor=north west] at (axis cs:1.62,1.492) {C1};
+
+\draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, llambar!85, line width=0.8pt]
+  (axis cs:0.4,0.40) -- (axis cs:0.4,0.548);
+\node[font=\scriptsize, color=llambar!70!black, anchor=west]
+  at (axis cs:0.44,0.30) {los niveles bajos se sobreestiman};
+\draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, llambar!85, line width=0.8pt]
+  (axis cs:1.6,1.60) -- (axis cs:1.6,1.4952);
+\node[font=\scriptsize, color=llambar!70!black, anchor=east]
+  at (axis cs:1.55,1.66) {los altos se subestiman};
+
+\end{axis}
+\end{tikzpicture}
+\caption[La escala comprimida]{Por qué la interfaz muestra bandas y no decimales. Los
+puntos son las medias medidas por nivel (cuadro~\ref{cuad:validacion}) frente al ancla
+teórica de ese nivel. El orden se conserva —que es el objetivo—, pero la pendiente es
+$0{,}72$ y no $1$: los niveles bajos se sobreestiman y los altos se subestiman. Calibrar
+esa recta afín sin tocar los pesos del modelo es el accionable A7
+(cuadro~\ref{cuad:accionables}).}
+\label{fig:compresion}
+\end{figure}
+
+\subsection{Cuadro de decisiones metodológicas}
+
+Incluye las hipótesis que se probaron y se rechazaron (cuadro~\ref{cuad:decisiones}).
+Reportarlas es parte del resultado.
+
+\begin{small}
+\begin{longtable}{@{}L{3.7cm} L{4.0cm} L{6.0cm}@{}}
+\toprule
+\textbf{Decisión} & \textbf{Razón} & \textbf{Evidencia / consecuencia} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Decisión} & \textbf{Razón} & \textbf{Evidencia / consecuencia} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{Decisiones metodológicas, incluidas las hipótesis rechazadas.}
+\label{cuad:decisiones}
+\endlastfoot
+Regresión, no clasificación & La dificultad es continua; clasificar tira información ordinal & El error ordinal medio baja de 1,39 a 0,67 en la progresión completa \\
+\addlinespace
+Partición agrupada por libro & Evitar fuga de datos entre extractos del mismo autor & Aplicada a \emph{todos} los modelos comparados, no solo al final \\
+\addlinespace
+\cod{distilroberta} y no \cod{roberta-base} completo & La aplicación debe correr en CPU en el equipo de un estudiante & 328 MB y 0,9 s de carga; la diferencia de calidad no justificaba 3$\times$ de tamaño \\
+\addlinespace
+Promediar bloques sin ponderar & Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal & Constante del entrenamiento, replicada literalmente en la app \\
+\addlinespace
+\textbf{Rechazada: XGBoost sobre variables clásicas} & Se esperaba que un ensamble superase al modelo lineal & No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 \emph{vs.} 1,39). El límite estaba en las variables \\
+\addlinespace
+\textbf{Rechazada: modelo híbrido \emph{embedding} + variables} & Se esperaba complementariedad & Ganancia nula (0,37 y 0,37; 0,91 \emph{vs.} 0,93). El \emph{embedding} ya contiene esa información \\
+\addlinespace
+\textbf{Rechazada: escalar la lista léxica al SPGC completo por rendimiento} & Se esperaba mejorar \cod{rare\_word\_ratio} & La correlación pasa de $-0{,}330$ a $-0{,}326$. Se conserva igualmente por cobertura, no por métrica \\
+\addlinespace
+\textbf{Rechazada: cuantización dinámica int8} & $+18\pct$ de velocidad en CPU & MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de $-0{,}21$: un texto de 1,68 pasa a 1,47 y cruza la frontera de «avanzado» a «intermedio», que está en 1,6. Inaceptable \\
+\addlinespace
+\textbf{Rechazada: precisión media (fp16) en la GPU local} & Se esperaba acelerar & Es \textbf{4,8$\times$ más lenta} que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene \emph{tensor cores}. En una A100 sí compensa, y allí la desviación medida es 0,00037 de media \\
+\addlinespace
+\textbf{Rechazada: \cod{inference\_mode} en lugar de \cod{no\_grad}} & Se esperaba menos sobrecarga & 0,4\pct{} de diferencia, por debajo del ruido \\
+\addlinespace
+\textbf{Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica} & Es el doble de rápido (7,4 s frente a 14,9 s) & Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa \\
+\addlinespace
+Filtrar prosa continua \emph{antes} de ver resultados & Excluir textos porque el modelo falla en ellos invalida la validación & El criterio se fijó a priori y por dos vías independientes que coinciden en 89,8\pct \\
+\end{longtable}
+\end{small}
+
+% ===========================================================================
+\section{Resolución del problema}
+\label{sec:resolucion}
+% ===========================================================================
+
+\subsection{De la métrica a la decisión del lector}
+
+Una correlación de 0,908 no le sirve de nada a un adolescente. Lo que le sirve son tres
+decisiones, y el producto está construido para producir exactamente esas tres
+(cuadro~\ref{cuad:decisiones_lector}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}L{3.6cm} Y L{3.2cm}@{}}
+\toprule
+\textbf{Pregunta del lector} & \textbf{Qué la responde} & \textbf{Coste para él} \\
+\midrule
+¿Cuál es mi nivel? & Seis preguntas sobre hábitos observables y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo & Menos de dos minutos \\
+\addlinespace
+¿Qué leo ahora? & Búsqueda semántica en español sobre el catálogo, acotada al rango de lectura del perfil & Segundos \\
+\addlinespace
+¿Por dónde se va a complicar? & Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear (figura~\ref{fig:curva_wp}) & De 12,7 s (vistazo, medido sobre \emph{Crime and Punishment}) a minutos (libro completo) \\
+\addlinespace
+¿Qué significa esta palabra \emph{aquí}? & Doble toque sobre la palabra: lema, IPA británica y americana, definición de Wiktionary, el sentido concreto en esa frase, gramática y audio & Instantáneo en local; la explicación contextual tarda más \\
+\addlinespace
+¿Lo estoy pronunciando bien? & Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla & Una frase \\
+\bottomrule
+\end{tabularx}
+\caption{Del modelo a las decisiones del usuario.}
+\label{cuad:decisiones_lector}
+\end{table}
+
+\subsection{Un recorrido completo, con números reales}
+\label{sec:recorrido}
+
+Tomemos el caso concreto de un lector cuyo perfil da 1,20 sobre 2 (banda intermedia,
+ancla B2). La figura~\ref{fig:recorrido} resume el recorrido y los seis pasos que siguen
+lo detallan.
+
+% ---------------------------------------------------- FIGURA: recorrido
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=6mm and 4mm, font=\footnotesize]
+
+  \node[cajall, text width=22mm] (perfil) {\textbf{1. Perfil}\\6 preguntas\\+ 3 fragmentos};
+  \node[cajall, text width=22mm, right=of perfil] (buscar) {\textbf{2. Buscar}\\búsqueda semántica\\en español};
+  \node[cajall, text width=22mm, right=of buscar] (abrir) {\textbf{3. Abrir}\\descarga de\\Project Gutenberg};
+  \node[cajall, text width=22mm, right=of abrir] (ficha) {\textbf{4. Ficha}\\todo contado\\sobre el fichero};
+  \node[cajall, text width=22mm, right=of ficha] (curva) {\textbf{5. Curva}\\dificultad\\por capítulo};
+
+  \node[cajall, text width=22mm, below=13mm of buscar] (palabra) {\textbf{6. Palabra}\\lema, IPA,\\sentido en la frase};
+  \node[cajall, text width=22mm, right=of palabra] (voz) {\textbf{7. Voz}\\corrección\\palabra a palabra};
+
+  \node[etiqll, below=1.5mm of perfil] {$<$ 2 min};
+  \node[etiqll, below=1.5mm of buscar] {segundos};
+  \node[etiqll, below=1.5mm of abrir] {un clic};
+  \node[etiqll, below=1.5mm of ficha] {instantáneo};
+  \node[etiqll, below=1.5mm of curva] {12,7 s a minutos};
+
+  \node[etiqll, below=1.5mm of palabra] {40 ms en local};
+  \node[etiqll, below=1.5mm of voz] {una frase};
+
+  \draw[flechall] (perfil) -- (buscar);
+  \draw[flechall] (buscar) -- (abrir);
+  \draw[flechall] (abrir) -- (ficha);
+  \draw[flechall] (ficha) -- (curva);
+  \draw[flechall] (abrir.south) to[out=-90,in=90] (palabra.north);
+  \draw[flechall] (palabra) -- (voz);
+
+  \begin{scope}[on background layer]
+    \node[draw=llverde!45, fill=llverde!7, rounded corners=5pt, inner sep=7pt,
+          fit=(palabra)(voz), label={[font=\scriptsize\itshape, color=llverde!55!black]below:mientras lee}] {};
+    \node[draw=llcian!45, fill=llcian!6, rounded corners=5pt, inner sep=7pt,
+          fit=(perfil)(curva), label={[font=\scriptsize\itshape, color=llcian!55!black]above:antes de leer}] {};
+  \end{scope}
+
+\end{tikzpicture}
+\caption[El recorrido del lector]{El recorrido completo, con los tiempos medidos de cada
+paso. No es un modelo con una interfaz encima: es una secuencia de decisiones que el
+lector no podía tomar antes. Lo único lento es la explicación contextual, que sale a la
+red; por eso la ficha se pinta en dos etapas.}
+\label{fig:recorrido}
+\end{figure}
+
+\begin{enumerate}[leftmargin=*, itemsep=4pt]
+  \item Describe en español lo que le apetece: \emph{«una novela de detectives
+        victoriana»}. El buscador no busca por título sino por significado, sobre
+        \emph{embeddings} multilingües, y le devuelve obras dentro de su rango. Un
+        rescate por parecido ortográfico atiende además los nombres mal escritos
+        —«dostoyevski», «chejov», «Shakespear» encuentran a quien deben— sin estorbar a
+        las búsquedas por tema.
+  \item Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
+        aplicación, sin salir a buscarlo.
+  \item Aparece la ficha, y todo lo que dice está \textbf{contado sobre el fichero}:
+        palabras reales, tiempo de lectura a su ritmo, longitud media de frase,
+        proporción de diálogo, variedad de vocabulario y palabras más repetidas. La
+        proporción de diálogo distingue de verdad entre obras —\emph{Alice} 73\pct,
+        \emph{Pride and Prejudice} 28\pct, \emph{Crime and Punishment} 31\pct—, cosa que
+        no hacía cuando se medía por párrafo en lugar de por oración, porque un epub no
+        conserva los saltos de párrafo y las tres daban 100\pct.
+  \item Pide la curva de dificultad. Sobre \emph{Notes from a Dead House}, el modelo
+        recorre \textbf{487 ventanas de 130.104 palabras en 86 segundos} y devuelve una
+        media de 1,73 sobre 2, además de decir si el libro se va complicando o soltando y
+        cuáles son su capítulo más llevadero y su capítulo más exigente. La segunda vez
+        tarda 0,02~s porque queda guardada. Las figuras~\ref{fig:curva_wp}
+        y~\ref{fig:curvas_comp} muestran ese producto sobre tres libros medidos.
+  \item Toca una palabra que no conoce. El trabajo local —lema, categoría gramatical,
+        consulta al diccionario, desambiguación por similitud, IPA— son \textbf{40
+        milisegundos}. La explicación contextual, que sale a la red, es lo único lento, y
+        por eso la ficha se pinta en dos etapas: lo local aparece al instante y la
+        explicación se añade cuando llega.
+  \item Lee una frase en voz alta y recibe la corrección palabra por palabra.
+\end{enumerate}
+
+Ese recorrido es la unidad de valor del producto: \textbf{no es un modelo con una
+interfaz encima, es una secuencia de decisiones que el lector no podía tomar antes}.
+
+% --------------------------------------------------- FIGURA: curva War and Peace
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ejell,
+  width=\linewidth,
+  height=7.2cm,
+  xlabel={Capítulo (orden de lectura)},
+  ylabel={Dificultad en la escala 0--2},
+  xmin=0, xmax=366,
+  ymin=1.25, ymax=2.06,
+  xtick={1,50,100,150,200,250,300,362},
+  ytick={1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0},
+  ymajorgrids=true,
+  legend style={at={(0.5,-0.20)}, anchor=north, legend columns=3},
+]
+
+% banda "avanzado" (>= 1,6)
+\addplot[draw=none, forget plot, name path=techo] coordinates {(0,2.06) (366,2.06)};
+\addplot[draw=none, forget plot, name path=corte16] coordinates {(0,1.6) (366,1.6)};
+\addplot[llrojo!7, forget plot] fill between[of=techo and corte16];
+
+% serie cruda, aligerada
+\addplot[llgris!55, line width=0.4pt, each nth point=2,
+         filter discard warning=false, unbounded coords=discard]
+  table[x=capitulo, y=dificultad] {datos_figuras/curva_War_and_Peace_ma.dat};
+\addlegendentry{capítulo a capítulo (362 medidos)}
+
+% media móvil con TODOS los puntos
+\addplot[llazul, line width=1.4pt]
+  table[x=capitulo, y=media_movil] {datos_figuras/curva_War_and_Peace_ma.dat};
+\addlegendentry{media móvil centrada, 15 capítulos}
+
+\addplot[llverde, dashed, line width=1.0pt, domain=0:366, samples=2] {1.735};
+\addlegendentry{media del libro: 1,735}
+
+% extremos
+\addplot[only marks, mark=*, mark size=2.4pt, forget plot,
+         mark options={fill=llverde, draw=llverde!60!black}]
+  coordinates {(34,1.333)};
+\addplot[only marks, mark=*, mark size=2.4pt, forget plot,
+         mark options={fill=llrojo, draw=llrojo!60!black}]
+  coordinates {(202,1.990)};
+
+\node[font=\scriptsize, color=llverde!55!black, anchor=west] at (axis cs:42,1.333)
+  {capítulo más llevadero: 34 (1,333)};
+\node[font=\scriptsize, color=llrojo!70!black, anchor=south] at (axis cs:202,2.000)
+  {capítulo más exigente: 202 (1,990)};
+\node[font=\scriptsize\itshape, color=llrojo!60!black, anchor=north east]
+  at (axis cs:363,2.045) {banda «avanzado» ($\geq 1{,}6$)};
+
+\end{axis}
+\end{tikzpicture}
+\caption[Curva de dificultad de \emph{War and Peace}]{\textbf{La figura que mejor explica
+el producto.} Los 362 capítulos de \emph{War and Peace} medidos sin muestrear —2.459
+ventanas de 250 palabras, análisis completo— sobre la escala pública 0--2. La serie fina
+es la medición capítulo a capítulo (dibujada con un punto de cada dos por legibilidad); la
+línea gruesa es la media móvil centrada de 15 capítulos, calculada sobre \emph{todos} los
+puntos. Un libro no tiene una dificultad: tiene un recorrido. Aquí va de 1,333 a 1,990
+—0,657 de la escala— con media 1,735, y la novela se endurece de forma sostenida hacia el
+tramo central. Fuente: \cod{datos\_figuras/\allowbreak curva\_War\_and\_\allowbreak Peace.dat}.}
+\label{fig:curva_wp}
+\end{figure}
+
+% --------------------------------------------------- FIGURA: curvas comparadas
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=2 by 1, horizontal sep=0.9cm},
+  ejell,
+  width=0.47\linewidth,
+  height=5.4cm,
+  ymin=1.15, ymax=2.0,
+  ymajorgrids=true,
+  xlabel={Capítulo},
+  ylabel={Dificultad (0--2)},
+]
+
+\nextgroupplot[title={\emph{Crime and Punishment}}, xlabel={Capítulo (30 medidos)},
+  xmin=0, xmax=31, xtick={1,10,20,30}]
+\addplot[llazul, line width=0.9pt, mark=*, mark size=1.1pt]
+  table[x=capitulo, y=dificultad] {datos_figuras/curva_Crime_and_Punishment.dat};
+\addplot[llgris!80, dashed, line width=0.8pt, domain=0:31, samples=2] {1.6793};
+\node[font=\scriptsize, color=llgris, anchor=south west] at (axis cs:0.6,1.16) {media del libro: 1,679};
+
+\nextgroupplot[title={\emph{Alice in Wonderland}}, xlabel={Capítulo (12 medidos)},
+  ylabel={}, xmin=0, xmax=13, xtick={1,4,8,12}]
+\addplot[llverde!80!black, line width=0.9pt, mark=*, mark size=1.4pt]
+  table[x=capitulo, y=dificultad] {datos_figuras/curva_Alice_s_Adventures_in_Wonder.dat};
+\addplot[llgris!80, dashed, line width=0.8pt, domain=0:13, samples=2] {1.4968};
+\node[font=\scriptsize, color=llgris, anchor=south west] at (axis cs:0.3,1.16) {media del libro: 1,497};
+
+\end{groupplot}
+\end{tikzpicture}
+\caption[Curvas de dificultad en modo vistazo]{La dispersión interna es la norma, no la
+excepción. Dos libros más, medidos en \emph{modo rápido} (el vistazo que la aplicación
+ofrece en segundos): \emph{Crime and Punishment} recorre 1,270--1,891 y \emph{Alice}
+1,296--1,878, pese a que sus medias las separa casi dos décimas. Elegir libro por su media
+esconde justamente esto. Fuente: \cod{datos\_figuras/\allowbreak curva\_Crime\_and\_\allowbreak Punishment.dat} y
+\cod{datos\_figuras/\allowbreak curva\_Alice\_s\_\allowbreak Adventures\_in\_\allowbreak Wonder.dat}.}
+\label{fig:curvas_comp}
+\end{figure}
+
+\subsection{Escalado: el catálogo entero, precalculado}
+\label{sec:escalado}
+
+La curva de dificultad de un libro largo son minutos de cómputo. Hacer esperar eso a cada
+visitante no es aceptable, de modo que el catálogo se precalcula. Las mediciones que
+hicieron viable esa decisión están en el cuadro~\ref{cuad:velocidad} y en la
+figura~\ref{fig:velocidad}.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l l R{2.4cm} R{1.8cm}@{}}
+\toprule
+\textbf{Entorno} & \textbf{Configuración} & \textbf{Ventanas/s} & \textbf{Factor} \\
+\midrule
+CPU (Ryzen 5 2600) & 12 hilos, lote 64 & 8,7 & 1$\times$ \\
+GPU local (GTX 1650 SUPER) & fp32, lote 128 & 101,7 & 11,7$\times$ \\
+GPU A100 (Colab) & fp16, lote grande & 2.022 & 232$\times$ \\
+\bottomrule
+\end{tabular}
+\caption{Rendimiento medido de extremo a extremo, incluida la tokenización y las
+transferencias. Fuente: \cod{datos\_figuras/\allowbreak velocidad.dat}.}
+\label{cuad:velocidad}
+\end{table}
+
+% ---------------------------------------------------- FIGURA: velocidad
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  barrall,
+  width=0.86\linewidth,
+  height=5.0cm,
+  xbar,
+  bar width=13pt,
+  xmode=log,
+  log origin x=infty,
+  xmin=1, xmax=12000,
+  xlabel={Ventanas de 250 palabras por segundo \emph{(escala logarítmica)}},
+  symbolic y coords={A100,GPU_local,CPU},
+  ytick={A100,GPU_local,CPU},
+  yticklabels={GPU A100 (Colab)\\{\scriptsize fp16, lote grande}, GPU local (GTX 1650 S)\\{\scriptsize fp32, lote 128}, CPU (Ryzen 5 2600)\\{\scriptsize 12 hilos, lote 64}},
+  yticklabel style={align=right, font=\scriptsize},
+  enlarge y limits=0.30,
+  xmajorgrids=true,
+]
+\addplot[fill=llverde!35, draw=llverde!85] table[x=ventanas_por_segundo, y=entorno]
+  {datos_figuras/velocidad.dat};
+
+\node[font=\scriptsize\bfseries, color=llgris, anchor=west] at (axis cs:10.5,CPU) {8,7};
+\node[font=\scriptsize\bfseries, color=llgris, anchor=west] at (axis cs:122,GPU_local) {101,7};
+\node[font=\scriptsize\bfseries, color=llgris, anchor=west] at (axis cs:2430,A100) {2.022};
+
+\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,CPU) {$1\times$};
+\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,GPU_local) {$11{,}7\times$};
+\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,A100) {$232\times$};
+\end{axis}
+\end{tikzpicture}
+\caption[Velocidad de inferencia por entorno]{Tres órdenes de magnitud entre el equipo del
+autor y la GPU alquilada, medidos de extremo a extremo (tokenización y transferencias
+incluidas). La escala es logarítmica porque el rango va de 8,7 a 2.022 ventanas por
+segundo. Es lo que convierte «medir los 61.642 libros en inglés de Project Gutenberg» en
+unas 6,3 horas de cómputo en lugar de casi tres meses de CPU. Datos de
+\cod{datos\_figuras/\allowbreak velocidad.dat} (cuadro~\ref{cuad:velocidad}).}
+\label{fig:velocidad}
+\end{figure}
+
+Dos comprobaciones acompañan a ese cuadro, porque acelerar no puede costar exactitud:
+
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{La GPU da los mismos números que la CPU.} Sobre 840 ventanas de
+        \emph{Crime and Punishment}, 839 son idénticas a tres decimales y una difiere en
+        0,001; el MAE es 0,0000012 sobre la escala 0--2.
+  \item \textbf{Reagrupar en lotes distintos no puede mover un decimal}, y no es una
+        suposición: como todas las ventanas ocupan exactamente 256 \emph{tokens} tras
+        truncar, no hay relleno, y 286 ventanas puntuadas de una en una y en un solo lote
+        dan 286/286 valores idénticos con MAE 0,000000000.
+\end{itemize}
+
+Con 2.022 ventanas por segundo, \textbf{medir los 61.642 libros en inglés de Project
+Gutenberg son unas 6,3 horas de A100}. El cuello de botella real resultó no ser el modelo
+sino la descarga: en serie, a 0,3 libros/s, los libros tardarían 57 horas en bajar. Y no
+era la pausa de cortesía entre peticiones, era la latencia —cada petición al espejo se
+pasa casi todo su tiempo esperando la ida y vuelta—, así que con seis hilos esas esperas
+se solapan. Seis y no treinta a propósito: el espejo lo mantiene alguien de forma gratuita,
+y cada hilo conserva su pausa.
+
+\subsection{Dos decisiones de producto que merecen argumento}
+\label{sec:producto}
+
+\textbf{Se ofrecen dos velocidades de análisis y siempre se dice cuál se usó.} El vistazo
+rápido toma 30 capítulos repartidos por la obra y 2 ventanas de cada uno; el análisis
+completo no muestrea. El número 30 no es redondo por gusto: sale de la velocidad medida de
+la máquina. Y el resumen declara cuál de los dos se ejecutó, porque un vistazo que
+presumiera de haber leído el libro entero acabaría citado como si lo hubiera hecho. La
+diferencia entre ambos modos se ve al comparar la figura~\ref{fig:curva_wp} (completo, 362
+capítulos) con la figura~\ref{fig:curvas_comp} (vistazo).
+
+\textbf{No se filtra el catálogo por contenido.} Se implementó un filtro basado en las
+materias que asigna el propio Project Gutenberg —90 libros de 61.642— y después se retiró,
+deliberadamente. El razonamiento: esto es una plataforma de literatura, y la literatura es
+donde esas cosas aparecen. Filtrar por etiqueta habría eliminado también obras que son
+literatura por derecho propio, como \emph{Fanny Hill}, perseguida judicialmente y
+relevante precisamente por eso. En su lugar se usa un mecanismo que ya existía: la ficha
+de cada libro trae un campo de aviso que se muestra como «Antes de empezar». \textbf{Se
+informa al lector y se le deja elegir; no se elige por él.} Es una decisión discutible y
+por eso se argumenta en lugar de ocultarse.
+
+% ===========================================================================
+\section{Limitaciones}
+% ===========================================================================
+
+\begin{enumerate}[leftmargin=*, itemsep=4pt]
+  \item \textbf{La escala 0--2 es propia y no es una certificación.} El MCER fue el ancla
+        del entrenamiento. LiteraLevel no acredita ningún nivel, y decirlo en el documento
+        no basta: la aplicación lo repite en pantalla.
+  \item \textbf{La escala está comprimida.} El ajuste contra el ancla real ronda
+        $\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$
+        (figura~\ref{fig:compresion}), así que los niveles bajos se sobreestiman y los
+        altos se subestiman. Es la razón de mostrar bandas y no decimales.
+  \item \textbf{Las etiquetas del catálogo heredado no son fiables}
+        (cuadro~\ref{cuad:catalogo}). Son predicciones de un modelo v1 sobre las primeras
+        $\sim$190 palabras. La remedición está en curso y es el trabajo pendiente más
+        importante.
+  \item \textbf{De los 1.197 libros del catálogo actual, solo 148 son descargables.} Los
+        1.049 de StoryWeaver no tienen fichero que abrir.
+  \item \textbf{Los tamaños muestrales de la validación externa son pequeños}: 38 textos
+        en Colab, 45 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
+        niveles adyacentes con esas $n$ no es significativa; lo que se afirma es el orden
+        global, no cada comparación por pares.
+  \item \textbf{La validación no es enteramente independiente de la exploración.} El
+        corpus de British Council se usó primero para diagnosticar (descubrir que el
+        modelo no sabe leer menús) y después para validar. El filtro de prosa se fijó a
+        priori precisamente para acotar ese problema, pero el conjunto ha sido mirado y ya
+        no es virgen.
+  \item \textbf{La longitud del texto es un confusor en el corpus de examen.} Contar
+        palabras alcanza 0,807 donde el modelo alcanza 0,854 (cuadro~\ref{cuad:baseline}).
+  \item \textbf{El modelo solo mide prosa continua en inglés.} Poesía, teatro, diálogo muy
+        fragmentado y cualquier lengua distinta del inglés quedan fuera.
+  \item \textbf{El corpus de anclaje MCER es pequeño} (654 documentos aceptados) y el
+        guion de entrenamiento del v4 vive en Google Drive, no en el repositorio. Las
+        cifras del apartado~\ref{sec:validacion} se reportan tal como constan en la
+        tarjeta del modelo.
+  \item \textbf{Dos corpus no se pueden redistribuir}: British Council tiene derechos y el
+        corpus de validación de 144 documentos no acompaña al repositorio, de modo que las
+        cifras de 0,908 y 97,2\pct{} \textbf{no son verificables clonando el proyecto}. Lo
+        que sí se reproduce en cualquier máquina es el cuadro~\ref{cuad:validacion}.
+  \item \textbf{La reproducibilidad del cuaderno depende de publicar dos artefactos}: el
+        modelo (328 MB) y el diccionario (243 MB) viven hoy en un disco local. Mientras no
+        estén publicados, el cuaderno no corre de principio a fin en un Colab ajeno.
+  \item \textbf{La aplicación no está desplegada de forma permanente.} El enlace actual es
+        un túnel temporal. El consumo medido —1,05 GB de memoria residente, con picos
+        realistas de 1,2 a 1,5 GB— descarta cualquier plan gratuito de 512 MB.
+  \item \textbf{La prueba de usuario tiene $n = 1$.} Esmeralda es una sola lectora. Su
+        valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar fallos
+        de usabilidad graves —y encontró varios—, no para estimar satisfacción media.
+  \item \textbf{La explicación contextual depende de un servicio externo de pago.} Sin
+        clave, la aplicación sigue funcionando en todo lo que no usa red —diccionario,
+        fonética, audio de Wiktionary, buscador y puntuación— pero se apagan la
+        explicación en contexto y la corrección de pronunciación.
+\end{enumerate}
+
+% ===========================================================================
+\section{Trabajo futuro}
+% ===========================================================================
+
+\begin{enumerate}[leftmargin=*, itemsep=3pt]
+  \item Terminar la remedición del catálogo completo y sustituir las etiquetas heredadas
+        por medidas del v4 sobre el libro entero.
+  \item Publicar modelo y diccionario en un repositorio abierto, con lo que el cuaderno
+        pasa a ser reproducible desde cualquier Colab.
+  \item Ampliar el corpus de anclaje MCER, que hoy es el eslabón más delgado de la cadena
+        de evidencia.
+  \item Calibrar explícitamente la escala comprimida (una transformación afín de dos
+        parámetros ajustada sobre entrenamiento, sin tocar los pesos) y comprobar si el
+        orden se conserva tras calibrar.
+  \item Repetir la prueba de usuario con cinco o seis lectores de perfiles distintos, que
+        según \textcite{nielsen2000five} es donde se detecta la mayor parte de los
+        problemas de usabilidad.
+  \item Medir el efecto real sobre el abandono: comparar la tasa de libros terminados
+        entre lectores que eligen con recomendación y sin ella. Es la única métrica que
+        verdaderamente valida la propuesta.
+\end{enumerate}
+
+% ===========================================================================
+\section{Conclusiones}
+% ===========================================================================
+
+\textbf{Se cumplió el objetivo ordinal, que era el objetivo.} Sobre textos externos con
+nivel MCER oficial, el modelo desplegado ordena los niveles de forma estrictamente
+creciente (0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952; figura~\ref{fig:validacion}), con
+una correlación de Spearman de 0,908 en validación ciega y el 97,2\pct{} de los documentos
+dentro de un nivel de error. Para el problema planteado —elegir qué leer— acertar el orden
+es lo que importa; acertar la letra exacta es un lujo.
+
+\textbf{El cuello de botella nunca fue el algoritmo, fue la representación del texto.} La
+progresión completa lo demuestra sobre un mismo conjunto de prueba
+(figura~\ref{fig:progresion}): tres variables clásicas dan 1,39 niveles de error ordinal
+tanto con regresión logística como con XGBoost; un \emph{embedding} lo baja a 0,93; leer
+el texto crudo con atención lo baja a 0,67. Aumentar la potencia del clasificador sobre
+una representación pobre no sirvió de nada, y eso también es un resultado.
+
+\textbf{Escalar el corpus no siempre mejora nada, y conviene decirlo.} Multiplicar por
+2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC— dejó la
+correlación en $-0{,}326$ frente a $-0{,}330$. La ley de Zipf explica por qué. El paso se
+conservó por cobertura, no por métrica, y así se reporta.
+
+\textbf{La velocidad se ganó sin mover un decimal, y se demostró.} Doce hilos y lotes de
+64 en CPU, fp32 con lote 128 en GPU: $+24\pct$ y $\times 11{,}7$ respectivamente
+(figura~\ref{fig:velocidad}), con 839 de 840 ventanas idénticas a tres decimales. Y se
+rechazaron dos palancas más rápidas —int8 y fp16 en la tarjeta local— porque una desviaba
+0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. \textbf{Medir antes de
+optimizar, y medir también lo que se descarta.}
+
+\textbf{Lo que convierte esto en un producto no es el modelo, es lo que se hizo con lo que
+dijo una lectora de quince años.} Un ciclo completo —observar, escuchar la queja,
+diagnosticar el fallo propio y corregirlo— vale más que un punto de correlación. Ese ciclo
+se documenta en el apartado~\ref{sec:esmeralda}, y su resultado son seis etiquetas
+reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y una
+interfaz que se puede usar con el pulgar.
+
+\textbf{Y queda pendiente lo que más pesa.} La aplicación funciona, pero su enlace es
+temporal; el cuaderno es correcto, pero no reproducible mientras el modelo no esté
+publicado; y el catálogo se está remidiendo. Las tres cosas están planificadas con coste y
+criterio de terminado en el cuadro~\ref{cuad:accionables}.
+
+% ===========================================================================
+\section*{Declaración de alcance}
+\addcontentsline{toc}{section}{Declaración de alcance}
+% ===========================================================================
+
+LiteraLevel es una herramienta de apoyo a la lectura. \textbf{No es un instrumento de
+evaluación ni de certificación lingüística.} No debe usarse para asignar calificaciones,
+para decidir la admisión de una persona a un programa, para acreditar un nivel del Marco
+Común Europeo de Referencia ni para ninguna decisión con consecuencias para el evaluado.
+La escala 0--2 es propia; las letras A1 a C2 son el ancla con la que se entrenó el modelo
+y se muestran únicamente como orientación.
+
+El sistema mide dificultad lingüística de prosa continua en inglés. No mide calidad
+literaria, no mide comprensión del lector y no emite juicios sobre el contenido de las
+obras. El catálogo no se filtra por contenido: se informa al lector mediante un aviso en
+la ficha del libro y la decisión queda en sus manos.
+
+Los datos personales del lector —los libros empezados, el vocabulario consultado y el
+perfil de nivel— se guardan separados por sesión y no se comparten entre visitantes. Solo
+la caché de definiciones se comparte, por ser contenido de diccionario y no historial de
+nadie. Ningún texto con derechos se distribuye ni se imprime fuera del entorno de cómputo:
+de los corpus con licencia restrictiva solo salen estadísticas agregadas.
+
+% ===========================================================================
+\clearpage
+\printbibliography[title={Referencias}]
+\addcontentsline{toc}{section}{Referencias}
+
+\end{document}
