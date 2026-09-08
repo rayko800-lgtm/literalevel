@@ -218,29 +218,57 @@ if popularidad:
 
 # %%
 # --- 6b. El bucle de descarga (se puede cortar y reanudar) ---------------
-# Ejecuta esta celda las veces que haga falta. Baja un lote y para, para que
-# se pueda ir viendo el avance sin dejar la sesión colgada horas.
-LOTE = 2000
+# EN PARALELO, y por una razón medida: en serie salían 0,3 libros/s, o sea
+# **57 horas** para los 61.552. No es la pausa de cortesía lo que manda, es la
+# latencia de ida y vuelta al espejo: se pasa casi todo el tiempo esperando,
+# no descargando. Con seis hilos se solapan las esperas y el ancho de banda
+# que se le pide al espejo sigue siendo modesto.
+#
+# Seis y no treinta. El espejo lo mantiene alguien gratis y lo comparte mucha
+# gente; ir a saco sería a la vez feo y contraproducente -acabas bloqueado-.
+# Cada hilo mantiene además su pausa entre peticiones.
+from concurrent.futures import ThreadPoolExecutor
+
+HILOS = 6
+LOTE = 6000          # más alto que antes: ahora cunde
+
+
+def _pendientes_reales(lista, tope):
+    fuera = []
+    for n in lista:
+        if not (TEXTOS / f"pg{n}.txt").exists():
+            fuera.append(n)
+        if len(fuera) >= tope:
+            break
+    return fuera
+
+
+cola = _pendientes_reales(pendientes, LOTE)
+print(f"a bajar en esta tanda: {len(cola):,} (de {len(pendientes):,} en total)")
 
 hechos = fallos = 0
 inicio = time.time()
-for n in pendientes:
-    if (TEXTOS / f"pg{n}.txt").exists():
-        continue
-    if descargar(n):
-        hechos += 1
-    else:
-        fallos += 1
-    if hechos and hechos % 100 == 0:
-        v = hechos / (time.time() - inicio)
-        print(f"  {hechos:,} bajados · {fallos} fallidos · {v:.1f}/s")
-    if hechos >= LOTE:
-        break
+with ThreadPoolExecutor(max_workers=HILOS) as pool:
+    for ok in pool.map(descargar, cola):
+        if ok:
+            hechos += 1
+        else:
+            fallos += 1
+        n = hechos + fallos
+        if n % 200 == 0:
+            v = n / (time.time() - inicio)
+            queda = (len(pendientes) - len(list(TEXTOS.glob('*.txt')))) / v / 3600
+            print(f"  {hechos:,} bajados · {fallos} fallidos · {v:.1f}/s · "
+                  f"al catálogo entero le faltarían {queda:.1f} h")
 
 total = len(list(TEXTOS.glob("*.txt")))
-print(f"\nlote terminado: +{hechos}, {fallos} fallidos")
+print(f"\ntanda terminada en {(time.time() - inicio) / 60:.1f} min: "
+      f"+{hechos}, {fallos} fallidos")
 print(f"total en Drive: {total:,} de {len(pendientes):,} "
       f"({100 * total / len(pendientes):.1f}%)")
+if total < len(pendientes):
+    print("\nVuelve a ejecutar esta celda para la siguiente tanda. "
+          "Lo ya bajado no se vuelve a pedir.")
 
 # %%
 # --- 7. El modelo v4 en la GPU -------------------------------------------
