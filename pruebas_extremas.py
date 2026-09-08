@@ -686,6 +686,56 @@ prueba("la biblioteca real no se toca",
                            str(pathlib.Path(os.path.expanduser("~"))
                                / ".literalevel" / "biblioteca.json"))))
 
+
+titulo("Escala MCER y modos de analisis")
+
+prueba("cefr en el extremo bajo", lambda: ui._cefr(0.0))
+prueba("cefr en el extremo alto", lambda: ui._cefr(2.0))
+prueba("cefr por encima del maximo", lambda: ui._cefr(99.0))
+prueba("cefr negativo", lambda: ui._cefr(-3.0))
+prueba("cefr con texto", lambda: ui._cefr("1.2"))
+prueba("nivel dicho como cifra", lambda: ui._nivel_dicho(1.2, "intermedio", "cifra"))
+prueba("nivel dicho como cefr", lambda: ui._nivel_dicho(1.2, "intermedio", "cefr"))
+prueba("nivel dicho con modo desconocido",
+       lambda: ui._nivel_dicho(1.2, "", "loquesea"))
+prueba("los seis anclajes salen de la escala 0-2",
+       lambda: sorted({ui._cefr(v / 20) for v in range(41)}))
+# Los limites de la tabla que ve el usuario TIENEN que ser los del codigo. Con
+# round() de Python no lo eran: redondea los empates al par, asi que 1.00 daba
+# B1 y 1.80 daba C1, y la tabla decia B2 y C2.
+prueba("los limites de la tabla son los del codigo",
+       lambda: [(lim, ui._cefr(lim - 0.001), ui._cefr(lim)) for lim, esperado
+                in ((0.20, "A2"), (0.60, "B1"), (1.00, "B2"), (1.40, "C1"),
+                    (1.80, "C2"))
+                if ui._cefr(lim) != esperado] or "los cinco limites cuadran")
+prueba("analizar sin libro", lambda: list(ui._analizar_libro(None))[-1][0][:40])
+prueba("analizar modo desconocido",
+       lambda: list(ui._analizar_libro(None, "inventado"))[-1][0][:40])
+prueba("analizar libro sin capitulos",
+       lambda: list(ui._analizar_libro(reader.Libro("t", "a", [])))[-1][0][:40])
+prueba("analizar libro sin prosa suficiente",
+       lambda: list(ui._analizar_libro(
+           reader.Libro("t", "a", [reader.Capitulo("I", "corto")])))[-1][0][:40])
+prueba("resumen de un solo capitulo",
+       lambda: ui._resumen_analisis(
+           {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 1,
+            "filas": [{"capitulo": 1, "dificultad": 1.0, "titulo": "I"}]})[:40])
+prueba("resumen en modo rapido lo dice",
+       lambda: "vistazo rápido" in ui._resumen_analisis(
+           {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 60,
+            "modo": "rapido", "capitulos_medidos": 30, "capitulos_totales": 42,
+            "filas": [{"capitulo": i, "dificultad": 1.0, "titulo": "I"}
+                      for i in range(30)]}))
+prueba("resumen completo no se llama vistazo",
+       lambda: "vistazo" not in ui._resumen_analisis(
+           {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 60,
+            "modo": "completo",
+            "filas": [{"capitulo": i, "dificultad": 1.0, "titulo": "I"}
+                      for i in range(30)]}))
+prueba("rapido y completo se guardan aparte",
+       lambda: ui._ruta_analisis(reader.Libro("t", "a", []), "rapido")
+       != ui._ruta_analisis(reader.Libro("t", "a", []), "completo"))
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)

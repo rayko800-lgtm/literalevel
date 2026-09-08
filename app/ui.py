@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import html as _html
 import json
+import math
 import os
 import re
 import sys
@@ -867,7 +868,7 @@ def _capitulo(libro, idx, peticion: gr.Request = None):
             f"capítulo {int(idx) + 1} de {len(libro.capitulos)}")
 
 
-def _medir(libro, idx):
+def _medir(libro, idx, como="cifra"):
     """Mide el capitulo con el modelo v4, avisando de la espera.
 
     La primera vez construye el `Puntuador`, que son 328 MB. Sin este primer
@@ -887,9 +888,64 @@ def _medir(libro, idx):
     except (ValueError, FileNotFoundError) as e:
         yield _aviso(e)
         return
-    yield (f"**{r.puntuacion:.2f} / 2.00** ({r.banda}) · orientativo "
-           f"**{r.nivel_orientativo}** · {r.n_bloques} bloques · "
-           f"confianza {r.confianza}")
+    yield (_nivel_dicho(r.puntuacion, r.banda, como)
+           + f" · {r.n_bloques} bloques · confianza {r.confianza}")
+
+
+# --- Las dos formas de decir el mismo numero ------------------------------
+# La escala de LiteraLevel es 0..2 y es la que el modelo produce. El MCER
+# (A1..C2) es el ancla con la que se entreno, no un certificado: por eso va
+# siempre acompanado de la cifra y del aviso, nunca solo.
+
+def _cefr(publico: float) -> str:
+    """Ancla MCER mas cercana a una puntuacion de la escala publica 0..2.
+
+    Redondea los empates HACIA ARRIBA, y no con `round()`, que en Python
+    redondea al par: `round(2.5)` da 2 y `round(4.5)` da 4. Con esa regla un
+    1.00 clavado salia B1 y un 1.80 salia C1, justo los limites que aparecen
+    escritos en la tabla de la interfaz. Un usuario que comparase su cifra con
+    la tabla habria encontrado dos respuestas distintas para el mismo numero.
+
+    `scoring.anchor_cefr` se queda como esta: es del modelo y no se toca. Aqui
+    hay una sola regla para todo lo que ve el lector, y es esta.
+    """
+    try:
+        interno = float(publico) * 2.5
+    except (TypeError, ValueError):
+        return scoring.ANCHORS[0]
+    i = int(math.floor(min(5.0, max(0.0, interno)) + 0.5))
+    return scoring.ANCHORS[min(i, len(scoring.ANCHORS) - 1)]
+
+
+def _nivel_dicho(publico: float, banda: str = "", como: str = "cifra") -> str:
+    """El nivel escrito como lo quiera leer el usuario, con lo otro al lado.
+
+    Nunca se da una de las dos solo. Quien elige MCER sigue viendo la cifra
+    -que es lo que mide el modelo- y quien elige la cifra sigue viendo el
+    ancla, que es lo que le suena de su escuela de idiomas.
+    """
+    b = f" ({banda})" if banda else ""
+    if como == "cefr":
+        return f"**{_cefr(publico)}** · {publico:.2f} / 2.00{b}"
+    return f"**{publico:.2f} / 2.00**{b} · orientativo **{_cefr(publico)}**"
+
+
+_TABLA_CEFR = """#### De 0–2 a A1–C2
+
+| LiteraLevel | MCER | Qué suele significar |
+|---|---|---|
+| 0.00 – 0.20 | **A1** | frases muy cortas, vocabulario de andar por casa |
+| 0.20 – 0.60 | **A2** | narración sencilla, poca subordinación |
+| 0.60 – 1.00 | **B1** | novela juvenil, prosa clara |
+| 1.00 – 1.40 | **B2** | novela adulta corriente |
+| 1.40 – 1.80 | **C1** | prosa literaria densa, vocabulario amplio |
+| 1.80 – 2.00 | **C2** | clásicos exigentes, sintaxis larga |
+
+**LiteraLevel no certifica ningún nivel del MCER**, y esta columna no equivale
+a un examen. El modelo se entrenó con textos anclados a esas etiquetas y
+aprendió a colocar un texto nuevo en esa recta: lo que devuelve es una
+posición en una escala continua, y la letra es la etiqueta más cercana. Sirve
+para elegir qué leer, no para acreditar nada ante nadie."""
 
 
 RUTA_ANALISIS = BASE_DATOS_LECTOR / "analisis"
@@ -908,78 +964,121 @@ def _clave_libro(libro) -> str:
     return h.hexdigest()[:20]
 
 
-def _analisis_guardado(libro):
+def _ruta_analisis(libro, modo="completo"):
+    """El completo se guarda sin sufijo: es el bueno y el que se busca primero."""
+    sufijo = "" if modo == "completo" else f"-{modo}"
+    return RUTA_ANALISIS / f"{_clave_libro(libro)}{sufijo}.json"
+
+
+def _analisis_guardado(libro, modo="completo"):
     try:
-        ruta = RUTA_ANALISIS / f"{_clave_libro(libro)}.json"
-        return json.loads(ruta.read_text(encoding="utf-8"))
+        return json.loads(_ruta_analisis(libro, modo).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 
 
-def _guardar_analisis(libro, datos) -> None:
+def _guardar_analisis(libro, datos, modo="completo") -> None:
     try:
         RUTA_ANALISIS.mkdir(parents=True, exist_ok=True)
-        (RUTA_ANALISIS / f"{_clave_libro(libro)}.json").write_text(
+        _ruta_analisis(libro, modo).write_text(
             json.dumps(datos, ensure_ascii=False), encoding="utf-8")
     except OSError:
         pass          # el analisis es util, no imprescindible
 
 
-def _analizar_libro(libro, peticion: gr.Request = None):
-    """Perfil de dificultad del libro ENTERO, capitulo a capitulo.
+# Cuantos capitulos mira el vistazo rapido, y cuantas ventanas de cada uno.
+#
+# El numero no es redondo por gusto: en esta CPU el modelo hace 4,4 ventanas
+# por segundo (medido, no estimado), asi que 30 x 2 = 60 ventanas son unos 14
+# segundos. Con 40 capitulos se iba a 23 s, que ya no es un vistazo. Si algun
+# dia el modelo corre en GPU, esto puede subir sin tocar nada mas.
+RAPIDO_CAPITULOS = 30
+RAPIDO_VENTANAS = 2
 
-    Aqui no se muestrea: cada capitulo se recorre ventana a ventana con el
-    modelo v4. Es la respuesta a "¿de verdad lo lee todo?" -si, para esto lo
-    lee todo- y es lo que permite ver que un libro empieza duro y se ablanda,
-    o al reves. Tarda, asi que se guarda en disco y solo se calcula una vez
-    por libro.
 
-    Es generadora: va diciendo por donde va, porque en un libro largo esto
-    son minutos y una pantalla quieta parece una pantalla rota.
+def _capitulos_de_cuerpo(libro):
+    """Los capitulos que son el libro: ni portadilla, ni licencia, ni indice."""
+    return [(i, c) for i, c in enumerate(libro.capitulos)
+            if c.palabras >= 150 and not _RELLENO_RE.search(c.titulo)
+            and not ficha._es_boilerplate(c)]
+
+
+def _analizar_libro(libro, modo="completo", como="cifra",
+                    peticion: gr.Request = None):
+    """Perfil de dificultad del libro, capitulo a capitulo.
+
+    Dos velocidades, porque son dos preguntas distintas:
+
+    - **completo**: cada capitulo, ventana a ventana, sin muestrear. Es la
+      respuesta a "¿de verdad lo lee todo?" y con un libro de 500.000 palabras
+      son minutos. Se guarda en disco: se paga una vez por libro.
+    - **rapido**: hasta 40 capitulos repartidos por la obra y 2 ventanas de
+      cada uno. Da la forma de la curva en segundos. Es un vistazo, y se dice
+      que lo es.
+
+    Va dibujando la grafica MIENTRAS mide, no al final. Es la diferencia entre
+    esperar mirando una barra de progreso y ver aparecer la curva: el trabajo
+    tarda lo mismo pero deja de parecer que la aplicacion se ha colgado.
     """
     if libro is None or not libro.capitulos:
         yield "Abre un libro primero, en esta misma pestaña.", None
         return
 
-    datos = _analisis_guardado(libro)
+    rapido = (modo == "rapido")
+    # El analisis completo vale tambien como rapido -es estrictamente mejor-,
+    # asi que si ya esta hecho no se vuelve a medir peor a proposito.
+    datos = _analisis_guardado(libro) or (_analisis_guardado(libro, "rapido")
+                                          if rapido else None)
     if datos is None:
-        # Fuera tambien la portadilla y la licencia de Gutenberg. En War and
-        # Peace el "capitulo 1" del analisis era "The Project Gutenberg eBook
-        # of War and P" con 1.02: el punto mas facil del libro no era un
-        # capitulo, era la portada.
-        cuerpo = [(i, c) for i, c in enumerate(libro.capitulos)
-                  if c.palabras >= 150 and not _RELLENO_RE.search(c.titulo)
-                  and not ficha._es_boilerplate(c)]
+        cuerpo = _capitulos_de_cuerpo(libro)
         if not cuerpo:
             yield ("Este libro no tiene capítulos con prosa suficiente para "
                    "analizarlos."), None
             return
+        if rapido and len(cuerpo) > RAPIDO_CAPITULOS:
+            import numpy as np
+            idx = np.linspace(0, len(cuerpo) - 1, RAPIDO_CAPITULOS)
+            cuerpo = [cuerpo[i] for i in sorted(set(idx.round().astype(int).tolist()))]
         try:
             p = puntuador()
         except (FileNotFoundError, OSError) as e:
             yield _aviso(e), None
             return
+
         filas, ventanas = [], 0
+        total = len(cuerpo)
+        # Cada cuanto se repinta. Redibujar 366 veces cuesta mas que medir.
+        cada = 1 if total <= 30 else max(2, total // 30)
         for n, (i, c) in enumerate(cuerpo, 1):
-            yield (f"Leyendo el libro entero con el modelo v4: capítulo "
-                   f"**{n} de {len(cuerpo)}**… Esto se calcula una sola vez y "
-                   f"luego queda guardado."), None
-            vs = p.perfil_de_texto(ficha.sin_licencia(c.texto))
-            if not vs:
-                continue
-            ventanas += len(vs)
-            filas.append({"capitulo": n, "titulo": c.titulo[:40],
-                          "indice": i, "dificultad": round(sum(vs) / len(vs), 3),
-                          "min": round(min(vs), 3), "max": round(max(vs), 3),
-                          "ventanas": len(vs), "palabras": c.palabras})
+            vs = p.perfil_de_texto(ficha.sin_licencia(c.texto),
+                                   tope=RAPIDO_VENTANAS if rapido else 0)
+            if vs:
+                ventanas += len(vs)
+                filas.append({"capitulo": n, "titulo": c.titulo[:40],
+                              "indice": i, "dificultad": round(sum(vs) / len(vs), 3),
+                              "min": round(min(vs), 3), "max": round(max(vs), 3),
+                              "ventanas": len(vs), "palabras": c.palabras})
+            if filas and (n % cada == 0 or n == total):
+                parcial = {"titulo": libro.titulo, "autor": libro.autor,
+                           "palabras": libro.palabras, "ventanas": ventanas,
+                           "filas": filas, "modo": modo}
+                yield (f"Midiendo con el modelo v4: capítulo **{n} de {total}** · "
+                       f"{ventanas:,} ventanas leídas."
+                       + ("" if rapido else
+                          "\n\nEsto se calcula una sola vez y queda guardado."),
+                       _grafica_analisis(parcial))
+
         if not filas:
             yield "No pude medir ningún capítulo de este libro.", None
             return
         datos = {"titulo": libro.titulo, "autor": libro.autor,
-                 "palabras": libro.palabras, "ventanas": ventanas, "filas": filas}
-        _guardar_analisis(libro, datos)
+                 "palabras": libro.palabras, "ventanas": ventanas,
+                 "filas": filas, "modo": modo,
+                 "capitulos_medidos": total,
+                 "capitulos_totales": len(_capitulos_de_cuerpo(libro))}
+        _guardar_analisis(libro, datos, modo)
 
-    yield _resumen_analisis(datos), _grafica_analisis(datos)
+    yield _resumen_analisis(datos, como), _grafica_analisis(datos)
 
 
 def _ficha_libro(libro, p=None) -> str:
@@ -1153,7 +1252,7 @@ def _grafica_analisis(datos):
     return fig
 
 
-def _resumen_analisis(datos) -> str:
+def _resumen_analisis(datos, como="cifra") -> str:
     filas = datos["filas"]
     medias = [f["dificultad"] for f in filas]
     global_ = sum(medias) / len(medias)
@@ -1168,12 +1267,26 @@ def _resumen_analisis(datos) -> str:
         forma = "**se va soltando**: cuesta más al principio que al final"
     else:
         forma = "mantiene un nivel **parejo de principio a fin**"
+    # Como se midio, dicho sin adornos. El vistazo rapido NO puede presumir de
+    # recorrer el libro entero: son dos cosas distintas y hay que distinguirlas
+    # o la cifra rapida acabaria citandose como si fuera la completa.
+    if datos.get("modo") == "rapido":
+        medidos = datos.get("capitulos_medidos", len(filas))
+        totales = datos.get("capitulos_totales", medidos)
+        detalle = (f"**vistazo rápido**: {datos['ventanas']:,} ventanas de 250 "
+                   f"palabras tomadas de {medidos} capítulos"
+                   + (f" repartidos entre los {totales} del libro"
+                      if totales > medidos else "")
+                   + ". Da la forma de la curva, no el número definitivo; "
+                     "para eso está *Analizar el libro entero*.")
+    else:
+        detalle = (f"medido leyendo **{datos['ventanas']:,} ventanas** de 250 "
+                   f"palabras sobre {datos['palabras']:,} en total. Aquí no se "
+                   f"muestrea: el modelo recorre cada capítulo entero.")
     return (
         f"### {datos['titulo']}" + (f" — {datos['autor']}" if datos["autor"] else "")
-        + f"\n\n**{global_:.2f} / 2.00** de media ({scoring.public_band(global_)}), "
-          f"medido leyendo **{datos['ventanas']} ventanas** de 250 palabras "
-          f"sobre {datos['palabras']:,} en total. Aquí no se muestrea: el "
-          f"modelo recorre cada capítulo entero.\n\n"
+        + f"\n\n{_nivel_dicho(global_, scoring.public_band(global_), como)} "
+          f"de media, {detalle}\n\n"
         + f"El libro {forma}.\n\n"
         + f"- Lo más llevadero: **capítulo {facil['capitulo']}** "
           f"({facil['titulo']}) con {facil['dificultad']:.2f}\n"
@@ -1967,8 +2080,28 @@ def construir() -> gr.Blocks:
                     ficha_md = gr.Markdown()
                     b_trata = gr.Button("¿De qué trata? (resumen)")
                     sinopsis_md = gr.Markdown()
+                escala = gr.Radio(
+                    choices=[("Escala LiteraLevel (0 – 2)", "cifra"),
+                             ("Nivel orientativo (A1 – C2)", "cefr")],
+                    value="cifra", label="Cómo quieres ver el nivel",
+                    info="Salgan como salgan, se enseñan los dos: el número es "
+                         "lo que mide el modelo y la letra es la etiqueta más "
+                         "cercana.")
+                with gr.Accordion("¿Qué significa cada nivel?", open=False):
+                    gr.Markdown(_TABLA_CEFR)
                 b_medir = gr.Button("Medir la dificultad de este capítulo")
-                b_analizar = gr.Button("Analizar el libro entero")
+                # Dos botones y no uno con un desplegable: son dos decisiones
+                # distintas -"echame un vistazo" y "leelo entero"- y cada una
+                # dice en su etiqueta lo que cuesta.
+                with gr.Row():
+                    b_rapido = gr.Button("Vistazo rápido a la dificultad")
+                    b_analizar = gr.Button("Analizar el libro entero",
+                                           variant="primary")
+                gr.Markdown("_El vistazo toma unas 80 ventanas repartidas por "
+                            "toda la obra y tarda segundos. El análisis "
+                            "completo lee **todas** las ventanas del libro: en "
+                            "uno largo son minutos, y queda guardado para "
+                            "siempre. La curva se dibuja mientras avanza._")
                 # Su propio hueco: antes la medicion pisaba la posicion del
                 # capitulo y cambiar de capitulo borraba la medicion.
                 medicion_md = gr.Markdown()
@@ -2027,9 +2160,13 @@ def construir() -> gr.Blocks:
                 cap.change(_capitulo, [est_libro, cap], [texto, cap_md])
                 b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
                 b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
-                b_medir.click(_medir, [est_libro, cap], medicion_md)
-                b_analizar.click(_analizar_libro, est_libro,
+                b_medir.click(_medir, [est_libro, cap, escala], medicion_md)
+                b_analizar.click(_analizar_libro,
+                                 [est_libro, gr.State("completo"), escala],
                                  [analisis_md, grafica])
+                b_rapido.click(_analizar_libro,
+                               [est_libro, gr.State("rapido"), escala],
+                               [analisis_md, grafica])
                 # Va colgado del State y no de `archivo`, para que la ficha
                 # salga tambien cuando el libro llega del buscador y no de una
                 # subida. Lo unico que los dos caminos comparten es este State.
