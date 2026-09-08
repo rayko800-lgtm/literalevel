@@ -99,9 +99,40 @@ def public_score(y: float) -> float:
 
 
 def public_band(score: float) -> str:
-    if score < 0.8:
+    """Banda a la que pertenece una puntuacion de la escala publica 0..2.
+
+    Los cortes son los del MCER y no tercios de la escala, y eso es una
+    correccion, no una preferencia. Antes eran 0,8 y 1,6, que parten el 0..2
+    en tres partes iguales; el problema es que el modelo NO reparte sus
+    predicciones de forma uniforme sobre esa recta. Comprime: la relacion
+    entre lo que predice y el ancla real es aproximadamente 0,72x + 0,38.
+
+    Con los cortes viejos y esa compresion pasaba esto, medido con las medias
+    reales de `validar_local.py`:
+
+        A1 0,504 -> basico       A2 0,548 -> basico
+        B1 0,928 -> intermedio   B2 1,248 -> intermedio
+        C1 1,495 -> INTERMEDIO   <- un texto C1 llamado "intermedio"
+
+    O sea que **"avanzado" solo lo alcanzaba un C2**, y a un lector se le decia
+    que una novela C1 era de nivel intermedio. Tres de los cinco niveles
+    medidos caian en la misma banda, que es tanto como no tener bandas.
+
+    Ahora la banda se deriva del ancla MCER que ya se le ensena al usuario, con
+    el agrupamiento estandar del propio marco -usuario basico, independiente y
+    competente-. Asi la palabra y la letra no pueden contradecirse: nunca mas
+    saldra "C1 - intermedio" en la misma linea.
+
+    Esto NO recalibra el modelo ni cambia una sola puntuacion: solo cambia como
+    se agrupan. Corregir la compresion en si es otra cosa, hay que validarla
+    contra el catalogo -la recta se ajusto con textos de examen, no con
+    novelas- y es decision de Miguel.
+    """
+    letra = ANCHORS[int(np.clip(np.floor(np.clip(float(score), 0, 2) * 2.5 + 0.5),
+                                0, len(ANCHORS) - 1))]
+    if letra in ("A1", "A2"):
         return "básico"
-    if score < 1.6:
+    if letra in ("B1", "B2"):
         return "intermedio"
     return "avanzado"
 

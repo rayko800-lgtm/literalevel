@@ -790,6 +790,30 @@ def _contraste_suficiente():
 
 prueba("todas las paletas son legibles", _contraste_suficiente)
 
+
+titulo("Bandas coherentes con la letra")
+
+# Un texto no puede llamarse "C1" y "intermedio" en la misma linea. Antes si
+# pasaba: con los cortes en tercios de la escala y un modelo que comprime sus
+# predicciones, "avanzado" solo lo alcanzaba un C2 y tres de los cinco niveles
+# medidos caian en "intermedio".
+def _bandas_coherentes():
+    malas = []
+    for i in range(0, 201):
+        v = i / 100
+        letra, banda = ui._cefr(v), ui.scoring.public_band(v)
+        esperada = {"A": "básico", "B": "intermedio", "C": "avanzado"}[letra[0]]
+        if banda != esperada:
+            malas.append(f"{v:.2f} -> {letra} pero {banda}")
+    return malas[:5] or "las 201 puntuaciones concuerdan"
+
+
+prueba("la banda nunca contradice a la letra", _bandas_coherentes)
+prueba("las tres bandas son alcanzables",
+       lambda: sorted({ui.scoring.public_band(i / 100) for i in range(0, 201)}))
+prueba("banda con un valor fuera de escala",
+       lambda: (ui.scoring.public_band(-5), ui.scoring.public_band(99)))
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)
