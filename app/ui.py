@@ -717,11 +717,9 @@ def _mover(libro, idx, paso):
 
 
 # Titulos que en un epub casi siempre son paratexto y no la obra en si.
-_RELLENO_RE = re.compile(
-    r"^\s*(also translated|a note about|about the (author|translator)|"
-    r"appendix|foreword|preface|introduction|contents|index|notes?\s*$|"
-    r"acknowledg|copyright|dedication|title page|borzoi|colophon|"
-    r"further reading|bibliograph|glossar)", re.IGNORECASE)
+# `RELLENO_RE` y el filtro de capitulos viven en `ficha.py`: el precalculo
+# masivo en Colab necesita el MISMO filtro que la app.
+_RELLENO_RE = ficha.RELLENO_RE
 
 
 # Se conserva por compatibilidad con lo ya guardado en local y con las
@@ -1033,10 +1031,7 @@ RAPIDO_VENTANAS = 2
 
 
 def _capitulos_de_cuerpo(libro):
-    """Los capitulos que son el libro: ni portadilla, ni licencia, ni indice."""
-    return [(i, c) for i, c in enumerate(libro.capitulos)
-            if c.palabras >= 150 and not _RELLENO_RE.search(c.titulo)
-            and not ficha._es_boilerplate(c)]
+    return ficha.capitulos_de_cuerpo(libro)
 
 
 def _analizar_libro(libro, modo="completo", como="cifra",

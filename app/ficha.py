@@ -299,3 +299,35 @@ def sinopsis(libro, cliente, *, modelo: str = MODELO_POR_DEFECTO) -> dict | None
         # La sinopsis es un extra. Si OpenAI falla, cambia de formato o no hay
         # red, la ficha se queda con lo medido y el lector no ve un error.
         return None
+
+
+# --- Que partes de un libro son el libro ---------------------------------
+RELLENO_RE = re.compile(
+    r"^\s*(also translated|a note about|about the (author|translator)|"
+    r"appendix|foreword|preface|introduction|contents|index|notes?\s*$|"
+    r"acknowledg|copyright|dedication|title page|borzoi|colophon|"
+    r"further reading|bibliograph|glossar|"
+    # La etiqueta que `reader` pone a todo lo anterior al capitulo 1 de un
+    # .txt. En los de Gutenberg eso es portada, indice y pies de ilustracion:
+    # en Orgullo y Prejuicio son 4.957 palabras que no son la novela y que se
+    # estaban puntuando como si lo fueran. No basta con `_es_boilerplate`,
+    # que las deja pasar por ser un capitulo largo con una sola mencion a
+    # Gutenberg; ni sirve `continuous_prose`, que ademas tiraria capitulos
+    # de verdad -probado: se lleva por delante dos de Alicia-.
+    r"antes del primer cap)", re.IGNORECASE)
+
+
+def capitulos_de_cuerpo(libro):
+    """Los capitulos que SON el libro: ni portadilla, ni indice, ni licencia.
+
+    Vive aqui y no en `ui.py` porque el precalculo masivo en Colab tiene que
+    usar exactamente este filtro. Si alla se escribiera otro parecido, el
+    catalogo entero acabaria medido sobre un conjunto de capitulos distinto
+    del que mide la app, y los numeros dejarian de ser comparables sin que
+    nadie se diera cuenta.
+
+    Devuelve pares (indice_original, capitulo).
+    """
+    return [(i, c) for i, c in enumerate(libro.capitulos)
+            if c.palabras >= 150 and not RELLENO_RE.search(c.titulo)
+            and not _es_boilerplate(c)]
