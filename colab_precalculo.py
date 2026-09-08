@@ -70,11 +70,19 @@ print("listo")
 # carpeta `app/` del repo a Drive (dentro de literalevel_bigdata) antes de
 # ejecutar esto.
 import sys
-APP = RAIZ / "app"
-if not APP.exists():
+# Se admiten las dos formas de haberlos subido: dentro de una carpeta `app/` o
+# sueltos en la raiz de literalevel_bigdata. Subir una carpeta a Drive desde el
+# navegador no siempre conserva la carpeta, y no merece la pena que el notebook
+# falle por eso.
+APP = next((d for d in (RAIZ / "app", RAIZ) if (d / "scoring.py").exists()), None)
+if APP is None:
     raise SystemExit(
-        f"Falta {APP}. Sube la carpeta 'app/' del repositorio a esa ruta "
-        "de Drive: hacen falta scoring.py, reader.py y ficha.py.")
+        f"No encuentro scoring.py ni en {RAIZ / 'app'} ni en {RAIZ}. "
+        "Sube scoring.py, reader.py y ficha.py del repositorio a Drive.")
+faltan = [n for n in ("scoring.py", "reader.py", "ficha.py")
+          if not (APP / n).exists()]
+if faltan:
+    raise SystemExit(f"Faltan en {APP}: {', '.join(faltan)}")
 sys.path.insert(0, str(APP))
 
 import scoring, reader, ficha
