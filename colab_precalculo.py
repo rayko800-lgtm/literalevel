@@ -230,7 +230,17 @@ if popularidad:
 from concurrent.futures import ThreadPoolExecutor
 
 HILOS = 6
-LOTE = 6000          # más alto que antes: ahora cunde
+# Se baja TODO lo que falte, no una tanda. Antes eran 6.000 y habia que
+# volver a lanzar la celda a mano: si nadie miraba, Colab desconectaba el
+# entorno por inactividad y el trabajo se paraba solo. Con Colab Pro un
+# cuaderno que se esta ejecutando aguanta hasta 24 h aunque se cierre el
+# navegador, asi que lo que conviene es no parar.
+#
+# HORAS_TOPE existe para que la celda termine ordenadamente antes de que
+# Colab corte, en vez de morir a medias. Lo bajado queda en Drive de todas
+# formas y la siguiente ejecucion sigue donde iba.
+LOTE = 10 ** 9
+HORAS_TOPE = 9.0
 
 
 def _pendientes_reales(lista, tope):
@@ -250,6 +260,10 @@ hechos = fallos = 0
 inicio = time.time()
 with ThreadPoolExecutor(max_workers=HILOS) as pool:
     for ok in pool.map(descargar, cola):
+        if time.time() - inicio > HORAS_TOPE * 3600:
+            print(f"  alcanzado el tope de {HORAS_TOPE} h; paro aqui y lo "
+                  f"bajado queda guardado")
+            break
         if ok:
             hechos += 1
         else:
@@ -410,12 +424,18 @@ print(f"por calcular:  {len(disponibles):,}")
 
 # %%
 # --- 10b. Lanzar una tanda ----------------------------------------------
-TANDA = 2000            # súbelo si la sesión aguanta
+# Igual que la descarga: todo lo que haya, no una tanda fija.
+TANDA = 10 ** 9
+HORAS_TOPE_ANALISIS = 8.0
 
 buffer, n_shard = [], len(list(PERFILES.glob("perfiles_*.jsonl")))
 inicio, errores = time.time(), 0
 
 for k, ruta in enumerate(disponibles[:TANDA], 1):
+    if time.time() - inicio > HORAS_TOPE_ANALISIS * 3600:
+        print(f"  alcanzado el tope de {HORAS_TOPE_ANALISIS} h; guardo lo que "
+              f"llevo y paro")
+        break
     try:
         p = perfil_de_libro(ruta)
         if p:
