@@ -18,8 +18,8 @@ toca**. El modelo mide la dificultad de un texto, así que en vez de elegir un
 libro a ciegas, la app le dice cuál puede leer y le dibuja la curva de
 dificultad capítulo a capítulo.
 
-🔗 **https://9f532ab8cd56ba66f1.gradio.live**
-usuario: `invitado1` · contraseña: `lantern-beacon-72`
+🔗 **https://f01c1e0273b4839b46.gradio.live**
+usuario: `invitado1` · contraseña: `meadow-harbour-61`
 
 **Ábralo desde el celular**, porque incluye lo de la pronunciación que usted
 mencionó: en la pestaña *Pronunciación* se lee una frase en voz alta y la app
@@ -35,7 +35,7 @@ Tres cosas que le quiero decir de una vez, para que no se lleve sorpresas:
    inglés** del catálogo completo con el modelo leyendo cada libro entero; van
    unas 6 horas de GPU.
 3. **Las consultas de palabra y de voz usan la API de OpenAI y las pago yo**,
-   así que están limitadas a 30 y 10 por hora. Si se topa con el límite, es
+   así que están limitadas a 12 y 4 por hora. Si se topa con el límite, es
    eso y no un error.
 
 Lo que más me interesa de su opinión es **la usabilidad**: si se entiende sola,
