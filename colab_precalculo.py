@@ -119,6 +119,25 @@ en = cat[(cat["Language"] == "en") & (cat["Type"] == "Text")].copy()
 en["Text#"] = en["Text#"].astype(int)
 print(f"catálogo completo: {len(cat):,}")
 print(f"libros de texto en inglés: {len(en):,}")
+
+# --- Contenido adulto fuera ------------------------------------------------
+# Esto NO es curaduría moral, y por eso el filtro es corto y se apoya solo en
+# las materias que el propio Gutenberg asigna. El motivo es concreto: al
+# ordenar por descargas, el CUARTO libro más bajado de todo Gutenberg es "The
+# Romance of Lust", cuyas materias son "Incest -- Fiction; Pornography;
+# Rape -- Fiction". LiteraLevel la usa una lectora de quince años y se va a
+# enseñar a un profesor. Un catálogo que abre con eso es un catálogo roto.
+#
+# Son 90 libros de 61.642: se quita lo inequívoco y no se toca nada más. Los
+# clásicos con sexo -Lady Chatterley, Ulises- no llevan estas materias y se
+# quedan, que es lo correcto: el criterio es la etiqueta explícita del
+# catálogo, no el juicio de nadie sobre la obra.
+_ADULTO = r"[Ee]rotic|Pornograph|Sex customs"
+_marca = (en["Subjects"].astype(str).str.contains(_ADULTO, na=False)
+          | en["Bookshelves"].astype(str).str.contains(_ADULTO, na=False))
+print(f"fuera por materia adulta explícita: {int(_marca.sum())}")
+en = en[~_marca].copy()
+print(f"catálogo utilizable: {len(en):,}")
 en[["Text#", "Title", "Authors", "Subjects"]].head()
 
 # %%
