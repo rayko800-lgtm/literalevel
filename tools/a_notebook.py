@@ -54,7 +54,12 @@ def main() -> int:
     nb = {
         "cells": celdas(origen.read_text(encoding="utf-8")),
         "metadata": {
-            "colab": {"provenance": [], "toc_visible": True},
+            # `gpuType` y `machine_shape` los escribe Colab cuando eliges A100 a
+            # mano. Ponerlos aqui evita tener que pelearse con su menu, que no
+            # aparece en el arbol de accesibilidad: el cuaderno se abre ya con
+            # el acelerador puesto.
+            "colab": {"provenance": [], "toc_visible": True,
+                      "gpuType": "A100", "machine_shape": "hm"},
             "kernelspec": {"display_name": "Python 3", "name": "python3"},
             "language_info": {"name": "python"},
             "accelerator": "GPU",
