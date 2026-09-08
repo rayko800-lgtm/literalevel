@@ -23,6 +23,9 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, "app")
+# Antes de importar ui: ver la nota en pruebas_extremas.py. Las pruebas no
+# tocan los datos reales de nadie.
+os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_integracion_")
 import cuaderno  # noqa: E402
 import ui  # noqa: E402
 

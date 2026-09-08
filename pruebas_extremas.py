@@ -22,6 +22,10 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, "app")
+# ANTES de importar ui: sus rutas de datos se fijan al importarse. Sin esto,
+# las pruebas escriben en los datos reales de quien las ejecuta, y de hecho lo
+# hicieron: 24 archivos de prueba acabaron en la biblioteca del usuario.
+os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_pruebas_")
 import ficha as ficha_mod  # noqa: E402
 import reader  # noqa: E402
 import ui  # noqa: E402
@@ -644,6 +648,43 @@ prueba("sinopsis guardada de un libro inexistente",
 prueba("sin_licencia con None dentro", lambda: ficha_mod.sin_licencia(""))
 prueba("reloj con cero", lambda: ficha_mod.reloj(0))
 prueba("reloj con un numero enorme", lambda: ficha_mod.reloj(10 ** 7))
+
+
+titulo("Indice y aislamiento de datos")
+
+prueba("indice sin libro", lambda: ui._indice_de(None))
+prueba("indice de un libro sin capitulos",
+       lambda: ui._indice_de(reader.Libro("t", "a", [])))
+prueba("indice con capitulo actual fuera de rango",
+       lambda: ui._indice_de(reader.Libro("t", "a",
+                                          [reader.Capitulo("I", "x " * 200)]), 99))
+prueba("indice de un libro largo",
+       lambda: len(ui._indice_de(reader.Libro("t", "a", [
+           reader.Capitulo(f"C{i}", "x " * 200) for i in range(400)]))["choices"]))
+prueba("grafica con un solo capitulo",
+       lambda: type(ui._grafica_analisis(
+           {"titulo": "t", "filas": [{"capitulo": 1, "dificultad": 1.0,
+                                      "titulo": "I"}]})).__name__)
+prueba("grafica con muchos capitulos",
+       lambda: type(ui._grafica_analisis(
+           {"titulo": "t", "filas": [{"capitulo": i, "dificultad": 1.0 + (i % 7) / 10,
+                                      "titulo": f"C{i}"} for i in range(400)]})).__name__)
+prueba("suavizar con lista vacia", lambda: ui._suavizar([], 5))
+prueba("suavizar con ventana mayor que los datos", lambda: ui._suavizar([1.0, 2.0], 9))
+
+# Esta es la que importa: las pruebas NO pueden escribir en los datos reales.
+# Paso porque paso: la bateria abria libro.txt, vacio.txt y falso.txt y los
+# anotaba en la biblioteca del usuario, que se encontro 24 archivos de prueba
+# entre sus cuatro libros al abrir "Mis libros" en el movil.
+prueba("los datos de las pruebas no son los del usuario",
+       lambda: (str(ui.BASE_DATOS_LECTOR) != str(pathlib.Path(
+           os.path.expanduser("~")) / ".literalevel")
+                and "literalevel_pruebas" in str(ui.BASE_DATOS_LECTOR)))
+prueba("la biblioteca real no se toca",
+       lambda: not any("literalevel_pruebas" in e.ruta
+                       for e in __import__("biblioteca").listar(
+                           str(pathlib.Path(os.path.expanduser("~"))
+                               / ".literalevel" / "biblioteca.json"))))
 
 # --- Resultado ------------------------------------------------------------
 

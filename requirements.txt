@@ -23,3 +23,6 @@ pydantic>=2.7
 # En un despliegue no hay quien ejecute ese comando, asi que se instala por
 # URL directa. Version fijada a proposito: debe casar con spacy>=3.7,<3.9.
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+# La curva de dificultad del libro: linea continua con zoom y degradado.
+# Con gr.BarPlot, un libro de 366 capitulos salia como un bloque azul macizo.
+plotly>=6.0

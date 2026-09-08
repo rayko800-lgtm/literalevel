@@ -90,7 +90,13 @@ RUTAS_PERMITIDAS = [os.path.join(os.path.expanduser("~"), ".literalevel", "audio
 # `demo.load` se ejecuta en cada carga de pagina y pintaria el capitulo del
 # PDF privado del visitante anterior.
 
-BASE_DATOS_LECTOR = Path(os.path.expanduser("~")) / ".literalevel"
+# Configurable por entorno para que las PRUEBAS no escriban en los datos
+# reales de quien ejecuta la app. No es teoria: la bateria de pruebas extremas
+# abre libro.txt, vacio.txt, falso.txt... y los iba anotando en la biblioteca
+# de verdad. Miguel abrio "Mis libros" en el movil y se encontro 24 archivos de
+# prueba entre sus cuatro libros. Las pruebas ahora apuntan a un temporal.
+BASE_DATOS_LECTOR = Path(os.environ.get(
+    "LITERALEVEL_DATOS", Path(os.path.expanduser("~")) / ".literalevel"))
 EN_LA_NUBE = bool(os.environ.get("SPACE_ID") or os.environ.get("PORT"))
 _SESION_SEGURA = re.compile(r"[^A-Za-z0-9_-]")
 
@@ -226,6 +232,9 @@ _CSS_GLOBAL = f"""<style>
 /* El bloque que transporta esta hoja de estilo no debe ocupar sitio; un
    <style> sigue aplicandose aunque su contenedor este oculto. */
 #ll-css{{display:none}}
+/* El indice de un libro puede tener 366 capitulos. Sin altura maxima empuja
+   toda la pagina y hay que recorrerla entera para volver al texto. */
+#ll-indice .wrap{{max-height:46vh;overflow-y:auto}}
 body,gradio-app,.gradio-container{{
   background-color:#05070d !important;
   background-image:{_estrellas()},
@@ -808,6 +817,22 @@ def _abrir(archivo, peticion: gr.Request = None):
             _html_lectura(libro.capitulos[inicial].texto), resumen)
 
 
+def _indice_de(libro, actual=None):
+    """Las opciones del indice. Mismas etiquetas que el desplegable de arriba.
+
+    El recuento de palabras va en la etiqueta por la misma razon que alli: hay
+    epub que repiten los titulos ("I", "II") y traen portadillas sueltas, y sin
+    las palabras no hay forma de saber cual es el capitulo de verdad.
+    """
+    if libro is None or not libro.capitulos:
+        return gr.update(choices=[], value=None)
+    opciones = []
+    for i, c in enumerate(libro.capitulos):
+        t = c.titulo if len(c.titulo) <= 46 else c.titulo[:43] + "..."
+        opciones.append((f"{i + 1}. {t} · {c.palabras:,} pal.", i))
+    return gr.update(choices=opciones, value=actual)
+
+
 def _cap(libro, idx):
     """El capitulo `idx`, o None si el indice no sirve.
 
@@ -877,7 +902,7 @@ def _clave_libro(libro) -> str:
     # Gutenberg antes de puntuar, los analisis ya guardados dejaron de ser
     # comparables con los nuevos. Sin esto seguirian sirviendose los viejos.
     h = hashlib.sha256(
-        f"v2-sin-licencia\x1f{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
+        f"v3-sin-portadilla\x1f{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
     for c in libro.capitulos[:40]:
         h.update(f"{c.titulo}\x1f{c.palabras}".encode("utf-8"))
     return h.hexdigest()[:20]
@@ -918,8 +943,13 @@ def _analizar_libro(libro, peticion: gr.Request = None):
 
     datos = _analisis_guardado(libro)
     if datos is None:
+        # Fuera tambien la portadilla y la licencia de Gutenberg. En War and
+        # Peace el "capitulo 1" del analisis era "The Project Gutenberg eBook
+        # of War and P" con 1.02: el punto mas facil del libro no era un
+        # capitulo, era la portada.
         cuerpo = [(i, c) for i, c in enumerate(libro.capitulos)
-                  if c.palabras >= 150 and not _RELLENO_RE.search(c.titulo)]
+                  if c.palabras >= 150 and not _RELLENO_RE.search(c.titulo)
+                  and not ficha._es_boilerplate(c)]
         if not cuerpo:
             yield ("Este libro no tiene capítulos con prosa suficiente para "
                    "analizarlos."), None
@@ -1049,10 +1079,78 @@ def _de_que_trata(libro):
     yield "\n\n".join(partes)
 
 
+def _suavizar(valores, ventana: int) -> list[float]:
+    """Media movil centrada. Sin numpy ni pandas: son cuatro lineas y asi la
+    grafica no depende de nada que pueda no estar en el despliegue."""
+    if ventana < 2 or len(valores) < ventana:
+        return list(valores)
+    salida, mitad = [], ventana // 2
+    for i in range(len(valores)):
+        a, b = max(0, i - mitad), min(len(valores), i + mitad + 1)
+        salida.append(sum(valores[a:b]) / (b - a))
+    return salida
+
+
 def _grafica_analisis(datos):
-    import pandas as pd
-    return pd.DataFrame([{"Capítulo": f["capitulo"], "Dificultad": f["dificultad"]}
-                         for f in datos["filas"]])
+    """Curva de dificultad del libro, continua y con zoom.
+
+    Era un diagrama de barras y con War and Peace -366 capitulos- se convertia
+    en un bloque azul macizo del que no se leia nada. Con una linea se ve la
+    forma, y con la barra de herramientas de Plotly se puede ampliar un tramo
+    concreto, que es lo que uno quiere cuando hay cientos de capitulos.
+
+    Van dos trazos a proposito: el fino y translucido es el dato real, capitulo
+    a capitulo; el grueso es la media movil. Con 366 puntos el dato crudo es
+    ruido y la tendencia -"empieza duro y se suelta"- solo se ve suavizada. Con
+    pocos capitulos la media movil se desactiva sola y queda la linea real.
+    """
+    import plotly.graph_objects as go
+
+    filas = datos["filas"]
+    x = [f["capitulo"] for f in filas]
+    y = [f["dificultad"] for f in filas]
+    titulos = [f.get("titulo", "") for f in filas]
+
+    # La ventana crece con el libro: 366 capitulos piden mas suavizado que 13.
+    ventana = 1 if len(y) < 12 else max(3, round(len(y) / 25))
+    tendencia = _suavizar(y, ventana)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x, y=y, mode="lines", name="capítulo a capítulo",
+        line=dict(color="#79d0ea", width=1), opacity=0.35,
+        customdata=titulos,
+        hovertemplate="Capítulo %{x}<br>%{customdata}<br>"
+                      "<b>%{y:.2f}</b> / 2.00<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=x, y=tendencia, mode="lines", name="tendencia",
+        line=dict(color="#4bb8da", width=2.5, shape="spline", smoothing=0.6),
+        fill="tozeroy",
+        # El degradado es lo que pidio Miguel: el azul hielo se desvanece hacia
+        # abajo en vez de cortar en un bloque plano.
+        # El degradado se apaga del todo abajo. La escala publica llega a 2.00
+        # y casi ningun libro baja de 1.4, asi que rellenar desde cero con
+        # color solido devolvia el mismo bloque macizo que tenian las barras.
+        # Asi el color acompana a la linea y el resto respira.
+        fillgradient=dict(type="vertical", colorscale=[
+            (0.00, "rgba(46,156,196,0.00)"), (0.62, "rgba(46,156,196,0.04)"),
+            (0.86, "rgba(75,184,218,0.16)"), (1.00, "rgba(121,208,234,0.38)")]),
+        hoverinfo="skip"))
+
+    fig.update_layout(
+        margin=dict(l=48, r=16, t=16, b=40), height=300,
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#c8dbe6", size=12),
+        hovermode="x unified", dragmode="zoom",
+        showlegend=len(y) >= 12,
+        legend=dict(orientation="h", y=1.12, x=0, bgcolor="rgba(0,0,0,0)"))
+    fig.update_xaxes(title_text="Capítulo", gridcolor="rgba(121,208,234,.10)",
+                     zeroline=False, showspikes=True, spikethickness=1,
+                     spikecolor="rgba(121,208,234,.5)", spikemode="across")
+    fig.update_yaxes(title_text="Dificultad", range=[0, 2.05],
+                     gridcolor="rgba(121,208,234,.10)", zeroline=False,
+                     dtick=0.5)
+    return fig
 
 
 def _resumen_analisis(datos) -> str:
@@ -1617,7 +1715,12 @@ _CSS_BIBLIO = """<style>
 
 def _mis_libros(peticion: gr.Request = None):
     """La estanteria: que se esta leyendo, por donde y cuanto se ha consultado."""
-    libros = biblioteca.listar(_archivo_lector("biblioteca.json", peticion))
+    todos = biblioteca.listar(_archivo_lector("biblioteca.json", peticion))
+    # Los libros cuyo archivo ya no esta no se pintan. No se borran -si el
+    # archivo vuelve, el marcapaginas sigue ahi-, pero ensucian: la estanteria
+    # es para volver a leer, y a un archivo que no existe no se vuelve.
+    libros = [e for e in todos if e.existe]
+    ausentes = len(todos) - len(libros)
     if not libros:
         return ("<p>Todavía no has abierto ningún libro. Búscalo en "
                 "<b>Buscar lectura</b> o sube el tuyo en <b>Leer</b>, y "
@@ -1638,19 +1741,20 @@ def _mis_libros(peticion: gr.Request = None):
                 f"{e.palabras:,} palabras")
         if consultadas:
             nota += f" · {consultadas} palabra{'s' if consultadas != 1 else ''} consultada{'s' if consultadas != 1 else ''}"
-        perdido = ("" if e.existe else
-                   '<div class="ll-x">El archivo ya no está en su sitio: '
-                   'vuelve a abrirlo para seguir.</div>')
         tarjetas.append(
             f'<div class="ll-l"><div class="ll-t">'
             f'{_html.escape(_recortar(e.titulo, 60))}</div>'
             f'<div class="ll-a">{_html.escape(_recortar(e.autor or "autor desconocido", 50))}</div>'
             f'<div class="ll-b"><i style="width:{pct}%"></i></div>'
-            f'<div class="ll-n">{_html.escape(nota)}</div>{perdido}</div>')
-        if e.existe:
-            opciones.append((f"{e.titulo} — cap. {e.capitulo + 1} de {e.capitulos}",
-                             e.ruta))
-    return (_CSS_BIBLIO + '<div id="ll-biblio">' + "".join(tarjetas) + "</div>",
+            f'<div class="ll-n">{_html.escape(nota)}</div></div>')
+        opciones.append((f"{e.titulo} — cap. {e.capitulo + 1} de {e.capitulos}",
+                         e.ruta))
+    pie = ("" if not ausentes else
+           f'<p class="ll-x">{ausentes} libro{"s" if ausentes != 1 else ""} '
+           f'que abriste ya no está{"n" if ausentes != 1 else ""} en el disco. '
+           f'Si vuelves a abrirlo{"s" if ausentes != 1 else ""}, aparecerá'
+           f'{"n" if ausentes != 1 else ""} otra vez por donde ibas.</p>')
+    return (_CSS_BIBLIO + '<div id="ll-biblio">' + "".join(tarjetas) + "</div>" + pie,
             gr.update(choices=opciones, value=opciones[0][1] if opciones else None))
 
 
@@ -1770,6 +1874,11 @@ def construir() -> gr.Blocks:
                 # fuera de pantalla en un movil y no te enteras de que ha
                 # terminado; es la misma salida pintada dos veces.
                 perfil_md_abajo = gr.Markdown()
+                # Sale solo cuando ya hay nivel. Sin esto habia que subir toda
+                # la pantalla a mano para llegar a las pestanas, justo despues
+                # de un formulario largo: el peor momento para pedir scroll.
+                b_ir_buscar = gr.Button("Ver libros para mi nivel  →",
+                                        variant="primary", visible=False)
                 with gr.Accordion("O mídelo con un libro que ya hayas leído",
                                   open=False):
                     gr.Markdown("Si ya leíste un libro en inglés y te resultó "
@@ -1794,6 +1903,8 @@ def construir() -> gr.Blocks:
                               salidas_nivel)
                 b_muestra.click(_desde_muestra, [est_perfil, nombre, muestra],
                                 salidas_nivel)
+                est_perfil.change(lambda p: gr.update(visible=p is not None),
+                                  est_perfil, b_ir_buscar)
 
             with gr.Tab("Buscar lectura", id="buscar"):
                 with gr.Row():
@@ -1827,6 +1938,13 @@ def construir() -> gr.Blocks:
                 b_buscar.click(_buscar, entradas_busq, [resultados, elegido])
                 consulta.submit(_buscar, entradas_busq, [resultados, elegido])
                 b_recom.click(_recomendar, [est_perfil, n_res], [resultados, elegido])
+                # El boton vive en la pestana del cuestionario pero solo se
+                # puede cablear aqui, que es donde ya existen sus salidas.
+                # Salta de pestana Y trae la recomendacion hecha: llegar a un
+                # buscador vacio despues de contestar seria empezar de cero.
+                b_ir_buscar.click(lambda: gr.Tabs(selected="buscar"), None, pestanas
+                                  ).then(_recomendar, [est_perfil, n_res],
+                                         [resultados, elegido])
 
             with gr.Tab("Leer", id="leer"):
                 with gr.Row():
@@ -1855,9 +1973,24 @@ def construir() -> gr.Blocks:
                 # capitulo y cambiar de capitulo borraba la medicion.
                 medicion_md = gr.Markdown()
                 analisis_md = gr.Markdown()
-                grafica = gr.BarPlot(x="Capítulo", y="Dificultad", height=260,
-                                     y_lim=[0, 2], title="Dificultad capítulo a capítulo")
+                # gr.Plot y no gr.BarPlot: con 366 capitulos las barras se
+                # fundian en un bloque macizo. Plotly trae zoom y desplazamiento.
+                grafica = gr.Plot(label="Dificultad capítulo a capítulo",
+                                  show_label=True)
                 texto = gr.HTML(_html_lectura(""))
+
+                # Los mandos, OTRA VEZ, debajo del texto. Cuando terminas un
+                # capitulo estas al final de la pagina, y los de arriba quedan
+                # a una pantalla entera de scroll hacia atras.
+                with gr.Row():
+                    b_prev2 = gr.Button("‹ Capítulo anterior")
+                    b_next2 = gr.Button("Capítulo siguiente ›")
+                with gr.Accordion("Índice del libro", open=False):
+                    # Lista y no desplegable: en el movil se recorre con el
+                    # dedo. Va dentro de un acordeon y con altura limitada
+                    # porque hay libros de 366 capitulos.
+                    indice = gr.Radio(label="Ir a un capítulo", choices=[],
+                                      elem_id="ll-indice")
 
                 gr.Markdown("### Consultar una palabra\n"
                             "**Selecciona una palabra del texto** y se copia aquí "
@@ -1903,6 +2036,17 @@ def construir() -> gr.Blocks:
                 est_libro.change(_ficha_libro, [est_libro, est_perfil], ficha_md)
                 est_libro.change(lambda: "", None, sinopsis_md)
                 b_trata.click(_de_que_trata, est_libro, sinopsis_md)
+
+                # Los mandos de abajo mueven el MISMO desplegable de arriba,
+                # asi que no hay dos estados que puedan discrepar.
+                b_prev2.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
+                b_next2.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
+                est_libro.change(_indice_de, [est_libro, cap], indice)
+                # `.select` y no `.change`: solo dispara cuando lo toca una
+                # persona. Con `.change` se hacia un bucle, porque justo abajo
+                # se actualiza el indice cada vez que cambia el capitulo.
+                indice.select(lambda v: v, indice, cap)
+                cap.change(lambda v: gr.update(value=v), cap, indice)
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,
                                 [ficha, audio_web, audio_local])

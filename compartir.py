@@ -33,23 +33,48 @@ USUARIO = os.environ.get("LITERALEVEL_USUARIO_COMPARTIR", "miguel")
 PALABRAS = ("iceberg", "fortress", "lantern", "harbour", "compass", "thistle",
             "meadow", "quarry", "beacon", "willow")
 
+# Cuentas de invitado. Existen para poder pasarle el enlace a alguien -familia,
+# el profesor- SIN darle la contrasena del dueno. Cada una es independiente:
+# si una se filtra, se cambia esa y las demas siguen.
+#
+# Y no son un adorno de seguridad: `gr.Request.session_hash` mantiene los datos
+# separados por sesion, asi que cada invitado tiene su propio nivel, su propia
+# estanteria y su propio cuaderno. Nadie pisa la lectura de nadie.
+INVITADOS = int(os.environ.get("LITERALEVEL_INVITADOS", "3"))
+
 
 def _clave() -> str:
     """Una contrasena que se pueda teclear en un movil sin odiarla."""
     puesta = os.environ.get("LITERALEVEL_CLAVE_COMPARTIR")
     if puesta:
         return puesta
+    return _clave_nueva()
+
+
+def _clave_nueva() -> str:
     return "-".join((secrets.choice(PALABRAS), secrets.choice(PALABRAS),
                      str(secrets.randbelow(90) + 10)))
 
 
+def _cuentas() -> list[tuple[str, str]]:
+    """El dueno y los invitados. Gradio admite una lista de pares."""
+    cuentas = [(USUARIO, _clave())]
+    for i in range(1, max(0, INVITADOS) + 1):
+        cuentas.append((f"invitado{i}", _clave_nueva()))
+    return cuentas
+
+
 def main() -> int:
-    clave = _clave()
+    cuentas = _cuentas()
     print("=" * 70)
     print("  LiteraLevel — enlace temporal")
     print("=" * 70)
-    print(f"  usuario:    {USUARIO}")
-    print(f"  contraseña: {clave}")
+    for usuario, clave in cuentas:
+        etiqueta = "tuya" if usuario == USUARIO else "para prestar"
+        print(f"  {usuario:<10} {clave:<28} ({etiqueta})")
+    print()
+    print("  Cada cuenta lleva su propio nivel, su propia estantería y su")
+    print("  propio cuaderno: no se pisan entre ellas.")
     print()
     print(f"  Límites por IP y hora: {LIMITE_CONSULTAS_HORA} consultas de")
     print(f"  palabra, {LIMITE_VOZ_HORA} prácticas de voz. Leer, buscar y medir")
@@ -62,7 +87,7 @@ def main() -> int:
     demo = construir()
     demo.launch(
         share=True,                 # enlace publico HTTPS: hace falta para el microfono
-        auth=(USUARIO, clave),
+        auth=cuentas,
         theme=TEMA,
         allowed_paths=RUTAS_PERMITIDAS,
         max_file_size=TAMANO_MAXIMO_SUBIDA,
