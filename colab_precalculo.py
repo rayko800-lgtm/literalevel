@@ -120,24 +120,18 @@ en["Text#"] = en["Text#"].astype(int)
 print(f"catálogo completo: {len(cat):,}")
 print(f"libros de texto en inglés: {len(en):,}")
 
-# --- Contenido adulto fuera ------------------------------------------------
-# Esto NO es curaduría moral, y por eso el filtro es corto y se apoya solo en
-# las materias que el propio Gutenberg asigna. El motivo es concreto: al
-# ordenar por descargas, el CUARTO libro más bajado de todo Gutenberg es "The
-# Romance of Lust", cuyas materias son "Incest -- Fiction; Pornography;
-# Rape -- Fiction". LiteraLevel la usa una lectora de quince años y se va a
-# enseñar a un profesor. Un catálogo que abre con eso es un catálogo roto.
+# --- Aquí NO se filtra el catálogo, y es una decisión, no un descuido -------
+# Hubo un filtro por materias "adultas" y se quitó. La razón es de Miguel y es
+# buena: esto es una plataforma de literatura, y la literatura es donde esas
+# cosas aparecen. Filtrar por la etiqueta `Subjects` habría tirado también
+# obras que son literatura por derecho propio -Fanny Hill, sin ir más lejos,
+# que se persiguió judicialmente y por eso mismo importa-. Un catálogo de
+# dominio público que se poda a sí mismo deja de ser un catálogo.
 #
-# Son 90 libros de 61.642: se quita lo inequívoco y no se toca nada más. Los
-# clásicos con sexo -Lady Chatterley, Ulises- no llevan estas materias y se
-# quedan, que es lo correcto: el criterio es la etiqueta explícita del
-# catálogo, no el juicio de nadie sobre la obra.
-_ADULTO = r"[Ee]rotic|Pornograph|Sex customs"
-_marca = (en["Subjects"].astype(str).str.contains(_ADULTO, na=False)
-          | en["Bookshelves"].astype(str).str.contains(_ADULTO, na=False))
-print(f"fuera por materia adulta explícita: {int(_marca.sum())}")
-en = en[~_marca].copy()
-print(f"catálogo utilizable: {len(en):,}")
+# Lo que sí se hace, y es lo honesto, es AVISAR en vez de esconder: la ficha de
+# cada libro (`ficha.sinopsis`) trae un campo `aviso` que sale en la app como
+# "Antes de empezar" y dice si la obra tiene algo que conviene saber. Informar
+# al lector y dejarle elegir; no elegir por él.
 en[["Text#", "Title", "Authors", "Subjects"]].head()
 
 # %%
