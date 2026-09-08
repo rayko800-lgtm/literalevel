@@ -51,7 +51,7 @@
 # **El cuadernillo no se rompe por eso.** Las celdas que necesitan los pesos
 # comprueban primero si están disponibles: si no lo están, imprimen qué falta y
 # siguen adelante. Todo lo demás —las 4.724 filas del corpus, las 79.337
-# entradas del catálogo, el EDA completo, la ingeniería de variables, los cinco
+# entradas del catálogo, el EDA completo, la ingeniería de variables, los siete
 # modelos de referencia y las tablas comparativas— se calcula de verdad, aquí,
 # en cada ejecución.
 #
@@ -644,8 +644,9 @@ plt.show()
 #   lectores porque la carga conceptual es distinta. Esto acota lo que el sistema
 #   puede prometer.
 # - **Favorece al caso de uso real.** El catálogo que LiteraLevel ordena es
-#   literatura (Figura del §3.3: ciencia ficción, relatos, aventuras), es decir,
-#   el subconjunto donde el modelo está mejor calibrado.
+#   literatura —las materias más frecuentes de la §3.3 son ciencia ficción,
+#   relatos y aventuras—, es decir, el subconjunto donde el modelo está mejor
+#   calibrado.
 
 # %%
 # --- Limpieza de `Lexile Band` para poder usarla en el análisis ----------
@@ -675,8 +676,10 @@ print("Spearman(banda Lexile, BT_easiness):",
       round(float(spearmanr(clear["lexile"], clear["BT_easiness"])[0]), 3))
 
 # %%
+orden_lexile = [str(b) for b in sorted(clear["lexile"].unique())]
 plt.figure(figsize=(9, 4))
-sns.boxplot(data=clear, x="lexile", y="BT_easiness", color="#55A868")
+sns.boxplot(data=clear.assign(banda=clear["lexile"].astype(str)),
+            x="banda", y="BT_easiness", order=orden_lexile, color="#55A868")
 plt.title("Facilidad medida por lectores frente a banda Lexile editorial")
 plt.xlabel("Banda Lexile (mayor = el editor la considera más difícil)")
 plt.ylabel("BT_easiness (alto = más fácil)")
@@ -859,10 +862,18 @@ print(asociacion_rasgos)
 # %% [markdown]
 # ### Interpretación: los rasgos propios no baten a las métricas clásicas
 #
-# El rasgo más informativo de los seis es **`palabras_raras` (−0,49)**: la
+# El rasgo más informativo de los seis es **`palabras_raras` (−0,486)**: la
 # proporción de palabras que no están entre las 3.000 más frecuentes. Le siguen
-# `polisilabas` (−0,48) y `silabas_por_palabra` (−0,45). Todos van en la
-# dirección correcta y ninguno alcanza a `CAREC_M` (−0,58).
+# `polisilabas` (−0,477) y `silabas_por_palabra` (−0,447). Todos van en la
+# dirección correcta y ninguno alcanza a `CAREC_M` (−0,582).
+#
+# **Advertencia sobre ese −0,486, que es optimista.** La lista de palabras
+# familiares se ha construido aquí con el propio corpus, es decir, contando
+# también las palabras de los extractos que después sirven de prueba. Es una
+# fuga leve pero real, y por eso esta cifra no es comparable con las de la tabla
+# de abajo, todas calculadas con listas externas. Se hace así en el cuadernillo
+# para que sea autocontenido; **el sistema en producción usa una lista externa**
+# —el SPGC— precisamente para no incurrir en esto.
 #
 # Aquí hay una **hipótesis rechazada que conviene reportar** en lugar de
 # esconderla. Durante el proyecto, `palabras_raras` se recalculó tres veces con
@@ -886,7 +897,6 @@ print(asociacion_rasgos)
 
 # %%
 # --- PCA sobre el conjunto completo de variables numéricas --------------
-VARIABLES = METRICAS_CORPUS + RASGOS
 X_completo = pd.concat([clear[METRICAS_CORPUS].reset_index(drop=True), rasgos], axis=1)
 
 escalador_pca = StandardScaler().fit(X_completo)
@@ -920,7 +930,7 @@ print("Correlación de PC1 con BT_easiness:",
 # **Figura 10 — Cuántos ejes independientes hay realmente.**
 #
 # **Un solo componente explica el 55,1 % de la varianza de las diecisiete
-# variables**, y los dos primeros llegan al 70,1 %. Confirma numéricamente lo que
+# variables**, y los dos primeros llegan al 70,0 %. Confirma numéricamente lo que
 # el mapa de calor insinuaba: diecisiete columnas contienen, en la práctica, dos
 # informaciones.
 #
@@ -952,7 +962,7 @@ for nivel in NIVELES_CEFR:
                 s=7, alpha=0.45, label=nivel, color=paleta[nivel])
 plt.title("Los extractos en el plano de los dos primeros componentes")
 plt.xlabel("PC1 — complejidad de superficie (55,1 % de la varianza)")
-plt.ylabel("PC2 — 15,0 % de la varianza")
+plt.ylabel("PC2 — 14,9 % de la varianza")
 plt.legend(title="Nivel", markerscale=2, fontsize=8)
 plt.tight_layout()
 plt.show()
@@ -1080,14 +1090,19 @@ resultados = []
 
 
 def evaluar(nombre, prediccion, observacion=""):
-    """Registra MAE, RMSE y Spearman de una predicción sobre el test."""
+    """Registra MAE, RMSE y Spearman de una predicción sobre el conjunto de prueba.
+
+    Una predicción constante no ordena nada, así que su Spearman no está
+    definido; se reporta como «no aplica» en vez de inventar un cero.
+    """
     mae = mean_absolute_error(y_test, prediccion)
     rmse = float(np.sqrt(np.mean((prediccion - y_test) ** 2)))
-    rho = float(spearmanr(prediccion, y_test)[0]) if np.std(prediccion) > 0 else 0.0
+    ordena = len(np.unique(prediccion)) > 1
+    texto_rho = f"{float(spearmanr(prediccion, y_test)[0]):.3f}" if ordena else "no aplica"
     resultados.append({"Modelo": nombre, "MAE": round(mae, 3),
-                       "RMSE": round(rmse, 3), "Spearman": round(rho, 3),
+                       "RMSE": round(rmse, 3), "Spearman": texto_rho,
                        "Observación": observacion})
-    print(f"{nombre:<44} MAE {mae:.3f} | RMSE {rmse:.3f} | Spearman {rho:.3f}")
+    print(f"{nombre:<44} MAE {mae:.3f} | RMSE {rmse:.3f} | Spearman {texto_rho}")
 
 
 evaluar("Línea base: la media del entrenamiento", prediccion_media,
@@ -1147,7 +1162,7 @@ print(importancias.head(6).round(3))
 #
 # Y el resultado de conjunto es más elocuente todavía: el Random Forest, con
 # capacidad de sobra para relaciones no lineales e interacciones, **no supera a
-# la regresión lineal** (RMSE 0,764 frente a 0,748). **El cuello de botella no
+# la regresión lineal** (RMSE 0,765 frente a 0,748). **El cuello de botella no
 # es el algoritmo: es la representación del texto.** Ninguna de estas diecisiete
 # variables sabe qué dice el texto.
 
@@ -1155,9 +1170,9 @@ print(importancias.head(6).round(3))
 # --- 6.5 Clasificación en seis niveles ----------------------------------
 # Mismo problema, planteado como clasificación, para poder comparar con la
 # literatura y con la etiqueta CEFR. Misma partición que la regresión.
-y_nivel = clear["nivel_cefr"]
+y_nivel = clear["nivel_cefr"].astype(str)
 ORDEN_NIVEL = {"C2": 0, "C1": 1, "B2": 2, "B1": 3, "A2": 4, "A1": 5}
-codigo_real = y_nivel.iloc[idx_test].astype(str).map(ORDEN_NIVEL).values
+codigo_real = y_nivel.iloc[idx_test].map(ORDEN_NIVEL).values
 
 resultados_clf = []
 
@@ -1174,6 +1189,17 @@ def evaluar_clf(nombre, prediccion, observacion=""):
     print(f"{nombre:<44} exactitud {exactitud:.3f} | error ordinal {error_ordinal:.3f}")
 
 
+# Primero, con las TRES variables clásicas del experimento original, para que
+# la comparación contra los modelos neuronales del Bloque B sea del mismo tipo.
+TRES_CLASICAS = ["palabras_por_frase", "diversidad_lexica", "palabras_raras"]
+indices_tres = [X_modelo.columns.get_loc(c) for c in TRES_CLASICAS]
+logistica_tres = LogisticRegression(max_iter=1000).fit(
+    X_train[:, indices_tres], y_nivel.iloc[idx_train])
+evaluar_clf("Regresión logística (3 variables clásicas)",
+            logistica_tres.predict(X_test[:, indices_tres]),
+            "La referencia del experimento original")
+
+# %%
 logistica = LogisticRegression(max_iter=1000).fit(X_train, y_nivel.iloc[idx_train])
 evaluar_clf("Regresión logística (17 variables)", logistica.predict(X_test),
             "Acierta el vecindario, no el nivel")
@@ -1216,15 +1242,20 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 # %% [markdown]
 # ### Interpretación: el techo de la aproximación clásica
 #
-# La regresión logística acierta el nivel exacto **una de cada tres veces**, con
-# un **error ordinal medio de 1,2 niveles**. XGBoost, con trescientos árboles y
-# capacidad para modelar interacciones complejas, **no mejora**: exactitud
-# ligeramente inferior y error ordinal ligeramente peor.
+# Tres cifras, en orden:
 #
-# Ese empate es informativo, no decepcionante. Cuando un modelo lineal y un
-# ensamble de gradient boosting rinden lo mismo sobre las mismas variables,
-# **la limitación está en las variables**. Es el mismo diagnóstico que dio el
-# Random Forest en regresión, llegando por otro camino.
+# - Con las **tres variables clásicas** del experimento original: exactitud
+#   **0,312**, error ordinal **1,293 niveles**.
+# - Con las **diecisiete**: exactitud **0,354**, error ordinal **1,059**.
+#   Catorce variables más compran cuatro puntos de exactitud.
+# - **XGBoost sobre las mismas diecisiete: 0,337 y 1,075. Es peor que la
+#   regresión logística**, con trescientos árboles y capacidad para modelar
+#   interacciones que la logística ni siquiera puede representar.
+#
+# Ese empate —o esa derrota— es informativo, no decepcionante. Cuando un modelo
+# lineal y un ensamble de *gradient boosting* rinden lo mismo sobre las mismas
+# variables, **la limitación está en las variables**. Es el mismo diagnóstico que
+# dio el Random Forest en regresión, llegando por otro camino.
 #
 # Vale la pena leer también el informe por clase: los niveles extremos (A1 y C2)
 # se recuperan razonablemente y los intermedios (A2, B1, B2) se confunden entre
@@ -1244,10 +1275,17 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # **a) Embeddings semánticos.** Se representó cada extracto con
 # `all-MiniLM-L6-v2` (384 dimensiones) y se entrenó una regresión logística
-# encima. La exactitud subió de 0,29 a **0,37** y el error ordinal cayó de 1,39 a
-# **0,93 niveles**. Fue **el mayor salto de calidad de todo el proyecto**, y con
-# el mismo clasificador de antes: lo único que cambió fue la representación.
-# Confirmó la hipótesis del §6.4 de forma limpia.
+# encima. Frente a la referencia de tres variables clásicas —exactitud 0,29 y
+# error ordinal 1,39 en aquel experimento—, los embeddings dieron **0,37** y
+# **0,93 niveles**, con el mismo clasificador: lo único que cambió fue la
+# representación.
+#
+# > **Matiz que el cuadernillo obliga a hacer.** Aquella comparación se hizo
+# > contra tres variables, y aquí se ha visto que ampliarlas a diecisiete sube la
+# > referencia clásica a 0,354 y 1,059. Es decir, **la ventaja de los embeddings
+# > sobre unas variables clásicas bien surtidas es bastante menor de lo que aquel
+# > experimento sugería**. La brecha que sí es grande, y que no se cierra con más
+# > conteos, es la del transformador que lee el texto: 0,46 y 0,67.
 #
 # **b) Híbrido embeddings + rasgos clásicos.** Exactitud 0,37, error ordinal
 # 0,91. **No mejora**: el embedding ya contiene lo que los rasgos aportaban. Una
@@ -1276,7 +1314,7 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # La elección de la versión destilada fue **deliberada y de producto**: la
 # aplicación tiene que puntuar libros enteros en una demo en vivo, y un modelo
-# con la mitad de capas puntúa aproximadamente el doble de ventanas por segundo.
+# con la mitad de capas puntúa sensiblemente más ventanas por segundo.
 # Con `roberta-base`, la curva de dificultad capítulo a capítulo de una novela
 # larga dejaría de ser interactiva.
 #
@@ -1326,7 +1364,7 @@ else:
     print()
     print("Lo que sí se ha calculado de verdad en esta ejecución: el corpus")
     print("completo, todo el análisis exploratorio, la ingeniería de variables")
-    print("y los cinco modelos de referencia. Lo que se reporta sin recalcular:")
+    print("y los siete modelos de referencia. Lo que se reporta sin recalcular:")
     print("las métricas del v4, medidas en su momento y detalladas en la §7.")
 
 # %%
@@ -1501,7 +1539,7 @@ print(tabla_reportada.to_string(index=False))
 # - Las once métricas clásicas bajan a **0,764**. Un 27 % de mejora sobre no
 #   hacer nada, con fórmulas de los años cuarenta.
 # - Añadir los seis rasgos propios llega a **0,748**. Mejora real pero pequeña.
-# - El Random Forest **no mejora** a la regresión lineal (0,764). Cuando más
+# - El Random Forest **no mejora** a la regresión lineal (0,765). Cuando más
 #   capacidad no compra nada, el problema son las variables.
 # - `roberta-base`, leyendo el texto, baja a **0,560**. Es un 25 % mejor que la
 #   mejor combinación de conteos, y el salto se produce **sin ninguna variable
@@ -1813,14 +1851,14 @@ plt.show()
 #
 # Una sola cosa, y no es técnica: **publicar los pesos del v4**. En cuanto exista
 # el repositorio en Hugging Face, se escribe su identificador en `URL_MODELO`
-# (§6.6) y este cuadernillo pasa de ejecutar el 90 % de su contenido a ejecutar
-# el 100 %. No hace falta cambiar ninguna otra línea.
+# (§6.6) y este cuadernillo pasa de ejecutarlo casi todo a ejecutarlo entero.
+# No hace falta cambiar ninguna otra línea.
 #
 # Mientras tanto, lo que sí se calcula en cada ejecución es: la descarga y
 # validación de las 4.724 filas del corpus de entrenamiento, la descarga del
-# catálogo completo de Project Gutenberg, las catorce figuras del análisis
+# catálogo completo de Project Gutenberg, las once figuras del análisis
 # exploratorio, la ingeniería de seis rasgos lingüísticos, la partición sin fuga
-# y los cinco modelos de referencia con sus métricas.
+# y los siete modelos de referencia con sus métricas.
 #
 # ## 9.4 Recomendaciones y trabajo futuro
 #
