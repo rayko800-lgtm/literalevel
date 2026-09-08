@@ -33,6 +33,7 @@ al usarse, y este script vuelve a leer el fichero actualizado).
 import argparse
 import json
 import os
+import secrets
 import socket
 import sys
 import time
@@ -391,6 +392,55 @@ def arrancar_servidor(puerto):
     return srv
 
 
+# ------------------------------------------------------- tunel publico
+
+def arrancar_tunel(puerto):
+    """Expone la pagina en una URL HTTPS publica, para verla fuera de casa.
+
+    Usa el tunel de Gradio, que ya esta instalado para LiteraLevel y **no
+    pide ninguna cuenta ni token**. Es el camino corto cuando no hay un
+    GITHUB_TOKEN a mano para el Gist: se levanta y en diez segundos hay un
+    enlace que abre desde cualquier red.
+
+    Lo que se publica son solo porcentajes y horas de reinicio. Las
+    credenciales no salen de este equipo: se usan aqui para consultar y ya.
+    Aun asi, el enlace es publico para quien lo tenga; no lo repartas.
+    """
+    try:
+        from gradio_client import client  # noqa: F401
+    except Exception:
+        pass
+    try:
+        from gradio import networking
+    except Exception as e:
+        print(f"  [tunel] gradio no esta disponible ({type(e).__name__}); "
+              f"usa --serve y la IP local, o --gist")
+        return None
+    # La firma de setup_tunnel ha cambiado entre versiones de Gradio: hoy pide
+    # cinco argumentos y antes tres. Se prueban de mas a menos en vez de fijar
+    # una version, que es lo que romperia en la proxima actualizacion.
+    ficha = secrets.token_urlsafe(32)
+    url = None
+    for args in (("127.0.0.1", puerto, ficha, None, None),
+                 ("127.0.0.1", puerto, ficha, None),
+                 ("127.0.0.1", puerto, ficha)):
+        try:
+            url = networking.setup_tunnel(*args)
+            break
+        except TypeError:
+            continue
+        except Exception as e:
+            print(f"  [tunel] no se pudo abrir ({type(e).__name__}: {e})")
+            return None
+    if not url:
+        print("  [tunel] la version de gradio no encaja con ninguna firma conocida")
+        return None
+    print(f"  ENLACE PUBLICO   {url}/")
+    print(f"  JSON del widget  {url}/estado.json")
+    print("  (dura mientras este proceso siga vivo)")
+    return url
+
+
 # ---------------------------------------------------------------- main
 
 def una_vez(args):
@@ -412,10 +462,16 @@ def main():
     p.add_argument("--loop", type=float, metavar="MIN", help="refresca cada MIN minutos")
     p.add_argument("--serve", type=int, metavar="PUERTO", help="sirve la carpeta por HTTP")
     p.add_argument("--gist", action="store_true", help="publica en un Gist secreto")
+    p.add_argument("--publico", action="store_true",
+                   help="ademas de servir, abre un tunel HTTPS publico (sin cuentas)")
     args = p.parse_args()
 
+    if args.publico and not args.serve:
+        args.serve = 8787          # --publico implica servir
     if args.serve:
         arrancar_servidor(args.serve)
+        if args.publico:
+            arrancar_tunel(args.serve)
 
     una_vez(args)
 

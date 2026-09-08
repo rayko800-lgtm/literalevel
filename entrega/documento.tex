@@ -15,6 +15,7 @@
 
 % --- Motor y codificación -------------------------------------------------
 \usepackage{iftex}
+\usepackage{graphicx}
 \ifPDFTeX
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
@@ -142,56 +143,82 @@
 % ---------------------------------------------------------------- Portada --
 \begin{titlepage}
 \centering
-\vspace*{0.6cm}
 
-\begin{tikzpicture}
-  \draw[line width=1.1pt, llazul] (0,0) -- (12,0);
-\end{tikzpicture}
+% --- Escudos institucionales -------------------------------------------
+% Misma maquetacion que el proyecto del modulo 4, y con sus mismos archivos.
+% Son las UNICAS imagenes externas del documento: un escudo es una marca
+% institucional, no una figura de datos. Las doce figuras siguen en TikZ.
+\begin{minipage}{0.25\textwidth}
+    \raggedright
+    \includegraphics[height=2.7cm]{logos/logo_unam.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    \centering
+    {\Large\bfseries Universidad Nacional Autónoma de México\par}
 
-\vspace{0.35cm}
-{\large\scshape Universidad Nacional Autónoma de México}\\[0.25cm]
-{\large Facultad de Estudios Superiores Acatlán}\\[0.5cm]
-{\normalsize Diplomado en Ciencia de Datos \quad\textbullet\quad Generación 34}
+    \vspace{0.2cm}
 
-\vspace{0.35cm}
-\begin{tikzpicture}
-  \draw[line width=1.1pt, llazul] (0,0) -- (12,0);
-\end{tikzpicture}
+    {\large FACULTAD DE ESTUDIOS SUPERIORES ACATLÁN\par}
+\end{minipage}
+\hfill
+\begin{minipage}{0.25\textwidth}
+    \raggedleft
+    \includegraphics[height=2.7cm]{logos/logo_fes_acatlan.png}
+\end{minipage}
 
-\vspace{2.2cm}
+\vspace{2.0cm}
 
 {\Huge\bfseries\color{llazul} LiteraLevel\par}
-\vspace{0.9cm}
-{\LARGE Medición automática de la dificultad\\[0.25cm] de lectura en inglés y su entrega\\[0.25cm] a un lector real\par}
 
-\vspace{1.0cm}
-{\large\itshape Proyecto integrador — Módulo 5\par}
+\vspace{0.6cm}
 
-\vspace{1.6cm}
+{\LARGE Medición automática de la dificultad de lectura\\[0.25cm]
+en inglés y su entrega a un lector real\par}
 
-% --- Sello de resultados, dibujado en TikZ ---
+\vspace{1.8cm}
+
+{\Large\bfseries Proyecto integrador --- Módulo 5\par}
+
+\vspace{1.2cm}
+
+{\large
+\textbf{Alumno:}\\
+Miguel Reyes Carrillo
+\par}
+
+\vspace{0.7cm}
+
+{\large
+\textbf{Profesor:}\\
+Mtro. Fernando Barranco Rodríguez
+\par}
+
+\vspace{0.7cm}
+
+{\large
+Diplomado en Ciencia de Datos --- Generación 34
+\par}
+
+\vfill
+
+% El sello de cifras al pie: apoya, no encabeza.
 \begin{tikzpicture}[font=\small]
   \node[draw=llazul!35, fill=llfondo, rounded corners=6pt, line width=0.8pt,
-        inner sep=10pt, text width=12.4cm, align=center] (caja) {
+        inner sep=9pt, text width=12.4cm, align=center] (caja) {
     \begin{minipage}{12.1cm}
       \centering
-      \begin{tabular}{@{}C{3.4cm}C{3.9cm}C{3.2cm}@{}}
-        {\Large\bfseries\color{llcian} 0,908} & {\Large\bfseries\color{llverde} A1 $<\cdots<$ C1} & {\Large\bfseries\color{llambar} 97,2\pct} \\[2pt]
-        {\footnotesize Spearman en validación ciega} & {\footnotesize orden MCER creciente en corpus externo} & {\footnotesize dentro de $\pm 1$ nivel} \\
+      \begin{tabular}{@{}C{3.6cm}C{4.0cm}C{3.3cm}@{}}
+        {\large\bfseries\color{llcian} 0,908} & {\large\bfseries\color{llverde} A1 $<\cdots<$ C1} & {\large\bfseries\color{llambar} 97,2\pct} \\[2pt]
+        {\scriptsize Spearman, validación ciega} & {\scriptsize orden MCER creciente en corpus externo} & {\scriptsize dentro de $\pm 1$ nivel} \\
       \end{tabular}
     \end{minipage}};
 \end{tikzpicture}
 
-\vfill
-
-{\large\bfseries Miguel Reyes Carrillo}\\[0.35cm]
-{\normalsize Profesor: Mtro. Fernando Barranco Rodríguez}\\[1.0cm]
-{\normalsize Septiembre de 2026}
-
 \vspace{0.6cm}
-\begin{tikzpicture}
-  \draw[line width=0.6pt, llazul!45] (0,0) -- (12,0);
-\end{tikzpicture}
+
+{\normalsize Ciudad de México, septiembre de 2026\par}
+
 \end{titlepage}
 
 % ---------------------------------------------------------------- Resumen --
