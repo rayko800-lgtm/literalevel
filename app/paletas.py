@@ -209,8 +209,80 @@ def css(clave: str, estrellas_css: str = "") -> str:
         "--link-text-color:var(--ll-acento) !important;"
         "--link-text-color-active:var(--ll-acento) !important;"
         "--link-text-color-hover:var(--ll-acento) !important;"
-        "--link-text-color-visited:var(--ll-acento) !important}"
+        "--link-text-color-visited:var(--ll-acento) !important;"
+        # --- Y las SUPERFICIES, no solo el texto -------------------------
+        # Esto es la otra mitad del mismo fallo, y salio al MEDIR el Space
+        # despues de arreglar la primera. Al forzar el color del texto sin
+        # tocar los rellenos que pinta Gradio, las casillas de opcion se
+        # quedaron con letra de la paleta sobre fondo del tema: medido con
+        # ?__theme=dark y la paleta menta, 1,11:1 en las cinco opciones del
+        # selector de colores y en TODO el cuestionario de "Mi nivel", que es
+        # la primera pantalla que ve alguien. Con amanecer y papel, 1,03:1.
+        #
+        # La leccion: el texto y la superficie sobre la que se pinta tienen
+        # que salir del MISMO sitio. Arreglar solo uno de los dos no mejora
+        # el contraste, lo mueve.
+        "--checkbox-label-background-fill:var(--ll-panel) !important;"
+        "--checkbox-label-background-fill-hover:var(--ll-fondo-alto) !important;"
+        "--checkbox-label-background-fill-selected:var(--ll-boton-alto) !important;"
+        "--checkbox-label-text-color:var(--ll-texto) !important;"
+        "--checkbox-label-text-color-selected:var(--ll-boton-texto) !important;"
+        "--checkbox-label-border-color:var(--ll-borde) !important;"
+        "--checkbox-label-border-color-hover:var(--ll-borde) !important;"
+        "--checkbox-label-border-color-selected:var(--ll-boton-alto) !important;"
+        "--checkbox-background-color:var(--ll-fondo) !important;"
+        "--checkbox-background-color-hover:var(--ll-fondo) !important;"
+        "--checkbox-background-color-focus:var(--ll-fondo) !important;"
+        "--checkbox-background-color-selected:var(--ll-boton-alto) !important;"
+        "--checkbox-border-color:var(--ll-borde) !important;"
+        "--checkbox-border-color-hover:var(--ll-borde) !important;"
+        "--checkbox-border-color-focus:var(--ll-acento) !important;"
+        "--checkbox-border-color-selected:var(--ll-boton-alto) !important;"
+        "--input-background-fill:var(--ll-panel) !important;"
+        "--input-background-fill-hover:var(--ll-panel) !important;"
+        "--input-background-fill-focus:var(--ll-panel) !important;"
+        "--input-border-color:var(--ll-borde) !important;"
+        "--input-border-color-hover:var(--ll-borde) !important;"
+        "--input-border-color-focus:var(--ll-acento) !important;"
+        "--input-placeholder-color:var(--ll-texto) !important;"
+        "--button-secondary-background-fill:var(--ll-panel) !important;"
+        "--button-secondary-background-fill-hover:var(--ll-fondo-alto) !important;"
+        "--button-secondary-text-color:var(--ll-texto) !important;"
+        "--button-secondary-text-color-hover:var(--ll-texto) !important;"
+        "--button-secondary-border-color:var(--ll-borde) !important;"
+        "--button-secondary-border-color-hover:var(--ll-acento) !important;"
+        "--button-cancel-background-fill:var(--ll-panel) !important;"
+        "--button-cancel-background-fill-hover:var(--ll-fondo-alto) !important;"
+        "--button-cancel-text-color:var(--ll-texto) !important;"
+        "--button-cancel-text-color-hover:var(--ll-texto) !important;"
+        "--block-background-fill:var(--ll-panel) !important;"
+        "--block-label-background-fill:var(--ll-panel) !important;"
+        "--panel-background-fill:var(--ll-panel) !important;"
+        "--background-fill-secondary:var(--ll-fondo-alto) !important;"
+        "--code-background-fill:var(--ll-fondo-alto) !important;"
+        "--table-even-background-fill:var(--ll-panel) !important;"
+        "--table-odd-background-fill:var(--ll-fondo-alto) !important;"
+        "--table-border-color:var(--ll-borde) !important;"
+        "--table-text-color:var(--ll-texto) !important;"
+        "--accordion-text-color:var(--ll-texto) !important;"
+        # El rotulo de la pestana elegida sale de --color-accent, no del CSS
+        # de la aplicacion: Gradio 6.26 le cambio la clase al boton y la regla
+        # vieja dejo de enganchar sin avisar. Medido: 2,94:1 en amanecer,
+        # 2,98 en menta y 2,80 en papel, con el mismo azul #2e9cc4 en las
+        # tres, que es la firma de un color que no viene de la paleta.
+        "--color-accent:var(--ll-acento) !important;"
+        "--border-color-accent:var(--ll-acento) !important;"
+        "--border-color-accent-subdued:var(--ll-borde) !important}"
         ".prose,.prose *,.markdown-text,.markdown-text *{"
         "color:var(--ll-texto) !important}"
         "label,.label-wrap,.svelte-1gfkn6j{color:var(--ll-texto) !important}"
+        # La casilla ELEGIDA lleva el relleno fuerte del boton, asi que su
+        # letra tiene que ser la del boton y no la del cuerpo. La regla de
+        # arriba, con su `!important`, le ganaba a
+        # `--checkbox-label-text-color-selected` y dejaba letra de cuerpo
+        # sobre relleno de acento: medido en el Space, 2,12:1 en menta,
+        # 2,21 en amanecer, 2,44 en papel. O sea que la opcion que el
+        # usuario acaba de elegir era la unica que no podia leer.
+        "label.selected,label.selected *{"
+        "color:var(--ll-boton-texto) !important}"
         "</style>")

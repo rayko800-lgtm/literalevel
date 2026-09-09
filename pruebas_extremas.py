@@ -779,13 +779,30 @@ def _contraste_suficiente():
     """WCAG AA pide 4.5:1 para texto normal. Una paleta bonita e ilegible no
     sirve: esto se anadio porque la app la va a usar gente de quince anos en
     un movil, no un disenador en un monitor calibrado."""
-    def rgb(c):
+    def rgba(c):
+        """(r, g, b, alfa). El alfa IMPORTA: los paneles son
+        semitransparentes y antes se tiraba, o sea que se median
+        colores que el navegador nunca pinta."""
         c = c.strip()
         if c.startswith("#"):
             c = c[1:]
-            return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+            if len(c) == 3:
+                c = "".join(x * 2 for x in c)
+            return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4)) + (1.0,)
         n = c[c.find("(") + 1:c.find(")")].split(",")
-        return tuple(int(float(x)) for x in n[:3])
+        v = tuple(int(float(x)) for x in n[:3])
+        return v + (float(n[3]) if len(n) > 3 else 1.0,)
+
+    def sobre(color, fondo):
+        """Compone `color` sobre `fondo`. Un panel rgba(255,255,255,.86)
+        sobre un fondo oscuro NO es blanco, y es lo que se ve."""
+        r, g, b, a = rgba(color)
+        fr, fg, fb, _ = rgba(fondo)
+        return (r * a + fr * (1 - a), g * a + fg * (1 - a),
+                b * a + fb * (1 - a), 1.0)
+
+    def rgb(c):
+        return rgba(c)[:3]
 
     def lum(c):
         def f(v):
@@ -821,6 +838,15 @@ def _contraste_suficiente():
         "titulo-1": ("--ll-titulo-1", "--ll-fondo", 3.0),
         "titulo-2": ("--ll-titulo-2", "--ll-fondo", 3.0),
         "titulo-3": ("--ll-titulo-3", "--ll-fondo", 3.0),
+        # Las casillas de opcion: el cuestionario entero de "Mi nivel"
+        # y el selector de colores. Se anadieron porque al forzar el
+        # color del texto de la paleta sin tocar el relleno que pinta
+        # Gradio, quedaron en 1,03:1 medidos en el Space.
+        "casilla": ("--ll-texto", "--ll-panel", 4.5),
+        "casilla-encima": ("--ll-texto", "--ll-fondo-alto", 4.5),
+        # La curva por capitulos vive sobre el panel, no sobre el
+        # fondo. Es un objeto grafico: WCAG le pide 3:1.
+        "grafica-linea": ("--ll-acento", "--ll-panel", 3.0),
     }
 
     malas = []
@@ -830,7 +856,14 @@ def _contraste_suficiente():
             if a not in v or b not in v:
                 malas.append(f"{k}/{etiqueta}=falta variable")
                 continue
-            la, lb = lum(v[a]), lum(v[b])
+            # El fondo se compone sobre --ll-fondo antes de medir, y
+            # el texto sobre ese fondo ya compuesto. Medir el color
+            # declarado en vez del compuesto es exactamente el error
+            # que dejo pasar la opacidad del .62.
+            fondo = sobre(v[b], v["--ll-fondo"])
+            texto = sobre(v[a], "rgb(%d,%d,%d)" % fondo[:3])
+            la = lum("rgb(%d,%d,%d)" % texto[:3])
+            lb = lum("rgb(%d,%d,%d)" % fondo[:3])
             r = (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
             if r < minimo:
                 malas.append(f"{k}/{etiqueta}={r:.2f} (pide {minimo})")
@@ -934,6 +967,79 @@ def _la_paleta_manda_sobre_el_navegador():
 
 prueba("la paleta manda sobre el modo del navegador",
        _la_paleta_manda_sobre_el_navegador)
+
+
+def _las_superficies_tambien_salen_de_la_paleta():
+    """No basta con forzar el COLOR DEL TEXTO: hay que forzar el fondo.
+
+    La primera version de la correccion redefinia --body-text-color y se
+    quedaba ahi. Resultado medido en el Space con ?__theme=dark y la
+    paleta menta: las casillas de opcion -el cuestionario entero de "Mi
+    nivel", que es la primera pantalla- con letra de la paleta sobre el
+    relleno del tema, 1,11:1. Con amanecer y papel, 1,03:1.
+
+    Arreglar solo uno de los dos no mejora el contraste: lo mueve de
+    sitio. Aqui se comprueba que van los dos.
+    """
+    superficies = ("--checkbox-label-background-fill",
+                   "--checkbox-label-text-color",
+                   "--input-background-fill",
+                   "--button-secondary-background-fill",
+                   "--button-secondary-text-color",
+                   "--block-background-fill",
+                   "--table-even-background-fill",
+                   "--color-accent")
+    malas = []
+    for nombre in paletas_mod.PALETAS:
+        css = paletas_mod.css(nombre)
+        for var in superficies:
+            if f"{var}:var(--ll-" not in css:
+                malas.append(f"{nombre}: no redefine {var}")
+    # Y la casilla ELEGIDA: lleva el relleno del boton, asi que su letra
+    # tiene que ser la del boton. La regla general de `label` le ganaba.
+    for nombre in paletas_mod.PALETAS:
+        if "label.selected" not in paletas_mod.css(nombre):
+            malas.append(f"{nombre}: la casilla elegida se queda sin regla")
+    assert not malas, malas
+    return f"{len(superficies)} superficies atadas a la paleta"
+
+
+prueba("las superficies tambien salen de la paleta",
+       _las_superficies_tambien_salen_de_la_paleta)
+
+
+def _la_grafica_no_lleva_colores_clavados():
+    """Plotly no lee CSS: la grafica es una imagen con los colores dentro.
+
+    Estaba clavada en azul hielo -letra #c8dbe6, lineas #79d0ea y
+    #4bb8da- con la paleta que fuera. Sobre el panel blanco de las tres
+    paletas claras la letra de los ejes daba 1,3:1. Y no hay un color que
+    valga para las cinco: sobre el fondo mas oscuro hace falta luminancia
+    >= 0,186 y sobre el mas claro <= 0,174.
+    """
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    i = fuente.find("def _grafica_analisis(")
+    j = fuente.find("\ndef ", i + 10)
+    cuerpo = fuente[i:j]
+    assert i > 0 and j > i, "no encuentro _grafica_analisis"
+    import re
+    clavados = re.findall(r"#[0-9a-fA-F]{6}", cuerpo)
+    assert not clavados, f"colores clavados en la grafica: {clavados}"
+    assert "_colores_paleta(" in cuerpo, "no consulta la paleta"
+    # Y que de verdad cambien de una paleta a otra.
+    a = ui._colores_paleta("hielo")["--ll-texto"]
+    b = ui._colores_paleta("papel")["--ll-texto"]
+    assert a != b, "las dos paletas dan la misma letra"
+    # Clave inventada: la de siempre, sin reventar.
+    assert ui._colores_paleta("noexiste")["--ll-texto"] == a
+    assert ui._rgba("#8fd3e8", 0.5) == "rgba(143,211,232,0.5)"
+    assert ui._rgba("rgba(1,2,3,.4)", 0.5) == "rgba(1,2,3,.4)"
+    return "la grafica se pinta con la paleta"
+
+
+prueba("la grafica no lleva colores clavados",
+       _la_grafica_no_lleva_colores_clavados)
 
 
 def _clave_con_acentos():

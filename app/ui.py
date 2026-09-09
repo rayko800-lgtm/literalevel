@@ -1162,7 +1162,7 @@ def _capitulos_de_cuerpo(libro):
     return ficha.capitulos_de_cuerpo(libro)
 
 
-def _analizar_libro(libro, modo="completo", como="cifra",
+def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
                     peticion: gr.Request = None):
     """Perfil de dificultad del libro, capitulo a capitulo.
 
@@ -1225,7 +1225,7 @@ def _analizar_libro(libro, modo="completo", como="cifra",
                        f"{ventanas:,} ventanas leídas."
                        + ("" if rapido else
                           "\n\nEsto se calcula una sola vez y queda guardado."),
-                       _grafica_analisis(parcial))
+                       _grafica_analisis(parcial, paleta))
 
         if not filas:
             yield "No pude medir ningún capítulo de este libro.", None
@@ -1237,7 +1237,7 @@ def _analizar_libro(libro, modo="completo", como="cifra",
                  "capitulos_totales": len(_capitulos_de_cuerpo(libro))}
         _guardar_analisis(libro, datos, modo)
 
-    yield _resumen_analisis(datos, como), _grafica_analisis(datos)
+    yield _resumen_analisis(datos, como), _grafica_analisis(datos, paleta)
 
 
 def _ficha_libro(libro, p=None) -> str:
@@ -1364,7 +1364,37 @@ def _suavizar(valores, ventana: int) -> list[float]:
     return salida
 
 
-def _grafica_analisis(datos):
+def _colores_paleta(clave):
+    """Los colores de una paleta, para lo que NO es CSS.
+
+    Plotly no sabe leer variables CSS: dibuja una imagen con los
+    colores que se le den y ahi se acaba. Por eso la grafica estaba
+    clavada en azul hielo aunque la paleta fuera "papel", y sobre el
+    panel blanco de las paletas claras la letra de los ejes -#c8dbe6-
+    daba 1,3:1. No hay un color que valga para las cinco paletas: para
+    pasar AA sobre el fondo mas oscuro hace falta luminancia >= 0,186 y
+    sobre el mas claro <= 0,174. Las dos condiciones no se cumplen a la
+    vez, asi que el color TIENE que venir de la paleta.
+    """
+    d = paletas_mod.PALETAS.get(clave) or paletas_mod.PALETAS[
+        paletas_mod.POR_DEFECTO]
+    return d["vars"]
+
+
+def _rgba(color: str, alfa: float) -> str:
+    """`#rrggbb` -> `rgba(r,g,b,alfa)`. Si ya viene en rgb/rgba se
+    devuelve tal cual: las paletas mezclan los dos formatos."""
+    c = color.strip()
+    if not c.startswith("#"):
+        return c
+    c = c[1:]
+    if len(c) == 3:
+        c = "".join(x * 2 for x in c)
+    r, g, b = (int(c[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r},{g},{b},{alfa})"
+
+
+def _grafica_analisis(datos, paleta: str = None):
     """Curva de dificultad del libro, continua y con zoom.
 
     Era un diagrama de barras y con War and Peace -366 capitulos- se convertia
@@ -1388,16 +1418,23 @@ def _grafica_analisis(datos):
     ventana = 1 if len(y) < 12 else max(3, round(len(y) / 25))
     nivel_general = _suavizar(y, ventana)
 
+    # Los colores salen de la paleta elegida, no de una constante. Ver
+    # `_colores_paleta`: con la paleta clavada, la grafica era ilegible
+    # en papel, menta y amanecer.
+    v = _colores_paleta(paleta or paletas_mod.POR_DEFECTO)
+    c_texto, c_acento = v["--ll-texto"], v["--ll-acento"]
+    c_borde, c_fondo = v["--ll-borde"], v["--ll-fondo"]
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=x, y=y, mode="lines", name="capítulo a capítulo",
-        line=dict(color="#79d0ea", width=1), opacity=0.35,
+        line=dict(color=c_acento, width=1), opacity=0.35,
         customdata=titulos,
         hovertemplate="Capítulo %{x}<br>%{customdata}<br>"
                       "<b>%{y:.2f}</b> / 2.00<extra></extra>"))
     fig.add_trace(go.Scatter(
         x=x, y=nivel_general, mode="lines", name="nivel general",
-        line=dict(color="#4bb8da", width=2.5, shape="spline", smoothing=0.6),
+        line=dict(color=c_acento, width=2.5, shape="spline", smoothing=0.6),
         fill="tozeroy",
         # El degradado es lo que pidio Miguel: el azul hielo se desvanece hacia
         # abajo en vez de cortar en un bloque plano.
@@ -1406,24 +1443,43 @@ def _grafica_analisis(datos):
         # color solido devolvia el mismo bloque macizo que tenian las barras.
         # Asi el color acompana a la linea y el resto respira.
         fillgradient=dict(type="vertical", colorscale=[
-            (0.00, "rgba(46,156,196,0.00)"), (0.62, "rgba(46,156,196,0.04)"),
-            (0.86, "rgba(75,184,218,0.16)"), (1.00, "rgba(121,208,234,0.38)")]),
+            (0.00, _rgba(c_acento, 0.00)), (0.62, _rgba(c_acento, 0.04)),
+            (0.86, _rgba(c_acento, 0.16)), (1.00, _rgba(c_acento, 0.38))]),
         hoverinfo="skip"))
 
     fig.update_layout(
         margin=dict(l=48, r=16, t=16, b=40), height=300,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#c8dbe6", size=12),
+        font=dict(color=c_texto, size=12),
         hovermode="x unified", dragmode="zoom",
+        # La etiqueta flotante la pintaba Plotly con sus colores por
+        # defecto: sobre una paleta clara salia letra clara en caja clara.
+        hoverlabel=dict(bgcolor=c_fondo, bordercolor=c_borde,
+                        font=dict(color=c_texto)),
         showlegend=len(y) >= 12,
         legend=dict(orientation="h", y=1.12, x=0, bgcolor="rgba(0,0,0,0)"))
-    fig.update_xaxes(title_text="Capítulo", gridcolor="rgba(121,208,234,.10)",
+    fig.update_xaxes(title_text="Capítulo", gridcolor=c_borde,
                      zeroline=False, showspikes=True, spikethickness=1,
-                     spikecolor="rgba(121,208,234,.5)", spikemode="across")
+                     spikecolor=_rgba(c_acento, 0.5), spikemode="across")
     fig.update_yaxes(title_text="Dificultad", range=[0, 2.05],
-                     gridcolor="rgba(121,208,234,.10)", zeroline=False,
+                     gridcolor=c_borde, zeroline=False,
                      dtick=0.5)
     return fig
+
+
+def _repintar_grafica(libro, clave):
+    """Vuelve a dibujar la curva con la paleta nueva, si hay curva.
+
+    Cambiar de paleta cambia el CSS al momento, pero la grafica es una
+    imagen ya pintada: se quedaba con los colores de la paleta anterior
+    hasta que volvieras a medir el libro.
+    """
+    if libro is None:
+        return gr.update()
+    datos = _analisis_guardado(libro) or _analisis_guardado(libro, "rapido")
+    if not datos or not datos.get("filas"):
+        return gr.update()
+    return _grafica_analisis(datos, clave)
 
 
 def _resumen_analisis(datos, como="cifra") -> str:
@@ -2182,6 +2238,11 @@ def construir() -> gr.Blocks:
 
         est_perfil = gr.State(None)
         est_libro = gr.State(None)
+        # La paleta elegida. Va en un State porque el selector se construye
+        # mucho mas abajo -en la pestana "Colores"- y la grafica, que la
+        # necesita, se cablea antes: un State se declara aqui y se rellena
+        # alli.
+        est_paleta = gr.State(paletas_mod.POR_DEFECTO)
 
         with gr.Tabs() as pestanas:
             with gr.Tab("Mi nivel", id="nivel"):
@@ -2410,10 +2471,12 @@ def construir() -> gr.Blocks:
                 b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
                 b_medir.click(_medir, [est_libro, cap, escala], medicion_md)
                 b_analizar.click(_analizar_libro,
-                                 [est_libro, gr.State("completo"), escala],
+                                 [est_libro, gr.State("completo"), escala,
+                                  est_paleta],
                                  [analisis_md, grafica])
                 b_rapido.click(_analizar_libro,
-                               [est_libro, gr.State("rapido"), escala],
+                               [est_libro, gr.State("rapido"), escala,
+                                est_paleta],
                                [analisis_md, grafica])
                 # Va colgado del State y no de `archivo`, para que la ficha
                 # salga tambien cuando el libro llega del buscador y no de una
@@ -2496,6 +2559,12 @@ def construir() -> gr.Blocks:
                                   value=paletas_mod.POR_DEFECTO,
                                   label="Paleta de colores")
                 paleta.change(_css_paleta, paleta, paleta_css)
+                # Y la paleta tiene que llegar tambien a lo que NO es CSS: la
+                # grafica es una imagen de Plotly con los colores dentro. Si ya
+                # hay una curva pintada se repinta; si no, se deja como esta
+                # -devolver None la borraria-.
+                paleta.change(lambda c: c, paleta, est_paleta)
+                paleta.change(_repintar_grafica, [est_libro, paleta], grafica)
 
             with gr.Tab("Estado", id="estado"):
                 diag = gr.Markdown()

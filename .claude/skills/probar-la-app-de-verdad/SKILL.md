@@ -168,3 +168,83 @@ porque en el código está perfectamente visible.
 
 Cuando alguien diga «no encontré dónde», eso **no es una pregunta**: es un
 informe de fallo, y el fallo es tuyo.
+
+
+---
+
+## 7. Arreglar el color del texto sin arreglar el fondo
+
+Esto salió de la corrección de la sección 3, y es la lección más cara del día
+porque parecía terminada.
+
+Cuando una interfaz hereda su tema de un framework —Gradio, Bootstrap, lo que
+sea— y encima le pones una paleta propia, el navegador acaba mezclando dos
+fuentes de verdad. Si redefines solo la mitad, el contraste no mejora: **se
+mueve de sitio**.
+
+Medido, después de forzar `--body-text-color` desde la paleta y creer que ya
+estaba:
+
+| dónde | contraste | qué era |
+|---|---|---|
+| casillas de opción | 1,03–1,11:1 | letra de la paleta, relleno del tema |
+| casilla **elegida** | 2,12–2,44:1 | mi propia regla `!important` ganándole a la variable del tema |
+| pestaña seleccionada | 2,80–2,98:1 | `--color-accent`, que nunca miré |
+| gráfica de Plotly | 1,3:1 | una imagen con los colores dentro |
+
+**La regla:** haz la lista de las variables del tema que pintan **superficies
+con texto encima** —casillas, entradas, botones secundarios, bloques, tablas,
+código, acento— y átalas todas a la paleta, o no ates ninguna. La lista se saca
+del navegador, no de la memoria:
+
+```js
+const props = new Set();
+for (const ss of document.styleSheets)
+  for (const r of ss.cssRules || [])
+    for (const p of (r.style || [])) if (p.startsWith('--')) props.add(p);
+```
+
+Eso devolvió 692 variables y 396 relevantes. Elegir a ojo cuáles importan es
+cómo se pasan por alto cuatro.
+
+### Lo que no es CSS
+
+Una gráfica de Plotly, un PNG generado, un PDF: **no leen variables CSS**. Son
+imágenes con los colores dentro, y si el tema es elegible, el color tiene que
+viajar hasta ahí como un dato.
+
+Y no hay atajo: para pasar AA sobre el fondo más oscuro de la aplicación hacía
+falta luminancia ≥ 0,186, y sobre el más claro ≤ 0,174. **Ningún color cumple
+las dos.** Cuando alguien proponga «un gris que valga para todos», ese cálculo
+de dos líneas cierra la discusión.
+
+En Gradio, el camino es un `gr.State` declarado arriba —donde están los demás
+`State`— y rellenado abajo, donde vive el selector; los eventos se cablean en
+orden de construcción, así que el componente que aún no existe no se puede
+referenciar, pero un `State` sí. Y acuérdate de **repintar** lo ya dibujado al
+cambiar de tema: el CSS cambia solo, la imagen no.
+
+---
+
+## 8. Medir demasiado pronto miente
+
+Los primeros barridos de contraste sobre la página desplegada dieron grises que
+no pertenecían a ninguna paleta: texto `rgb(162,162,163)` sobre fondo
+`rgb(155,157,161)`, 1,06:1. Parecía un fallo grave. Era la página a medio
+pintar.
+
+Cambiar de paleta son dos cosas seguidas: una ida y vuelta al servidor que
+devuelve el `<style>` nuevo, y una transición CSS de 0,2 s. Si mides antes de
+que las dos acaben, mides una mezcla.
+
+**Cómo se distingue un fallo de un artefacto de medición**, sin adivinar:
+
+1. Lee la huella del tema —`getComputedStyle(raiz).getPropertyValue('--mi-texto')`—
+   y espera a que **cambie**; eso confirma que el CSS nuevo llegó.
+2. Espera además a que la transición termine.
+3. Vuelve a medir. Si el fallo desaparece, era el reloj; si sigue, es tuyo.
+
+Y el corolario: **acota la medición a tu propia raíz**. Los primeros informes
+señalaban un `/` con 1,41:1 que resultó ser el separador de la cabecera que
+inyecta Hugging Face, fuera de `.gradio-container`. Un fallo que no puedes
+arreglar y no es tuyo solo gasta el tiempo del siguiente.
