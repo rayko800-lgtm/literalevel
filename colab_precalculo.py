@@ -307,8 +307,21 @@ def extraer(numeros_que_quiero: set[int]) -> int:
 
     El archivo trae los .txt de todo Gutenberg, incluidos los que no estan en
     ingles y los que ya no aplican. Extraer los 61.642 que queremos y dejar
-    fuera el resto se hace aqui, leyendo el indice del tar sin descomprimir
-    nada mas que lo necesario.
+    fuera el resto se hace aqui, leyendo el tar en streaming sin descomprimirlo
+    entero.
+
+    ESTRUCTURA REAL DEL ARCHIVO, comprobada el 9 de septiembre de 2026 pidiendo
+    los primeros 3 MB por rango HTTP y descomprimiendolos al vuelo:
+
+        cache/epub/10000/pg10000.txt      101.742 B
+        cache/epub/1000/pg1000.txt        597.903 B
+        cache/epub/84/pg84.txt            ...
+
+    El zip contiene un unico miembro, `txt-files.tar`, comprimido con deflate.
+    Dentro, cada libro va en `cache/epub/<n>/pg<n>.txt`, o sea que el numero
+    aparece DOS VECES: en la carpeta y en el nombre. Se exigen las dos y que
+    coincidan, que es mas seguro que fiarse de una sola: un `readme.txt` o un
+    fichero suelto con digitos en el nombre no pasa el filtro.
     """
     sacados = 0
     with zipfile.ZipFile(ZIP_LOCAL) as z:
@@ -323,11 +336,18 @@ def extraer(numeros_que_quiero: set[int]) -> int:
                 for miembro in tar:
                     if not miembro.isfile() or not miembro.name.endswith(".txt"):
                         continue
-                    base = Path(miembro.name).stem
-                    digitos = "".join(c for c in base.split("-")[0] if c.isdigit())
-                    if not digitos:
+                    partes = Path(miembro.name).parts
+                    if len(partes) < 2:
                         continue
-                    n = int(digitos)
+                    carpeta = "".join(c for c in partes[-2] if c.isdigit())
+                    base = Path(miembro.name).stem
+                    fichero = "".join(c for c in base.split("-")[0] if c.isdigit())
+                    # El numero tiene que estar en la carpeta Y en el nombre, y
+                    # ser el mismo. Asi un readme.txt o un fichero raro con
+                    # digitos sueltos no se cuela.
+                    if not carpeta or not fichero or carpeta != fichero:
+                        continue
+                    n = int(fichero)
                     if n not in numeros_que_quiero:
                         continue
                     destino = LOCAL / f"pg{n}.txt"

@@ -132,8 +132,7 @@ que un bloque que puntúa 5,3 arrastrase hacia arriba a todo el capítulo. Las
 dos versiones de la fórmula llegan a separarse **0,021** en un libro real, que
 es cinco veces la diferencia de cualquier otra decisión de agregación del
 sistema. Una versión anterior de este documento publicaba el recorte fuera del
-sumatorio; el código siempre hizo lo que se describe aquí, y lo detectó una
-auditoría externa.
+sumatorio; el código siempre hizo lo que se describe aquí.
 
 ### 2.2 Lo que el problema no es
 
@@ -266,6 +265,13 @@ independientes —por palabras clave del título y por estructura (≥7 palabras
 línea y densidad de puntuación final de frase en el intervalo (0, 0,11])—, que
 coinciden en 53 de 59 casos, el 89,8 %.
 
+**Ese filtro es el del análisis, no el que aplica la aplicación**, y conviene no
+confundirlos porque dan resultados distintos. Lo que corre en producción es
+`scoring.continuous_prose`, con otras reglas: al menos 150 palabras, al menos
+cuatro frases, entre 5 y 55 palabras de media por frase, y rechazo si hay dos o
+más viñetas o más del 35 % de líneas cortas. Coinciden en el propósito —tirar
+menús, listas y tablas— pero no en los umbrales.
+
 **Y aquí hay que contar la secuencia real, porque una versión anterior de este
 documento decía que el filtro se fijó «antes de mirar ningún resultado» y no es
 exacto.** Lo que ocurrió fue lo contrario en el orden: primero se puntuaron los
@@ -274,7 +280,7 @@ tablero de salidas, y **de ese diagnóstico salió la idea del filtro**. Que las
 dos vías se definieran sin volver a mirar las puntuaciones, y que coincidan
 entre sí en el 89,8 % de los casos, es lo que impide que sea un filtro hecho a
 medida de las notas. Pero no es un criterio *a priori*, y llamarlo así sería
-regalarse una garantía que no se tiene. Lo detectó una auditoría externa.
+regalarse una garantía que no se tiene.
 
 **(b) Las etiquetas del catálogo heredado no son fiables, y hay que decirlo.**
 El catálogo con el que la aplicación funciona hoy tiene **1.197 libros** —no
@@ -532,7 +538,7 @@ optimistas. La segunda: las seis clases salen de partir `BT_easiness` en
 **sextiles de este corpus**, no de anotaciones del Marco Común Europeo. Se les
 dan nombres A1–C2 para poder ordenarlos, pero no son niveles MCER certificados
 ni equivalen a los del modelo desplegado, que se ancla con otro corpus. Ambas
-cosas las señaló una auditoría externa y ambas son ciertas.
+cosas son ciertas.
 
 ### 7.2 Progresión de modelos
 
@@ -571,7 +577,7 @@ cifras de este apartado son del experimento sobre CLEAR; las del modelo
 desplegado están en el §7.4 y no se pueden encadenar con estas. La diferencia
 de calidad entre las dos arquitecturas sobre CLEAR **no se midió**, así que la
 decisión de usar la destilada se tomó por tamaño y velocidad, no porque se
-comprobara que costaba poco. Lo señaló una auditoría externa.
+comprobara que costaba poco.
 
 **Sobreajuste, visto y controlado.** El entrenamiento corrió seis épocas con
 tasa de aprendizaje 2e-5, decaimiento de pesos 0,01, calentamiento y precisión
@@ -601,7 +607,7 @@ variantes del modelo entrenadas sobre corpus distintos (v1 sobre
 real; más alto es mejor.*
 
 **Por qué la casilla de OneStopEnglish está vacía para v2, y no es un olvido.**
-Una auditoría externa encontró que la cifra que ocupaba ese hueco —un 0,840 que
+La cifra que ocupaba ese hueco —un 0,840 que
 hacía ganar a v2 con holgura— estaba medida sobre los 567 textos completos,
 y **v2 se afinó precisamente con 151 de los 189 artículos de ese corpus**. Es
 decir: el 80 % de esos textos eran su propio entrenamiento, y se comparaban
@@ -643,7 +649,7 @@ documento citaba una tarjeta `metricas_literalevel_v4.json` que no existe. Lo
 único comprobable desde el repositorio es la aritmética interna —510 + 144 =
 654, 77/144 = 53,47 % y 140/144 = 97,22 %—, que cuadra. Quien quiera verificar
 el resto tiene que confiar en esa ejecución o rehacerla. Lo detectó una
-auditoría externa y se corrige diciéndolo, no citando un archivo inexistente.
+se corrige diciéndolo, no citando un archivo inexistente.
 
 | Conjunto | n | Exacto | Dentro de ±1 nivel | Spearman |
 |---|---|---|---|---|
@@ -659,8 +665,7 @@ seis niveles, acertar «dentro de ±1» es más fácil de lo que parece: contest
 mirar el texto, el 50 % —ambas cifras suponiendo el nivel verdadero repartido
 por igual entre los seis—. El modelo llega al 97,2 %, así que la ventaja sobre
 no hacer nada es real y grande; pero sin esa referencia el número no significa
-nada por sí solo, y hasta ahora el documento no la daba. Lo señaló una
-auditoría externa.
+nada por sí solo, y hasta ahora el documento no la daba.
 
 **El resultado que de verdad sostiene el trabajo no es ninguno de esos
 porcentajes, sino el orden.** Sobre textos externos con nivel MCER oficial, las
@@ -680,9 +685,16 @@ que sobreviven a la extracción de los PDF.*
 Esta tabla se reproduce en cualquier máquina con el guion `validar_local.py`.
 Lo que se reproduce exactamente es **el orden**; las medias difieren
 ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
-decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10) porque la extracción de texto de los PDF conserva 45 de los 59
-textos originales y el anclaje de la sección de lectura recorta distinto. Se
-reporta la discrepancia en lugar de citar solo la cifra que coincide.
+decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10).
+
+**La diferencia entre los 38 textos de Colab y los 45 de aquí tiene dos causas,
+y una versión anterior solo mencionaba una.** La extracción de los PDF explica
+una parte: de los 59 originales, uno no está disponible y dos no tienen cuerpo
+localizable. Pero **otros diez los rechaza `scoring.continuous_prose`** —nueve
+de A1 y uno de B1: los menús, los pósters, los horarios—, y esa es la otra
+mitad. Los dos entornos filtraron con reglas distintas, no solo extrajeron
+distinto. Importa decirlo porque los tres textos A1 que sostienen el escalón más
+débil del Cuadro 10 pasaron el filtro de la aplicación, no el del análisis.
 
 ### 7.5 El baseline propio, y qué aporta el modelo por encima de él
 
@@ -727,8 +739,8 @@ resultado.
 |---|---|---|
 | Regresión, no clasificación | La dificultad es continua; clasificar tira información ordinal | El error ordinal medio baja de 1,39 a 0,67 en la progresión completa |
 | Partición agrupada por libro | Evitar fuga de datos entre extractos del mismo autor | Aplicada a *todos* los modelos comparados, no solo al final |
-| `distilroberta` y no `roberta-base` completo | La aplicación debe correr en CPU en el equipo de un estudiante | 328 MB y 0,9 s de carga; la diferencia de calidad no justificaba 3× de tamaño |
-| Promediar bloques sin ponderar, con la **ventana** como unidad | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: hasta que una auditoría externa lo detectó, la app promediaba las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual **no son el mismo número** (0,004 de diferencia máxima medida en cinco libros reales) |
+| `distilroberta` y no `roberta-base` completo | La aplicación debe correr en CPU en el equipo de un estudiante | 328 MB y 0,9 s de carga, frente a 1,5× más parámetros (125 M contra 82 M). **La diferencia de calidad entre las dos no se midió**: la decisión se tomó por tamaño y velocidad, no porque se comprobara que costaba poco |
+| Promediar bloques sin ponderar, con la **ventana** como unidad | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: durante un tiempo la app promedió las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual **no son el mismo número** (0,004 de diferencia máxima medida en cinco libros reales) |
 | **Rechazada: XGBoost sobre variables clásicas** | Se esperaba que un ensamble superase al modelo lineal | No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 vs 1,39). El límite estaba en las variables |
 | **Rechazada: modelo híbrido embedding + variables** | Se esperaba complementariedad | Ganancia nula (0,37 y 0,37; 0,91 vs 0,93). El embedding ya contiene esa información |
 | **Rechazada: escalar la lista léxica al SPGC completo por rendimiento** | Se esperaba mejorar `rare_word_ratio` | La correlación pasa de −0,330 a −0,326. Se conserva igualmente por cobertura, no por métrica |
@@ -829,8 +841,7 @@ que **todavía no está medido sobre el catálogo**. Con las 350 que asume el
 código del precálculo salen **2,96 h**; con las 606,4 que promedian las cinco
 novelas largas medidas en local —una muestra sesgada hacia arriba, porque son
 clásicos extensos— salen **5,14 h**. Una versión anterior de este documento
-decía 6,3 horas, que no se sigue de ninguno de los dos supuestos; lo detectó
-una auditoría externa. El cuello de botella real resultó no
+decía 6,3 horas, que no se sigue de ninguno de los dos supuestos. El cuello de botella real resultó no
 ser el modelo sino la descarga: en serie, a 0,3 libros/s, los libros tardarían
 57 horas en bajar. Y no era la pausa de cortesía entre peticiones, era la
 latencia —cada petición al espejo se pasa casi todo su tiempo esperando la ida
@@ -861,6 +872,20 @@ argumenta en lugar de ocultarse.
 ---
 
 ## 9. Limitaciones
+
+**Antes de la lista, de dónde sale.** Este trabajo se sometió a **cinco
+auditorías externas** hechas por modelos de dos familias distintas, con el
+encargo explícito de ser duros y sin decirles qué se había corregido antes.
+Entre las cinco señalaron alrededor de setenta hallazgos: fugas de datos,
+cifras que no cuadraban entre archivos, métricas atribuidas al corpus
+equivocado, pruebas que no podían fallar y conclusiones más fuertes que su
+evidencia. Los informes están en `auditoria/` y las correcciones, en el
+historial del repositorio.
+
+Varias de las limitaciones que siguen no las encontró el autor, y algunas
+contradicen lo que este mismo documento afirmaba en una versión anterior.
+Parece razonable decirlo una vez, al principio de la lista, en lugar de
+repetirlo en cada párrafo corregido.
 
 1. **La escala 0–2 es propia y no es una certificación.** El MCER fue el ancla
    del entrenamiento. LiteraLevel no acredita ningún nivel, y decirlo en el
@@ -953,8 +978,7 @@ Council— el modelo ordena los niveles de forma estrictamente creciente
 (0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952) y alcanza Spearman **0,829** con
 38 textos, **0,854** con los 45. El **0,908 y el 97,2 %** son otra cosa: salen
 del conjunto de validación de **144 documentos del propio corpus de anclaje**,
-que es interno. Atribuirlos a los externos era un error, y lo detectó una
-auditoría externa. Para el problema planteado —elegir qué
+que es interno. Atribuirlos a los externos era un error. Para el problema planteado —elegir qué
 leer— acertar el orden es lo que importa; acertar la letra exacta es un lujo.
 
 **El cuello de botella nunca fue el algoritmo, fue la representación del
@@ -967,13 +991,20 @@ el texto crudo con atención, hasta 0,67 niveles de error ordinal.
 **Sobre el tamaño de ese salto conviene ser preciso**, porque el cuadro 7 tiene
 dos tandas y es fácil restar filas que no se pueden restar. Contra las tres
 variables clásicas de la tanda histórica, el paso al *embedding* va de 1,39 a
-0,93. Pero el cuadernillo entregado recalcula ese mismo modelo sobre esa misma
-partición y obtiene **1,295**, y con diecisiete variables en vez de tres baja a
-**1,061**. Medido así, contra unas variables clásicas bien surtidas, la ventaja
+0,93. Pero el cuadernillo entregado ejecuta una regresión logística sobre tres
+variables clásicas, sobre esa misma partición, y obtiene **1,295**; con
+diecisiete variables en vez de tres baja a **1,061**.
+
+**No son exactamente el mismo modelo, y decir que sí lo eran era impreciso.**
+Las tres variables se llaman igual en las dos tandas, pero `palabras_raras` no
+contiene lo mismo: en el cuadernillo se calcula contra las 3.000 palabras más
+frecuentes **del entrenamiento de CLEAR**, y en la tanda histórica contra las
+listas externas de NLTK y del SPGC (Cuadro 4). Misma partición y misma semilla,
+sí; misma definición de las variables, no. Esa es la razón más probable de los
+0,10 de diferencia. Medido así, contra unas variables clásicas bien surtidas, la ventaja
 del *embedding* es bastante menor de lo que sugiere la comparación con tres.
-**La brecha que no se cierra con más conteos es la del transformador.** Lo
-señaló una auditoría externa y tiene razón: la conclusión cualitativa se
-sostiene, la cifra con la que se vendía no.
+**La brecha que no se cierra con más conteos es la del transformador.** La conclusión cualitativa se sostiene; la cifra con la
+que se vendía, no.
 
 **Escalar el corpus no siempre mejora nada, y conviene decirlo.** Multiplicar
 por 2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC—
