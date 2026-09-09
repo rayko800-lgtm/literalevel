@@ -51,6 +51,7 @@ print("modelo v4 cargado\n")
 
 por_nivel = {}
 saltados = 0
+fallidos = []
 for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))):
     m = RE_NIVEL.search(os.path.basename(ruta))
     if not m:
@@ -66,7 +67,12 @@ for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))
             continue
         r = p.puntuar(texto)
     except Exception as e:
-        saltados += 1
+        # Se contaban juntos "no encontre el cuerpo del texto" y "la
+        # puntuacion fallo", bajo el rotulo de lo primero. Son cosas
+        # distintas: la primera es un PDF con otra maquetacion, la segunda
+        # puede ser un fallo del modelo. Ahora se cuentan aparte y se dice
+        # que excepcion fue.
+        fallidos.append(f"{os.path.basename(ruta)}: {type(e).__name__}: {e}")
         continue
     por_nivel.setdefault(nivel, []).append(r.puntuacion)
 
@@ -77,8 +83,42 @@ for niv in sorted(por_nivel):
     e = esperado.get(niv)
     print(f"{niv:<6}{len(v):>4}{np.mean(v):>12.4f}{np.std(v):>8.3f}   "
           f"{('%.4f' % e) if e else '—'}")
-print(f"\ntextos omitidos (sin cuerpo localizable): {saltados}")
+print(f"\ntextos sin cuerpo localizable: {saltados}")
+print(f"textos que fallaron al puntuar: {len(fallidos)}")
+for f in fallidos[:5]:
+    print("   ", f)
+
+# --- El validador tiene que poder SUSPENDER -------------------------------
+# Antes esto era `all(a < b for a, b in zip(medias, medias[1:]))` a secas, y
+# `all()` de una lista vacia es True. O sea que sin un solo PDF encontrado
+# -carpeta equivocada, nombres distintos- el guion imprimia "orden
+# estrictamente creciente: True" y quedaba tan ancho. Lo mismo con un solo
+# nivel. Una validacion que aprueba sin evaluar nada no es una validacion.
+# Lo encontro una auditoria externa.
+NIVELES_ESPERADOS = ("A1", "A2", "B1", "B2", "C1")
+MINIMO_POR_NIVEL = 2
+
+problemas = []
+faltan = [n for n in NIVELES_ESPERADOS if n not in por_nivel]
+if faltan:
+    problemas.append(f"no se evaluo ningun texto de: {', '.join(faltan)}")
+for niv, v in sorted(por_nivel.items()):
+    if len(v) < MINIMO_POR_NIVEL:
+        problemas.append(f"{niv} solo tiene {len(v)} texto(s), hacen falta {MINIMO_POR_NIVEL}")
 
 medias = [np.mean(por_nivel[n]) for n in sorted(por_nivel)]
-print("orden estrictamente creciente:", all(a < b for a, b in zip(medias, medias[1:])))
+creciente = len(medias) >= 2 and all(a < b for a, b in zip(medias, medias[1:]))
+if not creciente:
+    problemas.append("las medias por nivel NO son estrictamente crecientes")
+
+print()
+if problemas:
+    print("VALIDACION FALLIDA:")
+    for x in problemas:
+        print("  -", x)
+else:
+    print(f"VALIDACION CORRECTA: {sum(len(v) for v in por_nivel.values())} textos, "
+          f"{len(por_nivel)} niveles, medias estrictamente crecientes.")
+
 print("\n(no se imprime ni un fragmento: material con derechos)")
+sys.exit(1 if problemas else 0)

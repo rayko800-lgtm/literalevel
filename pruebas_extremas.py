@@ -35,7 +35,23 @@ HECHAS = 0
 
 
 def prueba(nombre: str, fn):
-    """Ejecuta `fn`. Que devuelva algo es exito; que lance, es fallo."""
+    """Ejecuta `fn`. Que lance es fallo, y devolver una lista con algo dentro
+    tambien.
+
+    Lo segundo hay que explicarlo. Varias pruebas de este archivo siguen el
+    patron `return malas or "todo bien"`: recorren un espacio, van juntando las
+    violaciones en una lista y devuelven esa lista si hay alguna. Con la regla
+    de antes -"que devuelva algo es exito"- una lista llena de violaciones se
+    imprimia como `ok`, seguida de las violaciones. Es decir: **cuatro pruebas
+    sustantivas no podian fallar**, que es peor que no tenerlas, porque dan
+    confianza sin darla.
+
+    Lo encontro una auditoria externa. El arreglo va en cada una de esas
+    cuatro, con un `assert not malas` antes de devolver: probe a ponerlo aqui,
+    en el envoltorio, rechazando toda lista no vacia, y NO sirve -muchas
+    pruebas legitimas devuelven una lista como resultado, no como queja, y
+    saltaron veinte falsos fallos de golpe-.
+    """
     global HECHAS
     HECHAS += 1
     try:
@@ -801,7 +817,8 @@ def _contraste_suficiente():
             r = (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
             if r < 4.5:
                 malas.append(f"{k}/{etiqueta}={r:.2f}")
-    return malas or f"{len(paletas_mod.PALETAS)} paletas x {len(PARES)} pares, todas AA"
+    assert not malas, malas
+    return f"{len(paletas_mod.PALETAS)} paletas x {len(PARES)} pares, todas AA"
 
 
 prueba("todas las paletas son legibles", _contraste_suficiente)
@@ -821,7 +838,8 @@ def _bandas_coherentes():
         esperada = {"A": "básico", "B": "intermedio", "C": "avanzado"}[letra[0]]
         if banda != esperada:
             malas.append(f"{v:.2f} -> {letra} pero {banda}")
-    return malas[:5] or "las 201 puntuaciones concuerdan"
+    assert not malas, malas[:5]
+    return "las 201 puntuaciones concuerdan"
 
 
 prueba("la banda nunca contradice a la letra", _bandas_coherentes)
@@ -843,7 +861,8 @@ def _una_sola_letra():
         a, b = ui._cefr(ui.scoring.public_score(y)), ui.scoring.anchor_cefr(y)
         if a != b:
             malas.append(f"interno {y} -> interfaz {a} / contrato {b}")
-    return malas[:5] or "las 50.001 coinciden"
+    assert not malas, malas[:5]
+    return "las 50.001 coinciden"
 
 
 prueba("la interfaz y el contrato dan la misma letra", _una_sola_letra)
@@ -932,7 +951,8 @@ def _agregacion_por_ventanas():
         obtenido = ui.ficha.dificultad_global(filas)
         if abs(obtenido - esperado) > 1e-9:
             malas.append(f"{obtenido!r} != {esperado!r}")
-    return malas[:3] or "500 libros sinteticos, identica a la media de ventanas"
+    assert not malas, malas[:3]
+    return "500 libros sinteticos, identica a la media de ventanas"
 
 
 prueba("la dificultad global es la media de todas las ventanas",

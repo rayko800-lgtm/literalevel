@@ -44,7 +44,7 @@ El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradi
 6.26, probada por una lectora de quince años ajena al proyecto— y con un
 catálogo en curso de remedición: los 61.642 libros en inglés de dominio
 público de Project Gutenberg, leídos enteros por el modelo, que a la velocidad
-medida en una GPU A100 son unas 6,3 horas de cómputo.
+medida en una GPU A100 son entre tres y cinco horas de cómputo.
 
 **Palabras clave:** legibilidad automática, MCER, adquisición de segundas
 lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
@@ -758,9 +758,9 @@ Las mediciones que hicieron viable esa decisión:
 
 | Entorno | Configuración | Ventanas/s | Factor |
 |---|---|---|---|
-| CPU (Ryzen 5 2600) | 12 hilos, lote 64 | 8,7 | 1× |
-| GPU local (GTX 1650 SUPER) | fp32, lote 128 | 101,7 | 11,7× |
-| GPU A100 (Colab) | fp16, lote grande | 2.022 | 232× |
+| CPU (Ryzen 5 2600) | 12 hilos, lote 64 | 8,19 | 1× |
+| GPU local (GTX 1650 SUPER) | fp32, lote 128 | 112,7 | 13,8× |
+| GPU A100 (Colab) | fp16, lote grande | 2.022 | 247× |
 
 *Cuadro 14. Rendimiento medido de extremo a extremo, incluida la tokenización
 y las transferencias.*
@@ -776,8 +776,15 @@ exactitud:
   truncar, no hay relleno, y 286 ventanas puntuadas de una en una y en un solo
   lote dan 286/286 valores idénticos con MAE 0,000000000.
 
-Con 2.022 ventanas por segundo, **medir los 61.642 libros en inglés de Project
-Gutenberg son unas 6,3 horas de A100**. El cuello de botella real resultó no
+Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project
+Gutenberg **son entre 3 y 5 horas de A100**, y conviene decir de qué depende esa
+horquilla en vez de dar una cifra sola: del número medio de ventanas por libro,
+que **todavía no está medido sobre el catálogo**. Con las 350 que asume el
+código del precálculo salen **2,96 h**; con las 606 que promedian las cinco
+novelas largas medidas en local —una muestra sesgada hacia arriba, porque son
+clásicos extensos— salen **5,14 h**. Una versión anterior de este documento
+decía 6,3 horas, que no se sigue de ninguno de los dos supuestos; lo detectó
+una auditoría externa. El cuello de botella real resultó no
 ser el modelo sino la descarga: en serie, a 0,3 libros/s, los libros tardarían
 57 horas en bajar. Y no era la pausa de cortesía entre peticiones, era la
 latencia —cada petición al espejo se pasa casi todo su tiempo esperando la ida

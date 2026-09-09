@@ -204,10 +204,17 @@ class Puntuador:
         self.modelo.eval()
 
         # GPU si la hay, y en fp32. Medido en la GTX 1650 SUPER de esta
-        # maquina: 112,7 ventanas/s frente a 8,19 en CPU, dieciocho veces mas
-        # rapido, y con los MISMOS numeros -839 de 840 ventanas identicas a
-        # tres decimales, MAE 0,000001-. Guerra y Paz entero pasa de siete
-        # minutos a veintidos segundos.
+        # maquina: 112,7 ventanas/s frente a 8,19 en la CPU con lotes de 64,
+        # es decir **13,8 veces** mas rapido, y con los MISMOS numeros -839 de
+        # 840 ventanas identicas a tres decimales, MAE 0,000001-. Guerra y Paz
+        # entero pasa de siete minutos a veintidos segundos.
+        #
+        # Aqui ponia "dieciocho veces", que era comparar contra otra cosa:
+        # 112,7/6,16, siendo 6,16 la CPU SIN lotes ni hilos. Cierto pero
+        # enganoso, porque la CPU con lotes es lo que corre de verdad. Con la
+        # misma base para las dos columnas, el factor es 13,8. Lo detecto una
+        # auditoria externa, y tenia razon: el proyecto llego a tener tres
+        # factores distintos para la misma medicion.
         #
         # En fp32 y no en fp16 a proposito: en esta tarjeta la media precision
         # es CUATRO VECES Y MEDIA MAS LENTA, porque un TU116 no tiene tensor
