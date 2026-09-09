@@ -12,7 +12,7 @@ es elegir plataforma y ejecutar.
 | `modelo_v4/` | **328 MB** | fuera: repo de modelo, montado de solo lectura |
 | `kaikki_diccionario.db` | **243 MB** | fuera: repo de datos, montado de solo lectura |
 
-Los 549 MB de datos **no van en el repositorio** y están en `.gitignore`. La app
+Los 571 MB de datos **no van en el repositorio** y están en `.gitignore`. La app
 los localiza por variable de entorno, y eso ya está probado moviéndolos fuera:
 
 ```
@@ -84,7 +84,7 @@ Viable si los 9 $ son un problema real. No es el camino limpio.
 
 **30 $/mes de créditos renovables, sin tarjeta.** Escala a cero, factura por
 segundo, URL estable con `modal deploy`. Con un profesor evaluando no se gastan
-ni de lejos. Gradio se monta como app ASGI y los 549 MB van en un Volume.
+ni de lejos. Gradio se monta como app ASGI y los 571 MB van en un Volume.
 
 Coste: una tarde de ingeniería y aprender su modelo mental. Es el camino más
 largo de los tres, y el único sin factura.

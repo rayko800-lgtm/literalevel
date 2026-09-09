@@ -11,10 +11,10 @@ documentos de learnenglish.britishcouncil.org y repetir `validar_local.py`.
 | A1 | 12 |
 | A2 | 9 |
 | B1 | 13 |
-| B2 | 11 |
+| B2 | 12 |
 | C1 | 12 |
-| **Con nivel en el nombre** | **57** |
-| Sin nivel en el nombre (se descarta) | 1 |
+| **Con nivel en el nombre** | **58** |
+| Sin nivel en el nombre | 0 |
 | **Archivos que casan con el patron** | **58** |
 
 El documento de entrega parte de **59**: los 58 de arriba mas uno que ya no
@@ -63,7 +63,7 @@ esta disponible para descarga en el sitio y del que solo queda la referencia.
 - `B1__LearnEnglish-Reading-B1-The-Martian-a-book-review.pdf`
 - `B1__LearnEnglish-Reading-B1-The-legend-of-fairies.pdf`
 
-## B2 (11)
+## B2 (12)
 
 - `B2__LearnEnglish-Reading-B2-A-Plastic-Ocean-a-film-review.pdf`
 - `B2__LearnEnglish-Reading-B2-A-short-story-extract.pdf`
@@ -76,6 +76,7 @@ esta disponible para descarga en el sitio y del que solo queda la referencia.
 - `B2__LearnEnglish-Reading-B2-The-Buy-Nothing-movement.pdf`
 - `B2__LearnEnglish-Reading-B2-The-sharing-economy.pdf`
 - `B2__LearnEnglish-Reading-B2-Why-bridges-collapse.pdf`
+- `B2__LearnEnglish-Reading-B2_Work-life-balance.pdf`
 
 ## C1 (12)
 
@@ -91,8 +92,4 @@ esta disponible para descarga en el sitio y del que solo queda la referencia.
 - `C1__LearnEnglish-Reading-C1-Political-manifestos.pdf`
 - `C1__LearnEnglish-Reading-C1-Sustainable-supermarkets.pdf`
 - `C1__LearnEnglish-Reading-C1-The-state-of-the-world.pdf`
-
-## Sin nivel en el nombre (1)
-
-- `B2__LearnEnglish-Reading-B2_Work-life-balance.pdf`
 

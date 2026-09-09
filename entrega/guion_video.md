@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 547 palabras: 3:40 a ritmo normal.** El minuto largo que
+**El texto hablado son 552 palabras: 3:41 a ritmo normal.** El minuto largo que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
@@ -104,8 +104,8 @@ En segundos tengo mi nivel. *(mostrar el resultado)*
 detectives victoriana*— y me busca entre los libros que **puedo** leer.
 No busca por título: busca por significado.
 
-**Tres.** Abro el libro y aparece su ficha. Cuánto tardo en leerlo *a mi
-ritmo*, cuánto es diálogo, qué palabras se repiten. Y esta curva: **la
+**Tres.** Abro el libro y aparece su ficha. Cuánto tardo en leerlo *a la
+velocidad que le toca a mi nivel*, cuánto es diálogo, qué palabras se repiten. Y esta curva: **la
 dificultad capítulo a capítulo**, medida por el modelo leyendo el libro
 entero. Aquí se ve que arranca duro y se suelta.
 

@@ -211,8 +211,8 @@ publicada es directamente comparable con la nuestra**.
   CLEAR es público y hay contra qué medirlo. Ese es el número que hay que
   defender ante un evaluador, no el 0,908.
 - **El número que de verdad debería preocupar es otro:** en British Council,
-  contar palabras sin modelo da **0,807** y el modelo da **0,854** (Cuadro 11).
-  El modelo aporta señal por encima de la longitud (parcial 0,657), pero el
+  contar palabras sin modelo da **0,799** y el modelo da **0,855** (Cuadro 11).
+  El modelo aporta señal por encima de la longitud (parcial 0,665), pero el
   margen sobre la señal trivial es de 0,047. El proyecto ya lo publica, y eso es
   lo correcto. Pero es la cifra que un revisor exigente atacará primero.
 - **Lo que sí es un resultado poco común y está infravalorado en el documento:
@@ -434,10 +434,10 @@ Este apartado vale más que el anterior. Sin adornos:
    CLEAR. Y el LLM mejora solo cada seis meses; nuestro modelo es final por
    decreto.
 
-4. **En British Council, contar palabras da 0,807 y nosotros 0,854.**
+4. **En British Council, contar palabras da 0,799 y nosotros 0,855.**
    El proyecto lo publica y hace bien. Pero un revisor que solo lea esa tabla
    concluirá que 328 MB de transformer compran 0,047 de Spearman. La defensa
-   —la correlación parcial de 0,657— es correcta pero requiere explicar qué es
+   —la correlación parcial de 0,665— es correcta pero requiere explicar qué es
    una correlación parcial, y eso ya es terreno perdido.
 
 5. **Las etiquetas de nuestro catálogo son peores que las de cualquier competidor.**
@@ -447,11 +447,13 @@ Este apartado vale más que el anterior. Sin adornos:
    EPUB completo del usuario. Lexile tiene anotación validada. **Hoy nuestro
    catálogo es lo más flojo del producto, no el modelo.**
 
-6. **Ellos están desplegados y nosotros no.**
+6. **Ellos están en las tiendas y nosotros en una web gratuita.**
    TeakReader está en App Store y Google Play. LingQ y Readlang llevan años.
-   Nosotros tenemos una web gratuita sin disco persistente y un consumo de 1,05–1,5 GB de RSS que
-   descarta todos los planes gratuitos de 512 MB. Un producto que no se puede
-   abrir no compite con nadie.
+   Nosotros ya estamos desplegados —Hugging Face Spaces, público, dirección
+   fija— pero sobre CPU gratuita y **sin disco persistente**: el servicio se
+   suspende por inactividad, el primer visitante después paga un arranque en
+   frío, y lo que el lector guarda no sobrevive a un reinicio del contenedor.
+   Se puede abrir; todavía no se puede confiar en que recuerde nada.
 
 7. **No medimos poesía, teatro, ni diálogo fragmentado; ni nada que no sea inglés.**
    Lexile tampoco, pero Lexile no promete acompañar a un lector por un libro

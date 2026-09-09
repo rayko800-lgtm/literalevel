@@ -895,7 +895,7 @@ print(asociacion_rasgos)
 # **Este número tuvo una fuga de datos, y esto es lo que costó.** En una versión
 # anterior de este cuadernillo la lista de palabras familiares se construía con
 # el corpus entero, contando también las palabras de los extractos reservados
-# para prueba. Una auditoría externa lo señaló y la lista pasó a construirse
+# para prueba. Es una fuga de datos y la lista pasó a construirse
 # solo con entrenamiento, que es como está ahora.
 #
 # Lo interesante es que **la fuga no inflaba nada**. Al medir las dos versiones
@@ -1385,8 +1385,7 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 # > **validación de selección**, no un test independiente, y así hay que
 # > leerlos: la cifra puede ser algo optimista porque se escogió el punto de
 # > control que mejor le sentaba. No hubo un tercer conjunto reservado en este
-# > experimento histórico. Lo señaló una auditoría externa del proyecto y es
-# > justo reconocerlo.
+# > experimento histórico, y es justo reconocerlo.
 # >
 # > Esto afecta a **este** experimento sobre CLEAR, que es el que cuenta por qué
 # > hizo falta un transformador. El modelo desplegado, el v4, se entrenó y se
@@ -1409,9 +1408,12 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # **Aviso de reproducibilidad, otra vez y en su sitio:** el guion de
 # entrenamiento del v4 no forma parte del repositorio de la aplicación —el
-# repositorio contiene el producto, no el experimento— y **los pesos todavía no
-# están publicados**. Lo que sigue está preparado para cargarlos en cuanto lo
-# estén.
+# repositorio contiene el producto, no el experimento—. **Los pesos sí están
+# publicados**, en `MikeMaki1763/literalevel-v4`, en abierto y sin
+# credenciales, y la celda siguiente los descarga. Lo que no se puede rehacer
+# desde aquí es el entrenamiento: el corpus de anclaje MCER tiene material con
+# derechos y no se redistribuye. Se puede **usar** el modelo; no se puede
+# **reentrenar**.
 
 # %%
 # ============================================================
@@ -1450,10 +1452,11 @@ if URL_MODELO.strip():
 else:
     print("URL_MODELO está vacía.")
     print()
-    print("El modelo v4 (332 MB) aún no se ha publicado: hoy existe solo en el")
-    print("disco del autor y en una carpeta privada de Drive. En cuanto se")
-    print("publique en Hugging Face, basta con escribir su identificador arriba")
-    print("y volver a ejecutar desde esta celda.")
+    print("Los pesos del v4 (328 MB) están publicados en abierto, en")
+    print("MikeMaki1763/literalevel-v4. Si esta variable se ha vaciado a")
+    print("propósito -por ejemplo para enseñar que el cuadernillo no se cae sin")
+    print("los pesos-, basta con volver a escribir el identificador arriba y")
+    print("ejecutar de nuevo desde esta celda.")
     print()
     print("Lo que sí se ha calculado de verdad en esta ejecución: el corpus")
     print("completo, todo el análisis exploratorio, la ingeniería de variables")
@@ -1498,10 +1501,34 @@ def puntuacion_publica(y):
     return float(np.clip(y, 0, 5) * 0.4)
 
 
+# Las bandas NO se cortan sobre la puntuación: se derivan del ancla MCER que
+# ya se le enseña al lector, con el agrupamiento del propio marco (básico
+# A1-A2, independiente B1-B2, competente C1-C2). Así la palabra y la letra no
+# pueden contradecirse: nunca sale "C1 - intermedio" en la misma línea.
+#
+# Los cortes viejos eran 0,8 y 1,6, y con la compresión de la escala metían un
+# texto C1 en "intermedio": tres de los cinco niveles medidos caían en la misma
+# banda, que es tanto como no tener bandas. Las fronteras equivalentes de la
+# regla nueva son 0,6 y 1,4, que son las líneas punteadas de la figura de la
+# §7.2. Esto NO recalibra el modelo: solo cambia cómo se agrupan sus salidas.
+ANCLAS = ["A1", "A2", "B1", "B2", "C1", "C2"]
+
+
+def ancla_publica(puntuacion):
+    """Letra MCER orientativa para una puntuación de la escala pública 0-2."""
+    # floor(x + 0,5) y no round(): round() en Python redondea el empate al par
+    # (banker's rounding), así que 0,5 baja a 0 y 1,5 sube a 2. Aquí el empate
+    # tiene que subir siempre.
+    i = int(np.clip(np.floor(np.clip(float(puntuacion), 0, 2) * 2.5 + 0.5),
+                    0, len(ANCLAS) - 1))
+    return ANCLAS[i]
+
+
 def banda_publica(puntuacion):
-    if puntuacion < 0.8:
+    letra = ancla_publica(puntuacion)
+    if letra in ("A1", "A2"):
         return "básico"
-    if puntuacion < 1.6:
+    if letra in ("B1", "B2"):
         return "intermedio"
     return "avanzado"
 
@@ -1672,9 +1699,9 @@ print(tabla_reportada.to_string(index=False))
 validacion_externa = pd.DataFrame({
     "Nivel oficial": ["A1", "A2", "B1", "B2", "C1"],
     "n": [3, 7, 12, 11, 12],
-    "Media v4 (escala 0-2)": [0.5040, 0.5480, 0.9276, 1.2478, 1.4952],
+    "Media v4 (escala 0-2)": [0.5040, 0.5480, 0.9276, 1.2414, 1.4952],
 })
-print("Validación externa: British Council, 45 textos legibles en local")
+print("Validación externa: British Council, 46 textos legibles en local")
 print()
 print(validacion_externa.to_string(index=False))
 
@@ -1726,11 +1753,11 @@ plt.show()
 #    puede afirmar nada más.
 #
 # Conviene además reportar el contraste que hace honesta la cifra: **contar las
-# palabras del texto, sin modelo alguno, alcanza Spearman 0,807 en este mismo
-# corpus**, frente a 0,854 del v4. En los exámenes graduados, nivel y longitud
+# palabras del texto, sin modelo alguno, alcanza Spearman 0,799 en este mismo
+# corpus**, frente a 0,855 del v4. En los exámenes graduados, nivel y longitud
 # están confundidos. Lo que sostiene al modelo no es ganarle a un contador de
 # palabras por cinco centésimas, sino que **aporta señal por encima de la
-# longitud**: descontándola por correlación parcial, el modelo conserva 0,657.
+# longitud**: descontándola por correlación parcial, el modelo conserva 0,665.
 #
 # Decir que el contador de palabras «se queda en cero» sería incorrecto y hay
 # que precisarlo: al descontar la longitud de una variable que **es** la
@@ -1754,9 +1781,9 @@ decisiones = pd.DataFrame([
      "Decisión": "ACEPTADO: se ofrecen los dos modos y se declara cuál se usó"},
     {"Prueba": "Cuantización dinámica a int8",
      "Resultado": "+18 % de velocidad, MAE 0.210 sobre 2, sesgo -0.21",
-     "Decisión": "DESCARTADO: cruza la frontera de banda en 1.6"},
+     "Decisión": "DESCARTADO: cambia la letra MCER en el 52 % de la escala"},
     {"Prueba": "Media precisión (fp16) en GPU de consumo",
-     "Resultado": "4,5 veces MÁS LENTA que fp32 en una GTX 1650 SUPER",
+     "Resultado": "4,8 veces MÁS LENTA que fp32 en una GTX 1650 SUPER",
      "Decisión": "DESCARTADO en esa tarjeta: un TU116 no tiene tensor cores"},
     {"Prueba": "Agrupar ventanas en lotes fijos de 64 en vez de por capítulo",
      "Resultado": "+18 % de velocidad, 300/300 valores idénticos bit a bit",
@@ -1957,7 +1984,7 @@ plt.show()
 # 3. **El dominio confunde la medida.** El texto informativo puntúa medio punto
 #    más difícil que el literario con la misma sintaxis (Figura 6); el modelo no
 #    ve esa distinción.
-# 4. **La validación externa es pequeña**: 45 textos legibles de 59, y el corpus
+# 4. **La validación externa es pequeña**: 46 textos legibles de 59, y el corpus
 #    tiene derechos, así que no se distribuye ni se puede auditar desde fuera.
 # 5. **Las cifras de 0,908 y 97,2 % no son verificables desde el repositorio**,
 #    porque el corpus de validación de 144 textos no está incluido.
@@ -1985,7 +2012,7 @@ plt.show()
 # reunir su propio corpus etiquetado. Decirlo así es más honesto que anunciar
 # una reproducibilidad del cien por cien que los derechos de autor impiden.
 #
-# **Y hay que reconocer un hueco, porque una auditoría externa lo señaló.** La
+# **Y hay que reconocer un hueco.** La
 # composición exacta de esos 654 documentos —cuántos por fuente y cuántos por
 # nivel— no está documentada en este repositorio, y esa tarjeta del modelo
 # tampoco está aquí. Sin esa lista no se puede comprobar desde fuera que las

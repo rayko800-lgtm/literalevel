@@ -21,7 +21,12 @@ RE_INI = re.compile(r"reading text", re.I)
 RE_FIN = re.compile(r"^\s*(tasks|task 1)\s*$", re.I)
 RUIDO = re.compile(r"(learnenglish|britishcouncil|british council|©|copyright"
                    r"|all rights|www\.|http|page \d+)", re.I)
-RE_NIVEL = re.compile(r"\b(A1|A2|B1|B2|C1|C2)\b")
+# Nada de \b: en el nombre el nivel puede ir pegado a un guion bajo
+# (B2__LearnEnglish-Reading-B2_Work-life-balance.pdf) y \b NO corta entre
+# "2" y "_", porque el guion bajo es caracter de palabra. Ese archivo se caia
+# de la validacion sin que nadie lo notara: la muestra eran 45 textos en vez
+# de 46. Se mira letra o digito a los lados, no "caracter de palabra".
+RE_NIVEL = re.compile(r"(?<![A-Za-z0-9])(A1|A2|B1|B2|C1|C2)(?![A-Za-z0-9])")
 
 
 def cuerpo(lineas):

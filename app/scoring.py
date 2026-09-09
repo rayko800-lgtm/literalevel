@@ -241,16 +241,28 @@ class Puntuador:
         y Paz. Medido, agrupar de 64 en 64 sube de 6,96 a 8,19 ventanas/s (+18%)
         y satura ahi: de 64 a 300 solo se gana un 1%.
 
-        Y no cambia el resultado, cosa que hay que justificar y no suponer:
-        fixed_blocks emite SIEMPRE ventanas de 250 palabras exactas (la cola
-        corta se cubre solapando la ultima ventana completa), y 250 palabras
-        inglesas pasan siempre de 256 BPE, asi que se truncan a 256. Dentro de
-        un libro no hay relleno y la forma de cada fila no depende de con quien
-        vaya agrupada. La unica ventana mas corta posible es la de un texto
-        suelto de menos de 250 palabras, que viaja solo en su lote. Verificado
-        ademas a la brava: las mismas 300 ventanas del barrido de lote del
-        informe de velocidad, de una en una y en un solo lote, dan 300/300
-        valores identicos bit a bit.
+        Y no cambia ninguna cifra que se publique, cosa que hay que
+        justificar y no suponer. Hay dos casos y conviene no confundirlos:
+
+        1) Un texto de mas de 250 palabras troceado por si solo. fixed_blocks
+           emite SIEMPRE ventanas de 250 palabras exactas -la cola corta se
+           cubre retrocediendo la ultima ventana completa-, y 250 palabras de
+           prosa inglesa real pasan siempre de 256 BPE, asi que se truncan a
+           256. (Medido: la ventana mas corta de un texto de prueba da 258. Un
+           texto artificial de 250 monosilabos daria 252 y no llegaria, pero
+           eso no es prosa y el filtro de continuous_prose lo rechazaria.) No hay
+           relleno y la fila de cada ventana no depende de con quien vaya
+           agrupada. Verificado a la brava: las mismas 300 ventanas del barrido
+           de lote del informe de velocidad, de una en una y en un solo lote,
+           dan 300/300 valores identicos bit a bit.
+
+        2) Ventanas de CAPITULOS distintos en el mismo lote, que es lo que hace
+           el precalculo del catalogo. Un capitulo de menos de 250 palabras
+           aporta una ventana corta, asi que padding=True rellena hasta la mas
+           larga del lote y el orden de las sumas en coma flotante cambia: NO
+           es identico bit a bit. Medido sobre Alicia, 112 ventanas: 103
+           coinciden exactamente y el resto difiere como mucho en 4,8e-07. Se
+           guardan tres decimales, asi que no puede mover ninguno.
         """
         torch = self._torch
         # En GPU el lote optimo es mayor. Y NO se sube de 128: con 4 GB de VRAM,

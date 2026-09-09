@@ -34,7 +34,7 @@ externo que no se usó para ajustar los pesos —aunque sí se exploró durante
 el desarrollo, y eso se detalla en la limitación 6—, ordena los niveles del
 Marco Común Europeo de forma
 estrictamente creciente: A1 0,5040 (n=3) · A2 0,5480 (n=7) · B1 0,9276 (n=12) ·
-B2 1,2478 (n=11) · C1 1,4952 (n=12). Ese orden —no el acierto exacto— es el
+B2 1,2414 (n=12) · C1 1,4952 (n=12). Ese orden —no el acierto exacto— es el
 resultado que sostiene el trabajo, **con una salvedad que conviene leer junto
 a las cifras**: el escalón A1–A2 es de 0,044 sobre desviaciones de 0,111 y
 0,237, y descansa en tres textos. Está dentro del ruido. Los cuatro escalones
@@ -402,10 +402,10 @@ del inglés converge muy rápido, así que las 3.000 palabras más frecuentes de
 no está en la métrica sino en la cobertura: la lista del SPGC generaliza mejor
 a texto nuevo arbitrario, que es lo que la aplicación recibe.
 
-**Dificultad frente a longitud, la variable incómoda.** Sobre los 45 textos de
+**Dificultad frente a longitud, la variable incómoda.** Sobre los 46 textos de
 British Council medibles en local, contar las palabras del texto —sin modelo
-alguno— alcanza una correlación de Spearman de **0,807** con el nivel oficial.
-El modelo alcanza 0,854. Es decir: en ese corpus, nivel y longitud están
+alguno— alcanza una correlación de Spearman de **0,799** con el nivel oficial.
+El modelo alcanza 0,855. Es decir: en ese corpus, nivel y longitud están
 confundidos, porque los materiales de examen gradúan también la extensión de la
 tarea. Publicar ese *baseline* antes de que lo pregunte el evaluador es más
 creíble que omitirlo; en 7.5 se cuantifica cuánta señal aporta el modelo por
@@ -636,8 +636,9 @@ El modelo en producción, **v4**, es un `distilroberta-base` (seis capas, 82
 millones de parámetros) con cabeza de regresión, cuyos pesos ocupan 328 MB en
 disco. Puntúa bloques de 250 palabras truncados a 256 tokens y promedia sin
 ponderar, con un tope de **ocho ventanas por documento** repartidas a lo
-largo del texto: es lo que mantiene el análisis por debajo del segundo en
-una CPU, y por eso un vistazo mide una muestra del texto y no el texto
+largo del texto: es lo que mantiene el análisis en **alrededor de un segundo**
+en una CPU —0,96 a 1,04 s medidos sobre ocho ventanas en el equipo del autor,
+un Ryzen 5 2600—, y por eso un vistazo mide una muestra del texto y no el texto
 entero (el catálogo precalculado sí lo lee entero, capítulo a capítulo). Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
 intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala multiplicada
 por 0,4. **El modelo es final y no se reentrena.**
@@ -689,10 +690,10 @@ medias por nivel quedan estrictamente crecientes:
 | A1 | 3 | 0,5040 | 0,111 |
 | A2 | 7 | 0,5480 | 0,237 |
 | B1 | 12 | 0,9276 | 0,198 |
-| B2 | 11 | 1,2478 | 0,246 |
+| B2 | 12 | 1,2414 | 0,236 |
 | C1 | 12 | 1,4952 | 0,172 |
 
-*Cuadro 10. Reproducción local de la validación externa, sobre los 45 textos
+*Cuadro 10. Reproducción local de la validación externa, sobre los 46 textos
 que quedan tras la extracción de los PDF **y el filtro de prosa continua** (el
 balance completo está en el Cuadro 10b).*
 
@@ -705,7 +706,7 @@ Lo que se reproduce exactamente es **el orden**; las medias difieren
 ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
 decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10).
 
-**La diferencia entre los 38 textos de Colab y los 45 de aquí tiene dos causas,
+**La diferencia entre los 38 textos de Colab y los 46 de aquí tiene dos causas,
 y una versión anterior solo mencionaba una.** El balance completo, contado sobre
 los archivos reales, cierra así:
 
@@ -713,14 +714,13 @@ los archivos reales, cierra así:
 |---|---|
 | Publicados por British Council | 59 |
 | menos: no disponible | −1 |
-| menos: sin nivel en el nombre del archivo | −1 |
 | menos: sin cuerpo localizable al extraer el PDF | −2 |
 | menos: **rechazados por `scoring.continuous_prose`** | **−10** |
-| **Evaluados** | **45** |
+| **Evaluados** | **46** |
 
-*Cuadro 10b. De 59 a 45, paso a paso.*
+*Cuadro 10b. De 59 a 46, paso a paso.*
 
-Las tres primeras restas son de extracción. La cuarta no: son **diez textos
+Las dos primeras restas son de extracción. La cuarta no: son **diez textos
 —nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
 decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma:
 **se quedan por debajo de las 150 palabras** una vez recortados entre «Reading
@@ -735,16 +735,16 @@ imprime los diez rechazados con su motivo.
 
 ### 7.5 El baseline propio, y qué aporta el modelo por encima de él
 
-| Señal | Spearman con el nivel oficial (45 textos) |
+| Señal | Spearman con el nivel oficial (46 textos) |
 |---|---|
-| Modelo v4 | **0,854** |
-| Contar las palabras del texto, sin modelo | 0,807 |
-| Modelo, descontando la longitud (correlación parcial) | **0,657** |
+| Modelo v4 | **0,855** |
+| Contar las palabras del texto, sin modelo | 0,799 |
+| Modelo, descontando la longitud (correlación parcial) | **0,665** |
 
 *Cuadro 11. El modelo frente a la señal trivial. Las tres cifras las
-calcula `validar_local.py` sobre los mismos 45 textos, con Spearman sobre
+calcula `validar_local.py` sobre los mismos 46 textos, con Spearman sobre
 rangos y la correlación parcial en la misma escala; reproducidas hoy en
-local: 0,854, 0,807 y 0,657.*
+local: 0,855, 0,799 y 0,665.*
 
 Un contador de palabras llega casi tan lejos como el modelo en ese corpus, y
 omitirlo sería deshonesto. Lo que sostiene al modelo es la tercera fila: **aporta
@@ -753,13 +753,17 @@ palabras no puede hacer —y conviene decirlo con precisión: no es que su
 correlación parcial sea peor, es que **no está definida**, porque descontar la
 longitud de la propia longitud deja un residuo de varianza cero—. Además, el modelo no recibe la longitud del documento
 como variable —puntúa bloques de tamaño fijo y promedia—, aunque su salida
-correlacione 0,730 con ella, porque los corpus de examen gradúan también la
+correlacione 0,725 con ella, porque los corpus de examen gradúan también la
 extensión de la tarea.
 
 **La escala está comprimida, y la aplicación lo asume.** Contra el ancla real,
-el ajuste ronda `predicho ≈ 0,72 × real + 0,38` —mínimos cuadrados sobre las
-cinco medias por nivel de la validación local, no sobre los textos uno a uno—,
-de modo que un texto A2 tiende
+el ajuste ronda `predicho ≈ 0,72 × real + 0,38`. Conviene decir de dónde sale,
+porque no es una recta ajustada sobre los textos uno a uno: son **mínimos
+cuadrados sobre las cuatro medias por nivel que reportó Colab** (A2 a C1;
+el catálogo gratuito de British Council no tiene C2 y aquella tanda no traía
+A1), y dan 0,7196x + 0,3760. Rehecha sobre las cinco medias locales de hoy
+sale **0,67x + 0,41**: cambian los decimales, no la conclusión, que es que la
+pendiente está muy por debajo de 1. De modo que un texto A2 tiende
 a puntuar cerca de B1. Por eso la interfaz muestra **bandas** (básico
 < 0,6 ≤ intermedio < 1,4 ≤ avanzado) y la letra MCER solo como orientación, en
 lugar de fingir una precisión de dos decimales que el modelo no tiene.
@@ -880,14 +884,24 @@ exactitud:
 - **La GPU da los mismos números que la CPU.** Sobre 840 ventanas de *Crime and
   Punishment*, 839 son idénticas a tres decimales y una difiere en 0,001; el
   MAE es 0,0000012 sobre la escala 0–2.
-- **Reagrupar en lotes distintos no movió ni un decimal**, y no es una
-  suposición de diseño: el troceador emite siempre ventanas de 250 palabras
-  exactas, que al tokenizar pasan de 256 *tokens* BPE y se truncan a 256, de
-  modo que dentro de un libro no hay relleno y la fila de cada ventana no
-  depende de con quién vaya agrupada. La única excepción es un texto suelto de
-  menos de 250 palabras, que de todos modos viaja solo en su lote. Comprobado
-  además a la brava sobre **300 ventanas**: puntuadas de una en una y en un
-  solo lote de 300 salen **300/300 valores idénticos**, con MAE 0,000000.
+- **Reagrupar en lotes distintos no mueve ninguna cifra que se publique**, y
+  conviene decirlo con precisión, porque hay dos casos y solo uno es exacto.
+  Cuando se trocea **un texto de más de 250 palabras**, todas sus ventanas
+  miden 250 palabras exactas y, en prosa inglesa real, pasan siempre de 256
+  *tokens* BPE, así que se truncan a 256 —comprobado sobre las diez ventanas
+  de un texto de prueba: la más corta da 258; un texto artificial de 250
+  monosílabos daría 252 y no llegaría, pero eso no es prosa—: no
+  hay relleno, y la fila de cada ventana no depende de con quién vaya
+  agrupada. Es el caso de la comprobación: las mismas **300 ventanas**
+  puntuadas de una en una y en un solo lote de 300 salen **300/300 idénticas**,
+  con MAE 0,000000. El precálculo del catálogo, en cambio, mete en el mismo
+  lote las ventanas de **todos los capítulos** de un libro, y un capítulo de
+  menos de 250 palabras aporta una ventana corta: ahí `padding` sí rellena
+  hasta la ventana más larga del lote, y el resultado **no es idéntico bit a
+  bit**. También está medido, sobre *Alicia en el País de las Maravillas*, 112
+  ventanas: **103 coinciden exactamente y el resto difiere como mucho en
+  4,8 × 10⁻⁷**. Las cifras del catálogo se guardan con tres decimales, así que
+  una diferencia de ese tamaño no puede mover ninguna.
 
 Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project
 Gutenberg **son entre 3 y 5 horas de A100**, y conviene decir de qué depende esa
@@ -991,8 +1005,9 @@ repetirlo en cada párrafo corregido.
    del entrenamiento. LiteraLevel no acredita ningún nivel, y decirlo en el
    documento no basta: la aplicación lo repite en pantalla.
 2. **La escala está comprimida.** El ajuste contra el ancla real ronda
-   `predicho ≈ 0,72 × real + 0,38` (mínimos cuadrados sobre las cinco medias por
-   nivel), así que los niveles bajos se sobreestiman y
+   `predicho ≈ 0,72 × real + 0,38` (mínimos cuadrados sobre las cuatro medias
+   por nivel de Colab; con las cinco locales sale 0,67x + 0,41), así que los
+   niveles bajos se sobreestiman y
    los altos se subestiman. Es la razón de mostrar bandas y no decimales.
 3. **Las etiquetas del catálogo heredado no son fiables** (Cuadro 3). Son
    predicciones de un modelo v1 sobre las primeras ~190 palabras. La remedición
@@ -1010,7 +1025,7 @@ repetirlo en cada párrafo corregido.
    pero salió del diagnóstico y el conjunto ha
    sido mirado y ya no es virgen.
 7. **La longitud del texto es un confusor en el corpus de examen.** Contar
-   palabras alcanza 0,807 donde el modelo alcanza 0,854 (Cuadro 11).
+   palabras alcanza 0,799 donde el modelo alcanza 0,855 (Cuadro 11).
 8. **El modelo solo mide prosa continua en inglés.** Poesía, teatro, diálogo
    muy fragmentado y cualquier lengua distinta del inglés quedan fuera.
 9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el
@@ -1086,10 +1101,10 @@ repetirlo en cada párrafo corregido.
 
 **Se cumplió el objetivo ordinal, que era el objetivo.** Y conviene separar dos
 cosas que esta frase mezclaba en una versión anterior, porque vienen de corpus
-distintos. Sobre **textos externos con nivel MCER oficial** —los 45 de British
+distintos. Sobre **textos externos con nivel MCER oficial** —los 46 de British
 Council— el modelo ordena los niveles de forma estrictamente creciente
-(0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952) y alcanza Spearman **0,829** con
-38 textos, **0,854** con los 45. El **0,908 y el 97,2 %** son otra cosa: salen
+(0,5040 · 0,5480 · 0,9276 · 1,2414 · 1,4952) y alcanza Spearman **0,829** con
+38 textos, **0,855** con los 46. El **0,908 y el 97,2 %** son otra cosa: salen
 del conjunto de validación de **144 documentos del propio corpus de anclaje**,
 que es interno. Atribuirlos a los externos era un error. Para el problema planteado —elegir qué
 leer— acertar el orden es lo que importa; acertar la letra exacta es un lujo.

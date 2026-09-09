@@ -340,12 +340,12 @@ el texto en lugar de contar sílabas.
 ### 5.4 La cifra que hay que saber defender
 
 En el corpus de exámenes de British Council, **contar palabras sin modelo alguno
-alcanza 0,807 donde el modelo alcanza 0,854**. Es la comparación más
+alcanza 0,799 donde el modelo alcanza 0,855**. Es la comparación más
 desfavorable del proyecto y conviene llevarla preparada en lugar de esperar a
 que alguien la encuentre: en ese corpus la longitud del texto está correlacionada
 con el nivel, así que un contador de palabras aprovecha un atajo que en una
 biblioteca real no existe. Descontando la longitud, la correlación parcial del
-modelo se sostiene en **0,657**. La del contador de palabras no es que sea
+modelo se sostiene en **0,665**. La del contador de palabras no es que sea
 peor: es que **no está definida**, porque descontar la longitud de la propia
 longitud deja un residuo de varianza cero. Dicho de otro modo, el contador no
 aporta nada por encima de la longitud porque es la longitud; el modelo sí.
@@ -384,12 +384,12 @@ publicación y un micrófono.
 
 | Nivel | Métrica | Estado |
 |---|---|---|
-| Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952 |
-| Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,657 |
+| Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5480 · 0,9276 · 1,2414 · 1,4952 |
+| Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,665 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron 8 correcciones |
 | Producto | Accesibilidad de color | **Cumplido**: las veinte parejas de color de las cinco paletas superan WCAG AA; la más ajustada, 4,53 |
 | Producto | Robustez | **Cumplido**: 205 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
-| Operación | Enlace permanente disponible | **Pendiente** (A2) |
+| Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha. Sin disco persistente todavía (A4) |
 | Operación | Catálogo medido, no heredado | **En curso** (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |
 

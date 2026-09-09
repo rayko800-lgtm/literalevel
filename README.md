@@ -66,7 +66,7 @@ porque ese corpus gradúa también por longitud de la tarea.
 
 ### El baseline, dicho antes de que lo pregunten
 
-Sobre los 45 textos de British Council que se pueden medir en local:
+Sobre los 46 textos de British Council que se pueden medir en local:
 
 | Señal | Spearman con el nivel oficial |
 |---|---|
@@ -105,21 +105,20 @@ reportó Colab:
 | A1 | 3 | 0.5040 | — |
 | A2 | 7 | 0.5480 | 0.6479 |
 | B1 | 12 | 0.9276 | 0.9513 |
-| B2 | 11 | 1.2478 | 1.2883 |
+| B2 | 12 | 1.2414 | 1.2883 |
 | C1 | 12 | 1.4952 | 1.4950 |
 
 C1 coincide hasta la tercera cifra decimal (1,4952 frente a 1,4950); A2 se
 desvía 0.10. La causa es la
-extracción de los PDF y el filtro de prosa continua: en local sobreviven 45 de los
-59 originales —uno no está disponible, otro no lleva nivel en el nombre del
-archivo, dos no tienen cuerpo localizable y otros diez los rechaza
-`scoring.continuous_prose` por quedarse bajo las 150 palabras— y el anclaje
+extracción de los PDF y el filtro de prosa continua: en local sobreviven 46 de los
+59 originales —uno no está disponible, dos no tienen cuerpo localizable y otros
+diez los rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras— y el anclaje
 «Reading text … Tasks» recorta distinto. **Lo que sí se reproduce exactamente es
 que las medias quedan estrictamente crecientes**, que es el resultado que
 sostiene el trabajo.
 
-El guion imprime además las tres cifras del Cuadro 11 (modelo 0,854, contar
-palabras 0,807, parcial descontando la longitud 0,657) y la lista de los diez
+El guion imprime además las tres cifras del Cuadro 11 (modelo 0,855, contar
+palabras 0,799, parcial descontando la longitud 0,665) y la lista de los diez
 rechazados con su motivo. Los nombres de los 58 archivos del corpus están en
 [`entrega/manifiesto_corpus_externo.md`](entrega/manifiesto_corpus_externo.md).
 
