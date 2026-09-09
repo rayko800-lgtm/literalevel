@@ -1748,7 +1748,7 @@ plt.show()
 #    en una escala de 0 a 2: el modelo **ordena bien y estima corto**. Un texto
 #    A2 puntúa cerca de donde debería puntuar un B1. Por eso el producto muestra
 #    bandas y no una letra.
-# 2. **A1 y A2 casi no se distinguen** (0,504 frente a 0,548), y A1 tiene tres
+# 2. **A1 y A2 casi no se distinguen** (0,504 frente a 0,556), y A1 tiene tres
 #    textos. El extremo fácil de la escala está mal resuelto, y con esa n no se
 #    puede afirmar nada más.
 #
@@ -1981,7 +1981,7 @@ plt.show()
 # 1. **La escala pública 0-2 es propia.** El MCER es el ancla con la que se
 #    entrenó, no un certificado que se emita.
 # 2. **La escala está comprimida y sesgada a la baja** frente al ancla real, y
-#    A1 y A2 son prácticamente indistinguibles (0,504 frente a 0,548, con n = 3
+#    A1 y A2 son prácticamente indistinguibles (0,504 frente a 0,556, con n = 3
 #    en A1).
 # 3. **El dominio confunde la medida.** El texto informativo puntúa medio punto
 #    más difícil que el literario con la misma sintaxis (Figura 6); el modelo no

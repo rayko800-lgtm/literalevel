@@ -18,7 +18,8 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
 
 ## Qué hace
 
-1. **Sitúa al lector.** Tres preguntas, o midiendo un texto que ya lee cómodo.
+1. **Sitúa al lector.** Un cuestionario breve —seis preguntas y tres fragmentos
+   en escalera—, o midiendo un texto que ya lee cómodo.
 2. **Busca qué leer.** 1.197 libros indexados por significado: se describe la
    trama en español y el buscador la entiende. Se ajusta al nivel del lector.
    **Aviso sobre las etiquetas del catálogo:** la columna `nivel_cefr` de los
@@ -109,7 +110,7 @@ reportó Colab:
 | C1 | 12 | 1.4952 | 1.4950 |
 
 C1 coincide hasta la tercera cifra decimal (1,4952 frente a 1,4950); A2 se
-desvía 0.10. La causa es la
+desvía 0.09. La causa es la
 extracción de los PDF y el filtro de prosa continua: en local sobreviven 47 de los
 59 originales —dos no tienen cuerpo localizable y otros diez los rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras— y el anclaje
 «Reading text … Tasks» recorta distinto. **Lo que sí se reproduce exactamente es

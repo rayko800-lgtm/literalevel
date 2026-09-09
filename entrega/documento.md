@@ -47,7 +47,7 @@ estrictamente creciente: A1 0,5040 (n=3) · A2 0,5561 (n=8) · B1 0,9276 (n=12) 
 B2 1,2414 (n=12) · C1 1,4952 (n=12). Ese orden —no el acierto exacto— es el
 resultado que sostiene el trabajo, **con una salvedad que conviene leer junto
 a las cifras**: el escalón A1–A2 es de 0,052 sobre desviaciones de 0,111 y
-0,223, y descansa en tres textos. Está dentro del ruido. Los cuatro escalones
+0,223, y descansa en tres textos. Está dentro del ruido. Los tres escalones
 siguientes, no.
 
 Conviene decirlo desde la primera página: **la escala 0–2 es propia y
@@ -720,7 +720,7 @@ repositorio, así que quien quiera rehacerla tiene que reunirlos por su
 cuenta. El `.dat` de la figura guarda los agregados, no las entradas.
 Lo que se reproduce exactamente es **el orden**; las medias difieren
 ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
-decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10).
+decimal —1,4952 frente a 1,4950—, A2 se desvía 0,09).
 
 **La diferencia entre los 38 textos de Colab y los 47 de aquí tiene dos causas,
 y una versión anterior solo mencionaba una.** El balance completo, contado sobre
@@ -747,7 +747,7 @@ la comprobación de orden creciente ya no se puede hacer sobre cinco niveles.
 
 Se conserva la unión con espacio porque es la que reproduce el Cuadro 10 de este
 documento, que es la reproducción local. **No reproduce las cifras de Colab**, y
-nada aquí lo hace: aquella tanda son 38 textos y A2 se desvía 0,10. Pero el guion
+nada aquí lo hace: aquella tanda son 38 textos y A2 se desvía 0,09. Pero el guion
 imprime las dos cuentas en cada ejecución. Lo que esto dice del resultado es concreto: **el
 orden estrictamente creciente está medido sobre un conjunto que la aplicación
 habría filtrado más**, y una parte de esos 47 son textos que la app rechazaría

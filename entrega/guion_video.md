@@ -27,8 +27,7 @@ antes que del modelo, que es exactamente el orden que pide Barranco.
 > **Nota honesta sobre las fuentes.** ANSVA está verificado y es suyo. Miralles
 > enseña además una *«estructura de la sardina»* de la que encontré el nombre
 > pero **no su anatomía exacta** en fuentes públicas — está en su libro y su
-> curso. No la he usado para no inventármela. Si tienes el libro y quieres que
-> el guion se reescriba sobre esa estructura, dímelo y lo rehago.
+> curso. No se ha usado, para no inventarla.
 
 Y se cruza con la plantilla de la **presentación modelo del propio profesor**
 (`Ejemplopresentacindehallazgos.pdf`): cifras grandes y desnudas en vez de

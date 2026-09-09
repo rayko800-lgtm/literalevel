@@ -124,4 +124,3 @@ megas —hoy, en local, `~/.literalevel/` entero son **7,4 MB**—, así que la
 factura de almacenamiento es despreciable. Se monta el bucket y se apunta la
 app ahí; no hace falta tocar código, solo la ruta base.
 
-## Lo que ya no hace falta resolver (continuación)

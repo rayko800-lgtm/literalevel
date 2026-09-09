@@ -89,7 +89,7 @@ actual es correcto. Quien lo "corrija" de memoria hacia Gradio 4, lo rompe.
 
 Consumo medido en local: **~1,05 GB de RSS** con el modelo y los embeddings
 del catálogo cargados; con spaCy y el diccionario encima, pico realista de
-**1,2-1,5 GB**. En disco, 562 MB (modelo 328 + diccionario 233 + CSV 0,9).
+**1,2-1,5 GB**. En disco, 575 MB (modelo 332 con su tokenizador + diccionario 243 + CSV 0,9).
 Eso descarta cualquier plan de 512 MB (Render free, Koyeb free).
 
 **Hugging Face cambió el tier gratuito a mediados de 2026.** La doc del Hub
@@ -110,7 +110,7 @@ Cuatro cosas que hay que resolver antes de subir, sea cual sea la plataforma:
 2. ~~La ruta del diccionario está clavada.~~ **RESUELTO:** `lexicon.py` lee
    `LITERALEVEL_DICCIONARIO` y cae al valor de siempre si no está. Igual que
    `LITERALEVEL_MODELO` para el modelo.
-3. **Los 562 MB están en `.gitignore`** y deben seguir estándolo. Suben como
+3. **Los 575 MB están en `.gitignore`** y deben seguir estándolo. Suben como
    repo de modelo y repo de dataset aparte, montados de solo lectura.
 4. **Las cachés de `~/.literalevel/`** (lexicon y voz) son disco efímero en un
    Space: se borran en cada reinicio. Es aceptable porque son caché, pero la

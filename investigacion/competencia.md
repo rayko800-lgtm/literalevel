@@ -213,11 +213,11 @@ publicada es directamente comparable con la nuestra**.
 - **El número que de verdad debería preocupar es otro:** en British Council,
   contar palabras sin modelo da **0,807** y el modelo da **0,860** (Cuadro 12).
   El modelo aporta señal por encima de la longitud (parcial 0,668), pero el
-  margen sobre la señal trivial es de 0,047. El proyecto ya lo publica, y eso es
+  margen sobre la señal trivial es de 0,053. El proyecto ya lo publica, y eso es
   lo correcto. Pero es la cifra que un revisor exigente atacará primero.
 - **Lo que sí es un resultado poco común y está infravalorado en el documento:
   el orden estricto de las medias por nivel en corpus externo**
-  (0,504 · 0,548 · 0,928 · 1,248 · 1,495). Vajjala documenta que *los modelos de
+  (0,504 · 0,556 · 0,928 · 1,241 · 1,495). Vajjala documenta que *los modelos de
   legibilidad no transfieren bien entre corpus* como uno de los problemas
   abiertos del campo ([LREC 2022](https://aclanthology.org/2022.lrec-1.574/)).
   Que un modelo entrenado con un ancla MCER conserve el orden en material de
@@ -436,7 +436,7 @@ Este apartado vale más que el anterior. Sin adornos:
 
 4. **En British Council, contar palabras da 0,807 y nosotros 0,860.**
    El proyecto lo publica y hace bien. Pero un revisor que solo lea esa tabla
-   concluirá que 328 MB de transformer compran 0,047 de Spearman. La defensa
+   concluirá que 328 MB de transformer compran 0,053 de Spearman. La defensa
    —la correlación parcial de 0,668— es correcta pero requiere explicar qué es
    una correlación parcial, y eso ya es terreno perdido.
 

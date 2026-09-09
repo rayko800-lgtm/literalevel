@@ -110,8 +110,8 @@ def public_band(score: float) -> str:
     Con los cortes viejos y esa compresion pasaba esto, medido con las medias
     reales de `validar_local.py`:
 
-        A1 0,504 -> basico       A2 0,548 -> basico
-        B1 0,928 -> intermedio   B2 1,248 -> intermedio
+        A1 0,504 -> basico       A2 0,556 -> basico
+        B1 0,928 -> intermedio   B2 1,241 -> intermedio
         C1 1,495 -> INTERMEDIO   <- un texto C1 llamado "intermedio"
 
     O sea que **"avanzado" solo lo alcanzaba un C2**, y a un lector se le decia
