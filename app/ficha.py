@@ -145,10 +145,26 @@ def _es_boilerplate(capitulo) -> bool:
 
     Se mira el titulo y las primeras 400 palabras: la licencia larga del final
     empieza diciendo lo que es, y la portadilla es corta entera.
+
+    OJO CON LA CABECERA. Se mira el texto SIN la envoltura legal, y eso no es
+    un refinamiento: era un fallo que tiraba libros enteros. Un .txt de
+    Gutenberg sin encabezados de capitulo -poesia, ensayo, teatro, relatos, o
+    simplemente otra convencion de titulos- cae al respaldo de
+    `reader._leer_txt`, que devuelve UN capitulo llamado "Texto completo" con
+    el archivo entero dentro. Sus primeras 400 palabras son la cabecera legal
+    de Gutenberg, que repite la formula varias veces, asi que el capitulo se
+    clasificaba como licencia y el libro se descartaba SIN puntuar. Medido con
+    un texto de prueba de 10.434 palabras de prosa: cero capitulos
+    sobrevivian. Quitando la envoltura antes de mirar, sobrevive.
     """
-    cabeza = " ".join(capitulo.texto.split()[:400])
     if _BOILERPLATE_RE.search(capitulo.titulo or ""):
         return True
+    limpio = sin_licencia(capitulo.texto)
+    # Si al quitar la envoltura no queda casi nada, el capitulo ERA la
+    # envoltura. Es el caso que el filtro tiene que seguir cazando.
+    if len(limpio.split()) < 150:
+        return True
+    cabeza = " ".join(limpio.split()[:400])
     if not _BOILERPLATE_RE.search(cabeza):
         return False
     # Una novela puede mencionar Gutenberg de pasada en una nota al pie. Se
