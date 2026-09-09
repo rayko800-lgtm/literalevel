@@ -205,7 +205,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | Fuente | Qué aporta | Tamaño | Origen | Licencia / acceso |
 |---|---|---|---|---|
 | **CLEAR Corpus** | Etiqueta continua de legibilidad (`BT_easiness`) para el modelado supervisado | 4.724 extractos | Repositorio público del proyecto CLEAR (Crossley et al., 2023) | Uso investigador, descarga directa |
-| **OneStopEnglish** | Validación externa ordinal en 3 niveles | 567 textos (189 por nivel) | GitHub (Vajjala & Lučić, 2018) | CC BY-SA 4.0 |
+| **OneStopEnglish** | Corpus de **afinado** de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados | 567 textos (189 por nivel) | GitHub (Vajjala & Lučić, 2018) | CC BY-SA 4.0 |
 | **British Council LearnEnglish** | Validación externa contra niveles MCER oficiales | 59 textos A1–C1 | Descarga de los PDF públicos | Con derechos: no se distribuye ni se imprime texto |
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
@@ -565,19 +565,33 @@ variantes del modelo entrenadas sobre corpus distintos (v1 sobre
 | Informativo (CLEAR, `Info`) | 489 | **0,905** | 0,837 |
 | Banda Lexile 500 (más fácil) | 62 | **0,651** | 0,459 |
 | Banda Lexile 1300 (más difícil) | 272 | **0,877** | 0,773 |
-| Periodístico (OneStopEnglish) | 567 | 0,458 | **0,840** |
+| Periodístico (OneStopEnglish) | 567 | 0,458 | *no comparable* |
 | Exámenes MCER (British Council) | 59 | −0,239 | **0,175** |
 
 *Cuadro 8. Matriz modelo × dominio. Correlación orientada con la dificultad
 real; más alto es mejor.*
 
-La conclusión no es que uno sea bueno y otro malo: **miden cosas distintas**.
-v1 gana en dificultad de lectura tipo CLEAR —juicios de lectores nativos sobre
-prosa continua— y v2 gana donde la etiqueta es una graduación pensada para
-aprendices de segunda lengua, que es la misma construcción que mide el MCER.
-La decisión de qué escala presentar al usuario precede a la decisión de qué
-modelo desplegar; se eligió la escala anclada al MCER, y con ella el modelo
-correspondiente.
+**Por qué la casilla de OneStopEnglish está vacía para v2, y no es un olvido.**
+Una auditoría externa encontró que la cifra que ocupaba ese hueco —un 0,840 que
+hacía ganar a v2 con holgura— estaba medida sobre los 567 textos completos,
+y **v2 se afinó precisamente con 151 de los 189 artículos de ese corpus**. Es
+decir: el 80 % de esos textos eran su propio entrenamiento, y se comparaban
+contra un v1 que no los había visto nunca. No es que la cifra fuera falsa; es
+que no medía lo que la tabla decía medir. Se retira en lugar de maquillarla.
+
+Eso obliga a rebajar la conclusión que colgaba de ella. Lo que sigue en pie es
+que **v1 gana en dificultad de lectura tipo CLEAR** —juicios de lectores
+nativos sobre prosa continua—, con ventaja en las cuatro filas medidas
+limpiamente. Lo que **ya no se sostiene con esta evidencia** es la afirmación
+simétrica de que v2 gane donde la etiqueta es una graduación para aprendices:
+la única fila que la respaldaba estaba contaminada, y la de British Council,
+donde v2 sí aventaja a v1, tiene una correlación de 0,175 —demasiado baja para
+sostener nada por sí sola—.
+
+La decisión de qué escala presentar al usuario precede a la de qué modelo
+desplegar; se eligió la escala anclada al MCER, y con ella el modelo
+correspondiente. Esa decisión no cambia, pero conviene saber que se tomó con
+menos evidencia de la que este cuadro aparentaba dar.
 
 ### 7.4 El modelo desplegado y su validación
 
@@ -822,7 +836,13 @@ argumenta en lugar de ocultarse.
 9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el
    guion de entrenamiento del v4 vive en Google Drive, no en el repositorio.
    Las cifras del apartado 7.4 se reportan tal como constan en la tarjeta del
-   modelo.
+   modelo. **Y su composición no está publicada**: no se dice cuántos
+   documentos vienen de cada fuente ni cuántos por nivel. Eso importa más de lo
+   que parece, porque la validación externa del apartado 7.4 se apoya en que
+   las fuentes usadas para validar sean ajenas a las usadas para entrenar, y
+   sin esa tabla nadie puede comprobarlo desde fuera. Lo señaló una auditoría
+   externa y es una crítica justa: publicar los recuentos no exige redistribuir
+   ni una línea de texto con derechos.
 10. **Dos corpus no se pueden redistribuir**: British Council tiene derechos y
     el corpus de validación de 144 documentos no acompaña al repositorio, de
     modo que las cifras de 0,908 y 97,2 % **no son verificables clonando el

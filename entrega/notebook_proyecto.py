@@ -1686,8 +1686,8 @@ for _, fila in validacion_externa.iterrows():
     plt.annotate(f"{fila['Media v4 (escala 0-2)']:.3f}",
                  (fila["Nivel oficial"], fila["Media v4 (escala 0-2)"]),
                  textcoords="offset points", xytext=(0, 8), ha="center", fontsize=8)
-plt.axhline(0.8, color="#937860", linestyle=":", linewidth=1)
-plt.axhline(1.6, color="#937860", linestyle=":", linewidth=1)
+plt.axhline(0.6, color="#937860", linestyle=":", linewidth=1)
+plt.axhline(1.4, color="#937860", linestyle=":", linewidth=1)
 plt.title("Puntuación media del v4 por nivel MCER oficial")
 plt.xlabel("Nivel oficial del texto (British Council)")
 plt.ylabel("Puntuación media en la escala pública 0-2")
@@ -1968,11 +1968,19 @@ plt.show()
 # | **Recalcular las métricas del v4** (0,908, 97,2 %, las medias por nivel) | **No** |
 #
 # Lo último no depende de publicar pesos: depende del **corpus de anclaje MCER**,
-# 654 documentos que incluyen material con derechos —los exámenes de British
-# Council entre ellos— que no se puede redistribuir. Esas cifras se citan de la
+# 654 documentos que no se pueden redistribuir. Esas cifras se citan de la
 # tarjeta del modelo, no se recalculan, y quien quiera comprobarlas tiene que
-# reunir su propio corpus etiquetado. Decirlo así es más honesto que anunciar una
-# reproducibilidad del cien por cien que la ley de derechos de autor impide.
+# reunir su propio corpus etiquetado. Decirlo así es más honesto que anunciar
+# una reproducibilidad del cien por cien que los derechos de autor impiden.
+#
+# **Y hay que reconocer un hueco, porque una auditoría externa lo señaló.** La
+# composición exacta de esos 654 documentos —cuántos por fuente y cuántos por
+# nivel— no está documentada en este repositorio, y esa tarjeta del modelo
+# tampoco está aquí. Sin esa lista no se puede comprobar desde fuera que las
+# fuentes usadas para validar sean ajenas a las usadas para entrenar. La
+# validación con British Council de §7.2 se apoya en que sea así; **quien
+# audite este trabajo tiene derecho a exigir esa lista, y hoy no está**.
+# Publicarla es la primera recomendación de §9.4.
 #
 # Lo que sí se calcula en cada ejecución es: la descarga y
 # validación de las 4.724 filas del corpus de entrenamiento, la descarga del
@@ -1982,19 +1990,24 @@ plt.show()
 #
 # ## 9.4 Recomendaciones y trabajo futuro
 #
-# 1. **Publicar un corpus de anclaje redistribuible.** Es lo que falta para que
-#    las métricas del v4 se puedan recalcular y no solo citar. Los pesos ya están
+# 1. **Publicar la composición del corpus de anclaje**: cuántos documentos por
+#    fuente, cuántos por nivel, y la regla con la que se partió en entrenamiento
+#    y validación. No hace falta redistribuir ni una línea de texto con derechos
+#    para publicar esa tabla, y sin ella nadie puede comprobar desde fuera que la
+#    validación externa sea de verdad externa. Es lo primero, y es barato.
+# 2. **Reunir un corpus de anclaje redistribuible.** Es lo que permitiría
+#    recalcular las métricas del v4 en vez de citarlas. Los pesos ya están
 #    publicados; el corpus no puede estarlo, y ese es el límite real.
-# 2. **Recalibrar la escala pública con una transformación afín** ajustada sobre
+# 3. **Recalibrar la escala pública con una transformación afín** ajustada sobre
 #    el ancla externa. El proyecto ya usó esa técnica con éxito en una iteración
 #    anterior (`y = 0,322 x − 0,832`), corrigiendo la magnitud **sin tocar los
 #    pesos** ni el orden aprendido. Es la vía natural para atacar la compresión de
 #    escala de la Figura 13.
-# 3. **Ampliar la validación externa**, sobre todo en A1 y A2, que es donde la
+# 4. **Ampliar la validación externa**, sobre todo en A1 y A2, que es donde la
 #    evidencia es más fina y donde están los lectores que más ayuda necesitan.
-# 4. **Modelar el dominio explícitamente**, o al menos avisar en la ficha cuando
+# 5. **Modelar el dominio explícitamente**, o al menos avisar en la ficha cuando
 #    el libro es informativo, dado el desplazamiento medido en la Figura 6.
-# 5. **Ejecutar el precálculo completo** y retirar definitivamente las etiquetas
+# 6. **Ejecutar el precálculo completo** y retirar definitivamente las etiquetas
 #    heredadas del v1.
 #
 # ---

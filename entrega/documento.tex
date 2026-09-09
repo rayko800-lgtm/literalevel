@@ -877,7 +877,7 @@ entorno de cómputo: solo estadísticas agregadas.
 \midrule
 \textbf{CLEAR Corpus} & Etiqueta continua de legibilidad (\cod{BT\_easiness}) para el modelado supervisado & 4.724 extractos & Repositorio público del proyecto CLEAR \parencite{crossley2023clear} & Uso investigador, descarga directa \\
 \addlinespace
-\textbf{One\-Stop\-English} & Validación externa ordinal en 3 niveles & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
+\textbf{One\-Stop\-English} & Corpus de \textbf{afinado} de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
 \addlinespace
 \textbf{British Council Learn\-English} & Validación externa contra niveles MCER oficiales & 59 textos A1--C1 & Descarga de los PDF públicos & Con derechos: no se distribuye ni se imprime texto \\
 \addlinespace
@@ -1445,7 +1445,7 @@ Literatura (CLEAR, \cod{Lit}) & 461 & \textbf{0,848} & 0,760 \\
 Informativo (CLEAR, \cod{Info}) & 489 & \textbf{0,905} & 0,837 \\
 Banda Lexile 500 (más fácil) & 62 & \textbf{0,651} & 0,459 \\
 Banda Lexile 1300 (más difícil) & 272 & \textbf{0,877} & 0,773 \\
-Periodístico (OneStopEnglish) & 567 & 0,458 & \textbf{0,840} \\
+Periodístico (OneStopEnglish) & 567 & 0,458 & \emph{no comparable} \\
 Exámenes MCER (British Council) & 59 & $-0{,}239$ & \textbf{0,175} \\
 \bottomrule
 \end{tabular}
@@ -1482,26 +1482,42 @@ más alto es mejor.}
 \addlegendentry{v1 (\cod{BT\_easiness})}
 \addplot[fill=llverde!35, draw=llverde!85] coordinates {
   (0.760,lit) (0.837,info) (0.459,lex500)
-  (0.773,lex1300) (0.840,prensa) (0.175,examen)};
+  (0.773,lex1300) (0.175,examen)};
 \addlegendentry{v2 (material graduado)}
 \draw[llgris!70, line width=0.6pt] (axis cs:0,lit) -- (axis cs:0,examen);
 \end{axis}
 \end{tikzpicture}
-\caption[Matriz modelo $\times$ dominio]{Los dos modelos no compiten: miden cosas
-distintas. v1 domina donde la etiqueta son juicios de lectores nativos sobre prosa
-continua (CLEAR); v2 domina donde la etiqueta es una graduación pensada para aprendices
-de segunda lengua, que es la misma construcción que mide el MCER. Como el producto
-muestra una escala anclada al MCER, se desplegó el modelo de la familia v2. Datos del
-cuadro~\ref{cuad:dominio}.}
+\caption[Matriz modelo $\times$ dominio]{v1 domina en las cuatro filas de CLEAR, donde la
+etiqueta son juicios de lectores nativos sobre prosa continua. \textbf{A v2 le falta la
+barra de la fila periodística a propósito}: la cifra que ocupaba ese hueco estaba medida
+sobre los 567 textos de OneStopEnglish, y v2 se afinó con 151 de sus 189 artículos, así
+que el 80~\pct{} de ese conjunto era su propio entrenamiento. Lo detectó una auditoría
+externa y se retira en lugar de maquillarse. Queda por tanto sin respaldo la lectura
+simétrica —que v2 gane donde la etiqueta es una graduación para aprendices—, porque la
+única fila que la sostenía estaba contaminada. Datos del cuadro~\ref{cuad:dominio}.}
 \label{fig:dominio}
 \end{figure}
 
-La conclusión no es que uno sea bueno y otro malo: \textbf{miden cosas distintas}. v1
-gana en dificultad de lectura tipo CLEAR —juicios de lectores nativos sobre prosa
-continua— y v2 gana donde la etiqueta es una graduación pensada para aprendices de
-segunda lengua, que es la misma construcción que mide el MCER. La decisión de qué escala
-presentar al usuario precede a la decisión de qué modelo desplegar; se eligió la escala
-anclada al MCER, y con ella el modelo correspondiente.
+\textbf{Por qué la casilla de OneStopEnglish está vacía para v2, y no es un olvido.} Una
+auditoría externa encontró que la cifra que ocupaba ese hueco —un 0,840 que hacía ganar a
+v2 con holgura— estaba medida sobre los 567 textos completos, y \textbf{v2 se afinó
+precisamente con 151 de los 189 artículos de ese corpus}. El 80~\pct{} de esos textos era
+su propio entrenamiento, y se comparaban contra un v1 que no los había visto nunca. No es
+que la cifra fuera falsa: es que no medía lo que la tabla decía medir. Se retira en lugar
+de maquillarla.
+
+Eso obliga a rebajar la conclusión que colgaba de ella. Lo que sigue en pie es que
+\textbf{v1 gana en dificultad de lectura tipo CLEAR} —juicios de lectores nativos sobre
+prosa continua—, con ventaja en las cuatro filas medidas limpiamente. Lo que \textbf{ya no
+se sostiene con esta evidencia} es la afirmación simétrica de que v2 gane donde la
+etiqueta es una graduación para aprendices: la única fila que la respaldaba estaba
+contaminada, y la de British Council, donde v2 sí aventaja a v1, tiene una correlación de
+0,175, demasiado baja para sostener nada por sí sola.
+
+La decisión de qué escala presentar al usuario precede a la de qué modelo desplegar; se
+eligió la escala anclada al MCER, y con ella el modelo correspondiente. Esa decisión no
+cambia, pero conviene saber que se tomó con menos evidencia de la que este cuadro
+aparentaba dar.
 
 \subsection{El modelo desplegado y su validación}
 \label{sec:validacion}
@@ -2129,7 +2145,13 @@ por eso se argumenta en lugar de ocultarse.
   \item \textbf{El corpus de anclaje MCER es pequeño} (654 documentos aceptados) y el
         guion de entrenamiento del v4 vive en Google Drive, no en el repositorio. Las
         cifras del apartado~\ref{sec:validacion} se reportan tal como constan en la
-        tarjeta del modelo.
+        tarjeta del modelo. \textbf{Y su composición no está publicada}: no se dice
+        cuántos documentos vienen de cada fuente ni cuántos por nivel. Eso importa más de
+        lo que parece, porque la validación externa del apartado~\ref{sec:validacion} se
+        apoya en que las fuentes usadas para validar sean ajenas a las usadas para
+        entrenar, y sin esa tabla nadie puede comprobarlo desde fuera. Lo señaló una
+        auditoría externa y es una crítica justa: publicar los recuentos no exige
+        redistribuir ni una línea de texto con derechos.
   \item \textbf{Dos corpus no se pueden redistribuir}: British Council tiene derechos y el
         corpus de validación de 144 documentos no acompaña al repositorio, de modo que las
         cifras de 0,908 y 97,2\pct{} \textbf{no son verificables clonando el proyecto}. Lo
