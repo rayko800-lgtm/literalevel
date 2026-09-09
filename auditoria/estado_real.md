@@ -1,5 +1,16 @@
 # Estado real de los hallazgos de auditoría — 9 de septiembre de 2026
 
+> **AVISO, 9 de septiembre por la tarde: este inventario está SUPERADO.**
+> Se escribió contra `974308b` y desde entonces se han cerrado la mayoría de
+> sus hallazgos. La quinta auditoría de Astra lo revisó entrada por entrada y
+> el resultado está en `auditoria/informe_codex_5.md`: de las 33 abiertas o a
+> medias, **16 ya cerradas, 12 a medias, 3 abiertas y 2 no verificables**, y
+> después de eso se corrigieron más. **No uses este archivo como estado
+> actual**: úsalo como histórico. El estado de hoy está en
+> `auditoria/cierre_2026-09-09.md`, `auditoria/informe_fable_7.md` y
+> `PENDIENTES.md`.
+
+
 Inventario propio, hecho contra el árbol de trabajo de hoy (HEAD `974308b`,
 «tercera auditoria de Astra: los seis serios, corregidos»). Se comprobaron los
 **cinco informes** de `auditoria/` hallazgo por hallazgo, yendo al archivo y a la

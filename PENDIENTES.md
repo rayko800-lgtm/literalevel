@@ -1,14 +1,19 @@
 # Pendientes de LiteraLevel
 
-Actualizado: **9 de septiembre de 2026, 09:25**.
+Actualizado: **9 de septiembre de 2026, por la tarde**.
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
-**Si eres Codex y acabas de entrar: lee primero
-[`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md)**, que dice
-qué se corrigió hoy y contra qué se comprobó, y después `git log` desde
-`aed7751`. Hay seis commits nuevos y tocan archivos compartidos.
+**Si acabas de entrar: lee primero
+[`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md)** —qué se
+corrigió hoy y contra qué se comprobó— y después `git log` desde `aed7751`.
+Hay más de diez commits nuevos y tocan archivos compartidos: `app/scoring.py`,
+`app/paletas.py`, `app/ficha.py`, `validar_local.py`, `pruebas_extremas.py` y
+`colab_precalculo.py`.
+
+`auditoria/estado_real.md` **está superado**: úsalo como histórico. El estado
+vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
 
 ---
 
@@ -35,9 +40,11 @@ entero a través de Colab con `drive.mount`.
 |---|---|
 | Libros objetivo (inglés, Project Gutenberg) | 61.642 |
 | Descargados a Drive | **31.974** (51,9 %) |
-| Analizados por el v4 | ver `perfiles_*.jsonl` en Drive |
-| Velocidad medida en A100 | **60 libros/min** sin prefetch |
+| Analizados por el v4 | ver `perfiles_*.jsonl` en Drive; la sonda del cuaderno los cuenta |
+| Velocidad medida en A100 | **103 libros/min** (secuencial; con hilos NO mejora) |
 | Cuello de botella | **no es la GPU**: el 80 % del tiempo espera a Drive |
+| Ventanas por libro | **332,3 de media**, mediana 266 (medido sobre 5.153) |
+| Coste real del catálogo | **2,8 h** de cómputo A100; ~17 h de extremo a extremo |
 
 `colab_precalculo.ipynb` es reanudable: lee los shards que ya hay y se salta
 los ids hechos. La descarga **no necesita GPU** — se puede dejar corriendo en
@@ -75,7 +82,11 @@ Todas medidas el 9 de septiembre, y todas reproducibles con un guion del repo.
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |
 | Modelo / diccionario | 328 MB / 243 MB | `os.path.getsize` |
 | Arranque en frío del Space | **31 s** | `medir_arranque.py` |
-| Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab) | recalculable |
+| Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab); 0,67x + 0,41 con las 5 locales | recalculable |
+| Textos que pasan el filtro COMPLETO | **30** (el de la app; aquí se puntúan 46) | `validar_local.py` |
+| Palabras habladas del guion | **553** (las que van entre comillas) = 3:41 | `entrega/guion_video.md` |
+| Coste del despliegue | **7 USD/mes** (cuenta Pro; tarifa 9, con descuento) | API `whoami-v2` |
+| Modelo + diccionario | 571 MB | `os.path.getsize` |
 
 ---
 
