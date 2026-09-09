@@ -42,11 +42,10 @@
 #
 # ### La limitación honesta, dicha antes de empezar
 #
-# **El modelo v4 todavía no está publicado.** Hoy vive solo en el disco del autor
-# y en una carpeta privada de Drive; publicarlo en Hugging Face es un trámite
-# pendiente. Mientras tanto, la sección 6.5 tiene una variable **`URL_MODELO`**,
-# vacía y bien visible, lista para rellenar con el identificador del repositorio
-# en cuanto exista.
+# **El modelo v4 está publicado** en Hugging Face, en un repositorio público:
+# [`MikeMaki1763/literalevel-v4`](https://huggingface.co/MikeMaki1763/literalevel-v4).
+# La sección 6.5 lo descarga sin credenciales, de modo que este cuadernillo
+# corre entero en un Colab limpio sin depender del disco de nadie.
 #
 # **El cuadernillo no se rompe por eso.** Las celdas que necesitan los pesos
 # comprueban primero si están disponibles: si no lo están, imprimen qué falta y
@@ -1416,14 +1415,18 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 
 # %%
 # ============================================================
-#  LA CASILLA QUE HAY QUE RELLENAR
+#  EL MODELO v4, PUBLICADO
 # ============================================================
-# Cuando el modelo v4 se publique en Hugging Face, escribir aquí el
-# identificador del repositorio, por ejemplo "usuario/literalevel-v4".
-# Mientras esta variable esté vacía, el cuadernillo sigue funcionando: las
-# celdas que necesitan los pesos avisan y se saltan solas.
+# Los pesos están en Hugging Face, en un repositorio público: esta celda los
+# descarga sin credenciales de ningún tipo. Son 328 MB y tardan menos de un
+# minuto en un Colab.
+#
+#     https://huggingface.co/MikeMaki1763/literalevel-v4
+#
+# Si alguna vez esta variable se dejara vacía, el cuadernillo seguiría
+# funcionando: las celdas que necesitan los pesos avisan y se saltan solas.
 
-URL_MODELO = ""          # <--- rellenar aquí
+URL_MODELO = "MikeMaki1763/literalevel-v4"
 
 # ============================================================
 
@@ -1949,17 +1952,29 @@ plt.show()
 # 6. **El guion de entrenamiento del v4 no forma parte del repositorio.** Este
 #    cuadernillo reproduce la cadena de datos, el EDA y los modelos de
 #    referencia, no el afinado final.
-# 7. **Este cuadernillo no es hoy 100 % reproducible**, por la única razón que se
-#    enuncia abajo.
+# 7. **Este cuadernillo corre entero en un Colab limpio**, con el matiz que se
+#    explica abajo: correr no es lo mismo que recalcular.
 #
-# ## 9.3 Lo que falta para que esto sea reproducible al cien por cien
+# ## 9.3 Qué se reproduce aquí y qué no
 #
-# Una sola cosa, y no es técnica: **publicar los pesos del v4**. En cuanto exista
-# el repositorio en Hugging Face, se escribe su identificador en `URL_MODELO`
-# (§6.6) y este cuadernillo pasa de ejecutarlo casi todo a ejecutarlo entero.
-# No hace falta cambiar ninguna otra línea.
+# Conviene separar cuatro cosas que suelen mezclarse bajo la palabra
+# «reproducible», porque solo tres de ellas son ciertas:
 #
-# Mientras tanto, lo que sí se calcula en cada ejecución es: la descarga y
+# | | ¿Se hace aquí? |
+# |---|---|
+# | **Ejecutarse de principio a fin sin errores** en un Colab limpio | **Sí** |
+# | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
+# | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
+# | **Recalcular las métricas del v4** (0,908, 97,2 %, las medias por nivel) | **No** |
+#
+# Lo último no depende de publicar pesos: depende del **corpus de anclaje MCER**,
+# 654 documentos que incluyen material con derechos —los exámenes de British
+# Council entre ellos— que no se puede redistribuir. Esas cifras se citan de la
+# tarjeta del modelo, no se recalculan, y quien quiera comprobarlas tiene que
+# reunir su propio corpus etiquetado. Decirlo así es más honesto que anunciar una
+# reproducibilidad del cien por cien que la ley de derechos de autor impide.
+#
+# Lo que sí se calcula en cada ejecución es: la descarga y
 # validación de las 4.724 filas del corpus de entrenamiento, la descarga del
 # catálogo completo de Project Gutenberg, las once figuras del análisis
 # exploratorio, la ingeniería de seis rasgos lingüísticos, la partición sin fuga
@@ -1967,7 +1982,9 @@ plt.show()
 #
 # ## 9.4 Recomendaciones y trabajo futuro
 #
-# 1. **Publicar el modelo y el diccionario.** Es lo primero por coste-beneficio.
+# 1. **Publicar un corpus de anclaje redistribuible.** Es lo que falta para que
+#    las métricas del v4 se puedan recalcular y no solo citar. Los pesos ya están
+#    publicados; el corpus no puede estarlo, y ese es el límite real.
 # 2. **Recalibrar la escala pública con una transformación afín** ajustada sobre
 #    el ancla externa. El proyecto ya usó esa técnica con éxito en una iteración
 #    anterior (`y = 0,322 x − 0,832`), corrigiendo la magnitud **sin tocar los

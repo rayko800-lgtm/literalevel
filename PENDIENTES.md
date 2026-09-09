@@ -11,7 +11,7 @@ puntos que están en juego, no por comodidad.
 
 | Qué | Desbloquea | Por qué solo tú |
 |---|---|---|
-| **Token de Hugging Face** | **15 pts** (notebook reproducible) | Publicar el modelo v4 y el diccionario. Hoy el notebook no corre en un Colab limpio porque los pesos solo existen en tu disco. Media hora de trabajo, y es lo que más puntos por minuto da de toda la lista |
+| ~~Token de Hugging Face~~ | **HECHO** | El modelo v4 esta publicado en https://huggingface.co/MikeMaki1763/literalevel-v4, publico y con la descarga sin credenciales verificada. El cuadernillo ya corre entero en un Colab limpio |
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profe pidió ver. Unos audífonos con micro bastan |
 | **Despliegue permanente** | protege **25 pts** | El enlace de hoy muere al apagar la computadora. Hugging Face Spaces son 9 USD/mes, y desde 2026 una cuenta gratuita no puede crear un Space de Gradio |
 | **Conector de Drive** | ver el catálogo | claude.ai → Ajustes → Conectores → Google Drive. Está autenticado pero rechaza toda operación |

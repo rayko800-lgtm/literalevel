@@ -784,7 +784,7 @@ terminado. No son «se podría»: son «se hace».
 \caption{Accionables, con coste y criterio de terminado.}
 \label{cuad:accionables}
 \endlastfoot
-\textbf{A1} & \textbf{Publicar el modelo (328 MB) y el diccionario (243 MB)} como repositorios abiertos, con el guion de subida ya escrito & Desbloquea la reproducibilidad del cuaderno, que hoy no corre en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & El cuaderno corre de principio a fin en un Colab limpio, sin errores ni advertencias \\
+\textbf{A1} & \textbf{Publicar el modelo (328 MB)} como repositorio abierto & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO}: \cod{MikeMaki1763/literalevel-v4}, público, con la descarga sin credenciales verificada \\
 \addlinespace
 \textbf{A2} & \textbf{Desplegar en enlace permanente} (Gradio sobre plan de pago personal) & El enlace actual es un túnel temporal que muere al apagar el equipo. Es el mayor riesgo de la entrega, y no es técnico & 9 USD un mes & El enlace se abre desde un móvil ajeno y sobrevive a reiniciar el equipo del autor \\
 \addlinespace
@@ -1653,7 +1653,7 @@ Al principio estaban en 0,8 y 1,6 —el 0--2 partido en tres—, pero como el mo
 sus predicciones, con esos cortes un texto C1 caía en «intermedio» y «avanzado» solo lo
 alcanzaba un C2: tres de los cinco niveles medidos compartían banda. Ahora la banda se
 deriva del ancla MCER, con el agrupamiento del propio marco —usuario básico A1--A2,
-independiente B1--B2, competente C1--C2—, y las fronteras quedan en 	extbf{0,6 y 1,4}.
+independiente B1--B2, competente C1--C2—, y las fronteras quedan en \textbf{0,6 y 1,4}.
 Así la palabra y la letra no pueden contradecirse por construcción. Ninguna puntuación
 cambió: solo cambió cómo se agrupan.
 
@@ -1744,7 +1744,7 @@ Partición agrupada por libro & Evitar fuga de datos entre extractos del mismo a
 \addlinespace
 \cod{distilroberta} y no \cod{roberta-base} completo & La aplicación debe correr en CPU en el equipo de un estudiante & 328 MB y 0,9 s de carga; la diferencia de calidad no justificaba 3$\times$ de tamaño \\
 \addlinespace
-Promediar bloques sin ponderar, con la 	extbf{ventana} como unidad & Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal & Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: hasta que una auditoría externa lo detectó, la app promediaba las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual 	extbf{no son el mismo número} (0,004 de diferencia máxima medida en cinco libros reales) \\
+Promediar bloques sin ponderar, con la \textbf{ventana} como unidad & Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal & Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: hasta que una auditoría externa lo detectó, la app promediaba las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual \textbf{no son el mismo número} (0,004 de diferencia máxima medida en cinco libros reales) \\
 \addlinespace
 \textbf{Rechazada: XGBoost sobre variables clásicas} & Se esperaba que un ensamble superase al modelo lineal & No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 \emph{vs.} 1,39). El límite estaba en las variables \\
 \addlinespace
@@ -2134,9 +2134,13 @@ por eso se argumenta en lugar de ocultarse.
         corpus de validación de 144 documentos no acompaña al repositorio, de modo que las
         cifras de 0,908 y 97,2\pct{} \textbf{no son verificables clonando el proyecto}. Lo
         que sí se reproduce en cualquier máquina es el cuadro~\ref{cuad:validacion}.
-  \item \textbf{La reproducibilidad del cuaderno depende de publicar dos artefactos}: el
-        modelo (328 MB) y el diccionario (243 MB) viven hoy en un disco local. Mientras no
-        estén publicados, el cuaderno no corre de principio a fin en un Colab ajeno.
+  \item \textbf{El cuaderno corre entero en un Colab limpio, pero correr no es
+        recalcular.} Los pesos del v4 están publicados en Hugging Face
+        (\cod{MikeMaki1763/literalevel-v4}, repositorio público, descarga sin
+        credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra la
+        inferencia sobre texto real. Lo que \textbf{no} recalcula son las métricas del v4
+        —el 0,908 y el 97,2\pct—, y eso no se arregla publicando nada: depende del corpus
+        de anclaje MCER, que incluye material con derechos y no se puede redistribuir.
   \item \textbf{La aplicación no está desplegada de forma permanente.} El enlace actual es
         un túnel temporal. El consumo medido —1,05 GB de memoria residente, con picos
         realistas de 1,2 a 1,5 GB— descarta cualquier plan gratuito de 512 MB.
@@ -2156,8 +2160,9 @@ por eso se argumenta en lugar de ocultarse.
 \begin{enumerate}[leftmargin=*, itemsep=3pt]
   \item Terminar la remedición del catálogo completo y sustituir las etiquetas heredadas
         por medidas del v4 sobre el libro entero.
-  \item Publicar modelo y diccionario en un repositorio abierto, con lo que el cuaderno
-        pasa a ser reproducible desde cualquier Colab.
+  \item Reunir un corpus de anclaje MCER redistribuible, que es lo único que permitiría
+        recalcular las métricas del v4 en lugar de citarlas. Los pesos ya están
+        publicados; el corpus es el que no puede estarlo.
   \item Ampliar el corpus de anclaje MCER, que hoy es el eslabón más delgado de la cadena
         de evidencia.
   \item Calibrar explícitamente la escala comprimida (una transformación afín de dos
@@ -2209,8 +2214,9 @@ reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y 
 interfaz que se puede usar con el pulgar.
 
 \textbf{Y queda pendiente lo que más pesa.} La aplicación funciona, pero su enlace es
-temporal; el cuaderno es correcto, pero no reproducible mientras el modelo no esté
-publicado; y el catálogo se está remidiendo. Las tres cosas están planificadas con coste y
+temporal; el catálogo se está remidiendo; y el cuaderno, aunque ya corre entero desde los
+pesos publicados, cita las métricas del v4 en vez de recalcularlas, porque su corpus de
+anclaje no es redistribuible. Las tres cosas están planificadas con coste y
 criterio de terminado en el cuadro~\ref{cuad:accionables}.
 
 % ===========================================================================

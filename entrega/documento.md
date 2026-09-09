@@ -827,10 +827,14 @@ argumenta en lugar de ocultarse.
     el corpus de validación de 144 documentos no acompaña al repositorio, de
     modo que las cifras de 0,908 y 97,2 % **no son verificables clonando el
     proyecto**. Lo que sí se reproduce en cualquier máquina es el Cuadro 10.
-11. **La reproducibilidad del cuaderno depende de publicar dos artefactos**: el
-    modelo (328 MB) y el diccionario (243 MB) viven hoy en un disco local.
-    Mientras no estén publicados, el cuaderno no corre de principio a fin en un
-    Colab ajeno.
+11. **El cuaderno corre entero en un Colab limpio, pero correr no es
+    recalcular.** Los pesos del v4 están publicados en Hugging Face
+    (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin
+    credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra
+    la inferencia sobre texto real. Lo que **no** recalcula son las métricas del
+    v4 —el 0,908 y el 97,2 %—, y eso no se arregla publicando nada: depende del
+    corpus de anclaje MCER, que incluye material con derechos y no se puede
+    redistribuir.
 12. **La aplicación no está desplegada de forma permanente.** El enlace actual
     es un túnel temporal. El consumo medido —1,05 GB de memoria residente, con
     picos realistas de 1,2 a 1,5 GB— descarta cualquier plan gratuito de 512 MB.
@@ -849,8 +853,9 @@ argumenta en lugar de ocultarse.
 
 1. Terminar la remedición del catálogo completo y sustituir las etiquetas
    heredadas por medidas del v4 sobre el libro entero.
-2. Publicar modelo y diccionario en un repositorio abierto, con lo que el
-   cuaderno pasa a ser reproducible desde cualquier Colab.
+2. Reunir un corpus de anclaje MCER redistribuible, que es lo único que
+   permitiría recalcular las métricas del v4 en lugar de citarlas. Los pesos ya
+   están publicados; el corpus es el que no puede estarlo.
 3. Ampliar el corpus de anclaje MCER, que hoy es el eslabón más delgado de la
    cadena de evidencia.
 4. Calibrar explícitamente la escala comprimida (una transformación afín de dos
@@ -901,8 +906,9 @@ resultado son seis etiquetas reescritas, cinco paletas verificadas contra el
 criterio de contraste WCAG AA y una interfaz que se puede usar con el pulgar.
 
 **Y queda pendiente lo que más pesa.** La aplicación funciona, pero su enlace
-es temporal; el cuaderno es correcto, pero no reproducible mientras el modelo
-no esté publicado; y el catálogo se está remidiendo. Las tres cosas están
+es temporal; el catálogo se está remidiendo; y el cuaderno, aunque ya corre
+entero desde los pesos publicados, cita las métricas del v4 en vez de
+recalcularlas, porque su corpus de anclaje no es redistribuible. Las tres cosas están
 planificadas con coste y criterio de terminado en el documento de estrategia.
 
 ---
