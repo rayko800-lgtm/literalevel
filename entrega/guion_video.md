@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 553 palabras —las que van entre comillas angulares, que es lo que se dice en voz alta— y son 3:41 a 150 palabras por minuto.** El minuto largo que
+**El texto hablado son 561 palabras y son 3:44 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. El minuto que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
@@ -34,7 +34,9 @@ Y se cruza con la plantilla de la **presentación modelo del propio profesor**
 párrafos, objetivos numerados, métricas sin adornos, y sobre todo su
 **«Ejemplo de uso y aplicación»** — tomar *un* caso real y recorrerlo paso a
 paso. En su proyecto de Yelp ese recorrido es el corazón de la presentación.
-Aquí el caso real es **un libro concreto y una palabra concreta**.
+Aquí es **el mismo caso que recorren el documento (§8.2) y la diapositiva 8**:
+una lectora con perfil **1,20 sobre 2** y *Notes from a Dead House*. Los tres
+entregables cuentan el mismo recorrido, con el mismo lector y el mismo libro.
 
 ---
 
@@ -51,7 +53,7 @@ Aquí el caso real es **un libro concreto y una palabra concreta**.
 
 # EL GUION
 
-## A — ATENCIÓN · 0:00 – 0:35
+## A — ATENCIÓN · 0:00 – 0:30
 
 > **En pantalla:** portada. Solo el nombre *LiteraLevel* y una frase.
 > Sin logotipo animado, sin música.
@@ -70,7 +72,7 @@ Baskerville* le quedaba justo. Eso es lo que hace LiteraLevel.»
 
 ---
 
-## N — NECESIDAD · 0:35 – 1:15
+## N — NECESIDAD · 0:30 – 1:05
 
 > **En pantalla:** tres cifras grandes, una por línea. Nada más.
 > **1.500 millones** de personas estudian inglés · **la lectura extensiva**
@@ -89,28 +91,36 @@ capítulo a capítulo.»
 
 ---
 
-## S — SATISFACCIÓN · 1:15 – 3:20
+## S — SATISFACCIÓN · 1:05 – 3:35
 
 > **En pantalla:** compartir pantalla y **usar la aplicación de verdad**.
 > Nada de capturas. Que se vea el cursor moverse.
+> **Usa el mismo caso que el documento §8.2 y la diapositiva 8**: perfil
+> **1,20** y *Notes from a Dead House*. Las cifras que se dicen —130.104
+> palabras, 487 ventanas, 86 segundos, media 1,73, 40 milisegundos— son las
+> medidas sobre ese libro, no las de un libro cualquiera.
 
 «Esto es LiteraLevel.
 
 **Uno.** Contesto seis preguntas sobre cómo leo y leo tres fragmentos reales.
-En segundos tengo mi nivel. *(mostrar el resultado)*
+En segundos tengo mi nivel: **1,20 sobre 2**, banda intermedia.
+*(mostrar el resultado)*
 
-**Dos.** Le describo en español lo que me apetece leer —*una novela de
-detectives victoriana*— y me busca entre los libros que **puedo** leer.
-No busca por título: busca por significado.
+**Dos.** Le describo en español lo que me apetece leer y me busca entre los
+libros que **puedo** leer. No busca por título: busca por significado. Y
+escribo *dostoyevski* mal escrito, y aun así lo encuentra.
 
-**Tres.** Abro el libro y aparece su ficha. Cuánto tardo en leerlo *a la
-velocidad que le toca a mi nivel*, cuánto es diálogo, qué palabras se repiten. Y esta curva: **la
-dificultad capítulo a capítulo**, medida por el modelo leyendo el libro
-entero. Aquí se ve que arranca duro y se suelta.
+**Tres.** Abro *Notes from a Dead House* y aparece su ficha, contada sobre el
+texto y no sobre la portada: **130.104 palabras**, cuánto es diálogo, qué se
+repite, y cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta curva:
+**la dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
+**487 ventanas en 86 segundos**: media **1,73**. Mi nivel es 1,20. Este libro
+me queda por encima, y lo sé antes de la primera página.
 
-**Cuatro.** *(doble clic en una palabra)* Toco una palabra y me da su
-significado **en esta frase**, no en abstracto: la definición del
-diccionario, la gramática, la fonética británica y americana, y el audio.
+**Cuatro.** *(doble clic en una palabra)* Toco una palabra y en **40
+milisegundos** me da su significado **en esta frase**, no en abstracto: la
+definición del diccionario, la gramática, la fonética británica y americana, y
+el audio.
 
 **Cinco.** *(leer una frase en voz alta al micrófono)* Y leo en voz alta. Me
 marca en verde lo que sonó bien y en rojo lo que no, palabra por palabra.»
@@ -130,7 +140,7 @@ continua. Sirve para elegir qué leer, no para acreditar nada.»
 
 ---
 
-## V — VISUALIZACIÓN · 3:20 – 4:10
+## V — VISUALIZACIÓN · 3:35 – 4:15
 
 > **En pantalla:** el catálogo. **61.642** libros en inglés de Project
 > Gutenberg, y debajo: *medición en curso; lo que no está medido, se mide al
@@ -151,7 +161,7 @@ libros**. Empieza el que le toca, entiende lo que lee, y sigue.»
 
 ---
 
-## A — ACCIÓN · 4:10 – 4:40
+## A — ACCIÓN · 4:15 – 4:40
 
 > **En pantalla:** el enlace de la aplicación, grande. Y debajo, pequeño:
 > el repositorio.

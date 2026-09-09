@@ -244,43 +244,47 @@ no.}
 
 % ===========================================================================
 \begin{frame}{Ejemplo de uso y aplicación}
+\vspace{1mm}
+{\small \textbf{El recorrido del apartado 8.2 del documento}, paso a paso: una
+lectora cuyo perfil da \textbf{1,20 sobre 2}, banda intermedia. Los pasos y las
+cifras son los de la aplicación; la lectora ilustra, no es una sesión
+registrada. La única prueba de usuario real es la de Esmeralda, $n=1$, y está
+en el documento.}
 \vspace{2mm}
-{\small \textbf{Recorrido de ejemplo}, paso a paso: una lectora de 15 años
-que el sistema sitúa en 0,93. Los pasos y lo que produce cada uno son los de
-la aplicación; el nombre y el perfil ilustran, no son una sesión registrada.
-La única prueba de usuario real del proyecto es la de Esmeralda, $n=1$, y
-está en el documento.}
-\vspace{3mm}
 
 \begin{center}
-\begin{tikzpicture}[font=\scriptsize, node distance=3mm]
+\begin{tikzpicture}[font=\scriptsize, node distance=2mm]
 \tikzset{p/.style={draw=llcian!70, fill=llfondo, rounded corners=2pt,
-                   text width=2.4cm, align=center, inner sep=4pt,
+                   text width=2.25cm, align=center, inner sep=3.5pt,
                    minimum height=1.1cm}}
-\node[p] (a) {\textbf{1. Se sitúa}\\ cuestionario\\ $\rightarrow$ 0,93};
-\node[p, right=of a] (b) {\textbf{2. Busca}\\ «algo de misterio,\\ no muy largo»};
-\node[p, right=of b] (c) {\textbf{3. Elige}\\ \emph{Sherlock Holmes}\\ curva por capítulo};
-\node[p, right=of c] (d) {\textbf{4. Lee}\\ doble clic en\\ \emph{peculiar}};
-\node[p, right=of d] (e) {\textbf{5. Practica}\\ lee en voz alta,\\ se corrige};
+\node[p] (a) {\textbf{1. Se sitúa}\\ cuestionario\\ $\rightarrow$ 1,20};
+\node[p, right=of a] (b) {\textbf{2. Busca}\\ escribe mal\\ «dostoyevski»};
+\node[p, right=of b] (c) {\textbf{3. Abre}\\ \emph{Notes from}\\ \emph{a Dead House}};
+\node[p, right=of c] (d) {\textbf{4. Mide}\\ 487 ventanas\\ en 86 s};
+\node[p, right=of d] (e) {\textbf{5. Lee}\\ palabra: 40 ms\\ y en voz alta};
 \foreach \x/\y in {a/b,b/c,c/d,d/e}
   \draw[->, llcian!80, thick] (\x) -- (\y);
 \end{tikzpicture}
 \end{center}
 
-\vspace{4mm}
+\vspace{2mm}
 \begin{center}\small
 \begin{tabular}{@{}l l@{}}
 \toprule
 \textbf{Paso} & \textbf{Lo que produce} \\
 \midrule
-Se sitúa & nivel 0,93 en la escala 0--2, banda \emph{intermedio} \\
-Busca & diez libros ordenados por cercanía a su nivel \\
-Elige & curva de dificultad capítulo a capítulo, con el más duro señalado \\
-Lee & \emph{peculiar}: definición en esa frase, IPA y audio \\
-Practica & las palabras que se le escaparon, en rojo \\
+Se sitúa & 1,20 sobre 2, banda \emph{intermedia}, ancla B2 \\
+Busca & búsqueda por significado; el nombre mal escrito llega igual \\
+Abre & ficha sobre el texto: 130.104 palabras, diálogo, repeticiones \\
+Mide & 487 ventanas en 86 s $\rightarrow$ media \textbf{1,73}; la segunda vez, 0,02 s \\
+Lee & la palabra en 40 ms; la voz alta, corregida palabra por palabra \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\vspace{1mm}
+{\footnotesize\color{llgris} \textbf{1,73 frente a 1,20}: el libro le queda por
+encima, y lo sabe antes de la primera página.}
 \end{frame}
 
 % ===========================================================================
