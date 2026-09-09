@@ -2169,6 +2169,79 @@ de cada libro trae un campo de aviso que se muestra como «Antes de empezar». \
 informa al lector y se le deja elegir; no se elige por él.} Es una decisión discutible y
 por eso se argumenta en lugar de ocultarse.
 
+\subsection{Contra quién compite esto}
+\label{sec:competencia}
+
+Un proyecto que no sabe contra qué compite no puede decir qué aporta. La versión larga
+está en el documento de estrategia; aquí van las tres alternativas reales y la cifra que
+resume cada una.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{3.6cm} R{3.2cm}@{}}
+\toprule
+\textbf{Alternativa} & \textbf{Su número} & \textbf{El nuestro} \\
+\midrule
+Fórmulas clásicas (Flesch, Dale-Chall, ATOS) & Pearson \textbf{0,517} en CLEAR & \textbf{0,89} \\
+Mejor LLM \emph{zero-shot} publicado & Pearson \textbf{0,725} en CLEAR & \textbf{0,89} \\
+Lexile, licencia institucional & \textbf{3.824--54.636} USD/año & Entre 3 y 5 h de GPU \\
+\bottomrule
+\end{tabular}
+\caption{Las tres alternativas, medidas en el mismo corpus cuando existe una medición
+comparable.}
+\label{cuad:competencia}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  barrall,
+  width=0.82\linewidth,
+  height=4.6cm,
+  xbar,
+  bar width=11pt,
+  xmin=0, xmax=1.02,
+  xlabel={Correlación de Pearson con el juicio humano, corpus CLEAR},
+  symbolic y coords={literalevel,llm,formulas},
+  ytick={formulas,llm,literalevel},
+  yticklabels={Fórmulas clásicas,LLM \emph{zero-shot},\textbf{LiteraLevel}},
+  yticklabel style={font=\scriptsize},
+  enlarge y limits=0.28,
+  nodes near coords={\pgfmathprintnumber[fixed,precision=3]{\pgfplotspointmeta}},
+  nodes near coords align={horizontal},
+]
+\addplot[fill=llgris!25, draw=llgris!70] coordinates {(0.517,formulas)};
+\addplot[fill=llgris!25, draw=llgris!70] coordinates {(0.725,llm)};
+\addplot[fill=llcian!45, draw=llcian!90] coordinates {(0.89,literalevel)};
+\end{axis}
+\end{tikzpicture}
+\caption[Comparación con las alternativas]{Las fórmulas clásicas cuentan sílabas y llegan
+a 0,517. Un modelo de lenguaje grande con un buen \emph{prompt}, sin afinar, llega a
+0,725. El codificador afinado de este proyecto, a 0,89. Las tres cifras están medidas en
+el mismo corpus, que es la única forma de que la comparación signifique algo.}
+\label{fig:competencia}
+\end{figure}
+
+Medir con Lexile los 61.642 libros del catálogo costaría del orden de \textbf{54.600 USD};
+medirlos aquí son unas horas de cómputo. Esa diferencia de tres órdenes de magnitud es el
+argumento económico del trabajo.
+
+\textbf{Dónde se pierde, que también hay que decirlo.} Lexile tiene treinta años de
+validación y una escala que \textbf{acepta un colegio}; la de aquí no la acepta nadie.
+\emph{TeakReader} ya da nivel MCER por capítulo y es una aplicación publicada en dos
+tiendas, mientras esto vive en un enlace. Y las lecturas graduadas de editorial tienen algo
+que ningún modelo da: el nivel se lo puso una persona que leyó la obra.
+
+\textbf{Lo que queda, y basta para justificar el trabajo}, son tres cosas: se recorre el
+libro \textbf{entero, capítulo a capítulo}, en lugar de dar un número global; está escrito
+para un \textbf{hispanohablante que elige qué leer}, no para un profesor que clasifica
+textos; y es \textbf{auditable y gratuito}, con el modelo publicado, el código a la vista y
+las métricas con su $n$ y sus limitaciones. De las alternativas de este cuadro, ninguna
+reúne las tres.
+
+
 % ===========================================================================
 \section{Limitaciones}
 

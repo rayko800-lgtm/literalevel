@@ -244,7 +244,86 @@ al primer uso y no al arrancar.
 
 ---
 
-## 5. Accionables
+## 5. Contra quién compite esto
+
+Un proyecto que no sabe contra qué compite no puede decir qué aporta. Esta
+sección responde a tres preguntas incómodas: si alguien ya lo hace, si lo hace
+mejor, y qué queda entonces para nosotros.
+
+### 5.1 Las tres alternativas reales
+
+**Las fórmulas clásicas** —Flesch, Dale-Chall, ATOS— son gratis, instantáneas e
+interpretables al cien por cien, y llevan setenta años en las aulas. Su límite
+está medido: alcanzan **Pearson 0,517** contra el juicio humano en el corpus
+CLEAR, donde el modelo de este proyecto llega a **0,89**. Cuentan sílabas; no
+leen.
+
+**Lexile** es el competidor comercial serio y hay que reconocerle lo que tiene:
+una escala validada durante treinta años, cientos de miles de títulos medidos,
+integración con bibliotecas y pruebas oficiales, y algo que aquí solo se
+aproxima —una escala común que compara al lector con el texto—. **Su medida la
+acepta un colegio; la nuestra no.** Lo que no tiene es precio accesible: sus
+licencias institucionales van de **3.824 a 54.636 USD al año**. Medir con ellos
+los 61.642 libros del catálogo costaría del orden de 54.600 USD; medirlos con
+este proyecto son entre tres y cinco horas de una GPU alquilada. Esa diferencia
+de tres órdenes de magnitud es el argumento económico del trabajo.
+
+**Un LLM con un buen prompt** es la alternativa que todo el mundo propone hoy, y
+la evidencia publicada dice que **no gana en esta tarea**: el mejor método
+*zero-shot* documentado alcanza **0,725** en CLEAR, frente al 0,89 de un
+codificador afinado. Google lo midió con más cuidado y le salió lo mismo, con un
+BERT de 45,7 millones de parámetros por delante de PaLM 2-L. Lo que sí hace el
+LLM sin esfuerzo es superar a las fórmulas clásicas.
+
+### 5.2 Dónde perdemos, dicho sin adornos
+
+**TeakReader** es el producto que más se nos parece, y va por delante en lo que
+importa a un usuario: es una aplicación terminada y publicada en dos tiendas,
+mientras que esto vive en un enlace. Da nivel MCER por capítulo —aunque por
+conteo de vocabulario, no con un modelo de lenguaje— y su señal está
+personalizada a lo que cada lector declara conocer. La nuestra no.
+
+**Las lecturas graduadas de editorial** tienen algo que ningún modelo da: el
+nivel se lo puso una persona que leyó la obra entera. El nuestro se lo puso un
+modelo con una escala comprimida.
+
+Y frente a **cualquiera de las alternativas**, este proyecto arrastra una
+dependencia que ellas no tienen: 654 documentos de anclaje. Ese es el techo real
+del modelo, y está dicho en las limitaciones del documento.
+
+### 5.3 Qué queda entonces, y por qué basta
+
+Tres cosas, y solo tres.
+
+**Recorremos el libro entero, capítulo a capítulo.** Lexile da un número por
+libro; las fórmulas, uno por fragmento; las lecturas graduadas, una etiqueta de
+colección. Aquí se dibuja la curva completa y se ve dónde se pone cuesta arriba
+una novela y dónde da respiro. Para decidir si abandonas *Guerra y paz* en el
+capítulo veinte, eso es más útil que un número global.
+
+**Está pensado para un hispanohablante que quiere elegir qué leer**, no para un
+profesor que quiere clasificar un texto. La interfaz está en español, la
+explicación de cada palabra también, y la pregunta que responde no es «¿qué
+nivel tiene este texto?» sino «¿puedo leer esto yo, hoy?».
+
+**Es auditable y cuesta cero.** El modelo está publicado, el código está a la
+vista, las métricas vienen con su *n* y con sus limitaciones, y cualquiera puede
+comprobar los números o rehacerlos. De las alternativas de esta sección, ninguna
+permite eso.
+
+### 5.4 La cifra que hay que saber defender
+
+En el corpus de exámenes de British Council, **contar palabras sin modelo alguno
+alcanza 0,807 donde el modelo alcanza 0,854**. Es la comparación más
+desfavorable del proyecto y conviene llevarla preparada en lugar de esperar a
+que alguien la encuentre: en ese corpus la longitud del texto está correlacionada
+con el nivel, así que un contador de palabras aprovecha un atajo que en una
+biblioteca real no existe. Descontando la longitud, la correlación parcial del
+modelo se sostiene en 0,657; la del contador de palabras, no.
+
+---
+
+## 6. Accionables
 
 Diez acciones concretas, ordenadas por puntos de rúbrica protegidos u obtenidos
 por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
@@ -272,7 +351,7 @@ publicación y un micrófono.
 
 ---
 
-## 6. Métricas de éxito
+## 7. Métricas de éxito
 
 | Nivel | Métrica | Estado |
 |---|---|---|
@@ -289,7 +368,7 @@ publicación y un micrófono.
 
 ---
 
-## 7. Riesgos
+## 8. Riesgos
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|

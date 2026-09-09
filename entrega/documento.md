@@ -869,6 +869,40 @@ de aviso que se muestra como «Antes de empezar». **Se informa al lector y se l
 deja elegir; no se elige por él.** Es una decisión discutible y por eso se
 argumenta en lugar de ocultarse.
 
+
+### 8.5 Contra quién compite esto
+
+Un proyecto que no sabe contra qué compite no puede decir qué aporta. La versión
+larga está en el documento de estrategia; aquí van las tres alternativas reales
+y la cifra que resume cada una.
+
+| Alternativa | Su número | El nuestro |
+|---|---|---|
+| Fórmulas clásicas (Flesch, Dale-Chall, ATOS) | Pearson **0,517** en CLEAR | **0,89** |
+| Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
+| Lexile, licencia institucional | **3.824–54.636 USD/año** | Entre 3 y 5 h de GPU alquilada |
+
+*Cuadro 17. Las tres alternativas, medidas en el mismo corpus cuando existe una
+medición comparable.*
+
+Medir con Lexile los 61.642 libros del catálogo costaría del orden de **54.600
+USD**; medirlos aquí son unas horas de cómputo. Esa diferencia de tres órdenes
+de magnitud es el argumento económico del trabajo.
+
+**Dónde se pierde, que también hay que decirlo.** Lexile tiene treinta años de
+validación y una escala que **acepta un colegio**; la de aquí no la acepta
+nadie. *TeakReader* ya da nivel MCER por capítulo y es una aplicación publicada
+en dos tiendas, mientras esto vive en un enlace. Y las lecturas graduadas de
+editorial tienen algo que ningún modelo da: el nivel se lo puso una persona que
+leyó la obra.
+
+**Lo que queda, y basta para justificar el trabajo**, son tres cosas: se recorre
+el libro **entero, capítulo a capítulo**, en lugar de dar un número global; está
+escrito para un **hispanohablante que elige qué leer**, no para un profesor que
+clasifica textos; y es **auditable y gratuito**, con el modelo publicado, el
+código a la vista y las métricas con su *n* y sus limitaciones. De las
+alternativas de este cuadro, ninguna reúne las tres.
+
 ---
 
 ## 9. Limitaciones
