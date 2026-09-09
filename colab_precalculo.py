@@ -412,6 +412,12 @@ def perfil_de_libro(ruta):
     return {"titulo": titulo, "autor": autor,
             "palabras": sum(f["palabras"] for f in filas),
             "ventanas": len(todas),
+            # Media sobre TODAS las ventanas del libro. Es el mismo estimador
+            # que `ficha.dificultad_global` usa en la app -alli se calcula
+            # ponderando las medias de capitulo por su numero de ventanas, que
+            # es algebraicamente identico-. Aqui se hace directo sobre los
+            # valores crudos porque los tenemos. Lo que NO puede volver a
+            # pasar es que uno de los dos haga la media de las medias.
             "dificultad": round(sum(todas) / len(todas), 3),
             "modo": "completo", "filas": filas}
 

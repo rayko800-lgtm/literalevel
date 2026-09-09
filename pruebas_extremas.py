@@ -719,18 +719,21 @@ prueba("analizar libro sin prosa suficiente",
 prueba("resumen de un solo capitulo",
        lambda: ui._resumen_analisis(
            {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 1,
-            "filas": [{"capitulo": 1, "dificultad": 1.0, "titulo": "I"}]})[:40])
+            "filas": [{"capitulo": 1, "dificultad": 1.0, "titulo": "I",
+                       "ventanas": 1}]})[:40])
 prueba("resumen en modo rapido lo dice",
        lambda: "vistazo rápido" in ui._resumen_analisis(
            {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 60,
             "modo": "rapido", "capitulos_medidos": 30, "capitulos_totales": 42,
-            "filas": [{"capitulo": i, "dificultad": 1.0, "titulo": "I"}
+            "filas": [{"capitulo": i, "dificultad": 1.0, "titulo": "I",
+                       "ventanas": 2}
                       for i in range(30)]}))
 prueba("resumen completo no se llama vistazo",
        lambda: "vistazo" not in ui._resumen_analisis(
            {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 60,
             "modo": "completo",
-            "filas": [{"capitulo": i, "dificultad": 1.0, "titulo": "I"}
+            "filas": [{"capitulo": i, "dificultad": 1.0, "titulo": "I",
+                       "ventanas": 2}
                       for i in range(30)]}))
 prueba("rapido y completo se guardan aparte",
        lambda: ui._ruta_analisis(reader.Libro("t", "a", []), "rapido")
@@ -833,6 +836,39 @@ def _una_sola_letra():
 prueba("la interfaz y el contrato dan la misma letra", _una_sola_letra)
 prueba("los empates suben, no se van al par",
        lambda: [ui.scoring.anchor_cefr(y) for y in (0.5, 1.5, 2.5, 3.5, 4.5)])
+
+
+titulo("Una sola dificultad por libro")
+
+# La app y el precalculo masivo daban numeros distintos para el mismo libro:
+# una hacia la media de las medias de capitulo y el otro la media de todas las
+# ventanas. Con capitulos de tamano desigual no coinciden.
+def _agregacion_por_ventanas():
+    import random
+    r = random.Random(42)
+    malas = []
+    for _ in range(500):
+        filas, todas = [], []
+        for _ in range(r.randint(1, 40)):
+            n = r.randint(1, 60)
+            vs = [r.uniform(0, 2) for _ in range(n)]
+            todas.extend(vs)
+            filas.append({"dificultad": sum(vs) / n, "ventanas": n})
+        esperado = sum(todas) / len(todas)
+        obtenido = ui.ficha.dificultad_global(filas)
+        if abs(obtenido - esperado) > 1e-9:
+            malas.append(f"{obtenido!r} != {esperado!r}")
+    return malas[:3] or "500 libros sinteticos, identica a la media de ventanas"
+
+
+prueba("la dificultad global es la media de todas las ventanas",
+       _agregacion_por_ventanas)
+prueba("el caso que destapo la auditoria",
+       lambda: ui.ficha.dificultad_global(
+           [{"dificultad": 0.0, "ventanas": 1},
+            {"dificultad": 2.0, "ventanas": 9}]))
+prueba("un libro sin ventanas no revienta",
+       lambda: ui.ficha.dificultad_global([]))
 
 # --- Resultado ------------------------------------------------------------
 

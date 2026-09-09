@@ -111,10 +111,23 @@ Un texto largo no se puntúa de una vez. Se parte en bloques de 250 palabras
 ponderar de sus bloques. Formalmente, si $B(T) = \{b_1, \dots, b_n\}$ son los
 bloques de $T$ y $g$ es el modelo por bloque,
 
-$$f(T) = 0{,}4 \cdot \text{clip}\left(\frac{1}{n}\sum_{k=1}^{n} g(b_k),\ 0,\ 5\right)$$
+$$f(T) = 0{,}4 \cdot \frac{1}{n}\sum_{k=1}^{n} \text{clip}\big(g(b_k),\ 0,\ 5\big)$$
 
 donde el factor 0,4 convierte la escala interna del modelo (0–5, un valor por
 cada nivel A1…C2) en la escala pública 0–2 que ve el usuario.
+
+**El recorte va dentro del sumatorio, y el orden importa.** Cada bloque se
+lleva a 0–5 *antes* de promediar, no después. No es un detalle de notación:
+la cabeza de regresión no tiene ninguna activación que la obligue a quedarse
+en el intervalo, y **el 13,96 % de las ventanas de prosa literaria puntúa por
+encima de 5** —medido sobre 530 ventanas de *Alicia*, *Orgullo y prejuicio* y
+*Crimen y castigo*; ninguna baja de 0—. Recortar después de promediar dejaría
+que un bloque que puntúa 5,3 arrastrase hacia arriba a todo el capítulo. Las
+dos versiones de la fórmula llegan a separarse **0,021** en un libro real, que
+es cinco veces la diferencia de cualquier otra decisión de agregación del
+sistema. Una versión anterior de este documento publicaba el recorte fuera del
+sumatorio; el código siempre hizo lo que se describe aquí, y lo detectó una
+auditoría externa.
 
 ### 2.2 Lo que el problema no es
 
@@ -655,7 +668,7 @@ resultado.
 | Regresión, no clasificación | La dificultad es continua; clasificar tira información ordinal | El error ordinal medio baja de 1,39 a 0,67 en la progresión completa |
 | Partición agrupada por libro | Evitar fuga de datos entre extractos del mismo autor | Aplicada a *todos* los modelos comparados, no solo al final |
 | `distilroberta` y no `roberta-base` completo | La aplicación debe correr en CPU en el equipo de un estudiante | 328 MB y 0,9 s de carga; la diferencia de calidad no justificaba 3× de tamaño |
-| Promediar bloques sin ponderar | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento, replicada literalmente en la app |
+| Promediar bloques sin ponderar, con la **ventana** como unidad | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: hasta que una auditoría externa lo detectó, la app promediaba las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual **no son el mismo número** (0,004 de diferencia máxima medida en cinco libros reales) |
 | **Rechazada: XGBoost sobre variables clásicas** | Se esperaba que un ensamble superase al modelo lineal | No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 vs 1,39). El límite estaba en las variables |
 | **Rechazada: modelo híbrido embedding + variables** | Se esperaba complementariedad | Ganancia nula (0,37 y 0,37; 0,91 vs 0,93). El embedding ya contiene esa información |
 | **Rechazada: escalar la lista léxica al SPGC completo por rendimiento** | Se esperaba mejorar `rare_word_ratio` | La correlación pasa de −0,330 a −0,326. Se conserva igualmente por cobertura, no por métrica |

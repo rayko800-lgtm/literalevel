@@ -1135,8 +1135,8 @@ def _ficha_libro(libro, p=None) -> str:
                   f"{ficha.reloj(c.minutos(True))} de lectura")
     else:
         guardado = _analisis_guardado(libro)
-        nivel_libro = (sum(f["dificultad"] for f in guardado["filas"])
-                       / len(guardado["filas"])) if guardado else None
+        nivel_libro = (ficha.dificultad_global(guardado["filas"])
+                       if guardado else None)
         exigente = nivel_libro is not None and nivel_libro > p.nivel + 0.15
         tiempo = ficha.reloj(c.minutos(exigente))
         tiempo += (" (va por encima de tu nivel)" if exigente
@@ -1286,7 +1286,8 @@ def _grafica_analisis(datos):
 def _resumen_analisis(datos, como="cifra") -> str:
     filas = datos["filas"]
     medias = [f["dificultad"] for f in filas]
-    global_ = sum(medias) / len(medias)
+    # Ponderada por ventanas, no media de medias: ver `ficha.dificultad_global`.
+    global_ = ficha.dificultad_global(filas)
     facil = min(filas, key=lambda f: f["dificultad"])
     dificil = max(filas, key=lambda f: f["dificultad"])
     mitad = len(medias) // 2 or 1

@@ -331,3 +331,33 @@ def capitulos_de_cuerpo(libro):
     return [(i, c) for i, c in enumerate(libro.capitulos)
             if c.palabras >= 150 and not RELLENO_RE.search(c.titulo)
             and not _es_boilerplate(c)]
+
+
+def dificultad_global(filas) -> float:
+    """La dificultad de un libro entero, a partir de sus filas por capitulo.
+
+    Es la media sobre TODAS las ventanas del libro, que es la definicion que
+    publica el documento. Se calcula ponderando la media de cada capitulo por
+    su numero de ventanas, que da exactamente lo mismo:
+
+        sum(media_i * n_i) / sum(n_i)  ==  sum(todas las ventanas) / total
+
+    Vive aqui, y no suelta en `ui.py`, porque antes habia dos formulas. La app
+    hacia la media de las medias de capitulo y el precalculo masivo la media de
+    todas las ventanas, y **no son el mismo numero**: con un capitulo de una
+    ventana a 0 y otro de nueve ventanas a 2, la primera da 1,0 y la segunda
+    1,8. Un mismo libro salia con dos dificultades segun se hubiera medido en
+    vivo o en el catalogo. Lo encontro una auditoria externa.
+
+    Se elige la media por ventanas porque es la que esta documentada y la que
+    trata igual a todo el texto: un capitulo de tres paginas no debe pesar lo
+    mismo que uno de treinta.
+
+    Un analisis guardado en disco por una version anterior podria no traer
+    `ventanas`. En ese caso esa fila cuenta como una, en vez de reventar: la
+    ficha de un lector no puede caerse porque su archivo sea viejo.
+    """
+    n = sum(f.get("ventanas", 1) for f in filas)
+    if not n:
+        return 0.0
+    return sum(f["dificultad"] * f.get("ventanas", 1) for f in filas) / n

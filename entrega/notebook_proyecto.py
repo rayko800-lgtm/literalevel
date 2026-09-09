@@ -203,12 +203,23 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 #
 # $$\text{pública}(y) = 0.4 \cdot \mathrm{clip}(y, 0, 5)$$
 #
+# El recorte se aplica **a cada bloque antes de promediar**, no a la media. Con
+# textos literarios importa: el 13,96 % de las ventanas puntúa por encima de 5,
+# y recortar después dejaría que un bloque de 5,3 tirase del capítulo entero.
+#
 # **El troceado en ventanas fijas es la pieza clave del planteamiento**, y tiene
-# una consecuencia que hay que enunciar explícitamente: como todas las ventanas
-# miden lo mismo, **la longitud del documento no puede entrar como señal**. Un
-# cuento de mil palabras y una novela de medio millón se puntúan con la misma
-# regla. Esto es deliberado: sin ello, el modelo aprendería que «largo = difícil»,
-# que es cierto en los corpus de examen y falso en una biblioteca.
+# una consecuencia importante: **la longitud total del documento no se le
+# entrega al modelo como variable**. Un cuento de mil palabras y una novela de
+# medio millón se puntúan con la misma regla. Esto es deliberado: como variable
+# explícita, el modelo aprendería que «largo = difícil», que es cierto en los
+# corpus de examen y falso en una biblioteca.
+#
+# Conviene decirlo así de preciso, y no «la longitud no puede entrar», porque
+# esto último no sería cierto del todo. Hay dos rendijas: un documento de entre
+# 150 y 250 palabras produce **una sola ventana más corta** que las demás, y el
+# tokenizador corta a 256 sub-tokens, de modo que las últimas palabras de una
+# ventana densa pueden no llegar a leerse. La afirmación defendible es que la
+# longitud no se aporta como señal, no que sea invisible.
 #
 # ## 2.3 Qué se optimiza
 #
@@ -1518,10 +1529,16 @@ print("Texto demasiado corto ->", ventanas_fijas("Solo unas pocas palabras suelt
 # %% [markdown]
 # ### Interpretación: por qué el muestreo de 8 ventanas es defendible
 #
-# El troceado hace lo que promete: **todas las ventanas miden exactamente 250
-# palabras**, sin excepción, incluida la última. Por eso la longitud del
-# documento no puede filtrarse como señal, y por eso todas las ventanas ocupan
-# el mismo tensor de 256 subtokens sin relleno.
+# El troceado hace lo que promete: **todas las ventanas de un texto largo miden
+# exactamente 250 palabras**, incluida la última. Por eso la longitud del
+# documento no se le entrega al modelo como variable.
+#
+# Con dos salvedades, que conviene no barrer debajo de la alfombra. Un
+# documento de entre 150 y 250 palabras da **una única ventana más corta**: es
+# el caso de un texto breve, no el de un libro. Y el tokenizador trunca a 256
+# sub-tokens, así que una ventana de vocabulario denso puede perder sus últimas
+# palabras. Ninguna de las dos rompe el argumento —la longitud sigue sin ser
+# una variable de entrada— pero «sin excepción» era decir de más.
 #
 # La pregunta de producto es si ocho ventanas bastan para representar un libro
 # entero. **Está medida y la respuesta es sí:** sobre un mismo texto, el muestreo
