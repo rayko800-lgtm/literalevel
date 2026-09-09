@@ -1,0 +1,369 @@
+% ===========================================================================
+%  LiteraLevel — Presentación (Módulo 5, 10 puntos)
+%  Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
+%
+%  Mismos colores, misma tipografia y mismos escudos que documento.tex y
+%  guion_video.tex: los tres entregables tienen que parecer del mismo trabajo.
+%  Las figuras se dibujan en TikZ, no se pegan como imagen.
+%
+%    tectonic presentacion.tex
+% ===========================================================================
+
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+
+\usepackage[spanish,es-noquoting,es-nodecimaldot]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+% Coma decimal en las graficas, igual que en el documento.
+\pgfkeys{/pgf/number format/.cd, use comma, 1000 sep={\,}}
+\usetikzlibrary{positioning}
+
+% --- La misma paleta que el documento -------------------------------------
+\definecolor{llazul}{HTML}{1F4E79}
+\definecolor{llcian}{HTML}{2E86AB}
+\definecolor{llverde}{HTML}{2A9D8F}
+\definecolor{llambar}{HTML}{E9A13B}
+\definecolor{llrojo}{HTML}{C1495B}
+\definecolor{llgris}{HTML}{5A5A5A}
+\definecolor{llgrisclaro}{HTML}{E8ECF0}
+\definecolor{llfondo}{HTML}{F7F9FB}
+
+\usetheme{default}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{frametitle}{fg=llazul}
+\setbeamercolor{title}{fg=llazul}
+\setbeamercolor{structure}{fg=llcian}
+\setbeamercolor{normal text}{fg=black}
+\setbeamerfont{frametitle}{series=\bfseries}
+\setbeamertemplate{itemize item}{\color{llcian}\textbullet}
+\setbeamertemplate{itemize subitem}{\color{llgris}--}
+
+\setbeamertemplate{footline}{%
+  \hfill\raisebox{2mm}{\color{llgris}\scriptsize
+    LiteraLevel · Módulo 5 \quad \insertframenumber\hspace{6mm}}}
+
+% --- Una cifra grande y sola, que es la regla del guion --------------------
+\newcommand{\cifra}[2]{%
+  \begin{minipage}{\linewidth}\centering
+    {\fontsize{46}{50}\selectfont\bfseries\color{llazul}#1}\\[4pt]
+    {\small\color{llgris}#2}
+  \end{minipage}}
+
+\newcommand{\cod}[1]{{\ttfamily\small #1}}
+
+\title{LiteraLevel}
+\subtitle{¿Está este libro en inglés a tu nivel de lectura?}
+\author{Miguel Reyes Carrillo}
+\date{Septiembre de 2026}
+
+\begin{document}
+
+% ===========================================================================
+\begin{frame}[plain]
+\vspace{2mm}
+\begin{center}
+\begin{minipage}{0.16\textwidth}\raggedright
+  \includegraphics[height=1.6cm]{logos/logo_unam.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.62\textwidth}\centering
+  {\small\bfseries Universidad Nacional Autónoma de México}\\[2pt]
+  {\scriptsize FACULTAD DE ESTUDIOS SUPERIORES ACATLÁN}
+\end{minipage}
+\hfill
+\begin{minipage}{0.16\textwidth}\raggedleft
+  \includegraphics[height=1.6cm]{logos/logo_fes_acatlan.png}
+\end{minipage}
+\end{center}
+
+\vspace{6mm}
+\begin{center}
+  {\Huge\bfseries\color{llazul} LiteraLevel}\\[6pt]
+  {\large ¿Está este libro en inglés a tu nivel de lectura?}\\[10mm]
+  {\normalsize Miguel Reyes Carrillo}\\[3pt]
+  {\small\color{llgris} Proyecto integrador --- Módulo 5 \quad·\quad Generación 34}\\[2pt]
+  {\small\color{llgris} Mtro. Fernando Barranco Rodríguez}
+\end{center}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Antes de comenzar}
+\vspace{4mm}
+\begin{center}
+{\large Un hispanohablante elige un libro en inglés que suena bien,\\[2pt]
+lo abre\ldots{} y a las tres páginas lo cierra.}\\[8mm]
+
+{\Large\bfseries\color{llazul} No porque no sepa inglés.}\\[3pt]
+{\Large\bfseries\color{llazul} Porque eligió mal el libro.}\\[10mm]
+
+{\color{llgris} Nadie le dijo antes de abrirlo si estaba a su altura.}
+\end{center}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Los datos, en cifras}
+\vspace{6mm}
+\begin{columns}[T]
+\begin{column}{0.33\textwidth}\centering
+  \cifra{4.724}{extractos con dificultad\\medida por lectores (CLEAR)}
+\end{column}
+\begin{column}{0.33\textwidth}\centering
+  \cifra{654}{documentos anclados\\a niveles del MCER}
+\end{column}
+\begin{column}{0.33\textwidth}\centering
+  \cifra{61.642}{libros en inglés de\\Project Gutenberg}
+\end{column}
+\end{columns}
+
+\vspace{10mm}
+\begin{center}\small\color{llgris}
+Ninguno viene de Kaggle: catálogo oficial, repositorio público y descarga
+directa de los PDF.
+\end{center}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Objetivos}
+\vspace{4mm}
+\begin{itemize}\setlength\itemsep{5mm}
+  \item[{\color{llcian}\bfseries 01}] \textbf{Situar al lector} en una escala
+        continua, con tres preguntas o midiendo un texto que ya lee cómodo.
+  \item[{\color{llcian}\bfseries 02}] \textbf{Medir un libro entero}, capítulo
+        a capítulo, y no una muestra de sus primeras páginas.
+  \item[{\color{llcian}\bfseries 03}] \textbf{Recomendar qué leer hoy}, con la
+        dificultad puesta al lado del nivel del lector.
+  \item[{\color{llcian}\bfseries 04}] \textbf{Acompañar la lectura}: definición
+        en contexto y corrección de pronunciación.
+\end{itemize}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Hallazgo 1 · El cuello de botella era la representación}
+\vspace{2mm}
+{\small Con las mismas 950 muestras reservadas, cambiando solo cómo se
+representa el texto:}
+\vspace{2mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.86\linewidth, height=4.4cm, xbar, bar width=9pt,
+  xmin=0, xmax=1.75, xlabel={Error ordinal medio (menos es mejor)},
+  symbolic y coords={trans,emb,conteos},
+  ytick={conteos,emb,trans},
+  yticklabels={17 variables de conteo,\emph{Embedding} de 384 d,Transformador},
+  yticklabel style={font=\scriptsize}, tick style={draw=none},
+  xmajorgrids=true, grid style={llgrisclaro},
+  axis line style={draw=llgrisclaro}, enlarge y limits=0.3,
+  nodes near coords={\pgfmathprintnumber[fixed,precision=2]{\pgfplotspointmeta}},
+  nodes near coords style={font=\scriptsize, color=llgris},
+  nodes near coords align={horizontal},
+]
+\addplot[fill=llgris!25, draw=llgris!60] coordinates {(1.061,conteos)};
+\addplot[fill=llcian!35, draw=llcian!80] coordinates {(0.93,emb)};
+\addplot[fill=llazul!45, draw=llazul!90] coordinates {(0.67,trans)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\vspace{-1mm}
+{\footnotesize Subir la potencia del clasificador sobre las mismas variables
+\textbf{no movió el resultado}: un XGBoost de 300 árboles queda por detrás de
+una regresión logística. Cambiar la representación sí.}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Hallazgo 2 · Contar palabras llega casi igual de lejos}
+\vspace{5mm}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}\centering
+  \cifra{0,854}{el modelo, contra el nivel\\oficial de 45 textos}
+\end{column}
+\begin{column}{0.5\textwidth}\centering
+  \cifra{0,807}{\textbf{contar las palabras},\\sin modelo alguno}
+\end{column}
+\end{columns}
+
+\vspace{9mm}
+{\small En un corpus de exámenes, el nivel y la extensión de la tarea van
+juntos, así que un contador de palabras aprovecha un atajo que en una
+biblioteca no existe. \textbf{Lo que sostiene al modelo es lo que aporta por
+encima de la longitud}: descontándola, conserva \textbf{0,657}.}
+
+\vspace{3mm}
+{\footnotesize\color{llgris} Se enseña porque es la comparación más
+desfavorable del proyecto, y ocultarla sería el peor error posible.}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{El modelo desplegado}
+\vspace{4mm}
+\begin{center}
+{\large\bfseries\color{llazul} distilroberta-base} \quad·\quad
+82 M de parámetros \quad·\quad regresión, no clasificación\\[6mm]
+
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+\textbf{Conjunto} & \textbf{n} & \textbf{Dentro de $\pm 1$ nivel} & \textbf{Spearman} \\
+\midrule
+Validación interna & 144 & 97,2\,\% & 0,908 \\
+British Council, externo & 38 & 100\,\% & 0,829 \\
+\bottomrule
+\end{tabular}
+\\[7mm]
+
+{\small Sobre textos externos con nivel oficial, las medias por nivel salen
+\textbf{estrictamente crecientes}:}\\[3mm]
+{\small A1 \textbf{0,504} \; · \; A2 \textbf{0,548} \; · \; B1 \textbf{0,928}
+\; · \; B2 \textbf{1,248} \; · \; C1 \textbf{1,495}}
+\end{center}
+
+\vspace{3mm}
+{\footnotesize\color{llgris} El orden es el resultado, no el porcentaje. El
+escalón A1--A2 descansa en 3 textos y está dentro del ruido; los otros cuatro,
+no.}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Ejemplo de uso y aplicación}
+\vspace{2mm}
+{\small Un caso real, de principio a fin: \textbf{Ana, 15 años, nivel B1}.}
+\vspace{3mm}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize, node distance=3mm]
+\tikzset{p/.style={draw=llcian!70, fill=llfondo, rounded corners=2pt,
+                   text width=2.4cm, align=center, inner sep=4pt,
+                   minimum height=1.1cm}}
+\node[p] (a) {\textbf{1. Se sitúa}\\ tres preguntas\\ $\rightarrow$ 0,93};
+\node[p, right=of a] (b) {\textbf{2. Busca}\\ «algo de misterio,\\ no muy largo»};
+\node[p, right=of b] (c) {\textbf{3. Elige}\\ \emph{Sherlock Holmes}\\ curva por capítulo};
+\node[p, right=of c] (d) {\textbf{4. Lee}\\ doble clic en\\ \emph{peculiar}};
+\node[p, right=of d] (e) {\textbf{5. Practica}\\ lee en voz alta,\\ se corrige};
+\foreach \x/\y in {a/b,b/c,c/d,d/e}
+  \draw[->, llcian!80, thick] (\x) -- (\y);
+\end{tikzpicture}
+\end{center}
+
+\vspace{4mm}
+\begin{center}\small
+\begin{tabular}{@{}l l@{}}
+\toprule
+\textbf{Paso} & \textbf{Lo que produce} \\
+\midrule
+Se sitúa & nivel 0,93 en la escala 0--2, banda \emph{intermedio} \\
+Busca & diez libros ordenados por cercanía a su nivel \\
+Elige & curva de dificultad capítulo a capítulo, con el más duro señalado \\
+Lee & \emph{peculiar}: definición en esa frase, IPA y audio \\
+Practica & las palabras que se le escaparon, en rojo \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Contra quién compite}
+\vspace{4mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.8\linewidth, height=3.9cm, xbar, bar width=11pt,
+  xmin=0, xmax=1.02, xlabel={Pearson con el juicio humano, corpus CLEAR},
+  symbolic y coords={ll,llm,form}, ytick={form,llm,ll},
+  yticklabels={Fórmulas clásicas,LLM \emph{zero-shot},\textbf{LiteraLevel}},
+  yticklabel style={font=\scriptsize}, tick style={draw=none},
+  xmajorgrids=true, grid style={llgrisclaro},
+  axis line style={draw=llgrisclaro}, enlarge y limits=0.32,
+  nodes near coords={\pgfmathprintnumber[fixed,precision=3]{\pgfplotspointmeta}},
+  nodes near coords style={font=\scriptsize, color=llgris},
+  nodes near coords align={horizontal},
+]
+\addplot[fill=llgris!25, draw=llgris!60] coordinates {(0.517,form)};
+\addplot[fill=llgris!25, draw=llgris!60] coordinates {(0.725,llm)};
+\addplot[fill=llcian!45, draw=llcian!90] coordinates {(0.89,ll)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\vspace{-2mm}
+{\footnotesize\textbf{No son comparaciones cara a cara}: las dos primeras
+vienen de un estudio ajeno sobre el mismo corpus, con otra partición.
+Justifican la decisión de afinar un codificador; no demuestran una victoria
+medida.}
+
+\vspace{3mm}
+{\footnotesize\textbf{Y dónde se pierde:} Lexile tiene treinta años de
+validación y una escala \textbf{que acepta un colegio}; la de aquí no la acepta
+nadie.}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Estrategia}
+\vspace{3mm}
+{\small Tres acciones, con coste real y criterio de terminado.}
+\vspace{3mm}
+
+\begin{center}\small
+\begin{tabular}{@{}p{0.30\linewidth} p{0.30\linewidth} p{0.30\linewidth}@{}}
+\toprule
+\textbf{Qué} & \textbf{Cuánto cuesta} & \textbf{Cuándo está hecho} \\
+\midrule
+Publicar el modelo & 30 min, gratis &
+  \textbf{Hecho}: el cuaderno corre en un Colab limpio \\[3mm]
+Desplegar de forma permanente & 9 USD/mes &
+  \textbf{Hecho}: dirección fija que no muere al apagar \\[3mm]
+Terminar la medición del catálogo & 3--5 h de A100 &
+  El catálogo publica niveles medidos, no heredados \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6mm}
+{\footnotesize\color{llgris} El coste de medir el catálogo entero está en otro
+orden de magnitud que la tarifa de la alternativa comercial. Eso es lo que hace
+viable el proyecto, no la métrica.}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}{Lo que esto no es}
+\vspace{8mm}
+\begin{center}
+{\Large\bfseries\color{llrojo} No certificamos ningún nivel del MCER.}\\[6mm]
+
+{\large La letra que se enseña es la etiqueta más cercana\\
+en una escala continua propia.}\\[8mm]
+
+{\normalsize\color{llgris} Sirve para elegir qué leer. No para acreditar nada.}
+\end{center}
+\end{frame}
+
+% ===========================================================================
+\begin{frame}[plain]
+\vspace{16mm}
+\begin{center}
+{\Large\bfseries\color{llazul} Funcionando ahora mismo}\\[8mm]
+
+{\large\ttfamily huggingface.co/spaces/MikeMaki1763/literalevel}\\[10mm]
+
+{\small\color{llgris} Modelo público:
+\ttfamily huggingface.co/MikeMaki1763/literalevel-v4}\\[14mm]
+
+{\normalsize Si alguna vez abandonaste un libro en inglés pensando que el
+problema eras tú:\\[3pt] \textbf{no lo eras. Era el libro.}}
+\end{center}
+\end{frame}
+
+\end{document}
