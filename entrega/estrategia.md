@@ -68,7 +68,8 @@ recuerda por dónde iba en ninguno.
   petición literal que originó el módulo: *«un apartado con mis libros, los que
   estoy leyendo, que se queden guardados, en qué partes voy»*.
 - **Saber a qué se enfrenta antes de comprometerse.** La ficha del libro dice
-  cuánto tarda en leerlo **a su ritmo**, cuánto es diálogo y qué palabras se
+  cuánto tarda en leerlo **a 180 o 110 palabras por minuto** según le quede por
+  debajo o por encima de su nivel, cuánto es diálogo y qué palabras se
   repiten, todo contado sobre el fichero.
 - **Vocabulario que persista.** «Mis palabras» guarda cada consulta con su
   frase y su libro, que es la unidad que sirve para recordar. Deliberadamente
@@ -129,7 +130,7 @@ diagnosticó qué producía cada queja y se corrigió.
 | — | «Medir la dificultad de este capítulo» es lenguaje de laboratorio | «¿Cómo de difícil es este capítulo?» | Etiqueta reescrita |
 | — | «Vistazo rápido a la dificultad» no dice cuánto tarda | «Vistazo rápido (unos segundos)» | Etiqueta reescrita |
 | — | «Analizar el libro entero» no advierte del coste | «Leer el libro entero (tarda más)» | Etiqueta reescrita |
-| «No me gustan los colores» | El color es gusto, y el gusto no se discute: se ofrece | **Cinco paletas** con pestaña propia y cambio instantáneo: *hielo* (la original), *amanecer* (clara, crema y naranja), *menta*, *papel* (para leer horas) y *medianoche* | Una prueba automática comprueba las cinco contra el criterio de contraste **WCAG AA (4,5:1)**. Las cinco pasan; la peor mide **9,51** |
+| «No me gustan los colores» | El color es gusto, y el gusto no se discute: se ofrece | **Cinco paletas** con pestaña propia y cambio instantáneo: *hielo* (la original), *amanecer* (clara, crema y naranja), *menta*, *papel* (para leer horas) y *medianoche* | Una prueba automática comprueba las cinco contra el criterio de contraste **WCAG AA (4,5:1)**. Las cinco pasan en las veinte parejas de color que se comprueban (cuatro por paleta); la más ajustada mide **4,53** |
 | «Todo muy recto, muy marcado» | Esto no es gusto, es diseño, y se corrige para todas las paletas | Esquinas de 14 px, bordes finos, sombras suaves y las opciones de lista como fichas tocables | — |
 | «Difícil de usar en celular… casi todo» | En un móvil, el círculo de un botón de radio es un blanco de 12 px | La ficha entera pasa a ser el blanco: **44 px** | — |
 
@@ -139,7 +140,7 @@ diagnosticó qué producía cada queja y se corrigió.
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono
 real —y no en el navegador del escritorio— había descubierto antes fallos que
-**ninguna de las 183 pruebas automáticas podía encontrar, porque todos
+**ninguna de las 205 pruebas automáticas podía encontrar, porque todos
 necesitaban un dedo y una pantalla pequeña**:
 
 - El doble toque para consultar una palabra **no funcionaba en el móvil**: el
@@ -211,13 +212,15 @@ cinco límites.
 
 La regla transversal del sistema es la **degradación elegante**: sin clave de
 servicio externo, la aplicación sigue dando diccionario, fonética, audio de
-Wiktionary, buscador y puntuación, porque nada de eso usa red. Solo se apagan
+buscador y puntuación, porque nada de eso sale a la red desde el servidor; el audio
+de Wiktionary es un enlace a `upload.wikimedia.org` que descarga el navegador del
+lector, así que necesita conexión pero no clave. Solo se apagan
 la explicación en contexto y la corrección de pronunciación, y se dice con
 palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
 
-La regla que verifican las 183 pruebas de robustez es una sola: **ningún
+La regla que verifican las 205 pruebas de robustez es una sola: **ningún
 manejador puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve
 como texto legible.
 
@@ -357,8 +360,8 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 
 | # | Acción | Por qué | Coste | Terminado cuando |
 |---|---|---|---|---|
-| **A1** | **Publicar el modelo (328 MB) y el diccionario (243 MB)** como repositorios abiertos, con el guion de subida ya escrito | Desbloquea la reproducibilidad del cuaderno, que hoy no corre en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto | ~30 min; gratuito. Requiere un token que solo el autor puede crear | El cuaderno corre de principio a fin en un Colab limpio, sin errores ni advertencias |
-| **A2** | **Desplegar en enlace permanente** (Gradio sobre plan de pago personal) | El enlace actual es un túnel temporal que muere al apagar el equipo. Es el mayor riesgo de la entrega, y no es técnico | 9 USD un mes | El enlace se abre desde un móvil ajeno y sobrevive a reiniciar el equipo del autor |
+| **A1** | **Publicar el modelo y el diccionario** como repositorios abiertos | Desbloquea la reproducibilidad del cuaderno, que antes no corría en un Colab ajeno | ~30 min; gratuito. Requiere un token que solo el autor puede crear | **HECHO a medias**: el modelo (328 MB) está en `MikeMaki1763/literalevel-v4`, público y con la descarga sin credenciales verificada. El diccionario (243 MB) sigue sin publicar |
+| **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | Gratuito: Hugging Face Spaces sobre `cpu-basic` | **HECHO**: `huggingface.co/spaces/MikeMaki1763/literalevel`, público y en marcha. Queda el disco persistente, que es A4 |
 | **A3** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales. Es la deuda técnica más visible | Entre 3 y 5 h de A100, dentro del crédito disponible; la descarga va ahora en un solo archivo de 11,3 GB | El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira |
 | **A4** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero | 12 USD por TB y mes; el proyecto ocupa 7,4 MB, así que el coste es despreciable | Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil |
 | **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
@@ -384,8 +387,8 @@ publicación y un micrófono.
 | Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952 |
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,657 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron 8 correcciones |
-| Producto | Accesibilidad de color | **Cumplido**: las cinco paletas superan WCAG AA; la peor, 9,51 |
-| Producto | Robustez | **Cumplido**: 183 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
+| Producto | Accesibilidad de color | **Cumplido**: las veinte parejas de color de las cinco paletas superan WCAG AA; la más ajustada, 4,53 |
+| Producto | Robustez | **Cumplido**: 205 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Pendiente** (A2) |
 | Operación | Catálogo medido, no heredado | **En curso** (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |

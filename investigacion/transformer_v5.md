@@ -187,7 +187,7 @@ tiempo real solo el texto que sube el usuario; o (b) elegir palancas que no
 cuesten inferencia, que es justo lo que hacen la calibración y la ventana de 190
 palabras.
 
-**Y el precálculo también tiene precio.** Hoy son 6,3 h de A100 para 61.642
+**Y el precálculo también tiene precio.** Hoy son entre tres y cinco horas de A100 para 61.642
 libros. Con un modelo 6× más caro son ~38 h. Colab Pro+ da 500 unidades de
 cómputo al mes por 49,99 USD, con extras a 9,99 USD por 100
 ([Colab](https://colab.research.google.com/signup)). No verifiqué cuántas

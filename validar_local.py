@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, "app")
 import numpy as np
 from pypdf import PdfReader
-from scoring import Puntuador, continuous_prose
+from scoring import Puntuador, continuous_prose, words
 
 RE_INI = re.compile(r"reading text", re.I)
 RE_FIN = re.compile(r"^\s*(tasks|task 1)\s*$", re.I)
@@ -32,6 +32,10 @@ def cuerpo(lineas):
     utiles = [l.strip() for l in lineas[ini:fin]
               if l.strip() and not RUIDO.search(l) and not l.strip().isdigit()
               and len(l.strip()) >= 3]
+    # Se unen con espacio y NO con salto de linea a proposito: scoring.words
+    # trocea por espacios en blanco y no mira los saltos, asi que el conteo
+    # de palabras y las ventanas de 250 salen igual de las dos formas. Lo
+    # unico que cambiaria es la longitud media de frase, que aqui no se usa.
     return " ".join(utiles) or None
 
 
@@ -50,6 +54,7 @@ p = Puntuador(RUTA_MODELO)
 print("modelo v4 cargado\n")
 
 por_nivel = {}
+filas = []          # (nivel, puntuacion, palabras) por texto
 saltados = 0
 fallidos = []
 for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))):
@@ -75,18 +80,85 @@ for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))
         fallidos.append(f"{os.path.basename(ruta)}: {type(e).__name__}: {e}")
         continue
     por_nivel.setdefault(nivel, []).append(r.puntuacion)
+    # Para el baseline del Cuadro 11 hace falta ademas la longitud.
+    filas.append((nivel, float(r.puntuacion), len(words(texto))))
 
-print(f"{'nivel':<6}{'n':>4}{'media 0-2':>12}{'desv':>8}   (Colab reportó)")
+# np.std es la desviacion POBLACIONAL (ddof=0). Con n de 3 a 12 la muestral
+# saldria mayor; se deja la poblacional porque es la que reporto el Colab y
+# lo que aqui se compara son las medias, no la dispersion.
+print(f"{'nivel':<6}{'n':>4}{'media 0-2':>12}{'desv (pobl.)':>14}   (Colab reportó)")
 esperado = {"A2": 0.6479, "B1": 0.9513, "B2": 1.2883, "C1": 1.4950}
 for niv in sorted(por_nivel):
     v = por_nivel[niv]
     e = esperado.get(niv)
-    print(f"{niv:<6}{len(v):>4}{np.mean(v):>12.4f}{np.std(v):>8.3f}   "
+    print(f"{niv:<6}{len(v):>4}{np.mean(v):>12.4f}{np.std(v):>14.3f}   "
           f"{('%.4f' % e) if e else '—'}")
 print(f"\ntextos sin cuerpo localizable: {saltados}")
 print(f"textos que fallaron al puntuar: {len(fallidos)}")
-for f in fallidos[:5]:
+for f in fallidos:
     print("   ", f)
+
+# --- Cuadro 11: el modelo frente a la senal trivial -----------------------
+# Esto lo publicaba el documento sin que ningun guion lo calculase. Se calcula
+# aqui, sobre los mismos textos que acaban de puntuarse, para que la cifra sea
+# reproducible y no una herencia de una sesion de Colab que ya no existe.
+#
+# Spearman = Pearson sobre los rangos. Sin scipy, que no esta en requirements.
+ORDINAL = {"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6}
+
+
+def _rangos(v):
+    """Rangos con promedio en los empates, como scipy.stats.rankdata."""
+    orden = sorted(range(len(v)), key=lambda i: v[i])
+    r = [0.0] * len(v)
+    i = 0
+    while i < len(orden):
+        j = i
+        while j + 1 < len(orden) and v[orden[j + 1]] == v[orden[i]]:
+            j += 1
+        medio = (i + j) / 2.0 + 1.0
+        for k in range(i, j + 1):
+            r[orden[k]] = medio
+        i = j + 1
+    return np.array(r)
+
+
+def _pearson(a, b):
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    da, db = a - a.mean(), b - b.mean()
+    den = float(np.sqrt((da ** 2).sum() * (db ** 2).sum()))
+    return float("nan") if den == 0 else float((da * db).sum() / den)
+
+
+def _spearman(a, b):
+    return _pearson(_rangos(list(a)), _rangos(list(b)))
+
+
+if len(filas) >= 3:
+    niv = [ORDINAL[f[0]] for f in filas]
+    mod = [f[1] for f in filas]
+    pal = [f[2] for f in filas]
+
+    s_mod = _spearman(mod, niv)
+    s_pal = _spearman(pal, niv)
+    s_mp = _spearman(mod, pal)
+
+    # Correlacion parcial sobre rangos: que le queda al modelo cuando se
+    # descuenta la longitud. La misma formula para el contador de palabras
+    # daria 0/0, porque descontar la longitud de la longitud deja varianza
+    # cero: no es que salga peor, es que no esta definida.
+    den = (1 - s_mp ** 2) * (1 - s_pal ** 2)
+    parcial = (s_mod - s_mp * s_pal) / np.sqrt(den) if den > 0 else float("nan")
+
+    print()
+    print("Cuadro 11 - el modelo frente a la senal trivial "
+          f"({len(filas)} textos)")
+    print(f"  modelo v4                                  {s_mod:.3f}")
+    print(f"  contar palabras, sin modelo                {s_pal:.3f}")
+    print(f"  modelo descontando la longitud (parcial)   {parcial:.3f}")
+    print(f"  (de paso: modelo contra longitud           {s_mp:.3f})")
+    print("  contar palabras descontando la longitud:   indefinida")
 
 # --- El validador tiene que poder SUSPENDER -------------------------------
 # Antes esto era `all(a < b for a, b in zip(medias, medias[1:]))` a secas, y

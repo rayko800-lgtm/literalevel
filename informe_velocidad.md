@@ -211,8 +211,14 @@ extremo a extremo, en un proceso que ya venía degradado por el barrido previo:
 
 ## 4. Recomendación
 
-_(pendiente)_
+_Estos dos apartados se quedaron sin escribir: cuando llegó el momento de
+redactarlos, la recomendación (12 hilos, lote fijo de 64 en CPU y 128 en
+GPU) ya estaba aplicada en `app/scoring.py` y la extrapolación al catálogo
+entero se rehízo en el apartado 8.3 del documento de entrega, con la
+horquilla de tres a cinco horas de A100 y la incertidumbre declarada. Se
+dejan marcados en vez de borrar el rótulo, para que el informe no aparente
+una completitud que no tiene._
 
 ## 5. Extrapolación
 
-_(pendiente)_
+_Ver arriba._

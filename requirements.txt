@@ -1,22 +1,29 @@
 # LiteraLevel - app local. torch CPU basta: la inferencia son 8 bloques.
+#
+# Todo lleva techo de version MAYOR a proposito. Durante este proyecto
+# transformers paso de 4 a 5 y gradio de 5 a 6, y las dos veces cambio la
+# API. Un `>=` sin techo convierte "clona y ejecuta" en una loteria.
+# Probado de punta a punta con: torch 2.14.0+cpu, transformers 5.16.1,
+# gradio 6.26.0, pandas 3.0.0, numpy 2.4.2, plotly 7.0.0, spacy 3.8.16,
+# sentence-transformers 6.0.1, pypdf 6.17.0, openai 3.8.0.
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.4
-transformers>=4.44
-gradio>=6.0
-pypdf>=5.0
-numpy>=1.26
+torch>=2.4,<3
+transformers>=5.16,<6
+gradio>=6.26,<7
+pypdf>=5.0,<7
+numpy>=1.26,<3
 
 # Catalogo: el CSV se lee con pandas y se indexa con embeddings.
-pandas>=2.2
-sentence-transformers>=3.0
+pandas>=2.2,<4
+sentence-transformers>=3.0,<7
 
 # lexicon.py: lema y categoria gramatical dentro de la oracion.
-spacy>=3.7
-wordfreq>=3.1
+spacy>=3.7,<3.9
+wordfreq>=3.1,<4
 
 # lexicon.py y voz.py: solo lo contextual, la transcripcion y el tts.
-openai>=1.40
-pydantic>=2.7
+openai>=1.40,<4
+pydantic>=2.7,<3
 
 # El modelo de spaCy no esta en PyPI. En local basta con:
 #   python -m spacy download en_core_web_sm
@@ -25,4 +32,4 @@ pydantic>=2.7
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 # La curva de dificultad del libro: linea continua con zoom y degradado.
 # Con gr.BarPlot, un libro de 366 capitulos salia como un bloque azul macizo.
-plotly>=6.0
+plotly>=6.0,<8

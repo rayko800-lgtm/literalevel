@@ -110,10 +110,18 @@ reportó Colab:
 
 C1 coincide hasta la tercera cifra decimal (1,4952 frente a 1,4950); A2 se
 desvía 0.10. La causa es la
-extracción de los PDF: en local sobreviven 45 textos de los 59 originales y el
-anclaje «Reading text … Tasks» recorta distinto. **Lo que sí se reproduce
-exactamente es que las medias quedan estrictamente crecientes**, que es el
-resultado que sostiene el trabajo.
+extracción de los PDF y el filtro de prosa continua: en local sobreviven 45 de los
+59 originales —uno no está disponible, otro no lleva nivel en el nombre del
+archivo, dos no tienen cuerpo localizable y otros diez los rechaza
+`scoring.continuous_prose` por quedarse bajo las 150 palabras— y el anclaje
+«Reading text … Tasks» recorta distinto. **Lo que sí se reproduce exactamente es
+que las medias quedan estrictamente crecientes**, que es el resultado que
+sostiene el trabajo.
+
+El guion imprime además las tres cifras del Cuadro 11 (modelo 0,854, contar
+palabras 0,807, parcial descontando la longitud 0,657) y la lista de los diez
+rechazados con su motivo. Los nombres de los 58 archivos del corpus están en
+[`entrega/manifiesto_corpus_externo.md`](entrega/manifiesto_corpus_externo.md).
 
 No imprime ni un fragmento de los textos: el corpus tiene derechos.
 
@@ -142,7 +150,7 @@ torch.
 
 ```bash
 python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # 147 pruebas que intentan romper la interfaz
+python -X utf8 pruebas_extremas.py     # 205 pruebas que intentan romper la interfaz
 python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
 python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
 python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel
@@ -159,8 +167,8 @@ legible.
 
 | Qué | Tamaño | De dónde sale |
 |---|---|---|
-| `modelo_v4/` | 317 MB | Drive, `literalevel_bigdata` (privado; ver más abajo) |
-| `kaikki_diccionario.db` | 232 MB | volcado de Kaikki/Wiktionary, 1,48 M entradas |
+| `modelo_v4/` | 328 MB | Hugging Face, `MikeMaki1763/literalevel-v4` (público, sin credenciales) |
+| `kaikki_diccionario.db` | 243 MB | volcado de Kaikki/Wiktionary, 1,48 M entradas (sin publicar; copia en Drive) |
 | `CLAVES.txt`, `.env` | — | claves reales |
 
 Están en `.gitignore`. La app los localiza con `LITERALEVEL_MODELO` y
@@ -181,7 +189,8 @@ una carpeta. El código de entrenamiento del v4 no forma parte de este
 repositorio: aquí vive la aplicación, no el experimento.
 
 **Sin `OPENAI_API_KEY` la app sigue funcionando**: diccionario, IPA, audio de
-Wiktionary, buscador y puntuación no usan red. Lo que se apaga es la
+buscador y puntuación no salen a la red. El audio de Wiktionary sí: es un enlace a
+`upload.wikimedia.org` que descarga el navegador. Lo que se apaga es la
 explicación contextual y la voz.
 
 ## Más

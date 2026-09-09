@@ -116,7 +116,7 @@ Sube un 3 % al año. Por encima de 65.000 envíos, precio a medida.
 
 **Lo que esto significa para nosotros, dicho con números:** LiteraLevel está
 remidiendo **61.642 libros** de Project Gutenberg. En el tramo Enterprise de
-Lexile eso son **~54.600 USD/año**. Nuestro coste medido es **6,3 horas de una
+Lexile eso son **~54.600 USD/año**. Nuestro coste estimado es **entre tres y cinco horas de una
 A100** (§8.3 del documento). Aunque se pague la A100 a precio de mercado, la
 diferencia es de tres órdenes de magnitud. **Ese es el argumento económico, y es
 el más sólido que tenemos.**
@@ -323,7 +323,7 @@ decir en voz alta:
 3. **Y aun así el LLM pierde por otra razón, que es la que nos salva:
    la economía.** Puntuar 61.642 libros son ~2,7 millones de ventanas. A ese
    volumen, cualquier API de pago es un presupuesto y no un proyecto de módulo;
-   nuestro modelo lo hace en 6,3 horas de A100. Y la app tiene que correr en la
+   nuestro modelo lo hace en entre tres y cinco horas de A100. Y la app tiene que correr en la
    CPU del equipo de un estudiante con 1,05 GB de RSS. **Un LLM no cabe ahí ni
    aunque midiera mejor.**
 
@@ -360,7 +360,7 @@ las variables léxicas se quedan en 0,29 de exactitud y el texto crudo llega a
 | **Fórmulas clásicas** (Flesch, Dale-Chall, ATOS) | Leemos el texto con atención, no contamos sílabas. 0,89 vs 0,517 en CLEAR | Ellas son instantáneas, interpretables al 100 %, no necesitan 328 MB ni GPU, y llevan 70 años validadas en aula. ATOS además mide el libro entero desde 2000 |
 | **Lexile** | Anclaje MCER; capítulo a capítulo; gratis frente a 3.824–54.636 USD/año; abierto y auditable; en español | Escala validada durante 30 años, base de cientos de miles de títulos, integración con bibliotecas y pruebas oficiales, **y una escala común lector-texto que nosotros solo aproximamos**. Su medida la acepta un colegio; la nuestra no |
 | **LLM con prompt (GPT-5, Claude)** | 0,89 vs 0,725 en CLEAR; corre en CPU; coste ~0 por libro; determinista y reproducible | No necesitan corpus etiquetado (nosotros dependemos de 654 documentos); explican su juicio; llegan a 0,888 en dominio de examen sin entrenar; mejoran solos cada seis meses sin que hagamos nada |
-| **TeakReader** | Modelo de lenguaje frente a conteo léxico; búsqueda semántica en español; app web sin instalar | Producto móvil terminado y publicado en dos tiendas; nosotros tenemos un túnel temporal. Su señal de vocabulario es **personalizada al usuario**, la nuestra no |
+| **TeakReader** | Modelo de lenguaje frente a conteo léxico; búsqueda semántica en español; app web sin instalar | Producto móvil terminado y publicado en dos tiendas; nosotros, una web en Hugging Face Spaces sobre CPU gratuita. Su señal de vocabulario es **personalizada al usuario**, la nuestra no |
 | **LingQ / Readlang / Beelinguapp** | Somos los únicos que dicen la dificultad **antes** de abrir el libro y **por capítulo** | Productos maduros, con años de contenido, audio, comunidad y sincronización entre dispositivos. Nuestro cuaderno y biblioteca son un prototipo al lado |
 | **Cathoven / Text Inspector** | Libro completo frente a texto suelto; lector integrado; gratis | Herramientas de profesor pulidas, con API comercial, MCER por palabra y validación externa declarada |
 | **Lecturas graduadas de editorial** | 61.642 libros de dominio público frente a un catálogo cerrado; literatura de verdad, no textos escritos para el ejercicio | Su nivel lo puso un humano que leyó la obra. El nuestro lo puso un modelo con una escala comprimida |
@@ -449,7 +449,7 @@ Este apartado vale más que el anterior. Sin adornos:
 
 6. **Ellos están desplegados y nosotros no.**
    TeakReader está en App Store y Google Play. LingQ y Readlang llevan años.
-   Nosotros tenemos un túnel temporal y un consumo de 1,05–1,5 GB de RSS que
+   Nosotros tenemos una web gratuita sin disco persistente y un consumo de 1,05–1,5 GB de RSS que
    descarta todos los planes gratuitos de 512 MB. Un producto que no se puede
    abrir no compite con nadie.
 
@@ -478,7 +478,7 @@ Este apartado vale más que el anterior. Sin adornos:
 | ¿Cuánto es «bueno» en MCER a nivel de oración? | macro-F1 84,5 % sobre 6 niveles | [Arase et al. 2022](https://aclanthology.org/2022.emnlp-main.416/) |
 | ¿Están saturados los benchmarks de 3 clases? | Sí: 98,7–99,4 % en OneStopEnglish | [Lee & Vajjala 2022](https://aclanthology.org/2022.findings-acl.300/) |
 | ¿Cuánto cuesta medir 61.642 libros con Lexile? | ~54.636 USD/año (tramo Enterprise) | [MetaMetrics](https://www2.metametricsinc.com/content-creator-annual-pricing) |
-| ¿Cuánto nos cuesta a nosotros? | 6,3 horas de A100 | `documento.md` §8.3 |
+| ¿Cuánto nos cuesta a nosotros? | entre 3 y 5 horas de A100 | `documento.md` §8.3 |
 
 ---
 

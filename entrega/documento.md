@@ -22,7 +22,7 @@ libro concreto está a su alcance.
 LiteraLevel es una aplicación que responde esa pregunta. Le da al lector un
 número entre 0 y 2 que dice cuánta dificultad tiene un texto en inglés, y lo
 hace leyendo el texto de verdad, no contando páginas. Con ese número le busca
-libros que pueda terminar, se los abre dentro de la propia aplicación, le
+libros que le queden a mano, se los abre dentro de la propia aplicación, le
 enseña la dificultad capítulo a capítulo —los libros no son igual de difíciles
 de principio a fin—, le explica cualquier palabra en la frase en la que
 aparece y le corrige la pronunciación cuando lee en voz alta.
@@ -46,7 +46,8 @@ A1 a C2 fueron el ancla con la que se entrenó el modelo, no un título que la
 aplicación expida. Sirven para elegir qué leer, no para acreditar nada.
 
 El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio
-6.26, probada por una lectora de quince años ajena al proyecto— y con un
+6.26, probada por una lectora de quince años, prima del autor y ajena al
+proyecto— y con un
 catálogo en curso de remedición: los 61.642 libros en inglés de dominio
 público de Project Gutenberg, leídos enteros por el modelo, que a la velocidad
 medida en una GPU A100 son entre tres y cinco horas de cómputo.
@@ -187,7 +188,8 @@ seguido:
   (vistazo y libro entero) diciendo siempre cuál se usó; degradación elegante
   cuando falta red o clave; y la incertidumbre comunicada en bandas, no en
   decimales falsos.
-- **Ciclo de usuario real.** Una lectora de quince años ajena al proyecto usó
+- **Ciclo de usuario real.** Una lectora de quince años, prima del autor y ajena
+  al proyecto, usó
   la aplicación, dijo *«o yo soy muy tonta para esto»* —que es un fallo de
   diseño, no suyo— y de ahí salieron seis etiquetas reescritas, cinco paletas
   de color, objetivos táctiles de 44 px y esquinas redondeadas.
@@ -411,7 +413,7 @@ encima de él.
 
 **Dificultad frente a dominio.** El nivel del texto está correlacionado con su
 tipo documental. Al filtrar los 59 textos de British Council a prosa continua,
-el nivel A1 desaparece casi por completo y el rango evaluable se encoge de seis
+el nivel A1 desaparece casi por completo y el rango evaluable se encoge de cinco
 niveles a cuatro (A2–C1). Por eso el *baseline* de contar palabras cae de 0,879
 a 0,765 al filtrar: parte de la señal del conjunto completo era simplemente que
 los textos A1 son cortos. Las correlaciones antes y después del filtro **no son
@@ -633,7 +635,10 @@ menos evidencia de la que este cuadro aparentaba dar.
 El modelo en producción, **v4**, es un `distilroberta-base` (seis capas, 82
 millones de parámetros) con cabeza de regresión, cuyos pesos ocupan 328 MB en
 disco. Puntúa bloques de 250 palabras truncados a 256 tokens y promedia sin
-ponderar. Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
+ponderar, con un tope de **ocho ventanas por documento** repartidas a lo
+largo del texto: es lo que mantiene el análisis por debajo del segundo en
+una CPU, y por eso un vistazo mide una muestra del texto y no el texto
+entero (el catálogo precalculado sí lo lee entero, capítulo a capítulo). Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
 intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala multiplicada
 por 0,4. **El modelo es final y no se reentrena.**
 
@@ -645,7 +650,7 @@ que produce las cifras de la primera fila del Cuadro 9.
 **De dónde salen esas cifras, dicho con precisión.** De la ejecución de
 entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
 **no hay ningún archivo que las respalde**, y una versión anterior de este
-documento citaba una tarjeta `metricas_literalevel_v4.json` que no existe. Lo
+documento citaba una tarjeta `metricas_literalevel_v4.json` inexistente. Lo
 único comprobable desde el repositorio es la aritmética interna —510 + 144 =
 654, 77/144 = 53,47 % y 140/144 = 97,22 %—, que cuadra. Quien quiera verificar
 el resto tiene que confiar en esa ejecución o rehacerla. Se corrige diciéndolo,
@@ -656,7 +661,8 @@ no citando un archivo que no existe.
 | Validación ciega | 144 | 53,5 % | **97,2 %** | **0,908** |
 | British Council (externo) | 38 | 50,0 % | **100 %** | 0,829 |
 
-*Cuadro 9. Métricas del modelo desplegado. MAE de 0,499 niveles en el conjunto
+*Cuadro 9. Métricas del modelo desplegado. MAE de 0,499 niveles de la escala
+interna 0–5 —0,200 en la escala pública 0–2— en el conjunto
 de validación.*
 
 **Un 97,2 % suena a mucho, y conviene poner al lado con qué se compara.** Con
@@ -678,7 +684,7 @@ nivel de ese conjunto.
 porcentajes, sino el orden.** Sobre textos externos con nivel MCER oficial, las
 medias por nivel quedan estrictamente crecientes:
 
-| Nivel oficial | n (local) | Media en escala 0–2 | Desviación |
+| Nivel oficial | n (local) | Media en escala 0–2 | Desviación (poblacional) |
 |---|---|---|---|
 | A1 | 3 | 0,5040 | 0,111 |
 | A2 | 7 | 0,5480 | 0,237 |
@@ -687,7 +693,8 @@ medias por nivel quedan estrictamente crecientes:
 | C1 | 12 | 1,4952 | 0,172 |
 
 *Cuadro 10. Reproducción local de la validación externa, sobre los 45 textos
-que sobreviven a la extracción de los PDF.*
+que quedan tras la extracción de los PDF **y el filtro de prosa continua** (el
+balance completo está en el Cuadro 10b).*
 
 Esta tabla se **recalcula** con el guion `validar_local.py`, en cualquier
 máquina que tenga los mismos PDF y los mismos pesos. No es una reproducción
@@ -699,13 +706,32 @@ ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
 decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10).
 
 **La diferencia entre los 38 textos de Colab y los 45 de aquí tiene dos causas,
-y una versión anterior solo mencionaba una.** La extracción de los PDF explica
-una parte: de los 59 originales, uno no está disponible y dos no tienen cuerpo
-localizable. Pero **otros diez los rechaza `scoring.continuous_prose`** —nueve
-de A1 y uno de B1: los menús, los pósters, los horarios—, y esa es la otra
-mitad. Los dos entornos filtraron con reglas distintas, no solo extrajeron
-distinto. Importa decirlo porque los tres textos A1 que sostienen el escalón más
-débil del Cuadro 10 pasaron el filtro de la aplicación, no el del análisis.
+y una versión anterior solo mencionaba una.** El balance completo, contado sobre
+los archivos reales, cierra así:
+
+| | Textos |
+|---|---|
+| Publicados por British Council | 59 |
+| menos: no disponible | −1 |
+| menos: sin nivel en el nombre del archivo | −1 |
+| menos: sin cuerpo localizable al extraer el PDF | −2 |
+| menos: **rechazados por `scoring.continuous_prose`** | **−10** |
+| **Evaluados** | **45** |
+
+*Cuadro 10b. De 59 a 45, paso a paso.*
+
+Las tres primeras restas son de extracción. La cuarta no: son **diez textos
+—nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
+decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma:
+**se quedan por debajo de las 150 palabras** una vez recortados entre «Reading
+text» y «Tasks». Son pósters, menús, horarios y tarjetas, es decir, textos que
+en el original ya son cortos; el detector de maquetado de lista ni siquiera
+llega a dispararse, porque el de longitud actúa antes. Los dos entornos
+filtraron con reglas distintas, no solo extrajeron distinto. Importa decirlo
+porque los tres textos A1 que sostienen el escalón más débil del Cuadro 10
+pasaron el filtro de la aplicación, no el del análisis. Los nombres de los 58
+archivos están en `entrega/manifiesto_corpus_externo.md`, y `validar_local.py`
+imprime los diez rechazados con su motivo.
 
 ### 7.5 El baseline propio, y qué aporta el modelo por encima de él
 
@@ -715,7 +741,10 @@ débil del Cuadro 10 pasaron el filtro de la aplicación, no el del análisis.
 | Contar las palabras del texto, sin modelo | 0,807 |
 | Modelo, descontando la longitud (correlación parcial) | **0,657** |
 
-*Cuadro 11. El modelo frente a la señal trivial.*
+*Cuadro 11. El modelo frente a la señal trivial. Las tres cifras las
+calcula `validar_local.py` sobre los mismos 45 textos, con Spearman sobre
+rangos y la correlación parcial en la misma escala; reproducidas hoy en
+local: 0,854, 0,807 y 0,657.*
 
 Un contador de palabras llega casi tan lejos como el modelo en ese corpus, y
 omitirlo sería deshonesto. Lo que sostiene al modelo es la tercera fila: **aporta
@@ -728,7 +757,9 @@ correlacione 0,730 con ella, porque los corpus de examen gradúan también la
 extensión de la tarea.
 
 **La escala está comprimida, y la aplicación lo asume.** Contra el ancla real,
-el ajuste ronda `predicho ≈ 0,72 × real + 0,38`, de modo que un texto A2 tiende
+el ajuste ronda `predicho ≈ 0,72 × real + 0,38` —mínimos cuadrados sobre las
+cinco medias por nivel de la validación local, no sobre los textos uno a uno—,
+de modo que un texto A2 tiende
 a puntuar cerca de B1. Por eso la interfaz muestra **bandas** (básico
 < 0,6 ≤ intermedio < 1,4 ≤ avanzado) y la letra MCER solo como orientación, en
 lugar de fingir una precisión de dos decimales que el modelo no tiene.
@@ -754,12 +785,12 @@ resultado.
 | Regresión, no clasificación | La dificultad es continua; clasificar tira información ordinal | El error ordinal medio baja de 1,39 a 0,67 en la progresión completa |
 | Partición agrupada por libro | Evitar fuga de datos entre extractos **del mismo libro**. No separa autores: dos obras del mismo autor pueden caer a ambos lados, y eso no se comprobó | Aplicada a *todos* los modelos comparados, no solo al final |
 | `distilroberta` y no `roberta-base` completo | La aplicación debe correr en CPU en el equipo de un estudiante | 328 MB y 0,9 s de carga, frente a 1,5× más parámetros (125 M contra 82 M). **La diferencia de calidad entre las dos no se midió**: la decisión se tomó por tamaño y velocidad, no porque se comprobara que costaba poco |
-| Promediar bloques sin ponderar, con la **ventana** como unidad | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: durante un tiempo la app promedió las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual **no son el mismo número** (0,004 de diferencia máxima medida en cinco libros reales) |
+| Promediar bloques sin ponderar, con la **ventana** como unidad | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: durante un tiempo la app promedió las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual **no son el mismo número** (0,004 de diferencia máxima sobre cinco libros; la medición se hizo en su momento y **no queda guion que la reproduzca**, así que se da como orden de magnitud, no como cifra auditable) |
 | **Rechazada: XGBoost sobre variables clásicas** | Se esperaba que un ensamble superase al modelo lineal | No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 vs 1,39). El límite estaba en las variables |
 | **Rechazada: modelo híbrido embedding + variables** | Se esperaba complementariedad | Ganancia nula (0,37 y 0,37; 0,91 vs 0,93). El embedding ya contiene esa información |
 | **Rechazada: escalar la lista léxica al SPGC completo por rendimiento** | Se esperaba mejorar `rare_word_ratio` | La correlación pasa de −0,330 a −0,326. Se conserva igualmente por cobertura, no por métrica |
 | **Rechazada: cuantización dinámica int8** | +18 % de velocidad en CPU | MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de −0,21. Un desplazamiento así cambia la letra MCER en el **52 %** de la escala y la banda en el **21 %**: no degrada la cifra, le cambia la etiqueta al libro. Inaceptable |
-| **Rechazada: precisión media (fp16) en la GPU local** | Se esperaba acelerar | Es **4,8× más lenta** que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene *tensor cores*. En una A100 sí compensa, y allí la desviación medida es 0,00037 de media |
+| **Rechazada: precisión media (fp16) en la GPU local** | Se esperaba acelerar | Es **4,8× más lenta** que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene *tensor cores*. En una A100 sí compensa, y allí la desviación observada fue de unos 0,00037 de media; **esa medición no quedó guardada en ningún guion del repositorio**, así que vale como orden de magnitud y no como cifra auditable |
 | **Rechazada: `inference_mode` en lugar de `no_grad`** | Se esperaba menos sobrecarga | 0,4 % de diferencia, por debajo del ruido |
 | **Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica** | Es el doble de rápido (7,4 s frente a 14,9 s) | Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa |
 | Filtrar prosa continua para la validación externa | Excluir textos porque el modelo falla en ellos invalida la validación | El criterio salió del diagnóstico, no es *a priori*, y así se dice en §4.3(a). Lo que lo sostiene es que se definió por **dos vías independientes** —título y estructura— que coinciden en el 89,8 % sin volver a mirar las puntuaciones |
@@ -800,7 +831,9 @@ intermedia, ancla B2).
 2. Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
    aplicación, sin salir a buscarlo.
 3. Aparece la ficha, y todo lo que dice está **contado sobre el fichero**:
-   palabras reales, tiempo de lectura a su ritmo, longitud media de frase,
+   palabras reales, tiempo de lectura estimado a 180 o 110 palabras por
+   minuto según el texto le quede por debajo o por encima de su nivel
+   —no es su ritmo medido, que la aplicación no conoce—, longitud media de frase,
    proporción de diálogo, variedad de vocabulario y palabras más repetidas.
    La proporción de diálogo distingue de verdad entre obras —*Alice* 73 %,
    *Pride and Prejudice* 28 %, *Crime and Punishment* 31 %—, cosa que no hacía
@@ -835,7 +868,11 @@ Las mediciones que hicieron viable esa decisión:
 | GPU A100 (Colab) | fp16, lote grande | 2.022 | 247× |
 
 *Cuadro 14. Rendimiento medido de extremo a extremo, incluida la tokenización
-y las transferencias.*
+y las transferencias. Son cifras del precálculo, que agrupa en lotes fijos de 64
+en CPU y 128 en GPU. **La aplicación en vivo no llega a esos lotes**: mide
+capítulo a capítulo para poder ir repintando la curva, y un capítulo son unas
+veinte ventanas, así que el rendimiento interactivo real está más cerca de las
+6,96 ventanas/s del agrupado por capítulo que de las 8,19 de esta fila.*
 
 Dos comprobaciones acompañan a ese cuadro, porque acelerar no puede costar
 exactitud:
@@ -843,13 +880,14 @@ exactitud:
 - **La GPU da los mismos números que la CPU.** Sobre 840 ventanas de *Crime and
   Punishment*, 839 son idénticas a tres decimales y una difiere en 0,001; el
   MAE es 0,0000012 sobre la escala 0–2.
-- **Reagrupar en lotes distintos no puede mover un decimal**, y no es una
-  suposición: como todas las ventanas ocupan exactamente 256 tokens tras
-  truncar, no hay relleno. Comprobado en dos tandas distintas, y conviene
-  identificarlas porque circulan las dos cifras: en la tanda de **286 ventanas**
-  —catorce capítulos completos de *Crimen y castigo*, agrupando por capítulo—
-  salen 286/286 valores idénticos con MAE 0,000000000; en la de **300 ventanas**
-  con lotes fijos, 300/300.
+- **Reagrupar en lotes distintos no movió ni un decimal**, y no es una
+  suposición de diseño: el troceador emite siempre ventanas de 250 palabras
+  exactas, que al tokenizar pasan de 256 *tokens* BPE y se truncan a 256, de
+  modo que dentro de un libro no hay relleno y la fila de cada ventana no
+  depende de con quién vaya agrupada. La única excepción es un texto suelto de
+  menos de 250 palabras, que de todos modos viaja solo en su lote. Comprobado
+  además a la brava sobre **300 ventanas**: puntuadas de una en una y en un
+  solo lote de 300 salen **300/300 valores idénticos**, con MAE 0,000000.
 
 Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project
 Gutenberg **son entre 3 y 5 horas de A100**, y conviene decir de qué depende esa
@@ -899,7 +937,7 @@ y la cifra que resume cada una.
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
 | Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | 3–5 h de A100 |
 
-*Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
+*Cuadro 15. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
 sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
 decisión de afinar un codificador; no demuestran una victoria medida.*
@@ -953,7 +991,8 @@ repetirlo en cada párrafo corregido.
    del entrenamiento. LiteraLevel no acredita ningún nivel, y decirlo en el
    documento no basta: la aplicación lo repite en pantalla.
 2. **La escala está comprimida.** El ajuste contra el ancla real ronda
-   `predicho ≈ 0,72 × real + 0,38`, así que los niveles bajos se sobreestiman y
+   `predicho ≈ 0,72 × real + 0,38` (mínimos cuadrados sobre las cinco medias por
+   nivel), así que los niveles bajos se sobreestiman y
    los altos se subestiman. Es la razón de mostrar bandas y no decimales.
 3. **Las etiquetas del catálogo heredado no son fiables** (Cuadro 3). Son
    predicciones de un modelo v1 sobre las primeras ~190 palabras. La remedición
@@ -1000,16 +1039,24 @@ repetirlo en cada párrafo corregido.
     tercero **sí se podría comprobar sin publicar un solo texto**, publicando
     las 144 parejas de etiqueta y predicción con un identificador anónimo. No
     está hecho, y decir que «no se arregla publicando nada» era falso.
-12. **La aplicación no está desplegada de forma permanente.** El enlace actual
-    es un túnel temporal. El consumo medido —1,05 GB de memoria residente, con
-    picos realistas de 1,2 a 1,5 GB— descarta cualquier plan gratuito de 512 MB.
+12. **El despliegue es gratuito, y eso tiene dos consecuencias.** La
+    aplicación está publicada en Hugging Face Spaces
+    (`MikeMaki1763/literalevel`, hardware `cpu-basic`), con dirección fija que
+    sobrevive a apagar el equipo del autor. Pero el plan gratuito **suspende el
+    servicio tras un periodo sin visitas**, de modo que el primer visitante
+    después de una pausa paga un arranque en frío de decenas de segundos
+    mientras se cargan *torch* y los 328 MB del modelo; y **no da
+    almacenamiento persistente**, así que la estantería, el avance de lectura y
+    el cuaderno del lector viven en disco efímero y no sobreviven a un
+    reinicio del contenedor. Lo segundo es la acción A4 de la estrategia.
 13. **La prueba de usuario tiene n = 1.** Esmeralda es una sola lectora. Su
     valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar
     fallos de usabilidad graves —y encontró varios—, no para estimar
     satisfacción media.
 14. **La explicación contextual depende de un servicio externo de pago.** Sin
     clave, la aplicación sigue funcionando en todo lo que no usa red
-    —diccionario, fonética, audio de Wiktionary, buscador y puntuación— pero se
+    —diccionario, fonética, buscador, puntuación y los enlaces de audio de
+    Wiktionary, que descarga el navegador— pero se
     apagan la explicación en contexto y la corrección de pronunciación.
 
 ---
@@ -1094,12 +1141,15 @@ que se vendía, no.
 
 **Escalar el corpus no siempre mejora nada, y conviene decirlo.** Multiplicar
 por 2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC—
-dejó la correlación en −0,326 frente a −0,330. La ley de Zipf explica por qué.
+llevó la correlación de −0,379 a −0,326: **empeoró**. La muestra intermedia de
+397 libros daba −0,330. La ley de Zipf explica por qué.
 El paso se conservó por cobertura, no por métrica, y así se reporta.
 
-**La velocidad se ganó sin mover un decimal, y se demostró.** Doce hilos y
-lotes de 64 en CPU, fp32 con lote 128 en GPU: +33 % y ×13,8 respectivamente,
-con 839 de 840 ventanas idénticas a tres decimales. Y se rechazaron dos
+**La velocidad se ganó sin mover ninguna cifra que se publique, y se
+demostró.** Doce hilos y lotes de 64 en CPU, fp32 con lote 128 en GPU: +33 % y
+×13,8 respectivamente, con 839 de 840 ventanas idénticas a tres decimales y la
+restante a 0,001. No es exactitud bit a bit —eso sería falso— sino diferencias
+por debajo del redondeo con el que se guarda todo. Y se rechazaron dos
 palancas más rápidas —int8 y fp16 en la tarjeta local— porque una desviaba
 0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. **Medir
 antes de optimizar, y medir también lo que se descarta.**

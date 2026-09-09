@@ -1,3 +1,7 @@
+# Tramos de la escala publica 0-2. El extremo IZQUIERDO entra y el DERECHO
+# no: [desde, hasta). El ultimo, [1.80, 2.00], cierra por los dos lados
+# porque 2,00 es el maximo de la escala. Es el mismo criterio que aplica
+# scoring.public_band, con el desempate floor(x+0.5).
 desde hasta etiqueta
 0.00 0.20 A1
 0.20 0.60 A2

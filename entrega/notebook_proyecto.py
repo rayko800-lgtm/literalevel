@@ -241,7 +241,7 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 # | **CLEAR Corpus** (Crossley et al.) | Corpus de **entrenamiento**: extractos con dificultad medida sobre juicios humanos | 4.724 extractos | GitHub, descarga directa |
 # | **Project Gutenberg** | El **catálogo** que la aplicación ordena | 79.337 entradas | Feed CSV oficial |
 # | **SPGC** (Gerlach & Font-Clos) | Lista de frecuencia de vocabulario en inglés | 45.345 libros, solo conteos | Zenodo (procesado aparte) |
-# | **British Council** | **Validación externa ciega**, con nivel CEFR oficial | 59 textos (45 legibles en local) | Material con derechos, no se distribuye |
+# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (45 legibles en local) | Material con derechos, no se distribuye |
 #
 # En este cuadernillo se descargan y se analizan las dos primeras. El SPGC se
 # usó en su momento con PySpark para construir la lista de palabras familiares
@@ -1544,9 +1544,12 @@ print("Texto demasiado corto ->", ventanas_fijas("Solo unas pocas palabras suelt
 # una variable de entrada— pero «sin excepción» era decir de más.
 #
 # La pregunta de producto es si ocho ventanas bastan para representar un libro
-# entero. **Está medida y la respuesta es sí:** sobre un mismo texto, el muestreo
-# de 8 ventanas da **1,784** y el recorrido completo da **1,743**. Cuatro
-# centésimas sobre una escala de 0 a 2, dentro de la misma banda pública.
+# entero. **Hay una medición, y es de un solo texto:** el muestreo de 8 ventanas
+# da **1,784** y el recorrido completo **1,743**. Cuatro centésimas sobre una
+# escala de 0 a 2, dentro de la misma banda pública. Es alentador, pero un texto
+# no es una comprobación: **no está medido sobre el catálogo**, y no se puede
+# afirmar que ocho ventanas basten en general. Lo que sí se puede afirmar es que
+# la aplicación dice siempre cuál de los dos modos usó.
 #
 # La aplicación ofrece las dos opciones y **declara cuál usó**. El modo rápido es
 # el predeterminado para la búsqueda y la ficha; el recorrido completo se
@@ -1651,7 +1654,7 @@ print(tabla_reportada.to_string(index=False))
 # misma columna.
 
 # %% [markdown]
-# ## 7.2 Validación externa ciega
+# ## 7.2 Validación externa (no del todo ciega)
 #
 # La prueba que de verdad sostiene el trabajo no es ninguna de las anteriores,
 # porque todas comparten corpus con el entrenamiento. Es esta: **textos con nivel

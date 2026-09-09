@@ -9,8 +9,8 @@ es elegir plataforma y ejecutar.
 |---|---|---|
 | Código (`app/`, `main.py`, pruebas) | ~120 KB | el repositorio del despliegue |
 | `catalogo_recomendaciones.csv` | 1 MB | el repositorio del despliegue |
-| `modelo_v4/` | **317 MB** | fuera: repo de modelo, montado de solo lectura |
-| `kaikki_diccionario.db` | **232 MB** | fuera: repo de datos, montado de solo lectura |
+| `modelo_v4/` | **328 MB** | fuera: repo de modelo, montado de solo lectura |
+| `kaikki_diccionario.db` | **243 MB** | fuera: repo de datos, montado de solo lectura |
 
 Los 549 MB de datos **no van en el repositorio** y están en `.gitignore`. La app
 los localiza por variable de entorno, y eso ya está probado moviéndolos fuera:
@@ -64,7 +64,7 @@ Pasos:
    montados los datos.
 
 Contra: en hardware gratuito el Space **se duerme por inactividad** y el primer
-visitante paga un arranque frío de decenas de segundos (torch + 317 MB). Para
+visitante paga un arranque frío de decenas de segundos (torch + 328 MB). Para
 una evaluación es asumible; si molesta, un mes de CPU Upgrade.
 
 ## Opción B — ZeroGPU, gratis

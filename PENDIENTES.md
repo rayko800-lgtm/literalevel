@@ -13,7 +13,7 @@ puntos que están en juego, no por comodidad.
 |---|---|---|
 | ~~Token de Hugging Face~~ | **HECHO** | El modelo v4 esta publicado en https://huggingface.co/MikeMaki1763/literalevel-v4, publico y con la descarga sin credenciales verificada. El cuadernillo ya corre entero en un Colab limpio |
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profe pidió ver. Unos audífonos con micro bastan |
-| **Despliegue permanente** | protege **25 pts** | El enlace de hoy muere al apagar la computadora. Hugging Face Spaces son 9 USD/mes, y desde 2026 una cuenta gratuita no puede crear un Space de Gradio |
+| ~~Despliegue permanente~~ | **HECHO** | La app esta publicada en https://huggingface.co/spaces/MikeMaki1763/literalevel, publica y en marcha sobre `cpu-basic` gratuito. Lo que falta es disco persistente (A4) |
 | **Conector de Drive** | ver el catálogo | claude.ai → Ajustes → Conectores → Google Drive. Está autenticado pero rechaza toda operación |
 | **Aceptar la pestaña de Colab** | ver las descargas | Ojo: conectó con la cuenta de Miguel Reyes y el Colab Pro está en rayko800 |
 

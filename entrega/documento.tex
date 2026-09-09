@@ -232,8 +232,8 @@ su alcance.
 
 LiteraLevel es una aplicación que responde esa pregunta. Le da al lector un número
 entre 0 y 2 que dice cuánta dificultad tiene un texto en inglés, y lo hace leyendo el
-texto de verdad, no contando páginas. Con ese número le busca libros que pueda
-terminar, se los abre dentro de la propia aplicación, le enseña la dificultad capítulo
+texto de verdad, no contando páginas. Con ese número le busca libros que le queden a
+mano, se los abre dentro de la propia aplicación, le enseña la dificultad capítulo
 a capítulo —los libros no son igual de difíciles de principio a fin—, le explica
 cualquier palabra en la frase en la que aparece y le corrige la pronunciación cuando
 lee en voz alta.
@@ -411,8 +411,9 @@ recta 0--2 resultante.
 \caption[Cadena de medición de LiteraLevel]{Cadena de medición, de la ecuación~\eqref{eq:f}
 al número que ve el lector. El filtro de prosa se aplica sobre el texto crudo, antes de
 normalizar espacios: hacerlo al revés lo desactivaba en producción (cuadro~\ref{cuad:textos},
-T1). Todas las ventanas ocupan exactamente 256 \emph{tokens} tras truncar, de modo que no
-hay relleno y reagrupar en lotes distintos no puede mover un decimal.}
+T1). Las ventanas de un libro ocupan siempre 256 \emph{tokens} tras truncar, de modo que
+no llevan relleno; reagruparlas en lotes distintos no movió ningún decimal en la
+comprobación de 300 ventanas del apartado~\ref{sec:escalado}.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -582,7 +583,8 @@ recuerda por dónde iba en ninguno.
         petición literal que originó el módulo: \emph{«un apartado con mis libros, los
         que estoy leyendo, que se queden guardados, en qué partes voy»}.
   \item \textbf{Saber a qué se enfrenta antes de comprometerse.} La ficha del libro dice
-        cuánto tarda en leerlo \textbf{a su ritmo}, cuánto es diálogo y qué palabras se
+        cuánto tarda en leerlo \textbf{a 180 o 110 palabras por minuto} según le quede por
+        debajo o por encima de su nivel, cuánto es diálogo y qué palabras se
         repiten, todo contado sobre el fichero.
   \item \textbf{Vocabulario que persista.} «Mis palabras» guarda cada consulta con su
         frase y su libro, que es la unidad que sirve para recordar. Deliberadamente
@@ -659,7 +661,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 \addlinespace
 — & «Analizar el libro entero» no advierte del coste & «Leer el libro entero (tarda más)» & Etiqueta reescrita \\
 \addlinespace
-«No me gustan los colores» & El color es gusto, y el gusto no se discute: se ofrece & \textbf{Cinco paletas} con pestaña propia y cambio instantáneo: \emph{hielo} (la original), \emph{amanecer} (clara, crema y naranja), \emph{menta}, \emph{papel} (para leer horas) y \emph{medianoche} & Una prueba automática comprueba las cinco contra el criterio de contraste \textbf{WCAG AA (4,5:1)} \parencite{w3c2023wcag}. Las cinco pasan; la peor mide \textbf{9,51} \\
+«No me gustan los colores» & El color es gusto, y el gusto no se discute: se ofrece & \textbf{Cinco paletas} con pestaña propia y cambio instantáneo: \emph{hielo} (la original), \emph{amanecer} (clara, crema y naranja), \emph{menta}, \emph{papel} (para leer horas) y \emph{medianoche} & Una prueba automática comprueba las cinco contra el criterio de contraste \textbf{WCAG AA (4,5:1)} \parencite{w3c2023wcag}. Las cinco pasan en las veinte parejas de color que se comprueban (cuatro por paleta); la más ajustada mide \textbf{4,53} \\
 \addlinespace
 «Todo muy recto, muy marcado» & Esto no es gusto, es diseño, y se corrige para todas las paletas & Esquinas de 14~px, bordes finos, sombras suaves y las opciones de lista como fichas tocables & — \\
 \addlinespace
@@ -671,7 +673,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono real —y no
 en el navegador del escritorio— había descubierto antes fallos que \textbf{ninguna de
-las 183 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
+las 205 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
 pantalla pequeña}:
 
 \begin{itemize}[leftmargin=*, itemsep=3pt]
@@ -737,13 +739,15 @@ Ahora hay una sola regla, y una prueba fija los cinco límites.
 \subsubsection{Nada falla en silencio, y nada se rompe del todo}
 
 La regla transversal del sistema es la \textbf{degradación elegante}: sin clave de
-servicio externo, la aplicación sigue dando diccionario, fonética, audio de Wiktionary,
-buscador y puntuación, porque nada de eso usa red. Solo se apagan la explicación en
+servicio externo, la aplicación sigue dando diccionario, fonética, buscador y
+puntuación, porque nada de eso sale a la red; el audio de Wiktionary es un enlace a
+\cod{upload.wikimedia.org} que descarga el navegador del lector, así que necesita
+conexión, pero no clave ni servicio de pago. Solo se apagan la explicación en
 contexto y la corrección de pronunciación, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
-La regla que verifican las 183 pruebas de robustez es una sola: \textbf{ningún manejador
+La regla que verifican las 205 pruebas de robustez es una sola: \textbf{ningún manejador
 puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
 
 \subsubsection{Cada número dice de dónde viene}
@@ -789,9 +793,9 @@ terminado. No son «se podría»: son «se hace».
 \caption{Accionables, con coste y criterio de terminado.}
 \label{cuad:accionables}
 \endlastfoot
-\textbf{A1} & \textbf{Publicar el modelo (328 MB)} como repositorio abierto & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO}: \cod{MikeMaki1763/literalevel-v4}, público, con la descarga sin credenciales verificada \\
+\textbf{A1} & \textbf{Publicar el modelo y el diccionario} como repositorios abiertos & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO a medias}: el modelo está en \cod{MikeMaki1763/\allowbreak literalevel-v4}, público y con la descarga sin credenciales verificada; el diccionario (243 MB) sigue sin publicar \\
 \addlinespace
-\textbf{A2} & \textbf{Desplegar en enlace permanente} (Gradio sobre plan de pago personal) & El enlace actual es un túnel temporal que muere al apagar el equipo. Es el mayor riesgo de la entrega, y no es técnico & 9 USD un mes & El enlace se abre desde un móvil ajeno y sobrevive a reiniciar el equipo del autor \\
+\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & Gratuito: Hugging Face Spaces sobre \cod{cpu-basic} & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel}, público y en marcha; queda el disco persistente, que es A4 \\
 \addlinespace
 \textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & Entre 3 y 5 h de A100, dentro del crédito disponible; la descarga va ahora en un solo archivo de 11,3 GB & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
 \addlinespace
@@ -828,8 +832,8 @@ un problema de modelado: son despliegue, publicación y un micrófono.
 Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textbf{Cumplido}: 0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952 \\
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,657 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron 8 correcciones \\
-Producto & Accesibilidad de color & \textbf{Cumplido}: las cinco paletas superan WCAG AA; la peor, 9,51 \\
-Producto & Robustez & \textbf{Cumplido}: 183 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Producto & Accesibilidad de color & \textbf{Cumplido}: las veinte parejas de color de las cinco paletas superan WCAG AA; la más ajustada, 4,53 \\
+Producto & Robustez & \textbf{Cumplido}: 205 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
 Operación & Enlace permanente disponible & \textbf{Pendiente} (A2) \\
 Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
@@ -1146,8 +1150,9 @@ apartado~\ref{sec:baseline} se cuantifica cuánta señal aporta el modelo por en
 
 \textbf{Dificultad frente a dominio.} El nivel del texto está correlacionado con su tipo
 documental. Al filtrar los 59 textos de British Council a prosa continua, el nivel A1
-desaparece casi por completo y el rango evaluable se encoge de seis niveles a cuatro
-(A2--C1). Por eso el \emph{baseline} de contar palabras cae de 0,879 a 0,765 al filtrar:
+desaparece casi por completo y el rango evaluable se encoge de cinco niveles a cuatro
+(A2--C1): el catálogo gratuito de British Council no tiene C2, así que el corpus nunca
+tuvo seis. Por eso el \emph{baseline} de contar palabras cae de 0,879 a 0,765 al filtrar:
 parte de la señal del conjunto completo era simplemente que los textos A1 son cortos.
 Las correlaciones antes y después del filtro \textbf{no son comparables entre sí}, y se
 reportan por separado.
@@ -1403,7 +1408,7 @@ millones de parámetros con cabeza de regresión sobre \cod{BT\_easiness}, y alc
 
 \textbf{Y aquí hay que evitar una confusión que el documento invitaba a hacer.} Ese
 \cod{roberta-base} \textbf{no es el modelo que se despliega}. El que va en la aplicación es
-un \cod{distilroberta-base} —la mitad de capas, 82 millones de parámetros— y se entrenó
+un \cod{distil\allowbreak roberta-base} —la mitad de capas, 82 millones de parámetros— y se entrenó
 sobre otro corpus, el de anclaje MCER, no sobre \cod{BT\_easiness}. Las cifras de este
 apartado son del experimento sobre CLEAR; las del modelo desplegado están en
 el~\S\ref{sec:validacion} y no se pueden encadenar con estas. La diferencia de calidad
@@ -1556,7 +1561,11 @@ El modelo en producción, \textbf{v4}, es un \cod{distilroberta-base}
 \parencite{sanh2019distilbert,liu2019roberta} de seis capas y 82 millones de parámetros,
 con cabeza de regresión, servido con \emph{Transformers} \parencite{wolf2020transformers}
 y cuyos pesos ocupan 328 MB en disco. Puntúa bloques de 250 palabras truncados a 256
-\emph{tokens} y promedia sin ponderar. Su escala interna es 0--5 —un valor por nivel
+\emph{tokens} y promedia sin ponderar, con un tope de \textbf{ocho ventanas por
+documento} repartidas a lo largo del texto: es lo que mantiene el análisis por debajo
+del segundo en una CPU, y por eso un vistazo mide una muestra del texto y no el texto
+entero (el catálogo precalculado sí lo lee entero, capítulo a capítulo). Su escala
+interna es 0--5 —un valor por nivel
 MCER, con posiciones intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala
 multiplicada por 0,4. \textbf{El modelo es final y no se reentrena.}
 
@@ -1568,7 +1577,7 @@ cifras de la primera fila del cuadro~\ref{cuad:desplegado}.
 \textbf{De dónde salen esas cifras, dicho con precisión.} De la ejecución de
 entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
 \textbf{no hay ningún archivo que las respalde}, y una versión anterior de este documento
-citaba una tarjeta \cod{metricas\_literalevel\_v4.json} que no existe. Lo único
+citaba una tarjeta \cod{metricas\_lite\allowbreak ralevel\_v4.json} que no existe. Lo único
 comprobable desde el repositorio es la aritmética interna —$510 + 144 = 654$,
 $77/144 = 53{,}47\pct$ y $140/144 = 97{,}22\pct$—, que cuadra. Quien quiera verificar el
 resto tiene que confiar en esa ejecución o rehacerla. 
@@ -1584,7 +1593,8 @@ Validación ciega & 144 & 53,5\pct & \textbf{97,2\pct} & \textbf{0,908} \\
 British Council (externo) & 38 & 50,0\pct & \textbf{100\pct} & 0,829 \\
 \bottomrule
 \end{tabular}
-\caption{Métricas del modelo desplegado. MAE de 0,499 niveles en el conjunto de
+\caption{Métricas del modelo desplegado. MAE de 0,499 niveles de la escala interna
+0--5 —0,200 en la escala pública 0--2— en el conjunto de
 validación.}
 \label{cuad:desplegado}
 \end{table}
@@ -1621,8 +1631,9 @@ B2 & 11 & 1,2478 & 0,246 \\
 C1 & 12 & 1,4952 & 0,172 \\
 \bottomrule
 \end{tabular}
-\caption{Reproducción local de la validación externa, sobre los 45 textos que sobreviven
-a la extracción de los PDF. Fuente: \cod{datos\_figuras/\allowbreak validacion.dat}.}
+\caption{Reproducción local de la validación externa, sobre los 45 textos que quedan tras
+la extracción de los PDF \textbf{y el filtro de prosa continua}. Fuente:
+\cod{datos\_figuras/\allowbreak validacion.dat}.}
 \label{cuad:validacion}
 \end{table}
 
@@ -1684,13 +1695,36 @@ obtenidas en Colab (C1 coincide hasta la tercera cifra decimal —1,4952 frente 
 1,4950—, A2 se desvía 0,10).
 
 \textbf{La diferencia entre los 38 textos de Colab y los 45 de aquí tiene dos causas, y
-una versión anterior solo mencionaba una.} La extracción de los PDF explica una parte: de
-los 59 originales, uno no está disponible y dos no tienen cuerpo localizable. Pero
-\textbf{otros diez los rechaza \cod{scoring.continuous\_prose}} —nueve de A1 y uno de B1:
-los menús, los pósters, los horarios—, y esa es la otra mitad. Los dos entornos filtraron
-con reglas distintas, no solo extrajeron distinto. Importa decirlo porque los tres textos
-A1 que sostienen el escalón más débil del cuadro~\ref{cuad:validacion} pasaron el filtro
-de la aplicación, no el del análisis.
+una versión anterior solo mencionaba una.} El balance completo, contado sobre los archivos
+reales, cierra así:
+
+\begin{center}\small
+\begin{tabular}{@{}l r@{}}
+\toprule
+ & \textbf{Textos} \\
+\midrule
+Publicados por British Council & 59 \\
+menos: no disponible & $-1$ \\
+menos: sin nivel en el nombre del archivo & $-1$ \\
+menos: sin cuerpo localizable al extraer el PDF & $-2$ \\
+menos: \textbf{rechazados por \cod{scoring.continuous\_prose}} & $\mathbf{-10}$ \\
+\midrule
+\textbf{Evaluados} & \textbf{45} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Las tres primeras restas son de extracción. La cuarta no: son \textbf{diez
+textos —nueve de A1 y uno de B1— que rechaza \cod{scoring.continuous\_prose}}, y conviene
+decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma: \textbf{se
+quedan por debajo de las 150 palabras} una vez recortados entre «Reading text» y «Tasks».
+Son pósters, menús, horarios y tarjetas, es decir, textos que en el original ya son
+cortos; el detector de maquetado de lista ni siquiera llega a dispararse, porque el de
+longitud actúa antes. Los dos entornos filtraron con reglas distintas, no solo extrajeron
+distinto. Importa decirlo porque los tres textos A1 que sostienen el escalón más débil del
+cuadro~\ref{cuad:validacion} pasaron el filtro de la aplicación, no el del análisis. Los
+nombres de los 58 archivos están en \cod{entrega/manifiesto\_corpus\_externo.md}, y
+\cod{validar\_local.py} imprime los diez rechazados con su motivo.
 
 \subsection{El \emph{baseline} propio, y qué aporta el modelo por encima de él}
 \label{sec:baseline}
@@ -1707,7 +1741,7 @@ Contar las palabras del texto, sin modelo & 0,807 \\
 Modelo, descontando la longitud (correlación parcial) & \textbf{0,657} \\
 \bottomrule
 \end{tabular}
-\caption{El modelo frente a la señal trivial.}
+\caption{El modelo frente a la señal trivial. Las tres cifras las calcula \cod{validar\_local.py} sobre los mismos 45 textos, con Spearman sobre rangos y la correlación parcial en la misma escala; reproducidas hoy en local: 0,854, 0,807 y 0,657.}
 \label{cuad:baseline}
 \end{table}
 
@@ -1825,7 +1859,7 @@ Partición agrupada por libro & Evitar fuga de datos entre extractos \textbf{del
 \addlinespace
 \cod{distilroberta} y no \cod{roberta-base} completo & La aplicación debe correr en CPU en el equipo de un estudiante & 328 MB y 0,9 s de carga, frente a 1,5$\times$ más parámetros (125 M contra 82 M). \textbf{La diferencia de calidad entre las dos no se midió}: la decisión se tomó por tamaño y velocidad, no porque se comprobara que costaba poco \\
 \addlinespace
-Promediar bloques sin ponderar, con la \textbf{ventana} como unidad & Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal & Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: durante un tiempo la app promedió las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual \textbf{no son el mismo número} (0,004 de diferencia máxima medida en cinco libros reales) \\
+Promediar bloques sin ponderar, con la \textbf{ventana} como unidad & Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal & Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: durante un tiempo la app promedió las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual \textbf{no son el mismo número} (0,004 de diferencia máxima sobre cinco libros; la medición se hizo en su momento y \textbf{no queda guion que la reproduzca}, así que se da como orden de magnitud, no como cifra auditable) \\
 \addlinespace
 \textbf{Rechazada: XGBoost sobre variables clásicas} & Se esperaba que un ensamble superase al modelo lineal & No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 \emph{vs.} 1,39). El límite estaba en las variables \\
 \addlinespace
@@ -1835,7 +1869,7 @@ Promediar bloques sin ponderar, con la \textbf{ventana} como unidad & Simplicida
 \addlinespace
 \textbf{Rechazada: cuantización dinámica int8} & $+18\pct$ de velocidad en CPU & MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de $-0{,}21$. Un desplazamiento así cambia la letra MCER en el \textbf{52\pct} de la escala y la banda en el \textbf{21\pct}: no degrada la cifra, le cambia la etiqueta al libro. Inaceptable \\
 \addlinespace
-\textbf{Rechazada: precisión media (fp16) en la GPU local} & Se esperaba acelerar & Es \textbf{4,8$\times$ más lenta} que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene \emph{tensor cores}. En una A100 sí compensa, y allí la desviación medida es 0,00037 de media \\
+\textbf{Rechazada: precisión media (fp16) en la GPU local} & Se esperaba acelerar & Es \textbf{4,8$\times$ más lenta} que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene \emph{tensor cores}. En una A100 sí compensa, y allí la desviación observada fue de unos 0,00037 de media; \textbf{esa medición no quedó guardada en ningún guion del repositorio}, así que vale como orden de magnitud y no como cifra auditable \\
 \addlinespace
 \textbf{Rechazada: \cod{inference\_mode} en lugar de \cod{no\_grad}} & Se esperaba menos sobrecarga & 0,4\pct{} de diferencia, por debajo del ruido \\
 \addlinespace
@@ -1940,7 +1974,9 @@ red; por eso la ficha se pinta en dos etapas.}
   \item Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
         aplicación, sin salir a buscarlo.
   \item Aparece la ficha, y todo lo que dice está \textbf{contado sobre el fichero}:
-        palabras reales, tiempo de lectura a su ritmo, longitud media de frase,
+        palabras reales, tiempo de lectura estimado a 180 o 110 palabras por minuto según
+        el texto le quede por debajo o por encima de su nivel —no es su ritmo medido, que
+        la aplicación no conoce—, longitud media de frase,
         proporción de diálogo, variedad de vocabulario y palabras más repetidas. La
         proporción de diálogo distingue de verdad entre obras —\emph{Alice} 73\pct,
         \emph{Pride and Prejudice} 28\pct, \emph{Crime and Punishment} 31\pct—, cosa que
@@ -2089,7 +2125,12 @@ GPU A100 (Colab) & fp16, lote grande & 2.022 & 247$\times$ \\
 \bottomrule
 \end{tabular}
 \caption{Rendimiento medido de extremo a extremo, incluida la tokenización y las
-transferencias. Fuente: \cod{datos\_figuras/\allowbreak velocidad.dat}.}
+transferencias. Son cifras del precálculo, que agrupa en lotes fijos de 64 en CPU y 128
+en GPU. \textbf{La aplicación en vivo no llega a esos lotes}: mide capítulo a capítulo
+para poder ir repintando la curva, y un capítulo son unas veinte ventanas, así que el
+rendimiento interactivo real está más cerca de las 6,96 ventanas/s del agrupado por
+capítulo que de las 8,19 de esta fila. Fuente:
+\cod{datos\_figuras/\allowbreak velocidad.dat}.}
 \label{cuad:velocidad}
 \end{table}
 
@@ -2141,13 +2182,14 @@ Dos comprobaciones acompañan a ese cuadro, porque acelerar no puede costar exac
   \item \textbf{La GPU da los mismos números que la CPU.} Sobre 840 ventanas de
         \emph{Crime and Punishment}, 839 son idénticas a tres decimales y una difiere en
         0,001; el MAE es 0,0000012 sobre la escala 0--2.
-  \item \textbf{Reagrupar en lotes distintos no puede mover un decimal}, y no es una
-        suposición: como todas las ventanas ocupan exactamente 256 \emph{tokens} tras
-        truncar, no hay relleno. Comprobado en dos tandas distintas, y conviene
-        identificarlas porque circulan las dos cifras: en la tanda de \textbf{286
-        ventanas} —catorce capítulos completos de \emph{Crimen y castigo}, agrupando por
-        capítulo— salen 286/286 valores idénticos con MAE 0,000000000; en la de
-        \textbf{300 ventanas} con lotes fijos, 300/300.
+  \item \textbf{Reagrupar en lotes distintos no movió ni un decimal}, y no es una
+        suposición de diseño: el troceador emite siempre ventanas de 250 palabras
+        exactas, que al tokenizar pasan de 256 \emph{tokens} BPE y se truncan a 256, de
+        modo que dentro de un libro no hay relleno y la fila de cada ventana no depende
+        de con quién vaya agrupada. La única excepción es un texto suelto de menos de
+        250 palabras, que de todos modos viaja solo en su lote. Comprobado además a la
+        brava sobre \textbf{300 ventanas}: puntuadas de una en una y en un solo lote de
+        300 salen \textbf{300/300 valores idénticos}, con MAE 0,000000.
 \end{itemize}
 
 Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project Gutenberg
@@ -2197,7 +2239,7 @@ resume cada una.
 \small
 \begin{tabular}{@{}l R{3.6cm} R{3.2cm}@{}}
 \toprule
-\textbf{Alternativa} & \textbf{Su número} & \textbf{El nuestro} \\
+\textbf{Alternativa} & \textbf{Cifra publicada} & \textbf{La nuestra} \\
 \midrule
 Fórmulas clásicas (FKGL, ARI) & Pearson \textbf{0,517} en CLEAR & \textbf{0,89} \\
 Mejor LLM \emph{zero-shot} publicado & Pearson \textbf{0,725} en CLEAR & \textbf{0,89} \\
@@ -2326,7 +2368,7 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         que sí se reproduce en cualquier máquina es el cuadro~\ref{cuad:validacion}.
   \item \textbf{El cuaderno corre entero en un Colab limpio, pero correr no es
         recalcular.} Los pesos del v4 están publicados en Hugging Face
-        (\cod{MikeMaki1763/literalevel-v4}, repositorio público, descarga sin
+        (\cod{MikeMaki1763/\allowbreak literalevel-v4}, repositorio público, descarga sin
         credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra la
         inferencia sobre texto real. Lo que \textbf{no} recalcula son las métricas del v4
         —el 0,908 y el 97,2\pct—, porque el corpus de anclaje MCER incluye material con
@@ -2336,15 +2378,22 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         podría comprobar sin publicar un solo texto}, publicando las 144 parejas de
         etiqueta y predicción con un identificador anónimo. No está hecho, y decir que
         «no se arregla publicando nada» era falso.
-  \item \textbf{La aplicación no está desplegada de forma permanente.} El enlace actual es
-        un túnel temporal. El consumo medido —1,05 GB de memoria residente, con picos
-        realistas de 1,2 a 1,5 GB— descarta cualquier plan gratuito de 512 MB.
+  \item \textbf{El despliegue es gratuito, y eso tiene dos consecuencias.} La aplicación
+        está publicada en Hugging Face Spaces (\cod{MikeMaki1763/\allowbreak literalevel}, hardware
+        \cod{cpu-basic}), con dirección fija que sobrevive a apagar el equipo del autor.
+        Pero el plan gratuito \textbf{suspende el servicio tras un periodo sin visitas}, de
+        modo que el primer visitante después de una pausa paga un arranque en frío de
+        decenas de segundos mientras se cargan \emph{torch} y los 328 MB del modelo; y
+        \textbf{no da almacenamiento persistente}, así que la estantería, el avance de
+        lectura y el cuaderno del lector viven en disco efímero y no sobreviven a un
+        reinicio del contenedor. Lo segundo es la acción A4 de la estrategia.
   \item \textbf{La prueba de usuario tiene $n = 1$.} Esmeralda es una sola lectora. Su
         valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar fallos
         de usabilidad graves —y encontró varios—, no para estimar satisfacción media.
   \item \textbf{La explicación contextual depende de un servicio externo de pago.} Sin
         clave, la aplicación sigue funcionando en todo lo que no usa red —diccionario,
-        fonética, audio de Wiktionary, buscador y puntuación— pero se apagan la
+        fonética, buscador, puntuación y los enlaces de audio de Wiktionary, que descarga
+        el navegador— pero se apagan la
         explicación en contexto y la corrección de pronunciación.
 \end{enumerate}
 
@@ -2429,13 +2478,16 @@ transformador.} La conclusión cualitativa
 se sostiene; la cifra con la que se vendía, no.
 
 \textbf{Escalar el corpus no siempre mejora nada, y conviene decirlo.} Multiplicar por
-2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC— dejó la
-correlación en $-0{,}326$ frente a $-0{,}330$. La ley de Zipf explica por qué. El paso se
+2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC— llevó la
+correlación de $-0{,}379$ a $-0{,}326$: \textbf{empeoró}. La muestra intermedia de 397
+libros daba $-0{,}330$. La ley de Zipf explica por qué. El paso se
 conservó por cobertura, no por métrica, y así se reporta.
 
-\textbf{La velocidad se ganó sin mover un decimal, y se demostró.} Doce hilos y lotes de
-64 en CPU, fp32 con lote 128 en GPU: $+33\pct$ y $\times 13{,}8$ respectivamente
-(figura~\ref{fig:velocidad}), con 839 de 840 ventanas idénticas a tres decimales. Y se
+\textbf{La velocidad se ganó sin mover ninguna cifra que se publique, y se demostró.} Doce
+hilos y lotes de 64 en CPU, fp32 con lote 128 en GPU: $+33\pct$ y $\times 13{,}8$
+respectivamente (figura~\ref{fig:velocidad}), con 839 de 840 ventanas idénticas a tres
+decimales y la restante a 0,001. No es exactitud bit a bit —eso sería falso— sino
+diferencias por debajo del redondeo con el que se guarda todo. Y se
 rechazaron dos palancas más rápidas —int8 y fp16 en la tarjeta local— porque una desviaba
 0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. \textbf{Medir antes de
 optimizar, y medir también lo que se descarta.}

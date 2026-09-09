@@ -182,8 +182,9 @@ class Puntuador:
         if not os.path.isdir(ruta):
             raise FileNotFoundError(
                 f"No encuentro el modelo v4 en {ruta}.\n"
-                "Descarga la carpeta 'modelo_literalevel_v4_transformer' de "
-                "Drive (literalevel_bigdata) y apunta LITERALEVEL_MODELO a ella."
+                "Descargalo con  huggingface-cli download MikeMaki1763/literalevel-v4 "
+                "--local-dir modelo_v4  (repositorio publico, sin credenciales) y "
+                "apunta LITERALEVEL_MODELO a esa carpeta."
             )
         # Todos los hilos logicos, no solo los fisicos. Medido en esta maquina
         # (Ryzen 5 2600, 6 nucleos / 12 hilos): 6,16 -> 6,96 ventanas/s, un 13%
@@ -240,15 +241,16 @@ class Puntuador:
         y Paz. Medido, agrupar de 64 en 64 sube de 6,96 a 8,19 ventanas/s (+18%)
         y satura ahi: de 64 a 300 solo se gana un 1%.
 
-        Y no cambia el resultado, cosa que hay que justificar y no suponer: una
-        ventana son 250 palabras inglesas, que al tokenizar pasan SIEMPRE de 256
-        BPE y se truncan a 256. Comprobado sobre 200 ventanas: el 100% mide
-        exactamente 256. Como no hay relleno, la forma del tensor por fila no
-        depende de con quien vaya agrupada. Verificado ademas a la brava: las
-        mismas 300 ventanas -la tanda de lotes fijos del informe de velocidad;
-        hay otra de 286 agrupando por capitulo, y las dos dan el mismo
-        resultado- de una en una y en un solo lote dan 300/300 valores
-        identicos bit a bit.
+        Y no cambia el resultado, cosa que hay que justificar y no suponer:
+        fixed_blocks emite SIEMPRE ventanas de 250 palabras exactas (la cola
+        corta se cubre solapando la ultima ventana completa), y 250 palabras
+        inglesas pasan siempre de 256 BPE, asi que se truncan a 256. Dentro de
+        un libro no hay relleno y la forma de cada fila no depende de con quien
+        vaya agrupada. La unica ventana mas corta posible es la de un texto
+        suelto de menos de 250 palabras, que viaja solo en su lote. Verificado
+        ademas a la brava: las mismas 300 ventanas del barrido de lote del
+        informe de velocidad, de una en una y en un solo lote, dan 300/300
+        valores identicos bit a bit.
         """
         torch = self._torch
         # En GPU el lote optimo es mayor. Y NO se sube de 128: con 4 GB de VRAM,
