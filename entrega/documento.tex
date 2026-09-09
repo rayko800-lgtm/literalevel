@@ -588,7 +588,7 @@ recuerda por dónde iba en ninguno.
         cuánto tarda en leerlo \textbf{a 180 o 110 palabras por minuto} según le quede por
         debajo o por encima de su nivel, cuánto es diálogo y qué palabras se
         repiten. Las palabras y el tiempo salen del fichero completo; la longitud de frase,
-        el diálogo y el vocabulario, de una muestra de 60.000 palabras.
+        el diálogo y el vocabulario, de una muestra con tope de 60.000 palabras.
   \item \textbf{Vocabulario que persista.} «Mis palabras» guarda cada consulta con su
         frase y su libro, que es la unidad que sirve para recordar. Deliberadamente
         \textbf{no hay puntos ni rachas}: la evidencia sobre recompensas externas
@@ -1727,19 +1727,22 @@ tercera es el filtro de prosa continua.}
 \end{table}
 
 \textbf{Y hay una salvedad que conviene poner aquí y no esconder en el código.} El
-guion de reproducción une las líneas del PDF con un espacio, y eso \textbf{desactiva dos
-de las cuatro reglas} de \cod{scoring.continuous\_prose}: las que buscan viñetas y líneas
-cortas necesitan saltos de línea para verlos. Es decir, este validador filtra \textbf{más
+guion de reproducción une las líneas del PDF con un espacio, y eso \textbf{desactiva una
+de las cuatro reglas} de \cod{scoring.continuous\_prose}, la del maquetado de lista: sus
+dos comprobaciones —dos viñetas seguidas, o más de un tercio de líneas muy cortas—
+necesitan saltos de línea para ver nada. Es decir, este validador filtra \textbf{más
 flojo que la propia aplicación}, que sí recibe saltos de párrafo. Medido cambiando una
 cosa y sólo una: con saltos de línea sobreviven \textbf{30 textos en vez de 46}, y A1 se
 queda con uno solo, con lo que la comprobación de orden creciente ya no se puede hacer
 sobre cinco niveles. Se conserva la unión con espacio porque es la que reproduce las
-cifras publicadas —incluidas las de la sesión de Colab—, pero el guion imprime las dos
-cuentas en cada ejecución. Lo que esto dice del resultado es concreto: \textbf{el orden
+el cuadro~\ref{cuad:validacion} de este documento, que es la reproducción local.
+\textbf{No reproduce las cifras de Colab}, y nada aquí lo hace: aquella tanda son 38
+textos y A2 se desvía 0,10. Pero el guion imprime las dos cuentas en cada ejecución. Lo que esto dice del resultado es concreto: \textbf{el orden
 estrictamente creciente está medido sobre un conjunto que la aplicación habría filtrado
 más}, y una parte de esos 46 son textos que la app rechazaría por parecer listas.
 
-\noindent Las dos primeras restas son de extracción. La cuarta no: son \textbf{diez
+\noindent De las tres restas, las dos primeras son de extracción. La tercera no: son
+\textbf{diez
 textos —nueve de A1 y uno de B1— que rechaza \cod{scoring.continuous\_prose}}, y conviene
 decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma: \textbf{se
 quedan por debajo de las 150 palabras} una vez recortados entre «Reading text» y «Tasks».
@@ -1747,7 +1750,9 @@ Son pósters, menús, horarios y tarjetas, es decir, textos que en el original y
 cortos; el detector de maquetado de lista ni siquiera llega a dispararse, porque el de
 longitud actúa antes. Los dos entornos filtraron con reglas distintas, no solo extrajeron
 distinto. Importa decirlo porque los tres textos A1 que sostienen el escalón más débil del
-cuadro~\ref{cuad:validacion} pasaron el filtro de la aplicación, no el del análisis. Los
+cuadro~\ref{cuad:validacion} \textbf{no pasan el filtro de la aplicación}: pasan el de
+este guion, que es más flojo por lo que se explica bajo el cuadro~\ref{cuad:balance}.
+Con el filtro completo, dos de los tres caen por maquetado de lista. Los
 nombres de los 58 archivos están en \cod{entrega/manifiesto\_corpus\_externo.md}, y
 \cod{validar\_local.py} imprime los diez rechazados con su motivo.
 
@@ -2011,8 +2016,9 @@ red; por eso la ficha se pinta en dos etapas.}
   \item Aparece la ficha, \textbf{contada sobre el texto y no sobre metadatos},
         aunque no toda sobre el libro entero: las palabras y el tiempo de lectura
         salen del fichero completo, y la longitud de frase, el diálogo y el
-        vocabulario se calculan sobre una \textbf{muestra de 60.000 palabras} —la
-        variedad léxica, sobre las primeras 20.000—, porque recorrer \emph{Guerra y
+        vocabulario se calculan sobre una muestra con \textbf{tope de 60.000 palabras},
+        repartido a partes iguales entre los capítulos —la variedad léxica, sobre las
+        primeras 20.000 de esa muestra—, porque recorrer \emph{Guerra y
         paz} entero para pintar una ficha haría esperar al lector. Lo que trae:
         palabras reales, tiempo de lectura estimado a 180 o 110 palabras por minuto según
         el texto le quede por debajo o por encima de su nivel —no es su ritmo medido, que
@@ -2222,7 +2228,7 @@ Dos comprobaciones acompañan a ese cuadro, porque acelerar no puede costar exac
 \begin{itemize}[leftmargin=*, itemsep=3pt]
   \item \textbf{La GPU da los mismos números que la CPU.} Sobre 840 ventanas de
         \emph{Crime and Punishment}, 839 son idénticas a tres decimales y una difiere en
-        0,001; el MAE es 0,0000012 sobre la escala 0--2.
+        0,001; el MAE es 0,000001 sobre la escala 0--2.
   \item \textbf{Reagrupar en lotes distintos no mueve ninguna cifra que se publique}, y
         conviene decirlo con precisión, porque hay dos casos y solo uno es exacto. Cuando
         se trocea \textbf{un texto de más de 250 palabras}, todas sus ventanas miden 250
@@ -2450,11 +2456,11 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar fallos
         de usabilidad graves —y encontró varios—, no para estimar satisfacción media.
   \item \textbf{La explicación contextual depende de un servicio externo de pago.} Sin
-        clave, la aplicación sigue funcionando en todo lo que no usa red —diccionario,
-        fonética, buscador y puntuación. Los enlaces de audio de Wiktionary son aparte:
-        los descarga el navegador del lector, así que necesitan conexión, aunque no
-        clave— pero se apagan la
-        explicación en contexto y la corrección de pronunciación.
+        clave, la aplicación sigue funcionando en todo lo que no sale a la red desde el
+        servidor: diccionario, fonética, buscador y puntuación. Los enlaces de audio de
+        Wiktionary son aparte, porque los descarga el navegador del lector: necesitan
+        conexión, aunque no clave. Lo que se apaga sin clave es la explicación en
+        contexto y la corrección de pronunciación.
 \end{enumerate}
 
 % ===========================================================================

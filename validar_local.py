@@ -38,18 +38,19 @@ def cuerpo(lineas):
               if l.strip() and not RUIDO.search(l) and not l.strip().isdigit()
               and len(l.strip()) >= 3]
     # OJO, que esto no es un detalle. `continuous_prose` tiene cuatro reglas y
-    # DOS miran `splitlines()`: dos vinetas seguidas, o mas de un tercio de
-    # lineas de cuatro palabras o menos. Uniendo con espacio esas dos no se
-    # disparan nunca, asi que este validador filtra MAS FLOJO que la app -que
+    # UNA de ellas -la del maquetado de lista- mira `splitlines()`: salta si hay
+    # dos vinetas seguidas o si mas de un tercio de las lineas tienen cuatro
+    # palabras o menos. Uniendo con espacio esa regla no se dispara nunca, asi que este validador filtra MAS FLOJO que la app -que
     # si recibe saltos de parrafo, porque reader._limpiar_html los restaura-.
     #
     # Medido cambiando el espacio por salto de linea:
     #     con espacio  46 textos, cinco niveles, medias crecientes
     #     con salto    30 textos, A1 se queda en 1 y la validacion FALLA
     #
-    # Se conserva el espacio porque es lo que reproduce las cifras publicadas,
-    # incluidas las de la sesion de Colab, y porque cambiarlo dejaria el
-    # resultado sin A1. Pero no se esconde la otra cifra: `cuerpo_estricto`
+    # Se conserva el espacio porque es lo que reproduce el Cuadro 10 del
+    # documento -la reproduccion local- y porque cambiarlo dejaria el resultado
+    # sin A1. NO reproduce las cifras de Colab: aquella tanda son 38 textos y
+    # A2 se desvia 0,10. Nada de aqui las reproduce. Pero no se esconde la otra cifra: `cuerpo_estricto`
     # rehace el recuento con el filtro completo y el guion lo imprime.
     return " ".join(utiles) or None
 
@@ -115,7 +116,7 @@ for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))
         fallidos.append(f"{os.path.basename(ruta)}: {type(e).__name__}: {e}")
         continue
     por_nivel.setdefault(nivel, []).append(r.puntuacion)
-    # Para el baseline del Cuadro 11 hace falta ademas la longitud.
+    # Para el baseline del Cuadro 12 hace falta ademas la longitud.
     filas.append((nivel, float(r.puntuacion), len(words(texto))))
 
 # np.std es la desviacion POBLACIONAL (ddof=0). Con n de 3 a 12 la muestral
@@ -135,7 +136,7 @@ print(f"textos que fallaron al puntuar: {len(fallidos)}")
 for f in fallidos:
     print("   ", f)
 
-# --- Cuadro 11: el modelo frente a la senal trivial -----------------------
+# --- Cuadro 12 del documento: el modelo frente a la senal trivial -----------------------
 # Esto lo publicaba el documento sin que ningun guion lo calculase. Se calcula
 # aqui, sobre los mismos textos que acaban de puntuarse, para que la cifra sea
 # reproducible y no una herencia de una sesion de Colab que ya no existe.
@@ -189,7 +190,7 @@ if len(filas) >= 3:
     parcial = (s_mod - s_mp * s_pal) / np.sqrt(den) if den > 0 else float("nan")
 
     print()
-    print("Cuadro 11 - el modelo frente a la senal trivial "
+    print("Cuadro 12 - el modelo frente a la senal trivial "
           f"({len(filas)} textos)")
     print(f"  modelo v4                                  {s_mod:.3f}")
     print(f"  contar palabras, sin modelo                {s_pal:.3f}")

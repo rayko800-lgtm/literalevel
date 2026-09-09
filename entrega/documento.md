@@ -732,22 +732,25 @@ los archivos reales, cierra así:
 *Cuadro 11. De 59 a 46, paso a paso.*
 
 **Y hay una salvedad que conviene poner aquí y no esconder en el código.** El
-guion de reproducción une las líneas del PDF con un espacio, y eso **desactiva
-dos de las cuatro reglas** de `scoring.continuous_prose`: las que buscan
-viñetas y líneas cortas necesitan saltos de línea para verlos. Es decir, este
+guion de reproducción une las líneas del PDF con un espacio, y eso **desactiva una de las
+cuatro reglas** de `scoring.continuous_prose`, la del maquetado de lista: sus
+dos comprobaciones —dos viñetas seguidas, o más de un tercio de líneas muy
+cortas— necesitan saltos de línea para ver nada. Es decir, este
 validador filtra **más flojo que la propia aplicación**, que sí recibe saltos
 de párrafo. Medido cambiando una cosa y sólo una: con saltos de línea
 sobreviven **30 textos en vez de 46**, y A1 se queda con uno solo, con lo que
 la comprobación de orden creciente ya no se puede hacer sobre cinco niveles.
 
-Se conserva la unión con espacio porque es la que reproduce las cifras
-publicadas —incluidas las de la sesión de Colab—, pero el guion imprime las dos
-cuentas en cada ejecución. Lo que esto dice del resultado es concreto: **el
+Se conserva la unión con espacio porque es la que reproduce el Cuadro 10 de este
+documento, que es la reproducción local. **No reproduce las cifras de Colab**, y
+nada aquí lo hace: aquella tanda son 38 textos y A2 se desvía 0,10. Pero el guion
+imprime las dos cuentas en cada ejecución. Lo que esto dice del resultado es concreto: **el
 orden estrictamente creciente está medido sobre un conjunto que la aplicación
 habría filtrado más**, y una parte de esos 46 son textos que la app rechazaría
 por parecer listas.
 
-Las dos primeras restas son de extracción. La cuarta no: son **diez textos
+De las tres restas, las dos primeras son de extracción. La tercera no: son
+**diez textos
 —nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
 decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma:
 **se quedan por debajo de las 150 palabras** una vez recortados entre «Reading
@@ -756,7 +759,9 @@ en el original ya son cortos; el detector de maquetado de lista ni siquiera
 llega a dispararse, porque el de longitud actúa antes. Los dos entornos
 filtraron con reglas distintas, no solo extrajeron distinto. Importa decirlo
 porque los tres textos A1 que sostienen el escalón más débil del Cuadro 10
-pasaron el filtro de la aplicación, no el del análisis. Los nombres de los 58
+**no pasan el filtro de la aplicación**: pasan el de este guion, que es más
+flojo por lo que se explica debajo del Cuadro 11. Con el filtro completo, dos
+de los tres caen por maquetado de lista. Los nombres de los 58
 archivos están en `entrega/manifiesto_corpus_externo.md`, y `validar_local.py`
 imprime los diez rechazados con su motivo.
 
@@ -863,8 +868,9 @@ intermedia, ancla B2).
 3. Aparece la ficha, **contada sobre el texto y no sobre metadatos**, aunque
    no toda sobre el libro entero: las palabras y el tiempo de lectura salen
    del fichero completo, y la longitud de frase, el diálogo y el vocabulario
-   se calculan sobre una **muestra de 60.000 palabras** —la variedad léxica,
-   sobre las primeras 20.000—, porque recorrer *Guerra y paz* entero para
+   se calculan sobre una muestra con **tope de 60.000 palabras**, repartido a
+   partes iguales entre los capítulos —la variedad léxica, sobre las primeras
+   20.000 de esa muestra—, porque recorrer *Guerra y paz* entero para
    pintar una ficha haría esperar al lector. Lo que trae:
    palabras reales, tiempo de lectura estimado a 180 o 110 palabras por
    minuto según el texto le quede por debajo o por encima de su nivel
@@ -914,7 +920,7 @@ exactitud:
 
 - **La GPU da los mismos números que la CPU.** Sobre 840 ventanas de *Crime and
   Punishment*, 839 son idénticas a tres decimales y una difiere en 0,001; el
-  MAE es 0,0000012 sobre la escala 0–2.
+  MAE es 0,000001 sobre la escala 0–2.
 - **Reagrupar en lotes distintos no mueve ninguna cifra que se publique**, y
   conviene decirlo con precisión, porque hay dos casos y solo uno es exacto.
   Cuando se trocea **un texto de más de 250 palabras**, todas sus ventanas

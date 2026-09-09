@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 552 palabras: 3:41 a ritmo normal.** El minuto largo que
+**El texto hablado son 553 palabras —las que van entre comillas angulares, que es lo que se dice en voz alta— y son 3:41 a 150 palabras por minuto.** El minuto largo que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:

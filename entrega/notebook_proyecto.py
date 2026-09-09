@@ -241,7 +241,7 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 # | **CLEAR Corpus** (Crossley et al.) | Corpus de **entrenamiento**: extractos con dificultad medida sobre juicios humanos | 4.724 extractos | GitHub, descarga directa |
 # | **Project Gutenberg** | El **catálogo** que la aplicación ordena | 79.337 entradas | Feed CSV oficial |
 # | **SPGC** (Gerlach & Font-Clos) | Lista de frecuencia de vocabulario en inglés | 45.345 libros, solo conteos | Zenodo (procesado aparte) |
-# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (45 legibles en local) | Material con derechos, no se distribuye |
+# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (46 legibles en local) | Material con derechos, no se distribuye |
 #
 # En este cuadernillo se descargan y se analizan las dos primeras. El SPGC se
 # usó en su momento con PySpark para construir la lista de palabras familiares
