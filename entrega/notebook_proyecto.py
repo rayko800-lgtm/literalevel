@@ -1655,7 +1655,10 @@ print(tabla_reportada.to_string(index=False))
 #
 # La prueba que de verdad sostiene el trabajo no es ninguna de las anteriores,
 # porque todas comparten corpus con el entrenamiento. Es esta: **textos con nivel
-# MCER oficial, de una fuente ajena al proyecto, que el modelo nunca vio**.
+# MCER oficial, de una fuente ajena al proyecto, que **no se uso para ajustar
+# los pesos** -aunque si se miro durante el desarrollo, para descubrir que el
+# modelo no sabe leer un menu de restaurante; eso es explorar, no entrenar, pero
+# tampoco es un conjunto virgen y conviene decirlo-.
 #
 # Se usaron los textos de lectura graduada de **British Council**, cada uno con
 # su nivel oficial en el nombre del archivo. El material tiene derechos y no se
@@ -1816,8 +1819,8 @@ LIBROS = int(len(libros_en))
 VENTANAS_POR_LIBRO = 350        # SUPUESTO de trabajo, no una medición
 
 velocidades = pd.DataFrame([
-    {"Dispositivo": "CPU (Ryzen 5 2600, 12 hilos, lote 64)", "Ventanas/s": 8.7},
-    {"Dispositivo": "GPU local (GTX 1650 SUPER, fp32, lote 128)", "Ventanas/s": 101.7},
+    {"Dispositivo": "CPU (Ryzen 5 2600, 12 hilos, lote 64)", "Ventanas/s": 8.19},
+    {"Dispositivo": "GPU local (GTX 1650 SUPER, fp32, lote 128)", "Ventanas/s": 112.7},
     {"Dispositivo": "GPU de nube (A100)", "Ventanas/s": 2022.0},
 ])
 ventanas_totales = LIBROS * VENTANAS_POR_LIBRO
@@ -1848,7 +1851,7 @@ plt.show()
 #
 # Medir los 61.642 libros del catálogo cuesta **unas 689 horas en la CPU de una
 # computadora de escritorio —veintiocho días seguidos— y unas tres horas en una
-# A100**. El factor entre los dos extremos es de **232 veces**, y la escala del
+# A100**. El factor entre los dos extremos es de **247 veces**, y la escala del
 # eje es logarítmica precisamente para que quepan los dos.
 #
 # Ese es el accionable, y es de negocio antes que técnico: **el precálculo no se

@@ -30,10 +30,15 @@ aparece y le corrige la pronunciación cuando lee en voz alta.
 Debajo hay un modelo de lenguaje pequeño (`distilroberta-base`) afinado para
 predecir dificultad como un número continuo. En validación ciega alcanza una
 correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus
-externo que nunca vio, ordena los niveles del Marco Común Europeo de forma
-estrictamente creciente: A1 0,5040 · A2 0,5480 · B1 0,9276 · B2 1,2478 ·
-C1 1,4952. Ese orden —no el acierto exacto— es el resultado que sostiene el
-trabajo.
+externo que no se usó para ajustar los pesos —aunque sí se exploró durante
+el desarrollo, y eso se detalla en la limitación 6—, ordena los niveles del
+Marco Común Europeo de forma
+estrictamente creciente: A1 0,5040 (n=3) · A2 0,5480 (n=7) · B1 0,9276 (n=12) ·
+B2 1,2478 (n=11) · C1 1,4952 (n=12). Ese orden —no el acierto exacto— es el
+resultado que sostiene el trabajo, **con una salvedad que conviene leer junto
+a las cifras**: el escalón A1–A2 es de 0,044 sobre desviaciones de 0,111 y
+0,237, y descansa en tres textos. Está dentro del ruido. Los cuatro escalones
+siguientes, no.
 
 Conviene decirlo desde la primera página: **la escala 0–2 es propia y
 LiteraLevel no certifica ningún nivel del Marco Común Europeo**. Las letras
@@ -79,7 +84,8 @@ tuviera una sola dificultad, cuando en realidad cambia de capítulo a capítulo.
 **Pregunta que guía el trabajo:** ¿es posible estimar automáticamente, con un
 modelo de lenguaje entrenado sobre corpus públicos, una medida de dificultad de
 un texto en inglés que (a) ordene correctamente los niveles del MCER en
-material externo que el modelo nunca vio, y (b) sea lo bastante rápida y
+material externo que no intervino en el ajuste de los pesos, y (b) sea lo
+bastante rápida y
 comprensible para ponerse en manos de un lector adolescente sin
 entrenamiento previo?
 
@@ -255,12 +261,20 @@ Estos son los problemas reales encontrados y qué se hizo con cada uno.
 **(a) El corpus de validación MCER no es homogéneo.** De los 59 textos de
 British Council, una parte no es prosa: en A1 hay un menú de restaurante, un
 horario de estudio, un tablero de salidas de aeropuerto, tarjetas de visita y
-mensajes de texto. Son documentos fragmentarios que el modelo nunca vio. Se
-definió un filtro de prosa continua **antes de mirar ningún resultado**, para
-no incurrir en elegir el examen después de ver las notas, y por dos vías
-independientes: por palabras clave del título y por estructura (≥7 palabras
-por línea y densidad de puntuación final de frase en el intervalo (0, 0,11]).
-Los dos criterios coinciden en 53 de 59 casos, el 89,8 %.
+mensajes de texto. Se definió un filtro de prosa continua por dos vías
+independientes —por palabras clave del título y por estructura (≥7 palabras por
+línea y densidad de puntuación final de frase en el intervalo (0, 0,11])—, que
+coinciden en 53 de 59 casos, el 89,8 %.
+
+**Y aquí hay que contar la secuencia real, porque una versión anterior de este
+documento decía que el filtro se fijó «antes de mirar ningún resultado» y no es
+exacto.** Lo que ocurrió fue lo contrario en el orden: primero se puntuaron los
+59 textos, se vio que el modelo daba resultados absurdos con el menú y el
+tablero de salidas, y **de ese diagnóstico salió la idea del filtro**. Que las
+dos vías se definieran sin volver a mirar las puntuaciones, y que coincidan
+entre sí en el 89,8 % de los casos, es lo que impide que sea un filtro hecho a
+medida de las notas. Pero no es un criterio *a priori*, y llamarlo así sería
+regalarse una garantía que no se tiene. Lo detectó una auditoría externa.
 
 **(b) Las etiquetas del catálogo heredado no son fiables, y hay que decirlo.**
 El catálogo con el que la aplicación funciona hoy tiene **1.197 libros** —no
@@ -602,11 +616,19 @@ ponderar. Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
 intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala multiplicada
 por 0,4. **El modelo es final y no se reentrena.**
 
-Su tarjeta de modelo (`metricas_literalevel_v4.json`, 5 de septiembre de 2026)
-registra el corpus de anclaje MCER con el que se afinó: 654 documentos
-aceptados —57 descartados por longitud insuficiente—, repartidos en 510 de
-entrenamiento y 144 de validación. Esos 144 documentos son el conjunto de
-validación ciega que produce las cifras de la primera fila del Cuadro 9.
+El corpus de anclaje MCER con el que se afinó son 654 documentos aceptados
+—57 descartados por longitud insuficiente—, repartidos en 510 de entrenamiento
+y 144 de validación. Esos 144 documentos son el conjunto de validación ciega
+que produce las cifras de la primera fila del Cuadro 9.
+
+**De dónde salen esas cifras, dicho con precisión.** De la ejecución de
+entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
+**no hay ningún archivo que las respalde**, y una versión anterior de este
+documento citaba una tarjeta `metricas_literalevel_v4.json` que no existe. Lo
+único comprobable desde el repositorio es la aritmética interna —510 + 144 =
+654, 77/144 = 53,47 % y 140/144 = 97,22 %—, que cuadra. Quien quiera verificar
+el resto tiene que confiar en esa ejecución o rehacerla. Lo detectó una
+auditoría externa y se corrige diciéndolo, no citando un archivo inexistente.
 
 | Conjunto | n | Exacto | Dentro de ±1 nivel | Spearman |
 |---|---|---|---|---|
@@ -620,21 +642,21 @@ de validación.*
 porcentajes, sino el orden.** Sobre textos externos con nivel MCER oficial, las
 medias por nivel quedan estrictamente crecientes:
 
-| Nivel oficial | n (local) | Media en escala 0–2 |
-|---|---|---|
-| A1 | 3 | 0,5040 |
-| A2 | 7 | 0,5480 |
-| B1 | 12 | 0,9276 |
-| B2 | 11 | 1,2478 |
-| C1 | 12 | 1,4952 |
+| Nivel oficial | n (local) | Media en escala 0–2 | Desviación |
+|---|---|---|---|
+| A1 | 3 | 0,5040 | 0,111 |
+| A2 | 7 | 0,5480 | 0,237 |
+| B1 | 12 | 0,9276 | 0,198 |
+| B2 | 11 | 1,2478 | 0,246 |
+| C1 | 12 | 1,4952 | 0,172 |
 
 *Cuadro 10. Reproducción local de la validación externa, sobre los 45 textos
 que sobreviven a la extracción de los PDF.*
 
 Esta tabla se reproduce en cualquier máquina con el guion `validar_local.py`.
 Lo que se reproduce exactamente es **el orden**; las medias difieren
-ligeramente de las obtenidas en Colab (C1 coincide hasta la cuarta cifra, A2 se
-desvía 0,10) porque la extracción de texto de los PDF conserva 45 de los 59
+ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
+decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10) porque la extracción de texto de los PDF conserva 45 de los 59
 textos originales y el anclaje de la sección de lectura recorta distinto. Se
 reporta la discrepancia en lugar de citar solo la cifra que coincide.
 
@@ -690,7 +712,7 @@ resultado.
 | **Rechazada: precisión media (fp16) en la GPU local** | Se esperaba acelerar | Es **4,8× más lenta** que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene *tensor cores*. En una A100 sí compensa, y allí la desviación medida es 0,00037 de media |
 | **Rechazada: `inference_mode` en lugar de `no_grad`** | Se esperaba menos sobrecarga | 0,4 % de diferencia, por debajo del ruido |
 | **Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica** | Es el doble de rápido (7,4 s frente a 14,9 s) | Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa |
-| Filtrar prosa continua *antes* de ver resultados | Excluir textos porque el modelo falla en ellos invalida la validación | El criterio se fijó a priori y por dos vías independientes que coinciden en 89,8 % |
+| Filtrar prosa continua para la validación externa | Excluir textos porque el modelo falla en ellos invalida la validación | El criterio salió del diagnóstico, no es *a priori*, y así se dice en §4.3(a). Lo que lo sostiene es que se definió por **dos vías independientes** —título y estructura— que coinciden en el 89,8 % sin volver a mirar las puntuaciones |
 
 *Cuadro 12. Decisiones metodológicas, incluidas las hipótesis rechazadas.*
 
@@ -834,7 +856,8 @@ argumenta en lugar de ocultarse.
 6. **La validación no es enteramente independiente de la exploración.** El
    corpus de British Council se usó primero para diagnosticar (descubrir que el
    modelo no sabe leer menús) y después para validar. El filtro de prosa se
-   fijó a priori precisamente para acotar ese problema, pero el conjunto ha
+   definió por dos vías independientes precisamente para acotar ese problema,
+   pero salió del diagnóstico y el conjunto ha
    sido mirado y ya no es virgen.
 7. **La longitud del texto es un confusor en el corpus de examen.** Contar
    palabras alcanza 0,807 donde el modelo alcanza 0,854 (Cuadro 11).
@@ -919,7 +942,7 @@ dejó la correlación en −0,326 frente a −0,330. La ley de Zipf explica por 
 El paso se conservó por cobertura, no por métrica, y así se reporta.
 
 **La velocidad se ganó sin mover un decimal, y se demostró.** Doce hilos y
-lotes de 64 en CPU, fp32 con lote 128 en GPU: +24 % y ×11,7 respectivamente,
+lotes de 64 en CPU, fp32 con lote 128 en GPU: +33 % y ×13,8 respectivamente,
 con 839 de 840 ventanas idénticas a tres decimales. Y se rechazaron dos
 palancas más rápidas —int8 y fp16 en la tarjeta local— porque una desviaba
 0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. **Medir

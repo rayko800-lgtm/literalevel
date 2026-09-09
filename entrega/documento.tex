@@ -241,9 +241,14 @@ lee en voz alta.
 Debajo hay un modelo de lenguaje pequeño (\cod{distilroberta-base}) afinado para
 predecir dificultad como un número continuo. En validación ciega alcanza una
 correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus externo
-que nunca vio, ordena los niveles del Marco Común Europeo de forma estrictamente
-creciente: A1 0,5040 · A2 0,5480 · B1 0,9276 · B2 1,2478 · C1 1,4952. Ese orden —no el
-acierto exacto— es el resultado que sostiene el trabajo.
+que no se usó para ajustar los pesos —aunque sí se exploró durante el desarrollo, y eso
+se detalla en la limitación 6—, ordena los niveles del Marco Común Europeo de forma
+estrictamente
+creciente: A1 0,5040 ($n{=}3$) · A2 0,5480 ($n{=}7$) · B1 0,9276 ($n{=}12$) ·
+B2 1,2478 ($n{=}11$) · C1 1,4952 ($n{=}12$). Ese orden —no el acierto exacto— es el
+resultado que sostiene el trabajo, \textbf{con una salvedad que conviene leer junto a las
+cifras}: el escalón A1--A2 es de 0,044 sobre desviaciones de 0,111 y 0,237, y descansa en
+tres textos. Está dentro del ruido. Los cuatro escalones siguientes, no.
 
 Conviene decirlo desde la primera página: \textbf{la escala 0--2 es propia y
 LiteraLevel no certifica ningún nivel del Marco Común Europeo}. Las letras A1 a C2
@@ -313,7 +318,7 @@ capítulo más llevadero y el más exigente.
 \noindent\textbf{Pregunta que guía el trabajo:} ¿es posible estimar automáticamente,
 con un modelo de lenguaje entrenado sobre corpus públicos, una medida de dificultad de
 un texto en inglés que (a) ordene correctamente los niveles del MCER
-\parencite{coe2020cefr} en material externo que el modelo nunca vio, y (b) sea lo
+\parencite{coe2020cefr} en material externo que no intervino en el ajuste de los pesos, y (b) sea lo
 bastante rápida y comprensible para ponerse en manos de un lector adolescente sin
 entrenamiento previo?
 
@@ -934,12 +939,19 @@ problemas reales encontrados y qué se hizo con cada uno.
 \paragraph{(a) El corpus de validación MCER no es homogéneo.} De los 59 textos de
 British Council, una parte no es prosa: en A1 hay un menú de restaurante, un horario de
 estudio, un tablero de salidas de aeropuerto, tarjetas de visita y mensajes de texto.
-Son documentos fragmentarios que el modelo nunca vio. Se definió un filtro de prosa
-continua \textbf{antes de mirar ningún resultado}, para no incurrir en elegir el examen
-después de ver las notas, y por dos vías independientes: por palabras clave del título y
-por estructura ($\geq 7$ palabras por línea y densidad de puntuación final de frase en
-el intervalo $(0;\,0{,}11]$). Los dos criterios coinciden en 53 de 59 casos, el
-89,8\pct.
+Se definió un filtro de prosa continua por dos vías independientes —por palabras clave
+del título y por estructura ($\geq 7$ palabras por línea y densidad de puntuación final
+de frase en el intervalo $(0;\,0{,}11]$)—, que coinciden en 53 de 59 casos, el 89,8\pct.
+
+\textbf{Y aquí hay que contar la secuencia real, porque una versión anterior de este
+documento decía que el filtro se fijó «antes de mirar ningún resultado» y no es exacto.}
+Lo que ocurrió fue lo contrario en el orden: primero se puntuaron los 59 textos, se vio
+que el modelo daba resultados absurdos con el menú y el tablero de salidas, y \textbf{de
+ese diagnóstico salió la idea del filtro}. Que las dos vías se definieran sin volver a
+mirar las puntuaciones, y que coincidan entre sí en el 89,8\pct{} de los casos, es lo que
+impide que sea un filtro hecho a medida de las notas. Pero no es un criterio \emph{a
+priori}, y llamarlo así sería regalarse una garantía que no se tiene. Lo detectó una
+auditoría externa.
 
 \paragraph{(b) Las etiquetas del catálogo heredado no son fiables, y hay que decirlo.}
 El catálogo con el que la aplicación funciona hoy tiene \textbf{1.197 libros} —no
@@ -1530,11 +1542,19 @@ y cuyos pesos ocupan 328 MB en disco. Puntúa bloques de 250 palabras truncados 
 MCER, con posiciones intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala
 multiplicada por 0,4. \textbf{El modelo es final y no se reentrena.}
 
-Su tarjeta de modelo (\cod{metricas\_literalevel\_v4.json}, 5 de septiembre de 2026)
-registra el corpus de anclaje MCER con el que se afinó: 654 documentos aceptados —57
+El corpus de anclaje MCER con el que se afinó son 654 documentos aceptados —57
 descartados por longitud insuficiente—, repartidos en 510 de entrenamiento y 144 de
 validación. Esos 144 documentos son el conjunto de validación ciega que produce las
 cifras de la primera fila del cuadro~\ref{cuad:desplegado}.
+
+\textbf{De dónde salen esas cifras, dicho con precisión.} De la ejecución de
+entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
+\textbf{no hay ningún archivo que las respalde}, y una versión anterior de este documento
+citaba una tarjeta \cod{metricas\_literalevel\_v4.json} que no existe. Lo único
+comprobable desde el repositorio es la aritmética interna —$510 + 144 = 654$,
+$77/144 = 53{,}47\pct$ y $140/144 = 97{,}22\pct$—, que cuadra. Quien quiera verificar el
+resto tiene que confiar en esa ejecución o rehacerla. Lo detectó una auditoría externa y
+se corrige diciéndolo, no citando un archivo inexistente.
 
 \begin{table}[htbp]
 \centering
@@ -1626,7 +1646,8 @@ cada comparación por pares. Datos de \cod{datos\_figuras/\allowbreak validacion
 
 Esta tabla se reproduce en cualquier máquina con el guion \cod{validar\_local.py}. Lo que
 se reproduce exactamente es \textbf{el orden}; las medias difieren ligeramente de las
-obtenidas en Colab (C1 coincide hasta la cuarta cifra, A2 se desvía 0,10) porque la
+obtenidas en Colab (C1 coincide hasta la tercera cifra decimal —1,4952 frente a
+1,4950—, A2 se desvía 0,10) porque la
 extracción de texto de los PDF conserva 45 de los 59 textos originales y el anclaje de la
 sección de lectura recorta distinto. Se reporta la discrepancia en lugar de citar solo la
 cifra que coincide.
@@ -1776,7 +1797,7 @@ Promediar bloques sin ponderar, con la \textbf{ventana} como unidad & Simplicida
 \addlinespace
 \textbf{Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica} & Es el doble de rápido (7,4 s frente a 14,9 s) & Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa \\
 \addlinespace
-Filtrar prosa continua \emph{antes} de ver resultados & Excluir textos porque el modelo falla en ellos invalida la validación & El criterio se fijó a priori y por dos vías independientes que coinciden en 89,8\pct \\
+Filtrar prosa continua para la validación externa & Excluir textos porque el modelo falla en ellos invalida la validación & El criterio salió del diagnóstico, no es \emph{a priori}, y así se dice en §\ref{sec:calidad}. Lo que lo sostiene es que se definió por \textbf{dos vías independientes} —título y estructura— que coinciden en el 89,8\pct{} sin volver a mirar las puntuaciones \\
 \end{longtable}
 \end{small}
 
@@ -1948,7 +1969,7 @@ interfaz encima, es una secuencia de decisiones que el lector no podía tomar an
 \node[font=\scriptsize, color=llrojo!70!black, anchor=south] at (axis cs:202,2.000)
   {capítulo más exigente: 202 (1,990)};
 \node[font=\scriptsize\itshape, color=llrojo!60!black, anchor=north east]
-  at (axis cs:363,2.045) {banda «avanzado» ($\geq 1{,}6$)};
+  at (axis cs:363,2.045) {banda «avanzado» ($\geq 1{,}4$)};
 
 \end{axis}
 \end{tikzpicture}
@@ -2020,7 +2041,7 @@ figura~\ref{fig:velocidad}.
 \midrule
 CPU (Ryzen 5 2600) & 12 hilos, lote 64 & 8,19 & 1$\times$ \\
 GPU local (GTX 1650 SUPER) & fp32, lote 128 & 112,7 & 13,8$\times$ \\
-GPU A100 (Colab) & fp16, lote grande & 2.022 & 232$\times$ \\
+GPU A100 (Colab) & fp16, lote grande & 2.022 & 247$\times$ \\
 \bottomrule
 \end{tabular}
 \caption{Rendimiento medido de extremo a extremo, incluida la tokenización y las
@@ -2057,8 +2078,8 @@ transferencias. Fuente: \cod{datos\_figuras/\allowbreak velocidad.dat}.}
 \node[font=\scriptsize\bfseries, color=llgris, anchor=west] at (axis cs:2430,A100) {2.022};
 
 \node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,CPU) {$1\times$};
-\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,GPU_local) {$11{,}7\times$};
-\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,A100) {$232\times$};
+\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,GPU_local) {$13{,}8\times$};
+\node[font=\scriptsize\itshape, color=llgris, anchor=west] at (axis cs:5200,A100) {$247\times$};
 \end{axis}
 \end{tikzpicture}
 \caption[Velocidad de inferencia por entorno]{Tres órdenes de magnitud entre el equipo del
@@ -2141,9 +2162,9 @@ por eso se argumenta en lugar de ocultarse.
         global, no cada comparación por pares.
   \item \textbf{La validación no es enteramente independiente de la exploración.} El
         corpus de British Council se usó primero para diagnosticar (descubrir que el
-        modelo no sabe leer menús) y después para validar. El filtro de prosa se fijó a
-        priori precisamente para acotar ese problema, pero el conjunto ha sido mirado y ya
-        no es virgen.
+        modelo no sabe leer menús) y después para validar. El filtro de prosa se definió
+        por dos vías independientes precisamente para acotar ese problema, pero salió de
+        ese diagnóstico y el conjunto ha sido mirado y ya no es virgen.
   \item \textbf{La longitud del texto es un confusor en el corpus de examen.} Contar
         palabras alcanza 0,807 donde el modelo alcanza 0,854 (cuadro~\ref{cuad:baseline}).
   \item \textbf{El modelo solo mide prosa continua en inglés.} Poesía, teatro, diálogo muy
@@ -2228,7 +2249,7 @@ correlación en $-0{,}326$ frente a $-0{,}330$. La ley de Zipf explica por qué.
 conservó por cobertura, no por métrica, y así se reporta.
 
 \textbf{La velocidad se ganó sin mover un decimal, y se demostró.} Doce hilos y lotes de
-64 en CPU, fp32 con lote 128 en GPU: $+24\pct$ y $\times 11{,}7$ respectivamente
+64 en CPU, fp32 con lote 128 en GPU: $+33\pct$ y $\times 13{,}8$ respectivamente
 (figura~\ref{fig:velocidad}), con 839 de 840 ventanas idénticas a tres decimales. Y se
 rechazaron dos palancas más rápidas —int8 y fp16 en la tarjeta local— porque una desviaba
 0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. \textbf{Medir antes de

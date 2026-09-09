@@ -178,9 +178,10 @@ Medir un libro largo son minutos. Pedirle esos minutos al lector en el momento
 en que quiere leer es perderlo. La estrategia es **mover el cómputo antes de la
 consulta**: el catálogo se precalcula fuera de línea y, cuando el lector busca,
 el trabajo ya está hecho. Los números que hacen viable esa decisión están en el
-Cuadro 14 del documento principal: 8,7 ventanas/s en CPU, 101,7 en la GPU
+Cuadro 14 del documento principal: 8,19 ventanas/s en CPU, 112,7 en la GPU
 local y **2.022 en una A100**, con lo que los 61.642 libros en inglés de
-Project Gutenberg son unas **6,3 horas** de cómputo.
+Project Gutenberg son **entre tres y cinco horas** de cómputo, según el número
+medio de ventanas por libro, que todavía no está medido sobre el catálogo.
 
 Cuando el cómputo sí tiene que ocurrir en vivo, se ofrecen **dos velocidades y
 se dice cuál se usó**: un vistazo (30 capítulos repartidos, 2 ventanas de cada
