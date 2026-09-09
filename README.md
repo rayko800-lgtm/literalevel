@@ -101,7 +101,8 @@ reportó Colab:
 | B2 | 11 | 1.2478 | 1.2883 |
 | C1 | 12 | 1.4952 | 1.4950 |
 
-C1 coincide hasta la cuarta cifra; A2 se desvía 0.10. La causa es la
+C1 coincide hasta la tercera cifra decimal (1,4952 frente a 1,4950); A2 se
+desvía 0.10. La causa es la
 extracción de los PDF: en local sobreviven 45 textos de los 59 originales y el
 anclaje «Reading text … Tasks» recorta distinto. **Lo que sí se reproduce
 exactamente es que las medias quedan estrictamente crecientes**, que es el

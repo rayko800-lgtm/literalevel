@@ -843,8 +843,13 @@ def _bandas_coherentes():
 
 
 prueba("la banda nunca contradice a la letra", _bandas_coherentes)
-prueba("las tres bandas son alcanzables",
-       lambda: sorted({ui.scoring.public_band(i / 100) for i in range(0, 201)}))
+def _tres_bandas():
+    b = sorted({ui.scoring.public_band(i / 100) for i in range(0, 201)})
+    assert b == ["avanzado", "básico", "intermedio"], b
+    return b
+
+
+prueba("las tres bandas son alcanzables", _tres_bandas)
 prueba("banda con un valor fuera de escala",
        lambda: (ui.scoring.public_band(-5), ui.scoring.public_band(99)))
 
@@ -925,10 +930,15 @@ def _cupo_se_agota():
 
 
 prueba("el cupo se agota y no revive", _cupo_se_agota)
-prueba("apuntar en una ruta imposible no revienta",
-       lambda: _con_codigos(
-           lambda: cuentas_mod.apuntar(pathlib.Path("Z:/no/existe"),
-                                       cuentas_mod.validar("LLAVE-A"))) is None)
+def _apuntar_en_ruta_imposible():
+    r = _con_codigos(
+        lambda: cuentas_mod.apuntar(pathlib.Path("Z:/no/existe"),
+                                    cuentas_mod.validar("LLAVE-A")))
+    assert r is None, r
+    return "no revienta y no devuelve nada"
+
+
+prueba("apuntar en una ruta imposible no revienta", _apuntar_en_ruta_imposible)
 
 
 titulo("Una sola dificultad por libro")
@@ -957,10 +967,18 @@ def _agregacion_por_ventanas():
 
 prueba("la dificultad global es la media de todas las ventanas",
        _agregacion_por_ventanas)
-prueba("el caso que destapo la auditoria",
-       lambda: ui.ficha.dificultad_global(
-           [{"dificultad": 0.0, "ventanas": 1},
-            {"dificultad": 2.0, "ventanas": 9}]))
+def _caso_de_la_auditoria():
+    # Un capitulo de una ventana a 0 y otro de nueve a 2. Ponderando por
+    # ventanas son 1,8; haciendo la media de las medias, 1,0. Si alguien
+    # volviera a la media de medias, esta prueba TIENE que suspender, y
+    # sin el assert no suspendia: devolvia 1,0 tan tranquila.
+    v = ui.ficha.dificultad_global([{"dificultad": 0.0, "ventanas": 1},
+                                    {"dificultad": 2.0, "ventanas": 9}])
+    assert abs(v - 1.8) < 1e-9, f"esperaba 1.8 y salio {v}"
+    return v
+
+
+prueba("el caso que destapo la auditoria", _caso_de_la_auditoria)
 prueba("un libro sin ventanas no revienta",
        lambda: ui.ficha.dificultad_global([]))
 

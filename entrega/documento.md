@@ -545,7 +545,7 @@ cosas las señaló una auditoría externa y ambas son ciertas.
 | XGBoost | **17 variables** | **0,340** | **1,081** | recalculada |
 | Regresión logística | Embedding MiniLM (384 d) | 0,37 | 0,93 | histórica |
 | Regresión logística | Híbrido (embedding + 3 variables) | 0,37 | 0,91 | histórica |
-| **Transformer afinado** | **Texto crudo, atención** | **0,46** | **0,67** | histórica |
+| **`roberta-base` afinado** | **Texto crudo, atención** | **0,46** | **0,67** | histórica |
 
 *Cuadro 7. Progresión de modelos sobre los mismos 950 extractos reservados,
 con la tanda de la que procede cada fila. La mejora acompaña siempre al
@@ -558,9 +558,20 @@ cuando solo se aumentó la potencia del clasificador sobre la misma
 representación pobre, no subió**. XGBoost sobre tres variables es marginalmente
 peor que una regresión logística sobre las mismas tres variables.
 
-El modelo afinado directamente sobre el texto, con cabeza de regresión sobre
-`BT_easiness`, alcanza además **RMSE 0,560** y **correlación de Pearson 0,89**
-con la etiqueta continua real, que es un resultado sólido para este problema.
+El modelo afinado directamente sobre el texto es un **`roberta-base`** de 125
+millones de parámetros con cabeza de regresión sobre `BT_easiness`, y alcanza
+además **RMSE 0,560** y **correlación de Pearson 0,89** con la etiqueta continua
+real.
+
+**Y aquí hay que evitar una confusión que el documento invitaba a hacer.** Ese
+`roberta-base` **no es el modelo que se despliega**. El que va en la aplicación
+es un `distilroberta-base` —la mitad de capas, 82 millones de parámetros— y se
+entrenó sobre otro corpus, el de anclaje MCER, no sobre `BT_easiness`. Las
+cifras de este apartado son del experimento sobre CLEAR; las del modelo
+desplegado están en el §7.4 y no se pueden encadenar con estas. La diferencia
+de calidad entre las dos arquitecturas sobre CLEAR **no se midió**, así que la
+decisión de usar la destilada se tomó por tamaño y velocidad, no porque se
+comprobara que costaba poco. Lo señaló una auditoría externa.
 
 **Sobreajuste, visto y controlado.** El entrenamiento corrió seis épocas con
 tasa de aprendizaje 2e-5, decaimiento de pesos 0,01, calentamiento y precisión
@@ -641,6 +652,15 @@ auditoría externa y se corrige diciéndolo, no citando un archivo inexistente.
 
 *Cuadro 9. Métricas del modelo desplegado. MAE de 0,499 niveles en el conjunto
 de validación.*
+
+**Un 97,2 % suena a mucho, y conviene poner al lado con qué se compara.** Con
+seis niveles, acertar «dentro de ±1» es más fácil de lo que parece: contestar
+**al azar** acierta el 44,4 % de las veces, y contestar **siempre B1**, sin
+mirar el texto, el 50 % —ambas cifras suponiendo el nivel verdadero repartido
+por igual entre los seis—. El modelo llega al 97,2 %, así que la ventaja sobre
+no hacer nada es real y grande; pero sin esa referencia el número no significa
+nada por sí solo, y hasta ahora el documento no la daba. Lo señaló una
+auditoría externa.
 
 **El resultado que de verdad sostiene el trabajo no es ninguno de esos
 porcentajes, sino el orden.** Sobre textos externos con nivel MCER oficial, las
@@ -806,7 +826,7 @@ Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project
 Gutenberg **son entre 3 y 5 horas de A100**, y conviene decir de qué depende esa
 horquilla en vez de dar una cifra sola: del número medio de ventanas por libro,
 que **todavía no está medido sobre el catálogo**. Con las 350 que asume el
-código del precálculo salen **2,96 h**; con las 606 que promedian las cinco
+código del precálculo salen **2,96 h**; con las 606,4 que promedian las cinco
 novelas largas medidas en local —una muestra sesgada hacia arriba, porque son
 clásicos extensos— salen **5,14 h**. Una versión anterior de este documento
 decía 6,3 horas, que no se sigue de ninguno de los dos supuestos; lo detectó

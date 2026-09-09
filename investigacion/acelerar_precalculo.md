@@ -62,7 +62,7 @@ No toco nada. Esto es el diagnóstico y el plan, con las órdenes exactas.
 Un dato que conviene dejar dicho antes de seguir: **la estimación de «6,3 horas
 de A100» para el catálogo entero no cuadra con 2.022 ventanas/s.**
 
-> 61.552 libros × 350 ventanas/libro ÷ 2.022 v/s ÷ 3.600 = **2,96 h** [aritmética]
+> 61.642 libros × 350 ventanas/libro ÷ 2.022 v/s ÷ 3.600 = **2,96 h** [aritmética]
 
 Para que salgan 6,3 h hacen falta o **950 ventanas/s** o **745 ventanas por
 libro**. Cualquiera de las dos posibilidades importa, así que conviene rehacer

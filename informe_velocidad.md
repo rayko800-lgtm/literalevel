@@ -156,8 +156,16 @@ ventanas, lote 300, 12 hilos.
 | Media fp32 → media int8 | 1,682 → 1,472 (**sesgo −0,21**) |
 
 Un 18 % de velocidad a cambio de mover cada ventana **0,21 puntos de 2**, y con
-sesgo sistemático a la baja: un texto de 1,68 pasa a 1,47, o sea cruza de
-"avanzado" a "intermedio" (el corte está en 1,6). **Inaceptable.** Descartada.
+sesgo sistemático a la baja de −0,21 sobre una escala de 0 a 2. Recorriendo
+las 201 puntuaciones, un desplazamiento así **cambia la letra MCER en 105 de
+ellas —el 52 %— y la banda pública en 42, el 21 %**. **Inaceptable.**
+Descartada.
+
+(Esta nota decía antes «un texto de 1,68 pasa a 1,47, o sea cruza de avanzado a
+intermedio, el corte está en 1,6». Era cierto con los cortes de banda viejos.
+Con los de ahora —0,6 y 1,4, derivados del ancla MCER— esos dos valores son
+ambos C1 y ambos avanzados, así que se sustituye por la medición sobre la
+escala entera, que no depende de qué punto se elija para ilustrarla.)
 
 ### 3.f GPU — MEDIDO. Es la palanca grande.
 

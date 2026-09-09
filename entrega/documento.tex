@@ -1324,7 +1324,7 @@ Regresión logística & \textbf{17 variables} & \textbf{0,352} & \textbf{1,061} 
 XGBoost & \textbf{17 variables} & \textbf{0,340} & \textbf{1,081} & recalculada \\
 Regresión logística & \emph{Embedding} MiniLM (384 d) & 0,37 & 0,93 & histórica \\
 Regresión logística & Híbrido (\emph{embedding} + 3 variables) & 0,37 & 0,91 & histórica \\
-\textbf{Transformer afinado} & \textbf{Texto crudo, atención} & \textbf{0,46} & \textbf{0,67} & histórica \\
+\textbf{\cod{roberta-base} afinado} & \textbf{Texto crudo, atención} & \textbf{0,46} & \textbf{0,67} & histórica \\
 \bottomrule
 \end{tabular}
 \caption{Progresión de modelos sobre los mismos 950 extractos reservados, con la tanda de
@@ -1345,7 +1345,7 @@ representación, no a la complejidad del clasificador.}
   xbar,
   symbolic y coords={Transformer,Hibrido,MiniLM,XGBoost,LogReg},
   ytick={LogReg,XGBoost,MiniLM,Hibrido,Transformer},
-  yticklabels={Reg. logística,XGBoost,\emph{Embedding} MiniLM,Híbrido,Transformer afinado},
+  yticklabels={Reg. logística,XGBoost,\emph{Embedding} MiniLM,Híbrido,\cod{roberta-base}},
   enlarge y limits=0.16,
   every node near coord/.append style={font=\scriptsize, color=llgris, anchor=west},
 ]
@@ -1391,9 +1391,19 @@ desempeño subió; y cuando solo se aumentó la potencia del clasificador sobre 
 representación pobre, no subió}. XGBoost sobre tres variables es marginalmente peor que
 una regresión logística sobre las mismas tres variables.
 
-El modelo afinado directamente sobre el texto, con cabeza de regresión sobre
-\cod{BT\_easiness}, alcanza además \textbf{RMSE 0,560} y \textbf{correlación de Pearson
-0,89} con la etiqueta continua real, que es un resultado sólido para este problema.
+El modelo afinado directamente sobre el texto es un \textbf{\cod{roberta-base}} de 125
+millones de parámetros con cabeza de regresión sobre \cod{BT\_easiness}, y alcanza además
+\textbf{RMSE 0,560} y \textbf{correlación de Pearson 0,89} con la etiqueta continua real.
+
+\textbf{Y aquí hay que evitar una confusión que el documento invitaba a hacer.} Ese
+\cod{roberta-base} \textbf{no es el modelo que se despliega}. El que va en la aplicación es
+un \cod{distilroberta-base} —la mitad de capas, 82 millones de parámetros— y se entrenó
+sobre otro corpus, el de anclaje MCER, no sobre \cod{BT\_easiness}. Las cifras de este
+apartado son del experimento sobre CLEAR; las del modelo desplegado están en
+el~\S\ref{sec:validacion} y no se pueden encadenar con estas. La diferencia de calidad
+entre las dos arquitecturas sobre CLEAR \textbf{no se midió}, así que la decisión de usar
+la destilada se tomó por tamaño y velocidad, no porque se comprobara que costaba poco. Lo
+señaló una auditoría externa.
 
 \textbf{Sobreajuste, visto y controlado.} El entrenamiento corrió seis épocas con tasa de
 aprendizaje 2e-5, decaimiento de pesos 0,01, calentamiento y precisión mixta. El RMSE de
@@ -1574,6 +1584,14 @@ British Council (externo) & 38 & 50,0\pct & \textbf{100\pct} & 0,829 \\
 validación.}
 \label{cuad:desplegado}
 \end{table}
+
+\textbf{Un 97,2\pct{} suena a mucho, y conviene poner al lado con qué se compara.} Con seis
+niveles, acertar «dentro de $\pm 1$» es más fácil de lo que parece: contestar
+\textbf{al azar} acierta el 44,4\pct{} de las veces, y contestar \textbf{siempre B1}, sin
+mirar el texto, el 50\pct{} —ambas cifras suponiendo el nivel verdadero repartido por igual
+entre los seis—. El modelo llega al 97,2\pct, así que la ventaja sobre no hacer nada es
+real y grande; pero sin esa referencia el número no significa nada por sí solo, y hasta
+ahora el documento no la daba. Lo señaló una auditoría externa.
 
 \textbf{El resultado que de verdad sostiene el trabajo no es ninguno de esos porcentajes,
 sino el orden.} Sobre textos externos con nivel MCER oficial, las medias por nivel quedan
@@ -2110,7 +2128,7 @@ Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project Gu
 \textbf{son entre 3 y 5 horas de A100}, y conviene decir de qué depende esa horquilla en
 vez de dar una cifra sola: del número medio de ventanas por libro, que \textbf{todavía no
 está medido sobre el catálogo}. Con las 350 que asume el código del precálculo salen
-\textbf{2,96 h}; con las 606 que promedian las cinco novelas largas medidas en local —una
+\textbf{2,96 h}; con las 606,4 que promedian las cinco novelas largas medidas en local —una
 muestra sesgada hacia arriba, porque son clásicos extensos— salen \textbf{5,14 h}. Una
 versión anterior de este documento decía 6,3 horas, que no se sigue de ninguno de los dos
 supuestos; lo detectó una auditoría externa. El cuello de botella real resultó no ser el modelo
