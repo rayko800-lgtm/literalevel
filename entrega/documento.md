@@ -469,7 +469,7 @@ aportaban las tres variables**, y bastante más.
 (literario frente a informativo, y por banda Lexile) muestra que el rendimiento
 no es uniforme: el modelo funciona mejor en texto informativo que en literario,
 y peor en la banda más fácil (Lexile 500) que en la más difícil (Lexile 1300).
-Los números están en el Cuadro 7.
+Los números están en el Cuadro 8.
 
 ---
 
