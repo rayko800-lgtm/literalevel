@@ -181,4 +181,36 @@ def css(clave: str, estrellas_css: str = "") -> str:
         "background-attachment:fixed !important;"
         "background-repeat:no-repeat !important;"
         "color:var(--ll-texto) !important}"
+        # --- La paleta tiene que ganarle al modo del navegador -----------
+        # Esto NO es un adorno. Gradio pinta el texto de Markdown con
+        # `.prose *{color:var(--body-text-color)}`, y esa variable la resuelve
+        # SU tema segun el modo claro/oscuro del visitante, no segun la paleta
+        # elegida aqui. Poner `color` en el contenedor no basta: la regla de
+        # `.prose` es mas especifica y gana.
+        #
+        # Medido en el Space con ?__theme=light y la paleta por defecto:
+        # texto rgb(23,30,48) sobre panel oscuro, 1,1:1. La pagina se veia
+        # negra y sin texto. En modo oscuro, las tres paletas claras daban
+        # 1,3:1 en todo el cuerpo. O sea que NINGUNA paleta se leia en los dos
+        # modos, y las pruebas no podian verlo porque miden --ll-texto sobre
+        # --ll-fondo, una pareja que el navegador nunca llega a pintar.
+        #
+        # Se redefinen las variables del tema, en `:root` y en `.dark`, para
+        # que la paleta sea la que decide en los dos modos.
+        ":root,.dark,gradio-app,.gradio-container{"
+        "--body-text-color:var(--ll-texto) !important;"
+        "--body-text-color-subdued:var(--ll-texto) !important;"
+        "--block-title-text-color:var(--ll-texto) !important;"
+        "--block-label-text-color:var(--ll-texto) !important;"
+        "--block-info-text-color:var(--ll-texto) !important;"
+        "--body-background-fill:var(--ll-fondo) !important;"
+        "--background-fill-primary:var(--ll-fondo) !important;"
+        "--border-color-primary:var(--ll-borde) !important;"
+        "--link-text-color:var(--ll-acento) !important;"
+        "--link-text-color-active:var(--ll-acento) !important;"
+        "--link-text-color-hover:var(--ll-acento) !important;"
+        "--link-text-color-visited:var(--ll-acento) !important}"
+        ".prose,.prose *,.markdown-text,.markdown-text *{"
+        "color:var(--ll-texto) !important}"
+        "label,.label-wrap,.svelte-1gfkn6j{color:var(--ll-texto) !important}"
         "</style>")

@@ -117,7 +117,11 @@ def verificar(usuario: str | None, clave: str | None) -> Cuenta | None:
     u = (usuario or "").strip().lower()
     c = (clave or "").strip()
     guardada, cuenta = _tabla().get(u, ("no-existe-este-usuario", None))
-    coincide = hmac.compare_digest(c, guardada)
+    # En BYTES, no en str. `hmac.compare_digest` con cadenas solo admite
+    # ASCII y lanza TypeError con cualquier otra cosa: una contrasena con
+    # ene, tilde o emoji tiraba la funcion y el usuario veia "Error"
+    # pelado. Un perfil declarado con ene no podia entrar NUNCA.
+    coincide = hmac.compare_digest(c.encode("utf-8"), guardada.encode("utf-8"))
     return cuenta if (coincide and cuenta is not None) else None
 
 
@@ -211,7 +215,7 @@ def consumir(base: Path, codigo: str | None) -> tuple[bool, str]:
         # un uso a tumbar la aplicacion porque el disco no admite escrituras.
         return True, ""
     if total > cuenta.tope:
-        return False, (f"El código de **{cuenta.nombre}** ha agotado su cupo de "
+        return False, (f"El perfil de **{cuenta.nombre}** ha agotado su cupo de "
                        f"{cuenta.tope} usos. El resto de la aplicación sigue "
                        "funcionando.")
     return True, ""
@@ -231,7 +235,7 @@ def permite(base: Path, codigo: str | None) -> tuple[bool, str]:
         return False, _SIN_CODIGO
     resto = queda(base, cuenta)
     if resto is not None and resto <= 0:
-        return False, (f"El código de **{cuenta.nombre}** ha agotado su cupo de "
+        return False, (f"El perfil de **{cuenta.nombre}** ha agotado su cupo de "
                        f"{cuenta.tope} usos. El resto de la aplicación sigue "
                        "funcionando.")
     return True, ""

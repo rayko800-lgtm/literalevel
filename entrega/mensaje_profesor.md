@@ -18,8 +18,15 @@ toca**. El modelo mide la dificultad de un texto, así que en vez de elegir un
 libro a ciegas, la app le dice cuál puede leer y le dibuja la curva de
 dificultad capítulo a capítulo.
 
-🔗 **https://f01c1e0273b4839b46.gradio.live**
-usuario: `invitado1` · contraseña: `meadow-harbour-61`
+🔗 **https://huggingface.co/spaces/MikeMaki1763/literalevel**
+usuario: `invitado1` · contraseña: `074cfd6zbjy8pc`
+
+Se entra arriba del todo, en «Entrar con tu perfil». El usuario y la
+contraseña solo hacen falta para las tres cosas que llaman a un servicio
+externo —explicar una palabra en su frase, el resumen de «¿de qué trata?»
+y la corrección de pronunciación—; **el resto de la aplicación funciona sin
+entrar**: medir un texto, buscar, leer el libro entero, la curva por
+capítulos, el diccionario y la fonética.
 
 **Ábralo desde el celular**, porque incluye lo de la pronunciación que usted
 mencionó: en la pestaña *Pronunciación* se lee una frase en voz alta y la app
@@ -28,8 +35,9 @@ genera el audio de cómo debería sonar. Necesita micrófono, por eso el celular
 
 Tres cosas que le quiero decir de una vez, para que no se lleve sorpresas:
 
-1. **Está corriendo desde mi computadora**, no está desplegado todavía. Si lo
-   abre y no responde, es que la tengo apagada — avíseme y la prendo.
+1. **Está desplegado de verdad**, en Hugging Face Spaces, y no depende de que
+   yo tenga la computadora encendida. Va sobre el hardware más barato: si
+   lleva días sin visitas, el primer arranque tarda unos 30 segundos.
 2. **El catálogo que ve es el chico** (1.197 libros, y solo se abren los de
    Project Gutenberg). Ahora mismo estoy midiendo los **61.642 libros en
    inglés** del catálogo completo con el modelo leyendo cada libro entero; van

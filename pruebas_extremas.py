@@ -897,6 +897,130 @@ def _opacidad_no_borra_el_texto():
 
 prueba("la opacidad del CSS no borra el texto", _opacidad_no_borra_el_texto)
 
+# Las cuatro pruebas que siguen nacieron de la decima auditoria y de que
+# Miguel abriera la app en el movil. Necesitan estos dos modulos aqui
+# arriba: `cuentas` se importa mas abajo para las pruebas del contador, y
+# a estas alturas del archivo todavia no existe.
+import cuentas as cuentas_mod  # noqa: E402
+import scoring  # noqa: E402
+
+
+def _la_paleta_manda_sobre_el_navegador():
+    """El CSS de cada paleta tiene que redefinir las variables de Gradio.
+
+    Gradio pinta el markdown con `.prose *{color:var(--body-text-color)}`, y
+    esa variable la resuelve SU tema segun el modo claro/oscuro del visitante.
+    Si la paleta no la redefine, el color del texto lo decide el navegador y
+    no la paleta: medido en el Space con ?__theme=light, la paleta por defecto
+    daba 1,1:1 -pagina negra sin texto-.
+
+    La prueba anterior de contraste no podia verlo, porque mide --ll-texto
+    sobre --ll-fondo, una pareja que el navegador nunca llega a pintar.
+    """
+    imprescindibles = ("--body-text-color", "--body-background-fill",
+                       "--block-title-text-color", "--block-label-text-color")
+    malas = []
+    for nombre in paletas_mod.PALETAS:
+        css = paletas_mod.css(nombre)
+        for var in imprescindibles:
+            if f"{var}:var(--ll-" not in css:
+                malas.append(f"{nombre}: no redefine {var}")
+        # Y tiene que valer tambien en modo oscuro, no solo en :root.
+        if ".dark" not in css:
+            malas.append(f"{nombre}: no cubre el modo oscuro")
+    assert not malas, malas
+    return f"{len(paletas_mod.PALETAS)} paletas redefinen el tema en los dos modos"
+
+
+prueba("la paleta manda sobre el modo del navegador",
+       _la_paleta_manda_sobre_el_navegador)
+
+
+def _clave_con_acentos():
+    """Una contrasena con ene tiene que funcionar, no reventar.
+
+    `hmac.compare_digest` con `str` solo admite ASCII y lanza TypeError con
+    cualquier otra cosa. Un perfil declarado con ene no podia entrar nunca, y
+    el usuario veia un "Error" pelado.
+    """
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "niño:contraseña:5,ok:simple:5"
+    try:
+        assert cuentas_mod.verificar("niño", "contraseña") is not None
+        assert cuentas_mod.verificar("niño", "mala") is None
+        assert cuentas_mod.verificar("nadie", "contraseña") is None
+        assert cuentas_mod.verificar("ok", "simple") is not None
+        # Y un emoji tampoco puede tirar la funcion.
+        assert cuentas_mod.verificar("ok", "🙂") is None
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+    return "ene, tilde y emoji sin reventar"
+
+
+prueba("una contrasena con acentos no revienta", _clave_con_acentos)
+
+
+def _el_modelo_vale_como_repositorio():
+    """`Puntuador` tiene que aceptar un repositorio del Hub, no solo carpeta.
+
+    Es el camino que usa el despliegue y el que ninguna prueba ejercitaba: en
+    esta maquina existe ./modelo_v4, asi que todo se cargaba de disco y la
+    aplicacion desplegada no podia puntuar NADA.
+
+    No se descarga el modelo aqui -son 328 MB-: se comprueba la decision, que
+    es donde estaba el fallo.
+    """
+    from scoring import _parece_repo_hf
+    assert _parece_repo_hf("MikeMaki1763/literalevel-v4")
+    assert _parece_repo_hf("owner/name")
+    for ruta in ("modelo_v4", "./modelo_v4", "C:/Users/x/modelo_v4",
+                 "/tmp/modelo", "a/b/c", "sin-barra", ""):
+        assert not _parece_repo_hf(ruta), ruta
+    # Y una carpeta que no existe tiene que seguir dando el error legible.
+    try:
+        scoring.Puntuador("carpeta-que-no-existe-en-ningun-sitio")
+    except FileNotFoundError as e:
+        assert "No encuentro el modelo" in str(e), str(e)
+    except Exception as e:
+        raise AssertionError(f"deberia ser FileNotFoundError, fue {type(e).__name__}")
+    else:
+        raise AssertionError("no lanzo nada con una carpeta inexistente")
+    return "acepta repositorio, rechaza carpeta inexistente con mensaje"
+
+
+prueba("el modelo vale como repositorio del Hub",
+       _el_modelo_vale_como_repositorio)
+
+
+def _la_entrada_al_perfil_esta_arriba():
+    """La caja de entrar tiene que ir ANTES de las pestanas y abierta.
+
+    Estaba en un acordeon cerrado dentro de una de ocho pestanas y no la
+    encontraba nadie, empezando por el autor. Se comprueba sobre el codigo
+    fuente porque construir la interfaz entera aqui costaria mas que la
+    prueba: lo que importa es el ORDEN, y el orden esta escrito.
+    """
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(encoding="utf-8")
+    i_entrar = fuente.find('gr.Accordion("Entrar con tu perfil"')
+    i_pestanas = fuente.find("with gr.Tabs()")
+    assert i_entrar > 0, "no encuentro el acordeon de entrar"
+    assert i_pestanas > 0, "no encuentro las pestanas"
+    assert i_entrar < i_pestanas, "la entrada al perfil va DESPUES de las pestanas"
+    tramo = fuente[i_entrar:i_entrar + 120]
+    assert "open=True" in tramo, "el acordeon de entrar esta cerrado"
+    # Y la consulta de palabra, antes del texto del capitulo.
+    i_palabra = fuente.find('gr.Accordion("Consultar una palabra"')
+    i_texto = fuente.find("texto = gr.HTML(_html_lectura")
+    assert 0 < i_palabra < i_texto, "la palabra va despues del texto del capitulo"
+    return "entrar arriba y abierto; la palabra antes del texto"
+
+
+prueba("lo que abre funciones se encuentra",
+       _la_entrada_al_perfil_esta_arriba)
+
 
 titulo("Bandas coherentes con la letra")
 

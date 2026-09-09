@@ -816,7 +816,7 @@ JS_SELECCION = r"""
     var setter = Object.getOwnPropertyDescriptor(proto.prototype, 'value').set;
     setter.call(caja, txt);
     caja.dispatchEvent(new Event('input', { bubbles: true }));
-    // En un movil la caja queda fuera de pantalla, debajo del lector: sin
+    // En un movil la caja queda fuera de pantalla, encima del lector: sin
     // esto el usuario selecciona una palabra y no ve que haya pasado nada.
     try { caja.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
     catch (e) { caja.scrollIntoView(); }
@@ -1911,8 +1911,11 @@ def _debiles(peticion: gr.Request = None):
 
 _CSS_CUADERNO = """<style>
 #ll-cuaderno{display:flex;flex-direction:column;gap:.7rem}
-#ll-cuaderno .ll-c{padding:.75rem .9rem;border:1px solid rgba(143,211,232,.20);
-  border-radius:9px;background:rgba(8,16,28,.55)}
+/* El fondo sale de la paleta, no clavado. Estaba en rgba(8,16,28,.55),
+   que es un azul casi negro: en las paletas claras dejaba el texto entre
+   2,5 y 3,9:1 en los dos modos. */
+#ll-cuaderno .ll-c{padding:.75rem .9rem;border:1px solid var(--ll-borde);
+  border-radius:9px;background:var(--ll-panel);color:var(--ll-texto)}
 /* Sin esto, una palabra larguisima o una URL desbordan la pantalla del movil
    y la pestana entera se convierte en un muro ilegible. */
 #ll-cuaderno .ll-c *{overflow-wrap:anywhere;word-break:break-word}
@@ -1997,8 +2000,8 @@ def _repasar(peticion: gr.Request = None):
 
 _CSS_BIBLIO = """<style>
 #ll-biblio{display:flex;flex-direction:column;gap:.7rem}
-#ll-biblio .ll-l{padding:.8rem .95rem;border:1px solid rgba(143,211,232,.20);
-  border-radius:9px;background:rgba(8,16,28,.55)}
+#ll-biblio .ll-l{padding:.8rem .95rem;border:1px solid var(--ll-borde);
+  border-radius:9px;background:var(--ll-panel);color:var(--ll-texto)}
 #ll-biblio .ll-l *{overflow-wrap:anywhere}
 #ll-biblio .ll-t{font-weight:700;font-size:1.05rem}
 #ll-biblio .ll-a{opacity:.78;font-size:.85rem}
@@ -2101,8 +2104,18 @@ def _diagnostico():
                  "Lo que se apaga es la explicación contextual y la voz.")
 
     L.append("### Recursos")
-    modelo_ok = os.path.isdir(RUTA_MODELO)
-    L.append(f"- Modelo v4: {'encontrado' if modelo_ok else 'FALTA'} — `{RUTA_MODELO}`")
+    # Vale una carpeta local Y vale un repositorio del Hub, igual que en
+    # `scoring.Puntuador`. Se corrigio alli y no aqui, asi que la pestana
+    # Estado decia "FALTA" del mismo modelo que la app acababa de usar
+    # para puntuar. Un diagnostico que miente es peor que no tenerlo.
+    from scoring import _parece_repo_hf
+    if os.path.isdir(RUTA_MODELO):
+        donde = "carpeta local"
+    elif _parece_repo_hf(str(RUTA_MODELO)):
+        donde = "repositorio de Hugging Face"
+    else:
+        donde = None
+    L.append(f"- Modelo v4: {donde or 'FALTA'} — `{RUTA_MODELO}`")
     from lexicon import RUTA_DICCIONARIO
     dic = Path(RUTA_DICCIONARIO)
     tam = f"{dic.stat().st_size / 1e6:.0f} MB" if dic.exists() else "FALTA"

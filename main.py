@@ -16,7 +16,12 @@ matter del README, que por defecto busca `app.py`:
 
 Variables de entorno que reconoce:
 
-    LITERALEVEL_MODELO       carpeta del modelo v4   (por defecto ./modelo_v4)
+    LITERALEVEL_MODELO       carpeta del modelo v4 O el identificador de un
+                             repositorio del Hub  (por defecto ./modelo_v4;
+                             en el Space, MikeMaki1763/literalevel-v4)
+    LITERALEVEL_CUENTAS      perfiles con acceso a lo de pago, en formato
+                             usuario:contrasena:tope separados por comas.
+                             Tope 0 = sin limite. Vacia = puerta abierta.
     LITERALEVEL_DICCIONARIO  SQLite de Kaikki        (por defecto ./kaikki_diccionario.db)
     OPENAI_API_KEY           opcional; sin ella la app degrada con elegancia
     PORT / SPACE_ID          los pone la plataforma; si aparecen, se sirve en 0.0.0.0
