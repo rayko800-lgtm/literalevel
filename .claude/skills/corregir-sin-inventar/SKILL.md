@@ -132,6 +132,30 @@ pueda quedar en cero: un comentario que **explica** el fallo antiguo contiene
 la cifra vieja a propósito, y una frase en pasado («el enlace *era* un túnel
 temporal») también.
 
+### Busca la cifra en TODAS sus formas, no solo en la exacta
+
+El barrido busca literales, y una cifra viaja por el documento con varias
+caras. En un solo día se escaparon dos por esto:
+
+| Se buscaba | Estaba escrito | Dónde |
+|---|---|---|
+| `1,2478` | **`1,248`** — redondeado a tres decimales | la presentación |
+| `45 textos` | **`45 en local`** — la misma cifra, otra redacción | la limitación 5 |
+
+Las dos las encontró una auditoría externa, no el barrido. Así que por cada
+cifra que cambie, mete en la lista de patrones:
+
+- el valor **exacto** (`1,2478`);
+- sus **redondeos** plausibles (`1,248`, `1,25`) — una diapositiva o un
+  resumen casi nunca lleva todos los decimales;
+- el número **suelto**, con contexto flojo (`45` cerca de «texto», «local»,
+  «de los 59»), aceptando que dará falsos positivos que descartas a mano;
+- las dos formas del separador decimal, coma y punto, porque los `.dat` y el
+  código usan punto y la prosa usa coma.
+
+Es más ruidoso y merece la pena: el coste de un falso positivo es mirarlo dos
+segundos; el de un falso negativo es que lo encuentre el profesor.
+
 ---
 
 ## 5. Si los datos siguen llegando, la cifra caduca
