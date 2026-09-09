@@ -1066,9 +1066,13 @@ repetirlo en cada párrafo corregido.
     aplicación está publicada en Hugging Face Spaces
     (`MikeMaki1763/literalevel`, hardware `cpu-basic`), con dirección fija que
     sobrevive a apagar el equipo del autor. Pero el plan gratuito **suspende el
-    servicio tras un periodo sin visitas**, de modo que el primer visitante
-    después de una pausa paga un arranque en frío de decenas de segundos
-    mientras se cargan *torch* y los 328 MB del modelo; y **no da
+    servicio tras 48 h sin visitas** (`gcTimeout` = 172.800 s según la API de
+    Hugging Face), de modo que el primer visitante después de una pausa paga
+    un arranque en frío mientras se cargan *torch* y los 328 MB del modelo.
+    Está medido: reiniciando el Space, **31 s hasta que el runtime dice
+    `RUNNING` y 32 s hasta que la página responde**. Es la cota inferior,
+    porque ahí la imagen del contenedor ya estaba construida; despertar de
+    una suspensión de 48 h añade traerla; y **no da
     almacenamiento persistente**, así que la estantería, el avance de lectura y
     el cuaderno del lector viven en disco efímero y no sobreviven a un
     reinicio del contenedor. Lo segundo es la acción A4 de la estrategia.

@@ -572,7 +572,7 @@ plt.show()
 #    longitud no informa, porque el corpus la controló por diseño (Figura 2).
 #    Sirve de contraste con lo que ocurre en la validación externa de la §7: en
 #    los exámenes de British Council el nivel y la longitud **sí** están
-#    confundidos, y allí contar palabras llega a Spearman 0,807. La diferencia
+#    confundidos, y allí contar palabras llega a Spearman 0,799. La diferencia
 #    entre los dos corpus no es un capricho estadístico: es la razón de que el
 #    modelo se entrene con ventanas de tamaño fijo.
 #
@@ -608,7 +608,7 @@ plt.show()
 # palabras. Es la comprobación visual del punto anterior: aquí, la longitud no
 # dice nada. Y es el ejemplo perfecto de por qué una variable que correlaciona
 # con la etiqueta en un corpus puede ser una trampa en otro; en la §7 se ve el
-# mismo `Google WC` disparado a 0,807 en otro conjunto de datos.
+# mismo `Google WC` disparado a 0,799 en otro conjunto de datos.
 
 # %%
 grupo_lit = clear.loc[clear["Categ"] == "Lit", "BT_easiness"]
@@ -1787,7 +1787,7 @@ decisiones = pd.DataFrame([
      "Decisión": "DESCARTADO en esa tarjeta: un TU116 no tiene tensor cores"},
     {"Prueba": "Agrupar ventanas en lotes fijos de 64 en vez de por capítulo",
      "Resultado": "+18 % de velocidad, 300/300 valores idénticos bit a bit",
-     "Decisión": "ADOPTADO: no hay relleno, así que no puede cambiar nada"},
+     "Decisión": "ADOPTADO: sin relleno dentro de un texto, no cambia nada"},
 ])
 print(decisiones.to_string(index=False))
 

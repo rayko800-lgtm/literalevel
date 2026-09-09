@@ -1,6 +1,6 @@
 """Sube el modelo v4 y el diccionario Kaikki a Hugging Face, como repos aparte.
 
-Son 549 MB que **no pueden ir en el repositorio del despliegue**: estan en
+Son 571 MB que **no pueden ir en el repositorio del despliegue**: estan en
 `.gitignore` a proposito, git guarda una copia entera de cada binario en cada
 cambio y GitHub rechaza archivos de mas de 100 MB. La forma limpia es tenerlos
 en un repo de modelo y un repo de datos, y montarlos de solo lectura.

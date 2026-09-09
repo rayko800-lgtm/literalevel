@@ -56,7 +56,7 @@ sin ponderar. Escala interna 0..5 (A1..C2); escala pública 0..2 = interna × 0.
 
 **El modelo no recibe la longitud del documento como variable**: puntúa
 ventanas de tamaño fijo y promedia. Eso no es lo mismo que decir que su salida
-sea independiente de la longitud — en British Council correlacionan 0.730,
+sea independiente de la longitud — en British Council correlacionan 0.725,
 porque ese corpus gradúa también por longitud de la tarea.
 
 | Validación | n | Dentro de ±1 nivel | Spearman |
@@ -70,9 +70,9 @@ Sobre los 46 textos de British Council que se pueden medir en local:
 
 | Señal | Spearman con el nivel oficial |
 |---|---|
-| Modelo v4 | **0.854** |
-| Contar las palabras del texto, sin modelo | 0.807 |
-| Modelo, descontando la longitud (correlación parcial) | **0.657** |
+| Modelo v4 | **0.855** |
+| Contar las palabras del texto, sin modelo | 0.799 |
+| Modelo, descontando la longitud (correlación parcial) | **0.665** |
 
 Un contador de palabras llega casi tan lejos, y hay que decirlo: en British
 Council el nivel y la longitud están confundidos. Lo que sostiene al modelo es

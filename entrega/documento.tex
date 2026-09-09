@@ -2408,9 +2408,13 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
   \item \textbf{El despliegue es gratuito, y eso tiene dos consecuencias.} La aplicación
         está publicada en Hugging Face Spaces (\cod{MikeMaki1763/\allowbreak literalevel}, hardware
         \cod{cpu-basic}), con dirección fija que sobrevive a apagar el equipo del autor.
-        Pero el plan gratuito \textbf{suspende el servicio tras un periodo sin visitas}, de
-        modo que el primer visitante después de una pausa paga un arranque en frío de
-        decenas de segundos mientras se cargan \emph{torch} y los 328 MB del modelo; y
+        Pero el plan gratuito \textbf{suspende el servicio tras 48 h sin visitas}
+        (\cod{gcTimeout} $=$ 172.800 s según la API de Hugging Face), de modo que el primer
+        visitante después de una pausa paga un arranque en frío mientras se cargan
+        \emph{torch} y los 328 MB del modelo. Está medido: reiniciando el Space,
+        \textbf{31 s hasta que el runtime dice \cod{RUNNING} y 32 s hasta que la página
+        responde}. Es la cota inferior, porque ahí la imagen del contenedor ya estaba
+        construida; despertar de una suspensión de 48 h añade traerla. Y
         \textbf{no da almacenamiento persistente}, así que la estantería, el avance de
         lectura y el cuaderno del lector viven en disco efímero y no sobreviven a un
         reinicio del contenedor. Lo segundo es la acción A4 de la estrategia.
