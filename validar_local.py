@@ -44,8 +44,8 @@ def cuerpo(lineas):
     # si recibe saltos de parrafo, porque reader._limpiar_html los restaura-.
     #
     # Medido cambiando el espacio por salto de linea:
-    #     con espacio  46 textos, cinco niveles, medias crecientes
-    #     con salto    30 textos, A1 se queda en 1 y la validacion FALLA
+    #     con espacio  47 textos, cinco niveles, medias crecientes
+    #     con salto    31 textos, A1 se queda en 1 y la validacion FALLA
     #
     # Se conserva el espacio porque es lo que reproduce el Cuadro 10 del
     # documento -la reproduccion local- y porque cambiarlo dejaria el resultado
@@ -90,7 +90,15 @@ pasan_estricto = 0   # cuantos pasarian el filtro completo de la app
 filas = []          # (nivel, puntuacion, palabras) por texto
 saltados = 0
 fallidos = []
-for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))):
+# El "?" del patron no es un descuido. Uno de los 59 archivos se llama
+# LearnEnglish_Reading con guion BAJO, y con "*LearnEnglish-Reading*.pdf" se
+# caia del corpus sin que nadie lo notara: por eso el documento hablaba de "uno
+# no disponible" que en realidad estaba en el disco desde el principio. Es el
+# tercer fallo del mismo tipo en un dia -antes fueron un \b que no cortaba en
+# el guion bajo y una cifra buscada solo en su forma sin redondear-: un patron
+# que contempla una sola manera de escribir lo mismo.
+PATRON = "*LearnEnglish?Reading*.pdf"
+for ruta in sorted(glob.glob(os.path.join(CORPUS, PATRON))):
     m = RE_NIVEL.search(os.path.basename(ruta))
     if not m:
         continue

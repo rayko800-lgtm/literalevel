@@ -211,8 +211,8 @@ publicada es directamente comparable con la nuestra**.
   CLEAR es público y hay contra qué medirlo. Ese es el número que hay que
   defender ante un evaluador, no el 0,908.
 - **El número que de verdad debería preocupar es otro:** en British Council,
-  contar palabras sin modelo da **0,799** y el modelo da **0,855** (Cuadro 12).
-  El modelo aporta señal por encima de la longitud (parcial 0,665), pero el
+  contar palabras sin modelo da **0,807** y el modelo da **0,860** (Cuadro 12).
+  El modelo aporta señal por encima de la longitud (parcial 0,668), pero el
   margen sobre la señal trivial es de 0,047. El proyecto ya lo publica, y eso es
   lo correcto. Pero es la cifra que un revisor exigente atacará primero.
 - **Lo que sí es un resultado poco común y está infravalorado en el documento:
@@ -434,10 +434,10 @@ Este apartado vale más que el anterior. Sin adornos:
    CLEAR. Y el LLM mejora solo cada seis meses; nuestro modelo es final por
    decreto.
 
-4. **En British Council, contar palabras da 0,799 y nosotros 0,855.**
+4. **En British Council, contar palabras da 0,807 y nosotros 0,860.**
    El proyecto lo publica y hace bien. Pero un revisor que solo lea esa tabla
    concluirá que 328 MB de transformer compran 0,047 de Spearman. La defensa
-   —la correlación parcial de 0,665— es correcta pero requiere explicar qué es
+   —la correlación parcial de 0,668— es correcta pero requiere explicar qué es
    una correlación parcial, y eso ya es terreno perdido.
 
 5. **Las etiquetas de nuestro catálogo son peores que las de cualquier competidor.**

@@ -9,23 +9,21 @@ documentos de learnenglish.britishcouncil.org y repetir `validar_local.py`.
 | Nivel | n |
 |---|---|
 | A1 | 12 |
-| A2 | 9 |
+| A2 | 10 |
 | B1 | 13 |
 | B2 | 12 |
 | C1 | 12 |
-| **Con nivel en el nombre** | **58** |
-| Sin nivel en el nombre | 0 |
-| **Archivos que casan con el patron** | **58** |
+| **Total** | **59** |
 
-El documento de entrega parte de **59**: los 58 de arriba mas uno mas.
+**Son 59, y estan los 59.** Durante un tiempo el documento hablaba de «uno no
+disponible». No lo era: el patron de busqueda decia
+`*LearnEnglish-Reading*.pdf` y uno de los archivos se llama
+`LearnEnglish_Reading`, con guion BAJO, asi que se caia del corpus sin que
+nadie lo notara. El patron de hoy usa `?` en esa posicion y los ve todos.
 
-Ese archivo numero 59 **no se puede identificar por nombre**, y conviene decir
-por que en vez de dejarlo en el aire: la cuenta de 59 viene del recuento que
-hizo la sesion de Colab en su momento sobre el catalogo de British Council, y
-de esa sesion solo quedan las cifras agregadas. El archivo no llego a bajarse a
-este disco, asi que aqui no hay nombre que apuntar. Lo comprobable es lo de
-arriba: **58 archivos, todos con nivel en el nombre**, de los que 46 pasan el
-filtro y se evaluan. El 59 es una cifra heredada, no un archivo localizado.
+De los 59: **2** no tienen cuerpo localizable al extraer el PDF, **10** los
+rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras, y los
+**47** restantes son los que se evaluan.
 
 ## A1 (12)
 
@@ -42,7 +40,7 @@ filtro y se evaluan. El 59 es una cifra heredada, no un archivo localizado.
 - `A1__LearnEnglish-Reading-A1-Student-card-application.pdf`
 - `A1__LearnEnglish-Reading-A1-Text-messages-to-a-friend.pdf`
 
-## A2 (9)
+## A2 (10)
 
 - `A2__LearnEnglish-Reading-A2-A-message-to-a-new-friend.pdf`
 - `A2__LearnEnglish-Reading-A2-An-airport-notice.pdf`
@@ -53,6 +51,7 @@ filtro y se evaluan. El 59 es una cifra heredada, no un archivo localizado.
 - `A2__LearnEnglish-Reading-A2-English-course-prospectus.pdf`
 - `A2__LearnEnglish-Reading-A2-Professional-profile-summaries.pdf`
 - `A2__LearnEnglish-Reading-A2-Study-skills-tips.pdf`
+- `A2__LearnEnglish_Reading-A2-An-email-from-a-friend.pdf`
 
 ## B1 (13)
 

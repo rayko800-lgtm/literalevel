@@ -38,7 +38,7 @@ correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus
 externo que no se usó para ajustar los pesos —aunque sí se exploró durante
 el desarrollo, y eso se detalla en la limitación 6—, ordena los niveles del
 Marco Común Europeo de forma
-estrictamente creciente: A1 0,5040 (n=3) · A2 0,5480 (n=7) · B1 0,9276 (n=12) ·
+estrictamente creciente: A1 0,5040 (n=3) · A2 0,5561 (n=8) · B1 0,9276 (n=12) ·
 B2 1,2414 (n=12) · C1 1,4952 (n=12). Ese orden —no el acierto exacto— es el
 resultado que sostiene el trabajo, **con una salvedad que conviene leer junto
 a las cifras**: el escalón A1–A2 es de 0,044 sobre desviaciones de 0,111 y
@@ -407,10 +407,10 @@ del inglés converge muy rápido, así que las 3.000 palabras más frecuentes de
 no está en la métrica sino en la cobertura: la lista del SPGC generaliza mejor
 a texto nuevo arbitrario, que es lo que la aplicación recibe.
 
-**Dificultad frente a longitud, la variable incómoda.** Sobre los 46 textos de
+**Dificultad frente a longitud, la variable incómoda.** Sobre los 47 textos de
 British Council medibles en local, contar las palabras del texto —sin modelo
-alguno— alcanza una correlación de Spearman de **0,799** con el nivel oficial.
-El modelo alcanza 0,855. Es decir: en ese corpus, nivel y longitud están
+alguno— alcanza una correlación de Spearman de **0,807** con el nivel oficial.
+El modelo alcanza 0,860. Es decir: en ese corpus, nivel y longitud están
 confundidos, porque los materiales de examen gradúan también la extensión de la
 tarea. Publicar ese *baseline* antes de que lo pregunte el evaluador es más
 creíble que omitirlo; en 7.5 se cuantifica cuánta señal aporta el modelo por
@@ -699,12 +699,12 @@ medias por nivel quedan estrictamente crecientes:
 | Nivel oficial | n (local) | Media en escala 0–2 | Desviación (poblacional) |
 |---|---|---|---|
 | A1 | 3 | 0,5040 | 0,111 |
-| A2 | 7 | 0,5480 | 0,237 |
+| A2 | 8 | 0,5561 | 0,223 |
 | B1 | 12 | 0,9276 | 0,198 |
 | B2 | 12 | 1,2414 | 0,236 |
 | C1 | 12 | 1,4952 | 0,172 |
 
-*Cuadro 10. Reproducción local de la validación externa, sobre los 46 textos
+*Cuadro 10. Reproducción local de la validación externa, sobre los 47 textos
 que quedan tras la extracción de los PDF **y el filtro de prosa continua** (el
 balance completo está en el Cuadro 11).*
 
@@ -717,19 +717,18 @@ Lo que se reproduce exactamente es **el orden**; las medias difieren
 ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
 decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10).
 
-**La diferencia entre los 38 textos de Colab y los 46 de aquí tiene dos causas,
+**La diferencia entre los 38 textos de Colab y los 47 de aquí tiene dos causas,
 y una versión anterior solo mencionaba una.** El balance completo, contado sobre
 los archivos reales, cierra así:
 
 | | Textos |
 |---|---|
 | Publicados por British Council | 59 |
-| menos: no disponible | −1 |
 | menos: sin cuerpo localizable al extraer el PDF | −2 |
 | menos: **rechazados por `scoring.continuous_prose`** | **−10** |
-| **Evaluados** | **46** |
+| **Evaluados** | **47** |
 
-*Cuadro 11. De 59 a 46, paso a paso.*
+*Cuadro 11. De 59 a 47, paso a paso.*
 
 **Y hay una salvedad que conviene poner aquí y no esconder en el código.** El
 guion de reproducción une las líneas del PDF con un espacio, y eso **desactiva una de las
@@ -738,7 +737,7 @@ dos comprobaciones —dos viñetas seguidas, o más de un tercio de líneas muy
 cortas— necesitan saltos de línea para ver nada. Es decir, este
 validador filtra **más flojo que la propia aplicación**, que sí recibe saltos
 de párrafo. Medido cambiando una cosa y sólo una: con saltos de línea
-sobreviven **30 textos en vez de 46**, y A1 se queda con uno solo, con lo que
+sobreviven **31 textos en vez de 47**, y A1 se queda con uno solo, con lo que
 la comprobación de orden creciente ya no se puede hacer sobre cinco niveles.
 
 Se conserva la unión con espacio porque es la que reproduce el Cuadro 10 de este
@@ -749,7 +748,7 @@ orden estrictamente creciente está medido sobre un conjunto que la aplicación
 habría filtrado más**, y una parte de esos 46 son textos que la app rechazaría
 por parecer listas.
 
-De las tres restas, las dos primeras son de extracción. La tercera no: son
+La primera resta es de extracción. La segunda no: son
 **diez textos
 —nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
 decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma:
@@ -761,20 +760,20 @@ filtraron con reglas distintas, no solo extrajeron distinto. Importa decirlo
 porque los tres textos A1 que sostienen el escalón más débil del Cuadro 10
 **no pasan el filtro de la aplicación**: pasan el de este guion, que es más
 flojo por lo que se explica debajo del Cuadro 11. Con el filtro completo, dos
-de los tres caen por maquetado de lista. Los nombres de los 58
+de los tres caen por maquetado de lista. Los nombres de los 59
 archivos están en `entrega/manifiesto_corpus_externo.md`, y `validar_local.py`
 imprime los diez rechazados con su motivo.
 
 ### 7.5 El baseline propio, y qué aporta el modelo por encima de él
 
-| Señal | Spearman con el nivel oficial (46 textos) |
+| Señal | Spearman con el nivel oficial (47 textos) |
 |---|---|
-| Modelo v4 | **0,855** |
-| Contar las palabras del texto, sin modelo | 0,799 |
-| Modelo, descontando la longitud (correlación parcial) | **0,665** |
+| Modelo v4 | **0,860** |
+| Contar las palabras del texto, sin modelo | 0,807 |
+| Modelo, descontando la longitud (correlación parcial) | **0,668** |
 
 *Cuadro 12. El modelo frente a la señal trivial. Las tres cifras las
-calcula `validar_local.py` sobre los mismos 46 textos, con Spearman sobre
+calcula `validar_local.py` sobre los mismos 47 textos, con Spearman sobre
 rangos y la correlación parcial en la misma escala.*
 
 Un contador de palabras llega casi tan lejos como el modelo en ese corpus, y
@@ -784,7 +783,7 @@ palabras no puede hacer —y conviene decirlo con precisión: no es que su
 correlación parcial sea peor, es que **no está definida**, porque descontar la
 longitud de la propia longitud deja un residuo de varianza cero—. Además, el modelo no recibe la longitud del documento
 como variable —puntúa bloques de tamaño fijo y promedia—, aunque su salida
-correlacione 0,725 con ella, porque los corpus de examen gradúan también la
+correlacione 0,732 con ella, porque los corpus de examen gradúan también la
 extensión de la tarea.
 
 **La escala está comprimida, y la aplicación lo asume.** Contra el ancla real,
@@ -1052,7 +1051,7 @@ repetirlo en cada párrafo corregido.
 4. **De los 1.197 libros del catálogo actual, solo 148 son descargables.** Los
    1.049 de StoryWeaver no tienen fichero que abrir.
 5. **Los tamaños muestrales de la validación externa son pequeños**: 38 textos
-   en Colab, 46 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
+   en Colab, 47 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
    niveles adyacentes con esas *n* no es significativa; lo que se afirma es el
    orden global, no cada comparación por pares.
 6. **La validación no es enteramente independiente de la exploración.** El
@@ -1062,7 +1061,7 @@ repetirlo en cada párrafo corregido.
    pero salió del diagnóstico y el conjunto ha
    sido mirado y ya no es virgen.
 7. **La longitud del texto es un confusor en el corpus de examen.** Contar
-   palabras alcanza 0,799 donde el modelo alcanza 0,855 (Cuadro 12).
+   palabras alcanza 0,807 donde el modelo alcanza 0,860 (Cuadro 12).
 8. **El modelo solo mide prosa continua en inglés.** Poesía, teatro, diálogo
    muy fragmentado y cualquier lengua distinta del inglés quedan fuera.
 9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el
@@ -1145,10 +1144,10 @@ repetirlo en cada párrafo corregido.
 
 **Se cumplió el objetivo ordinal, que era el objetivo.** Y conviene separar dos
 cosas que esta frase mezclaba en una versión anterior, porque vienen de corpus
-distintos. Sobre **textos externos con nivel MCER oficial** —los 46 de British
+distintos. Sobre **textos externos con nivel MCER oficial** —los 47 de British
 Council— el modelo ordena los niveles de forma estrictamente creciente
-(0,5040 · 0,5480 · 0,9276 · 1,2414 · 1,4952) y alcanza Spearman **0,829** con
-38 textos, **0,855** con los 46. El **0,908 y el 97,2 %** son otra cosa: salen
+(0,5040 · 0,5561 · 0,9276 · 1,2414 · 1,4952) y alcanza Spearman **0,829** con
+38 textos, **0,860** con los 47. El **0,908 y el 97,2 %** son otra cosa: salen
 del conjunto de validación de **144 documentos del propio corpus de anclaje**,
 que es interno. Atribuirlos a los externos era un error. Para el problema planteado —elegir qué
 leer— acertar el orden es lo que importa; acertar la letra exacta es un lujo.

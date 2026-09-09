@@ -362,7 +362,7 @@ Escrito para poder decir «el nuevo gana» sin engañarse.
 
 | Métrica | Umbral | Por qué veta |
 |---|---|---|
-| Correlación parcial descontando longitud (Cuadro 12) | no puede bajar de 0,665 | Un modelo que sube Spearman bajando la parcial **no ha aprendido dificultad: ha aprendido a contar palabras mejor**. Eso es peor, no mejor |
+| Correlación parcial descontando longitud (Cuadro 12) | no puede bajar de 0,668 | Un modelo que sube Spearman bajando la parcial **no ha aprendido dificultad: ha aprendido a contar palabras mejor**. Eso es peor, no mejor |
 | Pendiente predicho-vs-real tras calibrar | ≥ 0,90 | Sin esto, se cambia un modelo comprimido por otro comprimido |
 | Latencia del vistazo en la CPU de referencia | ≤ 20 s | Un v5 que rompe la demo no es un v5 |
 

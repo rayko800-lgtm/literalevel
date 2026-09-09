@@ -56,7 +56,7 @@ sin ponderar. Escala interna 0..5 (A1..C2); escala pública 0..2 = interna × 0.
 
 **El modelo no recibe la longitud del documento como variable**: puntúa
 ventanas de tamaño fijo y promedia. Eso no es lo mismo que decir que su salida
-sea independiente de la longitud — en British Council correlacionan 0.725,
+sea independiente de la longitud — en British Council correlacionan 0.732,
 porque ese corpus gradúa también por longitud de la tarea.
 
 | Validación | n | Dentro de ±1 nivel | Spearman |
@@ -66,13 +66,13 @@ porque ese corpus gradúa también por longitud de la tarea.
 
 ### El baseline, dicho antes de que lo pregunten
 
-Sobre los 46 textos de British Council que se pueden medir en local:
+Sobre los 47 textos de British Council que se pueden medir en local:
 
 | Señal | Spearman con el nivel oficial |
 |---|---|
-| Modelo v4 | **0.855** |
-| Contar las palabras del texto, sin modelo | 0.799 |
-| Modelo, descontando la longitud (correlación parcial) | **0.665** |
+| Modelo v4 | **0.860** |
+| Contar las palabras del texto, sin modelo | 0.807 |
+| Modelo, descontando la longitud (correlación parcial) | **0.668** |
 
 Un contador de palabras llega casi tan lejos, y hay que decirlo: en British
 Council el nivel y la longitud están confundidos. Lo que sostiene al modelo es
@@ -103,23 +103,22 @@ reportó Colab:
 | nivel | n | media local | Colab |
 |---|---|---|---|
 | A1 | 3 | 0.5040 | — |
-| A2 | 7 | 0.5480 | 0.6479 |
+| A2 | 8 | 0.5561 | 0.6479 |
 | B1 | 12 | 0.9276 | 0.9513 |
 | B2 | 12 | 1.2414 | 1.2883 |
 | C1 | 12 | 1.4952 | 1.4950 |
 
 C1 coincide hasta la tercera cifra decimal (1,4952 frente a 1,4950); A2 se
 desvía 0.10. La causa es la
-extracción de los PDF y el filtro de prosa continua: en local sobreviven 46 de los
-59 originales —uno no está disponible, dos no tienen cuerpo localizable y otros
-diez los rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras— y el anclaje
+extracción de los PDF y el filtro de prosa continua: en local sobreviven 47 de los
+59 originales —dos no tienen cuerpo localizable y otros diez los rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras— y el anclaje
 «Reading text … Tasks» recorta distinto. **Lo que sí se reproduce exactamente es
 que las medias quedan estrictamente crecientes**, que es el resultado que
 sostiene el trabajo.
 
-El guion imprime además las tres cifras del Cuadro 12 (modelo 0,855, contar
-palabras 0,799, parcial descontando la longitud 0,665) y la lista de los diez
-rechazados con su motivo. Los nombres de los 58 archivos del corpus están en
+El guion imprime además las tres cifras del Cuadro 12 (modelo 0,860, contar
+palabras 0,807, parcial descontando la longitud 0,668) y la lista de los diez
+rechazados con su motivo. Los nombres de los 59 archivos del corpus están en
 [`entrega/manifiesto_corpus_externo.md`](entrega/manifiesto_corpus_externo.md).
 
 No imprime ni un fragmento de los textos: el corpus tiene derechos.

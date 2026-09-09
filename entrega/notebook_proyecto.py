@@ -241,7 +241,7 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 # | **CLEAR Corpus** (Crossley et al.) | Corpus de **entrenamiento**: extractos con dificultad medida sobre juicios humanos | 4.724 extractos | GitHub, descarga directa |
 # | **Project Gutenberg** | El **catálogo** que la aplicación ordena | 79.337 entradas | Feed CSV oficial |
 # | **SPGC** (Gerlach & Font-Clos) | Lista de frecuencia de vocabulario en inglés | 45.345 libros, solo conteos | Zenodo (procesado aparte) |
-# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (46 legibles en local) | Material con derechos, no se distribuye |
+# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (47 legibles en local) | Material con derechos, no se distribuye |
 #
 # En este cuadernillo se descargan y se analizan las dos primeras. El SPGC se
 # usó en su momento con PySpark para construir la lista de palabras familiares
@@ -572,7 +572,7 @@ plt.show()
 #    longitud no informa, porque el corpus la controló por diseño (Figura 2).
 #    Sirve de contraste con lo que ocurre en la validación externa de la §7: en
 #    los exámenes de British Council el nivel y la longitud **sí** están
-#    confundidos, y allí contar palabras llega a Spearman 0,799. La diferencia
+#    confundidos, y allí contar palabras llega a Spearman 0,807. La diferencia
 #    entre los dos corpus no es un capricho estadístico: es la razón de que el
 #    modelo se entrene con ventanas de tamaño fijo.
 #
@@ -608,7 +608,7 @@ plt.show()
 # palabras. Es la comprobación visual del punto anterior: aquí, la longitud no
 # dice nada. Y es el ejemplo perfecto de por qué una variable que correlaciona
 # con la etiqueta en un corpus puede ser una trampa en otro; en la §7 se ve el
-# mismo `Google WC` disparado a 0,799 en otro conjunto de datos.
+# mismo `Google WC` disparado a 0,807 en otro conjunto de datos.
 
 # %%
 grupo_lit = clear.loc[clear["Categ"] == "Lit", "BT_easiness"]
@@ -1698,10 +1698,10 @@ print(tabla_reportada.to_string(index=False))
 # %%
 validacion_externa = pd.DataFrame({
     "Nivel oficial": ["A1", "A2", "B1", "B2", "C1"],
-    "n": [3, 7, 12, 12, 12],
-    "Media v4 (escala 0-2)": [0.5040, 0.5480, 0.9276, 1.2414, 1.4952],
+    "n": [3, 8, 12, 12, 12],
+    "Media v4 (escala 0-2)": [0.5040, 0.5561, 0.9276, 1.2414, 1.4952],
 })
-print("Validación externa: British Council, 46 textos legibles en local")
+print("Validación externa: British Council, 47 textos legibles en local")
 print()
 print(validacion_externa.to_string(index=False))
 
@@ -1753,11 +1753,11 @@ plt.show()
 #    puede afirmar nada más.
 #
 # Conviene además reportar el contraste que hace honesta la cifra: **contar las
-# palabras del texto, sin modelo alguno, alcanza Spearman 0,799 en este mismo
-# corpus**, frente a 0,855 del v4. En los exámenes graduados, nivel y longitud
+# palabras del texto, sin modelo alguno, alcanza Spearman 0,807 en este mismo
+# corpus**, frente a 0,860 del v4. En los exámenes graduados, nivel y longitud
 # están confundidos. Lo que sostiene al modelo no es ganarle a un contador de
 # palabras por cinco centésimas, sino que **aporta señal por encima de la
-# longitud**: descontándola por correlación parcial, el modelo conserva 0,665.
+# longitud**: descontándola por correlación parcial, el modelo conserva 0,668.
 #
 # Decir que el contador de palabras «se queda en cero» sería incorrecto y hay
 # que precisarlo: al descontar la longitud de una variable que **es** la
@@ -1984,7 +1984,7 @@ plt.show()
 # 3. **El dominio confunde la medida.** El texto informativo puntúa medio punto
 #    más difícil que el literario con la misma sintaxis (Figura 6); el modelo no
 #    ve esa distinción.
-# 4. **La validación externa es pequeña**: 46 textos legibles de 59, y el corpus
+# 4. **La validación externa es pequeña**: 47 textos legibles de 59, y el corpus
 #    tiene derechos, así que no se distribuye ni se puede auditar desde fuera.
 # 5. **Las cifras de 0,908 y 97,2 % no son verificables desde el repositorio**,
 #    porque el corpus de validación de 144 textos no está incluido.
