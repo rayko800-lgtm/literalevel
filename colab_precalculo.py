@@ -271,7 +271,13 @@ with ThreadPoolExecutor(max_workers=HILOS) as pool:
         n = hechos + fallos
         if n % 200 == 0:
             v = n / (time.time() - inicio)
-            queda = (len(pendientes) - len(list(TEXTOS.glob('*.txt')))) / v / 3600
+            # El calculo de lo que queda se hace con la cuenta que ya llevamos,
+            # NO volviendo a listar el directorio. Listar `gutenberg_txt` sobre
+            # Drive tarda 98 segundos con 28.535 ficheros -medido- y aqui se
+            # hacia cada 200 descargas, solo para imprimir una linea de
+            # progreso. A ese ritmo, mas de dos horas de la descarga se han ido
+            # en contar ficheros para decir cuanto faltaba por descargar.
+            queda = (len(pendientes) - hechos) / v / 3600
             print(f"  {hechos:,} bajados · {fallos} fallidos · {v:.1f}/s · "
                   f"al catálogo entero le faltarían {queda:.1f} h")
 
@@ -394,10 +400,36 @@ def perfil_de_libro(ruta):
     capítulos distinto del que mide la app y nadie se daría cuenta.
     """
     libro = reader.cargar(str(ruta))
-    filas, todas = [], []
+
+    # TODAS las ventanas del libro en UNA sola cola, y una sola llamada a la
+    # GPU. Antes se llamaba a `puntuar_lote` una vez por capitulo, y un
+    # capitulo tiene entre 7 y 31 ventanas (medido en informe_velocidad.md).
+    # Es decir: la tarjeta recibia lotes de ~20 cuando `puntuar_lote` agrupa de
+    # 256 en 256. La A100 no estaba lenta, estaba hambrienta -y el banco de
+    # pruebas que dio 2.022 ventanas/s medía justo el camino que el precalculo
+    # no usaba.
+    #
+    # Reagrupar no cambia el resultado en ninguna cifra que guardemos, pero
+    # conviene decirlo con precision y no de mas: NO es identico bit a bit.
+    # Medido sobre Alicia, 112 ventanas: 103 coinciden exactamente y las otras
+    # difieren como mucho en 4,8e-07. El motivo es el relleno -`padding=True`
+    # rellena hasta la ventana mas larga del lote, asi que la composicion del
+    # lote cambia el orden de las sumas en coma flotante-. Como las cifras se
+    # guardan redondeadas a tres decimales, una diferencia de 5e-07 no puede
+    # mover ninguna, salvo en un empate exacto que no se da en la practica.
+    trozos, marcas = [], []
     for n, (i, c) in enumerate(ficha.capitulos_de_cuerpo(libro), 1):
-        vs = puntuar_lote(scoring.fixed_blocks(ficha.sin_licencia(c.texto),
-                                               cap=10**9))
+        bs = scoring.fixed_blocks(ficha.sin_licencia(c.texto), cap=10**9)
+        if not bs:
+            continue
+        marcas.append((n, i, c, len(trozos), len(bs)))
+        trozos.extend(bs)
+
+    puntos = puntuar_lote(trozos) if trozos else []
+
+    filas, todas = [], []
+    for n, i, c, desde, cuantas in marcas:
+        vs = puntos[desde:desde + cuantas]
         if not vs:
             continue
         todas.extend(vs)
