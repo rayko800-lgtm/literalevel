@@ -1913,11 +1913,13 @@ plt.show()
 #    convierten 61.642 libros sin medir en 61.642 libros medidos **libro entero,
 #    capítulo a capítulo**, y jubilan definitivamente las etiquetas del v1 cuyo
 #    fracaso documenta la Figura 8.
-# 3. **Despliegue permanente de la interfaz.** El enlace actual es temporal y
-#    muere al apagar la computadora. Consumo medido: **1,05 GB de RSS** con
-#    modelo y catálogo cargados, con pico realista de 1,2-1,5 GB, y 562 MB en
-#    disco. Eso **descarta todos los planes de 512 MB de memoria** y acota la
-#    decisión a opciones de pago, con cifras y no con impresiones.
+# 3. **Almacenamiento persistente para el lector.** El despliegue permanente ya
+#    está hecho —`MikeMaki1763/literalevel` en Hugging Face Spaces, público y en
+#    marcha, 7 USD/mes de cuenta Pro—, pero sobre disco efímero: la estantería,
+#    el avance y el cuaderno del lector no sobreviven a un reinicio, y el
+#    servicio se suspende tras 48 h sin visitas. Consumo medido: **1,05 GB de
+#    RSS** con modelo y catálogo cargados, con pico realista de 1,2-1,5 GB, y
+#    575 MB en disco. Eso **descarta cualquier plan de 512 MB de memoria**.
 # 4. **Cerrar el ciclo de usuario con más lectores como Esmeralda.** El primero
 #    produjo seis correcciones concretas. No hay razón para pensar que el
 #    segundo produzca menos.

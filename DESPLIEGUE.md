@@ -1,7 +1,12 @@
 # Desplegar LiteraLevel (punto 6)
 
-Todo lo que sigue está **preparado y verificado en local**. Lo único que falta
-es elegir plataforma y ejecutar.
+**Ya está desplegado**: `MikeMaki1763/literalevel` en Hugging Face Spaces,
+público y en marcha, sobre hardware `cpu-basic` y una cuenta Pro de 7 USD/mes.
+Arranque medido tras reiniciar: 31 s hasta que responde.
+
+Lo que sigue es el procedimiento con el que se hizo y lo que haría falta para
+repetirlo en otra plataforma. Lo que **no** está resuelto es el almacenamiento
+persistente: el Space arranca con la estantería vacía tras cada reinicio.
 
 ## Lo que hay que colocar
 

@@ -6,9 +6,14 @@ Profesor: Mtro. Fernando Barranco Rodríguez
 Autor: Miguel Reyes Carrillo
 Septiembre de 2026
 
-> La sección **Estrategia** de este trabajo se entrega en un documento aparte,
-> `estrategia.md`, por su extensión. En este documento se resume en el
-> apartado 3 y se remite allí para el desarrollo completo.
+> **Dónde vive la Estrategia, que no es lo mismo aquí y en el PDF.** La rúbrica
+> la pide como entregable propio *y* como sección del documento. En el PDF
+> (`documento.pdf`) está **desarrollada completa** en su apartado, en el lugar
+> que le toca por orden. En esta copia de lectura se **resume** en el apartado 3
+> y el desarrollo va aparte, en `estrategia.md`, por extensión. No es una
+> contradicción: es que el entregable es el PDF y este `.md` es la copia de
+> lectura. Si buscas algo de estrategia y no está aquí, está en el PDF o en
+> `estrategia.md`.
 >
 > Este `.md` es la copia de lectura; el entregable es `documento.pdf`. Los
 > dos dicen lo mismo, pero **la numeración de los cuadros no coincide**: el
@@ -41,8 +46,8 @@ Marco Común Europeo de forma
 estrictamente creciente: A1 0,5040 (n=3) · A2 0,5561 (n=8) · B1 0,9276 (n=12) ·
 B2 1,2414 (n=12) · C1 1,4952 (n=12). Ese orden —no el acierto exacto— es el
 resultado que sostiene el trabajo, **con una salvedad que conviene leer junto
-a las cifras**: el escalón A1–A2 es de 0,044 sobre desviaciones de 0,111 y
-0,237, y descansa en tres textos. Está dentro del ruido. Los cuatro escalones
+a las cifras**: el escalón A1–A2 es de 0,052 sobre desviaciones de 0,111 y
+0,223, y descansa en tres textos. Está dentro del ruido. Los cuatro escalones
 siguientes, no.
 
 Conviene decirlo desde la primera página: **la escala 0–2 es propia y
@@ -64,7 +69,7 @@ lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
 
 ## 1. Introducción y motivación
 
-Cientos de millones de personas estudian inglés como segunda lengua. De todos
+Unos 1.500 millones de personas estudian inglés como segunda lengua. De todos
 los métodos con respaldo empírico, la **lectura extensiva** —leer mucho, por
 gusto, en textos ligeramente por encima del nivel actual— es uno de los que
 mejor se sostiene: el metaanálisis de Nakanishi (2015) sobre décadas de
@@ -745,7 +750,7 @@ documento, que es la reproducción local. **No reproduce las cifras de Colab**, 
 nada aquí lo hace: aquella tanda son 38 textos y A2 se desvía 0,10. Pero el guion
 imprime las dos cuentas en cada ejecución. Lo que esto dice del resultado es concreto: **el
 orden estrictamente creciente está medido sobre un conjunto que la aplicación
-habría filtrado más**, y una parte de esos 46 son textos que la app rechazaría
+habría filtrado más**, y una parte de esos 47 son textos que la app rechazaría
 por parecer listas.
 
 La primera resta es de extracción. La segunda no: son

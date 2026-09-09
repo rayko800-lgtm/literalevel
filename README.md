@@ -128,7 +128,7 @@ No imprime ni un fragmento de los textos: el corpus tiene derechos.
 | Archivo | Qué hace |
 |---|---|
 | `main.py` | Punto de entrada. **No renombrar a `app.py`**: chocaría con `app/` |
-| `app/ui.py` | La interfaz: siete pestañas en Gradio 6 |
+| `app/ui.py` | La interfaz: ocho pestañas en Gradio 6 |
 | `app/scoring.py` | Puntuación de dificultad. Port fiel del v4 |
 | `app/reader.py` | Lector de epub, pdf y txt → capítulos |
 | `app/catalogo.py` | Buscador semántico sobre el catálogo |
