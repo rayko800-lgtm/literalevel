@@ -131,6 +131,10 @@ def _dir_lector(peticion=None) -> Path:
 
 LIMITE_CONSULTAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_CONSULTAS", "30"))
 LIMITE_VOZ_HORA = int(os.environ.get("LITERALEVEL_LIMITE_VOZ", "10"))
+# La sinopsis son cuatro pasajes de 900 palabras a la API por pulsacion, y
+# nunca acierta en cache si el archivo cambia una palabra. Es la mas cara por
+# uso de las tres, asi que su tope es el mas bajo.
+LIMITE_SINOPSIS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_SINOPSIS", "6"))
 _VENTANA = 3600.0
 
 _gasto: dict[str, list[float]] = {}
@@ -193,14 +197,14 @@ def _codigo_de(peticion) -> str | None:
 
 
 def _puede_pagar(peticion) -> tuple[bool, str]:
-    """(¿esta sesion puede usar OpenAI?, motivo para ensenar)."""
-    return cuentas.permite(BASE_DATOS_LECTOR, _codigo_de(peticion))
+    """Comprueba el cupo Y lo consume, en una sola operacion.
 
-
-def _apuntar_uso(peticion) -> None:
-    c = cuentas.validar(_codigo_de(peticion))
-    if c is not None:
-        cuentas.apuntar(BASE_DATOS_LECTOR, c)
+    Antes esto solo preguntaba, y quien llamaba apuntaba el uso despues con
+    `_apuntar_uso`. Entre las dos cosas cabia una condicion de carrera, y esta
+    reproducida: con un codigo de tope 2 y veinte peticiones simultaneas
+    pasaban las veinte. `cuentas.consumir` hace las dos bajo el mismo candado.
+    """
+    return cuentas.consumir(BASE_DATOS_LECTOR, _codigo_de(peticion))
 
 
 def _canjear(codigo: str, peticion: gr.Request = None) -> str:
@@ -1277,16 +1281,31 @@ def _sinopsis_guardada(libro):
         return None
 
 
-def _de_que_trata(libro):
+def _de_que_trata(libro, peticion: gr.Request = None):
     """Resumen en espanol de que va el libro. Es lo unico de la ficha que sale
     a la red, asi que va detras de un boton y se guarda: un libro se resume una
     vez y ya. Generadora, porque tarda unos segundos.
+
+    **Esta es la TERCERA cosa que cuesta dinero**, y durante un tiempo fue la
+    unica que estaba abierta. No recibia `gr.Request`, no pasaba por el codigo
+    de acceso, no tenia tope por hora y no apuntaba el uso: en una direccion
+    publica, cualquiera podia subir un .txt, pulsar el boton, cambiar una
+    palabra del archivo -la cache va por titulo, palabras y titulos de
+    capitulo- y repetir. Cada pulsacion son cuatro pasajes de 900 palabras a la
+    API. Lo encontro una auditoria del codigo, no del documento.
     """
     if libro is None or not libro.capitulos:
         yield "Abre un libro primero."
         return
     datos = _sinopsis_guardada(libro)
     if datos is None:
+        if not _dentro_del_limite(peticion, "sinopsis", LIMITE_SINOPSIS_HORA):
+            yield _aviso(_mensaje_limite("es", 60))
+            return
+        puede, motivo_pago = _puede_pagar(peticion)
+        if not puede:
+            yield motivo_pago
+            return
         cliente = consultor()._cliente()
         if cliente is None:
             yield ("Para el resumen hace falta la clave de OpenAI. Todo lo "
@@ -1691,11 +1710,11 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
 
     nivel = p.nivel if p is not None else NIVEL_POR_DEFECTO
     try:
+        # `_puede_pagar` consume el uso si lo concede, en una sola operacion:
+        # no hay que apuntarlo despues.
         puede, motivo_pago = _puede_pagar(peticion)
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma,
                                   usar_openai=puede)
-        if puede:
-            _apuntar_uso(peticion)
     except (FileNotFoundError, OSError) as e:
         yield _aviso(e), "", gr.update(visible=False)
         return
@@ -1832,7 +1851,6 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     puede, motivo_pago = _puede_pagar(peticion)
     if not puede:
         return "", motivo_pago, gr.update(visible=False)
-    _apuntar_uso(peticion)
     try:
         # Los fallos se registran aparte, en la base de ESTE lector: las
         # palabras que a uno se le atragantan no son asunto de los demas.
@@ -2363,11 +2381,12 @@ def construir() -> gr.Blocks:
                 if cuentas.hay_codigos():
                     with gr.Accordion("¿Tienes un código de acceso?", open=False):
                         gr.Markdown(
-                            "Corregir la pronunciación y explicar una palabra "
-                            "en su contexto son las dos únicas cosas que cuestan "
-                            "dinero, porque van a un servicio externo. **Todo lo "
-                            "demás —medir libros, leerlos, el diccionario, el "
-                            "cuestionario— funciona sin código.**")
+                            "Corregir la pronunciación, explicar una palabra en "
+                            "su contexto y el resumen de «¿de qué trata?» son "
+                            "las tres únicas cosas que cuestan dinero, porque "
+                            "van a un servicio externo. **Todo lo demás —medir "
+                            "libros, leerlos, el diccionario, el cuestionario— "
+                            "funciona sin código.**")
                         with gr.Row():
                             caja_codigo = gr.Textbox(
                                 label="Código", placeholder="XXXX-XXXX-XXXX",

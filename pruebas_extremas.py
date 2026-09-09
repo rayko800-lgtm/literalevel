@@ -930,6 +930,89 @@ def _cupo_se_agota():
 
 
 prueba("el cupo se agota y no revive", _cupo_se_agota)
+
+
+def _sin_carrera():
+    """Veinte peticiones simultaneas con un cupo de dos: pasan dos.
+
+    Antes pasaban las veinte y el contador acababa en 1. Preguntar el cupo y
+    apuntarlo eran dos operaciones, y entre las dos cabia media aplicacion.
+    """
+    import threading
+    def dentro():
+        base = pathlib.Path(tempfile.mkdtemp(prefix="carrera_"))
+        pasaron = []
+        def intento():
+            if cuentas_mod.consumir(base, "LLAVE-B")[0]:
+                pasaron.append(1)
+        hilos = [threading.Thread(target=intento) for _ in range(20)]
+        for h in hilos: h.start()
+        for h in hilos: h.join()
+        return len(pasaron)
+    n = _con_codigos(dentro)
+    assert n == 2, f"pasaron {n} peticiones con un cupo de 2"
+    return "20 simultaneas, cupo 2, pasan 2"
+
+
+def _no_se_pierden_apuntes():
+    """Dos hilos x 200 usos con cupo sin limite: el contador llega a 400."""
+    import threading
+    def dentro():
+        base = pathlib.Path(tempfile.mkdtemp(prefix="apuntes_"))
+        def bucle():
+            for _ in range(200):
+                cuentas_mod.consumir(base, "LLAVE-A")
+        hs = [threading.Thread(target=bucle) for _ in range(2)]
+        for h in hs: h.start()
+        for h in hs: h.join()
+        return cuentas_mod.gastado(base, "jefe")
+    n = _con_codigos(dentro)
+    # El codigo sin tope no gasta cupo, asi que no debe contarse.
+    assert n == 0, f"un codigo sin tope no deberia apuntar usos, y apunto {n}"
+    return "el codigo sin tope no consume contador"
+
+
+prueba("veinte peticiones a la vez no burlan el cupo", _sin_carrera)
+prueba("el codigo sin tope no gasta contador", _no_se_pierden_apuntes)
+prueba("consumir con la puerta quitada deja pasar",
+       lambda: cuentas_mod.consumir(pathlib.Path(TMP), None)[0] is True)
+
+
+titulo("Las tres puertas del dinero")
+
+# Fable senalo que NINGUNA de las 198 pruebas tocaba los manejadores que
+# deciden si se gasta dinero. Estas tres los ejercitan sin red: con la puerta
+# puesta y sin codigo, los tres tienen que negarse y devolver texto legible.
+def _con_puerta(fn):
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0"
+    ui._CODIGO_SESION.clear()
+    try:
+        return fn()
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+        ui._CODIGO_SESION.clear()
+
+
+def _sinopsis_pide_codigo():
+    tramos = list(ui._de_que_trata(libro_ok))
+    texto = str(tramos[-1])
+    assert "código de acceso" in texto, texto[:120]
+    return "la sinopsis se niega sin codigo"
+
+
+prueba("la sinopsis pide codigo", lambda: _con_puerta(_sinopsis_pide_codigo))
+prueba("la practica de voz pide codigo",
+       lambda: _con_puerta(
+           lambda: "código de acceso" in str(ui._practicar("x.wav", "hello there")[1])))
+prueba("canjear un codigo malo no abre nada",
+       lambda: _con_puerta(lambda: "no vale" in ui._canjear("INVENTADO")))
+prueba("canjear el codigo bueno lo dice",
+       lambda: _con_puerta(lambda: "jefe" in ui._canjear("LLAVE-A")))
+
 def _apuntar_en_ruta_imposible():
     r = _con_codigos(
         lambda: cuentas_mod.apuntar(pathlib.Path("Z:/no/existe"),

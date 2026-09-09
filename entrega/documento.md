@@ -648,8 +648,8 @@ entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
 documento citaba una tarjeta `metricas_literalevel_v4.json` que no existe. Lo
 único comprobable desde el repositorio es la aritmética interna —510 + 144 =
 654, 77/144 = 53,47 % y 140/144 = 97,22 %—, que cuadra. Quien quiera verificar
-el resto tiene que confiar en esa ejecución o rehacerla. Lo detectó una
-se corrige diciéndolo, no citando un archivo inexistente.
+el resto tiene que confiar en esa ejecución o rehacerla. Se corrige diciéndolo,
+no citando un archivo que no existe.
 
 | Conjunto | n | Exacto | Dentro de ±1 nivel | Spearman |
 |---|---|---|---|---|
