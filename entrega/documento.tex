@@ -1236,7 +1236,7 @@ T2 & \textbf{Normalización de espacios} (\cod{\textbackslash s+} $\rightarrow$ 
 \addlinespace
 T3 & \textbf{Troceado en bloques de 250 palabras, mínimo 150} & Es la unidad con la que se entrenó; un bloque más corto no tiene señal suficiente & Constante del entrenamiento: cambiarla invalidaría las métricas reportadas \\
 \addlinespace
-T4 & \textbf{Truncado a 256 \emph{tokens}} & Límite de contexto del modelo & Medido: de 200 bloques, el \textbf{100\pct} llega exactamente a 256 \emph{tokens} tras truncar, porque 250 palabras inglesas siempre superan 256 BPE. No hay relleno que optimizar \\
+T4 & \textbf{Truncado a 256 \emph{tokens}} & Límite de contexto del modelo & Medido: de 200 bloques de 250 palabras, el \textbf{100\pct} llega exactamente a 256 \emph{tokens} tras truncar, porque en prosa inglesa real 250 palabras superan siempre los 256 BPE. Dentro de un texto troceado así no hay relleno; agrupando ventanas de capítulos distintos sí lo hay, y eso se trata en el ~\S\ref{sec:escalado} \\
 \addlinespace
 T5 & \textbf{Recorte de la licencia de Gutenberg} por las marcas START/END, dentro del capítulo & 2.900 de las 5.042 palabras del capítulo XII de \emph{Alice} son texto legal & Sin esto, el modelo puntuaba texto jurídico como narrativa y la ficha listaba «gutenberg» entre las palabras más frecuentes del libro \\
 \addlinespace
@@ -2368,7 +2368,7 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
   \item \textbf{De los 1.197 libros del catálogo actual, solo 148 son descargables.} Los
         1.049 de StoryWeaver no tienen fichero que abrir.
   \item \textbf{Los tamaños muestrales de la validación externa son pequeños}: 38 textos
-        en Colab, 45 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
+        en Colab, 46 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
         niveles adyacentes con esas $n$ no es significativa; lo que se afirma es el orden
         global, no cada comparación por pares.
   \item \textbf{La validación no es enteramente independiente de la exploración.} El
@@ -2426,8 +2426,9 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         de usabilidad graves —y encontró varios—, no para estimar satisfacción media.
   \item \textbf{La explicación contextual depende de un servicio externo de pago.} Sin
         clave, la aplicación sigue funcionando en todo lo que no usa red —diccionario,
-        fonética, buscador, puntuación y los enlaces de audio de Wiktionary, que descarga
-        el navegador— pero se apagan la
+        fonética, buscador y puntuación. Los enlaces de audio de Wiktionary son aparte:
+        los descarga el navegador del lector, así que necesitan conexión, aunque no
+        clave— pero se apagan la
         explicación en contexto y la corrección de pronunciación.
 \end{enumerate}
 
@@ -2533,8 +2534,9 @@ se documenta en el apartado~\ref{sec:esmeralda}, y su resultado son seis etiquet
 reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y una
 interfaz que se puede usar con el pulgar.
 
-\textbf{Y queda pendiente lo que más pesa.} La aplicación funciona, pero su enlace es
-temporal; el catálogo se está remidiendo; y el cuaderno, aunque ya corre entero desde los
+\textbf{Y queda pendiente lo que más pesa.} La aplicación funciona y ya tiene dirección
+fija, pero sobre el hardware más barato: se suspende por inactividad y no guarda nada entre
+reinicios. El catálogo se está remidiendo. Y el cuaderno, aunque ya corre entero desde los
 pesos publicados, cita las métricas del v4 en vez de recalcularlas, porque su corpus de
 anclaje no es redistribuible. Las tres cosas están planificadas con coste y
 criterio de terminado en el cuadro~\ref{cuad:accionables}.

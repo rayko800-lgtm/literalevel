@@ -478,7 +478,7 @@ es la del módulo 1 del diplomado: **no se transforma sin medir qué se rompió*
 | T1 | **Filtro de prosa continua** antes de puntuar: se rechaza si hay ≥2 viñetas o ≥6 líneas cortas | El modelo solo vio prosa; puntuar un menú da un número sin significado | El filtro estaba muerto en producción: se normalizaba *antes* de comprobar, y `normalize()` colapsa los saltos de línea, así que el detector recibía siempre una sola línea. Una carta de menú de 432 palabras se puntuaba como prosa. Corregido: el filtro va sobre el texto crudo |
 | T2 | **Normalización de espacios** (`\s+` → espacio) después del filtro | Estabiliza el troceado en bloques | Sin efecto sobre la puntuación; solo sobre el corte |
 | T3 | **Troceado en bloques de 250 palabras, mínimo 150** | Es la unidad con la que se entrenó; un bloque más corto no tiene señal suficiente | Constante del entrenamiento: cambiarla invalidaría las métricas reportadas |
-| T4 | **Truncado a 256 tokens** | Límite de contexto del modelo | Medido: de 200 bloques, el **100 %** llega exactamente a 256 tokens tras truncar, porque 250 palabras inglesas siempre superan 256 BPE. No hay relleno que optimizar |
+| T4 | **Truncado a 256 tokens** | Límite de contexto del modelo | Medido: de 200 bloques de 250 palabras, el **100 %** llega exactamente a 256 tokens tras truncar, porque en prosa inglesa real 250 palabras superan siempre los 256 BPE. Dentro de un texto troceado así no hay relleno; agrupando ventanas de capítulos distintos sí lo hay, y eso se trata en §8.3 |
 | T5 | **Recorte de la licencia de Gutenberg** por las marcas START/END, dentro del capítulo | 2.900 de las 5.042 palabras del capítulo XII de *Alice* son texto legal | Sin esto, el modelo puntuaba texto jurídico como narrativa y la ficha listaba «gutenberg» entre las palabras más frecuentes del libro |
 | T6 | **Descarte de portada, índice y portadilla** por la etiqueta «Antes del primer capítulo» | 4.957 palabras de paratexto se puntuaban como novela | Se probó descartar por el filtro de prosa continua y se rechazó: eliminaba dos capítulos reales de *Alice* |
 | T7 | **Muestreo de hasta 8 bloques repartidos por el documento** para la puntuación rápida | Dar un número en segundos, no en minutos | Cuantificado: 8 bloques dan 1,784 y el recorrido completo de las 23 ventanas del mismo capítulo da 1,743. El atajo se desvía 0,041 sobre una escala de 0 a 2 |
@@ -1023,7 +1023,7 @@ repetirlo en cada párrafo corregido.
 4. **De los 1.197 libros del catálogo actual, solo 148 son descargables.** Los
    1.049 de StoryWeaver no tienen fichero que abrir.
 5. **Los tamaños muestrales de la validación externa son pequeños**: 38 textos
-   en Colab, 45 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
+   en Colab, 46 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
    niveles adyacentes con esas *n* no es significativa; lo que se afirma es el
    orden global, no cada comparación por pares.
 6. **La validación no es enteramente independiente de la exploración.** El
@@ -1083,10 +1083,11 @@ repetirlo en cada párrafo corregido.
     fallos de usabilidad graves —y encontró varios—, no para estimar
     satisfacción media.
 14. **La explicación contextual depende de un servicio externo de pago.** Sin
-    clave, la aplicación sigue funcionando en todo lo que no usa red
-    —diccionario, fonética, buscador, puntuación y los enlaces de audio de
-    Wiktionary, que descarga el navegador— pero se
-    apagan la explicación en contexto y la corrección de pronunciación.
+    clave, la aplicación sigue funcionando en todo lo que no sale a la red
+    desde el servidor: diccionario, fonética, buscador y puntuación. Los
+    enlaces de audio de Wiktionary son aparte —los descarga el navegador del
+    lector, así que necesitan conexión, aunque no clave—. Lo que se apaga sin
+    clave es la explicación en contexto y la corrección de pronunciación.
 
 ---
 
@@ -1190,10 +1191,12 @@ correlación. Ese ciclo se documenta en el documento de estrategia, y su
 resultado son seis etiquetas reescritas, cinco paletas verificadas contra el
 criterio de contraste WCAG AA y una interfaz que se puede usar con el pulgar.
 
-**Y queda pendiente lo que más pesa.** La aplicación funciona, pero su enlace
-es temporal; el catálogo se está remidiendo; y el cuaderno, aunque ya corre
-entero desde los pesos publicados, cita las métricas del v4 en vez de
-recalcularlas, porque su corpus de anclaje no es redistribuible. Las tres cosas están
+**Y queda pendiente lo que más pesa.** La aplicación funciona y ya tiene
+dirección fija, pero sobre el hardware más barato: se suspende por
+inactividad y no guarda nada entre reinicios. El catálogo se está remidiendo.
+Y el cuaderno, aunque ya corre entero desde los pesos publicados, cita las
+métricas del v4 en vez de recalcularlas, porque su corpus de anclaje no es
+redistribuible. Las tres cosas están
 planificadas con coste y criterio de terminado en el documento de estrategia.
 
 ---

@@ -14,7 +14,7 @@ punta (tokenizar, copiar a la tarjeta, inferir y traer de vuelta):
     GPU  (GTX 1650 SUPER, fp32, lote 128)    112,7 ventanas/s      13,8x
 
 Y da los MISMOS numeros, que es lo que de verdad importa: 839 de 840 ventanas
-identicas a tres decimales, MAE 0,0000012, y `validar_local.py` devuelve las
+identicas a tres decimales, MAE 0,000001, y `validar_local.py` devuelve las
 medias exactas de siempre (A1 0.5040 · A2 0.5480 · B1 0.9276 · B2 1.2414 ·
 C1 1.4952, orden estrictamente creciente).
 

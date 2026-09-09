@@ -1698,7 +1698,7 @@ print(tabla_reportada.to_string(index=False))
 # %%
 validacion_externa = pd.DataFrame({
     "Nivel oficial": ["A1", "A2", "B1", "B2", "C1"],
-    "n": [3, 7, 12, 11, 12],
+    "n": [3, 7, 12, 12, 12],
     "Media v4 (escala 0-2)": [0.5040, 0.5480, 0.9276, 1.2414, 1.4952],
 })
 print("Validación externa: British Council, 46 textos legibles en local")
