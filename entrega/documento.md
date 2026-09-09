@@ -142,8 +142,7 @@ encima de 5** —medido sobre 530 ventanas de *Alicia*, *Orgullo y prejuicio* y
 que un bloque que puntúa 5,3 arrastrase hacia arriba a todo el capítulo. Las
 dos versiones de la fórmula llegan a separarse **0,021** en un libro real, que
 es cinco veces la diferencia de cualquier otra decisión de agregación del
-sistema. Una versión anterior de este documento publicaba el recorte fuera del
-sumatorio; el código siempre hizo lo que se describe aquí.
+sistema. El recorte va dentro del sumatorio, que es lo que hace el código.
 
 ### 2.2 Lo que el problema no es
 
@@ -284,9 +283,8 @@ cuatro frases, entre 5 y 55 palabras de media por frase, y rechazo si hay dos o
 más viñetas o más del 35 % de líneas cortas. Coinciden en el propósito —tirar
 menús, listas y tablas— pero no en los umbrales.
 
-**Y aquí hay que contar la secuencia real, porque una versión anterior de este
-documento decía que el filtro se fijó «antes de mirar ningún resultado» y no es
-exacto.** Lo que ocurrió fue lo contrario en el orden: primero se puntuaron los
+**Y aquí hay que contar la secuencia real, porque el filtro no se fijó antes de
+mirar ningún resultado.** El orden fue el contrario: primero se puntuaron los
 59 textos, se vio que el modelo daba resultados absurdos con el menú y el
 tablero de salidas, y **de ese diagnóstico salió la idea del filtro**. Que las
 dos vías se definieran sin volver a mirar las puntuaciones, y que coincidan
@@ -426,11 +424,13 @@ tipo documental. Al filtrar los 59 textos de British Council a prosa continua,
 el nivel A1 desaparece casi por completo y el rango evaluable **de esa tanda de
 análisis** se encoge de cinco niveles a cuatro (A2–C1): el catálogo gratuito de
 British Council no tiene C2, así que el corpus nunca tuvo seis. La reproducción
-local del Cuadro 10 sí conserva los cinco, con tres textos en A1, porque filtra
+local del Cuadro 11 sí conserva los cinco, con tres textos en A1, porque filtra
 con otras reglas. Por eso el *baseline* de contar palabras cae de 0,879
 a 0,765 al filtrar: parte de la señal del conjunto completo era simplemente que
 los textos A1 son cortos. Las correlaciones antes y después del filtro **no son
-comparables entre sí**, y se reportan por separado.
+comparables entre sí**, y se reportan por separado. Los conjuntos de textos que
+aparecen aquí y en el 7.4 están todos, con lo que se puede y no se puede hacer
+con cada uno, en el Cuadro 9.
 
 ### 5.3 Análisis multivariado
 
@@ -659,10 +659,30 @@ siguen siendo las heredadas del v1. Su escala interna es 0–5 —un valor por n
 intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala multiplicada
 por 0,4. **El modelo es final y no se reentrena.**
 
+**Antes de las cifras, las reglas del juego.** Por este apartado y por el
+siguiente circulan **cinco conjuntos de textos distintos**, y confundirlos es
+fácil porque cuatro de los cinco salen del mismo material de British Council. No
+son subconjuntos ordenados unos de otros y sus tamaños no se restan entre sí. El
+Cuadro 9 dice qué es cada uno, qué se mide con él y qué **no** se puede hacer
+con él; el resto del apartado los cita por su nombre.
+
+| Conjunto | n | De dónde sale | Qué se mide con él | Qué **no** se puede hacer con él |
+|---|---|---|---|---|
+| **Validación ciega** (interno) | 144 | Partición de validación del corpus de anclaje MCER: 654 documentos aceptados, 510 de entrenamiento y 144 reservados | Exactitud, acierto dentro de ±1 nivel y Spearman 0,908 del modelo desplegado (Cuadro 10) | Presentarlo como validación externa. Sale del mismo corpus con el que se afinaron los pesos, así que su 0,908 no es comparable con las cifras de British Council |
+| **British Council, tanda de Colab** | 38 | Extracción de los PDF hecha en Colab durante el entrenamiento, con su propio filtro | Spearman 0,829 y el 100 % dentro de ±1 (Cuadro 10); las cuatro medias por nivel que ajustan la recta de compresión (7.5) | Restarlo de los 47. Es otra tanda, con otra extracción y otro filtro: la diferencia no son «nueve textos concretos» que se puedan nombrar |
+| **British Council, reproducción local** | 47 | Los 59 publicados, menos 2 sin cuerpo localizable al extraer el PDF y 10 rechazados por el filtro de prosa (Cuadro 12) | **El resultado principal**: el orden creciente por nivel (Cuadro 11) y las tres cifras del *baseline* —0,860, 0,807 y 0,668— del Cuadro 13 | Leerlo como «los textos que la aplicación aceptaría». El validador local filtra más flojo que la app (7.7) |
+| **Los que pasan el filtro completo** | 31 | Esos mismos 47 refiltrados conservando los saltos de línea, es decir con las cuatro reglas del filtro de prosa continua activas | Cuánto depende el conjunto evaluado de una regla que el validador desactiva: sobreviven 31 y A1 se queda con un solo texto (7.7) | Sostener el orden sobre cinco niveles. No se usa para ninguna cifra publicada en este documento |
+| **Publicados por British Council** | 59 | Todos los PDF descargados del catálogo gratuito. Los nombres de los 59 están en `entrega/manifiesto_corpus_externo.md` | El diagnóstico del 4.3(a): que el corpus no es homogéneo, y el 89,8 % de coincidencia entre las dos vías con que se definió el filtro | Usarlo como corpus de validación. Incluye menús, pósters y horarios, y las correlaciones medidas sobre él no se comparan con las de después de filtrar |
+
+*Cuadro 9. Los cinco conjuntos de textos que aparecen en la validación. Cuatro
+de los cinco salen del mismo catálogo de British Council, con extracciones y
+filtros distintos: no son subconjuntos unos de otros y sus tamaños no se
+restan.*
+
 El corpus de anclaje MCER con el que se afinó son 654 documentos aceptados
 —57 descartados por longitud insuficiente—, repartidos en 510 de entrenamiento
 y 144 de validación. Esos 144 documentos son el conjunto de validación ciega
-que produce las cifras de la primera fila del Cuadro 9.
+que produce las cifras de la primera fila del Cuadro 10.
 
 **De dónde salen esas cifras, dicho con precisión.** De la ejecución de
 entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
@@ -670,15 +690,14 @@ entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
 documento citaba una tarjeta `metricas_literalevel_v4.json` inexistente. Lo
 único comprobable desde el repositorio es la aritmética interna —510 + 144 =
 654, 77/144 = 53,47 % y 140/144 = 97,22 %—, que cuadra. Quien quiera verificar
-el resto tiene que confiar en esa ejecución o rehacerla. Se corrige diciéndolo,
-no citando un archivo que no existe.
+el resto tiene que confiar en esa ejecución o rehacerla.
 
 | Conjunto | n | Exacto | Dentro de ±1 nivel | Spearman |
 |---|---|---|---|---|
 | Validación ciega | 144 | 53,5 % | **97,2 %** | **0,908** |
 | British Council (externo) | 38 | 50,0 % | **100 %** | 0,829 |
 
-*Cuadro 9. Métricas del modelo desplegado. MAE de 0,499 niveles de la escala
+*Cuadro 10. Métricas del modelo desplegado. MAE de 0,499 niveles de la escala
 interna 0–5 —0,200 en la escala pública 0–2— en el conjunto
 de validación.*
 
@@ -698,8 +717,16 @@ un predictor constante esté medida: no lo está, porque faltan los recuentos po
 nivel de ese conjunto.
 
 **El resultado que de verdad sostiene el trabajo no es ninguno de esos
-porcentajes, sino el orden.** Sobre textos externos con nivel MCER oficial, las
-medias por nivel quedan estrictamente crecientes:
+porcentajes, sino el orden.** Esto es lo que se midió: los **47 textos de la
+reproducción local de British Council**, cada uno con un nivel MCER oficial
+asignado por la institución que lo publica y ninguno usado para ajustar los
+pesos, puntuados con `validar_local.py` y agrupados después por su nivel. Y esto
+es lo que salió: **las medias por nivel quedan estrictamente crecientes en los
+cinco niveles disponibles**, de A1 a C1 —0,5040 · 0,5561 · 0,9276 · 1,2414 ·
+1,4952 en la escala 0–2—, y la correlación de Spearman con el nivel oficial es
+de **0,860** (Cuadro 11 y Cuadro 13). Ese orden —no el acierto exacto— es el
+resultado que el trabajo afirma haber conseguido, y es el que se cita en las
+conclusiones.
 
 | Nivel oficial | n (local) | Media en escala 0–2 | Desviación (poblacional) |
 |---|---|---|---|
@@ -709,22 +736,35 @@ medias por nivel quedan estrictamente crecientes:
 | B2 | 12 | 1,2414 | 0,236 |
 | C1 | 12 | 1,4952 | 0,172 |
 
-*Cuadro 10. Reproducción local de la validación externa, sobre los 47 textos
+*Cuadro 11. Reproducción local de la validación externa, sobre los 47 textos
 que quedan tras la extracción de los PDF **y el filtro de prosa continua** (el
-balance completo está en el Cuadro 11).*
+balance completo está en el Cuadro 12).*
 
-Esta tabla se **recalcula** con el guion `validar_local.py`, en cualquier
-máquina que tenga los mismos PDF y los mismos pesos. No es una reproducción
-independiente: los PDF de British Council tienen derechos y no acompañan al
-repositorio, así que quien quiera rehacerla tiene que reunirlos por su
-cuenta. El `.dat` de la figura guarda los agregados, no las entradas.
-Lo que se reproduce exactamente es **el orden**; las medias difieren
-ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
-decimal —1,4952 frente a 1,4950—, A2 se desvía 0,09).
+#### La letra pequeña de ese resultado
 
-**La diferencia entre los 38 textos de Colab y los 47 de aquí tiene dos causas,
-y una versión anterior solo mencionaba una.** El balance completo, contado sobre
-los archivos reales, cierra así:
+**Aquí empieza la letra pequeña, y conviene leerla antes de citar la cifra.**
+Son cuatro salvedades. Ninguna anula la afirmación anterior, pero cada una acota
+lo que puede hacerse con ella.
+
+**Una: el escalón A1–A2 está dentro del ruido.** Es de 0,052 sobre desviaciones
+de 0,111 y 0,223, y descansa en tres textos. Los tres escalones siguientes, no.
+Lo que se afirma es el orden global de las cinco medias, no cada comparación por
+pares: con n de 3 a 12 textos por nivel, el primer escalón no se sostendría por
+sí solo.
+
+**Dos: es una reproducción local, no una reproducción independiente.** El Cuadro
+11 se **recalcula** con `validar_local.py` en cualquier máquina que tenga los
+mismos PDF y los mismos pesos, pero los PDF de British Council tienen derechos y
+no acompañan al repositorio, así que quien quiera rehacerla tiene que reunirlos
+por su cuenta. El `.dat` de la figura guarda los agregados, no las entradas. Lo
+que se reproduce exactamente es **el orden**; las medias difieren ligeramente de
+las obtenidas en Colab (C1 coincide hasta la tercera cifra decimal —1,4952
+frente a 1,4950—, A2 se desvía 0,09).
+
+**Tres: los 38 de Colab y los 47 de aquí son dos tandas distintas, y no se
+restan.** La diferencia tiene dos causas —otra extracción de los PDF y otro
+filtro—, así que 47 − 38 no son nueve textos que se puedan nombrar. Contado
+sobre los archivos reales, el balance de esta tanda cierra así:
 
 | | Textos |
 |---|---|
@@ -733,41 +773,13 @@ los archivos reales, cierra así:
 | menos: **rechazados por `scoring.continuous_prose`** | **−10** |
 | **Evaluados** | **47** |
 
-*Cuadro 11. De 59 a 47, paso a paso.*
+*Cuadro 12. De 59 a 47, paso a paso.*
 
-**Y hay una salvedad que conviene poner aquí y no esconder en el código.** El
-guion de reproducción une las líneas del PDF con un espacio, y eso **desactiva una de las
-cuatro reglas** de `scoring.continuous_prose`, la del maquetado de lista: sus
-dos comprobaciones —dos viñetas seguidas, o más de un tercio de líneas muy
-cortas— necesitan saltos de línea para ver nada. Es decir, este
-validador filtra **más flojo que la propia aplicación**, que sí recibe saltos
-de párrafo. Medido cambiando una cosa y sólo una: con saltos de línea
-sobreviven **31 textos en vez de 47**, y A1 se queda con uno solo, con lo que
-la comprobación de orden creciente ya no se puede hacer sobre cinco niveles.
-
-Se conserva la unión con espacio porque es la que reproduce el Cuadro 10 de este
-documento, que es la reproducción local. **No reproduce las cifras de Colab**, y
-nada aquí lo hace: aquella tanda son 38 textos y A2 se desvía 0,09. Pero el guion
-imprime las dos cuentas en cada ejecución. Lo que esto dice del resultado es concreto: **el
-orden estrictamente creciente está medido sobre un conjunto que la aplicación
-habría filtrado más**, y una parte de esos 47 son textos que la app rechazaría
-por parecer listas.
-
-La primera resta es de extracción. La segunda no: son
-**diez textos
-—nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
-decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma:
-**se quedan por debajo de las 150 palabras** una vez recortados entre «Reading
-text» y «Tasks». Son pósters, menús, horarios y tarjetas, es decir, textos que
-en el original ya son cortos; el detector de maquetado de lista ni siquiera
-llega a dispararse, porque el de longitud actúa antes. Los dos entornos
-filtraron con reglas distintas, no solo extrajeron distinto. Importa decirlo
-porque los tres textos A1 que sostienen el escalón más débil del Cuadro 10
-**no pasan el filtro de la aplicación**: pasan el de este guion, que es más
-flojo por lo que se explica debajo del Cuadro 11. Con el filtro completo, dos
-de los tres caen por maquetado de lista. Los nombres de los 59
-archivos están en `entrega/manifiesto_corpus_externo.md`, y `validar_local.py`
-imprime los diez rechazados con su motivo.
+**Y cuatro: el validador local filtra más flojo que la propia aplicación.** Con
+el filtro completo de la app sobreviven **31 de esos 47** y A1 se queda con un
+solo texto, de modo que el orden creciente sobre cinco niveles está medido sobre
+un conjunto que la aplicación habría filtrado más. Por qué ocurre, qué regla se
+desactiva y qué textos caen se explica entero en el 7.7, al final del 7.
 
 ### 7.5 El baseline propio, y qué aporta el modelo por encima de él
 
@@ -777,7 +789,7 @@ imprime los diez rechazados con su motivo.
 | Contar las palabras del texto, sin modelo | 0,807 |
 | Modelo, descontando la longitud (correlación parcial) | **0,668** |
 
-*Cuadro 12. El modelo frente a la señal trivial. Las tres cifras las
+*Cuadro 13. El modelo frente a la señal trivial. Las tres cifras las
 calcula `validar_local.py` sobre los mismos 47 textos, con Spearman sobre
 rangos y la correlación parcial en la misma escala.*
 
@@ -834,7 +846,48 @@ resultado.
 | **Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica** | Es el doble de rápido (7,4 s frente a 14,9 s) | Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa |
 | Filtrar prosa continua para la validación externa | Excluir textos porque el modelo falla en ellos invalida la validación | El criterio salió del diagnóstico, no es *a priori*, y así se dice en §4.3(a). Lo que lo sostiene es que se definió por **dos vías independientes** —título y estructura— que coinciden en el 89,8 % sin volver a mirar las puntuaciones |
 
-*Cuadro 13. Decisiones metodológicas, incluidas las hipótesis rechazadas.*
+*Cuadro 14. Decisiones metodológicas, incluidas las hipótesis rechazadas.*
+
+### 7.7 Qué filtra el validador local y qué filtra la aplicación
+
+Este apartado desarrolla la cuarta salvedad del 7.4: el guion que reproduce el
+Cuadro 11 no aplica el mismo filtro que la aplicación, y conviene ponerlo aquí y
+no esconderlo en el código.
+
+**Qué regla se desactiva, y por qué.** El guion de reproducción une las líneas
+del PDF con un espacio, y eso **desactiva una de las cuatro reglas** de
+`scoring.continuous_prose`, la del maquetado de lista: sus dos comprobaciones
+—dos viñetas seguidas, o más de un tercio de líneas muy cortas— necesitan saltos
+de línea para ver nada. Es decir, este validador filtra **más flojo que la
+propia aplicación**, que sí recibe saltos de párrafo. Medido cambiando una cosa
+y sólo una: con saltos de línea sobreviven **31 textos en vez de 47**, y A1 se
+queda con uno solo, con lo que la comprobación de orden creciente ya no se puede
+hacer sobre cinco niveles.
+
+**Por qué se conserva así.** Porque la unión con espacio es la que reproduce el
+Cuadro 11 de este documento, que es la reproducción local. **No reproduce las
+cifras de Colab**, y nada aquí lo hace: aquella tanda son 38 textos y A2 se
+desvía 0,09. Pero el guion imprime las dos cuentas en cada ejecución, así que la
+diferencia queda a la vista de quien lo ejecute.
+
+**Qué textos se caen, y por qué regla.** En el Cuadro 12, la primera resta es de
+extracción. La segunda no: son **diez textos —nueve de A1 y uno de B1— que
+rechaza `scoring.continuous_prose`**, y conviene decir con qué regla, porque el
+filtro tiene cuatro. Los diez caen por la misma: **se quedan por debajo de las
+150 palabras** una vez recortados entre «Reading text» y «Tasks». Son pósters,
+menús, horarios y tarjetas, es decir, textos que en el original ya son cortos;
+el detector de maquetado de lista ni siquiera llega a dispararse, porque el de
+longitud actúa antes. Los dos entornos filtraron con reglas distintas, no solo
+extrajeron distinto.
+
+**Lo que esto le hace al resultado principal.** Los tres textos A1 que sostienen
+el escalón más débil del Cuadro 11 **no pasan el filtro de la aplicación**:
+pasan el de este guion, que es el más flojo de los dos. Con el filtro completo,
+dos de los tres caen por maquetado de lista. Dicho de otro modo: una parte de
+esos 47 son textos que la app rechazaría por parecer listas, y el escalón A1 es
+justo donde más pesa. Los nombres de los 59 archivos están en
+`entrega/manifiesto_corpus_externo.md`, y `validar_local.py` imprime los diez
+rechazados con su motivo.
 
 ---
 
@@ -854,19 +907,26 @@ esas tres:
 | ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana, definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
 
-*Cuadro 14. Del modelo a las decisiones del usuario.*
+*Cuadro 15. Del modelo a las decisiones del usuario.*
 
 ### 8.2 Un recorrido completo, con números reales
 
 Tomemos el caso concreto de un lector cuyo perfil da 1,20 sobre 2 (banda
 intermedia, ancla B2).
 
-1. Describe en español lo que le apetece: *«una novela de detectives
-   victoriana»*. El buscador no busca por título sino por significado, sobre
-   embeddings multilingües, y le devuelve obras dentro de su rango. Un rescate
-   por parecido ortográfico atiende además los nombres mal escritos —
-   «dostoyevski», «chejov», «Shakespear» encuentran a quien deben— sin estorbar
-   a las búsquedas por tema.
+1. Busca. Escribe *«dostoyevski»*, mal escrito, y el rescate por parecido
+   ortográfico lo lleva igualmente a quien busca —«chejov» y «Shakespear»
+   funcionan igual— sin estorbar a las búsquedas por tema, porque el buscador
+   no busca por título sino por significado, sobre embeddings multilingües.
+   Podría haber escrito en español lo que le apetece —*«una novela de
+   detectives victoriana»*— y el buscador respondería igual.
+
+   **Y aquí conviene decir algo que el propio recorrido enseña.** Lo que
+   devuelve la búsqueda **no está filtrado por el nivel del lector**: ordena
+   por cercanía al tema, y la dificultad va al lado de cada resultado para que
+   el lector decida. En este recorrido eso importa, porque el libro que abre
+   mide 1,73 y él está en 1,20: le queda por encima, y el valor de la
+   herramienta es precisamente que **lo sabe antes de la primera página**.
 2. Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
    aplicación, sin salir a buscarlo.
 3. Aparece la ficha, **contada sobre el texto y no sobre metadatos**, aunque
@@ -912,7 +972,7 @@ Las mediciones que hicieron viable esa decisión:
 | GPU local (GTX 1650 SUPER) | fp32, lote 128 | 112,7 | 13,8× |
 | GPU A100 (Colab) | fp16, lote grande | 2.022 | 247× |
 
-*Cuadro 15. Rendimiento medido de extremo a extremo, incluida la tokenización
+*Cuadro 16. Rendimiento medido de extremo a extremo, incluida la tokenización
 y las transferencias. Son cifras del precálculo, que agrupa en lotes fijos de 64
 en CPU y 128 en GPU. **La aplicación en vivo no llega a esos lotes**: agrupa
 por capítulo, y no por conveniencia sino para poder ir repintando la curva
@@ -950,8 +1010,8 @@ horquilla en vez de dar una cifra sola: del número medio de ventanas por libro,
 que **todavía no está medido sobre el catálogo**. Con las 350 que asume el
 código del precálculo salen **2,96 h**; con las 606,4 que promedian las cinco
 novelas largas medidas en local —una muestra sesgada hacia arriba, porque son
-clásicos extensos— salen **5,14 h**. Una versión anterior de este documento
-decía 6,3 horas, que no se sigue de ninguno de los dos supuestos. El cuello de botella real resultó no
+clásicos extensos— salen **5,14 h**. Cualquier cifra fuera de esa horquilla no
+se sigue de ninguno de los dos supuestos. El cuello de botella real resultó no
 ser el modelo sino la descarga: en serie, a 0,3 libros/s, los libros tardarían
 57 horas en bajar. Y no era la pausa de cortesía entre peticiones, era la
 latencia —cada petición al espejo se pasa casi todo su tiempo esperando la ida
@@ -992,7 +1052,7 @@ y la cifra que resume cada una.
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
 | Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | 3–5 h de A100 |
 
-*Cuadro 16. Cifras publicadas frente a las de este proyecto. **No son
+*Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
 sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
 decisión de afinar un codificador; no demuestran una victoria medida.*
@@ -1066,7 +1126,7 @@ repetirlo en cada párrafo corregido.
    pero salió del diagnóstico y el conjunto ha
    sido mirado y ya no es virgen.
 7. **La longitud del texto es un confusor en el corpus de examen.** Contar
-   palabras alcanza 0,807 donde el modelo alcanza 0,860 (Cuadro 12).
+   palabras alcanza 0,807 donde el modelo alcanza 0,860 (Cuadro 13).
 8. **El modelo solo mide prosa continua en inglés.** Poesía, teatro, diálogo
    muy fragmentado y cualquier lengua distinta del inglés quedan fuera.
 9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el
@@ -1083,7 +1143,7 @@ repetirlo en cada párrafo corregido.
 10. **Dos corpus no se pueden redistribuir**: British Council tiene derechos y
     el corpus de validación de 144 documentos no acompaña al repositorio, de
     modo que las cifras de 0,908 y 97,2 % **no son verificables clonando el
-    proyecto**. Lo que sí se reproduce en cualquier máquina es el Cuadro 10.
+    proyecto**. Lo que sí se reproduce en cualquier máquina es el Cuadro 11.
 11. **El cuaderno corre entero en un Colab limpio, pero correr no es
     recalcular.** Los pesos del v4 están publicados en Hugging Face
     (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin
@@ -1148,14 +1208,13 @@ repetirlo en cada párrafo corregido.
 
 ## 11. Conclusiones
 
-**Se cumplió el objetivo ordinal, que era el objetivo.** Y conviene separar dos
-cosas que esta frase mezclaba en una versión anterior, porque vienen de corpus
-distintos. Sobre **textos externos con nivel MCER oficial** —los 47 de British
+**Se cumplió el objetivo ordinal, que era el objetivo.** Hay dos resultados y
+vienen de corpus distintos, así que conviene no mezclarlos. Sobre **textos externos con nivel MCER oficial** —los 47 de British
 Council— el modelo ordena los niveles de forma estrictamente creciente
 (0,5040 · 0,5561 · 0,9276 · 1,2414 · 1,4952) y alcanza Spearman **0,829** con
 38 textos, **0,860** con los 47. El **0,908 y el 97,2 %** son otra cosa: salen
 del conjunto de validación de **144 documentos del propio corpus de anclaje**,
-que es interno. Atribuirlos a los externos era un error. Para el problema planteado —elegir qué
+que es interno. Atribuirlos a los externos sería un error. Para el problema planteado —elegir qué
 leer— acertar el orden es lo que importa; acertar la letra exacta es un lujo.
 
 **Y aquí hay que poner un límite que el documento no ponía.** Ese orden está

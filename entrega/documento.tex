@@ -366,9 +366,8 @@ sobre 530 ventanas de \emph{Alicia}, \emph{Orgullo y prejuicio} y \emph{Crimen y
 castigo}; ninguna baja de 0—. Recortar después de promediar dejaría que un bloque que
 puntúa 5,3 arrastrase hacia arriba a todo el capítulo. Las dos versiones de la fórmula
 llegan a separarse \textbf{0,021} en un libro real, cinco veces la diferencia de
-cualquier otra decisión de agregación del sistema. Una versión anterior de este
-documento publicaba el recorte fuera del sumatorio; el código siempre hizo lo que se
-describe aquí. La
+cualquier otra decisión de agregación del sistema. El recorte va dentro del sumatorio,
+que es lo que hace el código. La
 figura~\ref{fig:pipeline} recorre esa cadena completa, del texto crudo a la banda que
 se muestra en pantalla, y la figura~\ref{fig:escala} sitúa las anclas MCER sobre la
 recta 0--2 resultante.
@@ -957,9 +956,8 @@ frases, entre 5 y 55 palabras de media por frase, y rechazo si hay dos o más vi
 del 35\pct{} de líneas cortas. Coinciden en el propósito —tirar menús, listas y tablas—
 pero no en los umbrales.
 
-\textbf{Y aquí hay que contar la secuencia real, porque una versión anterior de este
-documento decía que el filtro se fijó «antes de mirar ningún resultado» y no es exacto.}
-Lo que ocurrió fue lo contrario en el orden: primero se puntuaron los 59 textos, se vio
+\textbf{Y aquí hay que contar la secuencia real, porque el filtro no se fijó antes de
+mirar ningún resultado.} El orden fue el contrario: primero se puntuaron los 59 textos, se vio
 que el modelo daba resultados absurdos con el menú y el tablero de salidas, y \textbf{de
 ese diagnóstico salió la idea del filtro}. Que las dos vías se definieran sin volver a
 mirar las puntuaciones, y que coincidan entre sí en el 89,8\pct{} de los casos, es lo que
@@ -1160,7 +1158,9 @@ cuadro~\ref{cuad:validacion} sí conserva los cinco, con tres textos en A1, porq
 filtra con otras reglas. Por eso el \emph{baseline} de contar palabras cae de 0,879 a 0,765 al filtrar:
 parte de la señal del conjunto completo era simplemente que los textos A1 son cortos.
 Las correlaciones antes y después del filtro \textbf{no son comparables entre sí}, y se
-reportan por separado.
+reportan por separado. Los conjuntos de textos que aparecen aquí y en el
+apartado~\ref{sec:validacion} están todos, con lo que se puede y no se puede hacer con cada
+uno, en el cuadro~\ref{cuad:conjuntos}.
 
 \subsection{Análisis multivariado}
 
@@ -1578,6 +1578,70 @@ interna es 0--5 —un valor por nivel
 MCER, con posiciones intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala
 multiplicada por 0,4. \textbf{El modelo es final y no se reentrena.}
 
+\textbf{Antes de las cifras, las reglas del juego.} Por este apartado y por el siguiente
+circulan \textbf{cinco conjuntos de textos distintos}, y confundirlos es fácil porque
+cuatro de los cinco salen del mismo material de British Council. No son subconjuntos
+ordenados unos de otros y sus tamaños no se restan entre sí. El
+cuadro~\ref{cuad:conjuntos} dice qué es cada uno, qué se mide con él y qué \emph{no} se
+puede hacer con él; el resto del apartado los cita por su nombre.
+
+\begin{footnotesize}
+\begin{longtable}{@{}L{1.9cm} r L{3.0cm} L{3.6cm} L{4.3cm}@{}}
+\caption{Los cinco conjuntos de textos que aparecen en la validación. Cuatro de los cinco
+salen del mismo catálogo de British Council, con extracciones y filtros distintos: no son
+subconjuntos unos de otros y sus tamaños no se restan.}
+\label{cuad:conjuntos}\\
+\toprule
+\textbf{Conjunto} & \textbf{n} & \textbf{De dónde sale} & \textbf{Qué se mide con él} &
+\textbf{Qué \emph{no} se puede hacer con él} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Conjunto} & \textbf{n} & \textbf{De dónde sale} & \textbf{Qué se mide con él} &
+\textbf{Qué \emph{no} se puede hacer con él} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\textbf{Validación ciega} (interno) & 144 & Partición de validación del corpus de anclaje
+MCER: 654 documentos aceptados, 510 de entrenamiento y 144 reservados & Exactitud,
+acierto dentro de $\pm 1$ nivel y Spearman 0,908 del modelo desplegado
+(cuadro~\ref{cuad:desplegado}) & Presentarlo como validación externa. Sale del mismo
+corpus con el que se afinaron los pesos, así que su 0,908 no es comparable con las cifras
+de British Council \\
+\addlinespace
+\textbf{British Council, tanda de Colab} & 38 & Extracción de los PDF hecha en Colab
+durante el entrenamiento, con su propio filtro & Spearman 0,829 y el 100\pct{} dentro de
+$\pm 1$ (cuadro~\ref{cuad:desplegado}); las cuatro medias por nivel que ajustan la recta
+de compresión (figura~\ref{fig:compresion}) & Restarlo de los 47. Es otra tanda, con otra
+extracción y otro filtro: la diferencia no son «nueve textos concretos» que se puedan
+nombrar \\
+\addlinespace
+\textbf{British Council, reproducción local} & 47 & Los 59 publicados, menos 2 sin cuerpo
+localizable al extraer el PDF y 10 rechazados por el filtro de prosa
+(cuadro~\ref{cuad:balance}) & \textbf{El resultado principal}: el orden creciente por
+nivel (cuadro~\ref{cuad:validacion}) y las tres cifras del \emph{baseline} ---0,860,
+0,807 y 0,668--- del cuadro~\ref{cuad:baseline} & Leerlo como «los textos que la
+aplicación aceptaría». El validador local filtra más flojo que la app
+(§\ref{sec:filtro}) \\
+\addlinespace
+\textbf{Los que pasan el filtro completo} & 31 & Esos mismos 47 refiltrados conservando
+los saltos de línea, es decir con las cuatro reglas del filtro de prosa continua
+activas & Cuánto depende el conjunto evaluado de una regla que el validador desactiva:
+sobreviven 31 y A1 se queda con un solo texto (§\ref{sec:filtro}) & Sostener el orden
+sobre cinco niveles. No se usa para ninguna cifra publicada en este documento \\
+\addlinespace
+\textbf{Publicados por British Council} & 59 & Todos los PDF descargados del catálogo
+gratuito. Los nombres de los 59 están en el manifiesto del corpus externo & El
+diagnóstico del §\ref{sec:calidad}: que el corpus no es homogéneo, y el 89,8\pct{} de
+coincidencia entre las dos vías con que se definió el filtro & Usarlo como corpus de
+validación. Incluye menús, pósters y horarios, y las correlaciones medidas sobre él no se
+comparan con las de después de filtrar \\
+\end{longtable}
+\end{footnotesize}
+
 El corpus de anclaje MCER con el que se afinó son 654 documentos aceptados —57
 descartados por longitud insuficiente—, repartidos en 510 de entrenamiento y 144 de
 validación. Esos 144 documentos son el conjunto de validación ciega que produce las
@@ -1623,8 +1687,15 @@ razonable, no que la ventaja empírica sobre un predictor constante esté medida
 está, porque faltan los recuentos por nivel de ese conjunto.
 
 \textbf{El resultado que de verdad sostiene el trabajo no es ninguno de esos porcentajes,
-sino el orden.} Sobre textos externos con nivel MCER oficial, las medias por nivel quedan
-estrictamente crecientes (cuadro~\ref{cuad:validacion} y figura~\ref{fig:validacion}).
+sino el orden.} Esto es lo que se midió: los \textbf{47 textos de la reproducción local de
+British Council}, cada uno con un nivel MCER oficial asignado por la institución que lo
+publica y ninguno usado para ajustar los pesos, puntuados con \cod{validar\_local.py} y
+agrupados después por su nivel. Y esto es lo que salió: \textbf{las medias por nivel quedan
+estrictamente crecientes en los cinco niveles disponibles}, de A1 a C1 —0,5040 · 0,5561 ·
+0,9276 · 1,2414 · 1,4952 en la escala 0--2—, y la correlación de Spearman con el nivel
+oficial es de \textbf{0,860} (cuadro~\ref{cuad:validacion}, figura~\ref{fig:validacion} y
+cuadro~\ref{cuad:baseline}). Ese orden —no el acierto exacto— es el resultado que el
+trabajo afirma haber conseguido, y es el que se cita en las conclusiones.
 
 \begin{table}[htbp]
 \centering
@@ -1695,17 +1766,29 @@ cada comparación por pares. Datos de \cod{datos\_figuras/\allowbreak validacion
 \label{fig:validacion}
 \end{figure}
 
-Esta tabla se \textbf{recalcula} con el guion \cod{validar\_local.py}, en cualquier máquina
-que tenga los mismos PDF y los mismos pesos. No es una reproducción independiente: los PDF
-de British Council tienen derechos y no acompañan al repositorio, así que quien quiera
-rehacerla tiene que reunirlos por su cuenta. Lo que
-se reproduce exactamente es \textbf{el orden}; las medias difieren ligeramente de las
-obtenidas en Colab (C1 coincide hasta la tercera cifra decimal —1,4952 frente a
-1,4950—, A2 se desvía 0,09).
+\subsubsection*{La letra pequeña de ese resultado}
 
-\textbf{La diferencia entre los 38 textos de Colab y los 47 de aquí tiene dos causas, y
-una versión anterior solo mencionaba una.} El balance completo, contado sobre los archivos
-reales, cierra así:
+\textbf{Aquí empieza la letra pequeña, y conviene leerla antes de citar la cifra.} Son
+cuatro salvedades. Ninguna anula la afirmación anterior, pero cada una acota lo que puede
+hacerse con ella.
+
+\textbf{Una: el escalón A1--A2 está dentro del ruido.} Es de 0,052 sobre desviaciones de
+0,111 y 0,223, y descansa en tres textos. Los tres escalones siguientes, no. Lo que se
+afirma es el orden global de las cinco medias, no cada comparación por pares: con $n$ de 3
+a 12 textos por nivel, el primer escalón no se sostendría por sí solo.
+
+\textbf{Dos: es una reproducción local, no una reproducción independiente.} El
+cuadro~\ref{cuad:validacion} se \textbf{recalcula} con \cod{validar\_local.py} en
+cualquier máquina que tenga los mismos PDF y los mismos pesos, pero los PDF de British
+Council tienen derechos y no acompañan al repositorio, así que quien quiera rehacerla
+tiene que reunirlos por su cuenta. Lo que se reproduce exactamente es \textbf{el orden};
+las medias difieren ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera
+cifra decimal —1,4952 frente a 1,4950—, A2 se desvía 0,09).
+
+\textbf{Tres: los 38 de Colab y los 47 de aquí son dos tandas distintas, y no se restan.}
+La diferencia tiene dos causas —otra extracción de los PDF y otro filtro—, así que
+$47-38$ no son nueve textos que se puedan nombrar. Contado sobre los archivos reales, el
+balance de esta tanda cierra así:
 
 \begin{table}[htbp]
 \centering\small
@@ -1725,35 +1808,12 @@ es el filtro de prosa continua.}
 \label{cuad:balance}
 \end{table}
 
-\textbf{Y hay una salvedad que conviene poner aquí y no esconder en el código.} El
-guion de reproducción une las líneas del PDF con un espacio, y eso \textbf{desactiva una
-de las cuatro reglas} de \cod{scoring.continuous\_prose}, la del maquetado de lista: sus
-dos comprobaciones —dos viñetas seguidas, o más de un tercio de líneas muy cortas—
-necesitan saltos de línea para ver nada. Es decir, este validador filtra \textbf{más
-flojo que la propia aplicación}, que sí recibe saltos de párrafo. Medido cambiando una
-cosa y sólo una: con saltos de línea sobreviven \textbf{31 textos en vez de 47}, y A1 se
-queda con uno solo, con lo que la comprobación de orden creciente ya no se puede hacer
-sobre cinco niveles. Se conserva la unión con espacio porque es la que reproduce las
-el cuadro~\ref{cuad:validacion} de este documento, que es la reproducción local.
-\textbf{No reproduce las cifras de Colab}, y nada aquí lo hace: aquella tanda son 38
-textos y A2 se desvía 0,09. Pero el guion imprime las dos cuentas en cada ejecución. Lo que esto dice del resultado es concreto: \textbf{el orden
-estrictamente creciente está medido sobre un conjunto que la aplicación habría filtrado
-más}, y una parte de esos 47 son textos que la app rechazaría por parecer listas.
-
-\noindent La primera resta es de extracción. La segunda no: son
-\textbf{diez
-textos —nueve de A1 y uno de B1— que rechaza \cod{scoring.continuous\_prose}}, y conviene
-decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma: \textbf{se
-quedan por debajo de las 150 palabras} una vez recortados entre «Reading text» y «Tasks».
-Son pósters, menús, horarios y tarjetas, es decir, textos que en el original ya son
-cortos; el detector de maquetado de lista ni siquiera llega a dispararse, porque el de
-longitud actúa antes. Los dos entornos filtraron con reglas distintas, no solo extrajeron
-distinto. Importa decirlo porque los tres textos A1 que sostienen el escalón más débil del
-cuadro~\ref{cuad:validacion} \textbf{no pasan el filtro de la aplicación}: pasan el de
-este guion, que es más flojo por lo que se explica bajo el cuadro~\ref{cuad:balance}.
-Con el filtro completo, dos de los tres caen por maquetado de lista. Los
-nombres de los 59 archivos están en \cod{entrega/manifiesto\_corpus\_externo.md}, y
-\cod{validar\_local.py} imprime los diez rechazados con su motivo.
+\textbf{Y cuatro: el validador local filtra más flojo que la propia aplicación.} Con el
+filtro completo de la app sobreviven \textbf{31 de esos 47} y A1 se queda con un solo
+texto, de modo que el orden creciente sobre cinco niveles está medido sobre un conjunto
+que la aplicación habría filtrado más. Por qué ocurre, qué regla se desactiva y qué
+textos caen se explica entero en el §\ref{sec:filtro}, al final del
+§\ref{sec:modelacion}.
 
 \subsection{El \emph{baseline} propio, y qué aporta el modelo por encima de él}
 \label{sec:baseline}
@@ -1918,6 +1978,46 @@ Filtrar prosa continua para la validación externa & Excluir textos porque el mo
 \end{longtable}
 \end{small}
 
+\subsection{Qué filtra el validador local y qué filtra la aplicación}
+\label{sec:filtro}
+
+Este apartado desarrolla la cuarta salvedad del §\ref{sec:validacion}: el guion que
+reproduce el cuadro~\ref{cuad:validacion} no aplica el mismo filtro que la aplicación, y
+conviene ponerlo aquí y no esconderlo en el código.
+
+\textbf{Qué regla se desactiva, y por qué.} El guion de reproducción une las líneas del
+PDF con un espacio, y eso \textbf{desactiva una de las cuatro reglas} de
+\cod{scoring.continuous\_prose}, la del maquetado de lista: sus dos comprobaciones —dos
+viñetas seguidas, o más de un tercio de líneas muy cortas— necesitan saltos de línea para
+ver nada. Es decir, este validador filtra \textbf{más flojo que la propia aplicación}, que
+sí recibe saltos de párrafo. Medido cambiando una cosa y sólo una: con saltos de línea
+sobreviven \textbf{31 textos en vez de 47}, y A1 se queda con uno solo, con lo que la
+comprobación de orden creciente ya no se puede hacer sobre cinco niveles.
+
+\textbf{Por qué se conserva así.} Porque la unión con espacio es la que reproduce el
+cuadro~\ref{cuad:validacion} de este documento, que es la reproducción local. \textbf{No
+reproduce las cifras de Colab}, y nada aquí lo hace: aquella tanda son 38 textos y A2 se
+desvía 0,09. Pero el guion imprime las dos cuentas en cada ejecución, así que la
+diferencia queda a la vista de quien lo ejecute.
+
+\textbf{Qué textos se caen, y por qué regla.} En el cuadro~\ref{cuad:balance}, la primera
+resta es de extracción. La segunda no: son \textbf{diez textos —nueve de A1 y uno de B1—
+que rechaza \cod{scoring.continuous\_prose}}, y conviene decir con qué regla, porque el
+filtro tiene cuatro. Los diez caen por la misma: \textbf{se quedan por debajo de las 150
+palabras} una vez recortados entre «Reading text» y «Tasks». Son pósters, menús, horarios
+y tarjetas, es decir, textos que en el original ya son cortos; el detector de maquetado de
+lista ni siquiera llega a dispararse, porque el de longitud actúa antes. Los dos entornos
+filtraron con reglas distintas, no solo extrajeron distinto.
+
+\textbf{Lo que esto le hace al resultado principal.} Los tres textos A1 que sostienen el
+escalón más débil del cuadro~\ref{cuad:validacion} \textbf{no pasan el filtro de la
+aplicación}: pasan el de este guion, que es el más flojo de los dos. Con el filtro
+completo, dos de los tres caen por maquetado de lista. Dicho de otro modo: una parte de
+esos 47 son textos que la app rechazaría por parecer listas, y el escalón A1 es justo
+donde más pesa. Los nombres de los 59 archivos están en
+\cod{entrega/manifiesto\_corpus\_externo.md}, y \cod{validar\_local.py} imprime los diez
+rechazados con su motivo.
+
 % ===========================================================================
 \section{Resolución del problema}
 \label{sec:resolucion}
@@ -2004,12 +2104,19 @@ red; por eso la ficha se pinta en dos etapas.}
 \end{figure}
 
 \begin{enumerate}[leftmargin=*, itemsep=4pt]
-  \item Describe en español lo que le apetece: \emph{«una novela de detectives
-        victoriana»}. El buscador no busca por título sino por significado, sobre
-        \emph{embeddings} multilingües, y le devuelve obras dentro de su rango. Un
-        rescate por parecido ortográfico atiende además los nombres mal escritos
-        —«dostoyevski», «chejov», «Shakespear» encuentran a quien deben— sin estorbar a
-        las búsquedas por tema.
+  \item Busca. Escribe \emph{«dostoyevski»}, mal escrito, y el rescate por parecido
+        ortográfico lo lleva igualmente a quien busca —«chejov» y «Shakespear» funcionan
+        igual— sin estorbar a las búsquedas por tema, porque el buscador no busca por
+        título sino por significado, sobre \emph{embeddings} multilingües. Podría haber
+        escrito en español lo que le apetece —\emph{«una novela de detectives
+        victoriana»}— y el buscador respondería igual.
+
+        \textbf{Y aquí conviene decir algo que el propio recorrido enseña.} Lo que
+        devuelve la búsqueda \textbf{no está filtrado por el nivel del lector}: ordena
+        por cercanía al tema, y la dificultad va al lado de cada resultado para que el
+        lector decida. En este recorrido eso importa, porque el libro que abre mide 1,73
+        y él está en 1,20: le queda por encima, y el valor de la herramienta es
+        precisamente que \textbf{lo sabe antes de la primera página}.
   \item Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
         aplicación, sin salir a buscarlo.
   \item Aparece la ficha, \textbf{contada sobre el texto y no sobre metadatos},
@@ -2253,9 +2360,9 @@ Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project Gu
 vez de dar una cifra sola: del número medio de ventanas por libro, que \textbf{todavía no
 está medido sobre el catálogo}. Con las 350 que asume el código del precálculo salen
 \textbf{2,96 h}; con las 606,4 que promedian las cinco novelas largas medidas en local —una
-muestra sesgada hacia arriba, porque son clásicos extensos— salen \textbf{5,14 h}. Una
-versión anterior de este documento decía 6,3 horas, que no se sigue de ninguno de los dos
-supuestos. El cuello de botella real resultó no ser el modelo
+muestra sesgada hacia arriba, porque son clásicos extensos— salen \textbf{5,14 h}.
+Cualquier cifra fuera de esa horquilla no se sigue de ninguno de los dos supuestos.
+El cuello de botella real resultó no ser el modelo
 sino la descarga: en serie, a 0,3 libros/s, los libros tardarían 57 horas en bajar. Y no
 era la pausa de cortesía entre peticiones, era la latencia —cada petición al espejo se
 pasa casi todo su tiempo esperando la ida y vuelta—, así que con seis hilos esas esperas
@@ -2489,14 +2596,14 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
 \section{Conclusiones}
 % ===========================================================================
 
-\textbf{Se cumplió el objetivo ordinal, que era el objetivo.} Y conviene separar dos cosas
-que esta frase mezclaba en una versión anterior, porque vienen de corpus distintos. Sobre
+\textbf{Se cumplió el objetivo ordinal, que era el objetivo.} Hay dos resultados y vienen
+de corpus distintos, así que conviene no mezclarlos. Sobre
 \textbf{textos externos con nivel MCER oficial} —los 47 de British Council— el modelo
 ordena los niveles de forma estrictamente creciente (0,5040 · 0,5561 · 0,9276 · 1,2414 ·
 1,4952; figura~\ref{fig:validacion}) y alcanza Spearman \textbf{0,829} con 38 textos,
 \textbf{0,860} con los 47. El \textbf{0,908 y el 97,2\pct} son otra cosa: salen del
 conjunto de validación de \textbf{144 documentos del propio corpus de anclaje}, que es
-interno. Atribuirlos a los externos era un error. Para el problema planteado —elegir qué leer— acertar el orden
+interno. Atribuirlos a los externos sería un error. Para el problema planteado —elegir qué leer— acertar el orden
 es lo que importa; acertar la letra exacta es un lujo.
 
 \textbf{Y aquí hay que poner un límite que el documento no ponía.} Ese orden está medido
