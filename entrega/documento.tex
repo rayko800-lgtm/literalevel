@@ -424,9 +424,9 @@ $4{,}8\times 10^{-7}$: por debajo de los tres decimales que se guardan.}
 \begin{tikzpicture}[x=6.6cm, y=1cm]
 
   % Bandas de la interfaz (fondo)
-  \fill[llverde!12]  (0,-0.32) rectangle (0.8,0.32);
-  \fill[llambar!14]  (0.8,-0.32) rectangle (1.6,0.32);
-  \fill[llrojo!12]   (1.6,-0.32) rectangle (2.0,0.32);
+  \fill[llverde!12]  (0,-0.32) rectangle (0.6,0.32);
+  \fill[llambar!14]  (0.6,-0.32) rectangle (1.4,0.32);
+  \fill[llrojo!12]   (1.4,-0.32) rectangle (2.0,0.32);
 
   % Recta
   \draw[line width=1.2pt, llgris] (0,0) -- (2.0,0);
@@ -450,9 +450,9 @@ $4{,}8\times 10^{-7}$: por debajo de los tres decimales que se guardan.}
   \node[font=\footnotesize\bfseries, color=llambar!60!black] at (1.2,-0.85) {intermedio};
   \node[font=\footnotesize\bfseries, color=llrojo!70!black]  at (1.8,-0.85) {avanzado};
 
-  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0,-0.55) -- (0.8,-0.55);
-  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0.8,-0.55) -- (1.6,-0.55);
-  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (1.6,-0.55) -- (2.0,-0.55);
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0,-0.55) -- (0.6,-0.55);
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0.6,-0.55) -- (1.4,-0.55);
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (1.4,-0.55) -- (2.0,-0.55);
 
   \node[font=\footnotesize, color=llgris, above=16pt] at (1.0,0) {escala pública $f(T)$};
 
@@ -2169,9 +2169,9 @@ interfaz encima, es una secuencia de decisiones que el lector no podía tomar an
   legend style={at={(0.5,-0.20)}, anchor=north, legend columns=3},
 ]
 
-% banda "avanzado" (>= 1,6)
+% banda "avanzado" (>= 1,4), que es el corte vigente
 \addplot[draw=none, forget plot, name path=techo] coordinates {(0,2.06) (366,2.06)};
-\addplot[draw=none, forget plot, name path=corte16] coordinates {(0,1.6) (366,1.6)};
+\addplot[draw=none, forget plot, name path=corte16] coordinates {(0,1.4) (366,1.4)};
 \addplot[llrojo!7, forget plot] fill between[of=techo and corte16];
 
 % serie cruda, aligerada

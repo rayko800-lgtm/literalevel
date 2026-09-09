@@ -23,7 +23,7 @@ vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
 |---|---|---|
 | **Unidades de Colab** | el catálogo medido | Quedaban **1,9 unidades** (5,3/hora): 21 min de A100. Con el prefetch nuevo el catálogo entero sale por unas 15 unidades en vez de 37 |
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profesor pidió ver. Unos audífonos con micro bastan |
-| **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (553 palabras, 3:41) y compilado en PDF |
+| **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (561 palabras, 3:44) y compilado en PDF |
 | ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada |
 | ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Cuesta 7 USD/mes (cuenta Pro, ya pagada). Arranque medido: 31 s |
 | ~~Aceptar la pestaña de Colab~~ | **HECHO** | Conectado a `rayko800@gmail.com`, que es la cuenta con Colab Pro y con `literalevel_bigdata` |
@@ -74,7 +74,7 @@ Todas medidas el 9 de septiembre, y todas reproducibles con un guion del repo.
 |---|---|---|
 | Validación externa | **47 textos** (los 59 menos 2 sin cuerpo y 10 cortos) | `validar_local.py` |
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
-| Cuadro 12 (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
+| Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
 | Pruebas de estrés | **205** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
@@ -84,9 +84,9 @@ Todas medidas el 9 de septiembre, y todas reproducibles con un guion del repo.
 | Arranque en frío del Space | **31 s** | `medir_arranque.py` |
 | Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab); 0,67x + 0,41 con las 5 locales | recalculable |
 | Textos que pasan el filtro COMPLETO | **31** (el de la app; aquí se puntúan 47) | `validar_local.py` |
-| Palabras habladas del guion | **553** (las que van entre comillas) = 3:41 | `entrega/guion_video.md` |
+| Palabras habladas del guion | **561** = 3:44 | `tools/contar_guion.py` |
 | Coste del despliegue | **7 USD/mes** (cuenta Pro; tarifa 9, con descuento) | API `whoami-v2` |
-| Modelo + diccionario | 571 MB | `os.path.getsize` |
+| Modelo + diccionario | 575 MB | `os.path.getsize` |
 
 ---
 

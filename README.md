@@ -117,7 +117,7 @@ extracción de los PDF y el filtro de prosa continua: en local sobreviven 47 de 
 que las medias quedan estrictamente crecientes**, que es el resultado que
 sostiene el trabajo.
 
-El guion imprime además las tres cifras del Cuadro 12 (modelo 0,860, contar
+El guion imprime además las tres cifras del Cuadro 13 (modelo 0,860, contar
 palabras 0,807, parcial descontando la longitud 0,668) y la lista de los diez
 rechazados con su motivo. Los nombres de los 59 archivos del corpus están en
 [`entrega/manifiesto_corpus_externo.md`](entrega/manifiesto_corpus_externo.md).
@@ -187,8 +187,8 @@ comprueba en local es la tabla de arriba, con los PDF de British Council en
 una carpeta. El código de entrenamiento del v4 no forma parte de este
 repositorio: aquí vive la aplicación, no el experimento.
 
-**Sin `OPENAI_API_KEY` la app sigue funcionando**: diccionario, IPA, audio de
-buscador y puntuación no salen a la red. El audio de Wiktionary sí: es un enlace a
+**Sin `OPENAI_API_KEY` la app sigue funcionando**: diccionario, IPA, buscador
+y puntuación no salen a la red. El audio de Wiktionary sí: es un enlace a
 `upload.wikimedia.org` que descarga el navegador. Lo que se apaga es la
 explicación contextual y la voz.
 

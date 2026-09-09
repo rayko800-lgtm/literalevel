@@ -116,7 +116,8 @@ Cuando ahí solo había cachés (léxico, audio) daba igual: se rehacen solas y 
 | `perfil.json` | el nivel del lector, y habría que rehacer el cuestionario |
 
 Un Space que se duerme y despierta con la estantería vacía deja en ridículo la
-pestaña *Mis libros*. Así que si se despliega, hay que montar almacenamiento.
+pestaña *Mis libros*. El Space de hoy no lo tiene: hay que montar almacenamiento
+persistente, y es el accionable A4.
 
 La buena noticia es el precio: los Storage Buckets del Hub cuestan **12 $/TB al
 mes** en repositorio público y 18 $/TB en privado. Esto ocupa unos cientos de

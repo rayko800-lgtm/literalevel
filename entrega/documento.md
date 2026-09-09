@@ -202,7 +202,7 @@ seguido:
   la aplicación, dijo *«o yo soy muy tonta para esto»* —que es un fallo de
   diseño, no suyo— y de ahí salieron seis etiquetas reescritas, cinco paletas
   de color, objetivos táctiles de 44 px y esquinas redondeadas.
-- **Accionables.** Diez, con responsable, coste y criterio de terminado; los
+- **Accionables.** Diez, con coste y criterio de terminado; los
   tres primeros son publicar modelo y diccionario, desplegar en enlace
   permanente y terminar la remedición del catálogo.
 
