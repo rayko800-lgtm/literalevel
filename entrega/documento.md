@@ -1071,8 +1071,9 @@ repetirlo en cada párrafo corregido.
    muy fragmentado y cualquier lengua distinta del inglés quedan fuera.
 9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el
    guion de entrenamiento del v4 vive en Google Drive, no en el repositorio.
-   Las cifras del apartado 7.4 se reportan tal como constan en la tarjeta del
-   modelo. **Y su composición no está publicada**: no se dice cuántos
+   Las cifras del apartado 7.4 se reportan **tal como salieron de aquella
+   ejecución**, sin ningún archivo en el repositorio que las respalde —el
+   apartado 7.4 lo explica—. **Y su composición no está publicada**: no se dice cuántos
    documentos vienen de cada fuente ni cuántos por nivel. Eso importa más de lo
    que parece, porque la validación externa del apartado 7.4 se apoya en que
    las fuentes usadas para validar sean ajenas a las usadas para entrenar, y
@@ -1231,6 +1232,24 @@ Y el cuaderno, aunque ya corre entero desde los pesos publicados, cita las
 métricas del v4 en vez de recalcularlas, porque su corpus de anclaje no es
 redistribuible. Las tres cosas están
 planificadas con coste y criterio de terminado en el documento de estrategia.
+
+**Y para qué sirve esto, dicho como decisión y no como métrica.** Un lector que
+hoy elige libro por la portada puede, con esta herramienta, hacer tres cosas
+que antes no podía: saber **antes de empezar** si un libro concreto le queda
+grande, ver **en qué capítulo** se va a atascar y decidir si lo salta o lo
+prepara, y llevarse las palabras que consultó **con la frase en la que
+aparecieron**, que es la unidad con la que se recuerda un idioma. Para quien
+enseña, el cambio es de otro tipo: un catálogo de dominio público con
+dificultad medida convierte «lee algo de tu nivel» en una lista concreta, y el
+coste marginal de añadir un libro es de segundos de cómputo, no de una tarifa
+por título.
+
+**Lo que este proyecto recomienda hacer a continuación, en orden de valor por
+hora de trabajo**, está en el documento de estrategia con coste y criterio de
+terminado: terminar la remedición del catálogo, que es lo que separa un
+prototipo de un producto; montar almacenamiento persistente, sin el cual el
+lector pierde su estantería en cada reinicio; y calibrar la escala, que es la
+diferencia entre decirle a alguien que un libro es A2 y que lo sea.
 
 ---
 

@@ -139,8 +139,8 @@ continua. Sirve para elegir qué leer, no para acreditar nada.»
 «Ahora imagina esto a escala.
 
 Project Gutenberg tiene **61.642 libros en inglés** en dominio público, y los
-estamos midiendo todos con el modelo leyendo cada libro completo. No una
-muestra: el libro entero.
+estamos midiendo con el modelo leyendo cada libro completo, capítulo a
+capítulo. No una muestra: el libro entero.
 
 Y seré honesto: la medición está en curso. Lo ya medido se abre al instante; lo
 demás lo mide la aplicación al abrirlo. La diferencia es de espera, no de
