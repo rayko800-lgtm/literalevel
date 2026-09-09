@@ -14,10 +14,15 @@
 # reanudable: si Colab corta la sesión, se vuelve a ejecutar y sigue donde
 # estaba. Con 61.000 libros eso no es una comodidad, es un requisito.
 #
-# **Ojo con dos cosas:**
-# - Los textos ocupan unos 20 GB en Drive. Hay 400 GB, así que caben.
-# - Escribir 61.000 archivos sueltos en Drive es lentísimo. Por eso los
-#   resultados van en *shards* de 500 libros, no en un archivo por libro.
+# **Los textos NO se guardan en Drive, y es a propósito.** Project Gutenberg
+# publica todos sus `.txt` en un solo archivo de 11,3 GB que se regenera cada
+# semana; se baja de una vez al disco del entorno y se extrae ahí. Escribir
+# sesenta mil archivos sueltos en Drive es lentísimo —solo *listar* 28.535
+# tardaba 98 segundos— y además no hace falta: lo que tiene que sobrevivir a la
+# sesión son los resultados, no los textos, que se vuelven a bajar en minutos.
+#
+# Por eso los resultados van a Drive en *shards* de 500 libros: seis archivos,
+# no sesenta mil.
 
 # %%
 # --- 1. ¿Qué GPU nos tocó? ------------------------------------------------
@@ -160,8 +165,11 @@ def _rutas_posibles(n: int) -> list[str]:
     return [f"{base}{d}-0.txt", f"{base}{d}.txt", f"{base}{d}-8.txt"]
 
 
+DESTINO_TEXTOS = TEXTOS      # la celda 6b lo repunta al disco local
+
+
 def descargar(n: int) -> bool:
-    destino = TEXTOS / f"pg{n}.txt"
+    destino = DESTINO_TEXTOS / f"pg{n}.txt"
     if destino.exists() and destino.stat().st_size > 2000:
         return True                      # ya estaba
     for espejo in ESPEJOS:
@@ -217,78 +225,166 @@ if popularidad:
         print(f"  {int(popularidad.get(n, 0)):>7} descargas · {cab.get(n, '?')}")
 
 # %%
-# --- 6b. El bucle de descarga (se puede cortar y reanudar) ---------------
-# EN PARALELO, y por una razón medida: en serie salían 0,3 libros/s, o sea
-# **57 horas** para los 61.552. No es la pausa de cortesía lo que manda, es la
-# latencia de ida y vuelta al espejo: se pasa casi todo el tiempo esperando,
-# no descargando. Con seis hilos se solapan las esperas y el ancho de banda
-# que se le pide al espejo sigue siendo modesto.
+# --- 6b. La descarga, de un tirón ----------------------------------------
+# Project Gutenberg publica **todos sus .txt en un solo archivo**, que se
+# regenera cada semana:
 #
-# Seis y no treinta. El espejo lo mantiene alguien gratis y lo comparte mucha
-# gente; ir a saco sería a la vez feo y contraproducente -acabas bloqueado-.
-# Cada hilo mantiene además su pausa entre peticiones.
-from concurrent.futures import ThreadPoolExecutor
-
-HILOS = 6
-# Se baja TODO lo que falte, no una tanda. Antes eran 6.000 y habia que
-# volver a lanzar la celda a mano: si nadie miraba, Colab desconectaba el
-# entorno por inactividad y el trabajo se paraba solo. Con Colab Pro un
-# cuaderno que se esta ejecutando aguanta hasta 24 h aunque se cierre el
-# navegador, asi que lo que conviene es no parar.
+#     https://gutenberg.pglaf.org/cache/generated/feeds/txt-files.tar.zip
+#     11.278.856.242 bytes, comprobado el 8 de septiembre de 2026
 #
-# HORAS_TOPE existe para que la celda termine ordenadamente antes de que
-# Colab corte, en vez de morir a medias. Lo bajado queda en Drive de todas
-# formas y la siguiente ejecucion sigue donde iba.
-LOTE = 10 ** 9
-HORAS_TOPE = 9.0
+# Una peticion HTTP en lugar de treinta y tres mil. Antes esta celda bajaba
+# libro a libro con seis hilos y salian unos 0,3 libros/s: mas de dos dias
+# para el catalogo, con Colab cortando la sesion cada pocas horas. Bajando el
+# archivo entero, el limite pasa a ser el ancho de banda y no la latencia.
+#
+# DONDE SE DESCOMPRIME, que es la otra mitad del arreglo. En el disco local
+# del entorno (`/content`), NO en Drive. Escribir sesenta mil ficheros
+# pequenios en Drive es lentisimo -solo LISTAR 28.535 tardaba 98 segundos-, y
+# ademas no hace falta: lo que tiene que sobrevivir a la sesion son los
+# resultados, que son seis ficheros de perfiles, no los textos, que se pueden
+# volver a bajar.
+#
+# Se pagan unos minutos de descarga en cada sesion nueva a cambio de no
+# escribir decenas de miles de ficheros en Drive ni una sola vez.
+#
+# Si el archivo no estuviera disponible, la celda cae sola al metodo de antes
+# -libro a libro, en paralelo- para los que falten.
+import shutil
+import tarfile
+import zipfile
+
+ARCHIVO_URL = "https://gutenberg.pglaf.org/cache/generated/feeds/txt-files.tar.zip"
+LOCAL = Path("/content/gutenberg_txt")
+LOCAL.mkdir(parents=True, exist_ok=True)
+ZIP_LOCAL = Path("/content/txt-files.tar.zip")
 
 
-def _pendientes_reales(lista, tope):
-    fuera = []
-    for n in lista:
-        if not (TEXTOS / f"pg{n}.txt").exists():
-            fuera.append(n)
-        if len(fuera) >= tope:
-            break
-    return fuera
+def _hay_espacio(bytes_necesarios: int, donde="/content") -> bool:
+    libre = shutil.disk_usage(donde).free
+    print(f"  espacio libre en {donde}: {libre / 1e9:.1f} GB "
+          f"(hacen falta ~{bytes_necesarios / 1e9:.0f})")
+    return libre > bytes_necesarios
 
 
-cola = _pendientes_reales(pendientes, LOTE)
-print(f"a bajar en esta tanda: {len(cola):,} (de {len(pendientes):,} en total)")
+def bajar_archivo() -> bool:
+    """Baja el tar.zip a /content. Devuelve False si no se pudo."""
+    if ZIP_LOCAL.exists() and ZIP_LOCAL.stat().st_size > 10 ** 10:
+        print("el archivo ya esta en /content, no se vuelve a bajar")
+        return True
+    try:
+        req = urllib.request.Request(
+            ARCHIVO_URL,
+            headers={"User-Agent": "LiteraLevel/1.0 (proyecto academico)"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            total = int(r.headers.get("Content-Length") or 0)
+            print(f"bajando {total / 1e9:.1f} GB ...")
+            if total and not _hay_espacio(int(total * 2.6)):
+                print("  NO hay espacio suficiente en /content; se usa el "
+                      "metodo de libro a libro")
+                return False
+            hecho, t0, ultimo = 0, time.time(), 0.0
+            with open(ZIP_LOCAL, "wb") as f:
+                while True:
+                    trozo = r.read(8 * 1024 * 1024)
+                    if not trozo:
+                        break
+                    f.write(trozo)
+                    hecho += len(trozo)
+                    if time.time() - ultimo > 30:
+                        ultimo = time.time()
+                        v = hecho / max(time.time() - t0, 1) / 1e6
+                        pct = f"{100 * hecho / total:.1f}%" if total else "?"
+                        print(f"  {hecho / 1e9:.1f} GB · {pct} · {v:.0f} MB/s")
+        print(f"bajado en {(time.time() - t0) / 60:.1f} min")
+        return True
+    except Exception as e:
+        print("no se pudo bajar el archivo completo:", type(e).__name__, e)
+        return False
 
-hechos = fallos = 0
-inicio = time.time()
-with ThreadPoolExecutor(max_workers=HILOS) as pool:
-    for ok in pool.map(descargar, cola):
-        if time.time() - inicio > HORAS_TOPE * 3600:
-            print(f"  alcanzado el tope de {HORAS_TOPE} h; paro aqui y lo "
-                  f"bajado queda guardado")
-            break
-        if ok:
-            hechos += 1
-        else:
-            fallos += 1
-        n = hechos + fallos
-        if n % 200 == 0:
-            v = n / (time.time() - inicio)
-            # El calculo de lo que queda se hace con la cuenta que ya llevamos,
-            # NO volviendo a listar el directorio. Listar `gutenberg_txt` sobre
-            # Drive tarda 98 segundos con 28.535 ficheros -medido- y aqui se
-            # hacia cada 200 descargas, solo para imprimir una linea de
-            # progreso. A ese ritmo, mas de dos horas de la descarga se han ido
-            # en contar ficheros para decir cuanto faltaba por descargar.
-            queda = (len(pendientes) - hechos) / v / 3600
-            print(f"  {hechos:,} bajados · {fallos} fallidos · {v:.1f}/s · "
-                  f"al catálogo entero le faltarían {queda:.1f} h")
 
-total = len(list(TEXTOS.glob("*.txt")))
-print(f"\ntanda terminada en {(time.time() - inicio) / 60:.1f} min: "
-      f"+{hechos}, {fallos} fallidos")
-print(f"total en Drive: {total:,} de {len(pendientes):,} "
-      f"({100 * total / len(pendientes):.1f}%)")
-if total < len(pendientes):
-    print("\nVuelve a ejecutar esta celda para la siguiente tanda. "
-          "Lo ya bajado no se vuelve a pedir.")
+def extraer(numeros_que_quiero: set[int]) -> int:
+    """Saca de dentro del archivo SOLO los libros que interesan.
+
+    El archivo trae los .txt de todo Gutenberg, incluidos los que no estan en
+    ingles y los que ya no aplican. Extraer los 61.642 que queremos y dejar
+    fuera el resto se hace aqui, leyendo el indice del tar sin descomprimir
+    nada mas que lo necesario.
+    """
+    sacados = 0
+    with zipfile.ZipFile(ZIP_LOCAL) as z:
+        interiores = [n for n in z.namelist() if n.endswith(".tar")]
+        if not interiores:
+            print("  el zip no contiene un .tar; se usa el metodo antiguo")
+            return 0
+        print(f"  el zip contiene: {interiores[0]}")
+        with z.open(interiores[0]) as tar_bruto:
+            with tarfile.open(fileobj=tar_bruto, mode="r|") as tar:
+                t0 = time.time()
+                for miembro in tar:
+                    if not miembro.isfile() or not miembro.name.endswith(".txt"):
+                        continue
+                    base = Path(miembro.name).stem
+                    digitos = "".join(c for c in base.split("-")[0] if c.isdigit())
+                    if not digitos:
+                        continue
+                    n = int(digitos)
+                    if n not in numeros_que_quiero:
+                        continue
+                    destino = LOCAL / f"pg{n}.txt"
+                    if destino.exists():
+                        continue
+                    f = tar.extractfile(miembro)
+                    if f is None:
+                        continue
+                    datos = f.read()
+                    if len(datos) > 2000:
+                        destino.write_bytes(datos)
+                        sacados += 1
+                        if sacados % 2000 == 0:
+                            print(f"  {sacados:,} extraidos · "
+                                  f"{(time.time() - t0) / 60:.1f} min")
+    return sacados
+
+
+# Los libros que queremos, por numero.
+QUIERO = set(int(n) for n in pendientes)
+
+# Lo que ya haya en Drive de tandas anteriores se aprovecha: se enlaza al
+# directorio local en vez de volver a extraerlo.
+reciclados = 0
+if TEXTOS.exists():
+    for r in TEXTOS.glob("*.txt"):
+        destino = LOCAL / r.name
+        if not destino.exists():
+            try:
+                os.symlink(r, destino)
+            except (OSError, NotImplementedError):
+                shutil.copy2(r, destino)
+            reciclados += 1
+print(f"reaprovechados de Drive: {reciclados:,}")
+
+sacados = 0
+if bajar_archivo():
+    sacados = extraer(QUIERO)
+    print(f"extraidos del archivo: {sacados:,}")
+else:
+    # Camino de respaldo: el de siempre, libro a libro y en paralelo.
+    from concurrent.futures import ThreadPoolExecutor
+    DESTINO_TEXTOS = LOCAL
+    faltan = [n for n in pendientes if not (LOCAL / f"pg{n}.txt").exists()]
+    print(f"respaldo libro a libro para {len(faltan):,}")
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for i, ok in enumerate(pool.map(descargar, faltan), 1):
+            if i % 500 == 0:
+                print(f"  {i:,} intentados")
+
+TEXTOS_LISTOS = LOCAL
+disponibles_ahora = sum(1 for _ in LOCAL.glob("*.txt"))
+print(f"\nTEXTOS LISTOS PARA ANALIZAR: {disponibles_ahora:,} "
+      f"de {len(pendientes):,} ({100 * disponibles_ahora / len(pendientes):.1f}%)")
+print(f"estan en {LOCAL} (disco del entorno, no Drive)")
+print("Los resultados si van a Drive: son seis ficheros, no sesenta mil.")
+
 
 # %%
 # --- 7. El modelo v4 en la GPU -------------------------------------------
@@ -456,8 +552,14 @@ def perfil_de_libro(ruta):
 
 ya = hechos_ya()
 print(f"ya calculados: {len(ya):,}")
-disponibles = [r for r in sorted(TEXTOS.glob("*.txt"))
+# `TEXTOS_LISTOS` lo fija la celda 6b: el disco local del entorno si el
+# archivo masivo se pudo bajar, y Drive si hubo que caer al respaldo. Se usa
+# `globals().get` para que esta celda siga funcionando si alguien ejecuta el
+# cuaderno salteado y la 6b no llego a correr.
+ORIGEN = globals().get("TEXTOS_LISTOS", TEXTOS)
+disponibles = [r for r in sorted(ORIGEN.glob("*.txt"))
                if int(r.stem[2:]) not in ya]
+print(f"leyendo los textos de:  {ORIGEN}")
 print(f"por calcular:  {len(disponibles):,}")
 
 # %%
