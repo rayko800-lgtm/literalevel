@@ -117,7 +117,7 @@ diez los rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras�
 que las medias quedan estrictamente crecientes**, que es el resultado que
 sostiene el trabajo.
 
-El guion imprime además las tres cifras del Cuadro 11 (modelo 0,855, contar
+El guion imprime además las tres cifras del Cuadro 12 (modelo 0,855, contar
 palabras 0,799, parcial descontando la longitud 0,665) y la lista de los diez
 rechazados con su motivo. Los nombres de los 58 archivos del corpus están en
 [`entrega/manifiesto_corpus_externo.md`](entrega/manifiesto_corpus_externo.md).

@@ -9,6 +9,11 @@ Septiembre de 2026
 > La sección **Estrategia** de este trabajo se entrega en un documento aparte,
 > `estrategia.md`, por su extensión. En este documento se resume en el
 > apartado 3 y se remite allí para el desarrollo completo.
+>
+> Este `.md` es la copia de lectura; el entregable es `documento.pdf`. Los
+> dos dicen lo mismo, pero **la numeración de los cuadros no coincide**: el
+> PDF numera además las tablas que aquí van como listas dentro del texto.
+> Las referencias internas de cada archivo apuntan a su propia numeración.
 
 ---
 
@@ -414,7 +419,8 @@ encima de él.
 **Dificultad frente a dominio.** El nivel del texto está correlacionado con su
 tipo documental. Al filtrar los 59 textos de British Council a prosa continua,
 el nivel A1 desaparece casi por completo y el rango evaluable se encoge de cinco
-niveles a cuatro (A2–C1). Por eso el *baseline* de contar palabras cae de 0,879
+niveles a cuatro (A2–C1): el catálogo gratuito de British Council no tiene C2,
+así que el corpus nunca tuvo seis. Por eso el *baseline* de contar palabras cae de 0,879
 a 0,765 al filtrar: parte de la señal del conjunto completo era simplemente que
 los textos A1 son cortos. Las correlaciones antes y después del filtro **no son
 comparables entre sí**, y se reportan por separado.
@@ -639,7 +645,10 @@ ponderar, con un tope de **ocho ventanas por documento** repartidas a lo
 largo del texto: es lo que mantiene el análisis en **alrededor de un segundo**
 en una CPU —0,96 a 1,04 s medidos sobre ocho ventanas en el equipo del autor,
 un Ryzen 5 2600—, y por eso un vistazo mide una muestra del texto y no el texto
-entero (el catálogo precalculado sí lo lee entero, capítulo a capítulo). Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
+entero. El precálculo del catálogo, en cambio, recorre el libro completo sin
+muestrear y publica una dificultad por capítulo; esa remedición está **en
+curso** (accionable A3), así que las etiquetas que hoy lleva el catálogo
+siguen siendo las heredadas del v1. Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
 intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala multiplicada
 por 0,4. **El modelo es final y no se reentrena.**
 
@@ -695,7 +704,7 @@ medias por nivel quedan estrictamente crecientes:
 
 *Cuadro 10. Reproducción local de la validación externa, sobre los 46 textos
 que quedan tras la extracción de los PDF **y el filtro de prosa continua** (el
-balance completo está en el Cuadro 10b).*
+balance completo está en el Cuadro 11).*
 
 Esta tabla se **recalcula** con el guion `validar_local.py`, en cualquier
 máquina que tenga los mismos PDF y los mismos pesos. No es una reproducción
@@ -718,7 +727,7 @@ los archivos reales, cierra así:
 | menos: **rechazados por `scoring.continuous_prose`** | **−10** |
 | **Evaluados** | **46** |
 
-*Cuadro 10b. De 59 a 46, paso a paso.*
+*Cuadro 11. De 59 a 46, paso a paso.*
 
 Las dos primeras restas son de extracción. La cuarta no: son **diez textos
 —nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
@@ -741,10 +750,9 @@ imprime los diez rechazados con su motivo.
 | Contar las palabras del texto, sin modelo | 0,799 |
 | Modelo, descontando la longitud (correlación parcial) | **0,665** |
 
-*Cuadro 11. El modelo frente a la señal trivial. Las tres cifras las
+*Cuadro 12. El modelo frente a la señal trivial. Las tres cifras las
 calcula `validar_local.py` sobre los mismos 46 textos, con Spearman sobre
-rangos y la correlación parcial en la misma escala; reproducidas hoy en
-local: 0,855, 0,799 y 0,665.*
+rangos y la correlación parcial en la misma escala.*
 
 Un contador de palabras llega casi tan lejos como el modelo en ese corpus, y
 omitirlo sería deshonesto. Lo que sostiene al modelo es la tercera fila: **aporta
@@ -794,12 +802,12 @@ resultado.
 | **Rechazada: modelo híbrido embedding + variables** | Se esperaba complementariedad | Ganancia nula (0,37 y 0,37; 0,91 vs 0,93). El embedding ya contiene esa información |
 | **Rechazada: escalar la lista léxica al SPGC completo por rendimiento** | Se esperaba mejorar `rare_word_ratio` | La correlación pasa de −0,330 a −0,326. Se conserva igualmente por cobertura, no por métrica |
 | **Rechazada: cuantización dinámica int8** | +18 % de velocidad en CPU | MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de −0,21. Un desplazamiento así cambia la letra MCER en el **52 %** de la escala y la banda en el **21 %**: no degrada la cifra, le cambia la etiqueta al libro. Inaceptable |
-| **Rechazada: precisión media (fp16) en la GPU local** | Se esperaba acelerar | Es **4,8× más lenta** que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene *tensor cores*. En una A100 sí compensa, y allí la desviación observada fue de unos 0,00037 de media; **esa medición no quedó guardada en ningún guion del repositorio**, así que vale como orden de magnitud y no como cifra auditable |
+| **Rechazada: precisión media (fp16) en la GPU local** | Se esperaba acelerar | Es **4,8× más lenta** que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene *tensor cores*. En una A100 sí compensa, y allí la desviación observada fue de unos 0,00037 de media; **tampoco quedó guardada**: mismo caso que la fila de arriba |
 | **Rechazada: `inference_mode` en lugar de `no_grad`** | Se esperaba menos sobrecarga | 0,4 % de diferencia, por debajo del ruido |
 | **Rechazado: esfuerzo de razonamiento «mínimo» en la explicación léxica** | Es el doble de rápido (7,4 s frente a 14,9 s) | Con él, «had peeped» se explicó como pasado simple cuando es pasado perfecto. La gramática es justo lo que se evalúa |
 | Filtrar prosa continua para la validación externa | Excluir textos porque el modelo falla en ellos invalida la validación | El criterio salió del diagnóstico, no es *a priori*, y así se dice en §4.3(a). Lo que lo sostiene es que se definió por **dos vías independientes** —título y estructura— que coinciden en el 89,8 % sin volver a mirar las puntuaciones |
 
-*Cuadro 12. Decisiones metodológicas, incluidas las hipótesis rechazadas.*
+*Cuadro 13. Decisiones metodológicas, incluidas las hipótesis rechazadas.*
 
 ---
 
@@ -819,7 +827,7 @@ esas tres:
 | ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana, definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
 
-*Cuadro 13. Del modelo a las decisiones del usuario.*
+*Cuadro 14. Del modelo a las decisiones del usuario.*
 
 ### 8.2 Un recorrido completo, con números reales
 
@@ -871,11 +879,11 @@ Las mediciones que hicieron viable esa decisión:
 | GPU local (GTX 1650 SUPER) | fp32, lote 128 | 112,7 | 13,8× |
 | GPU A100 (Colab) | fp16, lote grande | 2.022 | 247× |
 
-*Cuadro 14. Rendimiento medido de extremo a extremo, incluida la tokenización
+*Cuadro 15. Rendimiento medido de extremo a extremo, incluida la tokenización
 y las transferencias. Son cifras del precálculo, que agrupa en lotes fijos de 64
-en CPU y 128 en GPU. **La aplicación en vivo no llega a esos lotes**: mide
-capítulo a capítulo para poder ir repintando la curva, y un capítulo son unas
-veinte ventanas, así que el rendimiento interactivo real está más cerca de las
+en CPU y 128 en GPU. **La aplicación en vivo no llega a esos lotes**: agrupa
+por capítulo, y no por conveniencia sino para poder ir repintando la curva
+mientras mide; un capítulo son unas veinte ventanas, así que el rendimiento interactivo real está más cerca de las
 6,96 ventanas/s del agrupado por capítulo que de las 8,19 de esta fila.*
 
 Dos comprobaciones acompañan a ese cuadro, porque acelerar no puede costar
@@ -951,7 +959,7 @@ y la cifra que resume cada una.
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
 | Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | 3–5 h de A100 |
 
-*Cuadro 15. Cifras publicadas frente a las de este proyecto. **No son
+*Cuadro 16. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
 sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
 decisión de afinar un codificador; no demuestran una victoria medida.*
@@ -1025,7 +1033,7 @@ repetirlo en cada párrafo corregido.
    pero salió del diagnóstico y el conjunto ha
    sido mirado y ya no es virgen.
 7. **La longitud del texto es un confusor en el corpus de examen.** Contar
-   palabras alcanza 0,799 donde el modelo alcanza 0,855 (Cuadro 11).
+   palabras alcanza 0,799 donde el modelo alcanza 0,855 (Cuadro 12).
 8. **El modelo solo mide prosa continua en inglés.** Poesía, teatro, diálogo
    muy fragmentado y cualquier lengua distinta del inglés quedan fuera.
 9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el

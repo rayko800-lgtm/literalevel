@@ -663,7 +663,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 \addlinespace
 — & «Analizar el libro entero» no advierte del coste & «Leer el libro entero (tarda más)» & Etiqueta reescrita \\
 \addlinespace
-«No me gustan los colores» & El color es gusto, y el gusto no se discute: se ofrece & \textbf{Cinco paletas} con pestaña propia y cambio instantáneo: \emph{hielo} (la original), \emph{amanecer} (clara, crema y naranja), \emph{menta}, \emph{papel} (para leer horas) y \emph{medianoche} & Una prueba automática comprueba las cinco contra el criterio de contraste \textbf{WCAG AA (4,5:1)} \parencite{w3c2023wcag}. Las cinco pasan en las veinte parejas de color que se comprueban (cuatro por paleta); la más ajustada mide \textbf{4,53} \\
+«No me gustan los colores» & El color es gusto, y el gusto no se discute: se ofrece & \textbf{Cinco paletas} con pestaña propia y cambio instantáneo: \emph{hielo} (la original), \emph{amanecer} (clara, crema y naranja), \emph{menta}, \emph{papel} (para leer horas) y \emph{medianoche} & Una prueba automática comprueba las cinco contra el criterio de contraste \textbf{WCAG AA (4,5:1)} \parencite{w3c2023wcag}. Las cinco pasan en las \textbf{cuarenta parejas} de color que se comprueban —ocho por paleta, cada una con su umbral: 4,5:1 para el texto normal y 3:1 para el título grande—. La más ajustada del texto normal mide \textbf{4,53} y la del título, \textbf{3,11} \\
 \addlinespace
 «Todo muy recto, muy marcado» & Esto no es gusto, es diseño, y se corrige para todas las paletas & Esquinas de 14~px, bordes finos, sombras suaves y las opciones de lista como fichas tocables & — \\
 \addlinespace
@@ -834,7 +834,7 @@ un problema de modelado: son despliegue, publicación y un micrófono.
 Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textbf{Cumplido}: 0,5040 · 0,5480 · 0,9276 · 1,2414 · 1,4952 \\
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,665 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron 8 correcciones \\
-Producto & Accesibilidad de color & \textbf{Cumplido}: las veinte parejas de color de las cinco paletas superan WCAG AA; la más ajustada, 4,53 \\
+Producto & Accesibilidad de color & \textbf{Cumplido}: las cuarenta parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
 Producto & Robustez & \textbf{Cumplido}: 205 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha. Sin disco persistente todavía (A4) \\
 Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
@@ -1567,7 +1567,10 @@ y cuyos pesos ocupan 328 MB en disco. Puntúa bloques de 250 palabras truncados 
 documento} repartidas a lo largo del texto: es lo que mantiene el análisis en \textbf{alrededor de un segundo}
 en una CPU —0,96 a 1,04 s medidos sobre ocho ventanas en el equipo del autor, un
 Ryzen 5 2600—, y por eso un vistazo mide una muestra del texto y no el texto
-entero (el catálogo precalculado sí lo lee entero, capítulo a capítulo). Su escala
+entero. El precálculo del catálogo, en cambio, recorre el libro completo sin
+muestrear y publica una dificultad por capítulo; esa remedición está \textbf{en curso}
+(accionable A3), así que las etiquetas que hoy lleva el catálogo siguen siendo las
+heredadas del v1. Su escala
 interna es 0--5 —un valor por nivel
 MCER, con posiciones intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala
 multiplicada por 0,4. \textbf{El modelo es final y no se reentrena.}
@@ -1701,7 +1704,8 @@ obtenidas en Colab (C1 coincide hasta la tercera cifra decimal —1,4952 frente 
 una versión anterior solo mencionaba una.} El balance completo, contado sobre los archivos
 reales, cierra así:
 
-\begin{center}\small
+\begin{table}[htbp]
+\centering\small
 \begin{tabular}{@{}l r@{}}
 \toprule
  & \textbf{Textos} \\
@@ -1714,7 +1718,10 @@ menos: \textbf{rechazados por \cod{scoring.continuous\_prose}} & $\mathbf{-10}$ 
 \textbf{Evaluados} & \textbf{46} \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{De 59 a 46, paso a paso. Las dos primeras restas son de extracción; la
+tercera es el filtro de prosa continua.}
+\label{cuad:balance}
+\end{table}
 
 \noindent Las dos primeras restas son de extracción. La cuarta no: son \textbf{diez
 textos —nueve de A1 y uno de B1— que rechaza \cod{scoring.continuous\_prose}}, y conviene
@@ -1743,7 +1750,7 @@ Contar las palabras del texto, sin modelo & 0,799 \\
 Modelo, descontando la longitud (correlación parcial) & \textbf{0,665} \\
 \bottomrule
 \end{tabular}
-\caption{El modelo frente a la señal trivial. Las tres cifras las calcula \cod{validar\_local.py} sobre los mismos 46 textos, con Spearman sobre rangos y la correlación parcial en la misma escala; reproducidas hoy en local: 0,855, 0,799 y 0,665.}
+\caption{El modelo frente a la señal trivial. Las tres cifras las calcula \cod{validar\_local.py} sobre los mismos 46 textos, con Spearman sobre rangos y la correlación parcial en la misma escala.}
 \label{cuad:baseline}
 \end{table}
 
@@ -1759,7 +1766,13 @@ los corpus de examen gradúan también la extensión de la tarea.
 
 \textbf{La escala está comprimida, y la aplicación lo asume.} Contra el ancla real, el
 ajuste ronda $\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$
-(figura~\ref{fig:compresion}), de modo que un texto A2 tiende a puntuar cerca de B1. Por
+(figura~\ref{fig:compresion}). Conviene decir de dónde sale esa recta, porque no está
+ajustada sobre los textos uno a uno: son \textbf{mínimos cuadrados sobre las cuatro medias
+por nivel que reportó Colab} (A2 a C1; el catálogo gratuito de British Council no tiene C2
+y aquella tanda no traía A1), y dan $0{,}7196x + 0{,}3760$. Rehecha sobre las cinco medias
+locales de hoy sale $0{,}67x + 0{,}41$: cambian los decimales, no la conclusión, que es que
+la pendiente está muy por debajo de 1. De modo que un texto A2 tiende a puntuar cerca de
+B1. Por
 eso la interfaz muestra \textbf{bandas} (básico $< 0{,}6 \leq$ intermedio $< 1{,}4 \leq$
 avanzado) y la letra MCER solo como orientación, en lugar de fingir una precisión de dos
 decimales que el modelo no tiene.
@@ -1871,7 +1884,7 @@ Promediar bloques sin ponderar, con la \textbf{ventana} como unidad & Simplicida
 \addlinespace
 \textbf{Rechazada: cuantización dinámica int8} & $+18\pct$ de velocidad en CPU & MAE de 0,210 sobre una escala de 0 a 2 y sesgo sistemático de $-0{,}21$. Un desplazamiento así cambia la letra MCER en el \textbf{52\pct} de la escala y la banda en el \textbf{21\pct}: no degrada la cifra, le cambia la etiqueta al libro. Inaceptable \\
 \addlinespace
-\textbf{Rechazada: precisión media (fp16) en la GPU local} & Se esperaba acelerar & Es \textbf{4,8$\times$ más lenta} que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene \emph{tensor cores}. En una A100 sí compensa, y allí la desviación observada fue de unos 0,00037 de media; \textbf{esa medición no quedó guardada en ningún guion del repositorio}, así que vale como orden de magnitud y no como cifra auditable \\
+\textbf{Rechazada: precisión media (fp16) en la GPU local} & Se esperaba acelerar & Es \textbf{4,8$\times$ más lenta} que fp32 en una GTX 1650 SUPER: el chip TU116 no tiene \emph{tensor cores}. En una A100 sí compensa, y allí la desviación observada fue de unos 0,00037 de media; \textbf{tampoco quedó guardada}: mismo caso que la fila de arriba \\
 \addlinespace
 \textbf{Rechazada: \cod{inference\_mode} en lugar de \cod{no\_grad}} & Se esperaba menos sobrecarga & 0,4\pct{} de diferencia, por debajo del ruido \\
 \addlinespace
@@ -2128,8 +2141,9 @@ GPU A100 (Colab) & fp16, lote grande & 2.022 & 247$\times$ \\
 \end{tabular}
 \caption{Rendimiento medido de extremo a extremo, incluida la tokenización y las
 transferencias. Son cifras del precálculo, que agrupa en lotes fijos de 64 en CPU y 128
-en GPU. \textbf{La aplicación en vivo no llega a esos lotes}: mide capítulo a capítulo
-para poder ir repintando la curva, y un capítulo son unas veinte ventanas, así que el
+en GPU. \textbf{La aplicación en vivo no llega a esos lotes}: agrupa por capítulo, y no por
+conveniencia sino para poder ir repintando la curva mientras mide; un capítulo son
+unas veinte ventanas, así que el
 rendimiento interactivo real está más cerca de las 6,96 ventanas/s del agrupado por
 capítulo que de las 8,19 de esta fila. Fuente:
 \cod{datos\_figuras/\allowbreak velocidad.dat}.}
@@ -2344,8 +2358,9 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         no basta: la aplicación lo repite en pantalla.
   \item \textbf{La escala está comprimida.} El ajuste contra el ancla real ronda
         $\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$
-        (figura~\ref{fig:compresion}), así que los niveles bajos se sobreestiman y los
-        altos se subestiman. Es la razón de mostrar bandas y no decimales.
+        (figura~\ref{fig:compresion}; mínimos cuadrados sobre las cuatro medias por nivel
+        de Colab, y $0{,}67x + 0{,}41$ con las cinco locales), así que los niveles bajos se
+        sobreestiman y los altos se subestiman. Es la razón de mostrar bandas y no decimales.
   \item \textbf{Las etiquetas del catálogo heredado no son fiables}
         (cuadro~\ref{cuad:catalogo}). Son predicciones de un modelo v1 sobre las primeras
         $\sim$190 palabras. La remedición está en curso y es el trabajo pendiente más

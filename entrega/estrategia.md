@@ -130,7 +130,7 @@ diagnosticó qué producía cada queja y se corrigió.
 | — | «Medir la dificultad de este capítulo» es lenguaje de laboratorio | «¿Cómo de difícil es este capítulo?» | Etiqueta reescrita |
 | — | «Vistazo rápido a la dificultad» no dice cuánto tarda | «Vistazo rápido (unos segundos)» | Etiqueta reescrita |
 | — | «Analizar el libro entero» no advierte del coste | «Leer el libro entero (tarda más)» | Etiqueta reescrita |
-| «No me gustan los colores» | El color es gusto, y el gusto no se discute: se ofrece | **Cinco paletas** con pestaña propia y cambio instantáneo: *hielo* (la original), *amanecer* (clara, crema y naranja), *menta*, *papel* (para leer horas) y *medianoche* | Una prueba automática comprueba las cinco contra el criterio de contraste **WCAG AA (4,5:1)**. Las cinco pasan en las veinte parejas de color que se comprueban (cuatro por paleta); la más ajustada mide **4,53** |
+| «No me gustan los colores» | El color es gusto, y el gusto no se discute: se ofrece | **Cinco paletas** con pestaña propia y cambio instantáneo: *hielo* (la original), *amanecer* (clara, crema y naranja), *menta*, *papel* (para leer horas) y *medianoche* | Una prueba automática comprueba las cinco contra el criterio de contraste **WCAG AA (4,5:1)**. Las cinco pasan en las **cuarenta parejas** de color que se comprueban —ocho por paleta, cada una con su umbral: 4,5:1 para el texto normal y 3:1 para el título grande—. La más ajustada del texto normal mide **4,53** y la del título, **3,11** |
 | «Todo muy recto, muy marcado» | Esto no es gusto, es diseño, y se corrige para todas las paletas | Esquinas de 14 px, bordes finos, sombras suaves y las opciones de lista como fichas tocables | — |
 | «Difícil de usar en celular… casi todo» | En un móvil, el círculo de un botón de radio es un blanco de 12 px | La ficha entera pasa a ser el blanco: **44 px** | — |
 
@@ -179,7 +179,7 @@ Medir un libro largo son minutos. Pedirle esos minutos al lector en el momento
 en que quiere leer es perderlo. La estrategia es **mover el cómputo antes de la
 consulta**: el catálogo se precalcula fuera de línea y, cuando el lector busca,
 el trabajo ya está hecho. Los números que hacen viable esa decisión están en el
-Cuadro 14 del documento principal: 8,19 ventanas/s en CPU, 112,7 en la GPU
+Cuadro 15 del documento principal: 8,19 ventanas/s en CPU, 112,7 en la GPU
 local y **2.022 en una A100**, con lo que los 61.642 libros en inglés de
 Project Gutenberg son **entre tres y cinco horas** de cómputo, según el número
 medio de ventanas por libro, que todavía no está medido sobre el catálogo.
@@ -387,7 +387,7 @@ publicación y un micrófono.
 | Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5480 · 0,9276 · 1,2414 · 1,4952 |
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,665 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron 8 correcciones |
-| Producto | Accesibilidad de color | **Cumplido**: las veinte parejas de color de las cinco paletas superan WCAG AA; la más ajustada, 4,53 |
+| Producto | Accesibilidad de color | **Cumplido**: las cuarenta parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
 | Producto | Robustez | **Cumplido**: 205 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha. Sin disco persistente todavía (A4) |
 | Operación | Catálogo medido, no heredado | **En curso** (A3) |

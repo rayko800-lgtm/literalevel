@@ -211,7 +211,7 @@ publicada es directamente comparable con la nuestra**.
   CLEAR es público y hay contra qué medirlo. Ese es el número que hay que
   defender ante un evaluador, no el 0,908.
 - **El número que de verdad debería preocupar es otro:** en British Council,
-  contar palabras sin modelo da **0,799** y el modelo da **0,855** (Cuadro 11).
+  contar palabras sin modelo da **0,799** y el modelo da **0,855** (Cuadro 12).
   El modelo aporta señal por encima de la longitud (parcial 0,665), pero el
   margen sobre la señal trivial es de 0,047. El proyecto ya lo publica, y eso es
   lo correcto. Pero es la cifra que un revisor exigente atacará primero.

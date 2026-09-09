@@ -799,26 +799,44 @@ def _contraste_suficiente():
     # AA en las cinco paletas: el texto del boton sobre la parte alta de su
     # degradado daba entre 2,50 y 3,91. Es el boton que dice "Estimar mi nivel"
     # o "Leer el libro entero", o sea el que mas se pulsa de la aplicacion.
+    # Cada pareja lleva su umbral, porque WCAG no pide lo mismo a todo:
+    # 4,5:1 al texto normal y 3:1 al texto grande (>=24 px, o >=18,7 px en
+    # negrita), que es el caso del h1.
+    #
+    # La lista crecio dos veces, y las dos por lo mismo: se median pocas
+    # parejas. Primero se descubrio que el BOTON PRINCIPAL fallaba AA en las
+    # cinco paletas -entre 2,50 y 3,91-, que es el boton que dice "Estimar mi
+    # nivel". Despues, que el rotulo de la pestana seleccionada usa
+    # --ll-acento y daba 3,04 en menta, y que las paradas del degradado del
+    # h1 bajaban hasta 1,87. Una prueba que solo mira donde ya sabes que esta
+    # bien no es una prueba.
     PARES = {
-        "interfaz": ("--ll-texto", "--ll-fondo"),
-        "lector": ("--ll-lector-texto", "--ll-lector-fondo"),
-        "boton-alto": ("--ll-boton-texto", "--ll-boton-alto"),
-        "boton-hondo": ("--ll-boton-texto", "--ll-acento-hondo"),
+        "interfaz": ("--ll-texto", "--ll-fondo", 4.5),
+        "lector": ("--ll-lector-texto", "--ll-lector-fondo", 4.5),
+        "boton-alto": ("--ll-boton-texto", "--ll-boton-alto", 4.5),
+        "boton-hondo": ("--ll-boton-texto", "--ll-acento-hondo", 4.5),
+        # El rotulo de la pestana elegida: texto normal.
+        "pestana-elegida": ("--ll-acento", "--ll-fondo", 4.5),
+        # Las tres paradas del degradado del titulo: texto grande.
+        "titulo-1": ("--ll-titulo-1", "--ll-fondo", 3.0),
+        "titulo-2": ("--ll-titulo-2", "--ll-fondo", 3.0),
+        "titulo-3": ("--ll-titulo-3", "--ll-fondo", 3.0),
     }
 
     malas = []
     for k, d in paletas_mod.PALETAS.items():
         v = d["vars"]
-        for etiqueta, (a, b) in PARES.items():
+        for etiqueta, (a, b, minimo) in PARES.items():
             if a not in v or b not in v:
                 malas.append(f"{k}/{etiqueta}=falta variable")
                 continue
             la, lb = lum(v[a]), lum(v[b])
             r = (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
-            if r < 4.5:
-                malas.append(f"{k}/{etiqueta}={r:.2f}")
+            if r < minimo:
+                malas.append(f"{k}/{etiqueta}={r:.2f} (pide {minimo})")
     assert not malas, malas
-    return f"{len(paletas_mod.PALETAS)} paletas x {len(PARES)} pares, todas AA"
+    return (f"{len(paletas_mod.PALETAS)} paletas x {len(PARES)} pares, "
+            f"todas AA")
 
 
 prueba("todas las paletas son legibles", _contraste_suficiente)
