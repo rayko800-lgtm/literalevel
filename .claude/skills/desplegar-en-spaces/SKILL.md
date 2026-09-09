@@ -43,6 +43,33 @@ urllib.request.Request("https://huggingface.co/api/whoami-v2",
   para una cuenta recién creada.
 - CPU Basic da **2 vCPU y 16 GB**, de sobra para una app que mide 1,05 GB.
 
+### `cpu-basic` NO significa gratis
+
+Es la confusión que costó publicar una cifra falsa en un entregable. La API
+devuelve el hardware, no la factura:
+
+```
+runtime.hardware.current = "cpu-basic"     # no cobra por hardware
+```
+
+y de ahí es tentador concluir «el despliegue es gratuito». **Falso**: el Space
+de Gradio existe porque la cuenta es Pro, y la cuenta Pro se paga. `cpu-basic`
+solo quiere decir que ese hardware no añade coste **sobre** la suscripción.
+
+Para saber si una cuenta paga, pregúntaselo al Hub:
+
+```python
+p = urllib.request.Request('https://huggingface.co/api/whoami-v2',
+                           headers={'Authorization': 'Bearer ' + tk})
+d = json.load(urllib.request.urlopen(p))
+d['isPro']       # True
+d['periodEnd']   # epoch de la renovación
+```
+
+**En este proyecto:** `MikeMaki1763` es Pro, renueva el 01/10/2026, y Miguel
+paga **7 USD/mes** — la tarifa es 9 y le aplicaron descuento. Cuando cites el
+coste en un documento, es 7, no 9 y no cero.
+
 ---
 
 ## 3. Publicar un modelo

@@ -360,7 +360,7 @@ las variables léxicas se quedan en 0,29 de exactitud y el texto crudo llega a
 | **Fórmulas clásicas** (Flesch, Dale-Chall, ATOS) | Leemos el texto con atención, no contamos sílabas. 0,89 vs 0,517 en CLEAR | Ellas son instantáneas, interpretables al 100 %, no necesitan 328 MB ni GPU, y llevan 70 años validadas en aula. ATOS además mide el libro entero desde 2000 |
 | **Lexile** | Anclaje MCER; capítulo a capítulo; gratis frente a 3.824–54.636 USD/año; abierto y auditable; en español | Escala validada durante 30 años, base de cientos de miles de títulos, integración con bibliotecas y pruebas oficiales, **y una escala común lector-texto que nosotros solo aproximamos**. Su medida la acepta un colegio; la nuestra no |
 | **LLM con prompt (GPT-5, Claude)** | 0,89 vs 0,725 en CLEAR; corre en CPU; coste ~0 por libro; determinista y reproducible | No necesitan corpus etiquetado (nosotros dependemos de 654 documentos); explican su juicio; llegan a 0,888 en dominio de examen sin entrenar; mejoran solos cada seis meses sin que hagamos nada |
-| **TeakReader** | Modelo de lenguaje frente a conteo léxico; búsqueda semántica en español; app web sin instalar | Producto móvil terminado y publicado en dos tiendas; nosotros, una web en Hugging Face Spaces sobre CPU gratuita. Su señal de vocabulario es **personalizada al usuario**, la nuestra no |
+| **TeakReader** | Modelo de lenguaje frente a conteo léxico; búsqueda semántica en español; app web sin instalar | Producto móvil terminado y publicado en dos tiendas; nosotros, una web en Hugging Face Spaces sobre CPU, con una cuenta Pro de 7 USD/mes. Su señal de vocabulario es **personalizada al usuario**, la nuestra no |
 | **LingQ / Readlang / Beelinguapp** | Somos los únicos que dicen la dificultad **antes** de abrir el libro y **por capítulo** | Productos maduros, con años de contenido, audio, comunidad y sincronización entre dispositivos. Nuestro cuaderno y biblioteca son un prototipo al lado |
 | **Cathoven / Text Inspector** | Libro completo frente a texto suelto; lector integrado; gratis | Herramientas de profesor pulidas, con API comercial, MCER por palabra y validación externa declarada |
 | **Lecturas graduadas de editorial** | 61.642 libros de dominio público frente a un catálogo cerrado; literatura de verdad, no textos escritos para el ejercicio | Su nivel lo puso un humano que leyó la obra. El nuestro lo puso un modelo con una escala comprimida |
@@ -447,10 +447,10 @@ Este apartado vale más que el anterior. Sin adornos:
    EPUB completo del usuario. Lexile tiene anotación validada. **Hoy nuestro
    catálogo es lo más flojo del producto, no el modelo.**
 
-6. **Ellos están en las tiendas y nosotros en una web gratuita.**
+6. **Ellos están en las tiendas y nosotros en una web de 7 USD al mes.**
    TeakReader está en App Store y Google Play. LingQ y Readlang llevan años.
    Nosotros ya estamos desplegados —Hugging Face Spaces, público, dirección
-   fija— pero sobre CPU gratuita y **sin disco persistente**: el servicio se
+   fija, 7 USD/mes— pero sobre CPU y **sin disco persistente**: el servicio se
    suspende por inactividad, el primer visitante después paga un arranque en
    frío, y lo que el lector guarda no sobrevive a un reinicio del contenedor.
    Se puede abrir; todavía no se puede confiar en que recuerde nada.

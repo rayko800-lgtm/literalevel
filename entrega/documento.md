@@ -1062,11 +1062,13 @@ repetirlo en cada párrafo corregido.
     tercero **sí se podría comprobar sin publicar un solo texto**, publicando
     las 144 parejas de etiqueta y predicción con un identificador anónimo. No
     está hecho, y decir que «no se arregla publicando nada» era falso.
-12. **El despliegue es gratuito, y eso tiene dos consecuencias.** La
-    aplicación está publicada en Hugging Face Spaces
-    (`MikeMaki1763/literalevel`, hardware `cpu-basic`), con dirección fija que
-    sobrevive a apagar el equipo del autor. Pero el plan gratuito **suspende el
-    servicio tras 48 h sin visitas** (`gcTimeout` = 172.800 s según la API de
+12. **El despliegue está en el escalón más barato, y eso tiene dos
+    consecuencias.** La aplicación está publicada en Hugging Face Spaces
+    (`MikeMaki1763/literalevel`), con dirección fija que sobrevive a apagar el
+    equipo del autor. Cuesta **7 USD al mes**: un Space de Gradio exige cuenta
+    Pro, y el hardware elegido, `cpu-basic`, es el que no añade coste sobre esa
+    suscripción. Pero ese hardware **suspende el servicio tras 48 h sin
+    visitas** (`gcTimeout` = 172.800 s según la API de
     Hugging Face), de modo que el primer visitante después de una pausa paga
     un arranque en frío mientras se cargan *torch* y los 328 MB del modelo.
     Está medido: reiniciando el Space, **31 s hasta que el runtime dice

@@ -20,7 +20,7 @@ qué se corrigió hoy y contra qué se comprobó, y después `git log` desde
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profesor pidió ver. Unos audífonos con micro bastan |
 | **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (552 palabras, 3:41) y compilado en PDF |
 | ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada |
-| ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Arranque medido: 31 s |
+| ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Cuesta 7 USD/mes (cuenta Pro, ya pagada). Arranque medido: 31 s |
 | ~~Aceptar la pestaña de Colab~~ | **HECHO** | Conectado a `rayko800@gmail.com`, que es la cuenta con Colab Pro y con `literalevel_bigdata` |
 
 El **conector de Drive de claude.ai** sigue devolviendo `Operation is not

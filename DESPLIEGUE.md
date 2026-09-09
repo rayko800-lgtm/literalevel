@@ -63,7 +63,7 @@ Pasos:
 5. Ajustar `LITERALEVEL_MODELO` y `LITERALEVEL_DICCIONARIO` a donde queden
    montados los datos.
 
-Contra: en hardware gratuito el Space **se duerme por inactividad** y el primer
+Contra: en `cpu-basic` el Space **se duerme por inactividad** y el primer
 visitante paga un arranque frío de decenas de segundos (torch + 328 MB). Para
 una evaluación es asumible; si molesta, un mes de CPU Upgrade.
 

@@ -34,8 +34,19 @@ esas cinco medias dan **0,669x + 0,408**. El 0,72 salía de las **cuatro** media
 de otra tanda. Otra vez: un hueco tapado con una explicación plausible y no
 comprobada.
 
+**El coste del despliegue.** La API de Hugging Face devolvió
+`hardware = "cpu-basic"`, que es el escalón que no cobra por hardware. De ahí
+escribí «el despliegue es gratuito» en el documento, la estrategia, la
+presentación y tres archivos más. Miguel lo corrigió: paga **7 USD al mes** de
+cuenta Pro, porque un Space de Gradio la exige. La API decía la verdad sobre el
+hardware; la conclusión sobre el coste la puse yo.
+
 **Cómo se evita:** antes de escribir la frase, ejecuta el cálculo. Si no puedes
-ejecutarlo, no escribas la frase.
+ejecutarlo, no escribas la frase. Y cuando el dato venga de una API, comprueba
+que responde a **la pregunta que estás contestando**: `hardware` no es
+`factura`, y `isPro` sí lo era (`/api/whoami-v2`). Lo que no está en ningún
+endpoint —que la tarifa de 9 se quedó en 7 por un descuento— solo lo sabe
+Miguel: **pregúntale antes de publicar un precio.**
 
 ---
 
@@ -123,7 +134,38 @@ temporal») también.
 
 ---
 
-## 5. El ciclo, y cuándo se cierra
+## 5. Si los datos siguen llegando, la cifra caduca
+
+Hay números que no se corrigen una vez: **cambian solos** mientras el proyecto
+avanza. En LiteraLevel son los del catálogo, porque la descarga y el análisis
+siguen corriendo en Colab.
+
+Cada vez que una tanda termina, estos se mueven y hay que rehacerlos **en todos
+los sitios de la lista del apartado 4**:
+
+| Cifra | Dónde vive además del documento |
+|---|---|
+| libros descargados / analizados | `PENDIENTES.md`, §8.3 del documento, el guion del vídeo |
+| media de ventanas por libro | §8.3 — el documento declara que **no está medida** |
+| horas de A100 para el catálogo | §8.3, la estrategia (A3), la presentación, `competencia.md` |
+| reparto por banda del catálogo | Cuadro 3 y el aviso de «etiquetas heredadas» |
+| `catalogo_medido.csv` | lo consume la app: si cambia, cambia lo que ve el lector |
+
+Dos reglas que se ganan a base de disgustos:
+
+- **No publiques una cifra viva sin la fecha.** «31.974 descargados **el 9 de
+  septiembre**» envejece con dignidad; «31.974 descargados» es falso mañana.
+- **Cuando el catálogo esté completo, hay frases que se retiran, no se
+  actualizan.** «La remedición está en curso», «las etiquetas son heredadas del
+  v1», «el número medio de ventanas por libro todavía no está medido». Ponlas
+  en una lista aparte el día que dejes de necesitarlas.
+
+Y el barrido del apartado 4 sirve igual aquí: mete la cifra vieja del catálogo
+en la lista de patrones y deja que él encuentre los sitios.
+
+---
+
+## 6. El ciclo, y cuándo se cierra
 
 ```
 auditar → arreglar → propagar → comprobar → auditar otra vez
@@ -145,7 +187,7 @@ Se cierra cuando una auditoría vuelve con cero. No antes, y no porque canse.
 
 ---
 
-## 6. Las trampas de esta máquina al escribir las correcciones
+## 7. Las trampas de esta máquina al escribir las correcciones
 
 Están en `latex-en-esta-maquina`, pero la más cara se repite aquí porque
 corrompe silenciosamente y solo se ve al compilar: **un heredoc de bash
@@ -155,7 +197,7 @@ herramienta Write y ejecútalo; no lo pases por el shell.
 
 ---
 
-## 7. Qué mirar cuando el informe llega
+## 8. Qué mirar cuando el informe llega
 
 Un informe de auditoría no se lee entero de golpe. Ordénalo así:
 

@@ -797,7 +797,7 @@ terminado. No son «se podría»: son «se hace».
 \endlastfoot
 \textbf{A1} & \textbf{Publicar el modelo y el diccionario} como repositorios abiertos & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO a medias}: el modelo está en \cod{MikeMaki1763/\allowbreak literalevel-v4}, público y con la descarga sin credenciales verificada; el diccionario (243 MB) sigue sin publicar \\
 \addlinespace
-\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & Gratuito: Hugging Face Spaces sobre \cod{cpu-basic} & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel}, público y en marcha; queda el disco persistente, que es A4 \\
+\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware \cod{cpu-basic} no añade coste & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel}, público y en marcha; queda el disco persistente, que es A4 \\
 \addlinespace
 \textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & Entre 3 y 5 h de A100, dentro del crédito disponible; la descarga va ahora en un solo archivo de 11,3 GB & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
 \addlinespace
@@ -2405,10 +2405,13 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         podría comprobar sin publicar un solo texto}, publicando las 144 parejas de
         etiqueta y predicción con un identificador anónimo. No está hecho, y decir que
         «no se arregla publicando nada» era falso.
-  \item \textbf{El despliegue es gratuito, y eso tiene dos consecuencias.} La aplicación
+  \item \textbf{El despliegue está en el escalón más barato, y eso tiene dos
+        consecuencias.} La aplicación
         está publicada en Hugging Face Spaces (\cod{MikeMaki1763/\allowbreak literalevel}, hardware
         \cod{cpu-basic}), con dirección fija que sobrevive a apagar el equipo del autor.
-        Pero el plan gratuito \textbf{suspende el servicio tras 48 h sin visitas}
+        Cuesta \textbf{7 USD al mes}: un Space de Gradio exige cuenta Pro, y el
+        hardware elegido, \cod{cpu-basic}, es el que no añade coste sobre esa
+        suscripción. Pero ese hardware \textbf{suspende el servicio tras 48 h sin visitas}
         (\cod{gcTimeout} $=$ 172.800 s según la API de Hugging Face), de modo que el primer
         visitante después de una pausa paga un arranque en frío mientras se cargan
         \emph{torch} y los 328 MB del modelo. Está medido: reiniciando el Space,
