@@ -911,11 +911,11 @@ esas tres:
 
 ### 8.2 Un recorrido completo, con números reales
 
-Tomemos el caso concreto de un lector cuyo perfil da 1,20 sobre 2 (banda
+Tomemos el caso concreto de una lectora cuyo perfil da 1,20 sobre 2 (banda
 intermedia, ancla B2).
 
 1. Busca. Escribe *«dostoyevski»*, mal escrito, y el rescate por parecido
-   ortográfico lo lleva igualmente a quien busca —«chejov» y «Shakespear»
+   ortográfico la lleva igualmente a quien busca —«chejov» y «Shakespear»
    funcionan igual— sin estorbar a las búsquedas por tema, porque el buscador
    no busca por título sino por significado, sobre embeddings multilingües.
    Podría haber escrito en español lo que le apetece —*«una novela de
@@ -925,7 +925,7 @@ intermedia, ancla B2).
    devuelve la búsqueda **no está filtrado por el nivel del lector**: ordena
    por cercanía al tema, y la dificultad va al lado de cada resultado para que
    el lector decida. En este recorrido eso importa, porque el libro que abre
-   mide 1,73 y él está en 1,20: le queda por encima, y el valor de la
+   mide 1,73 y ella está en 1,20: le queda por encima, y el valor de la
    herramienta es precisamente que **lo sabe antes de la primera página**.
 2. Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
    aplicación, sin salir a buscarlo.

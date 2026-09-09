@@ -119,7 +119,7 @@ extracción de los PDF y el filtro de prosa continua: en local sobreviven 47 de 
 que las medias quedan estrictamente crecientes**, que es el resultado que
 sostiene el trabajo.
 
-El guion imprime además las tres cifras del Cuadro 13 (modelo 0,860, contar
+El guion imprime además las tres cifras del cuadro del *baseline* (el 13 de `documento.md`, el 18 del PDF; modelo 0,860, contar
 palabras 0,807, parcial descontando la longitud 0,668) y la lista de los diez
 rechazados con su motivo. Los nombres de los 59 archivos del corpus están en
 [`entrega/manifiesto_corpus_externo.md`](entrega/manifiesto_corpus_externo.md).

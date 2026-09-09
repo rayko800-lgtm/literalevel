@@ -47,7 +47,7 @@ def cuerpo(lineas):
     #     con espacio  47 textos, cinco niveles, medias crecientes
     #     con salto    31 textos, A1 se queda en 1 y la validacion FALLA
     #
-    # Se conserva el espacio porque es lo que reproduce el Cuadro 11 del
+    # Se conserva el espacio porque es lo que reproduce el Cuadro 11 del `.md` -16 del PDF-, del
     # documento -la reproduccion local- y porque cambiarlo dejaria el resultado
     # sin A1. NO reproduce las cifras de Colab: aquella tanda son 38 textos y
     # A2 se desvia 0,09. Nada de aqui las reproduce. Pero no se esconde la otra cifra: `cuerpo_estricto`
@@ -144,7 +144,7 @@ print(f"textos que fallaron al puntuar: {len(fallidos)}")
 for f in fallidos:
     print("   ", f)
 
-# --- Cuadro 13 del documento: el modelo frente a la senal trivial -----------------------
+# --- El baseline: Cuadro 13 del .md, 18 del PDF -----------------------
 # Esto lo publicaba el documento sin que ningun guion lo calculase. Se calcula
 # aqui, sobre los mismos textos que acaban de puntuarse, para que la cifra sea
 # reproducible y no una herencia de una sesion de Colab que ya no existe.
@@ -198,7 +198,7 @@ if len(filas) >= 3:
     parcial = (s_mod - s_mp * s_pal) / np.sqrt(den) if den > 0 else float("nan")
 
     print()
-    print("Cuadro 13 - el modelo frente a la senal trivial "
+    print("Baseline (Cuadro 13 del .md, 18 del PDF) - el modelo frente a la senal trivial "
           f"({len(filas)} textos)")
     print(f"  modelo v4                                  {s_mod:.3f}")
     print(f"  contar palabras, sin modelo                {s_pal:.3f}")

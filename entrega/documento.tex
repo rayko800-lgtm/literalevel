@@ -446,9 +446,9 @@ $4{,}8\times 10^{-7}$: por debajo de los tres decimales que se guardan.}
   }
 
   % Bandas de producto
-  \node[font=\footnotesize\bfseries, color=llverde!60!black] at (0.4,-0.85) {básico};
-  \node[font=\footnotesize\bfseries, color=llambar!60!black] at (1.2,-0.85) {intermedio};
-  \node[font=\footnotesize\bfseries, color=llrojo!70!black]  at (1.8,-0.85) {avanzado};
+  \node[font=\footnotesize\bfseries, color=llverde!60!black] at (0.3,-0.85) {básico};
+  \node[font=\footnotesize\bfseries, color=llambar!60!black] at (1.0,-0.85) {intermedio};
+  \node[font=\footnotesize\bfseries, color=llrojo!70!black]  at (1.7,-0.85) {avanzado};
 
   \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0,-0.55) -- (0.6,-0.55);
   \draw[decorate, decoration={brace, amplitude=4pt, mirror}, llgris!70] (0.6,-0.55) -- (1.4,-0.55);
@@ -2054,10 +2054,10 @@ decisiones, y el producto está construido para producir exactamente esas tres
 \subsection{Un recorrido completo, con números reales}
 \label{sec:recorrido}
 
-Tomemos el caso concreto de un lector cuyo perfil da 1,20 sobre 2 (banda intermedia,
-ancla B2). La figura~\ref{fig:recorrido} resume el recorrido —donde la ficha y la curva van
-en cajas separadas— y los seis pasos que siguen
-lo detallan.
+Tomemos el caso concreto de una lectora cuyo perfil da 1,20 sobre 2 (banda intermedia,
+ancla B2). La figura~\ref{fig:recorrido} resume el recorrido completo, empezando por el
+cuestionario de perfil; los seis pasos que siguen arrancan ya con ese perfil hecho
+y detallan el resto.
 
 % ---------------------------------------------------- FIGURA: recorrido
 \begin{figure}[htbp]
@@ -2106,7 +2106,7 @@ red; por eso la ficha se pinta en dos etapas.}
 
 \begin{enumerate}[leftmargin=*, itemsep=4pt]
   \item Busca. Escribe \emph{«dostoyevski»}, mal escrito, y el rescate por parecido
-        ortográfico lo lleva igualmente a quien busca —«chejov» y «Shakespear» funcionan
+        ortográfico la lleva igualmente a quien busca —«chejov» y «Shakespear» funcionan
         igual— sin estorbar a las búsquedas por tema, porque el buscador no busca por
         título sino por significado, sobre \emph{embeddings} multilingües. Podría haber
         escrito en español lo que le apetece —\emph{«una novela de detectives
@@ -2116,7 +2116,7 @@ red; por eso la ficha se pinta en dos etapas.}
         devuelve la búsqueda \textbf{no está filtrado por el nivel del lector}: ordena
         por cercanía al tema, y la dificultad va al lado de cada resultado para que el
         lector decida. En este recorrido eso importa, porque el libro que abre mide 1,73
-        y él está en 1,20: le queda por encima, y el valor de la herramienta es
+        y ella está en 1,20: le queda por encima, y el valor de la herramienta es
         precisamente que \textbf{lo sabe antes de la primera página}.
   \item Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
         aplicación, sin salir a buscarlo.
@@ -2212,8 +2212,10 @@ ventanas de 250 palabras, análisis completo— sobre la escala pública 0--2. L
 es la medición capítulo a capítulo (dibujada con un punto de cada dos por legibilidad); la
 línea gruesa es la media móvil centrada de 15 capítulos, calculada sobre \emph{todos} los
 puntos. Un libro no tiene una dificultad: tiene un recorrido. Aquí va de 1,333 a 1,990
-—0,657 de la escala— con media 1,735, y la novela se endurece de forma sostenida hacia el
-tramo central. Fuente: \cod{datos\_figuras/\allowbreak curva\_War\_and\_\allowbreak Peace.dat}.}
+—0,657 de la escala— con media 1,735. Lo que la curva enseña no es una pendiente sino
+una meseta con dientes: los tres tercios promedian 1,723, 1,733 y 1,747, y el máximo de
+la media móvil cae en el capítulo 289, ya en el último tercio. La variación que importa
+al lector está entre capítulos vecinos, no entre el principio y el final. Fuente: \cod{datos\_figuras/\allowbreak curva\_War\_and\_\allowbreak Peace.dat}.}
 \label{fig:curva_wp}
 \end{figure}
 
