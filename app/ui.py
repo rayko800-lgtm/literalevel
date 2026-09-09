@@ -663,6 +663,39 @@ def _recomendar(p, n):
         libros = catalogo().por_nivel(p.nivel, n=int(n))
     except Exception as e:
         return _aviso(e), vacio
+
+    # NUNCA dejar al principiante en un callejon. Del catalogo heredado solo
+    # 148 de 1.197 libros se pueden abrir aqui -los de Project Gutenberg-, y
+    # estan repartidos asi:
+    #
+    #     A1  0 de 723      B1  10 de 69      C1  25 de 53
+    #     A2  2 de 185      B2  12 de 52      C2  99 de 115
+    #
+    # O sea que un lector A1 recibia diez titulos y un desplegable VACIO: los
+    # 723 libros de su nivel son de StoryWeaver y no hay de donde bajarlos. El
+    # camino de quien mas ayuda necesita terminaba en nada. La causa no es un
+    # error de programacion, es que Project Gutenberg apenas tiene material
+    # elemental, y el catalogo lo rellenaba con libros que no puede servir.
+    #
+    # Mientras la remedicion del catalogo no termine, esto al menos ofrece lo
+    # mas facil que SI se puede abrir, y lo dice en vez de disimularlo.
+    rescate = ""
+    if libros and not any(str(b.id).upper().startswith("PG") for b in libros):
+        try:
+            faciles = [b for b in catalogo().por_nivel(p.nivel, holgura=3.0, n=200)
+                       if str(b.id).upper().startswith("PG")]
+        except Exception:
+            faciles = []
+        if faciles:
+            faciles.sort(key=lambda b: scoring.ANCHORS.index(b.nivel)
+                         if b.nivel in scoring.ANCHORS else 9)
+            libros = faciles[:int(n)]
+            rescate = ("Ninguno de los libros de tu nivel se puede abrir aquí: "
+                       "son de StoryWeaver y no hay de dónde descargarlos. "
+                       "**Estos son los más fáciles que sí puedes leer ahora "
+                       "mismo**, aunque queden por encima de tu nivel. Ve "
+                       "despacio y usa el doble clic sobre las palabras.\n\n")
+
     lo, hi = p.rango_recomendado
     # Los niveles del catalogo son seis valores discretos, asi que un lector
     # que salga del cuestionario en 0.62 puede no tener NINGUN libro dentro de
@@ -672,6 +705,8 @@ def _recomendar(p, n):
                  f"a describir lo que te apetece leer en el buscador de "
                  f"arriba: ahí sí se ajusta a tu nivel sin exigir una "
                  f"coincidencia exacta.")
+    if rescate:
+        return rescate + _tabla_libros(libros, si_no_hay), _opciones_libros(libros)
     return (f"Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:\n\n"
             + _tabla_libros(libros, si_no_hay), _opciones_libros(libros))
 
