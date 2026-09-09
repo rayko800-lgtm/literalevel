@@ -778,17 +778,30 @@ def _contraste_suficiente():
         r, g, b = rgb(c)
         return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
 
+    # Estos son los pares que de verdad ve el usuario. Antes solo se median los
+    # dos primeros, y por eso paso desapercibido que el BOTON PRINCIPAL fallaba
+    # AA en las cinco paletas: el texto del boton sobre la parte alta de su
+    # degradado daba entre 2,50 y 3,91. Es el boton que dice "Estimar mi nivel"
+    # o "Leer el libro entero", o sea el que mas se pulsa de la aplicacion.
+    PARES = {
+        "interfaz": ("--ll-texto", "--ll-fondo"),
+        "lector": ("--ll-lector-texto", "--ll-lector-fondo"),
+        "boton-alto": ("--ll-boton-texto", "--ll-boton-alto"),
+        "boton-hondo": ("--ll-boton-texto", "--ll-acento-hondo"),
+    }
+
     malas = []
     for k, d in paletas_mod.PALETAS.items():
         v = d["vars"]
-        for etiqueta, (a, b) in {
-                "interfaz": ("--ll-texto", "--ll-fondo"),
-                "lector": ("--ll-lector-texto", "--ll-lector-fondo")}.items():
+        for etiqueta, (a, b) in PARES.items():
+            if a not in v or b not in v:
+                malas.append(f"{k}/{etiqueta}=falta variable")
+                continue
             la, lb = lum(v[a]), lum(v[b])
             r = (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
             if r < 4.5:
                 malas.append(f"{k}/{etiqueta}={r:.2f}")
-    return malas or "las cinco pasan AA"
+    return malas or f"{len(paletas_mod.PALETAS)} paletas x {len(PARES)} pares, todas AA"
 
 
 prueba("todas las paletas son legibles", _contraste_suficiente)

@@ -628,16 +628,41 @@ def _recomendar(p, n):
 
 # --- Punto 3: lector, y punto 4 dentro de el ------------------------------
 
+# Tres decisiones de este bloque no son de gusto, y conviene dejarlas dichas
+# porque las tres estaban al reves y las tres las sufrio una lectora real.
+#
+# 1. SIN `max-height` ni `overflow-y`. Antes el lector era una caja con su
+#    propio desplazamiento dentro de una pagina que tambien se desplaza. En el
+#    movil eso es una loteria: el dedo unas veces mueve el texto y otras la
+#    pagina, segun donde caiga, y no hay forma de saberlo de antemano. Es el
+#    candidato numero uno a lo que Esmeralda, 15 anos, describio como "esta
+#    bien dificil de usar en celular". El texto ahora fluye con la pagina.
+#
+# 2. `max-width: 66ch` en los parrafos. Sin tope, el lector ocupaba el ancho
+#    entero del bloque: en un portatil de 1440 px con Georgia a 19 px son del
+#    orden de 130 caracteres por linea. Al ojo le cuesta encontrar el principio
+#    del renglon siguiente cuando el salto es tan largo.
+#
+# 3. SIN `text-align: justify`. El criterio 1.4.8 de las WCAG lo desaconseja
+#    explicitamente -"Text is not justified"- porque los rios de espacio en
+#    blanco despistan la vista. En una columna estrecha de movil el problema
+#    empeora, no mejora. Quitado el justificado, `hyphens` deja de hacer falta;
+#    y ademas Gradio sirve la pagina con lang="en", asi que partia las palabras
+#    con reglas inglesas.
 _CSS_LECTOR = """<style>
-#ll-lector{max-height:62vh;overflow-y:auto;padding:1.4rem 1.8rem;
+#ll-lector{padding:1.4rem 1.8rem;
   border:1px solid rgba(128,128,128,.28);border-radius:10px;
   font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-  font-size:19px;line-height:1.75;color:inherit;text-align:justify;
-  hyphens:auto;-webkit-hyphens:auto}
-#ll-lector p{margin:0 0 1.05em}
+  font-size:var(--ll-lectura, 19px);line-height:1.75;color:inherit;
+  text-align:left}
+#ll-lector p{margin:0 0 1.05em;max-width:66ch}
 #ll-lector p:first-child{margin-top:0}
 #ll-lector::selection,#ll-lector p::selection{background:rgba(255,205,0,.45)}
 #ll-lector .ll-vacio{font-style:italic;opacity:.7;text-align:left}
+@media (max-width:640px){
+  #ll-lector{padding:1.1rem 1.15rem;font-size:var(--ll-lectura, 18px)}
+  #ll-lector p{max-width:none}
+}
 </style>"""
 
 
