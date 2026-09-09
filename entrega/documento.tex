@@ -1313,20 +1313,23 @@ Ambas cosas las señaló una auditoría externa y ambas son ciertas.
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular}{@{}l l R{2.6cm} R{2.6cm}@{}}
+\begin{tabular}{@{}l l R{2.1cm} R{2.1cm} l@{}}
 \toprule
-\textbf{Modelo} & \textbf{Representación del texto} & \textbf{Exactitud (6 niveles)} & \textbf{Error ordinal medio} \\
+\textbf{Modelo} & \textbf{Representación del texto} & \textbf{Exactitud (6 clases)} & \textbf{Error ordinal medio} & \textbf{Tanda} \\
 \midrule
-Regresión logística & 3 variables clásicas & 0,29 & 1,39 \\
-XGBoost & 3 variables clásicas & 0,28 & 1,42 \\
-Regresión logística & \emph{Embedding} MiniLM (384 d) & 0,37 & 0,93 \\
-Regresión logística & Híbrido (\emph{embedding} + 3 variables) & 0,37 & 0,91 \\
-\textbf{Transformer afinado} & \textbf{Texto crudo, atención} & \textbf{0,46} & \textbf{0,67} \\
+Regresión logística & 3 variables clásicas & 0,29 & 1,39 & histórica \\
+XGBoost & 3 variables clásicas & 0,28 & 1,42 & histórica \\
+Regresión logística & 3 variables clásicas & \textbf{0,313} & \textbf{1,295} & recalculada \\
+Regresión logística & \textbf{17 variables} & \textbf{0,352} & \textbf{1,061} & recalculada \\
+XGBoost & \textbf{17 variables} & \textbf{0,340} & \textbf{1,081} & recalculada \\
+Regresión logística & \emph{Embedding} MiniLM (384 d) & 0,37 & 0,93 & histórica \\
+Regresión logística & Híbrido (\emph{embedding} + 3 variables) & 0,37 & 0,91 & histórica \\
+\textbf{Transformer afinado} & \textbf{Texto crudo, atención} & \textbf{0,46} & \textbf{0,67} & histórica \\
 \bottomrule
 \end{tabular}
-\caption{Progresión completa sobre el mismo conjunto de prueba (950 extractos). La mejora
-acompaña siempre al enriquecimiento de la representación, no a la complejidad del
-clasificador.}
+\caption{Progresión de modelos sobre los mismos 950 extractos reservados, con la tanda de
+la que procede cada fila. La mejora acompaña siempre al enriquecimiento de la
+representación, no a la complejidad del clasificador.}
 \label{cuad:progresion}
 \end{table}
 
@@ -2229,19 +2232,33 @@ por eso se argumenta en lugar de ocultarse.
 \section{Conclusiones}
 % ===========================================================================
 
-\textbf{Se cumplió el objetivo ordinal, que era el objetivo.} Sobre textos externos con
-nivel MCER oficial, el modelo desplegado ordena los niveles de forma estrictamente
-creciente (0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952; figura~\ref{fig:validacion}), con
-una correlación de Spearman de 0,908 en validación ciega y el 97,2\pct{} de los documentos
-dentro de un nivel de error. Para el problema planteado —elegir qué leer— acertar el orden
+\textbf{Se cumplió el objetivo ordinal, que era el objetivo.} Y conviene separar dos cosas
+que esta frase mezclaba en una versión anterior, porque vienen de corpus distintos. Sobre
+\textbf{textos externos con nivel MCER oficial} —los 45 de British Council— el modelo
+ordena los niveles de forma estrictamente creciente (0,5040 · 0,5480 · 0,9276 · 1,2478 ·
+1,4952; figura~\ref{fig:validacion}) y alcanza Spearman \textbf{0,829} con 38 textos,
+\textbf{0,854} con los 45. El \textbf{0,908 y el 97,2\pct} son otra cosa: salen del
+conjunto de validación de \textbf{144 documentos del propio corpus de anclaje}, que es
+interno. Atribuirlos a los externos era un error, y lo detectó una auditoría externa. Para el problema planteado —elegir qué leer— acertar el orden
 es lo que importa; acertar la letra exacta es un lujo.
 
-\textbf{El cuello de botella nunca fue el algoritmo, fue la representación del texto.} La
-progresión completa lo demuestra sobre un mismo conjunto de prueba
-(figura~\ref{fig:progresion}): tres variables clásicas dan 1,39 niveles de error ordinal
-tanto con regresión logística como con XGBoost; un \emph{embedding} lo baja a 0,93; leer
-el texto crudo con atención lo baja a 0,67. Aumentar la potencia del clasificador sobre
-una representación pobre no sirvió de nada, y eso también es un resultado.
+\textbf{El cuello de botella nunca fue el algoritmo, fue la representación del texto.}
+Aumentar la potencia del clasificador sobre una representación pobre no sirve de nada
+—XGBoost con trescientos árboles queda por detrás de una regresión logística, en las dos
+tandas—, mientras que cada vez que se enriquece la representación el resultado mejora: de
+conteos a \emph{embedding} y de ahí a leer el texto crudo con atención, hasta 0,67 niveles
+de error ordinal (figura~\ref{fig:progresion}).
+
+\textbf{Sobre el tamaño de ese salto conviene ser preciso}, porque el
+cuadro~\ref{cuad:progresion} tiene dos tandas y es fácil restar filas que no se pueden
+restar. Contra las tres variables clásicas de la tanda histórica, el paso al
+\emph{embedding} va de 1,39 a 0,93. Pero el cuadernillo entregado recalcula ese mismo
+modelo sobre esa misma partición y obtiene \textbf{1,295}, y con diecisiete variables en
+vez de tres baja a \textbf{1,061}. Medido así, contra unas variables clásicas bien
+surtidas, la ventaja del \emph{embedding} es bastante menor de lo que sugiere la
+comparación con tres. \textbf{La brecha que no se cierra con más conteos es la del
+transformador.} Lo señaló una auditoría externa y tiene razón: la conclusión cualitativa
+se sostiene, la cifra con la que se vendía no.
 
 \textbf{Escalar el corpus no siempre mejora nada, y conviene decirlo.} Multiplicar por
 2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC— dejó la

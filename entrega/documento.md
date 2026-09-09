@@ -536,16 +536,20 @@ cosas las señaló una auditoría externa y ambas son ciertas.
 
 ### 7.2 Progresión de modelos
 
-| Modelo | Representación del texto | Exactitud (6 niveles) | Error ordinal medio |
-|---|---|---|---|
-| Regresión logística | 3 variables clásicas | 0,29 | 1,39 |
-| XGBoost | 3 variables clásicas | 0,28 | 1,42 |
-| Regresión logística | Embedding MiniLM (384 d) | 0,37 | 0,93 |
-| Regresión logística | Híbrido (embedding + 3 variables) | 0,37 | 0,91 |
-| **Transformer afinado** | **Texto crudo, atención** | **0,46** | **0,67** |
+| Modelo | Representación del texto | Exactitud (6 clases) | Error ordinal medio | Tanda |
+|---|---|---|---|---|
+| Regresión logística | 3 variables clásicas | 0,29 | 1,39 | histórica |
+| XGBoost | 3 variables clásicas | 0,28 | 1,42 | histórica |
+| Regresión logística | 3 variables clásicas | **0,313** | **1,295** | recalculada |
+| Regresión logística | **17 variables** | **0,352** | **1,061** | recalculada |
+| XGBoost | **17 variables** | **0,340** | **1,081** | recalculada |
+| Regresión logística | Embedding MiniLM (384 d) | 0,37 | 0,93 | histórica |
+| Regresión logística | Híbrido (embedding + 3 variables) | 0,37 | 0,91 | histórica |
+| **Transformer afinado** | **Texto crudo, atención** | **0,46** | **0,67** | histórica |
 
-*Cuadro 7. Progresión completa sobre el mismo conjunto de prueba (950
-extractos). La mejora acompaña siempre al enriquecimiento de la
+*Cuadro 7. Progresión de modelos sobre los mismos 950 extractos reservados,
+con la tanda de la que procede cada fila. La mejora acompaña siempre al
+enriquecimiento de la
 representación, no a la complejidad del clasificador.*
 
 La lectura del cuadro es la tesis metodológica del trabajo: **cada vez que se
@@ -922,19 +926,34 @@ argumenta en lugar de ocultarse.
 
 ## 11. Conclusiones
 
-**Se cumplió el objetivo ordinal, que era el objetivo.** Sobre textos externos
-con nivel MCER oficial, el modelo desplegado ordena los niveles de forma
-estrictamente creciente (0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952), con una
-correlación de Spearman de 0,908 en validación ciega y el 97,2 % de los
-documentos dentro de un nivel de error. Para el problema planteado —elegir qué
+**Se cumplió el objetivo ordinal, que era el objetivo.** Y conviene separar dos
+cosas que esta frase mezclaba en una versión anterior, porque vienen de corpus
+distintos. Sobre **textos externos con nivel MCER oficial** —los 45 de British
+Council— el modelo ordena los niveles de forma estrictamente creciente
+(0,5040 · 0,5480 · 0,9276 · 1,2478 · 1,4952) y alcanza Spearman **0,829** con
+38 textos, **0,854** con los 45. El **0,908 y el 97,2 %** son otra cosa: salen
+del conjunto de validación de **144 documentos del propio corpus de anclaje**,
+que es interno. Atribuirlos a los externos era un error, y lo detectó una
+auditoría externa. Para el problema planteado —elegir qué
 leer— acertar el orden es lo que importa; acertar la letra exacta es un lujo.
 
 **El cuello de botella nunca fue el algoritmo, fue la representación del
-texto.** La progresión completa lo demuestra sobre un mismo conjunto de prueba:
-tres variables clásicas dan 1,39 niveles de error ordinal tanto con regresión
-logística como con XGBoost; un embedding lo baja a 0,93; leer el texto crudo
-con atención lo baja a 0,67. Aumentar la potencia del clasificador sobre una
-representación pobre no sirvió de nada, y eso también es un resultado.
+texto.** Aumentar la potencia del clasificador sobre una representación pobre
+no sirve de nada —XGBoost con trescientos árboles queda por detrás de una
+regresión logística, en las dos tandas—, mientras que cada vez que se enriquece
+la representación el resultado mejora: de conteos a *embedding* y de ahí a leer
+el texto crudo con atención, hasta 0,67 niveles de error ordinal.
+
+**Sobre el tamaño de ese salto conviene ser preciso**, porque el cuadro 7 tiene
+dos tandas y es fácil restar filas que no se pueden restar. Contra las tres
+variables clásicas de la tanda histórica, el paso al *embedding* va de 1,39 a
+0,93. Pero el cuadernillo entregado recalcula ese mismo modelo sobre esa misma
+partición y obtiene **1,295**, y con diecisiete variables en vez de tres baja a
+**1,061**. Medido así, contra unas variables clásicas bien surtidas, la ventaja
+del *embedding* es bastante menor de lo que sugiere la comparación con tres.
+**La brecha que no se cierra con más conteos es la del transformador.** Lo
+señaló una auditoría externa y tiene razón: la conclusión cualitativa se
+sostiene, la cifra con la que se vendía no.
 
 **Escalar el corpus no siempre mejora nada, y conviene decirlo.** Multiplicar
 por 2.500 el corpus de referencia léxica —de 18 libros a los 45.345 del SPGC—
