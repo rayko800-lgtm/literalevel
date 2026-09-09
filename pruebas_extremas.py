@@ -842,6 +842,62 @@ def _contraste_suficiente():
 prueba("todas las paletas son legibles", _contraste_suficiente)
 
 
+def _opacidad_no_borra_el_texto():
+    """El texto con `opacity` tambien tiene que pasar AA.
+
+    Esto lo destapo Miguel probando la aplicacion: "en las pastel las letras
+    son muy tenues". El color del texto estaba bien -10:1 en las tres claras-
+    y todas las parejas pasaban la prueba de contraste. El culpable era el CSS:
+    `opacity:.62` sobre un fondo claro compone el texto con el fondo y lo deja
+    en 3,4:1, y ningun color declarado cambia, asi que la prueba anterior no
+    podia verlo.
+
+    Medido: con .74 la peor paleta clara (menta) llega justo a 4,5. El CSS usa
+    .78 en adelante para tener margen.
+    """
+    import re
+
+    def rgb(c):
+        c = c.strip().lstrip("#")
+        return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+
+    def lum(c):
+        def f(v):
+            v /= 255
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+        r, g, b = c
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+
+    def ratio(a, b):
+        la, lb = lum(a), lum(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    def componer(texto, fondo, alfa):
+        t_, f_ = rgb(texto), rgb(fondo)
+        return tuple(round(t_[i] * alfa + f_[i] * (1 - alfa)) for i in range(3))
+
+    fuente = pathlib.Path(__file__).parent / "app" / "ui.py"
+    alfas = {float(x) for x in re.findall(r"opacity:(\.[0-9]+)", fuente.read_text(encoding="utf-8"))}
+    assert alfas, "no encuentro ninguna opacidad en el CSS"
+
+    malas = []
+    for nombre, d in paletas_mod.PALETAS.items():
+        v = d["vars"]
+        fondo, texto = v["--ll-fondo"], v["--ll-texto"]
+        if not (fondo.startswith("#") and texto.startswith("#")):
+            continue
+        for a in alfas:
+            r = ratio(componer(texto, fondo, a), rgb(fondo))
+            if r < 4.5:
+                malas.append(f"{nombre}/opacity:{a}={r:.2f}")
+    assert not malas, malas
+    return (f"{len(paletas_mod.PALETAS)} paletas x {len(alfas)} opacidades, "
+            f"todas AA compuestas")
+
+
+prueba("la opacidad del CSS no borra el texto", _opacidad_no_borra_el_texto)
+
+
 titulo("Bandas coherentes con la letra")
 
 # Un texto no puede llamarse "C1" y "intermedio" en la misma linea. Antes si
@@ -925,7 +981,7 @@ prueba("sin codigo, con la puerta puesta, no pasa",
 prueba("el codigo sin tope no se agota",
        lambda: _con_codigos(
            lambda: cuentas_mod.queda(pathlib.Path(TMP),
-                                     cuentas_mod.validar("LLAVE-A")) is None))
+                                     cuentas_mod.validar("jefe:LLAVE-A")) is None))
 prueba("codigo vacio, None y espacios",
        lambda: _con_codigos(
            lambda: [cuentas_mod.validar(x) for x in ("", None, "   ")]))
@@ -934,10 +990,10 @@ prueba("codigo vacio, None y espacios",
 def _cupo_se_agota():
     def dentro():
         base = pathlib.Path(tempfile.mkdtemp(prefix="cupo_"))
-        c = cuentas_mod.validar("LLAVE-B")
+        c = cuentas_mod.validar("invitado:LLAVE-B")
         vistos = []
         for _ in range(4):
-            ok = cuentas_mod.permite(base, "LLAVE-B")[0]
+            ok = cuentas_mod.permite(base, "invitado:LLAVE-B")[0]
             vistos.append(ok)
             if ok:
                 cuentas_mod.apuntar(base, c)
@@ -961,7 +1017,7 @@ def _sin_carrera():
         base = pathlib.Path(tempfile.mkdtemp(prefix="carrera_"))
         pasaron = []
         def intento():
-            if cuentas_mod.consumir(base, "LLAVE-B")[0]:
+            if cuentas_mod.consumir(base, "invitado:LLAVE-B")[0]:
                 pasaron.append(1)
         hilos = [threading.Thread(target=intento) for _ in range(20)]
         for h in hilos: h.start()
@@ -979,7 +1035,7 @@ def _no_se_pierden_apuntes():
         base = pathlib.Path(tempfile.mkdtemp(prefix="apuntes_"))
         def bucle():
             for _ in range(200):
-                cuentas_mod.consumir(base, "LLAVE-A")
+                cuentas_mod.consumir(base, "jefe:LLAVE-A")
         hs = [threading.Thread(target=bucle) for _ in range(2)]
         for h in hs: h.start()
         for h in hs: h.join()
@@ -1018,23 +1074,30 @@ def _con_puerta(fn):
 def _sinopsis_pide_codigo():
     tramos = list(ui._de_que_trata(libro_ok))
     texto = str(tramos[-1])
-    assert "código de acceso" in texto, texto[:120]
+    assert "entres con tu perfil" in texto, texto[:120]
     return "la sinopsis se niega sin codigo"
 
 
 prueba("la sinopsis pide codigo", lambda: _con_puerta(_sinopsis_pide_codigo))
 prueba("la practica de voz pide codigo",
        lambda: _con_puerta(
-           lambda: "código de acceso" in str(ui._practicar("x.wav", "hello there")[1])))
-prueba("canjear un codigo malo no abre nada",
-       lambda: _con_puerta(lambda: "no vale" in ui._canjear("INVENTADO")))
-prueba("canjear el codigo bueno lo dice",
-       lambda: _con_puerta(lambda: "jefe" in ui._canjear("LLAVE-A")))
+           lambda: "entres con tu perfil" in str(ui._practicar("x.wav", "hello there")[1])))
+prueba("entrar con una clave mala no abre nada",
+       lambda: _con_puerta(lambda: "No he podido entrar" in ui._entrar("jefe", "INVENTADO")))
+prueba("entrar con el perfil bueno lo dice",
+       lambda: _con_puerta(lambda: "jefe" in ui._entrar("jefe", "LLAVE-A")))
+prueba("un usuario que no existe no entra",
+       lambda: _con_puerta(lambda: "No he podido entrar" in ui._entrar("nadie", "LLAVE-A")))
+prueba("el usuario no distingue mayusculas y la clave si",
+       lambda: _con_puerta(lambda: "jefe" in ui._entrar("JEFE", "LLAVE-A")
+                           and "No he podido" in ui._entrar("jefe", "llave-a")))
+prueba("salir olvida el perfil",
+       lambda: _con_puerta(lambda: "Has salido" in ui._salir()))
 
 def _apuntar_en_ruta_imposible():
     r = _con_codigos(
         lambda: cuentas_mod.apuntar(pathlib.Path("Z:/no/existe"),
-                                    cuentas_mod.validar("LLAVE-A")))
+                                    cuentas_mod.validar("jefe:LLAVE-A")))
     assert r is None, r
     return "no revienta y no devuelve nada"
 

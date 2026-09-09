@@ -13,20 +13,28 @@ en una tarde. Y si se cierra la app entera detras de un inicio de sesion, se
 pierde justo lo que hace util enseniarla: que alguien entre y la use sin
 registrarse.
 
-La solucion es un codigo de acceso que se canjea dentro de la aplicacion:
+La solucion es un PERFIL: un usuario y una contrasena que se dan a una
+persona concreta.
 
-  - sin codigo -> la app funciona entera menos esas dos cosas, y lo dice
-  - con codigo -> se activan, con un tope de usos por codigo
+  - sin entrar -> la app funciona entera menos esas tres cosas, y lo dice
+  - con perfil -> se activan, con un tope de usos por perfil
 
-Los codigos NO viven en el repositorio. Se leen de la variable de entorno
+Antes esto era un codigo suelto tipo "QQHT-P5V2-V4DM". Se cambio porque un
+codigo no le dice nada a quien lo recibe -no sabe si es suyo, ni cuanto le
+queda- y porque la caja para canjearlo vivia dentro de un acordeon cerrado,
+dentro de una de ocho pestanas: Miguel probo su propia aplicacion y no la
+encontro. Un usuario y una contrasena se entienden sin explicacion, y el
+saludo puede decir quien eres y cuanto te queda.
+
+Los perfiles NO viven en el repositorio. Se leen de la variable de entorno
 `LITERALEVEL_CUENTAS`, que en el Space es un secreto. Formato:
 
-    nombre:codigo:tope,nombre:codigo:tope,...
+    usuario:contrasena:tope,usuario:contrasena:tope,...
 
 `tope` es el numero de llamadas de pago permitidas; `0` significa sin limite.
 Ejemplo:
 
-    miguel:xxxxxxxx:0,prueba1:yyyyyyyy:60
+    miguel:unaclavelarga:0,invitado1:otraclave:40
 
 El recuento se guarda en un JSON junto a los datos del lector, y se comprueba
 y se incrementa BAJO CANDADO en una sola operacion (`consumir`). Preguntar
@@ -51,9 +59,10 @@ from pathlib import Path
 # Candado de proceso para el contador de usos. Ver `consumir`.
 _CANDADO = threading.Lock()
 
-_SIN_CODIGO = ("Esta parte necesita un **código de acceso**. El resto de la "
-              "aplicación —medir libros, leerlos, el diccionario y el "
-              "cuestionario— funciona sin él.")
+_SIN_CODIGO = ("Esta parte necesita que **entres con tu perfil** (arriba del "
+               "todo, en «Entrar»). El resto de la aplicación —medir libros, "
+               "leerlos, el diccionario y el cuestionario— funciona sin "
+               "entrar.")
 
 
 @dataclass(frozen=True)
@@ -62,10 +71,14 @@ class Cuenta:
     tope: int          # 0 = sin limite
 
 
-def _tabla() -> dict[str, Cuenta]:
-    """Codigos declarados en el entorno. Vacio si no hay ninguno."""
+def _tabla() -> dict[str, tuple[str, Cuenta]]:
+    """Perfiles declarados en el entorno: usuario -> (clave, cuenta).
+
+    El usuario se compara en minusculas porque nadie recuerda si se lo dieron
+    con mayuscula; la contrasena, tal cual, porque esa si es una credencial.
+    """
     crudo = os.environ.get("LITERALEVEL_CUENTAS", "").strip()
-    fuera: dict[str, Cuenta] = {}
+    fuera: dict[str, tuple[str, Cuenta]] = {}
     for trozo in crudo.split(","):
         trozo = trozo.strip()
         if not trozo:
@@ -73,36 +86,50 @@ def _tabla() -> dict[str, Cuenta]:
         partes = trozo.split(":")
         if len(partes) != 3:
             continue
-        nombre, codigo, tope = (p.strip() for p in partes)
-        if not codigo:
+        usuario, clave, tope = (p.strip() for p in partes)
+        if not usuario or not clave:
             continue
         try:
             n = int(tope)
         except ValueError:
             n = 0
-        fuera[codigo] = Cuenta(nombre=nombre or "sin nombre", tope=max(0, n))
+        fuera[usuario.lower()] = (clave, Cuenta(nombre=usuario, tope=max(0, n)))
     return fuera
 
 
 def hay_codigos() -> bool:
-    """Si no hay ninguno declarado, la puerta no existe y todo queda abierto."""
+    """Si no hay ningun perfil declarado, la puerta no existe y todo queda
+    abierto. Es el caso del ordenador de casa: no hay a quien limitar."""
     return bool(_tabla())
 
 
-def validar(codigo: str | None) -> Cuenta | None:
-    """La cuenta a la que corresponde el codigo, o None.
+def verificar(usuario: str | None, clave: str | None) -> Cuenta | None:
+    """La cuenta si el usuario y la contrasena cuadran, o None.
 
-    La comparacion es en tiempo constante. No es que aqui haya un secreto de
-    Estado, pero comparar credenciales con `==` es una mala costumbre que se
-    acaba copiando a sitios donde si importa.
+    La comparacion de la clave es en tiempo constante. No es que aqui haya un
+    secreto de Estado, pero comparar credenciales con `==` es una mala
+    costumbre que se acaba copiando a sitios donde si importa.
+
+    Y se compara SIEMPRE, exista el usuario o no, contra una clave falsa de
+    relleno: si se saliera antes cuando el usuario no existe, el tiempo de
+    respuesta diria cuales existen.
     """
-    if not codigo:
+    u = (usuario or "").strip().lower()
+    c = (clave or "").strip()
+    guardada, cuenta = _tabla().get(u, ("no-existe-este-usuario", None))
+    coincide = hmac.compare_digest(c, guardada)
+    return cuenta if (coincide and cuenta is not None) else None
+
+
+def validar(credencial: str | None) -> Cuenta | None:
+    """Compatibilidad: acepta "usuario:contrasena" en una sola cadena.
+
+    La sesion guarda la credencial junta, y `consumir` la recibe asi.
+    """
+    if not credencial or ":" not in credencial:
         return None
-    limpio = codigo.strip()
-    for bueno, cuenta in _tabla().items():
-        if hmac.compare_digest(limpio, bueno):
-            return cuenta
-    return None
+    usuario, _, clave = credencial.partition(":")
+    return verificar(usuario, clave)
 
 
 def _ruta_uso(base: Path) -> Path:

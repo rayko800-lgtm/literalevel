@@ -207,23 +207,37 @@ def _puede_pagar(peticion) -> tuple[bool, str]:
     return cuentas.consumir(BASE_DATOS_LECTOR, _codigo_de(peticion))
 
 
-def _canjear(codigo: str, peticion: gr.Request = None) -> str:
-    """Valida un codigo y lo recuerda para esta sesion."""
+def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
+    """Comprueba usuario y contrasena, y los recuerda para esta sesion.
+
+    Antes esto pedia un codigo suelto y vivia en un acordeon cerrado dentro de
+    la pestana de Pronunciacion. Nadie lo encontraba, empezando por el autor.
+    """
     if not cuentas.hay_codigos():
-        return ("No hace falta código: esta copia no tiene ninguno configurado "
-                "y todo está disponible.")
-    c = cuentas.validar(codigo)
+        return ("No hace falta entrar: esta copia no tiene perfiles "
+                "configurados y todo está disponible.")
+    c = cuentas.verificar(usuario, clave)
     if c is None:
         with _CANDADO_CODIGO:
             _CODIGO_SESION.pop(_sesion_de(peticion), None)
-        return "Ese código no vale. Comprueba que lo copiaste entero."
+        return ("**No he podido entrar.** Revisa el usuario y la contraseña; "
+                "se distinguen mayúsculas en la contraseña, no en el usuario.")
     with _CANDADO_CODIGO:
-        _CODIGO_SESION[_sesion_de(peticion)] = codigo.strip()
+        _CODIGO_SESION[_sesion_de(peticion)] = f"{usuario.strip()}:{clave.strip()}"
     resto = cuentas.queda(BASE_DATOS_LECTOR, c)
     if resto is None:
-        return f"Listo, **{c.nombre}**. Sin límite de usos."
-    return (f"Listo, **{c.nombre}**. Te quedan **{resto}** usos de la "
-            f"explicación en contexto y la pronunciación.")
+        return (f"Has entrado como **{c.nombre}**. Sin límite de usos: ya "
+                "tienes la explicación en contexto, «¿de qué trata?» y la "
+                "corrección de pronunciación.")
+    return (f"Has entrado como **{c.nombre}**. Te quedan **{resto}** usos de "
+            "la explicación en contexto, «¿de qué trata?» y la pronunciación.")
+
+
+def _salir(peticion: gr.Request = None) -> str:
+    """Olvida el perfil de esta sesion. Util en un ordenador compartido."""
+    with _CANDADO_CODIGO:
+        _CODIGO_SESION.pop(_sesion_de(peticion), None)
+    return "Has salido. Lo gratuito sigue funcionando."
 
 
 def _mensaje_limite(idioma: str, minutos: int) -> str:
@@ -354,7 +368,7 @@ label:has(input[type="radio"]),label:has(input[type="checkbox"]){{
 #ll-voz{{
   background:var(--ll-lector-fondo);border-color:var(--ll-borde);
   border-radius:{_RADIO}}}
-footer{{opacity:.45}}
+footer{{opacity:.78}}
 /* El reproductor trae un boton de descarga que aqui no pinta nada: el
    audio es para oirlo en el momento, no para llevarselo. */
 #ll-audio-ref a[download],#ll-audio-palabra a[download],
@@ -747,7 +761,7 @@ _CSS_LECTOR = """<style>
 #ll-lector p{margin:0 0 1.05em;max-width:66ch}
 #ll-lector p:first-child{margin-top:0}
 #ll-lector::selection,#ll-lector p::selection{background:rgba(255,205,0,.45)}
-#ll-lector .ll-vacio{font-style:italic;opacity:.7;text-align:left}
+#ll-lector .ll-vacio{font-style:italic;opacity:.78;text-align:left}
 @media (max-width:640px){
   #ll-lector{padding:1.1rem 1.15rem;font-size:var(--ll-lectura, 18px)}
   #ll-lector p{max-width:none}
@@ -1372,7 +1386,7 @@ def _grafica_analisis(datos):
 
     # La ventana crece con el libro: 366 capitulos piden mas suavizado que 13.
     ventana = 1 if len(y) < 12 else max(3, round(len(y) / 25))
-    tendencia = _suavizar(y, ventana)
+    nivel_general = _suavizar(y, ventana)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -1382,7 +1396,7 @@ def _grafica_analisis(datos):
         hovertemplate="Capítulo %{x}<br>%{customdata}<br>"
                       "<b>%{y:.2f}</b> / 2.00<extra></extra>"))
     fig.add_trace(go.Scatter(
-        x=x, y=tendencia, mode="lines", name="tendencia",
+        x=x, y=nivel_general, mode="lines", name="nivel general",
         line=dict(color="#4bb8da", width=2.5, shape="spline", smoothing=0.6),
         fill="tozeroy",
         # El degradado es lo que pidio Miguel: el azul hielo se desvanece hacia
@@ -1803,7 +1817,7 @@ _CSS_VOZ = """<style>
 #ll-voz .mal{background:rgba(224,72,92,.22);border-bottom-color:#e0485c;
   font-weight:600}
 #ll-voz .leyenda{display:block;margin-top:1rem;font-family:system-ui,sans-serif;
-  font-size:13px;opacity:.75;line-height:1.5}
+  font-size:13px;opacity:.78;line-height:1.5}
 #ll-voz .oido{display:block;margin-top:.5rem;font-family:system-ui,sans-serif;
   font-size:14px;opacity:.85;font-style:italic}
 </style>"""
@@ -1903,7 +1917,7 @@ _CSS_CUADERNO = """<style>
    y la pestana entera se convierte en un muro ilegible. */
 #ll-cuaderno .ll-c *{overflow-wrap:anywhere;word-break:break-word}
 #ll-cuaderno .ll-p{font-weight:700;font-size:1.05rem}
-#ll-cuaderno .ll-d{opacity:.62;font-size:.82rem;font-weight:400}
+#ll-cuaderno .ll-d{opacity:.78;font-size:.82rem;font-weight:400}
 #ll-cuaderno .ll-f{margin:.4rem 0 .3rem;padding-left:.7rem;
   border-left:3px solid rgba(143,211,232,.45);
   font-family:Georgia,serif;line-height:1.5}
@@ -1987,13 +2001,13 @@ _CSS_BIBLIO = """<style>
   border-radius:9px;background:rgba(8,16,28,.55)}
 #ll-biblio .ll-l *{overflow-wrap:anywhere}
 #ll-biblio .ll-t{font-weight:700;font-size:1.05rem}
-#ll-biblio .ll-a{opacity:.65;font-size:.85rem}
+#ll-biblio .ll-a{opacity:.78;font-size:.85rem}
 #ll-biblio .ll-b{height:7px;border-radius:4px;margin:.5rem 0 .35rem;
   background:rgba(143,211,232,.16);overflow:hidden}
 #ll-biblio .ll-b i{display:block;height:100%;
   background:linear-gradient(90deg,#3aa9cf,#8fd3e8)}
 #ll-biblio .ll-n{font-size:.85rem;opacity:.8}
-#ll-biblio .ll-x{font-size:.82rem;opacity:.6;font-style:italic}
+#ll-biblio .ll-x{font-size:.82rem;opacity:.78;font-style:italic}
 </style>"""
 
 
@@ -2123,6 +2137,36 @@ def construir() -> gr.Blocks:
         # Vacio a proposito: lo rellena _perfil_inicial en demo.load, que
         # si sabe de que lector se trata. Construir la interfaz ocurre una
         # vez por proceso, no una vez por visitante.
+        # --- Entrar con tu perfil -------------------------------------
+        # Arriba del todo y ABIERTO, no en un acordeon dentro de una pestana.
+        # Tres de las funciones cuestan dinero porque llaman a un servicio
+        # externo; el resto es libre. Solo aparece si esta copia tiene
+        # perfiles configurados: en el ordenador de casa no hay a quien
+        # limitar, y una caja pidiendo una llave que no existe solo confunde.
+        if cuentas.hay_codigos():
+            with gr.Accordion("Entrar con tu perfil", open=True):
+                gr.Markdown(
+                    "Con tu **usuario y contraseña** se activan las tres cosas "
+                    "que llaman a un servicio externo: **explicar una palabra "
+                    "en su frase**, **«¿de qué trata?»** y la **corrección de "
+                    "pronunciación**.\n\n"
+                    "Todo lo demás —medir un texto, buscar, leer el libro "
+                    "entero, la curva por capítulos, el diccionario y la "
+                    "fonética— **funciona sin entrar**.")
+                with gr.Row():
+                    caja_usuario = gr.Textbox(
+                        label="Usuario", placeholder="tu usuario",
+                        scale=2, autofocus=False)
+                    caja_clave = gr.Textbox(
+                        label="Contraseña", type="password",
+                        placeholder="tu contraseña", scale=2)
+                    b_entrar = gr.Button("Entrar", variant="primary", scale=1)
+                    b_salir = gr.Button("Salir", scale=1)
+                estado_codigo = gr.Markdown()
+                b_entrar.click(_entrar, [caja_usuario, caja_clave], estado_codigo)
+                caja_clave.submit(_entrar, [caja_usuario, caja_clave], estado_codigo)
+                b_salir.click(_salir, None, estado_codigo)
+
         est_perfil = gr.State(None)
         est_libro = gr.State(None)
 
@@ -2372,29 +2416,9 @@ def construir() -> gr.Blocks:
                                [ficha, audio_web, audio_local])
 
             with gr.Tab("Pronunciación", id="voz"):
-                # El canje del codigo vive aqui porque es la funcion que lo
-                # necesita de verdad, y asi el usuario lo encuentra cuando le
-                # hace falta en vez de tener que ir a buscarlo a un menu. Solo
-                # aparece si esta copia tiene codigos configurados: en el
-                # ordenador de casa no hay a quien limitar, y una caja pidiendo
-                # una llave que no existe solo confunde.
-                if cuentas.hay_codigos():
-                    with gr.Accordion("¿Tienes un código de acceso?", open=False):
-                        gr.Markdown(
-                            "Corregir la pronunciación, explicar una palabra en "
-                            "su contexto y el resumen de «¿de qué trata?» son "
-                            "las tres únicas cosas que cuestan dinero, porque "
-                            "van a un servicio externo. **Todo lo demás —medir "
-                            "libros, leerlos, el diccionario, el cuestionario— "
-                            "funciona sin código.**")
-                        with gr.Row():
-                            caja_codigo = gr.Textbox(
-                                label="Código", placeholder="XXXX-XXXX-XXXX",
-                                type="password", scale=3)
-                            b_codigo = gr.Button("Activar", scale=1)
-                        estado_codigo = gr.Markdown()
-                        b_codigo.click(_canjear, caja_codigo, estado_codigo)
-                        caja_codigo.submit(_canjear, caja_codigo, estado_codigo)
+                # La entrada al perfil ya NO vive aqui: esta arriba del todo,
+                # antes de las pestanas. Estaba en un acordeon cerrado dentro
+                # de esta pestana y no la encontraba nadie.
 
                 frase = gr.Textbox(label="Frase que vas a leer en voz alta",
                                    placeholder="It is a truth universally acknowledged...")
