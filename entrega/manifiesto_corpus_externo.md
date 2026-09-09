@@ -17,8 +17,15 @@ documentos de learnenglish.britishcouncil.org y repetir `validar_local.py`.
 | Sin nivel en el nombre | 0 |
 | **Archivos que casan con el patron** | **58** |
 
-El documento de entrega parte de **59**: los 58 de arriba mas uno que ya no
-esta disponible para descarga en el sitio y del que solo queda la referencia.
+El documento de entrega parte de **59**: los 58 de arriba mas uno mas.
+
+Ese archivo numero 59 **no se puede identificar por nombre**, y conviene decir
+por que en vez de dejarlo en el aire: la cuenta de 59 viene del recuento que
+hizo la sesion de Colab en su momento sobre el catalogo de British Council, y
+de esa sesion solo quedan las cifras agregadas. El archivo no llego a bajarse a
+este disco, asi que aqui no hay nombre que apuntar. Lo comprobable es lo de
+arriba: **58 archivos, todos con nivel en el nombre**, de los que 46 pasan el
+filtro y se evaluan. El 59 es una cifra heredada, no un archivo localizado.
 
 ## A1 (12)
 

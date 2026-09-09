@@ -37,11 +37,37 @@ def cuerpo(lineas):
     utiles = [l.strip() for l in lineas[ini:fin]
               if l.strip() and not RUIDO.search(l) and not l.strip().isdigit()
               and len(l.strip()) >= 3]
-    # Se unen con espacio y NO con salto de linea a proposito: scoring.words
-    # trocea por espacios en blanco y no mira los saltos, asi que el conteo
-    # de palabras y las ventanas de 250 salen igual de las dos formas. Lo
-    # unico que cambiaria es la longitud media de frase, que aqui no se usa.
+    # OJO, que esto no es un detalle. `continuous_prose` tiene cuatro reglas y
+    # DOS miran `splitlines()`: dos vinetas seguidas, o mas de un tercio de
+    # lineas de cuatro palabras o menos. Uniendo con espacio esas dos no se
+    # disparan nunca, asi que este validador filtra MAS FLOJO que la app -que
+    # si recibe saltos de parrafo, porque reader._limpiar_html los restaura-.
+    #
+    # Medido cambiando el espacio por salto de linea:
+    #     con espacio  46 textos, cinco niveles, medias crecientes
+    #     con salto    30 textos, A1 se queda en 1 y la validacion FALLA
+    #
+    # Se conserva el espacio porque es lo que reproduce las cifras publicadas,
+    # incluidas las de la sesion de Colab, y porque cambiarlo dejaria el
+    # resultado sin A1. Pero no se esconde la otra cifra: `cuerpo_estricto`
+    # rehace el recuento con el filtro completo y el guion lo imprime.
     return " ".join(utiles) or None
+
+
+def cuerpo_estricto(lineas):
+    """El mismo cuerpo, pero conservando los saltos de linea del PDF.
+
+    Sirve para contar cuantos textos pasarian el filtro que aplica la
+    aplicacion de verdad. No se usa para puntuar: solo para informar.
+    """
+    ini = next((k + 1 for k, l in enumerate(lineas) if RE_INI.search(l)), None)
+    if ini is None:
+        return None
+    fin = next((k for k in range(ini, len(lineas)) if RE_FIN.match(lineas[k])), len(lineas))
+    utiles = [l.strip() for l in lineas[ini:fin]
+              if l.strip() and not RUIDO.search(l) and not l.strip().isdigit()
+              and len(l.strip()) >= 3]
+    return "\n".join(utiles) or None
 
 
 # Sin rutas clavadas a una maquina concreta: el profesor clona el repo y
@@ -59,6 +85,7 @@ p = Puntuador(RUTA_MODELO)
 print("modelo v4 cargado\n")
 
 por_nivel = {}
+pasan_estricto = 0   # cuantos pasarian el filtro completo de la app
 filas = []          # (nivel, puntuacion, palabras) por texto
 saltados = 0
 fallidos = []
@@ -72,6 +99,9 @@ for ruta in sorted(glob.glob(os.path.join(CORPUS, "*LearnEnglish-Reading*.pdf"))
         for pg in PdfReader(ruta).pages:
             lineas.extend((pg.extract_text() or "").split("\n"))
         texto = cuerpo(lineas)
+        estricto = cuerpo_estricto(lineas)
+        if estricto and continuous_prose(estricto)[0]:
+            pasan_estricto += 1
         if not texto:
             saltados += 1
             continue
@@ -99,6 +129,8 @@ for niv in sorted(por_nivel):
     print(f"{niv:<6}{len(v):>4}{np.mean(v):>12.4f}{np.std(v):>14.3f}   "
           f"{('%.4f' % e) if e else '—'}")
 print(f"\ntextos sin cuerpo localizable: {saltados}")
+print(f"textos que pasarian el filtro COMPLETO (con saltos de linea): "
+      f"{pasan_estricto}  <- el que aplica la app; aqui se puntuan mas")
 print(f"textos que fallaron al puntuar: {len(fallidos)}")
 for f in fallidos:
     print("   ", f)

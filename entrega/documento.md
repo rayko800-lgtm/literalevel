@@ -418,9 +418,11 @@ encima de él.
 
 **Dificultad frente a dominio.** El nivel del texto está correlacionado con su
 tipo documental. Al filtrar los 59 textos de British Council a prosa continua,
-el nivel A1 desaparece casi por completo y el rango evaluable se encoge de cinco
-niveles a cuatro (A2–C1): el catálogo gratuito de British Council no tiene C2,
-así que el corpus nunca tuvo seis. Por eso el *baseline* de contar palabras cae de 0,879
+el nivel A1 desaparece casi por completo y el rango evaluable **de esa tanda de
+análisis** se encoge de cinco niveles a cuatro (A2–C1): el catálogo gratuito de
+British Council no tiene C2, así que el corpus nunca tuvo seis. La reproducción
+local del Cuadro 10 sí conserva los cinco, con tres textos en A1, porque filtra
+con otras reglas. Por eso el *baseline* de contar palabras cae de 0,879
 a 0,765 al filtrar: parte de la señal del conjunto completo era simplemente que
 los textos A1 son cortos. Las correlaciones antes y después del filtro **no son
 comparables entre sí**, y se reportan por separado.
@@ -729,6 +731,22 @@ los archivos reales, cierra así:
 
 *Cuadro 11. De 59 a 46, paso a paso.*
 
+**Y hay una salvedad que conviene poner aquí y no esconder en el código.** El
+guion de reproducción une las líneas del PDF con un espacio, y eso **desactiva
+dos de las cuatro reglas** de `scoring.continuous_prose`: las que buscan
+viñetas y líneas cortas necesitan saltos de línea para verlos. Es decir, este
+validador filtra **más flojo que la propia aplicación**, que sí recibe saltos
+de párrafo. Medido cambiando una cosa y sólo una: con saltos de línea
+sobreviven **30 textos en vez de 46**, y A1 se queda con uno solo, con lo que
+la comprobación de orden creciente ya no se puede hacer sobre cinco niveles.
+
+Se conserva la unión con espacio porque es la que reproduce las cifras
+publicadas —incluidas las de la sesión de Colab—, pero el guion imprime las dos
+cuentas en cada ejecución. Lo que esto dice del resultado es concreto: **el
+orden estrictamente creciente está medido sobre un conjunto que la aplicación
+habría filtrado más**, y una parte de esos 46 son textos que la app rechazaría
+por parecer listas.
+
 Las dos primeras restas son de extracción. La cuarta no: son **diez textos
 —nueve de A1 y uno de B1— que rechaza `scoring.continuous_prose`**, y conviene
 decir con qué regla, porque el filtro tiene cuatro. Los diez caen por la misma:
@@ -842,7 +860,12 @@ intermedia, ancla B2).
    a las búsquedas por tema.
 2. Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
    aplicación, sin salir a buscarlo.
-3. Aparece la ficha, y todo lo que dice está **contado sobre el fichero**:
+3. Aparece la ficha, **contada sobre el texto y no sobre metadatos**, aunque
+   no toda sobre el libro entero: las palabras y el tiempo de lectura salen
+   del fichero completo, y la longitud de frase, el diálogo y el vocabulario
+   se calculan sobre una **muestra de 60.000 palabras** —la variedad léxica,
+   sobre las primeras 20.000—, porque recorrer *Guerra y paz* entero para
+   pintar una ficha haría esperar al lector. Lo que trae:
    palabras reales, tiempo de lectura estimado a 180 o 110 palabras por
    minuto según el texto le quede por debajo o por encima de su nivel
    —no es su ritmo medido, que la aplicación no conoce—, longitud media de frase,
@@ -1175,8 +1198,8 @@ llevó la correlación de −0,379 a −0,326: **empeoró**. La muestra intermed
 397 libros daba −0,330. La ley de Zipf explica por qué.
 El paso se conservó por cobertura, no por métrica, y así se reporta.
 
-**La velocidad se ganó sin mover ninguna cifra que se publique, y se
-demostró.** Doce hilos y lotes de 64 en CPU, fp32 con lote 128 en GPU: +33 % y
+**La velocidad se ganó sin mover ninguna cifra publicada, y con la salvedad
+dicha.** Doce hilos y lotes de 64 en CPU, fp32 con lote 128 en GPU: +33 % y
 ×13,8 respectivamente, con 839 de 840 ventanas idénticas a tres decimales y la
 restante a 0,001. No es exactitud bit a bit —eso sería falso— sino diferencias
 por debajo del redondeo con el que se guarda todo. Y se rechazaron dos
