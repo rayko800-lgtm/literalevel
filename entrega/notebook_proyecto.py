@@ -1727,8 +1727,14 @@ plt.show()
 # corpus**, frente a 0,854 del v4. En los exámenes graduados, nivel y longitud
 # están confundidos. Lo que sostiene al modelo no es ganarle a un contador de
 # palabras por cinco centésimas, sino que **aporta señal por encima de la
-# longitud**: descontándola por correlación parcial, el modelo conserva 0,657, y
-# un contador de palabras, por construcción, se queda en cero.
+# longitud**: descontándola por correlación parcial, el modelo conserva 0,657.
+#
+# Decir que el contador de palabras «se queda en cero» sería incorrecto y hay
+# que precisarlo: al descontar la longitud de una variable que **es** la
+# longitud, su residuo tiene varianza nula y la correlación parcial no queda en
+# cero, queda **indefinida** —el denominador es una desviación típica cero—. Lo
+# que se puede afirmar es más simple: el contador no aporta ninguna señal por
+# encima de la longitud, porque es esa misma variable. El modelo sí.
 
 # %% [markdown]
 # ## 7.3 Decisiones de despliegue que también son evaluación

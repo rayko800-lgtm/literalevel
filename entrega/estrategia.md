@@ -263,18 +263,33 @@ leen.
 una escala validada durante treinta años, cientos de miles de títulos medidos,
 integración con bibliotecas y pruebas oficiales, y algo que aquí solo se
 aproxima —una escala común que compara al lector con el texto—. **Su medida la
-acepta un colegio; la nuestra no.** Lo que no tiene es precio accesible: sus
-licencias institucionales van de **3.824 a 54.636 USD al año**. Medir con ellos
-los 61.642 libros del catálogo costaría del orden de 54.600 USD; medirlos con
-este proyecto son entre tres y cinco horas de una GPU alquilada. Esa diferencia
-de tres órdenes de magnitud es el argumento económico del trabajo.
+acepta un colegio; la nuestra no.** Lo que no tiene es precio accesible. Su tarifa
+publicada para creadores de contenido va de **3.824 a 54.636 USD al año** según
+el volumen, y los 61.642 libros del catálogo caen en el tramo más alto.
 
-**Un LLM con un buen prompt** es la alternativa que todo el mundo propone hoy, y
-la evidencia publicada dice que **no gana en esta tarea**: el mejor método
-*zero-shot* documentado alcanza **0,725** en CLEAR, frente al 0,89 de un
-codificador afinado. Google lo midió con más cuidado y le salió lo mismo, con un
-BERT de 45,7 millones de parámetros por delante de PaLM 2-L. Lo que sí hace el
-LLM sin esfuerzo es superar a las fórmulas clásicas.
+Medirlos aquí son **entre tres y cinco horas de una GPU A100**, que caben en la
+cuota de una suscripción de Colab Pro de unos 10 USD al mes. **No es una razón
+monetaria estricta** —una licencia anual y unas horas de cómputo no se dividen
+la una por la otra— y tampoco son servicios equivalentes: Lexile vende una
+escala aceptada por instituciones, no solo un número. Lo que sí se puede
+afirmar es que **el coste de procesamiento está en otro orden de magnitud**, y
+que eso es lo que hace viable medir un catálogo entero en un trabajo de
+estudiante.
+
+**Un LLM con un buen prompt** es la alternativa que todo el mundo propone hoy.
+La evidencia publicada apunta a que un codificador afinado le lleva ventaja en
+esta tarea: sobre CLEAR, el mejor método *zero-shot* documentado alcanza
+**0,725** (Grossman y Chen, n = 1.890, diez modelos abiertos), y este proyecto
+mide **0,89** en el mismo corpus. Google publicó algo parecido, con un BERT de
+45,7 millones de parámetros por delante de PaLM 2-L.
+
+**Pero eso no es una comparación cara a cara y no conviene venderla como tal.**
+Son dos experimentos distintos sobre el mismo corpus, con particiones y
+protocolos que no se han igualado; compartir el nombre del corpus no es
+compartir los textos de prueba. Lo que estas referencias justifican es la
+*decisión* de afinar un codificador en lugar de escribir un *prompt*. La
+comparación bajo el mismo protocolo está sin hacer, y sería un buen trabajo
+futuro.
 
 ### 5.2 Dónde perdemos, dicho sin adornos
 
@@ -307,10 +322,17 @@ profesor que quiere clasificar un texto. La interfaz está en español, la
 explicación de cada palabra también, y la pregunta que responde no es «¿qué
 nivel tiene este texto?» sino «¿puedo leer esto yo, hoy?».
 
-**Es auditable y cuesta cero.** El modelo está publicado, el código está a la
-vista, las métricas vienen con su *n* y con sus limitaciones, y cualquiera puede
-comprobar los números o rehacerlos. De las alternativas de esta sección, ninguna
-permite eso.
+**Es auditable y de acceso gratuito para el lector.** El modelo está publicado,
+el código está a la vista y las métricas vienen con su *n* y sus limitaciones.
+Conviene precisar qué significa aquí «auditable», porque no es todo: el código y
+la inferencia desde los pesos públicos **sí** se pueden rehacer; las métricas del
+v4 **no**, porque su corpus de anclaje tiene derechos y no se distribuye. Y
+«gratuito» se refiere a quien usa la aplicación: alojarla y servirla cuesta
+dinero, y ese coste aparece en los accionables A2 y A4.
+
+Las fórmulas clásicas también son gratuitas y reproducibles, así que la ventaja
+no es la auditabilidad por sí sola: es tenerla **junto con** un modelo que lee
+el texto en lugar de contar sílabas.
 
 ### 5.4 La cifra que hay que saber defender
 
@@ -320,7 +342,10 @@ desfavorable del proyecto y conviene llevarla preparada en lugar de esperar a
 que alguien la encuentre: en ese corpus la longitud del texto está correlacionada
 con el nivel, así que un contador de palabras aprovecha un atajo que en una
 biblioteca real no existe. Descontando la longitud, la correlación parcial del
-modelo se sostiene en 0,657; la del contador de palabras, no.
+modelo se sostiene en **0,657**. La del contador de palabras no es que sea
+peor: es que **no está definida**, porque descontar la longitud de la propia
+longitud deja un residuo de varianza cero. Dicho de otro modo, el contador no
+aporta nada por encima de la longitud porque es la longitud; el modelo sí.
 
 ---
 

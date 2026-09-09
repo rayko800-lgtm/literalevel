@@ -720,7 +720,9 @@ débil del Cuadro 10 pasaron el filtro de la aplicación, no el del análisis.
 Un contador de palabras llega casi tan lejos como el modelo en ese corpus, y
 omitirlo sería deshonesto. Lo que sostiene al modelo es la tercera fila: **aporta
 señal por encima de la longitud**, que es precisamente lo que un contador de
-palabras no puede hacer. Además, el modelo no recibe la longitud del documento
+palabras no puede hacer —y conviene decirlo con precisión: no es que su
+correlación parcial sea peor, es que **no está definida**, porque descontar la
+longitud de la propia longitud deja un residuo de varianza cero—. Además, el modelo no recibe la longitud del documento
 como variable —puntúa bloques de tamaño fijo y promedia—, aunque su salida
 correlacione 0,730 con ella, porque los corpus de examen gradúan también la
 extensión de la tarea.
@@ -888,18 +890,24 @@ Un proyecto que no sabe contra qué compite no puede decir qué aporta. La versi
 larga está en el documento de estrategia; aquí van las tres alternativas reales
 y la cifra que resume cada una.
 
-| Alternativa | Su número | El nuestro |
+| Alternativa | Cifra publicada | La nuestra |
 |---|---|---|
-| Fórmulas clásicas (Flesch, Dale-Chall, ATOS) | Pearson **0,517** en CLEAR | **0,89** |
+| Fórmulas clásicas (FKGL, ARI) | Pearson **0,517** en CLEAR | **0,89** |
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
-| Lexile, licencia institucional | **3.824–54.636 USD/año** | Entre 3 y 5 h de GPU alquilada |
+| Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | 3–5 h de A100 |
 
-*Cuadro 17. Las tres alternativas, medidas en el mismo corpus cuando existe una
-medición comparable.*
+*Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
+comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
+sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
+decisión de afinar un codificador; no demuestran una victoria medida.*
 
-Medir con Lexile los 61.642 libros del catálogo costaría del orden de **54.600
-USD**; medirlos aquí son unas horas de cómputo. Esa diferencia de tres órdenes
-de magnitud es el argumento económico del trabajo.
+Los 61.642 libros del catálogo caen en el tramo más alto de la tarifa de Lexile;
+medirlos aquí cabe en la cuota de una suscripción de unos 10 USD al mes. **No es
+una razón monetaria estricta** —una licencia anual y unas horas de cómputo no se
+dividen— y tampoco son servicios equivalentes: Lexile vende una escala aceptada
+por instituciones. Lo que sí se sostiene es que el **coste de procesamiento está
+en otro orden de magnitud**, y eso es lo que hace viable medir un catálogo
+entero en un trabajo de estudiante.
 
 **Dónde se pierde, que también hay que decirlo.** Lexile tiene treinta años de
 validación y una escala que **acepta un colegio**; la de aquí no la acepta
@@ -911,9 +919,14 @@ leyó la obra.
 **Lo que queda, y basta para justificar el trabajo**, son tres cosas: se recorre
 el libro **entero, capítulo a capítulo**, en lugar de dar un número global; está
 escrito para un **hispanohablante que elige qué leer**, no para un profesor que
-clasifica textos; y es **auditable y gratuito**, con el modelo publicado, el
-código a la vista y las métricas con su *n* y sus limitaciones. De las
-alternativas de este cuadro, ninguna reúne las tres.
+clasifica textos; y es **auditable en lo que se puede auditar y de acceso
+gratuito para el lector**, con el modelo publicado y el código a la vista.
+
+Esa tercera hay que acotarla: el código y la inferencia desde los pesos públicos
+se pueden rehacer, **las métricas del v4 no**, porque su corpus de anclaje tiene
+derechos. Y las fórmulas clásicas también son gratuitas y reproducibles, así que
+la ventaja no está en la auditabilidad sola, sino en tenerla junto con un modelo
+que lee el texto. Lo que ninguna alternativa reúne son las **tres a la vez**.
 
 ---
 
