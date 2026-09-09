@@ -508,13 +508,21 @@ META = {int(r["Text#"]): (" ".join(str(r["Title"]).split()),
         for _, r in en.iterrows()}
 
 
-def perfil_de_libro(ruta):
+def perfil_de_libro(ruta, ya_leido=None):
     """Recorre el libro ENTERO, capítulo a capítulo, sin muestrear.
 
     Usa `ficha.capitulos_de_cuerpo`, el MISMO filtro que la app: si aquí se
     escribiera otro parecido, el catálogo quedaría medido sobre un conjunto de
     capítulos distinto del que mide la app y nadie se daría cuenta.
+
+    `ya_leido` lo pasa el hilo lector de la celda 10b con el troceado hecho,
+    para que la GPU no espere al disco. Sin él, esta función sigue valiendo
+    sola: lee y trocea aquí mismo.
     """
+    if ya_leido is not None:
+        libro, trozos, marcas = ya_leido
+        puntos = puntuar_lote(trozos) if trozos else []
+        return _armar_perfil(ruta, libro, marcas, puntos)
     libro = reader.cargar(str(ruta))
 
     # TODAS las ventanas del libro en UNA sola cola, y una sola llamada a la
@@ -542,7 +550,15 @@ def perfil_de_libro(ruta):
         trozos.extend(bs)
 
     puntos = puntuar_lote(trozos) if trozos else []
+    return _armar_perfil(ruta, libro, marcas, puntos)
 
+
+def _armar_perfil(ruta, libro, marcas, puntos):
+    """Junta las puntuaciones con los capitulos. No toca ni disco ni GPU.
+
+    Sale de `perfil_de_libro` para que el bucle de la celda 10b pueda leer
+    los libros por delante en varios hilos y dejar aqui solo la aritmetica.
+    """
     filas, todas = [], []
     for n, i, c, desde, cuantas in marcas:
         vs = puntos[desde:desde + cuantas]
@@ -588,23 +604,87 @@ print(f"por calcular:  {len(disponibles):,}")
 TANDA = 10 ** 9
 HORAS_TOPE_ANALISIS = 8.0
 
+# Cuantos libros se van leyendo por delante mientras la GPU trabaja.
+#
+# Esto NO es una optimizacion de laboratorio: medido en una A100 el
+# precalculo iba a 61 libros/min, o sea ~1 s por libro. Un libro medio son
+# unas 350 ventanas, que a 2.022 ventanas/s son 0,17 s de tarjeta. El otro
+# 80 % del tiempo la A100 estaba parada esperando a que el FUSE de Google
+# Drive entregase un .txt. La tarjeta no estaba lenta: estaba esperando al
+# disco, que es el mismo error que ya se cometio una vez agrupando por
+# capitulo en vez de por libro.
+#
+# Un ThreadPoolExecutor vale porque leer de Drive es E/S y suelta el GIL. Se
+# leen los textos por delante y se puntuan en el hilo principal, que es el
+# unico que toca la GPU: dos hilos escribiendo en CUDA a la vez es pedir un
+# problema que no se reproduce.
+HILOS_LECTURA = 8
+POR_DELANTE = 32
+
 buffer, n_shard = [], len(list(PERFILES.glob("perfiles_*.jsonl")))
 inicio, errores = time.time(), 0
 
-for k, ruta in enumerate(disponibles[:TANDA], 1):
+
+def _leer(ruta):
+    """Solo lee y trocea. NO toca la GPU: eso se hace en el hilo principal."""
+    libro = reader.cargar(str(ruta))
+    trozos, marcas = [], []
+    for n, (i, c) in enumerate(ficha.capitulos_de_cuerpo(libro), 1):
+        bs = scoring.fixed_blocks(ficha.sin_licencia(c.texto), cap=10 ** 9)
+        if not bs:
+            continue
+        marcas.append((n, i, c, len(trozos), len(bs)))
+        trozos.extend(bs)
+    return ruta, libro, trozos, marcas
+
+
+def _en_orden(rutas):
+    """Va entregando (ruta, libro, trozos, marcas) con POR_DELANTE en vuelo.
+
+    No se usa `executor.map` porque devuelve en orden pero encola TODAS las
+    tareas de golpe: con 29.516 libros eso es intentar leer 29.516 archivos
+    de Drive a la vez y quedarse sin memoria. Aqui la cola es fija.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from collections import deque
+    it = iter(rutas)
+    with ThreadPoolExecutor(max_workers=HILOS_LECTURA) as pool:
+        cola = deque()
+        for _ in range(POR_DELANTE):
+            try:
+                cola.append(pool.submit(_leer, next(it)))
+            except StopIteration:
+                break
+        while cola:
+            fut = cola.popleft()
+            try:
+                cola.append(pool.submit(_leer, next(it)))
+            except StopIteration:
+                pass
+            yield fut
+
+
+for k, fut in enumerate(_en_orden(disponibles[:TANDA]), 1):
     if time.time() - inicio > HORAS_TOPE_ANALISIS * 3600:
         print(f"  alcanzado el tope de {HORAS_TOPE_ANALISIS} h; guardo lo que "
               f"llevo y paro")
         break
+    # `ruta` se pone a None antes del try: si el fallo ocurre DENTRO del hilo
+    # lector, `fut.result()` relanza la excepcion aqui y `ruta` no existiria
+    # todavia; el except que imprime `ruta.name` reventaria con NameError y
+    # se perderia el error de verdad.
+    ruta = None
     try:
-        p = perfil_de_libro(ruta)
+        ruta, libro, trozos, marcas = fut.result()
+        p = perfil_de_libro(ruta, ya_leido=(libro, trozos, marcas))
         if p:
             p["id"] = int(ruta.stem[2:])
             buffer.append(p)
     except Exception as e:
         errores += 1
         if errores <= 5:
-            print("  fallo en", ruta.name, type(e).__name__, e)
+            print("  fallo en", ruta.name if ruta else "(al leer)",
+                  type(e).__name__, e)
     if len(buffer) >= POR_SHARD:
         destino = PERFILES / f"perfiles_{n_shard:04d}.jsonl"
         destino.write_text("\n".join(json.dumps(x, ensure_ascii=False)
