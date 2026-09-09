@@ -195,7 +195,8 @@ El modelo devuelve un número continuo, pero su escala está comprimida
 (`predicho ≈ 0,72 × real + 0,38`). Presentar «1,27 sobre 2» como si fueran dos
 decimales de precisión sería mentir con exactitud. La interfaz muestra
 **bandas** —básico < 0,6 ≤ intermedio < 1,4 ≤ avanzado, que son los cortes
-del propio MCER y no tercios de la escala— y la letra MCER
+del propio MCER, y no los 0,8 y 1,6 de antes, que ni siquiera partian el
+0–2 en tres partes iguales— y la letra MCER
 únicamente como orientación, siempre junto al número y con la tabla de
 correspondencia a la vista.
 

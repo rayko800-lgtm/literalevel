@@ -827,7 +827,7 @@ prueba("todas las paletas son legibles", _contraste_suficiente)
 titulo("Bandas coherentes con la letra")
 
 # Un texto no puede llamarse "C1" y "intermedio" en la misma linea. Antes si
-# pasaba: con los cortes en tercios de la escala y un modelo que comprime sus
+# pasaba: con los cortes en 0,8 y 1,6 y un modelo que comprime sus
 # predicciones, "avanzado" solo lo alcanzaba un C2 y tres de los cinco niveles
 # medidos caian en "intermedio".
 def _bandas_coherentes():

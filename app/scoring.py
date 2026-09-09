@@ -101,11 +101,11 @@ def public_score(y: float) -> float:
 def public_band(score: float) -> str:
     """Banda a la que pertenece una puntuacion de la escala publica 0..2.
 
-    Los cortes son los del MCER y no tercios de la escala, y eso es una
-    correccion, no una preferencia. Antes eran 0,8 y 1,6, que parten el 0..2
-    en tres partes iguales; el problema es que el modelo NO reparte sus
-    predicciones de forma uniforme sobre esa recta. Comprime: la relacion
-    entre lo que predice y el ancla real es aproximadamente 0,72x + 0,38.
+    Los cortes son los del MCER, y eso es una correccion, no una preferencia.
+    Antes eran 0,8 y 1,6, que ni siquiera parten el 0..2 en tres partes
+    iguales -dejan dos tramos de 0,8 y uno de 0,4-, y ademas el modelo NO
+    reparte sus predicciones de forma uniforme sobre esa recta: comprime, y la
+    relacion entre lo que predice y el ancla real es de unos 0,72x + 0,38.
 
     Con los cortes viejos y esa compresion pasaba esto, medido con las medias
     reales de `validar_local.py`:

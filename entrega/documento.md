@@ -663,9 +663,16 @@ de validación.*
 seis niveles, acertar «dentro de ±1» es más fácil de lo que parece: contestar
 **al azar** acierta el 44,4 % de las veces, y contestar **siempre B1**, sin
 mirar el texto, el 50 % —ambas cifras suponiendo el nivel verdadero repartido
-por igual entre los seis—. El modelo llega al 97,2 %, así que la ventaja sobre
-no hacer nada es real y grande; pero sin esa referencia el número no significa
-nada por sí solo, y hasta ahora el documento no la daba.
+por igual entre los seis—. El modelo llega al 97,2 %.
+
+**Esas dos referencias son teóricas y hay que leerlas como tales.** Suponen el
+nivel verdadero repartido por igual entre los seis, y **la distribución real de
+los 144 documentos de validación no está publicada**. Si ese conjunto estuviera
+concentrado en los niveles centrales, «contestar siempre B1» acertaría bastante
+más del 50 %. Así que lo honesto es decir que un 97,2 % está muy por encima de
+lo que da el azar bajo una hipótesis razonable, no que la ventaja empírica sobre
+un predictor constante esté medida: no lo está, porque faltan los recuentos por
+nivel de ese conjunto.
 
 **El resultado que de verdad sostiene el trabajo no es ninguno de esos
 porcentajes, sino el orden.** Sobre textos externos con nivel MCER oficial, las
@@ -682,7 +689,11 @@ medias por nivel quedan estrictamente crecientes:
 *Cuadro 10. Reproducción local de la validación externa, sobre los 45 textos
 que sobreviven a la extracción de los PDF.*
 
-Esta tabla se reproduce en cualquier máquina con el guion `validar_local.py`.
+Esta tabla se **recalcula** con el guion `validar_local.py`, en cualquier
+máquina que tenga los mismos PDF y los mismos pesos. No es una reproducción
+independiente: los PDF de British Council tienen derechos y no acompañan al
+repositorio, así que quien quiera rehacerla tiene que reunirlos por su
+cuenta. El `.dat` de la figura guarda los agregados, no las entradas.
 Lo que se reproduce exactamente es **el orden**; las medias difieren
 ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera cifra
 decimal —1,4952 frente a 1,4950—, A2 se desvía 0,10).
@@ -720,8 +731,9 @@ a puntuar cerca de B1. Por eso la interfaz muestra **bandas** (básico
 < 0,6 ≤ intermedio < 1,4 ≤ avanzado) y la letra MCER solo como orientación, en
 lugar de fingir una precisión de dos decimales que el modelo no tiene.
 
-Los cortes de esas bandas no son tercios de la escala, y esa es una corrección
-posterior. Al principio estaban en 0,8 y 1,6 —el 0–2 partido en tres—, pero
+Los cortes de esas bandas salen del MCER, y esa es una corrección posterior. Al
+principio estaban en 0,8 y 1,6, que además **ni siquiera partían el 0–2 en tres
+partes iguales**: dejaban dos tramos de 0,8 y uno de 0,4. Pero
 como el modelo comprime sus predicciones, con esos cortes un texto C1 caía en
 «intermedio» y «avanzado» solo lo alcanzaba un C2: tres de los cinco niveles
 medidos compartían banda. Ahora la banda se deriva del ancla MCER, con el
@@ -738,7 +750,7 @@ resultado.
 | Decisión | Razón | Evidencia / consecuencia |
 |---|---|---|
 | Regresión, no clasificación | La dificultad es continua; clasificar tira información ordinal | El error ordinal medio baja de 1,39 a 0,67 en la progresión completa |
-| Partición agrupada por libro | Evitar fuga de datos entre extractos del mismo autor | Aplicada a *todos* los modelos comparados, no solo al final |
+| Partición agrupada por libro | Evitar fuga de datos entre extractos **del mismo libro**. No separa autores: dos obras del mismo autor pueden caer a ambos lados, y eso no se comprobó | Aplicada a *todos* los modelos comparados, no solo al final |
 | `distilroberta` y no `roberta-base` completo | La aplicación debe correr en CPU en el equipo de un estudiante | 328 MB y 0,9 s de carga, frente a 1,5× más parámetros (125 M contra 82 M). **La diferencia de calidad entre las dos no se midió**: la decisión se tomó por tamaño y velocidad, no porque se comprobara que costaba poco |
 | Promediar bloques sin ponderar, con la **ventana** como unidad | Simplicidad y reproducibilidad; ponderar por longitud reintroduce la longitud como señal | Constante del entrenamiento. La app y el precálculo del catálogo usan ahora el mismo estimador: durante un tiempo la app promedió las medias de cada capítulo y el catálogo todas las ventanas, y con capítulos de tamaño desigual **no son el mismo número** (0,004 de diferencia máxima medida en cinco libros reales) |
 | **Rechazada: XGBoost sobre variables clásicas** | Se esperaba que un ensamble superase al modelo lineal | No lo hace: 0,28 frente a 0,29, y error ordinal peor (1,42 vs 1,39). El límite estaba en las variables |
@@ -965,9 +977,13 @@ repetirlo en cada párrafo corregido.
     (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin
     credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra
     la inferencia sobre texto real. Lo que **no** recalcula son las métricas del
-    v4 —el 0,908 y el 97,2 %—, y eso no se arregla publicando nada: depende del
-    corpus de anclaje MCER, que incluye material con derechos y no se puede
-    redistribuir.
+    v4 —el 0,908 y el 97,2 %—, porque el corpus de anclaje MCER incluye
+    material con derechos y no se puede redistribuir. **Pero conviene separar
+    tres cosas que aquí se mezclaban en una:** repetir el entrenamiento, volver
+    a ejecutar la inferencia y recalcular la aritmética de las métricas. Lo
+    tercero **sí se podría comprobar sin publicar un solo texto**, publicando
+    las 144 parejas de etiqueta y predicción con un identificador anónimo. No
+    está hecho, y decir que «no se arregla publicando nada» era falso.
 12. **La aplicación no está desplegada de forma permanente.** El enlace actual
     es un túnel temporal. El consumo medido —1,05 GB de memoria residente, con
     picos realistas de 1,2 a 1,5 GB— descarta cualquier plan gratuito de 512 MB.
@@ -1015,12 +1031,32 @@ del conjunto de validación de **144 documentos del propio corpus de anclaje**,
 que es interno. Atribuirlos a los externos era un error. Para el problema planteado —elegir qué
 leer— acertar el orden es lo que importa; acertar la letra exacta es un lujo.
 
-**El cuello de botella nunca fue el algoritmo, fue la representación del
-texto.** Aumentar la potencia del clasificador sobre una representación pobre
-no sirve de nada —XGBoost con trescientos árboles queda por detrás de una
-regresión logística, en las dos tandas—, mientras que cada vez que se enriquece
-la representación el resultado mejora: de conteos a *embedding* y de ahí a leer
-el texto crudo con atención, hasta 0,67 niveles de error ordinal.
+**Y aquí hay que poner un límite que el documento no ponía.** Ese orden está
+medido sobre **textos de examen**, de A1 a C1 y sin C2, no sobre novelas. La
+aplicación puntúa novelas y dibuja sus curvas, pero **la dificultad de una
+novela no se ha contrastado contra ninguna etiqueta externa ni contra ningún
+lector**. Que el modelo ordene bien cinco niveles de material de examen es una
+señal razonable de que la escala tiene sentido; no es una demostración de que
+ayude a elegir mejor un libro. Ese vínculo queda pendiente, y es lo que mediría
+el accionable de comparar la tasa de libros terminados con recomendación y sin
+ella.
+
+**En las configuraciones probadas, el cuello de botella no estuvo en el
+algoritmo sino en la representación del texto.** Aumentar la potencia del
+clasificador sobre las mismas variables no mejoró nada —XGBoost con trescientos
+árboles queda por detrás de una regresión logística, en las dos tandas—,
+mientras que cada vez que se enriqueció la representación el resultado subió: de
+conteos a *embedding* y de ahí a leer el texto crudo con atención, hasta 0,67
+niveles de error ordinal.
+
+**Dicho eso, esto no es un experimento controlado y no conviene venderlo como
+tal.** Entre la fila del *embedding* y la del transformador cambian a la vez la
+representación, la arquitectura, el preentrenamiento y el objetivo —clasificación
+de seis clases frente a regresión—, así que el salto no se puede atribuir a un
+solo factor. Lo que la evidencia sostiene es la observación: **subir la potencia
+del clasificador no movió el resultado y cambiar la representación sí**. Aislar
+cuál de los cuatro factores pesa más exigiría comparaciones que este trabajo no
+hizo.
 
 **Sobre el tamaño de ese salto conviene ser preciso**, porque el cuadro 7 tiene
 dos tandas y es fácil restar filas que no se pueden restar. Contra las tres
