@@ -141,7 +141,7 @@ directa de los PDF.
 \vspace{4mm}
 \begin{itemize}\setlength\itemsep{5mm}
   \item[{\color{llcian}\bfseries 01}] \textbf{Situar al lector} en una escala
-        continua, con tres preguntas o midiendo un texto que ya lee cómodo.
+        continua, con un cuestionario breve o midiendo un texto que ya lee cómodo.
   \item[{\color{llcian}\bfseries 02}] \textbf{Medir un libro entero}, capítulo
         a capítulo, y no una muestra de sus primeras páginas.
   \item[{\color{llcian}\bfseries 03}] \textbf{Recomendar qué leer hoy}, con la
@@ -155,7 +155,10 @@ directa de los PDF.
 \begin{frame}{Hallazgo 1 · El cuello de botella era la representación}
 \vspace{2mm}
 {\small Con las mismas 950 muestras reservadas, cambiando solo cómo se
-representa el texto:}
+representa el texto:}\\[1mm]
+{\scriptsize\color{llgris} Esas 950 muestras eligieron además la época del
+transformador: son validación de selección, no un test independiente. El error
+ordinal es sobre sextiles de CLEAR, no sobre niveles MCER.}
 \vspace{2mm}
 \begin{center}
 \begin{tikzpicture}
@@ -199,8 +202,8 @@ una regresión logística. Cambiar la representación sí.}
 
 \vspace{9mm}
 {\small En un corpus de exámenes, el nivel y la extensión de la tarea van
-juntos, así que un contador de palabras aprovecha un atajo que en una
-biblioteca no existe. \textbf{Lo que sostiene al modelo es lo que aporta por
+juntos, así que un contador de palabras aprovecha un atajo ligado al diseño de
+esos exámenes, cuya utilidad fuera de ese corpus no está demostrada. \textbf{Lo que sostiene al modelo es lo que aporta por
 encima de la longitud}: descontándola, conserva \textbf{0,665}.}
 
 \vspace{3mm}
@@ -222,7 +225,9 @@ desfavorable del proyecto, y ocultarla sería el peor error posible.}
 Validación interna & 144 & 97,2\,\% & 0,908 \\
 British Council, externo & 38 & 100\,\% & 0,829 \\
 \bottomrule
-\end{tabular}
+\end{tabular}\\[3mm]
+{\scriptsize\color{llgris} Métricas internas reportadas de la ejecución de
+entrenamiento: las 144 parejas de etiqueta y predicción no están publicadas.}
 \\[7mm]
 
 {\small Sobre textos externos con nivel oficial, las medias por nivel salen
@@ -240,7 +245,11 @@ no.}
 % ===========================================================================
 \begin{frame}{Ejemplo de uso y aplicación}
 \vspace{2mm}
-{\small Un caso real, de principio a fin: \textbf{Ana, 15 años, nivel B1}.}
+{\small \textbf{Recorrido de ejemplo}, paso a paso: una lectora de 15 años
+que el sistema sitúa en 0,93. Los pasos y lo que produce cada uno son los de
+la aplicación; el nombre y el perfil ilustran, no son una sesión registrada.
+La única prueba de usuario real del proyecto es la de Esmeralda, $n=1$, y
+está en el documento.}
 \vspace{3mm}
 
 \begin{center}
@@ -248,7 +257,7 @@ no.}
 \tikzset{p/.style={draw=llcian!70, fill=llfondo, rounded corners=2pt,
                    text width=2.4cm, align=center, inner sep=4pt,
                    minimum height=1.1cm}}
-\node[p] (a) {\textbf{1. Se sitúa}\\ tres preguntas\\ $\rightarrow$ 0,93};
+\node[p] (a) {\textbf{1. Se sitúa}\\ cuestionario\\ $\rightarrow$ 0,93};
 \node[p, right=of a] (b) {\textbf{2. Busca}\\ «algo de misterio,\\ no muy largo»};
 \node[p, right=of b] (c) {\textbf{3. Elige}\\ \emph{Sherlock Holmes}\\ curva por capítulo};
 \node[p, right=of c] (d) {\textbf{4. Lee}\\ doble clic en\\ \emph{peculiar}};
@@ -325,8 +334,10 @@ Publicar el modelo & 30 min, gratis &
   \textbf{Hecho}: el cuaderno corre en un Colab limpio \\[3mm]
 Desplegar de forma permanente & 7 USD/mes &
   \textbf{Hecho}: dirección fija que no muere al apagar \\[3mm]
-Terminar la medición del catálogo & 3--5 h de A100 &
-  El catálogo publica niveles medidos, no heredados \\
+Terminar la medición del catálogo & $\approx$3--5 h de cómputo A100,
+  \emph{estimadas}; la descarga va aparte &
+  \textbf{En curso}: hoy las etiquetas son heredadas de un modelo v1.
+  Terminado cuando el catálogo publique niveles medidos por el v4 \\
 \bottomrule
 \end{tabular}
 \end{center}
