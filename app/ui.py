@@ -2335,6 +2335,45 @@ def construir() -> gr.Blocks:
                 # fundian en un bloque macizo. Plotly trae zoom y desplazamiento.
                 grafica = gr.Plot(label="Dificultad capítulo a capítulo",
                                   show_label=True)
+                # --- La palabra, ENCIMA del texto -----------------------
+                # Estaba al final de la pestana, debajo del capitulo entero y
+                # del indice: el lector hacia doble clic en una palabra y tenia
+                # que bajar todo el capitulo para leer que significaba. En un
+                # capitulo de Guerra y Paz eso son varias pantallas. Aqui la
+                # caja y el resultado quedan a un palmo de donde se lee.
+                with gr.Accordion("Consultar una palabra", open=True):
+                    gr.Markdown(
+                        "**Selecciona una palabra del texto de abajo** y se "
+                        "copia aquí sola: doble clic con el ratón, o mantenla "
+                        "pulsada si estás en el móvil. La oración de contexto "
+                        "se busca en el capítulo abierto.")
+                    with gr.Row():
+                        palabra = gr.Textbox(label="Palabra", scale=3,
+                                             elem_id="ll-palabra")
+                        b_palabra = gr.Button("Consultar", variant="primary",
+                                              scale=1)
+                    ficha = gr.Markdown()
+                    audio_web = gr.HTML()
+                    audio_local = gr.Audio(label="Pronunciación generada",
+                                           type="filepath",
+                                           elem_id="ll-audio-palabra",
+                                           visible=False)
+                    with gr.Accordion("¿Y la oración? La busco yo sola",
+                                      open=False):
+                        gr.Markdown("No hace falta que copies nada: cuando "
+                                    "seleccionas la palabra, busco la frase del "
+                                    "capítulo donde aparece y la uso como "
+                                    "contexto. Esta caja solo sirve para forzar "
+                                    "otra distinta.")
+                        oracion = gr.Textbox(label="Oración (opcional)")
+                    idioma = gr.Radio(
+                        choices=[("Explícamelo en español", "es"),
+                                 ("Explain it in English", "en")],
+                        value="es", label="Idioma de la explicación",
+                        info="El diccionario, la IPA y el audio no cambian: "
+                             "siempre vienen de Wiktionary. Esto solo afecta a "
+                             "la explicación de contexto y gramática.")
+
                 texto = gr.HTML(_html_lectura(""))
 
                 # Los mandos, OTRA VEZ, debajo del texto. Cuando terminas un
@@ -2349,35 +2388,6 @@ def construir() -> gr.Blocks:
                     # porque hay libros de 366 capitulos.
                     indice = gr.Radio(label="Ir a un capítulo", choices=[],
                                       elem_id="ll-indice")
-
-                gr.Markdown("### Consultar una palabra\n"
-                            "**Selecciona una palabra del texto** y se copia aquí "
-                            "sola: doble clic con el ratón, o mantenla pulsada "
-                            "si estás en el móvil. La oración de contexto se "
-                            "busca en el capítulo abierto.")
-                with gr.Row():
-                    palabra = gr.Textbox(label="Palabra", scale=3,
-                                         elem_id="ll-palabra")
-                    b_palabra = gr.Button("Consultar", variant="primary", scale=1)
-                with gr.Accordion("¿Y la oración? La busco yo sola", open=False):
-                    gr.Markdown("No hace falta que copies nada: cuando "
-                                "seleccionas la palabra, busco la frase del "
-                                "capítulo donde aparece y la uso como "
-                                "contexto. Esta caja solo sirve para forzar "
-                                "otra distinta.")
-                    oracion = gr.Textbox(label="Oración (opcional)")
-                idioma = gr.Radio(
-                    choices=[("Explícamelo en español", "es"),
-                             ("Explain it in English", "en")],
-                    value="es", label="Idioma de la explicación",
-                    info="El diccionario, la IPA y el audio no cambian: siempre "
-                         "vienen de Wiktionary. Esto solo afecta a la explicación "
-                         "de contexto y gramática.")
-                ficha = gr.Markdown()
-                audio_web = gr.HTML()
-                audio_local = gr.Audio(label="Pronunciación generada",
-                                   type="filepath", elem_id="ll-audio-palabra",
-                                   visible=False)
 
                 archivo.change(_abrir, archivo, [est_libro, cap, texto, libro_md])
                 archivo.change(_limpiar_consulta, None,
