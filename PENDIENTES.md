@@ -92,7 +92,7 @@ Todas medidas el 9 de septiembre, y todas reproducibles con un guion del repo.
 
 ## Decisiones que quedan abiertas
 
-- **Recalibrar la escala.** Un texto A1 se anuncia como A2. Es el accionable
+- **Recalibrar la escala.** Un texto A2 puntúa cerca de B1. Es el accionable
   A7. No se toca sin validar contra el catálogo, y el catálogo aún no está.
 - **Publicar el diccionario Kaikki** (243 MB). El guion de subida existe; es la
   mitad que falta del accionable A1.

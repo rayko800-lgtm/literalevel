@@ -17,7 +17,8 @@ ve más despacio y deja respirar las pausas.
 
 ## Por qué está construido así
 
-Sobre el método **ANSVA** de Fernando Miralles, que es la secuencia clásica de
+Sobre el método **ANSVA** de Fernando Miralles, campeón de España de oratoria, que es
+la secuencia clásica de
 persuasión: **A**tención · **N**ecesidad · **S**atisfacción · **V**isualización ·
 **A**cción. No es un adorno: encaja con lo que la rúbrica del módulo 5 premia,
 porque el módulo declara que lo que evalúa es *«hacer que esos modelos sean
@@ -25,7 +26,7 @@ accesibles y valiosos para un usuario final»*. ANSVA obliga a hablar del usuari
 antes que del modelo, que es exactamente el orden que pide Barranco.
 
 > **Nota honesta sobre las fuentes.** ANSVA está verificado y es suyo. Miralles
-> enseña además una *«estructura de la sardina»* de la que encontré el nombre
+> enseña además una *«estructura de la sardina»*, y PAS, y ADP, de las que encontré el nombre
 > pero **no su anatomía exacta** en fuentes públicas — está en su libro y su
 > curso. No se ha usado, para no inventarla.
 

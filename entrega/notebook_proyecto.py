@@ -1905,12 +1905,15 @@ plt.show()
 #
 # ## 8.4 Los accionables, en orden y con su justificación
 #
-# 1. **Publicar el modelo v4 y el diccionario en Hugging Face.** Es media hora
+# 1. **Publicar el diccionario en Hugging Face.** El modelo v4 ya está
+#    publicado —`MikeMaki1763/literalevel-v4`, ver arriba—; falta el
+#    diccionario, que son 243 MB. Es media hora
 #    de trabajo y desbloquea la reproducibilidad completa de este cuadernillo,
 #    que hoy es su única carencia. Es el primero de la lista por relación entre
 #    coste y efecto.
-# 2. **Ejecutar el precálculo del catálogo en A100.** Tres horas de nube
-#    convierten 61.642 libros sin medir en 61.642 libros medidos **libro entero,
+# 2. **Ejecutar el precálculo del catálogo en A100.** Entre tres y cinco horas
+#    de cómputo —estimadas, y la descarga va aparte— convierten 61.642 libros
+#    sin medir en 61.642 libros medidos **libro entero,
 #    capítulo a capítulo**, y jubilan definitivamente las etiquetas del v1 cuyo
 #    fracaso documenta la Figura 8.
 # 3. **Almacenamiento persistente para el lector.** El despliegue permanente ya

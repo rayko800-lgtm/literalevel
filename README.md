@@ -81,8 +81,10 @@ la tercera fila — **aporta señal por encima de la longitud**, que es lo que u
 contador no puede hacer.
 
 El argumento fuerte tampoco es el acierto exacto, sino que **en corpus externo
-las medias por nivel quedan estrictamente ordenadas**: A2 0.648 < B1 0.951 <
-B2 1.288 < C1 1.495.
+las medias por nivel quedan estrictamente ordenadas**: A1 0.504 < A2 0.556 <
+B1 0.928 < B2 1.241 < C1 1.495 — la reproducción local sobre 47 textos. La
+tanda histórica de Colab, con cuatro niveles y otras medias, está en la tabla
+de más abajo; son conjuntos distintos y no se mezclan.
 
 La escala pública es **ordinal y comprimida**: contra el ancla real, el ajuste
 ronda `predicho ≈ 0.72 × real + 0.38`, así que un texto A2 suele puntuar cerca

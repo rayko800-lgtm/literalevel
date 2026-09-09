@@ -132,6 +132,32 @@ pueda quedar en cero: un comentario que **explica** el fallo antiguo contiene
 la cifra vieja a propósito, y una frase en pasado («el enlace *era* un túnel
 temporal») también.
 
+### Comprueba lo DIBUJADO, no solo lo escrito
+
+Un confirmador ejecutó 78 comprobaciones sobre el documento y dio 77 exactas.
+Sobre ese mismo árbol, otro encontró que **la figura de la escala dibujaba los
+cortes de banda derogados** —rectángulos en 0,8 y 1,6— cuarenta líneas debajo
+de una frase que dice «básico < 0,6 ≤ intermedio < 1,4 ≤ avanzado, **tal como
+las dibuja la figura**». Y una segunda figura sombreaba desde 1,6 y rotulaba
+«≥ 1,4».
+
+El primero no lo vio porque miraba **números en tablas**. Los cortes vivían en
+coordenadas de TikZ.
+
+Así que la lista de sitios donde vive una cifra tiene un apartado propio:
+
+- **`datos_figuras/*.dat`** — lo que alimenta las gráficas.
+- **Los números escritos a mano dentro de `tikzpicture`**: coordenadas de
+  `ill`, `\draw`, `
+ode`, `ddplot`, y las etiquetas `n = 7` puestas a
+  mano junto a las barras.
+- **Los rótulos de las bandas y las llaves** que marcan tramos.
+- **Los pies de figura** que afirman lo que la figura enseña.
+
+Un `grep` de la cifra no los encuentra, porque en el TikZ va como `0.8` sin
+coma y sin contexto. La única forma es abrir cada `tikzpicture` que dibuje un
+umbral y comprobar el número contra el texto que lo cita.
+
 ### Busca la cifra en TODAS sus formas, no solo en la exacta
 
 El barrido busca literales, y una cifra viaja por el documento con varias
