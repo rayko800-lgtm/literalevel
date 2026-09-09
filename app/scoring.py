@@ -245,7 +245,9 @@ class Puntuador:
         BPE y se truncan a 256. Comprobado sobre 200 ventanas: el 100% mide
         exactamente 256. Como no hay relleno, la forma del tensor por fila no
         depende de con quien vaya agrupada. Verificado ademas a la brava: las
-        mismas 300 ventanas de una en una y en un solo lote dan 300/300 valores
+        mismas 300 ventanas -la tanda de lotes fijos del informe de velocidad;
+        hay otra de 286 agrupando por capitulo, y las dos dan el mismo
+        resultado- de una en una y en un solo lote dan 300/300 valores
         identicos bit a bit.
         """
         torch = self._torch

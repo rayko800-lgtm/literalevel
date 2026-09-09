@@ -142,7 +142,7 @@ Mtro. Fernando Barranco Rodríguez
 \begin{tcolorbox}[colback=llfondo, colframe=llazul!35, boxrule=0.8pt,
                   arc=3mm, width=13cm, halign=center]
   {\large\bfseries\color{llazul} MP4 · máximo 5 minutos · cara visible todo el tiempo}\\[4pt]
-  {\small Objetivo: \textbf{4:40}. Texto hablado: \textbf{525 palabras} = 3:30 a
+  {\small Objetivo: \textbf{4:40}. Texto hablado: \textbf{547 palabras} = 3:40 a
    ritmo normal.\\ El resto es el tiempo que tarda la demo en vivo.}
 \end{tcolorbox}
 
@@ -291,14 +291,15 @@ palabra.
 
 \begin{ve}
 \textbf{En pantalla, al terminar la demo:} las métricas desnudas.\\[3pt]
-\textbf{distilroberta-base} \quad·\quad Spearman \textbf{0,908} \quad·\quad
-orden MCER estrictamente creciente \quad·\quad escala pública 0--2
+\textbf{distilroberta-base} \quad·\quad Spearman \textbf{0,908} interno \quad·\quad
+orden MCER creciente en textos externos \quad·\quad escala pública 0--2
 \end{ve}
 
 \begin{dice}
-El modelo es un distilroberta afinado en regresión. Correlación de Spearman de
-0,908 contra la escala de referencia, y el orden A1 a C1 sale estrictamente
-creciente en validación ciega.
+El modelo es un distilroberta afinado en regresión. Spearman de 0,908 en
+validación interna. Y aparte, sobre textos externos con nivel oficial del Marco
+Común Europeo, el orden de A1 a C1 sale estrictamente creciente. Lo digo separado
+porque son corpus distintos.
 
 Y algo que quiero decir con todas las letras: \textbf{no certificamos ningún
 nivel del MCER}. La letra que enseñamos es la etiqueta más cercana en una
@@ -310,18 +311,20 @@ escala continua. Sirve para elegir qué leer, no para acreditar nada.
 
 \begin{ve}
 \textbf{En pantalla:} el catálogo. \textbf{61.642} libros en inglés de Project
-Gutenberg, y debajo: \emph{ya medidos, no se calcula al buscar}.
+Gutenberg, y debajo: \emph{medición en curso; lo que no está medido, se mide al
+abrirlo}.
 \end{ve}
 
 \begin{dice}
 Ahora imagina esto a escala.
 
-Project Gutenberg tiene \textbf{61.642 libros en inglés} en dominio público.
-Los estamos midiendo todos, uno a uno, con el modelo leyendo cada libro
-completo. No una muestra: el libro entero.
+Project Gutenberg tiene \textbf{61.642 libros en inglés} en dominio público, y
+los estamos midiendo todos con el modelo leyendo cada libro completo. No una
+muestra: el libro entero.
 
-Cuando terminen, buscar un libro y ver su curva de dificultad será
-instantáneo, porque el trabajo ya está hecho.
+Y seré honesto: la medición está en curso. Lo ya medido se abre al instante; lo
+demás lo mide la aplicación al abrirlo. La diferencia es de espera, no de
+resultado.
 
 Para el lector eso significa una cosa muy concreta: \textbf{deja de abandonar
 libros}. Empieza el que le toca, entiende lo que lee, y sigue.

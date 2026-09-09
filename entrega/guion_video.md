@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 525 palabras: 3:30 a ritmo normal.** El minuto largo que
+**El texto hablado son 547 palabras: 3:40 a ritmo normal.** El minuto largo que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
@@ -117,12 +117,13 @@ diccionario, la gramática, la fonética británica y americana, y el audio.
 marca en verde lo que sonó bien y en rojo lo que no, palabra por palabra.»
 
 > **En pantalla, al terminar la demo:** las métricas desnudas.
-> **distilroberta-base** · Spearman **0.91** · orden CEFR estrictamente
-> creciente · escala pública 0–2.
+> **distilroberta-base** · Spearman **0,908** interno · orden MCER
+> estrictamente creciente en textos externos · escala pública 0–2.
 
-«El modelo es un distilroberta afinado en regresión. Correlación de Spearman
-de 0.91 contra la escala de referencia, y el orden A1 a C1 sale estrictamente
-creciente en validación ciega.
+«El modelo es un distilroberta afinado en regresión. Spearman de 0,908 en
+validación interna. Y aparte, sobre textos externos con nivel oficial del Marco
+Común Europeo, el orden de A1 a C1 sale estrictamente creciente. Lo digo
+separado porque son corpus distintos.
 
 Y algo que quiero decir con todas las letras: **no certificamos ningún nivel
 del MCER**. La letra que enseñamos es la etiqueta más cercana en una escala
@@ -133,16 +134,18 @@ continua. Sirve para elegir qué leer, no para acreditar nada.»
 ## V — VISUALIZACIÓN · 3:20 – 4:10
 
 > **En pantalla:** el catálogo. **61.642** libros en inglés de Project
-> Gutenberg, y debajo: *ya medidos, no se calcula al buscar*.
+> Gutenberg, y debajo: *medición en curso; lo que no está medido, se mide al
+> abrirlo*.
 
 «Ahora imagina esto a escala.
 
-Project Gutenberg tiene **61.642 libros en inglés** en dominio público. Los
-estamos midiendo todos, uno a uno, con el modelo leyendo cada libro completo.
-No una muestra: el libro entero.
+Project Gutenberg tiene **61.642 libros en inglés** en dominio público, y los
+estamos midiendo todos con el modelo leyendo cada libro completo. No una
+muestra: el libro entero.
 
-Cuando terminen, buscar un libro y ver su curva de dificultad será
-instantáneo, porque el trabajo ya está hecho.
+Y seré honesto: la medición está en curso. Lo ya medido se abre al instante; lo
+demás lo mide la aplicación al abrirlo. La diferencia es de espera, no de
+resultado.
 
 Para el lector eso significa una cosa muy concreta: **deja de abandonar
 libros**. Empieza el que le toca, entiende lo que lee, y sigue.»

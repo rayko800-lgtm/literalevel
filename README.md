@@ -4,6 +4,13 @@ App de lectura en inglés que estima la dificultad de un texto y acompaña al
 lector mientras lee. Proyecto integrador del Módulo 5, Diplomado en Ciencia de
 Datos (Generación 34).
 
+**Está desplegada y funcionando:**
+
+- Aplicación → <https://huggingface.co/spaces/MikeMaki1763/literalevel>
+- Modelo v4 → <https://huggingface.co/MikeMaki1763/literalevel-v4>
+
+Para correrla en local:
+
 ```bash
 pip install -r requirements.txt
 python -X utf8 main.py          # la app, en http://127.0.0.1:7860
@@ -161,12 +168,14 @@ Están en `.gitignore`. La app los localiza con `LITERALEVEL_MODELO` y
 de fallar. `validar_local.py` también los acepta, y recibe la carpeta del
 corpus como argumento.
 
-**Qué se puede reproducir clonando este repositorio y qué no.** Sin el
-modelo, nada de la parte de puntuación: `desplegar_datos.py` lo sube a
-Hugging Face, pero **todavía no se ha publicado**, así que hoy hay que
-pedirlo. El corpus de British Council no se distribuye (tiene derechos) y
-el corpus de validación de 144 textos tampoco está aquí: las cifras de
-0.908 y 97.2 % **no son verificables desde este repositorio**. Lo que sí se
+**Qué se puede reproducir clonando este repositorio y qué no.** El modelo v4
+**está publicado** en Hugging Face, en un repositorio público y sin
+credenciales: [`MikeMaki1763/literalevel-v4`](https://huggingface.co/MikeMaki1763/literalevel-v4).
+Basta apuntar `LITERALEVEL_MODELO` ahí. El corpus de British Council no se
+distribuye (tiene derechos) y el corpus de validación de 144 textos tampoco
+está aquí: las cifras de 0.908 y 97.2 % **no son verificables desde este
+repositorio**, aunque su aritmética interna sí cuadra (510 + 144 = 654,
+77/144 = 53,47 %, 140/144 = 97,22 %). Lo que sí se
 comprueba en local es la tabla de arriba, con los PDF de British Council en
 una carpeta. El código de entrenamiento del v4 no forma parte de este
 repositorio: aquí vive la aplicación, no el experimento.

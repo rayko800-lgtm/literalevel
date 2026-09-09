@@ -845,8 +845,11 @@ exactitud:
   MAE es 0,0000012 sobre la escala 0–2.
 - **Reagrupar en lotes distintos no puede mover un decimal**, y no es una
   suposición: como todas las ventanas ocupan exactamente 256 tokens tras
-  truncar, no hay relleno, y 286 ventanas puntuadas de una en una y en un solo
-  lote dan 286/286 valores idénticos con MAE 0,000000000.
+  truncar, no hay relleno. Comprobado en dos tandas distintas, y conviene
+  identificarlas porque circulan las dos cifras: en la tanda de **286 ventanas**
+  —catorce capítulos completos de *Crimen y castigo*, agrupando por capítulo—
+  salen 286/286 valores idénticos con MAE 0,000000000; en la de **300 ventanas**
+  con lotes fijos, 300/300.
 
 Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project
 Gutenberg **son entre 3 y 5 horas de A100**, y conviene decir de qué depende esa

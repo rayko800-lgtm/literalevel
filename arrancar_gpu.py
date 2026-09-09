@@ -10,8 +10,8 @@ el de siempre y no hay nada que deshacer.
 Lo que se gana esta medido sobre Crimen y Castigo, 840 ventanas, de punta a
 punta (tokenizar, copiar a la tarjeta, inferir y traer de vuelta):
 
-    CPU  (Ryzen 5 2600, 12 hilos, lote 64)     8,7 ventanas/s
-    GPU  (GTX 1650 SUPER, fp32, lote 128)    101,7 ventanas/s      11,7x
+    CPU  (Ryzen 5 2600, 12 hilos, lote 64)     8,19 ventanas/s
+    GPU  (GTX 1650 SUPER, fp32, lote 128)    112,7 ventanas/s      13,8x
 
 Y da los MISMOS numeros, que es lo que de verdad importa: 839 de 840 ventanas
 identicas a tres decimales, MAE 0,0000012, y `validar_local.py` devuelve las
