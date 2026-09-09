@@ -170,6 +170,25 @@ class Resultado:
         return "alta" if sd < 0.4 else "media" if sd < 0.8 else "baja (texto irregular)"
 
 
+def _parece_repo_hf(ruta: str) -> bool:
+    """True si `ruta` tiene forma de repositorio del Hub: "duenno/nombre".
+
+    Se comprueba la FORMA, no la existencia: si el repositorio no existe,
+    `from_pretrained` dara su propio error, que ya es claro. Lo que hay que
+    distinguir aqui es "me han dado un identificador" de "me han dado una
+    carpeta que no esta", porque el consejo que se le da al usuario es
+    distinto en cada caso.
+    """
+    if os.sep in ruta.replace("/", os.sep) and ruta.count("/") != 1:
+        return False
+    if "\\" in ruta or ":" in ruta:
+        return False
+    trozos = ruta.split("/")
+    if len(trozos) != 2 or not all(trozos):
+        return False
+    return all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", x) for x in trozos)
+
+
 class Puntuador:
     """Carga el modelo v4 una sola vez y puntua textos."""
 
@@ -179,12 +198,21 @@ class Puntuador:
 
         self._torch = torch
         ruta = str(ruta_modelo)
-        if not os.path.isdir(ruta):
+        # Vale una carpeta local Y vale un repositorio del Hub. Las dos las
+        # entiende `from_pretrained`, y las dos se usan: en local es
+        # ./modelo_v4 y en el Space es "MikeMaki1763/literalevel-v4".
+        #
+        # Esto NO es un adorno. El Space arrancaba con LITERALEVEL_MODELO
+        # apuntando al repositorio y aqui se exigia `os.path.isdir`, asi que la
+        # aplicacion desplegada no podia puntuar NADA: el lector veia "No
+        # encuentro el modelo v4... descarga la carpeta de Drive" mientras el
+        # resto de la interfaz funcionaba. Lo destapo Miguel abriendo la app en
+        # el movil, no ninguna prueba: las pruebas cargan el modelo de disco.
+        if not (os.path.isdir(ruta) or _parece_repo_hf(ruta)):
             raise FileNotFoundError(
                 f"No encuentro el modelo v4 en {ruta}.\n"
-                "Descargalo con  huggingface-cli download MikeMaki1763/literalevel-v4 "
-                "--local-dir modelo_v4  (repositorio publico, sin credenciales) y "
-                "apunta LITERALEVEL_MODELO a esa carpeta."
+                "Pon ahi una carpeta local, o el identificador del repositorio "
+                "publico: MikeMaki1763/literalevel-v4"
             )
         # Todos los hilos logicos, no solo los fisicos. Medido en esta maquina
         # (Ryzen 5 2600, 6 nucleos / 12 hilos): 6,16 -> 6,96 ventanas/s, un 13%
