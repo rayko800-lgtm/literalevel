@@ -851,6 +851,67 @@ prueba("los empates suben, no se van al par",
        lambda: [ui.scoring.anchor_cefr(y) for y in (0.5, 1.5, 2.5, 3.5, 4.5)])
 
 
+titulo("Codigos de acceso a lo que cuesta dinero")
+
+# La app entera es libre; lo que va a OpenAI -explicacion en contexto y
+# pronunciacion- se cierra detras de un codigo, porque el enlace es publico y
+# el saldo es de Miguel.
+import cuentas as cuentas_mod  # noqa: E402
+
+
+def _con_codigos(fn):
+    """Ejecuta `fn` con una tabla de codigos de mentira, y la retira despues."""
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0,invitado:LLAVE-B:2"
+    try:
+        return fn()
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+
+
+prueba("sin codigos configurados no se cierra nada",
+       lambda: cuentas_mod.permite(pathlib.Path(TMP), None)[0] is True)
+prueba("un codigo inventado no abre nada",
+       lambda: _con_codigos(
+           lambda: cuentas_mod.permite(pathlib.Path(TMP), "no-existe")[0]) is False)
+prueba("sin codigo, con la puerta puesta, no pasa",
+       lambda: _con_codigos(
+           lambda: cuentas_mod.permite(pathlib.Path(TMP), None)[0]) is False)
+prueba("el codigo sin tope no se agota",
+       lambda: _con_codigos(
+           lambda: cuentas_mod.queda(pathlib.Path(TMP),
+                                     cuentas_mod.validar("LLAVE-A")) is None))
+prueba("codigo vacio, None y espacios",
+       lambda: _con_codigos(
+           lambda: [cuentas_mod.validar(x) for x in ("", None, "   ")]))
+
+
+def _cupo_se_agota():
+    def dentro():
+        base = pathlib.Path(tempfile.mkdtemp(prefix="cupo_"))
+        c = cuentas_mod.validar("LLAVE-B")
+        vistos = []
+        for _ in range(4):
+            ok = cuentas_mod.permite(base, "LLAVE-B")[0]
+            vistos.append(ok)
+            if ok:
+                cuentas_mod.apuntar(base, c)
+        return vistos
+    v = _con_codigos(dentro)
+    assert v == [True, True, False, False], v
+    return "dos usos y se cierra"
+
+
+prueba("el cupo se agota y no revive", _cupo_se_agota)
+prueba("apuntar en una ruta imposible no revienta",
+       lambda: _con_codigos(
+           lambda: cuentas_mod.apuntar(pathlib.Path("Z:/no/existe"),
+                                       cuentas_mod.validar("LLAVE-A"))) is None)
+
+
 titulo("Una sola dificultad por libro")
 
 # La app y el precalculo masivo daban numeros distintos para el mismo libro:

@@ -47,6 +47,7 @@ import gradio as gr
 import biblioteca
 import config
 import cuaderno
+import cuentas
 import ficha as ficha
 import paletas as paletas_mod
 import perfil as perfil_mod
@@ -170,6 +171,55 @@ def _dentro_del_limite(peticion, cubo: str, tope: int) -> bool:
                       if not any(ahora - t < _VENTANA for t in v)]:
                 del _gasto[k]
     return True
+
+
+# --- Codigos de acceso a lo que cuesta dinero -----------------------------
+# El codigo canjeado se guarda por sesion de navegador, en memoria, y no viaja
+# en los componentes de la interfaz: asi no acaba en un `gr.State` que se
+# serializa al navegador ni se cuela en una traza de error. Se pierde al
+# reiniciar el proceso, y esta bien que sea asi: se vuelve a pegar y ya.
+_CODIGO_SESION: dict[str, str] = {}
+_CANDADO_CODIGO = threading.Lock()
+
+
+def _sesion_de(peticion) -> str:
+    h = getattr(peticion, "session_hash", None) if peticion is not None else None
+    return str(h or "local")
+
+
+def _codigo_de(peticion) -> str | None:
+    with _CANDADO_CODIGO:
+        return _CODIGO_SESION.get(_sesion_de(peticion))
+
+
+def _puede_pagar(peticion) -> tuple[bool, str]:
+    """(¿esta sesion puede usar OpenAI?, motivo para ensenar)."""
+    return cuentas.permite(BASE_DATOS_LECTOR, _codigo_de(peticion))
+
+
+def _apuntar_uso(peticion) -> None:
+    c = cuentas.validar(_codigo_de(peticion))
+    if c is not None:
+        cuentas.apuntar(BASE_DATOS_LECTOR, c)
+
+
+def _canjear(codigo: str, peticion: gr.Request = None) -> str:
+    """Valida un codigo y lo recuerda para esta sesion."""
+    if not cuentas.hay_codigos():
+        return ("No hace falta código: esta copia no tiene ninguno configurado "
+                "y todo está disponible.")
+    c = cuentas.validar(codigo)
+    if c is None:
+        with _CANDADO_CODIGO:
+            _CODIGO_SESION.pop(_sesion_de(peticion), None)
+        return "Ese código no vale. Comprueba que lo copiaste entero."
+    with _CANDADO_CODIGO:
+        _CODIGO_SESION[_sesion_de(peticion)] = codigo.strip()
+    resto = cuentas.queda(BASE_DATOS_LECTOR, c)
+    if resto is None:
+        return f"Listo, **{c.nombre}**. Sin límite de usos."
+    return (f"Listo, **{c.nombre}**. Te quedan **{resto}** usos de la "
+            f"explicación en contexto y la pronunciación.")
 
 
 def _mensaje_limite(idioma: str, minutos: int) -> str:
@@ -1606,7 +1656,11 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
 
     nivel = p.nivel if p is not None else NIVEL_POR_DEFECTO
     try:
-        r = consultor().consultar(palabra, oracion, nivel, idioma=idioma)
+        puede, motivo_pago = _puede_pagar(peticion)
+        r = consultor().consultar(palabra, oracion, nivel, idioma=idioma,
+                                  usar_openai=puede)
+        if puede:
+            _apuntar_uso(peticion)
     except (FileNotFoundError, OSError) as e:
         yield _aviso(e), "", gr.update(visible=False)
         return
@@ -1737,6 +1791,13 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         return "", "Graba tu voz con el micrófono (o sube un audio).", gr.update(visible=False)
     if not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
         return "", _aviso(_mensaje_limite("es", 60)), gr.update(visible=False)
+    # Esta es la funcion mas cara de la aplicacion: transcribe con whisper y
+    # genera un audio de referencia, y ninguna de las dos cosas acierta en
+    # cache. Por eso es la que se cierra detras del codigo.
+    puede, motivo_pago = _puede_pagar(peticion)
+    if not puede:
+        return "", motivo_pago, gr.update(visible=False)
+    _apuntar_uso(peticion)
     try:
         # Los fallos se registran aparte, en la base de ESTE lector: las
         # palabras que a uno se le atragantan no son asunto de los demas.
@@ -2258,6 +2319,29 @@ def construir() -> gr.Blocks:
                                [ficha, audio_web, audio_local])
 
             with gr.Tab("Pronunciación", id="voz"):
+                # El canje del codigo vive aqui porque es la funcion que lo
+                # necesita de verdad, y asi el usuario lo encuentra cuando le
+                # hace falta en vez de tener que ir a buscarlo a un menu. Solo
+                # aparece si esta copia tiene codigos configurados: en el
+                # ordenador de casa no hay a quien limitar, y una caja pidiendo
+                # una llave que no existe solo confunde.
+                if cuentas.hay_codigos():
+                    with gr.Accordion("¿Tienes un código de acceso?", open=False):
+                        gr.Markdown(
+                            "Corregir la pronunciación y explicar una palabra "
+                            "en su contexto son las dos únicas cosas que cuestan "
+                            "dinero, porque van a un servicio externo. **Todo lo "
+                            "demás —medir libros, leerlos, el diccionario, el "
+                            "cuestionario— funciona sin código.**")
+                        with gr.Row():
+                            caja_codigo = gr.Textbox(
+                                label="Código", placeholder="XXXX-XXXX-XXXX",
+                                type="password", scale=3)
+                            b_codigo = gr.Button("Activar", scale=1)
+                        estado_codigo = gr.Markdown()
+                        b_codigo.click(_canjear, caja_codigo, estado_codigo)
+                        caja_codigo.submit(_canjear, caja_codigo, estado_codigo)
+
                 frase = gr.Textbox(label="Frase que vas a leer en voz alta",
                                    placeholder="It is a truth universally acknowledged...")
                 b_traer = gr.Button("Traer una frase del capítulo que estoy leyendo")

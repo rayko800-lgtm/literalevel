@@ -601,7 +601,7 @@ class ConsultorLexico:
         return self._cliente_openai
 
     def consultar(self, palabra_superficie: str, oracion: str, nivel: float,
-                  idioma: str = "es") -> ResultadoLexico:
+                  idioma: str = "es", usar_openai: bool = True) -> ResultadoLexico:
         """Resuelve `palabra_superficie` dentro de `oracion` para un lector
         de nivel `nivel` (escala publica 0..2). Nunca lanza excepcion por
         falta de red o de OPENAI_API_KEY: lo que falte queda en `avisos`.
@@ -644,7 +644,14 @@ class ConsultorLexico:
         # hilo principal: la cache es un fichero, no un servicio.
         ipa_uk, ipa_us, audio_uk, audio_us = _mejor_fonetica(entradas, categoria)
         audio_generado = False
-        cliente = self._cliente()
+        # `usar_openai=False` reutiliza el camino de "no hay clave", que ya
+        # estaba escrito y probado: el diccionario, la IPA, la desambiguacion y
+        # el audio de Wiktionary siguen funcionando, y lo que dependeria de la
+        # API queda anotado en `avisos`. Sirve para que la aplicacion desplegada
+        # en una direccion publica pueda ofrecer la consulta a todo el mundo sin
+        # que un visitante gaste el saldo de otro. No hay una segunda rama que
+        # mantener: es la misma.
+        cliente = self._cliente() if usar_openai else None
 
         # Que falta y que ya estaba guardado.
         falta_audio = not audio_uk and not audio_us
