@@ -183,10 +183,10 @@ resolver las clases `Auto*` 5,4 s + sentence_transformers 0,8 s + spaCy 0,5 s
 = **~11,8 s**. El marginal de cada recurso es pequeno: Puntuador 0,74 s,
 catalogo 3,06 s (casi todo el modelo multilingue), consultor 1,6 s.
 
-**Casi todo el tiempo de una consulta lexica es espera a OpenAI.** La explicacion
+**Casi todo el tiempo de una consulta léxica es espera a OpenAI.** La explicación
 contextual esta medida en **14,9 s** con `reasoning.effort="low"`, que es el que
 corre, y en 67,7 s con el esfuerzo medio de antes. El trabajo local -spaCy,
-SQLite, desambiguacion, IPA- son **40 ms** en caliente. (Aqui decia "de los 28-44
+SQLite, desambiguación, IPA- son **40 ms** en caliente. (Aquí decía "de los 28-44
 s, 23-39 son espera": era de antes de bajar el esfuerzo.)
 Por eso `_consultar` es generadora: la primera etapa sale al instante.
 
@@ -206,4 +206,4 @@ Medido y **descartado**, para que nadie lo reintente:
 sobre tres palabras reales: 67,7 s con el esfuerzo medio, **14,9 s con `low`**,
 7,4 s con `minimal`. Se queda en `low` y **`minimal` esta descartado**: con el,
 "had peeped" se explico como pasado simple cuando es pasado perfecto, y el
-analisis gramatical es justo lo que se evalua.
+análisis gramatical es justo lo que se evalúa.
