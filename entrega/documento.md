@@ -225,7 +225,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | **OneStopEnglish** | Corpus de **afinado** de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados | 567 textos (189 por nivel) | GitHub (Vajjala & Lučić, 2018) | CC BY-SA 4.0 |
 | **British Council LearnEnglish** | Validación externa contra niveles MCER oficiales | 59 textos A1–C1 | Descarga de los PDF públicos | Con derechos: no se distribuye ni se imprime texto |
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
-| **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
+| **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
 | **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
 | **StoryWeaver / Global Digital Library** | Lecturas graduadas del catálogo heredado | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
 
@@ -990,8 +990,8 @@ exactitud:
   conviene decirlo con precisión, porque hay dos casos y solo uno es exacto.
   Cuando se trocea **un texto de más de 250 palabras**, todas sus ventanas
   miden 250 palabras exactas y, en prosa inglesa real, pasan siempre de 256
-  *tokens* BPE, así que se truncan a 256 —comprobado sobre las diez ventanas
-  de un texto de prueba: la más corta da 258; un texto artificial de 250
+  *tokens* BPE, así que se truncan a 256 —comprobado: la ventana más corta
+  de un texto de prueba da 258; un texto artificial de 250
   monosílabos daría 252 y no llegaría, pero eso no es prosa—: no
   hay relleno, y la fila de cada ventana no depende de con quién vaya
   agrupada. Es el caso de la comprobación: las mismas **300 ventanas**
@@ -1033,8 +1033,8 @@ propósito: el espejo lo mantiene alguien de forma gratuita, y cada hilo conserv
 su pausa.
 
 **Después se buscó una vía más rápida, y la decisión que importa no fue
-técnica.** El archivo único de Gutenberg —11,3 GB, una petición en lugar de
-treinta y tres mil— parecía el atajo evidente y no lo era: medido en dos
+técnica.** El archivo único de Gutenberg —11,3 GB, una petición en lugar de las
+29.668 que faltaban el 9 de septiembre— parecía el atajo evidente y no lo era: medido en dos
 máquinas distintas, el espejo entrega **0,29 MB/s**, o sea **casi once horas**,
 y con seis conexiones simultáneas sube a 0,46 y rechaza la séptima. No es el
 ancho de banda de nadie: es un servidor que mantiene un voluntario. La lección
@@ -1221,7 +1221,8 @@ repetirlo en cada párrafo corregido.
     desde el servidor: diccionario, fonética, buscador y puntuación. Los
     enlaces de audio de Wiktionary son aparte —los descarga el navegador del
     lector, así que necesitan conexión, aunque no clave—. Lo que se apaga sin
-    clave es la explicación en contexto y la corrección de pronunciación.
+    clave son tres cosas: la explicación en contexto, la corrección de
+    pronunciación y el resumen de «¿de qué trata?» de la ficha.
 
 ---
 

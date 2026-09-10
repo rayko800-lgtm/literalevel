@@ -5,6 +5,7 @@ si esta disponible y degrada con un mensaje claro si no lo esta.
 """
 from __future__ import annotations
 import re, zipfile, html, os
+from urllib.parse import unquote
 from dataclasses import dataclass, field
 
 
@@ -57,6 +58,51 @@ def _titulo_capitulo(bruto: str, texto: str, titulo_libro: str) -> str:
     return "(sin título)"
 
 
+_ATRIBUTO = re.compile(
+    r"""([A-Za-z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+
+
+def _atributos(etiqueta: str) -> dict[str, str]:
+    """Los atributos de una etiqueta XML, **sin depender de su orden**.
+
+    Esto no es un refinamiento academico: era el fallo del indice. Antes se
+    leia el manifiesto con
+
+        re.findall(r'<item\\s[^>]*id="([^"]+)"[^>]*href="([^"]+)"', xml)
+
+    que exige que `id` vaya ANTES que `href`. Project Gutenberg los escribe al
+    reves -`<item href="..." id="..." media-type="..."/>`-, asi que en TODOS
+    sus epub el diccionario salia vacio, el `spine` no se podia resolver y
+    `_leer_epub` caia al respaldo alfabetico. Y el alfabetico sobre nombres
+    numerados ordena 1, 10, 11, 12, 2, 3..., que es como *The Memoirs of
+    Sherlock Holmes* presentaba "XII. The Final Problem" -donde muere Holmes-
+    como capitulo 5 de 13: pulsar "Siguiente" tres veces reventaba el final.
+
+    El XML permite comillas simples y no fija el orden de los atributos, asi
+    que se leen todos y se busca por nombre.
+    """
+    fuera: dict[str, str] = {}
+    for m in _ATRIBUTO.finditer(etiqueta):
+        valor = m.group(2) if m.group(2) is not None else m.group(3)
+        fuera.setdefault(m.group(1).lower(), html.unescape(valor or ""))
+    return fuera
+
+
+_TROZO_NUM = re.compile(r"(\d+)")
+
+
+def _clave_natural(nombre: str):
+    """Orden natural: `pg9.xhtml` antes que `pg10.xhtml`.
+
+    El respaldo alfabetico solo se usa cuando el epub no trae un `spine`
+    legible, pero cuando se usa tiene que ordenar como cuenta una persona.
+    `sorted()` sobre cadenas compara digito a digito y pone el 10 antes que
+    el 2.
+    """
+    return tuple((1, int(t), "") if t.isdigit() else (0, 0, t.casefold())
+                 for t in _TROZO_NUM.split(nombre) if t != "")
+
+
 def _leer_epub(ruta: str) -> Libro:
     with zipfile.ZipFile(ruta) as z:
         nombres = z.namelist()
@@ -75,18 +121,30 @@ def _leer_epub(ruta: str) -> Libro:
             if m:
                 autor = _limpiar_html(m.group(1))
 
-            ids = dict(re.findall(r'(?is)<item\s[^>]*id="([^"]+)"[^>]*href="([^"]+)"', xml))
-            for idref in re.findall(r'(?is)<itemref\s[^>]*idref="([^"]+)"', xml):
-                href = ids.get(idref)
+            ids: dict[str, str] = {}
+            for etiqueta in re.findall(r"(?is)<item\s[^>]*?>", xml):
+                a = _atributos(etiqueta)
+                if a.get("id") and a.get("href"):
+                    ids.setdefault(a["id"], a["href"])
+            for etiqueta in re.findall(r"(?is)<itemref\s[^>]*?>", xml):
+                href = ids.get(_atributos(etiqueta).get("idref", ""))
+                if not href:
+                    continue
+                # El href puede traer un ancla (`cap3.xhtml#inicio`) y venir
+                # con escapes de URL; el nombre dentro del zip no.
+                href = unquote(href.split("#", 1)[0])
                 if not href:
                     continue
                 ruta_int = os.path.normpath(os.path.join(base, href)).replace("\\", "/")
                 if ruta_int in nombres:
                     orden.append(ruta_int)
 
-        # Sin spine legible, caemos al orden alfabetico de los xhtml.
+        # Sin spine legible, caemos al orden NATURAL de los xhtml: `pg9`
+        # antes que `pg10`. Ordenar cadenas da 1, 10, 11, 12, 2, 3...
         if not orden:
-            orden = sorted(n for n in nombres if n.endswith((".xhtml", ".html", ".htm")))
+            orden = sorted((n for n in nombres
+                            if n.endswith((".xhtml", ".html", ".htm"))),
+                           key=_clave_natural)
 
         capitulos = []
         for n in orden:

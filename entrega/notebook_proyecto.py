@@ -1870,6 +1870,21 @@ print("Ventanas totales a puntuar:", f"{ventanas_totales:,}")
 print()
 print(velocidades.to_string(index=False))
 
+# El resumen se IMPRIME desde la misma tabla que dibuja la figura, y el texto
+# de abajo no repite estas cifras a proposito: mientras el markdown las
+# copiaba a mano acababa anunciando una cifra distinta de la que la celda
+# calculaba, y quien corria el cuadernillo veia las dos seguidas.
+h_cpu = float(velocidades["Horas para el catálogo"].max())
+h_gpu = float(velocidades["Horas para el catálogo"].min())
+print()
+print("RESUMEN del coste de medir el catálogo entero:")
+print(f"  CPU de escritorio : {h_cpu:>8,.1f} h  = {h_cpu / 24:,.1f} días seguidos")
+print(f"  A100 de nube      : {h_gpu:>8,.1f} h")
+# El factor sale de las velocidades y no de las horas ya redondeadas:
+# 731,7 / 3,0 daría 244, y el factor medido es 2.022 / 8,19 = 247.
+factor = velocidades["Ventanas/s"].max() / velocidades["Ventanas/s"].min()
+print(f"  factor entre los dos extremos: {factor:,.0f}x")
+
 # %%
 plt.figure(figsize=(7, 3.8))
 plt.barh(velocidades["Dispositivo"], velocidades["Horas para el catálogo"],
@@ -1885,10 +1900,14 @@ plt.show()
 # %% [markdown]
 # **Figura 14 — El argumento económico del proyecto, en una figura.**
 #
-# Medir los 61.642 libros del catálogo cuesta **unas 689 horas en la CPU de una
-# computadora de escritorio —veintiocho días seguidos— y unas tres horas en una
-# A100**. El factor entre los dos extremos es de **247 veces**, y la escala del
-# eje es logarítmica precisamente para que quepan los dos.
+# Entre la CPU de una computadora de escritorio y una A100 de nube hay un
+# factor de **247 veces** —2.022 contra 8,19 ventanas por segundo, las dos
+# medidas—, y por eso la escala del eje es logarítmica: es la diferencia entre
+# **un mes seguido de cómputo** y **una tarde**.
+#
+# **Las horas y los días exactos los imprime la celda de arriba**, y este texto
+# no los repite a propósito: salen de las velocidades medidas y del número de
+# libros que la sesión acaba de contar, así que no pueden divergir de la tabla.
 #
 # Ese es el accionable, y es de negocio antes que técnico: **el precálculo no se
 # hace en el equipo del usuario ni en el servidor de la aplicación; se hace una

@@ -2696,9 +2696,11 @@ def construir() -> gr.Blocks:
                 b_cuest.click(_desde_cuestionario, [est_perfil, nombre] + radios,
                               salidas_nivel)
                 b_libro.click(_nivel_desde_libro, [est_perfil, nombre, libro_nivel],
-                              salidas_nivel)
+                              salidas_nivel,
+                              concurrency_id="modelo", concurrency_limit=1)
                 b_muestra.click(_desde_muestra, [est_perfil, nombre, muestra],
-                                salidas_nivel)
+                                salidas_nivel,
+                                concurrency_id="modelo", concurrency_limit=1)
                 est_perfil.change(lambda p: gr.update(visible=p is not None),
                                   est_perfil, b_ir_buscar)
 
@@ -2863,15 +2865,22 @@ def construir() -> gr.Blocks:
                 cap.change(_capitulo, [est_libro, cap], [texto, cap_md])
                 b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
                 b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
-                b_medir.click(_medir, [est_libro, cap, escala], medicion_md)
+                # `concurrency_id` compartido: los cuatro manejadores que
+                # cargan el v4 hacen cola ENTRE ELLOS y con nadie mas. Son 2
+                # vCPU: dos puntuaciones a la vez no van al doble de rapido,
+                # van peor las dos.
+                b_medir.click(_medir, [est_libro, cap, escala], medicion_md,
+                              concurrency_id="modelo", concurrency_limit=1)
                 b_analizar.click(_analizar_libro,
                                  [est_libro, gr.State("completo"), escala,
                                   est_paleta],
-                                 [analisis_md, grafica])
+                                 [analisis_md, grafica],
+                                 concurrency_id="modelo", concurrency_limit=1)
                 b_rapido.click(_analizar_libro,
                                [est_libro, gr.State("rapido"), escala,
                                 est_paleta],
-                               [analisis_md, grafica])
+                               [analisis_md, grafica],
+                               concurrency_id="modelo", concurrency_limit=1)
                 # Va colgado del State y no de `archivo`, para que la ficha
                 # salga tambien cuando el libro llega del buscador y no de una
                 # subida. Lo unico que los dos caminos comparten es este State.
@@ -2993,6 +3002,18 @@ def construir() -> gr.Blocks:
         # Engancha el doble clic del lector a la caja de consulta.
         demo.load(None, None, None, js=JS_SELECCION)
 
+    # La cola: 8 a la vez, y el modelo de uno en uno.
+    #
+    # Sin esta llamada Gradio usa su valor por defecto, que su propia
+    # documentacion fija en 1: UN evento a la vez para todos los visitantes.
+    # Con eso, una consulta lexica esperando a OpenAI bloqueaba la aplicacion
+    # entera; medido en el Space, otra sesion pulsando "Estimar mi nivel"
+    # -aritmetica pura- se quedo 170 s sin respuesta.
+    #
+    # 8 porque casi todo lo que hace esta app es ESPERAR -a OpenAI, a
+    # Gutenberg, a disco-, y esperar no gasta CPU. Lo que si la gasta es el
+    # modelo, y ese se limita aparte.
+    demo.queue(default_concurrency_limit=8)
     return demo
 
 

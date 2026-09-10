@@ -2187,6 +2187,43 @@ prueba("los clientes de OpenAI tienen plazo",
        _los_clientes_de_openai_tienen_plazo)
 
 
+def _la_cola_admite_a_mas_de_uno():
+    """Sin `demo.queue()`, Gradio atiende a UN visitante a la vez.
+
+    Su propia documentacion lo dice de `default_concurrency_limit`: «Defaults
+    to 1 if not set otherwise». Con eso, una consulta lexica esperando a OpenAI
+    dejaba sin servicio a TODA la aplicacion: medido en el Space, otra sesion
+    distinta pulso "Estimar mi nivel" -aritmetica pura sobre las respuestas del
+    cuestionario, no toca el modelo- y se quedo 170 segundos sin respuesta. Las
+    tres funciones de pago no es que fallaran: tumbaban la cola.
+
+    Y al reves: el modelo tiene que seguir limitado. Son 2 vCPU en `cpu-basic`
+    y dos puntuaciones a la vez van peor que en serie, asi que los cuatro
+    manejadores que cargan el v4 comparten `concurrency_id`.
+    """
+    import re
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    malos = []
+    m = re.search(r"demo\.queue\(([^)]*)\)", fuente)
+    if m is None:
+        malos.append("no se llama a demo.queue(): la cola atiende de uno en uno")
+    else:
+        lim = re.search(r"default_concurrency_limit\s*=\s*(\d+)", m.group(1))
+        if lim is None:
+            malos.append("demo.queue() sin default_concurrency_limit")
+        elif int(lim.group(1)) < 2:
+            malos.append(f"la cola sigue atendiendo de {lim.group(1)} en {lim.group(1)}")
+    n = len(re.findall(r'concurrency_id="modelo"', fuente))
+    if n < 4:
+        malos.append(f"solo {n} manejadores del modelo llevan concurrency_id")
+    assert not malos, malos
+    return "la cola admite 8, y el modelo va de uno en uno"
+
+
+prueba("la cola admite a mas de uno", _la_cola_admite_a_mas_de_uno)
+
+
 def _el_diagnostico_avisa_de_un_perfil_repetido():
     """`problemas()` y `declaradas()` no las probaba nadie.
 
@@ -2610,6 +2647,355 @@ def _el_rango_anunciado_es_el_filtrado():
 
 
 prueba("el rango anunciado es el que se filtra", _el_rango_anunciado_es_el_filtrado)
+
+
+# --- El orden de los capitulos y el filtro de prosa continua --------------
+#
+# Dos fallos que Miguel encontro usando la aplicacion desplegada, los dos con
+# *The Memoirs of Sherlock Holmes*, y los dos invisibles para las 250 pruebas
+# que ya habia. Van juntos porque son el mismo lector abriendo el mismo libro.
+
+titulo("Orden de los capitulos y filtro de prosa")
+
+import scoring as scoring_mod  # noqa: E402
+
+# Los nombres reales del libro con el que se reprodujo el fallo. Se conservan
+# porque el sintoma se lee mejor asi: "XII. The Final Problem" es donde muere
+# Holmes, y salia como capitulo 5 de 13.
+CAPS_MEMORIAS = [
+    "I. Silver Blaze", "II. The Cardboard Box", "III. The Yellow Face",
+    "IV. The Stockbroker's Clerk", "V. The Gloria Scott",
+    "VI. The Musgrave Ritual", "VII. The Reigate Squires",
+    "VIII. The Crooked Man", "IX. The Resident Patient",
+    "X. The Greek Interpreter", "XI. The Naval Treaty",
+    "XII. The Final Problem",
+]
+
+_RELLENO = ("He said nothing for a long while, and the train ran on through "
+            "the brown moor towards the west, with the rain beginning to "
+            "streak the glass of the window beside us. ") * 4
+
+
+def _epub(nombre, archivos, spine, con_spine=True, id_antes_de_href=False):
+    """Escribe un epub minimo y devuelve su ruta.
+
+    `archivos` es [(nombre_interno, titulo_del_capitulo)] y `spine` la lista de
+    ids en orden de lectura. Con `id_antes_de_href=False` el manifiesto se
+    escribe **como lo escribe Project Gutenberg**: `href` primero.
+    """
+    ruta = TMP / nombre
+    manifiesto, cuerpos = [], []
+    for i, (interno, tit) in enumerate(archivos):
+        idx = f"item{i}"
+        if id_antes_de_href:
+            manifiesto.append(
+                f'<item id="{idx}" href="{interno}" '
+                f'media-type="application/xhtml+xml"/>')
+        else:
+            manifiesto.append(
+                f'<item href="{interno}" id="{idx}" '
+                f'media-type="application/xhtml+xml"/>')
+        cuerpos.append((interno,
+                        f"<html><body><h1>{tit}</h1><p>{_RELLENO}</p>"
+                        f"</body></html>"))
+    itemrefs = "".join(f'<itemref idref="{s}" linear="yes"/>' for s in spine)
+    opf = (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<package xmlns="http://www.idpf.org/2007/opf" version="3.0">'
+        '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">'
+        '<dc:title>The Memoirs of Sherlock Holmes</dc:title>'
+        '<dc:creator>Arthur Conan Doyle</dc:creator></metadata>'
+        f'<manifest>{"".join(manifiesto)}</manifest>'
+        + (f"<spine>{itemrefs}</spine>" if con_spine else "<spine></spine>")
+        + "</package>")
+    with zipfile.ZipFile(ruta, "w") as z:
+        z.writestr("mimetype", "application/epub+zip")
+        z.writestr("OEBPS/content.opf", opf)
+        for interno, html in cuerpos:
+            z.writestr(f"OEBPS/{interno}", html)
+    return str(ruta)
+
+
+def _el_orden_de_los_capitulos_es_el_del_spine():
+    """El indice salia 1, 10, 11, 12, 2, 3... y reventaba el final del libro.
+
+    En *The Memoirs of Sherlock Holmes* el desplegable ponia "XII. The Final
+    Problem" -donde muere Holmes- como capitulo 5 de 13: quien pulsara
+    "Siguiente" tres veces se comia el desenlace.
+
+    La causa no era un `sorted()` cualquiera, sino que el `spine` **no se podia
+    resolver**. El manifiesto se leia con
+
+        <item\\s[^>]*id="..."[^>]*href="..."
+
+    que exige `id` ANTES que `href`, y Gutenberg los escribe al reves. Con el
+    diccionario vacio, `_leer_epub` caia al respaldo alfabetico.
+
+    Por eso el epub de esta prueba se escribe con los atributos en el orden de
+    Gutenberg **y** con nombres de archivo cuyo orden alfabetico es el
+    CONTRARIO al de lectura: asi ninguna ordenacion por nombre -ni la
+    alfabetica ni la natural- puede dar el resultado correcto por casualidad.
+    Solo lo da respetar el spine.
+    """
+    n = len(CAPS_MEMORIAS)
+    archivos = [(f"pg{n - i}.xhtml", t) for i, t in enumerate(CAPS_MEMORIAS)]
+    ruta = _epub("memorias.epub", archivos, [f"item{i}" for i in range(n)])
+    libro = reader.cargar(ruta)
+    titulos = [c.titulo for c in libro.capitulos]
+    assert titulos == CAPS_MEMORIAS, f"orden roto: {titulos[:6]}"
+    assert titulos[-1] == "XII. The Final Problem", (
+        f"el final del libro no va el ultimo, va: {titulos[-1]}")
+    assert "Final Problem" not in titulos[4], (
+        "el desenlace sale como capitulo 5: es el fallo original")
+    return f"{n} capitulos en el orden del spine, el desenlace el ultimo"
+
+
+prueba("el orden de los capitulos es el del spine",
+       _el_orden_de_los_capitulos_es_el_del_spine)
+
+
+def _sin_spine_los_capitulos_van_en_orden_natural():
+    """El respaldo ordenaba cadenas: pg1, pg10, pg11, pg12, pg2, pg3...
+
+    Se usa solo cuando el epub no trae un spine legible, pero cuando se usa
+    tiene que contar como cuenta una persona.
+    """
+    n = len(CAPS_MEMORIAS)
+    archivos = [(f"pg{i + 1}.xhtml", t) for i, t in enumerate(CAPS_MEMORIAS)]
+    ruta = _epub("sin_spine.epub", archivos, [], con_spine=False)
+    titulos = [c.titulo for c in reader.cargar(ruta).capitulos]
+    assert titulos == CAPS_MEMORIAS, f"orden de texto, no natural: {titulos[:6]}"
+    return f"pg9 antes que pg10 en los {n} archivos del respaldo"
+
+
+prueba("sin spine, los capitulos van en orden natural",
+       _sin_spine_los_capitulos_van_en_orden_natural)
+
+
+# Un capitulo de novela dialogada con una lista numerada DENTRO, que es la
+# forma exacta de "I. Silver Blaze": la tarjeta de la carrera, seis caballos,
+# en medio de 9.577 palabras de prosa. Medido en el capitulo real: 6 lineas de
+# vineta sobre 792, el 0,8 %.
+CAPITULO_DIALOGADO = "\n".join([
+    "I. Silver Blaze",
+    "“I am afraid, Watson, that I shall have to go,” said Holmes.",
+    "“To go! Where to?”",
+    "“To Dartmoor; to King’s Pyland.”",
+    "I was not surprised. Indeed, my only wonder was that he had not already",
+    "been connected with this extraordinary case, which was the one topic of",
+    "conversation through the length and breadth of England.",
+    "“I should be happy to go down with you, if I am not in the way,”",
+    "said I.",
+    "“My dear Watson, you would confer a great favour upon me by coming.”",
+    "“And what have you learned so far?” I asked him.",
+    "“That the horse is gone and that the trainer is dead,” he answered.",
+    "“The grass was dry and the ground was hard, and the tracks told little.”",
+    "“Surely the stable-boy saw something,” I objected.",
+    "“He saw a man, or he says that he saw a man. It was a dark night.”",
+    "“And the knife?”",
+    "“The knife is the strangest thing of all,” said Holmes.",
+    "“It was a cataract knife, and a man takes no such weapon to a moor.”",
+    "“Then what do you make of it?”",
+    "“That the trainer took it because it was the first thing he found.”",
+    "The papers of the week had printed the whole card of the coming race, and",
+    "Holmes read it aloud to me while the train ran on towards the west.",
+    "1. Mr. Heath Newton’s The Negro (red cap, cinnamon jacket).",
+    "2. Colonel Wardlaw’s Pugilist (pink cap, blue and black jacket).",
+    "3. Lord Backwater’s Desborough (yellow cap and sleeves).",
+    "4. Colonel Ross’s Silver Blaze (black cap, red jacket).",
+    "5. Duke of Balmoral’s Iris (yellow and black stripes).",
+    "6. Lord Singleford’s Rasper (purple cap, black sleeves).",
+    "“Six horses,” said I, “and one is missing on the eve of the race.”",
+    "“Precisely. And the favourite of the six, which is the whole matter.”",
+    "“You think that the horse is still alive, then?”",
+    "“I think that a horse of that value is worth far more alive.”",
+    "“And the dog did nothing in the night-time,” I remarked at last.",
+    "“That was the curious incident,” said Sherlock Holmes.",
+    "We sat in silence a long while, and the moor went by the window, brown",
+    "and empty under a sky that promised rain before the evening came.",
+    "The inspector met us at the station with a face that told the story",
+    "before he opened his mouth, and we drove to the stables in a carriage.",
+    "“You have formed a theory, then?” he asked, when we had gone a mile.",
+    "“Several, and I shall know within the hour which of them is the true one.”",
+    "“The horse was found upon the moor at daybreak,” said the inspector.",
+    "“Then the matter is finished, and only the reason for it remains.”",
+])
+
+
+def _un_capitulo_dialogado_con_una_lista_dentro_se_puntua():
+    """"¿Como de dificil es este capitulo?" sobre "I. Silver Blaze" -9.577
+    palabras de Conan Doyle- contestaba "Parece una lista, un menu o una
+    tabla". El fallo central del producto, muerto en el libro mas leido.
+
+    Y la causa NO era la regla de lineas cortas, que es lo que parecia: medido
+    sobre 589 capitulos de los diez epub cacheados, esa regla no rechazo NI UNO
+    -Silver Blaze tiene el 8,8 % de lineas cortas, muy por debajo del 35 %-.
+    Los 52 falsos rechazos los causaba `con_vineta >= 2`, un recuento
+    ABSOLUTO: la tarjeta de la carrera con sus seis caballos, los separadores
+    de escena `*  *  *` de Alicia, las llamadas a nota al pie de Guerra y Paz.
+
+    La asercion tiene que ser que el capitulo PASA. Comprobar que la lista se
+    detecta, o que el mensaje es legible, seguiria siendo cierto con el fallo
+    dentro.
+    """
+    ok, motivo = scoring_mod.continuous_prose(CAPITULO_DIALOGADO)
+    assert ok, f"un capitulo de novela dialogada se rechaza por '{motivo}'"
+    lineas = [l.strip() for l in CAPITULO_DIALOGADO.splitlines() if l.strip()]
+    vinetas = sum(bool(scoring_mod.BULLET_RE.match(l)) for l in lineas)
+    assert vinetas >= 2, (
+        "la prueba ha dejado de tener la lista dentro y ya no prueba nada")
+    return f"pasa con {vinetas} lineas de lista en {len(lineas)}"
+
+
+prueba("un capitulo dialogado con una lista dentro se puntua",
+       _un_capitulo_dialogado_con_una_lista_dentro_se_puntua)
+
+
+def _la_ficha_y_el_medidor_no_se_contradicen():
+    """Los dos paneles de la MISMA pantalla decian cosas incompatibles.
+
+    La ficha: "Dialogo: 40 % de las frases llevan voz - muy conversado". El
+    medidor, del mismo capitulo: "Parece una lista, un menu o una tabla".
+    Si `ficha` dice que un texto es conversacion, `scoring` no puede decir que
+    es un menu.
+    """
+    libro = reader.Libro("The Memoirs of Sherlock Holmes", "Arthur Conan Doyle",
+                         [reader.Capitulo("I. Silver Blaze", CAPITULO_DIALOGADO)])
+    car = ficha_mod.caracteristicas(libro)
+    ok, motivo = scoring_mod.continuous_prose(CAPITULO_DIALOGADO)
+    assert car.dialogo >= 0.35, (
+        f"la muestra ha dejado de ser dialogada ({car.dialogo:.0%})")
+    assert "conversado" in car.forma_del_dialogo, car.forma_del_dialogo
+    assert ok, (f"la ficha dice '{car.forma_del_dialogo}' y el medidor "
+                f"lo rechaza por '{motivo}'")
+    return f"ficha {car.dialogo:.0%} de dialogo y el medidor lo acepta"
+
+
+prueba("la ficha y el medidor no se contradicen",
+       _la_ficha_y_el_medidor_no_se_contradicen)
+
+
+# Los cuatro maquetados que el filtro SI tiene que rechazar. Aflojar la regla
+# de vinetas sin esto es abrirle la puerta a lo que el filtro existe para
+# parar: una carta de menu de 432 palabras ya se puntuo una vez como prosa.
+_MENU = "\n".join(["THE OLD MILL: DINNER MENU"] + [
+    "Tomato soup with basil", "Garlic bread with cheese", "Prawn cocktail",
+    "Mixed green olives", "Goat cheese salad", "Onion soup", "Smoked salmon",
+    "Chicken liver pate", "Roast chicken and potatoes", "Grilled salmon",
+    "Beef lasagne", "Vegetable curry with rice", "Steak and chips",
+    "Mushroom risotto", "Fish and chips", "Pork chop with mash",
+    "Duck with orange sauce", "Lamb shank", "Sausages and mash",
+    "Cheese ravioli", "Hand cut chips", "Green side salad",
+    "Steamed vegetables", "Onion rings", "Buttered rice", "Garlic potatoes",
+    "Chocolate cake", "Apple pie and cream", "Vanilla ice cream",
+    "Cheesecake of the day", "Fresh fruit salad", "Lemon tart",
+    "Still mineral water", "Sparkling mineral water", "Orange juice",
+    "Apple juice", "Black coffee", "Tea with milk", "House red wine",
+    "House white wine", "Bottled beer", "Home made lemonade",
+    "Service is not included in any of the prices shown above.",
+    "The kitchen closes at ten in the evening from Monday to Friday.",
+    "Please tell your waiter about any allergy before you order.",
+    "Booking a table is recommended at the weekend and on holidays.",
+])
+
+_INDICE = "\n".join([
+    "CONTENTS OF THIS VOLUME",
+    "I. The Rabbit Hole", "II. The Pool of Tears", "III. A Long Tale",
+    "IV. A Little Bill", "V. The Caterpillar", "VI. Pig and Pepper",
+    "VII. A Mad Tea Party", "VIII. The Croquet Ground", "IX. The Mock Turtle",
+    "X. The Lobster Quadrille", "XI. Who Stole the Tarts",
+    "XII. The Evidence of Alice", "LIST OF THE ILLUSTRATIONS",
+    "The White Rabbit", "The Pool of Tears", "The Caucus Race",
+    "The Little Bill", "The Caterpillar", "The Duchess", "The Mad Hatter",
+    "The Croquet Ground", "The Mock Turtle", "The Lobster",
+    "The Knave of Hearts", "Alice in the court", "NOTES AND APPENDIX",
+    "A note on the text", "A note on the plates", "Bibliography",
+    "Index of the names", "Index of first lines", "Acknowledgements",
+    "About the editor", "Other titles", "Reading group questions",
+    "A short chronology", "Further reading", "A note on the type",
+    "The page numbers of this edition are printed beside every entry.",
+    "The illustrations are bound together after the twelfth chapter.",
+    "Roman numerals are used for the chapters and arabic for the plates.",
+    "The index of names was prepared by the editor of this edition.",
+])
+
+_TABLA = "\n".join(["Country   Capital   People   Area   Money"] + [
+    f"{p}   {c}   {hab}   {km}   {mon}" for p, c, hab, km, mon in [
+        ("France", "Paris", 68, 551, "Euro"), ("Germany", "Berlin", 83, 357, "Euro"),
+        ("Spain", "Madrid", 47, 505, "Euro"), ("Italy", "Rome", 59, 301, "Euro"),
+        ("Portugal", "Lisbon", 10, 92, "Euro"), ("Poland", "Warsaw", 38, 312, "Zloty"),
+        ("Sweden", "Stockholm", 10, 450, "Krona"), ("Norway", "Oslo", 5, 385, "Krone"),
+        ("Denmark", "Copenhagen", 5, 42, "Krone"), ("Finland", "Helsinki", 5, 338, "Euro"),
+        ("Ireland", "Dublin", 5, 70, "Euro"), ("Austria", "Vienna", 9, 83, "Euro"),
+        ("Belgium", "Brussels", 11, 30, "Euro"), ("Greece", "Athens", 10, 131, "Euro"),
+        ("Hungary", "Budapest", 9, 93, "Forint"), ("Romania", "Bucharest", 19, 238, "Leu"),
+        ("Bulgaria", "Sofia", 6, 110, "Lev"), ("Croatia", "Zagreb", 3, 56, "Euro"),
+        ("Slovakia", "Bratislava", 5, 49, "Euro"), ("Slovenia", "Ljubljana", 2, 20, "Euro"),
+        ("Estonia", "Tallinn", 1, 45, "Euro"), ("Latvia", "Riga", 1, 64, "Euro"),
+        ("Lithuania", "Vilnius", 2, 65, "Euro"), ("Czechia", "Prague", 10, 78, "Koruna"),
+        ("Netherlands", "Amsterdam", 17, 41, "Euro"), ("Iceland", "Reykjavik", 3, 10, "Krona"),
+        ("Malta", "Valletta", 5, 31, "Euro"), ("Cyprus", "Nicosia", 1, 92, "Euro"),
+        ("Switzerland", "Bern", 8, 41, "Franc"), ("Serbia", "Belgrade", 6, 88, "Dinar"),
+        ("Albania", "Tirana", 2, 28, "Lek"), ("Ukraine", "Kyiv", 41, 603, "Hryvnia"),
+        ("Moldova", "Chisinau", 2, 33, "Leu"), ("Georgia", "Tbilisi", 3, 69, "Lari"),
+        ("Armenia", "Yerevan", 2, 29, "Dram"), ("Turkey", "Ankara", 85, 783, "Lira"),
+        ("Belarus", "Minsk", 9, 207, "Rouble"), ("Monaco", "Monaco", 1, 2, "Euro"),
+        ("Andorra", "Andorra", 1, 4, "Euro"), ("Liechtenstein", "Vaduz", 1, 1, "Franc"),
+    ]] + [
+    "Source: the national statistics office of each country listed above.",
+    "Figures are rounded to the nearest hundred thousand inhabitants.",
+    "The area of each country is given in thousands of square kilometres.",
+    "The currency column shows the legal tender in use during this year.",
+])
+
+_LISTA = "\n".join([
+    "Before you travel abroad, check every one of the following points.",
+] + [f"- {x}" for x in [
+    "Passport valid for at least six months after the date of your return",
+    "Visa or travel authorisation for the country that you are visiting",
+    "Travel insurance that covers medical costs and cancellation of the trip",
+    "Vaccination certificates if the country you visit requires them of you",
+    "A printed copy of the confirmation of every booking you have made",
+    "The address and the telephone number of the hotel where you will stay",
+    "Enough local currency in cash for the first day of the whole trip",
+    "A charger and an adaptor that fit the sockets used in that country",
+    "Any medicine that you take regularly, kept in its original box",
+    "A photocopy of your passport, kept apart from the passport itself",
+    "The emergency telephone number of your travel insurance company",
+    "Your driving licence if you are planning to hire a car when you arrive",
+    "A list of the numbers of the cards that you are carrying with you",
+    "The address of the nearest consulate of your country in that city",
+]] + [
+    "The list above covers the documents that travellers forget most often.",
+    "Keep the copies in a separate bag from the original documents.",
+    "If you lose a document, contact the nearest consulate straight away.",
+    "Most problems are solved in a day if you carry the copies with you.",
+])
+
+
+def _el_filtro_sigue_rechazando_menus_indices_y_tablas():
+    """La otra direccion del arreglo, que es la que se olvida.
+
+    Los cuatro tienen mas de 150 palabras y mas de cuatro frases a proposito:
+    si no, los rechazaria la regla de "corto" y esta prueba pasaria sin llegar
+    nunca a la regla de maquetado. Por eso se exige el motivo exacto.
+    """
+    malos = []
+    for nombre, texto in (("menu", _MENU), ("indice", _INDICE),
+                          ("tabla", _TABLA), ("lista con vinetas", _LISTA)):
+        palabras = len(scoring_mod.words(texto))
+        if palabras < scoring_mod.MIN_WORDS:
+            malos.append(f"{nombre}: solo {palabras} palabras, lo tira 'corto'")
+            continue
+        ok, motivo = scoring_mod.continuous_prose(texto)
+        if ok or motivo != "maquetado_de_lista":
+            malos.append(f"{nombre}: ok={ok} motivo={motivo}")
+    assert not malos, malos
+    return "menu, indice, tabla y lista rechazados por maquetado"
+
+
+prueba("el filtro sigue rechazando menus, indices y tablas",
+       _el_filtro_sigue_rechazando_menus_indices_y_tablas)
 
 # --- Resultado ------------------------------------------------------------
 

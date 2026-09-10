@@ -404,15 +404,16 @@ recta 0--2 resultante.
   \draw[flechall] (escala) -- (letra);
   \draw[flechall] (media) -- (banda);
 
-  \node[notall, above=1mm of tok] {100\pct{} de las ventanas llega a 256};
+  \node[notall, above=1mm of tok] {En prosa inglesa real,\\ el 100\pct{} de las
+    ventanas llega a 256};
   \node[notall, below=1mm of modelo] {8,2 a 2.022 ventanas/s según el equipo};
 
 \end{tikzpicture}
 \caption[Cadena de medición de LiteraLevel]{Cadena de medición, de la ecuación~\eqref{eq:f}
 al número que ve el lector. El filtro de prosa se aplica sobre el texto crudo, antes de
 normalizar espacios: hacerlo al revés lo desactivaba en producción (cuadro~\ref{cuad:textos},
-T1). Las ventanas de un texto de más de 250 palabras ocupan siempre 256 \emph{tokens}
-tras truncar, así que no llevan relleno y reagruparlas no movió ningún decimal en la
+T1). En prosa inglesa real, las ventanas de un texto de más de 250 palabras ocupan
+siempre 256 \emph{tokens} tras truncar, así que no llevan relleno y reagruparlas no movió ningún decimal en la
 comprobación de 300 ventanas del apartado~\ref{sec:escalado}. Cuando se mezclan capítulos
 cortos en un mismo lote sí hay relleno, y la diferencia medida es de
 $4{,}8\times 10^{-7}$: por debajo de los tres decimales que se guardan.}
@@ -518,8 +519,11 @@ Este trabajo se plantea como el primer producto de \textbf{Peldaño}, una compa�
 ficticia de inteligencia artificial aplicada a la educación. La ficción es un requisito
 del módulo y conviene decir desde el principio \textbf{qué es ficticio y qué no}: la
 empresa lo es; el modelo, la aplicación desplegada, el corpus, las métricas y cada cifra
-de este documento, no. Todo lo que se afirma aquí está medido y es reproducible con los
-guiones del repositorio.
+de este documento, no. Todo lo que se afirma aquí está medido, y qué parte se puede
+además \emph{reproducir} desde este repositorio y cuál no está dicho sin adornos en el
+apartado~\ref{sec:validacion} y en las limitaciones: el código y la inferencia desde los
+pesos públicos se rehacen; las métricas del entrenamiento del v4, no, porque su corpus de
+anclaje tiene derechos y no acompaña al repositorio.
 
 El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 \emph{input} comprensible sostiene que se aprende con material que está justo un
@@ -553,9 +557,15 @@ natural entre un nivel gratuito y uno de pago, y no hubo que diseñarla: salió 
 qué costaba cada cosa.
 
 El cliente institucional —el docente de inglés del
-apartado~\ref{sec:usuario-docente}— es el que justifica una tarifa, porque su necesidad
-no es leer sino \emph{asignar}: repartir treinta lecturas de dificultad conocida y ver
-quién se atasca dónde.
+apartado~\ref{sec:usuario-docente}— es el que justificaría una tarifa, porque su
+necesidad no es leer sino \emph{asignar}: repartir lecturas de dificultad medida, y
+medida capítulo a capítulo, sin tener que leerse cuarenta libros antes. Conviene decir
+qué es esto y qué no: hoy el producto \textbf{no hace seguimiento de alumnos}, ni puede
+hacerlo tal como está construido —los datos de cada lector se guardan separados y no se
+comparten—, y la Declaración de alcance del final de este documento descarta
+expresamente usar esta medida para decisiones con consecuencias para el evaluado. El
+producto que hay sirve al docente para \emph{elegir textos}; un panel de seguimiento
+sería otro producto, y está en Trabajo futuro.
 
 \subsubsection*{Lo que Peldaño no promete}
 
@@ -801,8 +811,9 @@ La regla transversal del sistema es la \textbf{degradación elegante}: sin clave
 servicio externo, la aplicación sigue dando diccionario, fonética, buscador y
 puntuación, porque nada de eso sale a la red; el audio de Wiktionary es un enlace a
 \cod{upload.wikimedia.org} que descarga el navegador del lector, así que necesita
-conexión, pero no clave ni servicio de pago. Solo se apagan la explicación en
-contexto y la corrección de pronunciación, y se dice con palabras que el lector
+conexión, pero no clave ni servicio de pago. Solo se apagan tres cosas —la explicación
+en contexto, la corrección de pronunciación y el resumen de «¿de qué trata?» de la
+ficha—, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
@@ -858,9 +869,9 @@ terminado. No son «se podría»: son «se hace».
 \addlinespace
 \textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware \cod{cpu-basic} no añade coste & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel}, público y en marcha; queda el disco persistente, que es A4 \\
 \addlinespace
-\textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & Entre 3 y 5 h de A100, dentro del crédito disponible; la descarga va ahora en un solo archivo de 11,3 GB & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
+\textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & $\sim$3 h de tarjeta y $\sim$17 h de reloj —el 80\pct{} del tiempo la tarjeta espera a Drive—, dentro del crédito. La descarga va por el volcado de Common Pile: 10,5 GB a 8,0 MB/s, veintidós minutos. El archivo único de 11,3 GB se midió a 0,29 MB/s y se descartó (\S\ref{sec:escalado}) & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
 \addlinespace
-\textbf{A4} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero & 12 USD por TB y mes; el proyecto ocupa 7,4 MB, así que el coste es despreciable & Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil \\
+\textbf{A4} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero & 12 USD por TB y mes; los datos del lector ocupan 10,9 MB medidos en local el 10 de septiembre de 2026, así que el coste es despreciable & Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil \\
 \addlinespace
 \textbf{A5} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla \\
 \addlinespace
@@ -953,7 +964,7 @@ entorno de cómputo: solo estadísticas agregadas.
 \addlinespace
 \textbf{SPGC} (Standar\-dized Project Guten\-berg Corpus) & Lista global de frecuencia de palabras (solo conteos, sin texto) & 45.345 libros en inglés de 55.905 & Zenodo, registro 2422561 \parencite{gerlach2018spgc,gerlach2020standardized} & Abierta \\
 \addlinespace
-\textbf{Project Gutenberg} & Catálogo de obras a medir y a leer dentro de la app & 79.337 entradas; 61.642 libros de texto en inglés & Catálogo oficial \parencite{gutenberg2026} + espejo \cod{gutenberg.\allowbreak pglaf.org} & Dominio público \\
+\textbf{Project Gutenberg} & Catálogo de obras a medir y a leer dentro de la app & 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 & Catálogo oficial \parencite{gutenberg2026} + espejo \cod{gutenberg.\allowbreak pglaf.org} & Dominio público \\
 \addlinespace
 \textbf{Kaikki / Wiktio\-nary} & Diccionario, IPA británica y americana, audio & 1.487.639 filas en SQLite (243 MB) & Volcado de kaikki.org \parencite{ylonen2022wiktextract} & Libre \\
 \addlinespace
@@ -2386,7 +2397,8 @@ capítulo que de las 8,19 de esta fila. Fuente:
 autor y la GPU alquilada, medidos de extremo a extremo (tokenización y transferencias
 incluidas). La escala es logarítmica porque el rango va de 8,19 a 2.022 ventanas por
 segundo. Es lo que convierte «medir los 61.642 libros en inglés de Project Gutenberg» en
-unas pocas horas de cómputo en lugar de casi tres meses de CPU. Datos de
+unas pocas horas de cómputo en lugar de un mes seguido de CPU: a 8,19 ventanas/s y
+350 ventanas por libro son \textbf{731,7 h}, o sea \textbf{30,5 días}. Datos de
 \cod{datos\_figuras/\allowbreak velocidad.dat} (cuadro~\ref{cuad:velocidad}).}
 \label{fig:velocidad}
 \end{figure}
@@ -2446,8 +2458,8 @@ y cada hilo conserva su pausa.
 
 \medskip
 \noindent\textbf{Después se buscó una vía más rápida, y la decisión que importa no fue
-técnica.} El archivo único de Gutenberg —11,3 GB, una petición en lugar de treinta y tres
-mil— parecía el atajo evidente y no lo era: medido en dos máquinas distintas, el espejo
+técnica.} El archivo único de Gutenberg —11,3 GB, una petición en lugar de las 29.668 que
+faltaban el 9 de septiembre— parecía el atajo evidente y no lo era: medido en dos máquinas distintas, el espejo
 entrega \textbf{0,29 MB/s}, o sea \textbf{casi once horas}, y con seis conexiones
 simultáneas sube a 0,46 y rechaza la séptima. No es el ancho de banda de nadie: es un
 servidor que mantiene un voluntario. La lección es del mismo tipo que las dos anteriores:
@@ -2532,7 +2544,7 @@ demuestran una victoria medida.}
   xlabel={Correlación de Pearson con el juicio humano, corpus CLEAR},
   symbolic y coords={literalevel,llm,formulas},
   ytick={formulas,llm,literalevel},
-  yticklabels={Fórmulas clásicas,LLM \emph{zero-shot},\textbf{LiteraLevel}},
+  yticklabels={Fórmulas clásicas,LLM \emph{zero-shot},\textbf{Nuestro codificador}},
   yticklabel style={font=\scriptsize},
   enlarge y limits=0.28,
   nodes near coords={\pgfmathprintnumber[fixed,precision=3]{\pgfplotspointmeta}},
@@ -2545,8 +2557,13 @@ demuestran una victoria medida.}
 \end{tikzpicture}
 \caption[Comparación con las alternativas]{Las fórmulas clásicas cuentan sílabas y llegan
 a 0,517. Un modelo de lenguaje grande con un buen \emph{prompt}, sin afinar, llega a
-0,725. El codificador afinado de este proyecto, a 0,89. Las tres cifras están medidas en
-el mismo corpus, que es la única forma de que la comparación signifique algo.}
+0,725. El codificador afinado de este proyecto, a 0,89. Las tres cifras son sobre el mismo
+corpus, pero —y esto hay que repetirlo aquí, no solo en el pie del
+cuadro~\ref{cuad:competencia}— \textbf{no son comparaciones cara a cara}: las dos
+primeras vienen de un estudio ajeno, con otra partición y otro protocolo, y el 0,89 es
+el del \cod{roberta-base} afinado sobre CLEAR del~\S\ref{sec:progresion}, que
+\textbf{no es el modelo que se despliega}. Justifican la decisión de afinar un
+codificador; no demuestran una victoria medida.}
 \label{fig:competencia}
 \end{figure}
 
@@ -2669,8 +2686,9 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         clave, la aplicación sigue funcionando en todo lo que no sale a la red desde el
         servidor: diccionario, fonética, buscador y puntuación. Los enlaces de audio de
         Wiktionary son aparte, porque los descarga el navegador del lector: necesitan
-        conexión, aunque no clave. Lo que se apaga sin clave es la explicación en
-        contexto y la corrección de pronunciación.
+        conexión, aunque no clave. Lo que se apaga sin clave son tres cosas: la
+        explicación en contexto, la corrección de pronunciación y el resumen de
+        «¿de qué trata?» de la ficha.
 \end{enumerate}
 
 % ===========================================================================

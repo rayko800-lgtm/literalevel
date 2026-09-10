@@ -2,7 +2,8 @@
 
 **Ya está desplegado**: `MikeMaki1763/literalevel` en Hugging Face Spaces,
 público y en marcha, sobre hardware `cpu-basic` y una cuenta Pro de 7 USD/mes.
-Arranque medido tras reiniciar: 31 s hasta que responde.
+Arranque medido tras reiniciar: **31 s** hasta que el runtime dice `RUNNING`
+y **32 s** hasta que la página responde (`medir_arranque.py`).
 
 Lo que sigue es el procedimiento con el que se hizo y lo que haría falta para
 repetirlo en otra plataforma. Lo que **no** está resuelto es el almacenamiento
@@ -31,7 +32,7 @@ persistente: el Space arranca con la estantería vacía tras cada reinicio.
 |---|---|---|
 | Código (`app/`, el punto de entrada, pruebas) | ~120 KB | el repositorio del despliegue |
 | `catalogo_recomendaciones.csv` | 1 MB | el repositorio del despliegue |
-| `modelo_v4/` | **328 MB** | fuera: repo de modelo, montado de solo lectura |
+| `modelo_v4/` | **332 MB** (los pesos solos, 328) | fuera: repo de modelo, montado de solo lectura |
 | `kaikki_diccionario.db` | **243 MB** | **en el propio Space**, no en un repo aparte (ver el aviso de abajo) |
 
 Los 575 MB de datos **no van en el repositorio** y están en `.gitignore`. La app
@@ -154,7 +155,8 @@ persistente, y es el accionable A4.
 
 La buena noticia es el precio: los Storage Buckets del Hub cuestan **12 $/TB al
 mes** en repositorio público y 18 $/TB en privado. Esto ocupa unos cientos de
-megas —hoy, en local, `~/.literalevel/` entero son **7,4 MB**—, así que la
+megas —en local, `~/.literalevel/` entero son **10,9 MB** medidos el 10 de
+septiembre de 2026—, así que la
 factura de almacenamiento es despreciable. Se monta el bucket y se apunta la
 app ahí; no hace falta tocar código, solo la ruta base.
 

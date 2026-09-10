@@ -211,11 +211,12 @@ cinco límites.
 ### 4.3 Nada falla en silencio, y nada se rompe del todo
 
 La regla transversal del sistema es la **degradación elegante**: sin clave de
-servicio externo, la aplicación sigue dando diccionario, fonética, audio de
-buscador y puntuación, porque nada de eso sale a la red desde el servidor; el audio
+servicio externo, la aplicación sigue dando diccionario, fonética, buscador
+y puntuación, porque nada de eso sale a la red desde el servidor; el audio
 de Wiktionary es un enlace a `upload.wikimedia.org` que descarga el navegador del
-lector, así que necesita conexión pero no clave. Solo se apagan
-la explicación en contexto y la corrección de pronunciación, y se dice con
+lector, así que necesita conexión pero no clave. Solo se apagan tres cosas
+—la explicación en contexto, la corrección de pronunciación y el resumen de
+«¿de qué trata?» de la ficha—, y se dice con
 palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
@@ -366,8 +367,8 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 |---|---|---|---|---|
 | **A1** | **Publicar el modelo y el diccionario** como repositorios abiertos | Desbloquea la reproducibilidad del cuaderno, que antes no corría en un Colab ajeno | ~30 min; gratuito. Requiere un token que solo el autor puede crear | **HECHO a medias**: el modelo (328 MB) está en `MikeMaki1763/literalevel-v4`, público y con la descarga sin credenciales verificada. El diccionario (243 MB) sigue sin publicar |
 | **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware `cpu-basic` no añade coste | **HECHO**: `huggingface.co/spaces/MikeMaki1763/literalevel`, público y en marcha. Queda el disco persistente, que es A4 |
-| **A3** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales. Es la deuda técnica más visible | Entre 3 y 5 h de A100, dentro del crédito disponible; la descarga va ahora en un solo archivo de 11,3 GB | El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira |
-| **A4** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero | 12 USD por TB y mes; el proyecto ocupa 7,4 MB, así que el coste es despreciable | Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil |
+| **A3** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales. Es la deuda técnica más visible | ~3 h de tarjeta y ~17 h de reloj —el 80 % del tiempo la tarjeta espera a Drive—, dentro del crédito disponible; la descarga va por `common-pile/project_gutenberg` (10,5 GB a 8,0 MB/s, veintidós minutos) y no por el archivo único de 11,3 GB, que se midió a 0,29 MB/s y se descartó | El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira |
+| **A4** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero | 12 USD por TB y mes; `~/.literalevel/` ocupa **10,9 MB** medidos en local el 10 de septiembre de 2026, así que el coste es despreciable | Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil |
 | **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
 | **A6** | **Retirar del catálogo los 1.049 registros no descargables** o marcarlos como fichas informativas sin botón de lectura | Hoy son el 87,6 % del catálogo y no se pueden abrir. Ya no aparecen en el desplegable, pero siguen ocupando el índice | Media jornada | El catálogo lista solo lo que se puede leer, o distingue visualmente ambas cosas sin ambigüedad |
 | **A7** | **Calibrar la escala** con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos | La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior | Una tarde | Las medias por nivel siguen estrictamente crecientes **y** se acercan a sus anclas |

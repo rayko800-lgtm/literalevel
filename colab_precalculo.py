@@ -230,7 +230,8 @@ if popularidad:
 # es la 6c.
 #
 # La idea era buena y el razonamiento también: una petición en lugar de
-# treinta y tres mil, y descomprimir en el disco local del entorno en vez de
+# casi treinta mil -29.668 quedaban por descargar el 9 de septiembre-, y
+# descomprimir en el disco local del entorno en vez de
 # escribir sesenta mil ficheros en Drive. Lo que no se midió antes de
 # construirla fue LA VELOCIDAD DE LA FUENTE, que es lo único que decidía si
 # funcionaba.
@@ -257,7 +258,7 @@ if popularidad:
 #     https://gutenberg.pglaf.org/cache/generated/feeds/txt-files.tar.zip
 #     11.278.856.242 bytes, comprobado el 8 de septiembre de 2026
 #
-# Una peticion HTTP en lugar de treinta y tres mil. Antes esta celda bajaba
+# Una peticion HTTP en lugar de casi treinta mil. Antes esta celda bajaba
 # libro a libro con seis hilos y salian unos 0,3 libros/s: mas de dos dias
 # para el catalogo, con Colab cortando la sesion cada pocas horas. Bajando el
 # archivo entero, el limite pasa a ser el ancho de banda y no la latencia.

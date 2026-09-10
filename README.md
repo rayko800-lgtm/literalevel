@@ -168,7 +168,7 @@ legible.
 
 | Qué | Tamaño | De dónde sale |
 |---|---|---|
-| `modelo_v4/` | 328 MB | Hugging Face, `MikeMaki1763/literalevel-v4` (público, sin credenciales) |
+| `modelo_v4/` | 332 MB | Hugging Face, `MikeMaki1763/literalevel-v4` (público, sin credenciales) |
 | `kaikki_diccionario.db` | 243 MB | volcado de Kaikki/Wiktionary, 1,48 M entradas (sin publicar; copia en Drive) |
 | `CLAVES.txt`, `.env` | — | claves reales |
 
