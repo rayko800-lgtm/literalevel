@@ -511,6 +511,59 @@ en los apartados~\ref{sec:validacion}, \ref{sec:baseline} y \ref{sec:esmeralda}.
 \label{sec:estrategia}
 % ===========================================================================
 
+\subsection{El marco: Peldaño, una compañía ficticia}
+\label{sec:compania}
+
+Este trabajo se plantea como el primer producto de \textbf{Peldaño}, una compañía
+ficticia de inteligencia artificial aplicada a la educación. La ficción es un requisito
+del módulo y conviene decir desde el principio \textbf{qué es ficticio y qué no}: la
+empresa lo es; el modelo, la aplicación desplegada, el corpus, las métricas y cada cifra
+de este documento, no. Todo lo que se afirma aquí está medido y es reproducible con los
+guiones del repositorio.
+
+El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
+\emph{input} comprensible sostiene que se aprende con material que está justo un
+escalón por encima de lo que uno ya domina \parencite{krashen1985input}. Ese
+escalón es el peldaño, y encontrarlo es exactamente el problema que el lector no puede
+resolver solo.
+
+\subsubsection*{Nicho}
+
+Peldaño no compite en el mercado general de aprendizaje de idiomas, que está saturado y
+lo dominan aplicaciones de repetición espaciada. Se sitúa en un hueco más estrecho y
+peor atendido: \textbf{la lectura extensiva en inglés para hispanohablantes que ya
+tienen base}, entre A2 y B2. Es el tramo donde el estudiante ya no cabe en el material
+graduado, todavía no aguanta una novela sin ayuda, y abandona. El apartado
+\ref{sec:competencia} documenta contra quién se compite y dónde se pierde.
+
+\subsubsection*{Propuesta de valor, en una frase}
+
+Convertir una biblioteca gratuita e inabarcable —Project Gutenberg— en una estantería
+personal ordenada por lo que cada lector puede leer hoy.
+
+\subsubsection*{Cómo se sostendría}
+
+La pregunta de negocio no es cómo cobrar por el modelo, que es pequeño y replicable,
+sino quién paga la parte cara. Medido en este proyecto: \textbf{medir un libro, leerlo,
+buscar y consultar el diccionario no cuestan nada} —corren en local sobre datos
+abiertos—, y solo tres acciones salen a un servicio externo de pago: explicar una
+palabra en su frase, resumir un libro y corregir la pronunciación. Esa separación, que
+en la aplicación es una puerta de acceso con cupo por perfil, es también la frontera
+natural entre un nivel gratuito y uno de pago, y no hubo que diseñarla: salió de medir
+qué costaba cada cosa.
+
+El cliente institucional —el docente de inglés del
+apartado~\ref{sec:usuario-docente}— es el que justifica una tarifa, porque su necesidad
+no es leer sino \emph{asignar}: repartir treinta lecturas de dificultad conocida y ver
+quién se atasca dónde.
+
+\subsubsection*{Lo que Peldaño no promete}
+
+No promete enseñar inglés, ni certificar un nivel, ni sustituir a un profesor. Mide la
+dificultad de un texto en una escala propia de 0 a 2 y la pone al lado del nivel
+estimado del lector. El apartado~\ref{sec:limitaciones} enumera los límites de esa
+medida, y la aplicación los dice en pantalla en vez de esconderlos.
+
 \subsection{La apuesta, en un párrafo}
 
 La lectura extensiva es uno de los métodos con más respaldo para aprender una segunda
@@ -599,6 +652,7 @@ recuerda por dónde iba en ninguno.
 \end{itemize}
 
 \subsubsection{Usuario institucional: el docente de inglés}
+\label{sec:usuario-docente}
 
 \textbf{Perfil.} Da clase a grupos heterogéneos y necesita repartir lecturas graduadas.
 No puede leerse cuarenta libros para clasificarlos.
@@ -2524,6 +2578,7 @@ alternativa reúne son las \textbf{tres a la vez}.
 
 % ===========================================================================
 \section{Limitaciones}
+\label{sec:limitaciones}
 
 \textbf{Antes de la lista, de dónde sale.} Este trabajo se sometió a \textbf{cinco
 auditorías externas} hechas por modelos de dos familias distintas, con el encargo

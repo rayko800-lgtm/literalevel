@@ -1907,10 +1907,11 @@ plt.show()
 #
 # 1. **Publicar el diccionario en Hugging Face.** El modelo v4 ya está
 #    publicado —`MikeMaki1763/literalevel-v4`, ver arriba—; falta el
-#    diccionario, que son 243 MB. Es media hora
-#    de trabajo y desbloquea la reproducibilidad completa de este cuadernillo,
-#    que hoy es su única carencia. Es el primero de la lista por relación entre
-#    coste y efecto.
+#    diccionario, que son 243 MB. Es media hora de trabajo. **No afecta a este
+#    cuadernillo**, que no lo usa en ninguna celda y corre entero sin él: lo que
+#    desbloquea es reproducir la parte léxica de la aplicación fuera de la
+#    máquina de desarrollo. Es el primero de la lista por relación entre coste
+#    y efecto.
 # 2. **Ejecutar el precálculo del catálogo en A100.** Unas tres horas de tarjeta
 #    —diecisiete de reloj, porque el cuello de botella es leer de Drive y no el
 #    modelo, y la descarga va aparte— convierten 61.642 libros
