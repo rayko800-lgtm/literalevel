@@ -18,15 +18,21 @@ Se aprueba con **80**. Máximo 2 faltas. Prohibido grabar las clases.
 
 ## 1. La rúbrica, por peso
 
+Estado al **10 de septiembre de 2026**, tarde. Si lees esto más adelante,
+comprueba `PENDIENTES.md`, que es el que se actualiza a diario.
+
 | Entregable | Puntos | Estado |
 |---|---|---|
-| **Demo en vivo** | **25** | ⚠️ falta enlace permanente y micrófono |
-| Vídeo | 20 | guion escrito (`entrega/guion_video.md`); falta grabar |
-| Documento | 15 | **no empezado** |
-| Estrategia | 15 | **no empezado** |
-| Notebook | 15 | ⚠️ no es reproducible: el modelo no está publicado |
-| Presentación | 10 | **no empezado** |
-| Interfaz | 10 | ✅ hecha y funcionando |
+| **Demo en vivo** | **25** | ⚠️ enlace permanente ✅ (`MikeMaki1763/literalevel`); falta el **micrófono**, sin el que no se puede enseñar la corrección de pronunciación |
+| Vídeo | 20 | guion escrito, cronometrado (561 palabras = 3:44) y en PDF; **falta grabar** |
+| Documento | 15 | ✅ `entrega/documento.md` y `.tex` → PDF de 47 páginas |
+| Estrategia | 15 | ✅ `entrega/estrategia.md`, absorbida en el `.tex` |
+| Notebook | 15 | ✅ 92 celdas, corre entero en un Colab limpio y sin avisos; el modelo está publicado |
+| Presentación | 10 | ✅ `entrega/presentacion.tex` → PDF, 13 diapositivas |
+| Interfaz | 10 | ✅ hecha, desplegada y probada en producción |
+
+**Lo que queda no es de escribir, es de grabar y de medir**: el vídeo, el
+micrófono, y el catálogo entero (bloqueado en las unidades de Colab).
 
 **Lo que más pesa no es el modelo, es la demo en vivo.** El módulo declara que
 lo que evalúa es *«hacer que esos modelos sean accesibles y valiosos para un
@@ -42,9 +48,16 @@ usuario final»*. Todo se ordena alrededor de esa frase.
    scraping o datos corporativos. *(LiteraLevel usa Project Gutenberg y el
    corpus CLEAR: estamos bien, pero hay que decirlo en el documento.)*
 3. **El notebook debe correr desde cualquier Colab sin errores ni warnings.**
-   Hoy **no puede**: el modelo v4 y el diccionario Kaikki solo existen en el
-   disco de Miguel. Publicarlos en Hugging Face es lo que desbloquea estos
-   puntos, y depende de un token que solo él puede crear.
+   Ya corre: el modelo está en `MikeMaki1763/literalevel-v4`, público, y se
+   baja sin credenciales. **Y ojo con la palabra «warnings», que es literal:**
+   el Hub avisa por stderr de que la descarga va sin token («You are sending
+   unauthenticated requests to the HF Hub»), y ese aviso contaba. Se silencia
+   ese canal justo antes de cargar el modelo, con
+   `huggingface_hub.utils.logging.set_verbosity_error()` y la razón escrita al
+   lado. Probado: ni `HF_HUB_DISABLE_XET` ni `HF_HUB_DISABLE_IMPLICIT_TOKEN`
+   lo callan; lo que funciona es eso o `HF_HUB_VERBOSITY=error`.
+   El diccionario Kaikki sigue sin publicar (243 MB), y el cuadernillo no lo
+   necesita.
 4. **El vídeo es MP4, máximo 5 minutos, con su cara visible todo el rato.**
 5. **Ortografía y redacción se califican.**
 

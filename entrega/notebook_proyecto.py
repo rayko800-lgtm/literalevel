@@ -1440,6 +1440,19 @@ if URL_MODELO.strip():
     try:
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        # El Hub avisa por stderr de que se está descargando SIN credenciales:
+        # "You are sending unauthenticated requests to the HF Hub. Please set a
+        # HF_TOKEN to enable higher rate limits and faster downloads." Es un
+        # consejo sobre el límite de peticiones, no un problema del código, y
+        # descargar sin credenciales es justo lo que este cuadernillo tiene que
+        # hacer: cualquiera debe poder ejecutarlo sin cuenta en Hugging Face.
+        # Se silencia ese canal para que la ejecución salga limpia; un fallo de
+        # descarga de verdad sigue apareciendo, porque lo levanta el `except` de
+        # abajo y no el registro.
+        import huggingface_hub.utils.logging as _registro_hub
+        _registro_hub.set_verbosity_error()
+
         tokenizador_v4 = AutoTokenizer.from_pretrained(URL_MODELO)
         modelo_v4 = AutoModelForSequenceClassification.from_pretrained(URL_MODELO)
         modelo_v4.eval()
