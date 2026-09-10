@@ -1911,8 +1911,9 @@ plt.show()
 #    de trabajo y desbloquea la reproducibilidad completa de este cuadernillo,
 #    que hoy es su única carencia. Es el primero de la lista por relación entre
 #    coste y efecto.
-# 2. **Ejecutar el precálculo del catálogo en A100.** Entre tres y cinco horas
-#    de cómputo —estimadas, y la descarga va aparte— convierten 61.642 libros
+# 2. **Ejecutar el precálculo del catálogo en A100.** Unas tres horas de tarjeta
+#    —diecisiete de reloj, porque el cuello de botella es leer de Drive y no el
+#    modelo, y la descarga va aparte— convierten 61.642 libros
 #    sin medir en 61.642 libros medidos **libro entero,
 #    capítulo a capítulo**, y jubilan definitivamente las etiquetas del v1 cuyo
 #    fracaso documenta la Figura 8.

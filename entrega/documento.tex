@@ -258,8 +258,9 @@ expida. Sirven para elegir qué leer, no para acreditar nada.
 El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio 6.26
 \parencite{abid2019gradio}, probada por una lectora de quince años, prima del autor y ajena al
 proyecto— y con un catálogo en curso de remedición: los 61.642 libros en inglés de
-dominio público de Project Gutenberg, leídos enteros por el modelo, que a la velocidad
-medida en una GPU A100 son entre tres y cinco horas de cómputo.
+dominio público de Project Gutenberg, leídos enteros por el modelo. A la velocidad
+medida en una GPU A100 eso son unas tres horas de tarjeta y unas diecisiete de
+reloj: el cuello de botella no es el modelo, es leer los archivos.
 
 \vspace{0.4cm}
 \noindent\textbf{Palabras clave:} legibilidad automática, MCER, adquisición de
@@ -715,7 +716,9 @@ consulta}: el catálogo se precalcula fuera de línea y, cuando el lector busca,
 trabajo ya está hecho. Los números que hacen viable esa decisión están en el
 cuadro~\ref{cuad:velocidad} y en la figura~\ref{fig:velocidad}: 8,19 ventanas/s en CPU,
 112,7 en la GPU local y \textbf{2.022 en una A100}, con lo que los 61.642 libros en
-inglés de Project Gutenberg son \textbf{entre tres y cinco horas} de cómputo.
+inglés de Project Gutenberg son \textbf{unas tres horas} de cómputo puro. De extremo
+a extremo son \textbf{unas diecisiete}, y la diferencia no la pone la tarjeta sino el
+disco; el §8.3 lo desglosa.
 
 Cuando el cómputo sí tiene que ocurrir en vivo, se ofrecen \textbf{dos velocidades y se
 dice cuál se usó}: un vistazo (30 capítulos repartidos, 2 ventanas de cada uno) o el
@@ -2359,14 +2362,27 @@ Dos comprobaciones acompañan a ese cuadro, porque acelerar no puede costar exac
 \end{itemize}
 
 Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project Gutenberg
-\textbf{son entre 3 y 5 horas de A100}, y conviene decir de qué depende esa horquilla en
-vez de dar una cifra sola: del número medio de ventanas por libro, que \textbf{todavía no
-está medido sobre el catálogo}. Con las 350 que asume el código del precálculo salen
-\textbf{2,96 h}; con las 606,4 que promedian las cinco novelas largas medidas en local —una
-muestra sesgada hacia arriba, porque son clásicos extensos— salen \textbf{5,14 h}.
-Cualquier cifra fuera de esa horquilla no se sigue de ninguno de los dos supuestos.
-El cuello de botella real resultó no ser el modelo
-sino la descarga: en serie, a 0,3 libros/s, los libros tardarían 57 horas en bajar. Y no
+salían \textbf{entre 3 y 5 horas de A100}, y en su momento se dijo de qué dependía esa
+horquilla en vez de dar una cifra sola: del número medio de ventanas por libro. Con las
+350 que asume el código del precálculo salen \textbf{2,96 h}; con las 606,4 que promedian
+las cinco novelas largas medidas en local —una muestra sesgada hacia arriba, porque son
+clásicos extensos— salen \textbf{5,14 h}.
+
+\medskip
+\noindent\textbf{Después se ejecutó, y la estimación resultó ser la mitad de la
+respuesta.} El ritmo real medido en la A100 fue de \textbf{61 libros por minuto}, o sea
+\textbf{unas 17 horas} para los 61.642 —cinco veces la cifra de tarjeta—. Y el desglose
+dice exactamente dónde se va el tiempo: un libro medio son \textbf{0,17 s de GPU} contra
+\textbf{\textasciitilde1 s de reloj}, así que \textbf{el 80 \% del tiempo la tarjeta está
+parada} esperando a que el sistema de archivos de Google Drive entregue el \texttt{.txt}.
+
+\medskip
+\noindent La estimación no era falsa: era \textbf{incompleta}, y de una manera que
+conviene nombrar porque es un error de método y no de aritmética. Medía la parte del
+sistema que se sabía medir —el modelo— y daba por supuesto que era la que manda. No lo
+era. Es la misma lección que la agrupación por capítulo en vez de por libro, y la misma
+que la descarga: \textbf{el cuello de botella de este proyecto nunca ha estado en el
+modelo}. En serie, a 0,3 libros/s, la descarga tardaría 57 horas. Y no
 era la pausa de cortesía entre peticiones, era la latencia —cada petición al espejo se
 pasa casi todo su tiempo esperando la ida y vuelta—, así que con seis hilos esas esperas
 se solapan. Seis y no treinta a propósito: el espejo lo mantiene alguien de forma gratuita,
@@ -2409,7 +2425,7 @@ resume cada una.
 \midrule
 Fórmulas clásicas (FKGL, ARI) & Pearson \textbf{0,517} en CLEAR & \textbf{0,89} \\
 Mejor LLM \emph{zero-shot} publicado & Pearson \textbf{0,725} en CLEAR & \textbf{0,89} \\
-Lexile, tarifa de creador de contenido & \textbf{3.824--54.636} USD/año & 3--5 h de A100 \\
+Lexile, tarifa de creador de contenido & \textbf{3.824--54.636} USD/año & ~3 h de A100 \\
 \bottomrule
 \end{tabular}
 \caption{Cifras publicadas frente a las de este proyecto. \textbf{No son comparaciones

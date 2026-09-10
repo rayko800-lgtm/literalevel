@@ -181,8 +181,8 @@ consulta**: el catálogo se precalcula fuera de línea y, cuando el lector busca
 el trabajo ya está hecho. Los números que hacen viable esa decisión están en el
 Cuadro 21 del PDF —el 16 de la copia de lectura—: 8,19 ventanas/s en CPU, 112,7 en la GPU
 local y **2.022 en una A100**, con lo que los 61.642 libros en inglés de
-Project Gutenberg son **entre tres y cinco horas** de cómputo, según el número
-medio de ventanas por libro, que todavía no está medido sobre el catálogo.
+Project Gutenberg son **unas tres horas** de cómputo puro. De extremo a extremo
+son **unas diecisiete**, y la diferencia no la pone la tarjeta sino el disco.
 
 Cuando el cómputo sí tiene que ocurrir en vivo, se ofrecen **dos velocidades y
 se dice cuál se usó**: un vistazo (30 capítulos repartidos, 2 ventanas de cada
@@ -270,8 +270,10 @@ acepta un colegio; la nuestra no.** Lo que no tiene es precio accesible. Su tari
 publicada para creadores de contenido va de **3.824 a 54.636 USD al año** según
 el volumen, y los 61.642 libros del catálogo caen en el tramo más alto.
 
-Medirlos aquí son **entre tres y cinco horas de una GPU A100**, que caben en la
-cuota de una suscripción de Colab Pro de unos 10 USD al mes. **No es una razón
+Medirlos aquí son **unas tres horas de GPU A100** —**diecisiete de reloj**,
+contando la lectura de los archivos—, y eso cabe en la cuota de una suscripción
+de Colab Pro de unos 10 USD al mes, pero justo: a ese ritmo se lleva casi todo
+el crédito mensual. **No es una razón
 monetaria estricta** —una licencia anual y unas horas de cómputo no se dividen
 la una por la otra— y tampoco son servicios equivalentes: Lexile vende una
 escala aceptada por instituciones, no solo un número. Lo que sí se puede

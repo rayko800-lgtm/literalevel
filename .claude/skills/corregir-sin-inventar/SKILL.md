@@ -199,7 +199,7 @@ los sitios de la lista del apartado 4**:
 | media de ventanas por libro | §8.3 — el documento declara que **no está medida** |
 | horas de A100 para el catálogo | §8.3, la estrategia (A3), la presentación, `competencia.md` |
 | reparto por banda del catálogo | Cuadro 3 y el aviso de «etiquetas heredadas» |
-| `catalogo_medido.csv` | lo consume la app: si cambia, cambia lo que ve el lector |
+| `catalogo_medido.csv` | lo escribe el precalculo y **no lo lee nadie todavia**: comprobado con un `grep` en todo el repo. Antes esta linea decia que lo consumia la app, y era falso |
 
 Dos reglas que se ganan a base de disgustos:
 

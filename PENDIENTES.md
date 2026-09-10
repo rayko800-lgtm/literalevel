@@ -41,7 +41,7 @@ entero a través de Colab con `drive.mount`.
 | Libros objetivo (inglés, Project Gutenberg) | 61.642 |
 | Descargados a Drive | **31.974** (51,9 %) |
 | Analizados por el v4 | ver `perfiles_*.jsonl` en Drive; la sonda del cuaderno los cuenta |
-| Velocidad medida en A100 | **103 libros/min** (secuencial; con hilos NO mejora) |
+| Velocidad medida en A100 | **61 libros/min** de extremo a extremo. Esta tabla decía 103 y se contradecía con las 17 h de la línea de abajo: 61.642 / 61 = 16,8 h; a 103 saldrían 10. La que cuadra con lo medido en el cuaderno es 61 |
 | Cuello de botella | **no es la GPU**: el 80 % del tiempo espera a Drive |
 | Ventanas por libro | **332,3 de media**, mediana 266 (medido sobre 5.153) |
 | Coste real del catálogo | **2,8 h** de cómputo A100; ~17 h de extremo a extremo |

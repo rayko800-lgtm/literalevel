@@ -59,8 +59,9 @@ El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradi
 6.26, probada por una lectora de quince años, prima del autor y ajena al
 proyecto— y con un
 catálogo en curso de remedición: los 61.642 libros en inglés de dominio
-público de Project Gutenberg, leídos enteros por el modelo, que a la velocidad
-medida en una GPU A100 son entre tres y cinco horas de cómputo.
+público de Project Gutenberg, leídos enteros por el modelo. A la velocidad
+medida en una GPU A100 eso son unas tres horas de tarjeta y unas diecisiete
+de reloj: el cuello de botella no es el modelo, es leer los archivos.
 
 **Palabras clave:** legibilidad automática, MCER, adquisición de segundas
 lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
@@ -1005,15 +1006,27 @@ exactitud:
   una diferencia de ese tamaño no puede mover ninguna.
 
 Con 2.022 ventanas por segundo, medir los 61.642 libros en inglés de Project
-Gutenberg **son entre 3 y 5 horas de A100**, y conviene decir de qué depende esa
-horquilla en vez de dar una cifra sola: del número medio de ventanas por libro,
-que **todavía no está medido sobre el catálogo**. Con las 350 que asume el
-código del precálculo salen **2,96 h**; con las 606,4 que promedian las cinco
-novelas largas medidas en local —una muestra sesgada hacia arriba, porque son
-clásicos extensos— salen **5,14 h**. Cualquier cifra fuera de esa horquilla no
-se sigue de ninguno de los dos supuestos. El cuello de botella real resultó no
-ser el modelo sino la descarga: en serie, a 0,3 libros/s, los libros tardarían
-57 horas en bajar. Y no era la pausa de cortesía entre peticiones, era la
+Gutenberg salían **entre 3 y 5 horas de A100**, y en su momento se dijo de qué
+dependía esa horquilla en vez de dar una cifra sola: del número medio de
+ventanas por libro. Con las 350 que asume el código del precálculo salen
+**2,96 h**; con las 606,4 que promedian las cinco novelas largas medidas en
+local —una muestra sesgada hacia arriba, porque son clásicos extensos— salen
+**5,14 h**.
+
+**Después se ejecutó, y la estimación resultó ser la mitad de la respuesta.** El
+ritmo real medido en la A100 fue de **61 libros por minuto**, o sea **unas 17
+horas** para los 61.642 —cinco veces la cifra de tarjeta—. Y el desglose dice
+exactamente dónde se va el tiempo: un libro medio son **0,17 s de GPU** contra
+**~1 s de reloj**, así que **el 80 % del tiempo la tarjeta está parada**
+esperando a que el sistema de archivos de Google Drive entregue el `.txt`.
+
+La estimación no era falsa: era **incompleta**, y de una manera que conviene
+nombrar porque es un error de método y no de aritmética. Medía la parte del
+sistema que se sabía medir —el modelo— y daba por supuesto que era la que
+manda. No lo era. Es la misma lección que la agrupación por capítulo en vez de
+por libro, y la misma que la descarga: **el cuello de botella de este proyecto
+nunca ha estado en el modelo**. En serie, a 0,3 libros/s, la descarga tardaría
+57 horas. Y no era la pausa de cortesía entre peticiones, era la
 latencia —cada petición al espejo se pasa casi todo su tiempo esperando la ida
 y vuelta—, así que con seis hilos esas esperas se solapan. Seis y no treinta a
 propósito: el espejo lo mantiene alguien de forma gratuita, y cada hilo conserva
@@ -1050,7 +1063,7 @@ y la cifra que resume cada una.
 |---|---|---|
 | Fórmulas clásicas (FKGL, ARI) | Pearson **0,517** en CLEAR | **0,89** |
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
-| Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | 3–5 h de A100 |
+| Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | ~3 h de A100 |
 
 *Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno

@@ -592,11 +592,35 @@ print(f"ya calculados: {len(ya):,}")
 # archivo masivo se pudo bajar, y Drive si hubo que caer al respaldo. Se usa
 # `globals().get` para que esta celda siga funcionando si alguien ejecuta el
 # cuaderno salteado y la 6b no llego a correr.
+# --- Repartir el trabajo entre varias sesiones --------------------------
+# `LADO` identifica a quien calcula y `RESTO` dice que libros le tocan. Con
+# dos cuentas de Google: A se queda los Text# pares y B los impares.
+#
+# La particion es por RESTO DEL NUMERO DEL LIBRO y no por mitades de la lista
+# a proposito: el resto es una propiedad DEL LIBRO, no de la lista, asi que
+# cada libro cae siempre del mismo lado aunque una sesion se caiga y se
+# reanude con otra foto de lo ya hecho. Con un corte por indice, el indice se
+# desplaza y las mitades dejan de casar.
+#
+# Y el nombre del shard lleva el lado, porque el fallo de verdad no era el
+# reparto sino el volcado: el contador se sembraba contando TODOS los shards y
+# `write_text` sobrescribe. Dos sesiones calculaban el mismo numero y la
+# ultima borraba los 500 libros de la otra sin decir nada.
+# Lo de fabrica es UNA sesion y TODOS los libros. Dejar el reparto puesto
+# por defecto seria una trampa: quien corra el cuaderno sin leer esto se
+# llevaria media lista sin enterarse.
+LADO = "A"      # "A" en una cuenta, "B" en la otra
+DIVISOR = 1     # 1 = una sola sesion, entran todos. Con dos cuentas, 2
+RESTO = 0       # con DIVISOR=2:  A -> pares (0)  ·  B -> impares (1)
+
 ORIGEN = globals().get("TEXTOS_LISTOS", TEXTOS)
 disponibles = [r for r in sorted(ORIGEN.glob("*.txt"))
-               if int(r.stem[2:]) not in ya]
+               if int(r.stem[2:]) not in ya
+               and int(r.stem[2:]) % DIVISOR == RESTO]
 print(f"leyendo los textos de:  {ORIGEN}")
-print(f"por calcular:  {len(disponibles):,}")
+print(f"por calcular:  {len(disponibles):,}"
+      + (f"   (lado {LADO}: los que dan resto {RESTO} entre {DIVISOR})"
+         if DIVISOR > 1 else ""))
 
 # %%
 # --- 10b. Lanzar una tanda ----------------------------------------------
@@ -621,7 +645,10 @@ HORAS_TOPE_ANALISIS = 8.0
 HILOS_LECTURA = 8
 POR_DELANTE = 32
 
-buffer, n_shard = [], len(list(PERFILES.glob("perfiles_*.jsonl")))
+# El contador cuenta SOLO los shards de este lado. `hechos_ya()` y la celda
+# de fusion siguen usando `perfiles_*.jsonl`, que los captura todos -los
+# 117 antiguos incluidos-, asi que la union se hace sola.
+buffer, n_shard = [], len(list(PERFILES.glob(f"perfiles_{LADO}_*.jsonl")))
 inicio, errores = time.time(), 0
 
 
@@ -686,7 +713,7 @@ for k, fut in enumerate(_en_orden(disponibles[:TANDA]), 1):
             print("  fallo en", ruta.name if ruta else "(al leer)",
                   type(e).__name__, e)
     if len(buffer) >= POR_SHARD:
-        destino = PERFILES / f"perfiles_{n_shard:04d}.jsonl"
+        destino = PERFILES / f"perfiles_{LADO}_{n_shard:04d}.jsonl"
         destino.write_text("\n".join(json.dumps(x, ensure_ascii=False)
                                      for x in buffer), encoding="utf-8")
         print(f"  guardado {destino.name} ({len(buffer)} libros)")
@@ -698,7 +725,7 @@ for k, fut in enumerate(_en_orden(disponibles[:TANDA]), 1):
               f"faltarían {queda:.1f} h")
 
 if buffer:
-    destino = PERFILES / f"perfiles_{n_shard:04d}.jsonl"
+    destino = PERFILES / f"perfiles_{LADO}_{n_shard:04d}.jsonl"
     destino.write_text("\n".join(json.dumps(x, ensure_ascii=False)
                                  for x in buffer), encoding="utf-8")
     print(f"  guardado {destino.name} ({len(buffer)} libros)")
@@ -734,3 +761,46 @@ final.to_csv(salida, index=False)
 print(f"{len(final):,} libros medidos -> {salida}")
 print(final["dificultad"].describe())
 final.head(10)
+
+
+# %%
+# --- 11b. Sonda: ¿el fallo viejo se llevo libros por delante? -----------
+# Hasta hoy el contador de shards se sembraba contando TODOS los shards y el
+# volcado era `write_text`. Dos sesiones a la vez calculaban el mismo numero y
+# la ultima sobrescribia los libros de la otra en silencio. Esto lo delata.
+#
+# Tres preguntas, y cada una tiene una respuesta que se ve a simple vista:
+import collections
+
+ids, por_shard = [], {}
+for s in sorted(PERFILES.glob("perfiles_*.jsonl")):
+    filas = [json.loads(l) for l in s.read_text(encoding="utf-8").splitlines()
+             if l.strip()]
+    por_shard[s.name] = len(filas)
+    ids += [f["id"] for f in filas]
+
+print(f"lineas: {len(ids):,}   ·   libros distintos: {len(set(ids)):,}")
+
+# 1. ¿Se midio dos veces el mismo libro? Es desperdicio, no corrupcion: el
+#    perfil es determinista, asi que las filas repetidas son identicas.
+repes = [i for i, c in collections.Counter(ids).items() if c > 1]
+print(f"1. libros medidos dos veces: {len(repes):,}" +
+      (f"  (p.ej. {repes[:10]})" if repes else "  -ninguno-"))
+
+# 2. ¿Falta algun numero de shard? Un hueco en la numeracion es un shard que
+#    otra sesion sobrescribio, y ahi SI se perdieron libros.
+for lado in ("", "A_", "B_"):
+    nums = sorted(int(p.stem.split("_")[-1])
+                  for p in PERFILES.glob(f"perfiles_{lado}[0-9]*.jsonl"))
+    if not nums:
+        continue
+    huecos = sorted(set(range(nums[0], nums[-1] + 1)) - set(nums))
+    print(f"2. shards '{lado or 'antiguos'}': {len(nums)} · "
+          f"huecos: {huecos if huecos else '-ninguno-'}")
+
+# 3. ¿Hay algun shard corto que NO sea final de tanda? Los cortos son
+#    normales al cerrar una tanda; varios seguidos, no.
+cortos = [(n, c) for n, c in sorted(por_shard.items()) if c < POR_SHARD]
+print(f"3. shards con menos de {POR_SHARD} libros: {len(cortos)}")
+for n, c in cortos[:12]:
+    print(f"     {n}  {c}")
