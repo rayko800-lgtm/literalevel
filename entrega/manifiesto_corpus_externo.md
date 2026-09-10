@@ -1,7 +1,7 @@
-# Manifiesto del corpus externo de validacion
+# Manifiesto del corpus externo de validación
 
-Textos de lectura del catalogo gratuito de **British Council LearnEnglish**,
-descargados en PDF. Aqui van **solo los nombres de archivo y el nivel MCER**
+Textos de lectura del catálogo gratuito de **British Council LearnEnglish**,
+descargados en PDF. Aquí van **solo los nombres de archivo y el nivel MCER**
 que declara cada uno: el cuerpo tiene derechos y no se redistribuye, ni
 siquiera en fragmentos. Con esta lista cualquiera puede bajarse los mismos
 documentos de learnenglish.britishcouncil.org y repetir `validar_local.py`.
@@ -15,15 +15,15 @@ documentos de learnenglish.britishcouncil.org y repetir `validar_local.py`.
 | C1 | 12 |
 | **Total** | **59** |
 
-**Son 59, y estan los 59.** Durante un tiempo el documento hablaba de «uno no
-disponible». No lo era: el patron de busqueda decia
+**Son 59, y están los 59.** Durante un tiempo el documento hablaba de «uno no
+disponible». No lo era: el patrón de búsqueda decía
 `*LearnEnglish-Reading*.pdf` y uno de los archivos se llama
-`LearnEnglish_Reading`, con guion BAJO, asi que se caia del corpus sin que
-nadie lo notara. El patron de hoy usa `?` en esa posicion y los ve todos.
+`LearnEnglish_Reading`, con guion BAJO, así que se caía del corpus sin que
+nadie lo notara. El patrón de hoy usa `?` en esa posición y los ve todos.
 
 De los 59: **2** no tienen cuerpo localizable al extraer el PDF, **10** los
 rechaza `scoring.continuous_prose` por quedarse bajo las 150 palabras, y los
-**47** restantes son los que se evaluan.
+**47** restantes son los que se evalúan.
 
 ## A1 (12)
 

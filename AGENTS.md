@@ -123,7 +123,7 @@ Cuatro cosas que hay que resolver antes de subir, sea cual sea la plataforma:
 Probando en la app real, `lexicon` eligio mal el sentido de **"peeped"** en
 *"once or twice she had peeped into the book"*: se quedo con *"To speak briefly
 with a quiet voice"* (afinidad **0.23** entre 6 acepciones) en lugar del sentido
-de mirar. La explicacion de OpenAI lo desmintio sola: *"la definicion dada es
+de mirar. La explicación de OpenAI lo desmintió sola: *"la definicion dada es
 otro sentido de peep y no aplica aqui"*.
 
 O sea, `_elegir_sentido` con coseno sobre glosas cortas se queda sin senal
@@ -134,30 +134,41 @@ minimo entre el primer y el segundo candidato antes de dar uno por bueno.
 **RESUELTO en `927b826`** (Codex, verificado por Claude Code). Se enriquecen con
 categoria y etiquetas solo las glosas de verbos; extenderlo a adjetivos empeoraba
 casos como "free". El ranking enriquecido es interno y `similitud` conserva su
-escala, asi que `AFINIDAD_DUDOSA = 0.35` en `ui.py` sigue siendo valido. Cuando el
+escala, así que `AFINIDAD_DUDOSA = 0.35` en `ui.py` sigue siendo válido. Cuando el
 margen entre acepciones baja de 0.05, `lexicon` lo dice en `avisos`; en ese caso
 `ui.py` no repite el aviso.
 
 ## Datos personales: uno por lector
 
 En local todo vive en `~/.literalevel`. **Desplegada, la app es un solo proceso
-para todos los visitantes**, asi que `cuaderno.db`, `voz.db`, `perfil.json` y
+para todos los visitantes**, así que `cuaderno.db`, `voz.db`, `perfil.json` y
 `sesion.json` se resuelven por sesion de navegador con `_dir_lector(peticion)`
 (`ui.py`), que usa `gr.Request.session_hash`. Sin eso, quien entraba se
-encontraba el libro que subio otro: `demo.load` corre en cada carga de pagina.
+encontraba el libro que subió otro: `demo.load` corre en cada carga de página.
 
-`lexicon.db` **si** se comparte y debe seguir asi: es cache de definiciones, no
+`lexicon.db` **sí** se comparte y debe seguir así: es caché de definiciones, no
 historial, y compartirla ahorra dinero.
 
-Si anades un manejador que escriba o lea datos del lector, dale
-`peticion: gr.Request = None` como ultimo parametro (Gradio lo inyecta solo) y
+Si añades un manejador que escriba o lea datos del lector, dale
+`peticion: gr.Request = None` como último parámetro (Gradio lo inyecta solo) y
 saca la ruta con `_archivo_lector("loquesea", peticion)`. No uses rutas fijas.
+
+**Y la excepción, que costó un fallo crítico:** «último parámetro» solo vale si
+no hay ningún `*args` delante. Gradio inyecta el `Request` únicamente en
+parámetros **posicionales**, y su `special_args` corta el recorrido de la firma
+en el primero que no lo sea, así que un `peticion` detrás de un `*valores` es
+keyword-only, **no se inspecciona nunca y llega `None` siempre**. Eso mandaba el
+perfil del cuestionario a `lectores/anonimo/`, una sola carpeta para todos los
+visitantes del Space. Si tu manejador recibe `*args`, pon `peticion` **antes**:
+`special_args` inserta el Request en el índice de su parámetro, así que las
+entradas siguen alineadas. Lo comprueba la prueba «todos los manejadores reciben
+la peticion», que pasa cada firma por el `special_args` real.
 
 ## Nunca subas el proyecto con upload_folder
 
 `huggingface_hub.upload_folder` **no lee `.gitignore`** (dicho en su propio
 docstring). Un `upload_folder(folder_path=".")` subiria `CLAVES.txt` y `.env` a
-un repositorio publico. El Space se sube con `git push`, o con
+un repositorio público. El Space se sube con `git push`, o con
 `ignore_patterns=[".env", "CLAVES.txt", "*.env"]` explicito.
 
 ## Rendimiento: donde se va el tiempo (medido, 7 sep 2026)
@@ -185,6 +196,6 @@ Medido y **descartado**, para que nadie lo reintente:
 
 Pendiente para Codex, sin hacer: la llamada de `lexicon.py` va sin
 `reasoning.effort`, o sea esfuerzo medio para cuatro campos cortos de
-Structured Outputs. Probar `low` podria quitar 10-20 s, pero hay que
+Structured Outputs. Probar `low` podría quitar 10-20 s, pero hay que
 comprobar que no cae la calidad, porque la regla de "OpenAI no redefine la
 palabra" depende de que siga las instrucciones al pie de la letra.
