@@ -2187,6 +2187,12 @@ prueba("los clientes de OpenAI tienen plazo",
        _los_clientes_de_openai_tienen_plazo)
 
 
+# Los manejadores que cargan el v4 y comparten cola. Si se anade o se quita
+# uno, esta cifra se cambia A MANO y a proposito: es la unica forma de que la
+# prueba se entere de que alguien saco un manejador de la cola del modelo.
+MANEJADORES_DEL_MODELO = 5
+
+
 def _la_cola_admite_a_mas_de_uno():
     """Sin `demo.queue()`, Gradio atiende a UN visitante a la vez.
 
@@ -2198,8 +2204,13 @@ def _la_cola_admite_a_mas_de_uno():
     tres funciones de pago no es que fallaran: tumbaban la cola.
 
     Y al reves: el modelo tiene que seguir limitado. Son 2 vCPU en `cpu-basic`
-    y dos puntuaciones a la vez van peor que en serie, asi que los cuatro
-    manejadores que cargan el v4 comparten `concurrency_id`.
+    y dos puntuaciones a la vez van peor que en serie, asi que los CINCO
+    manejadores que cargan el v4 comparten `concurrency_id`: medir el capitulo,
+    los dos analisis del libro -completo y rapido- y las dos formas de situar
+    al lector con un libro suyo.
+
+    El umbral era `n < 4` con cinco manejadores puestos, o sea que se podia
+    quitar uno sin que esto fallara. Se cuenta el numero exacto.
     """
     import re
     fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
@@ -2215,8 +2226,9 @@ def _la_cola_admite_a_mas_de_uno():
         elif int(lim.group(1)) < 2:
             malos.append(f"la cola sigue atendiendo de {lim.group(1)} en {lim.group(1)}")
     n = len(re.findall(r'concurrency_id="modelo"', fuente))
-    if n < 4:
-        malos.append(f"solo {n} manejadores del modelo llevan concurrency_id")
+    if n != MANEJADORES_DEL_MODELO:
+        malos.append(f"{n} manejadores del modelo llevan concurrency_id y "
+                     f"esperaba {MANEJADORES_DEL_MODELO}")
     assert not malos, malos
     return "la cola admite 8, y el modelo va de uno en uno"
 
@@ -2349,24 +2361,44 @@ def _el_cupo_cuadra_con_las_llamadas_de_pago():
         from lexicon import ResultadoLexico
 
         class ConsultorDoble:
-            def __init__(self, cache):
-                self.cache = cache
+            """`explicacion` y `audio` son dos caches y dos llamadas distintas.
+
+            Antes este doble solo modelaba la explicacion, y con eso la prueba
+            daba por buena la fuga de tts-1: la explicacion acertaba en cache
+            -`desde_cache=True`, uso devuelto- y el audio se pedia igual,
+            porque su clave se hacia con la palabra tal cual la escribio el
+            libro. "Fetters", "FETTERS" y "fetters." pagaban un audio cada una
+            con el cupo intacto. El doble tiene que poder decir eso.
+            """
+
+            def __init__(self, explicacion_en_cache, audio_en_cache=True):
+                self.cache = explicacion_en_cache
+                self.audio = audio_en_cache
 
             def consultar(self, *a, **k):
                 # Solo hay llamada si se permite Y no acierta en cache: el
                 # acierto de cache es justamente el caso en que `lexicon`
                 # recibe `usar_openai=True` y no llega a pagar nada.
-                if k.get("usar_openai") and not self.cache:
-                    llamadas.append("responses")
+                pago = 0
+                if k.get("usar_openai"):
+                    if not self.cache:
+                        llamadas.append("responses")
+                        pago += 1
+                    if not self.audio:
+                        llamadas.append("tts")
+                        pago += 1
                 return ResultadoLexico(
                     "hi", "hi", "hi", "hi", "INTJ", "interjection", "A greeting.",
                     [], 0.8, 2, None, None, None, None, False, None, None, None,
-                    None, "basico", 5.0, self.cache, [])
+                    None, "basico", 5.0, self.cache, [], pago)
 
         antes_c = ui.consultor
-        for cache, etiqueta in ((False, "sin cache: hay llamada"),
-                                (True, "desde cache: no hay llamada")):
-            ui.consultor = lambda c=cache: ConsultorDoble(c)
+        for cache, audio, etiqueta in (
+                (False, True, "sin cache: hay llamada"),
+                (True, True, "todo en cache: no hay llamada"),
+                # El caso de la fuga: explicacion cacheada, audio NO.
+                (True, False, "explicacion en cache y audio nuevo: se paga")):
+            ui.consultor = lambda c=cache, au=audio: ConsultorDoble(c, au)
             antes, n = gastado(), len(llamadas)
             consulta(None, None, None, "hello", "Hello there.", "es", pet)
             hubo, cobro = len(llamadas) > n, gastado() != antes
@@ -2996,6 +3028,638 @@ def _el_filtro_sigue_rechazando_menus_indices_y_tablas():
 
 prueba("el filtro sigue rechazando menus, indices y tablas",
        _el_filtro_sigue_rechazando_menus_indices_y_tablas)
+
+
+
+# --- Lo que un banco de mutantes demostro que nadie protegia ---------------
+#
+# La auditoria 13 aplico 50 mutantes y 15 sobrevivieron. Varios deshacian
+# correcciones que auditorias anteriores dieron por cerradas: cobrar sin clave,
+# el cubo por hora de una IP gastado por visitantes que no pueden pagar, la
+# licencia de Gutenberg sin quitar antes de decidir si un capitulo ES licencia,
+# el tope sin tope negado, la ventana de una hora, el minimo de palabras para
+# puntuar, el recorte de lo que viaja a OpenAI y la apertura en la portadilla.
+#
+# Una prueba por fila, y cada una comprobada CONTRA SU MUTANTE: se rompe la
+# linea a proposito y se exige que falle esta prueba y no otra.
+
+titulo("Mutantes que sobrevivian")
+
+
+def _sin_clave_no_se_culpa_al_cupo():
+    """Sin clave, el aviso tiene que hablar de la clave. Y no cobrar.
+
+    `_consultar` mira `config.falta()` ANTES de pasar por la puerta de pago,
+    justamente para no gastar un uso del cupo cuando no puede salir ninguna
+    peticion. Quitar esa comprobacion -el mutante- hace que un lector con el
+    cupo agotado lea "se te acabo el cupo" en un servidor que ni siquiera
+    tiene clave: se le echa la culpa al cupo de algo que es del servidor.
+    """
+    class _P:
+        session_hash = "s-sinclave"
+        headers = {}
+        client = type("X", (), {"host": "10.9.9.9"})()
+
+    pet = _P()
+    viejo_falta = config_mod.falta
+    viejo_cuentas = os.environ.get("LITERALEVEL_CUENTAS")
+    viejo_consultor = ui.consultor
+    from lexicon import ResultadoLexico
+
+    def doble():
+        class C:
+            @staticmethod
+            def consultar(*a, **k):
+                return ResultadoLexico(
+                    "hi", "hi", "hi", "hi", "INTJ", "interjection", "A greeting.",
+                    [], 0.8, 2, None, None, None, None, False, None, None, None,
+                    None, "basico", 5.0, False,
+                    ["sin OPENAI_API_KEY: no hay explicacion contextual"], 0)
+        return C()
+
+    try:
+        config_mod.falta = lambda: ["OPENAI_API_KEY"]
+        os.environ["LITERALEVEL_CUENTAS"] = "ana:CLAVE-N:1"
+        ui._CODIGO_SESION.clear()
+        ui._CODIGO_SESION[ui._sesion_de(pet)] = "ana:CLAVE-N"
+        ui.consultor = doble
+        # Se le agota el cupo a mano: uno de uno.
+        cuentas_mod.consumir(ui.BASE_DATOS_LECTOR, "ana:CLAVE-N")
+        antes = cuentas_mod.gastado(ui.BASE_DATOS_LECTOR, "ana")
+        salida = ""
+        for tramo in ui._consultar(None, None, None, "hello", "Hello there.",
+                                   "es", pet):
+            salida = str(tramo)
+        despues = cuentas_mod.gastado(ui.BASE_DATOS_LECTOR, "ana")
+        assert "cupo" not in salida.lower(), \
+            f"culpa al cupo sin haber clave: {salida[:160]}"
+        assert despues == antes, f"cobro un uso sin clave: {antes} -> {despues}"
+    finally:
+        config_mod.falta = viejo_falta
+        ui.consultor = viejo_consultor
+        ui._CODIGO_SESION.clear()
+        if viejo_cuentas is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo_cuentas
+    return "sin clave: ni cobra ni le echa la culpa al cupo"
+
+
+prueba("el cupo no baja sin clave de OpenAI", _sin_clave_no_se_culpa_al_cupo)
+
+
+def _el_cubo_por_hora_solo_cuenta_lo_que_cuesta():
+    """El cubo por hora es de la IP ENTERA, y frena el gasto, no el uso.
+
+    Un visitante sin perfil no puede pagar nada, asi que sus pulsaciones no
+    pueden gastar fichas del cubo. Sin la guarda `va_a_costar`, seis clics de
+    alguien que no ha entrado dejaban sin sinopsis a quien si habia entrado
+    desde la misma IP -en un Space, todos comparten proxy-.
+    """
+    class _P:
+        session_hash = "s-cubo"
+        headers = {}
+        client = type("X", (), {"host": "10.7.7.7"})()
+
+    pet = _P()
+    viejo_cuentas = os.environ.get("LITERALEVEL_CUENTAS")
+    viejo_falta = config_mod.falta
+    try:
+        # Puerta cerrada: hay perfiles declarados y esta sesion no entro.
+        os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0"
+        config_mod.falta = lambda: []
+        ui._CODIGO_SESION.clear()
+        with ui._CANDADO_GASTO:
+            ui._gasto.clear()
+        for _ in range(3):
+            list(ui._de_que_trata(libro_ok, pet))
+            list(ui._consultar(None, None, None, "hello", "Hello there.", "es", pet))
+        with ui._CANDADO_GASTO:
+            usados = {k: len(v) for k, v in ui._gasto.items() if v}
+        assert not usados, f"gasto fichas del cubo sin poder pagar: {usados}"
+    finally:
+        config_mod.falta = viejo_falta
+        ui._CODIGO_SESION.clear()
+        with ui._CANDADO_GASTO:
+            ui._gasto.clear()
+        if viejo_cuentas is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo_cuentas
+    return "quien no puede pagar no gasta fichas de la IP"
+
+
+prueba("el cubo por hora solo cuenta lo que cuesta dinero",
+       _el_cubo_por_hora_solo_cuenta_lo_que_cuesta)
+
+
+def _un_perfil_sin_tope_puede_gastar():
+    """`tope = 0` es SIN LIMITE, no "cero usos".
+
+    Lo dice `DESPLIEGUE.md` y lo usa el perfil del profesor. Las pruebas del
+    `jefe:0` solo miraban `queda()` y `gastado()`, asi que invertir la
+    condicion en `permite` y en `consumir` -bloquear justo al que no tiene
+    limite- pasaba la suite entera.
+    """
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    try:
+        os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0,becario:LLAVE-B:2"
+        puede, motivo = cuentas_mod.permite(ui.BASE_DATOS_LECTOR, "jefe:LLAVE-A")
+        assert puede, f"el perfil sin tope no puede usar OpenAI: {motivo!r}"
+        for i in range(3):
+            ok, motivo = cuentas_mod.consumir(ui.BASE_DATOS_LECTOR, "jefe:LLAVE-A")
+            assert ok, f"consumir #{i + 1} negado a un perfil sin tope: {motivo!r}"
+        assert cuentas_mod.queda(
+            cuentas_mod.validar("jefe:LLAVE-A")
+            and ui.BASE_DATOS_LECTOR, cuentas_mod.validar("jefe:LLAVE-A")) is None
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+    return "tope 0 = sin limite, en permite y en consumir"
+
+
+prueba("un perfil sin tope puede gastar", _un_perfil_sin_tope_puede_gastar)
+
+
+def _el_tope_por_hora_dura_una_hora():
+    """Una marca de hace media hora SIGUE contando.
+
+    Nadie probaba la duracion de la ventana, solo el recuento, asi que bajarla
+    de 3.600 s a 1 s pasaba la suite: el tope por hora duraba un segundo y
+    cualquiera podia gastar sin freno esperando entre clic y clic.
+    """
+    class _P:
+        headers = {}
+        client = type("X", (), {"host": "10.3.3.3"})()
+
+    pet = _P()
+    clave = f"prueba_ventana:{ui._ip(pet)}"
+    try:
+        with ui._CANDADO_GASTO:
+            ui._gasto[clave] = [time.time() - 1800.0, time.time() - 60.0]
+        assert not ui._dentro_del_limite(pet, "prueba_ventana", 2), \
+            "dos marcas de esta hora no cuentan: la ventana no dura una hora"
+        with ui._CANDADO_GASTO:
+            ui._gasto[clave] = [time.time() - 7200.0]
+        assert ui._dentro_del_limite(pet, "prueba_ventana", 1), \
+            "una marca de hace dos horas sigue contando: la ventana no caduca"
+    finally:
+        with ui._CANDADO_GASTO:
+            ui._gasto.pop(clave, None)
+    return "la ventana son 3.600 s: cuenta lo de esta hora y olvida lo de antes"
+
+
+prueba("el tope por hora dura una hora", _el_tope_por_hora_dura_una_hora)
+
+
+def _un_texto_de_veinte_palabras_no_se_puntua():
+    """`MIN_WORDS` es el suelo del modelo, y hay que decir POR QUE se rechaza.
+
+    El "muy corto" de `tests_smoke` caia por `pocas_frases`, asi que bajar
+    MIN_WORDS a 1 no rompia nada. Aqui el texto tiene cinco frases de sobra y
+    solo puede caer por corto.
+    """
+    corto = ("The dog ran fast. The cat slept well. The bird sang loud. "
+             "The boy laughed hard. The girl read on.")
+    n = len(scoring_mod.words(corto))
+    ok, motivo = scoring_mod.continuous_prose(corto)
+    assert not ok and motivo == "corto", \
+        f"{n} palabras y cinco frases: ok={ok} motivo={motivo}"
+    return f"{n} palabras se rechazan por 'corto', no por otra regla"
+
+
+prueba("un texto de veinte palabras no se puntua",
+       _un_texto_de_veinte_palabras_no_se_puntua)
+
+
+# La envoltura legal de Gutenberg, en VARIAS lineas, que es como viene.
+# Escribirla en una sola linea hacia inutil la prueba de abajo: la primera
+# linea es la cabecera corrida, y `_sin_cabecera_corrida` se la lleva, asi que
+# con una sola linea se llevaba tambien la licencia entera.
+_LICENCIA = (
+    "The Project Gutenberg eBook of Something, by Someone." + chr(10) +
+    "This eBook is for the use of anyone anywhere in the United States and " + chr(10) +
+    "most other parts of the world at no cost and with almost no restrictions " + chr(10) +
+    "whatsoever. You may copy it, give it away or re-use it under the terms " + chr(10) +
+    "of the Project Gutenberg License included with this eBook or online at " + chr(10) +
+    "www.gutenberg.org. If you are not located in the United States, you will " + chr(10) +
+    "have to check the laws of the country where you are located before using " + chr(10) +
+    "this eBook. This particular Project Gutenberg edition was produced by a " + chr(10) +
+    "volunteer, and the full Project Gutenberg License applies to it." + chr(10) +
+    "*** START OF THE PROJECT GUTENBERG EBOOK SOMETHING ***" + chr(10))
+
+
+def _la_licencia_se_quita_antes_de_decidir():
+    """`_es_boilerplate` mira el texto SIN la envoltura legal.
+
+    Si la mira con ella, la formula de Gutenberg aparece en las primeras 400
+    palabras de cualquier capitulo que la lleve pegada -y en un .txt la lleva
+    el capitulo unico, que es el libro entero-, y el libro se descarta sin
+    puntuar. Se corrigio el 9 de septiembre y no habia prueba: revertirlo
+    pasaba la suite.
+    """
+    class Cap:
+        titulo = "CHAPTER I. The Journey"
+        texto = _LICENCIA + (
+            "He said nothing for a long while, and the train ran on through the "
+            "brown moor towards the west, with the rain beginning to streak the "
+            "glass of the window beside us. ") * 30
+
+        @property
+        def palabras(self):
+            return len(self.texto.split())
+
+    c = Cap()
+    assert c.palabras < 3000, f"el caso pierde sentido con {c.palabras} palabras"
+    assert not ficha_mod._es_boilerplate(c), \
+        "un capitulo de verdad con la licencia pegada se toma por licencia"
+    # Y al reves: la licencia sola SIGUE cazandose.
+    class Solo:
+        titulo = "The Full Project Gutenberg License"
+        texto = _LICENCIA * 6
+
+        @property
+        def palabras(self):
+            return len(self.texto.split())
+
+    assert ficha_mod._es_boilerplate(Solo()), "la licencia sola ya no se caza"
+    return "la envoltura se quita antes de mirar, y la licencia sola sigue fuera"
+
+
+prueba("la licencia se quita antes de decidir si es licencia",
+       _la_licencia_se_quita_antes_de_decidir)
+
+
+def _epub_con_cabecera_corrida(nombre="cabecera.epub"):
+    """Un epub como los de la generacion vieja de Gutenberg (`pg28xxx`).
+
+    Cada archivo empieza con un <h1> que repite "The Project Gutenberg eBook
+    of X" y despues viene el encabezado de capitulo de verdad.
+    """
+    ruta = TMP / nombre
+    cabecera = "<h1>The Project Gutenberg eBook of Something, by Someone.</h1>"
+    # La portadilla de verdad tiene TITULO LIMPIO -en *Orgullo y prejuicio* es
+    # "PRIDE. and PREJUDICE"- y debajo la licencia y el indice. Si el titulo
+    # sale del texto legal, `_es_boilerplate` la caza por el titulo y la regla
+    # de la portadilla no hace falta: la prueba pasaria sin ella.
+    indice = "".join(f"<p>CHAPTER {i}. Of things that happen</p>"
+                     for i in range(1, 41))
+    archivos = [
+        ("portadilla.xhtml", cabecera + "<h2>SOMETHING · A NOVEL</h2>"
+                             f"<p>{_LICENCIA}</p><p>Contents</p>{indice}"),
+        # Seis veces el relleno para pasar de 500 palabras: por debajo de eso
+        # `_abrir` no lo considera cuerpo y la prueba de la portadilla mediria
+        # otra cosa.
+        ("cap1.xhtml", cabecera + "<h2>CHAPTER I</h2>"
+                       f"<p>{_RELLENO * 6}</p>"),
+        ("cap2.xhtml", cabecera + "<h2>CHAPTER II</h2>"
+                       f"<p>{_RELLENO * 6}</p>"),
+    ]
+    manifiesto = "".join(
+        f'<item href="{n}" id="it{i}" media-type="application/xhtml+xml"/>'
+        for i, (n, _) in enumerate(archivos))
+    itemrefs = "".join(f'<itemref idref="it{i}"/>' for i in range(len(archivos)))
+    opf = ('<?xml version="1.0" encoding="utf-8"?>'
+           '<package xmlns="http://www.idpf.org/2007/opf" version="3.0">'
+           '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">'
+           '<dc:title>Something</dc:title><dc:creator>Someone</dc:creator>'
+           '</metadata>'
+           f'<manifest>{manifiesto}</manifest><spine>{itemrefs}</spine></package>')
+    with zipfile.ZipFile(ruta, "w") as z:
+        z.writestr("mimetype", "application/epub+zip")
+        z.writestr("OEBPS/content.opf", opf)
+        for n, cuerpo in archivos:
+            z.writestr(f"OEBPS/{n}", f"<html><body>{cuerpo}</body></html>")
+    return str(ruta)
+
+
+def _la_cabecera_corrida_no_es_el_titulo():
+    """Los epub viejos repiten "The Project Gutenberg eBook of X" en cada archivo.
+
+    Como no coincide con el titulo del libro, se colaba como titulo del
+    capitulo: la *Alicia* ilustrada del catalogo salia con trece capitulos
+    llamados igual. Y con ese titulo, `_es_boilerplate` los tomaba por licencia
+    y la curva del "libro entero" se calculaba sobre UNO de los trece. Medido
+    sobre `pg28885.epub`: 1 de 13 antes, 12 de 13 despues. En *Los hermanos
+    Karamazov* eran 38 capitulos de 98.
+    """
+    libro = reader.cargar(_epub_con_cabecera_corrida())
+    titulos = [c.titulo for c in libro.capitulos]
+    colados = [t for t in titulos if "Project Gutenberg" in t]
+    assert not colados, f"la cabecera corrida se colo como titulo: {colados}"
+    assert "CHAPTER I" in titulos and "CHAPTER II" in titulos, titulos
+    cuerpo = ficha_mod.capitulos_de_cuerpo(libro)
+    assert len(cuerpo) == 2, \
+        f"esperaba los dos capitulos de verdad y hay {len(cuerpo)}: {titulos}"
+    return f"{len(cuerpo)} capitulos de cuerpo y ninguno titulado por la cabecera"
+
+
+prueba("la cabecera corrida de Gutenberg no es el titulo del capitulo",
+       _la_cabecera_corrida_no_es_el_titulo)
+
+
+def _abrir_no_cae_en_la_portadilla():
+    """Abrir un libro tiene que dejarte en el primer capitulo, no en los creditos.
+
+    La integracion solo miraba que `idx` no fuera None, asi que fijarlo a 0
+    -la portadilla- pasaba la suite.
+    """
+    libro, upd, _, resumen = ui._abrir(_epub_con_cabecera_corrida("portada.epub"))
+    assert libro is not None, resumen
+    idx = upd.get("value") if isinstance(upd, dict) else getattr(upd, "value", None)
+    assert idx == 1, f"abrio en el capitulo {idx}, y el 0 es la portadilla"
+    assert "capítulo 2" in resumen, resumen[:160]
+    return "abre en el primer capitulo con cuerpo, no en la portadilla"
+
+
+prueba("abrir un libro no cae en la portadilla", _abrir_no_cae_en_la_portadilla)
+
+
+def _lo_que_viaja_a_openai_va_recortado():
+    """El Cuadro 5 (T8) presume de este recorte y nadie lo comprobaba.
+
+    Sin el, la oracion entera de un capitulo -o lo que pegue quien quiera-
+    viaja a OpenAI: mas tokens, mas dinero y una via para inflar la peticion.
+    """
+    vistas = {}
+    viejo_consultor = ui.consultor
+    viejo_falta = config_mod.falta
+    from lexicon import ResultadoLexico
+
+    def doble():
+        class C:
+            @staticmethod
+            def consultar(palabra, oracion, nivel, **k):
+                vistas["palabra"], vistas["oracion"] = palabra, oracion
+                return ResultadoLexico(
+                    "hi", oracion, "hi", "hi", "INTJ", "interjection", None,
+                    [], None, 0, None, None, None, None, False, None, None,
+                    None, None, "basico", None, False, [], 0)
+        return C()
+
+    try:
+        config_mod.falta = lambda: ["OPENAI_API_KEY"]
+        ui.consultor = doble
+        largo = "The rain fell on the moor and the train ran west. " * 200
+        # Una palabra DE VERDAD. Con "x" * 300, `_consultar` contesta "eso son
+        # 300 caracteres seguidos" y no llama al consultor: `vistas` quedaba
+        # vacio y `len("") <= 400` se cumplia sola. Un mutante que quitaba el
+        # recorte no rompia esta prueba.
+        list(ui._consultar(None, None, None, "rain", largo, "es", None))
+    finally:
+        ui.consultor = viejo_consultor
+        config_mod.falta = viejo_falta
+    assert "oracion" in vistas, ("el consultor no se llego a llamar: la "
+                                 "prueba no mide nada")
+    assert len(vistas["oracion"]) == ui.LIMITE_ORACION, \
+        f"la oracion viajo con {len(vistas['oracion'])} caracteres"
+    # Y la palabra larga se rechaza antes de salir, que es la otra mitad.
+    corte = list(ui._consultar(None, None, None, "x" * 300, largo, "es", None))
+    assert "caracteres seguidos" in str(corte[-1]), str(corte[-1])[:120]
+    return (f"oracion recortada a {ui.LIMITE_ORACION}; palabra de 300 "
+            f"rechazada antes de salir")
+
+
+prueba("lo que viaja a OpenAI va recortado", _lo_que_viaja_a_openai_va_recortado)
+
+
+def _una_sesion_torcida_no_tumba_el_arranque():
+    """`sesion.json` con la forma torcida, y `_reanudar` corre en `demo.load`.
+
+    Se cerro para `[]`, `"hola"` y `3`, pero no para un objeto con la clave
+    puesta y del tipo equivocado: `{"ruta": ["x"]}` llegaba a `os.path.exists`
+    y lanzaba TypeError, o sea que la pagina entera arrancaba en error para ese
+    lector hasta que alguien borrara el archivo a mano.
+    """
+    ruta = ui._ruta_sesion(None)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    guardado = ruta.read_text(encoding="utf-8") if ruta.exists() else None
+    torcidas = ['{"ruta": ["x"], "idx": 0}', '{"ruta": {"a": 1}}',
+                '{"ruta": 3}', '{"ruta": null}', '{"idx": 2}']
+    try:
+        for texto in torcidas:
+            ruta.write_text(texto, encoding="utf-8")
+            assert ui._leer_sesion(None) is None, f"acepto {texto}"
+            list(ui._reanudar(None))          # es lo que corre en demo.load
+            ui._capitulo(None, 0)
+    finally:
+        if guardado is None:
+            ruta.unlink(missing_ok=True)
+        else:
+            ruta.write_text(guardado, encoding="utf-8")
+    return f"{len(torcidas)} formas torcidas rechazadas sin lanzar"
+
+
+prueba("un archivo de sesion con la forma torcida no tumba el arranque",
+       _una_sesion_torcida_no_tumba_el_arranque)
+
+
+def _un_analisis_a_medias_no_tumba_la_ficha():
+    """El validador comprobaba `filas` y no lo que se lee despues.
+
+    Un archivo con filas validas y sin `ventanas` pasaba la puerta y reventaba
+    con `KeyError: 'ventanas'` dentro de `_resumen_analisis`, que es justo lo
+    que ese validador existe para evitar. Y `dificultad` podia ser una cadena:
+    `ficha.dificultad_global` la sumaba y salia un TypeError.
+    """
+    class Libro:
+        titulo, autor, palabras = "Something", "Someone", 1000
+        capitulos = []
+        ruta = "x.epub"
+
+    lib = Libro()
+    p = ui._ruta_analisis(lib, "completo")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    guardado = p.read_text(encoding="utf-8") if p.exists() else None
+    try:
+        # 1. Le falta todo menos las filas: se completa y no revienta.
+        p.write_text('{"filas": [{"capitulo": 1, "dificultad": 1.0}]}',
+                     encoding="utf-8")
+        d = ui._analisis_guardado(lib, "completo")
+        assert d is not None, "rechazo un analisis con filas validas"
+        texto = ui._resumen_analisis(d)
+        assert "Something" in texto, texto[:120]
+        # 2. `dificultad` que no es numero: se rechaza el archivo.
+        for mala in ('"abc"', "true", "null", "[]"):
+            p.write_text('{"filas": [{"capitulo": 1, "dificultad": %s}], '
+                         '"ventanas": 1, "palabras": 1, "titulo": "X", '
+                         '"autor": "Y"}' % mala, encoding="utf-8")
+            assert ui._analisis_guardado(lib, "completo") is None, \
+                f"acepto dificultad = {mala}"
+        # 3. Filas vacias: `min()` sobre lista vacia lanzaba ValueError.
+        p.write_text('{"filas": []}', encoding="utf-8")
+        assert ui._analisis_guardado(lib, "completo") is None, "acepto filas vacias"
+    finally:
+        if guardado is None:
+            p.unlink(missing_ok=True)
+        else:
+            p.write_text(guardado, encoding="utf-8")
+    return "se completa lo que falta y se rechaza lo que no es numero"
+
+
+prueba("un analisis guardado a medias no tumba la ficha",
+       _un_analisis_a_medias_no_tumba_la_ficha)
+
+
+def _las_dos_pestanas_prometen_el_mismo_rango():
+    """"Mi nivel" y "Sorprendeme" tienen que decir el MISMO rango.
+
+    "Mi nivel" anunciaba `rango_recomendado` -nivel-0,10 a nivel+0,15- y
+    "Sorprendeme" filtraba y anunciaba nivel±0,25. Con nivel 1,13, una decia
+    "entre 1.03 y 1.28" y la de al lado "entre 0.88 y 1.38", del mismo perfil.
+    Se arreglo en la segunda pestana y quedo mal la primera: el numero tiene
+    que estar en UN sitio, y esta en `perfil.HOLGURA`.
+    """
+    p = perfil_mod.Perfil(nivel=1.13, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+    h = ui.HOLGURA_POR_NIVEL
+    lo, hi = f"{max(0.0, p.nivel - h):.2f}", f"{min(2.0, p.nivel + h):.2f}"
+    mi_nivel = perfil_mod.describir(p)
+    assert lo in mi_nivel and hi in mi_nivel, \
+        f"'Mi nivel' no anuncia {lo}-{hi}: {mi_nivel[:160]}"
+    assert p.rango_recomendado == (round(p.nivel - h, 3), round(p.nivel + h, 3)), \
+        f"rango_recomendado = {p.rango_recomendado}, y la holgura es {h}"
+    return f"las dos pestanas dicen {lo}-{hi}"
+
+
+prueba("las dos pestanas prometen el mismo rango",
+       _las_dos_pestanas_prometen_el_mismo_rango)
+
+
+def _un_perfil_con_nivel_infinito_no_se_carga():
+    """`float("1e400")` es `inf` y pasa el `float()` sin queja.
+
+    Con el, la pestana decia "Tu nivel de lectura: **inf / 2.00**" y
+    "Lo mas leido entre **inf** y **2.00**". La escala publica es 0..2.
+    """
+    base = {"banda": "intermedio", "origen": "cuestionario", "creado": "",
+            "nombre": "Ana"}
+    malos = []
+    for etiqueta, crudo in (("1e400", "1e400"), ("-1e400", "-1e400"),
+                            ("nan", "NaN"), ("fuera de escala", "7.5"),
+                            ("negativo", "-3")):
+        ruta = TMP / f"perfil_{etiqueta.replace(' ', '_')}.json"
+        ruta.write_text('{"nivel": %s, "banda": "intermedio", "origen": '
+                        '"cuestionario", "creado": "", "nombre": "Ana"}' % crudo,
+                        encoding="utf-8")
+        if perfil_mod.cargar(str(ruta)) is not None:
+            malos.append(etiqueta)
+    ruta = TMP / "perfil_bueno.json"
+    ruta.write_text('{"nivel": 1.13, "banda": "intermedio", "origen": '
+                    '"cuestionario", "creado": "", "nombre": "Ana"}',
+                    encoding="utf-8")
+    bueno = perfil_mod.cargar(str(ruta))
+    assert not malos, f"acepto niveles imposibles: {malos}"
+    assert bueno is not None and abs(bueno.nivel - 1.13) < 1e-9, bueno
+    assert base                      # el dict esta solo para documentar la forma
+    return "inf, -inf, nan y fuera de 0..2 se rechazan; 1,13 se carga"
+
+
+prueba("un perfil con nivel infinito no se carga",
+       _un_perfil_con_nivel_infinito_no_se_carga)
+
+
+def _las_descargas_nuevas_tienen_tope():
+    """Descargar de Gutenberg no cuesta dinero, pero puede dejar sin servicio.
+
+    Son hasta tres peticiones de 45 s a gutenberg.org, y mientras esperan
+    ocupan uno de los ocho huecos de la cola: ocho ids distintos sin cache
+    dejan la aplicacion sin huecos un par de minutos. Es el unico camino que
+    puede tumbar el servicio sin gastar un centimo, y no tenia tope.
+
+    Y el tope no puede cobrarle nada a quien vuelve a abrir un libro que YA
+    tiene: eso no sale a la red.
+    """
+    class _P:
+        headers = {}
+        client = type("X", (), {"host": "10.6.6.6"})()
+
+    pet = _P()
+    clave = f"descargas:{ui._ip(pet)}"
+    try:
+        with ui._CANDADO_GASTO:
+            ui._gasto[clave] = [time.time()] * ui.LIMITE_DESCARGAS_HORA
+        tramos = list(ui._abrir_del_catalogo("PG9999999", pet))
+        aviso = str(tramos[-1][-1])
+        assert "libros nuevos en esta hora" in aviso, aviso[:160]
+        # Y un libro ya cacheado no gasta ficha: se comprueba con el ayudante,
+        # que es el que decide, sin bajar nada.
+        ruta = ui.RUTA_LIBROS / "pg9999998.epub"
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        ruta.write_bytes(b"x" * 3000)
+        try:
+            assert ui._esta_cacheado("PG9999998"), "no ve el libro ya descargado"
+            assert not ui._esta_cacheado("PG9999997"), "se inventa una cache"
+            assert not ui._esta_cacheado(""), "acepta un id vacio"
+        finally:
+            ruta.unlink(missing_ok=True)
+    finally:
+        with ui._CANDADO_GASTO:
+            ui._gasto.pop(clave, None)
+    return f"tope de {ui.LIMITE_DESCARGAS_HORA} libros nuevos por hora, y los ya bajados no cuentan"
+
+
+prueba("las descargas nuevas tienen tope por hora", _las_descargas_nuevas_tienen_tope)
+
+
+def _la_poda_de_sesiones_no_tira_al_que_sigue_leyendo():
+    """La poda tiene que tirar las MENOS USADAS, no las que entraron primero.
+
+    `_LECTOR_POR_SESION` se poda a la mitad al pasar de 5.000, y reasignar una
+    clave que ya existe NO la mueve al final en un dict de Python: una sesion
+    de las primeras que siguiera viva -recargando la pagina cada rato- se
+    quedaba en la cabecera de la fila y caia en la siguiente poda, con lo que
+    ese lector perdia sus datos hasta volver a cargar.
+    """
+    class _P:
+        def __init__(self, s):
+            self.session_hash = s
+
+    viejo = dict(ui._LECTOR_POR_SESION)
+    try:
+        with ui._CANDADO_LECTOR:
+            ui._LECTOR_POR_SESION.clear()
+        # El lector veterano: entra primero de todos.
+        ui._registrar_lector("veterano", _P("s-0"))
+        for i in range(1, 4000):
+            ui._registrar_lector(f"lector{i}", _P(f"s-{i}"))
+        # Y sigue leyendo: cada carga de pagina lo vuelve a registrar.
+        ui._registrar_lector("veterano", _P("s-0"))
+        for i in range(4000, 5200):
+            ui._registrar_lector(f"lector{i}", _P(f"s-{i}"))
+        with ui._CANDADO_LECTOR:
+            sigue = ui._LECTOR_POR_SESION.get("s-0")
+            cuantos = len(ui._LECTOR_POR_SESION)
+        assert sigue == "veterano", \
+            f"la poda se llevo al lector que seguia usando la app ({cuantos} vivos)"
+        assert cuantos <= 5000, f"la poda no poda: {cuantos} entradas"
+        # Y lo mismo consultando, que es lo que hace `_dir_lector`.
+        with ui._CANDADO_LECTOR:
+            ui._LECTOR_POR_SESION.clear()
+        ui._registrar_lector("consultado", _P("s-c"))
+        for i in range(4999):
+            ui._registrar_lector(f"otro{i}", _P(f"t-{i}"))
+        # `_dir_lector` se corta antes en local -devuelve la carpeta de
+        # siempre-, asi que se llama a la parte que mira el diccionario, que es
+        # la que refresca. Es tambien la que usa `_dir_lector` desplegada.
+        assert ui._lector_de_sesion("s-c") == "consultado"
+        for i in range(4999, 5300):
+            ui._registrar_lector(f"otro{i}", _P(f"t-{i}"))
+        with ui._CANDADO_LECTOR:
+            sigue = ui._LECTOR_POR_SESION.get("s-c")
+        assert sigue == "consultado", "consultar no cuenta como uso para la poda"
+    finally:
+        with ui._CANDADO_LECTOR:
+            ui._LECTOR_POR_SESION.clear()
+            ui._LECTOR_POR_SESION.update(viejo)
+    return "la poda tira las menos usadas, no las que entraron primero"
+
+
+prueba("la poda de sesiones no tira al que sigue leyendo",
+       _la_poda_de_sesiones_no_tira_al_que_sigue_leyendo)
+
 
 # --- Resultado ------------------------------------------------------------
 

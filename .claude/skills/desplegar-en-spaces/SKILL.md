@@ -115,6 +115,55 @@ nube» que se desincronice de la de casa.
 
 ---
 
+## 4 bis. Subir cambios a un Space que ya existe
+
+`python tools/desplegar_app.py` (`--seco` para ver qué haría, `--estado` para
+mirar cómo va). Lo que hace, y por qué cada pieza:
+
+**Lista blanca explícita, nunca `upload_folder` sobre la raíz.**
+`huggingface_hub.upload_folder` **no lee `.gitignore`**. Apuntado a este
+repositorio subiría `CLAVES.txt` y `.env` —con la clave de OpenAI dentro— a un
+Space **público**. El guion enumera los archivos uno a uno y además revisa cada
+uno buscando algo con forma de credencial antes de subirlo.
+
+**Comparar por hash y subir solo lo distinto, en un commit.** El sha1 de blob de
+git se calcula en local (`sha1("blob <n>\0" + contenido)`) y se compara con el
+`blob_id` que devuelve `list_repo_tree(..., expand=True)`. Así el commit dice de
+verdad qué cambió, y se ve de un vistazo si el Space está al día.
+
+**Lo que NO se toca, y hay que saberlo antes de estropearlo:**
+
+- **`README.md`**: el del Space no es el del repositorio. Lleva el front matter
+  con `sdk_version` y `app_file`. Sobrescribirlo rompe el arranque.
+- **`app.py`**: es el punto de entrada del Space y no existe en local (aquí es
+  `main.py`).
+- **`kaikki_diccionario.db`, `catalogo_emb_*.npy`, `.gitattributes`**: 243 MB de
+  datos y la configuración de LFS, ya colocados.
+
+**Que el Space esté al día no es opcional.** Aquí estuvo cinco módulos por
+detrás del árbol local durante dos días, con la cola de Gradio atendiendo a
+**una** persona a la vez y sin plazos en las llamadas a OpenAI. Todo eso estaba
+arreglado en casa. Cuando termines una ronda de correcciones, la ronda no está
+terminada hasta que está subida.
+
+### Comprueba lo que el `requirements.txt` no declara
+
+Se encontró subiendo: `catalogo.py` y `lexicon.py` llaman a
+`huggingface_hub.snapshot_download`, y `huggingface_hub` **no estaba en
+`requirements.txt`**. Funcionaba de rebote, porque `transformers` lo arrastra.
+Un día que `transformers` deje de depender de él, «clona y ejecuta» se rompe.
+
+```bash
+grep -rhn "^import \|^from \|    import " app/ | sort -u    # y compara
+```
+
+Y pon **techo de versión mayor** a todo. En este proyecto `transformers` pasó de
+4 a 5 y `gradio` de 5 a 6 mientras se escribía, y las dos veces cambió la API.
+`gradio` va fijado exacto: es la única versión con la que se probó, y el
+`sdk_version` del README del Space tiene que decir la misma.
+
+---
+
 ## 5. Secretos y variables
 
 ```python

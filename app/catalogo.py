@@ -16,6 +16,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+# Solo por `miles()`, el separador de miles en espanol. Es de presentacion y
+# vive alli porque `ui` y este modulo lo necesitan los dos; `ficha` no arrastra
+# nada pesado (re, dataclasses y scoring, que carga torch en perezoso).
+import ficha
+
 RAIZ = Path(__file__).resolve().parent.parent
 CSV_POR_DEFECTO = RAIZ / "catalogo_recomendaciones.csv"
 DIR_CACHE = Path(os.path.expanduser("~")) / ".literalevel"
@@ -274,5 +279,5 @@ class Catalogo:
 
     def resumen(self) -> str:
         c = self.df["nivel_cefr"].value_counts().reindex(NIVELES).fillna(0).astype(int)
-        return (f"{len(self.df):,} libros | " +
+        return (f"{ficha.miles(len(self.df))} libros | " +
                 " ".join(f"{n}:{c[n]}" for n in NIVELES))

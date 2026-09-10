@@ -96,6 +96,17 @@ def reloj(minutos: int) -> str:
     return f"{h} h" if m == 0 else f"{h} h {m:02d} min"
 
 
+def miles(n) -> str:
+    """1.197, no 1,197: en espanol el separador de miles es el punto.
+
+    El `f"{n:,}"` de Python usa la coma, que en espanol es el separador
+    DECIMAL. La app llego a decir "Catalogo: 1,197 libros" y "130,104
+    palabras" en la misma pantalla en la que el documento escribe 1.197 y
+    130.104. Aqui y no en `ui` porque `catalogo` tambien lo necesita.
+    """
+    return format(int(n), ",").replace(",", ".")
+
+
 # Gutenberg envuelve cada libro entre dos lineas fijas. Son la unica forma
 # fiable de saber donde acaba la obra y empieza la licencia, y hacen falta
 # porque el epub de Alicia trae la licencia ENTERA pegada al final del capitulo
@@ -140,6 +151,28 @@ def _palabras_reales(capitulo) -> int:
     return len(sin_licencia(capitulo.texto).split())
 
 
+_CABECERA_CORRIDA = re.compile(
+    r"(?i)^\s*(?:the\s+)?project gutenberg (?:e-?book|e?text)\b")
+
+
+def _sin_cabecera_corrida(texto: str) -> str:
+    """El texto sin la cabecera corrida de Gutenberg, si la trae de primera linea.
+
+    Los epub de la generacion vieja (`pg28xxx`) repiten "The Project Gutenberg
+    eBook of X, by Y." al principio de CADA archivo del libro. Como el filtro
+    mira las primeras 400 palabras buscando la formula, esa linea sola bastaba
+    para clasificar como licencia todo capitulo de menos de 3.000 palabras:
+    *Los hermanos Karamazov* perdia 38 de sus 98 capitulos y la *Alicia*
+    ilustrada 12 de 13, con la curva del "libro entero" calculada sobre lo que
+    quedaba. Se quita la LINEA, no la mencion: si el capitulo repite la formula
+    mas abajo -que es lo que hace la licencia de verdad- sigue cazandose.
+    """
+    primera, _, resto = texto.partition("\n")
+    if _CABECERA_CORRIDA.match(primera.strip()) and resto.strip():
+        return resto
+    return texto
+
+
 def _es_boilerplate(capitulo) -> bool:
     """True si el capitulo es licencia o portadilla de Gutenberg y no el libro.
 
@@ -164,7 +197,28 @@ def _es_boilerplate(capitulo) -> bool:
     # envoltura. Es el caso que el filtro tiene que seguir cazando.
     if len(limpio.split()) < 150:
         return True
-    cabeza = " ".join(limpio.split()[:400])
+    # La PORTADILLA. El archivo que trae la marca de licencia lleva debajo
+    # portada, creditos e indice, y eso no es el libro. Antes caia de rebote,
+    # porque `reader` le ponia de titulo la cabecera corrida ("The Project
+    # Gutenberg eBook of...") y la primera linea de esta funcion lo cazaba por
+    # el titulo; ahora el titulo es limpio y hay que decirlo aqui.
+    #
+    # El criterio NO es la longitud -probe con "menos de 1.200 palabras" y se
+    # llevaba por delante un capitulo de verdad de mil palabras con la
+    # envoltura legal pegada, que es justo el caso que el parrafo de arriba
+    # explica que no hay que romper-. Es que lo que queda DESPUES de quitar la
+    # licencia no sea prosa corrida: un indice de capitulos no lo es. Y
+    # `continuous_prose` se aplica solo aqui, al archivo de la licencia, no a
+    # los capitulos, que es lo que lo hacia inservible como filtro general.
+    #
+    # Medido sobre los nueve epub cacheados del catalogo: caza la portadilla de
+    # *Alicia* (83 palabras), *Grimms* (248) y *Guerra y paz* (799 palabras de
+    # "Contents / BOOK ONE / CHAPTER I..."), y NO caza el primer archivo de
+    # *Orgullo y prejuicio*, que trae dentro los cinco primeros capitulos de la
+    # novela y hasta ahora se perdia entero.
+    if _INICIO_PG.search(capitulo.texto) and not scoring.continuous_prose(limpio)[0]:
+        return True
+    cabeza = " ".join(_sin_cabecera_corrida(limpio).split()[:400])
     if not _BOILERPLATE_RE.search(cabeza):
         return False
     # Una novela puede mencionar Gutenberg de pasada en una nota al pie. Se

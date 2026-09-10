@@ -44,16 +44,43 @@ def _limpiar_html(bruto: str) -> str:
     return _NL.sub("\n\n", texto).strip()
 
 
+# La cabecera corrida de los epub de la generacion vieja de Gutenberg
+# (`pg28xxx`): un <h1> con "The Project Gutenberg eBook of X, by Y." al
+# principio de CADA archivo del libro. No es el titulo del capitulo ni coincide
+# con el del libro, asi que se colaba como titulo: la *Alicia* ilustrada del
+# catalogo salia con trece capitulos llamados igual, todos "The Project
+# Gutenberg eBook of Alice's Adventures in Wonderland", y con el titulo asi
+# `ficha._es_boilerplate` los tomaba por licencia y la curva del libro entero
+# se calculaba sobre UNO de los trece.
+CABECERA_PG = re.compile(r"(?i)^\s*(?:the\s+)?project gutenberg (?:e-?book|e?text)\b")
+
+# El pie de una ilustracion no es el titulo del capitulo, y en los epub
+# ilustrados de Gutenberg vive DENTRO del <h2> del capitulo. En *Orgullo y
+# prejuicio* -el libro mas descargado del catalogo- el indice salia asi:
+#   "I hope Mr. Bingley will like it.    CHAPTER II."
+#   "Covering a screen.    CHAPTER VIII."
+# porque el encabezado lleva un <span class="caption"> con el pie de la lamina
+# antes del texto del titulo. Se quita el pie y queda "CHAPTER II.".
+_PIE_FIGURA = re.compile(
+    r"(?is)<(span|div|p)[^>]*class=[\"'][^\"']*caption[^\"']*[\"'][^>]*>.*?</\1>"
+    r"|<figcaption\b[^>]*>.*?</figcaption>")
+
+
 def _titulo_capitulo(bruto: str, texto: str, titulo_libro: str) -> str:
     """Saca el titulo del capitulo de los encabezados h1-h6, ignorando el
     encabezado corrido del libro que muchos epub repiten en cada archivo."""
+    def sirve(cand: str) -> bool:
+        return bool(cand) and (cand.casefold() != titulo_libro.casefold()
+                               and not CABECERA_PG.match(cand))
+
     for m in re.finditer(r"(?is)<h[1-6][^>]*>(.*?)</h[1-6]>", bruto):
-        cand = _limpiar_html(m.group(1)).replace("\n", " ").strip()
-        if cand and cand.casefold() != titulo_libro.casefold():
+        cand = _limpiar_html(_PIE_FIGURA.sub(" ", m.group(1)))
+        cand = _WS.sub(" ", cand.replace("\n", " ")).strip()
+        if sirve(cand):
             return cand[:80]
     for linea in texto.split("\n"):
         linea = linea.strip()
-        if linea and linea.casefold() != titulo_libro.casefold():
+        if sirve(linea):
             return linea[:80]
     return "(sin título)"
 

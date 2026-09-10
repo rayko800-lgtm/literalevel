@@ -148,8 +148,13 @@ class ResultadoLexico:
     banda_lector: str              # básico | intermedio | avanzado
     frecuencia_zipf: float | None  # rareza de la palabra (wordfreq); util para
                                     # decidir si vale la pena mostrar la ficha
-    desde_cache: bool
+    desde_cache: bool              # la EXPLICACION vino de la cache
     avisos: list[str]
+    # Cuantas peticiones de pago salieron de verdad a OpenAI en esta consulta:
+    # la explicacion y el audio se piden por separado y con claves de cache
+    # distintas, asi que `desde_cache` no valia para saber si se gasto o no.
+    # `ui` descuenta el cupo antes de consultar y lo devuelve si esto es 0.
+    llamadas_de_pago: int = 0
 
     @property
     def completo(self) -> bool:
@@ -667,7 +672,14 @@ class ConsultorLexico:
         # Que falta y que ya estaba guardado.
         falta_audio = not audio_uk and not audio_us
         ruta_audio_cacheada = None
-        texto_audio = palabra_superficie.strip() or lema_buscado
+        # NORMALIZADO, y no la superficie tal cual. La clave del audio se hacia
+        # con la palabra como la escribio el libro, asi que "Fetters", "FETTERS"
+        # y "fetters." eran tres entradas distintas de la cache -tres audios
+        # pagados- mientras la explicacion, que se guarda por LEMA, acertaba en
+        # la primera. Y ahi `ui` veia `desde_cache=True` y devolvia el uso: cada
+        # variante era un tts-1 gratis. tts-1 pronuncia igual las tres.
+        texto_audio = (palabra_superficie.strip().strip(".,;:!?¿¡\"'()[]«»…").lower()
+                       or lema_buscado)
         partes_cache_audio = (
             "audio", VERSION_AUDIO_TTS, MODELO_TTS, VOZ_TTS, texto_audio,
         )
@@ -701,6 +713,9 @@ class ConsultorLexico:
 
         pedir_audio = falta_audio and cliente is not None and not ruta_audio_cacheada
         pedir_explicacion = partes_clave is not None and extra is None
+        # Lo que se va a pagar, contado ANTES de pedirlo: es lo que `ui` mira
+        # para decidir si devuelve el uso del cupo.
+        llamadas_de_pago = int(bool(pedir_audio)) + int(bool(pedir_explicacion))
         ruta_audio_nueva = None
         if pedir_audio or pedir_explicacion:
             from concurrent.futures import ThreadPoolExecutor
@@ -759,6 +774,7 @@ class ConsultorLexico:
             banda_lector=banda,
             frecuencia_zipf=_frecuencia_zipf(lema_simple),
             desde_cache=desde_cache, avisos=avisos,
+            llamadas_de_pago=llamadas_de_pago,
         )
 
     def cerrar(self) -> None:

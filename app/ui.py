@@ -143,9 +143,17 @@ def _registrar_lector(id_navegador: str, peticion: gr.Request = None) -> None:
     if not limpio:
         return
     with _CANDADO_LECTOR:
+        # `pop` y luego asignar, y no asignar encima: reasignar una clave que ya
+        # existe NO la mueve al final en un dict de Python, asi que una sesion
+        # vieja pero VIVA se quedaba en la cabecera de la fila y caia en la
+        # siguiente poda. Con el pop, cada uso la manda al final.
+        _LECTOR_POR_SESION.pop(str(sesion), None)
         _LECTOR_POR_SESION[str(sesion)] = limpio
         # Limpieza barata, como en `_gasto`: sin esto el diccionario crece con
-        # cada carga de pagina y no se vacia nunca.
+        # cada carga de pagina y no se vacia nunca. Se tiran las MENOS usadas
+        # hace mas tiempo, que con el pop de arriba y el de `_dir_lector` son
+        # de verdad las mas antiguas y no solo las que entraron primero. Quien
+        # caiga no pierde nada: vuelve a registrarse en la siguiente carga.
         if len(_LECTOR_POR_SESION) > 5000:
             for k in list(_LECTOR_POR_SESION)[:2500]:
                 del _LECTOR_POR_SESION[k]
@@ -163,10 +171,30 @@ def _dir_lector(peticion=None) -> Path:
     if not EN_LA_NUBE:
         return BASE_DATOS_LECTOR
     sesion = getattr(peticion, "session_hash", None) if peticion is not None else None
-    with _CANDADO_LECTOR:
-        propio = _LECTOR_POR_SESION.get(str(sesion)) if sesion else None
+    propio = _lector_de_sesion(sesion)
     limpio = propio or (_SESION_SEGURA.sub("", str(sesion))[:64] if sesion else "")
     return BASE_DATOS_LECTOR / "lectores" / (limpio or "anonimo")
+
+
+def _lector_de_sesion(sesion) -> str | None:
+    """La identidad que el navegador ató a esta sesion, o None.
+
+    Aparte de `_dir_lector` porque `_dir_lector` se corta antes en local -
+    devuelve la carpeta de siempre y no llega a mirar el diccionario-, y
+    entonces la parte que de verdad hay que probar no se ejecutaba nunca fuera
+    del Space. Lo encontro una prueba nueva: fallaba diciendo "consultar no
+    cuenta como uso para la poda" y tenia razon, porque en local no consultaba.
+    """
+    if not sesion:
+        return None
+    with _CANDADO_LECTOR:
+        propio = _LECTOR_POR_SESION.get(str(sesion))
+        if propio is not None:
+            # Al final de la fila: esto es lo que convierte la poda en "las
+            # menos usadas" y no "las que entraron primero".
+            _LECTOR_POR_SESION.pop(str(sesion), None)
+            _LECTOR_POR_SESION[str(sesion)] = propio
+    return propio
 
 
 # --- Freno de gasto: cuantas veces por hora puede costar dinero -----------
@@ -185,6 +213,11 @@ LIMITE_VOZ_HORA = int(os.environ.get("LITERALEVEL_LIMITE_VOZ", "10"))
 # nunca acierta en cache si el archivo cambia una palabra. Es la mas cara por
 # uso de las tres, asi que su tope es el mas bajo.
 LIMITE_SINOPSIS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_SINOPSIS", "6"))
+# Descargar de Gutenberg no cuesta dinero, pero son hasta tres peticiones de 45
+# s que ocupan un hueco de la cola mientras esperan: es la unica peticion lenta
+# que puede dejar a los demas sin servicio. Alto a proposito: veinte libros
+# NUEVOS en una hora no es leer, y los ya descargados no cuentan.
+LIMITE_DESCARGAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_DESCARGAS", "20"))
 _VENTANA = 3600.0
 
 _gasto: dict[str, list[float]] = {}
@@ -560,6 +593,27 @@ def _desde_cuestionario(p_actual, nombre, peticion: gr.Request, *valores):
     return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas.", _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
 
 
+# En cuantas partes se trocea un libro para situar al lector con el. La usan
+# `_muestra_de_libro`, que lo hace, y `_nivel_desde_libro`, que lo cuenta.
+PARTES_MUESTRA = 8
+
+
+def _cuerpo_para_muestra(libro):
+    """Los capitulos de los que se puede sacar muestra, en orden.
+
+    Esta aparte porque el mensaje que lee el lector tiene que contar LO MISMO
+    que se midio: decia "tomando muestras de 8 partes" mirando
+    `len(libro.capitulos)`, mientras la muestra salia de estos, que son los de
+    300 palabras o mas. Con doce capitulos cortos y uno largo, anunciaba ocho
+    partes y usaba una.
+    """
+    cuerpo = [c for c in libro.capitulos
+              if c.palabras >= 300 and not _RELLENO_RE.search(c.titulo)]
+    if not cuerpo:
+        cuerpo = [c for c in libro.capitulos if c.palabras >= 100] or libro.capitulos
+    return cuerpo
+
+
 def _muestra_de_libro(libro, palabras: int = 2400) -> str:
     """Un extracto representativo del libro, para medir su dificultad.
 
@@ -568,11 +622,8 @@ def _muestra_de_libro(libro, palabras: int = 2400) -> str:
     Se toman trozos repartidos por toda la obra, saltandose el paratexto, para
     que la medida se parezca a lo que el lector va a encontrarse de verdad.
     """
-    cuerpo = [c for c in libro.capitulos
-              if c.palabras >= 300 and not _RELLENO_RE.search(c.titulo)]
-    if not cuerpo:
-        cuerpo = [c for c in libro.capitulos if c.palabras >= 100] or libro.capitulos
-    cuantos = min(8, len(cuerpo))
+    cuerpo = _cuerpo_para_muestra(libro)
+    cuantos = min(PARTES_MUESTRA, len(cuerpo))
     if cuantos == 0:
         return ""
     # Repartidos por el libro, no los ocho primeros.
@@ -612,9 +663,11 @@ def _nivel_desde_libro(p_actual, nombre, archivo, peticion: gr.Request = None):
         p.guardar(_archivo_lector("perfil.json", peticion))
     except (ValueError, FileNotFoundError, OSError) as e:
         return p_actual, _aviso(e), _aviso(e)
+    partes = min(PARTES_MUESTRA, len(_cuerpo_para_muestra(libro)))
     texto = (f"Medido con **{libro.titulo}**"
              + (f" — {libro.autor}" if libro.autor else "")
-             + f", tomando muestras de {min(8, len(libro.capitulos))} partes "
+             + f", tomando muestras de {partes} "
+               f"{'parte' if partes == 1 else 'partes'} "
                f"del libro.\n\n" + _describir(p)
              + "\n\nGuardado. Ya puedo recomendarte lecturas.")
     return p, texto, texto
@@ -643,9 +696,17 @@ def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
 
 # --- Punto 2: buscador del catalogo --------------------------------------
 
-def _tabla_libros(libros, aviso: str = "") -> str:
+def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
+    """`vacio` SUSTITUYE a la tabla cuando no hay libros; `nota` va al pie
+    cuando si los hay.
+
+    Antes era un solo parametro y se pintaba en los dos casos, asi que
+    "Sorpendeme" ensenaba diez libros bajo el titulo "Lo mas leido entre 0.88 y
+    1.38" y debajo de la tabla "No hay libros etiquetados entre 0.88 y 1.38".
+    La pantalla se contradecia sola, y es la segunda del recorrido de la demo.
+    """
     if not libros:
-        return _aviso(aviso or "Sin resultados.")
+        return _aviso(vacio or "Sin resultados.")
     # Tres columnas, no cinco: a 390 px una tabla de cinco se aplasta hasta
     # dejar una palabra por linea. El autor y el nivel caben debajo del titulo.
     abribles = sum(str(b.id).upper().startswith("PG") for b in libros)
@@ -672,8 +733,8 @@ def _tabla_libros(libros, aviso: str = "") -> str:
             gancho = gancho[:67] + "..."
         ficha = f"**{enlace}**<br><small>{b.autor} · {b.nivel}</small>"
         filas.append(f"| {'▸' if aqui else ''} | {ficha} | {gancho} |")
-    if aviso:
-        filas += ["", f"_{aviso}_"]
+    if nota:
+        filas += ["", f"_{nota}_"]
     return "\n".join(filas)
 
 
@@ -713,10 +774,34 @@ def _buscar(p, consulta, ajustar, n):
     cabecera = ""
     if ajustar and p is None:
         cabecera = "_Sin perfil todavía: busco solo por parecido._\n\n"
-    return cabecera + _tabla_libros(libros, aviso), _opciones_libros(libros)
+    # Aqui el mismo texto vale en los dos huecos: `catalogo.buscar` devuelve
+    # "ningun libro supera el umbral" cuando la lista sale vacia y "se
+    # descartaron N por parecido bajo" cuando trae resultados, nunca las dos.
+    return (cabecera + _tabla_libros(libros, vacio=aviso, nota=aviso),
+            _opciones_libros(libros))
 
 
 RUTA_LIBROS = Path(os.path.expanduser("~")) / ".literalevel" / "libros"
+
+
+def _esta_cacheado(id_libro: str) -> bool:
+    """¿Este libro ya esta en disco? Entonces abrirlo no sale a la red.
+
+    Se usa para no gastarle una ficha del tope de descargas a quien vuelve a
+    abrir un libro que ya tiene. La comprobacion es la misma que hace
+    `_descargar_gutenberg` antes de pedir nada.
+    """
+    num = "".join(c for c in str(id_libro or "") if c.isdigit())
+    if not num:
+        return False
+    for ext in (".epub", ".txt"):
+        p = RUTA_LIBROS / f"pg{num}{ext}"
+        try:
+            if p.exists() and p.stat().st_size > 2000:
+                return True
+        except OSError:
+            return False
+    return False
 
 
 def _descargar_gutenberg(id_libro: str) -> str:
@@ -784,6 +869,23 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
         yield quieto[:3] + ("Elige un libro de la lista.", gr.Tabs(),
                             "Elige un libro de la lista.")
         return
+    # Esta SI lleva tope por hora, aunque no cueste dinero, y no contradice la
+    # regla de la cabecera -"lo que no cuesta dinero no se limita: es local"-
+    # porque esto no es local: son hasta tres peticiones a gutenberg.org con 45
+    # s de plazo cada una, y mientras esperan ocupan uno de los ocho huecos de
+    # la cola. Ocho ids distintos sin cache dejan la aplicacion sin huecos
+    # durante minutos, y ese es el unico camino que puede dejar sin servicio a
+    # los demas sin gastar un centimo. El tope es alto a proposito: nadie abre
+    # veinte libros nuevos en una hora leyendo, y los ya descargados no pasan
+    # por aqui -aciertan en la cache de disco antes-.
+    if not _esta_cacheado(id_libro) and not _dentro_del_limite(
+            peticion, "descargas", LIMITE_DESCARGAS_HORA):
+        yield quieto[:3] + (gr.update(), gr.Tabs(), _aviso(
+            f"Has abierto {LIMITE_DESCARGAS_HORA} libros nuevos en esta hora y "
+            f"cada descarga tarda. Espera "
+            f"{_minutos_para_la_siguiente('descargas', peticion)} minutos, o "
+            f"sigue leyendo los que ya tienes en «Mis libros»."))
+        return
     yield quieto[:3] + (gr.update(), gr.Tabs(),
                         "Descargando de Project Gutenberg… la primera vez "
                         "puede tardar; después queda guardado.")
@@ -803,13 +905,14 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
     yield libro, upd, html, resumen, gr.Tabs(selected="leer"), ""
 
 
-# La holgura con la que "Sorprendeme" busca por nivel. Esta aqui y se pasa
-# EXPLICITA para que el rotulo y el filtro no puedan volver a separarse: el
-# rotulo anunciaba `rango_recomendado` -nivel-0,10 a nivel+0,15- mientras
-# `por_nivel` filtraba con una holgura simetrica de 0,25. Con un lector en 1,00
-# la app decia "Lo mas leido entre 0.90 y 1.15" y listaba B1 (0,80) y B2
-# (1,20): ni uno de los dos dentro del rango que acababa de anunciar.
-HOLGURA_POR_NIVEL = 0.25
+# La holgura con la que "Sorprendeme" busca por nivel. NO es un numero nuevo:
+# se lee de `perfil`, que es donde vive el unico, porque `perfil.describir` lo
+# anuncia en la pestana "Mi nivel" antes de que aqui se filtre nada. Tenerlo
+# dos veces ya salio mal dos veces: primero el rotulo de esta pestana anunciaba
+# `rango_recomendado` -nivel-0,10 a nivel+0,15- mientras `por_nivel` filtraba
+# con 0,25 simetrico; se arreglo aqui y quedo la pestana de al lado prometiendo
+# "entre 1.03 y 1.28" mientras esta decia "entre 0.88 y 1.38" del mismo lector.
+HOLGURA_POR_NIVEL = perfil_mod.HOLGURA
 
 
 def _recomendar(p, n):
@@ -871,9 +974,10 @@ def _recomendar(p, n):
                  f"arriba: ahí sí se ajusta a tu nivel sin exigir una "
                  f"coincidencia exacta.")
     if rescate:
-        return rescate + _tabla_libros(libros, si_no_hay), _opciones_libros(libros)
+        return (rescate + _tabla_libros(libros, vacio=si_no_hay),
+                _opciones_libros(libros))
     return (f"Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:\n\n"
-            + _tabla_libros(libros, si_no_hay), _opciones_libros(libros))
+            + _tabla_libros(libros, vacio=si_no_hay), _opciones_libros(libros))
 
 
 # --- Punto 3: lector, y punto 4 dentro de el ------------------------------
@@ -1089,7 +1193,14 @@ def _leer_sesion(peticion=None) -> dict | None:
     # lector hasta que alguien borrara el archivo a mano.
     if not isinstance(d, dict):
         return None
-    return d if d.get("ruta") and os.path.exists(d["ruta"]) else None
+    # Y la `ruta` tiene que ser una CADENA. Con `d.get("ruta")` bastaba para que
+    # `{"ruta": ["x"]}` -JSON valido, objeto, con la clave puesta- llegara a
+    # `os.path.exists` y lanzara TypeError. Mismo estropicio que el de arriba y
+    # en el mismo sitio: `_reanudar` corre en `demo.load`, asi que la pagina
+    # entera arrancaba en error para ese lector.
+    if not isinstance(d.get("ruta"), str):
+        return None
+    return d if os.path.exists(d["ruta"]) else None
 
 
 def _perfil_inicial(peticion: gr.Request = None):
@@ -1164,7 +1275,7 @@ def _abrir(archivo, peticion: gr.Request = None):
     opciones = []
     for i, c in enumerate(libro.capitulos):
         t = c.titulo if len(c.titulo) <= 46 else c.titulo[:43] + "..."
-        opciones.append((f"{i + 1}. {t} · {c.palabras:,} pal.", i))
+        opciones.append((f"{i + 1}. {t} · {ficha.miles(c.palabras)} pal.", i))
 
     # No abrir en la portadilla. Solo el recuento de palabras no basta: el
     # apendice de "Notes from a Dead House" trae 2,143 y aparece el segundo,
@@ -1177,7 +1288,7 @@ def _abrir(archivo, peticion: gr.Request = None):
                          if c.palabras >= 500), 0))
 
     resumen = (f"**{libro.titulo}** — {libro.autor or 'autor desconocido'} · "
-               f"{len(libro.capitulos)} capítulos · {libro.palabras:,} palabras")
+               f"{len(libro.capitulos)} capítulos · {ficha.miles(libro.palabras)} palabras")
     if inicial:
         resumen += (f"\n\n_Empiezo en el capítulo {inicial + 1}: "
                     f"los anteriores son portadilla._")
@@ -1202,7 +1313,7 @@ def _indice_de(libro, actual=None):
     opciones = []
     for i, c in enumerate(libro.capitulos):
         t = c.titulo if len(c.titulo) <= 46 else c.titulo[:43] + "..."
-        opciones.append((f"{i + 1}. {t} · {c.palabras:,} pal.", i))
+        opciones.append((f"{i + 1}. {t} · {ficha.miles(c.palabras)} pal.", i))
     return gr.update(choices=opciones, value=actual)
 
 
@@ -1236,7 +1347,7 @@ def _capitulo(libro, idx, peticion: gr.Request = None):
                           capitulo=int(idx), palabras=libro.palabras,
                           ruta=_archivo_lector("biblioteca.json", peticion))
     return (_html_lectura(c.texto),
-            f"**{c.titulo}** · {c.palabras:,} palabras · "
+            f"**{c.titulo}** · {ficha.miles(c.palabras)} palabras · "
             f"capítulo {int(idx) + 1} de {len(libro.capitulos)}")
 
 
@@ -1344,6 +1455,15 @@ def _clave_libro(libro) -> str:
     return h.hexdigest()[:20]
 
 
+def _es_numero(x) -> bool:
+    """Numero de verdad, y `True` no lo es.
+
+    `isinstance(True, int)` da True en Python, y un `"dificultad": true` en un
+    JSON pasaria por numero y luego sumaria 1 sin que nadie lo notara.
+    """
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
 def _ruta_analisis(libro, modo="completo"):
     """El completo se guarda sin sufijo: es el bueno y el que se busca primero."""
     sufijo = "" if modo == "completo" else f"-{modo}"
@@ -1367,12 +1487,34 @@ def _analisis_guardado(libro, modo="completo"):
     if not isinstance(d, dict):
         return None
     filas = d.get("filas")
-    if not isinstance(filas, list):
+    # Lista y NO VACIA: `_resumen_analisis` hace `min(filas, ...)`, que sobre una
+    # lista vacia lanza ValueError.
+    if not isinstance(filas, list) or not filas:
         return None
     for f in filas:
         if (not isinstance(f, dict) or "capitulo" not in f
-                or "dificultad" not in f):
+                or not _es_numero(f.get("dificultad"))):
             return None
+    # Y el resto de la forma. Comprobar solo `filas` no bastaba: un archivo con
+    # filas validas y sin `ventanas` pasaba esta puerta y reventaba con un
+    # KeyError dentro de `_resumen_analisis`, que es lo que este validador
+    # existe para evitar. Se rellenan con 0 en vez de rechazar el archivo: la
+    # curva -que es lo que el lector espera- se puede dibujar sin ellas.
+    for clave in ("ventanas", "palabras"):
+        if not _es_numero(d.get(clave)):
+            d[clave] = 0
+    for clave in ("capitulos_medidos", "capitulos_totales"):
+        if clave in d and not _es_numero(d[clave]):
+            d[clave] = len(filas)
+    # El titulo y el autor los sabe el libro que tenemos delante, asi que un
+    # archivo al que le falten no hay por que tirarlo.
+    if not isinstance(d.get("titulo"), str):
+        d["titulo"] = str(getattr(libro, "titulo", "") or "")
+    if not isinstance(d.get("autor"), str):
+        d["autor"] = str(getattr(libro, "autor", "") or "")
+    for f in filas:
+        if not isinstance(f.get("titulo"), str):
+            f["titulo"] = f"capítulo {f['capitulo']}"
     return d
 
 
@@ -1462,7 +1604,7 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
                            "palabras": libro.palabras, "ventanas": ventanas,
                            "filas": filas, "modo": modo}
                 yield (f"Midiendo con el modelo v4: capítulo **{n} de {total}** · "
-                       f"{ventanas:,} ventanas leídas."
+                       f"{ficha.miles(ventanas)} ventanas leídas."
                        + ("" if rapido else
                           "\n\nEsto se calcula una sola vez y queda guardado."),
                        _grafica_analisis(parcial, paleta))
@@ -1511,7 +1653,7 @@ def _ficha_libro(libro, p=None) -> str:
                    else " a tu ritmo de lectura")
     lineas = [
         "#### Cómo es de leer",
-        f"- **{c.palabras:,} palabras** en {c.capitulos} "
+        f"- **{ficha.miles(c.palabras)} palabras** en {c.capitulos} "
         f"{'capítulo' if c.capitulos == 1 else 'capítulos'} · {tiempo}",
         f"- Frases de **{c.frase_media:.0f} palabras** de media",
         f"- Diálogo: **{c.dialogo * 100:.0f}%** de las frases llevan voz — "
@@ -1789,15 +1931,15 @@ def _resumen_analisis(datos, como="cifra") -> str:
     if datos.get("modo") == "rapido":
         medidos = datos.get("capitulos_medidos", len(filas))
         totales = datos.get("capitulos_totales", medidos)
-        detalle = (f"**vistazo rápido**: {datos['ventanas']:,} ventanas de 250 "
+        detalle = (f"**vistazo rápido**: {ficha.miles(datos['ventanas'])} ventanas de 250 "
                    f"palabras tomadas de {medidos} capítulos"
                    + (f" repartidos entre los {totales} del libro"
                       if totales > medidos else "")
                    + ". Da la forma de la curva, no el número definitivo; "
                      "para eso está *Analizar el libro entero*.")
     else:
-        detalle = (f"medido leyendo **{datos['ventanas']:,} ventanas** de 250 "
-                   f"palabras sobre {datos['palabras']:,} en total. Aquí no se "
+        detalle = (f"medido leyendo **{ficha.miles(datos['ventanas'])} ventanas** de 250 "
+                   f"palabras sobre {ficha.miles(datos['palabras'])} en total. Aquí no se "
                    f"muestrea: el modelo recorre cada capítulo entero.")
     return (
         f"### {datos['titulo']}" + (f" — {datos['autor']}" if datos["autor"] else "")
@@ -1888,7 +2030,18 @@ _AVISOS_HUMANOS = (
               "diccionario, la fonética y el audio siguen funcionando.",
         "en": "The monthly budget for explanations has run out. The "
               "dictionary, phonetics and audio still work."}),
-    (("sin OPENAI_API_KEY", "api key", "authentication", "401"), {
+    # La clave RECHAZADA va antes que la clave AUSENTE, y con su propio texto.
+    # Las dos caian en "Sin clave de OpenAI", asi que un servidor con la clave
+    # caducada le decia al lector que no habia clave -y de paso el uso del cupo
+    # ya estaba gastado, que es lo que no se entiende si el mensaje miente-.
+    (("authentication", "401", "invalid_api_key", "incorrect api key"), {
+        "es": "OpenAI ha rechazado la clave de este servidor, así que no hay "
+              "explicación de contexto. No es cosa tuya: avisa a quien lo "
+              "administra. El resto de la ficha no la necesita.",
+        "en": "OpenAI rejected this server's key, so there is no contextual "
+              "explanation. Not your fault: tell whoever runs it. The rest of "
+              "the card does not need it."}),
+    (("sin OPENAI_API_KEY", "api key"), {
         "es": "Sin clave de OpenAI: no hay explicación de contexto. El resto "
               "de la ficha no la necesita.",
         "en": "No OpenAI key: no contextual explanation. The rest of the "
@@ -1981,8 +2134,13 @@ def _ficha(r, idioma: str = "es") -> str:
         pie.append(t["tts"])
     if pie:
         L.append("_" + " · ".join(pie) + "_")
-    for a in r.avisos:
-        L.append(f"[!] {_humanizar(a, idioma)}")
+    # `dict.fromkeys` y no un `set`: quita repetidos conservando el orden.
+    # Dos avisos distintos pueden humanizarse al MISMO texto -"no se pudo
+    # generar audio: AuthenticationError" y "OpenAI no disponible:
+    # AuthenticationError" son los dos "clave rechazada"-, y el lector veia la
+    # misma linea dos veces seguidas.
+    for a in dict.fromkeys(_humanizar(a, idioma) for a in r.avisos):
+        L.append(f"[!] {a}")
     return "\n\n".join(L)
 
 
@@ -2097,10 +2255,16 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
             puede, motivo_pago = _puede_pagar(peticion)
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma,
                                   usar_openai=puede)
-    except (FileNotFoundError, OSError) as e:
+    except Exception as e:
         # Si el diccionario no esta, no hubo consulta ni llamada: se devuelve el
         # uso que `_puede_pagar` acaba de cobrar. Antes el lector perdia un uso
         # de su cupo por un fallo que no era suyo.
+        #
+        # Y `Exception` y no `(FileNotFoundError, OSError)`: `CacheLexico`
+        # ejecuta un CREATE TABLE sobre `~/.literalevel/lexicon.db`, y un
+        # archivo cortado a media escritura -el disco del Space es efimero-
+        # lanza `sqlite3.DatabaseError`, que NO desciende de OSError. Se
+        # escapaba hacia Gradio, con el uso ya cobrado y sin devolver.
         cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
         yield _aviso(e), "", gr.update(visible=False)
         return
@@ -2119,7 +2283,12 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     # de pago permitidas" como declara `cuentas.py`, sino pulsaciones. Se
     # devuelve el uso. Cobrar primero y devolver despues, y no al reves, para
     # no reabrir la condicion de carrera que `consumir` cerro.
-    elif puede and getattr(r, "desde_cache", False):
+    #
+    # Y se mira `llamadas_de_pago`, no `desde_cache`: `desde_cache` solo habla
+    # de la EXPLICACION, y el audio se pide aparte y con otra clave. Con eso,
+    # "Fetters" acertaba la explicacion en cache -uso devuelto- y pagaba un
+    # tts-1 nuevo. Medido: 5 llamadas de pago, 1 uso cobrado.
+    elif puede and getattr(r, "llamadas_de_pago", 0) == 0:
         cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
     # Al cuaderno **solo si el diccionario encontro algo**. Sin este filtro
     # acababan dentro las pruebas y los errores de dedo, y la pestana "Mis
@@ -2472,7 +2641,7 @@ def _mis_libros(peticion: gr.Request = None):
         pct = int(round(e.avance * 100))
         consultadas = por_libro.get(e.titulo, 0)
         nota = (f"Capítulo {e.capitulo + 1} de {e.capitulos} · {pct}% · "
-                f"{e.palabras:,} palabras")
+                f"{ficha.miles(e.palabras)} palabras")
         if consultadas:
             nota += f" · {consultadas} palabra{'s' if consultadas != 1 else ''} consultada{'s' if consultadas != 1 else ''}"
         tarjetas.append(
@@ -2712,10 +2881,16 @@ def construir() -> gr.Blocks:
                                       precision=0, minimum=1, maximum=50,
                                       scale=1,
                                       info="Cuántos libros quieres en la lista")
+                # La etiqueta dice lo que la casilla HACE. Decia "Solo libros
+                # que pueda leer / Deja fuera lo que te quede muy grande o muy
+                # pequeno", y no deja fuera nada: `catalogo.buscar` suma la
+                # afinidad de nivel con peso 0,3 al parecido, o sea que ACERCA
+                # los resultados sin excluir ninguno. Medido: con nivel 0,2
+                # seguian saliendo cuatro B1, y con 2,0 tres B1.
                 ajustar = gr.Checkbox(value=True,
-                                      label="Solo libros que pueda leer",
-                                      info="Deja fuera lo que te quede muy "
-                                           "grande o muy pequeño para tu nivel")
+                                      label="Acercar los resultados a mi nivel",
+                                      info="Pesa tu nivel además del parecido; "
+                                           "no descarta libros")
                 # El aviso va ENCIMA del boton que provoca la espera. Debajo
                 # de los resultados, en un movil, queda fuera de pantalla y se
                 # lee cuando ya no sirve.

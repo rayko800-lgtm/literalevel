@@ -7,12 +7,21 @@ modo que la app se lanza desde la raiz del repositorio -que es lo que espera
 cualquier plataforma de despliegue- sin tener que tocar los imports de los
 siete modulos.
 
-**No renombrar esto a `app.py`.** Chocaria con la carpeta `app/`: Python
-resolveria `import app` al modulo y no al directorio, y a un humano le costaria
-distinguirlos. En un Space de Hugging Face hay que declararlo en el front
-matter del README, que por defecto busca `app.py`:
+En un Space de Hugging Face el punto de entrada se declara en el front matter
+del README, que por defecto busca `app.py`:
 
     app_file: main.py
+
+Aqui decia que renombrarlo a `app.py` "chocaria con la carpeta `app/`". **Es
+falso, y estaba comprobado que lo era**: el Space desplegado lleva los dos -un
+`app.py` en la raiz y el paquete `app/` al lado- y arranca. No chocan porque
+ninguno de los dos hace `import app`: meten `app/` en `sys.path` e importan
+`ui` directamente. Se deja escrito porque el README y este archivo repetian la
+version falsa mientras `AGENTS.md` y `DESPLIEGUE.md` contaban la verdadera.
+
+Lo que si conviene es tener un solo punto de entrada. Hay dos -`main.py` aqui,
+`app.py` en el Space- y son equivalentes; el que corre en produccion es el del
+Space.
 
 Variables de entorno que reconoce:
 

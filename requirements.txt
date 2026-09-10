@@ -5,7 +5,8 @@
 # API. Un `>=` sin techo convierte "clona y ejecuta" en una loteria.
 # Probado de punta a punta con: torch 2.14.0+cpu, transformers 5.16.1,
 # gradio 6.26.0, pandas 3.0.0, numpy 2.4.2, plotly 7.0.0, spacy 3.8.16,
-# sentence-transformers 6.0.1, pypdf 6.17.0, openai 3.8.0.
+# sentence-transformers 6.0.1, pypdf 6.17.0, openai 3.8.0,
+# huggingface_hub 1.30.0.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.4,<3
 transformers>=5.16,<6
@@ -33,3 +34,8 @@ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0
 # La curva de dificultad del libro: linea continua con zoom y degradado.
 # Con gr.BarPlot, un libro de 366 capitulos salia como un bloque azul macizo.
 plotly>=6.0,<8
+
+# catalogo.py y lexicon.py bajan del Hub el modelo y el diccionario con
+# snapshot_download, asi que hace falta explicito y no de rebote por ser
+# dependencia de transformers. Faltaba aqui y estaba en el Space.
+huggingface_hub>=0.25,<2

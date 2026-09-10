@@ -17,6 +17,8 @@ usar credenciales ni hacer llamadas a OpenAI; se omite su prueba de cache.
 """
 from __future__ import annotations
 
+import os
+import shutil
 import sys
 import tempfile
 import time
@@ -196,6 +198,16 @@ def main() -> int:
             if not primera.desde_cache and segunda.desde_cache and t_segunda < t_primera:
                 print(f"OK: cache confirmada. {t_primera:.3f}s -> {t_segunda:.3f}s "
                       f"({t_primera / max(t_segunda, 1e-6):.1f}x mas rapido).\n")
+        elif tiene_clave and not sin_openai:
+            # ESTO ERA EL AGUJERO. Con la clave puesta y la API
+            # contestando mal -o cortada- `definicion_contextual` sale
+            # None, el bloque de arriba se saltaba entero y el guion
+            # imprimia "RESULTADO: TODO OK". Una suite que gasta dinero no
+            # puede callar sobre lo que compra: si hay clave, o hay
+            # explicacion o hay fallo.
+            fallos.append(
+                "hay OPENAI_API_KEY y la explicacion contextual salio "
+                f"vacia; avisos={primera.avisos} sentido={primera.sentido!r}")
         else:
             print("AVISO: sin OPENAI_API_KEY (o sin sentido resuelto) no hubo llamada real "
                   "que cachear; la prueba de velocidad de cache no aplica en este entorno.\n")
@@ -222,6 +234,148 @@ def main() -> int:
         fallos.append(f"degradacion: lanzo excepcion en vez de degradar ({type(e).__name__}: {e})")
     finally:
         consultor_sin_clave.cerrar()
+
+
+    # --- 6) La puerta de pago y la cache, con la red CORTADA -----------
+    #
+    # Esta seccion no llama a OpenAI: sustituye `openai.OpenAI` por un espia
+    # que cuenta lo que se le habria pedido. Va aqui, en el archivo que se
+    # ocupa de `lexicon`, porque son invariantes de `lexicon` y no de `ui`:
+    #
+    #   - `usar_openai=False` tiene que dejar el cliente sin construir. Es LA
+    #     puerta de pago de dentro del modulo, y un banco de mutantes demostro
+    #     que ignorarla no rompia ninguna prueba: la aplicacion desplegada en
+    #     una direccion publica habria pagado por cada visitante.
+    #   - la cache se mira ANTES de pagar, o se paga dos veces lo mismo.
+    #   - y las variantes de la misma palabra -"Fetters", "FETTERS",
+    #     "fetters."- no pueden pagar un audio cada una: la explicacion se
+    #     guarda por lema y acertaba en cache mientras el audio se pedia con la
+    #     palabra tal cual, asi que `ui` devolvia el uso y tts-1 se cobraba.
+    print("=== 6) Puerta de pago y cache, sin red ===")
+    import openai
+
+    llamadas: list[str] = []
+
+    class _EspiaOpenAI:
+        def __init__(self, *a, **k):
+            llamadas.append("ctor")
+
+            class _Speech:
+                @staticmethod
+                def create(**kw):
+                    llamadas.append("tts:" + str(kw.get("input")))
+
+                    class R:
+                        content = b"ID3-falso"
+
+                        @staticmethod
+                        def write_to_file(ruta):
+                            open(ruta, "wb").write(b"ID3-falso")
+                    return R()
+
+            class _Audio:
+                speech = _Speech()
+
+            class _Respuestas:
+                @staticmethod
+                def parse(**kw):
+                    llamadas.append("responses")
+
+                    class Salida:
+                        definicion_contextual = "una atadura"
+                        explicacion_gramatical = "sustantivo en plural"
+                        explicacion_adaptada = "cadenas que atan"
+                        ejemplo_simplificado = "The prisoner wore heavy fetters."
+
+                        def model_dump(self):
+                            return {k: getattr(self, k) for k in (
+                                "definicion_contextual", "explicacion_gramatical",
+                                "explicacion_adaptada", "ejemplo_simplificado")}
+
+                    class R:
+                        output_parsed = Salida()
+                    return R()
+
+            self.audio = _Audio()
+            self.responses = _Respuestas()
+
+    ORACION_ESPIA = ("He tugged at the fetters that held him to the wall, and "
+                     "the iron bit deeper into his wrists.")
+    ruta_espia = Path(tempfile.gettempdir()) / f"lexicon_espia_{uuid.uuid4().hex}.db"
+    dir_audio_espia = Path(tempfile.mkdtemp(prefix="lexicon_audio_espia_"))
+    viejo_openai = openai.OpenAI
+    viejo_dir_audio = lexicon.RUTA_AUDIO_GENERADO
+    viejo_clave = os.environ.get("OPENAI_API_KEY")
+    openai.OpenAI = _EspiaOpenAI
+    # Clave FALSA y a proposito: el cliente que se construye con ella es el
+    # espia de arriba, asi que no sale nada a la red. Sin esto la seccion
+    # dependia de que la maquina tuviera una clave de verdad en `.env`, y en
+    # una copia limpia medía cero peticiones y no comprobaba nada.
+    os.environ["OPENAI_API_KEY"] = "sk-espia-que-no-sale-a-la-red"
+    # Y el audio se cachea tambien como ARCHIVO, en un directorio
+    # compartido: si una ejecucion anterior dejo el mp3, no hay llamada a
+    # tts-1 y la comprobacion de las variantes se cumple sola.
+    lexicon.RUTA_AUDIO_GENERADO = dir_audio_espia
+    consultor_espia = lexicon.ConsultorLexico(ruta_cache=ruta_espia)
+    consultor_espia._sin_clave = False
+    consultor_espia._cliente_openai = None
+    try:
+        # 6.1 La puerta: usar_openai=False no puede pedir NADA.
+        del llamadas[:]
+        r_cerrado = consultor_espia.consultar("fetters", ORACION_ESPIA, nivel=1.0,
+                                             usar_openai=False)
+        pedidas = [c for c in llamadas if c != "ctor"]
+        print(f"  usar_openai=False -> peticiones: {pedidas}")
+        if pedidas:
+            fallos.append(f"la puerta de pago de lexicon no cierra: {pedidas}")
+        if getattr(r_cerrado, "llamadas_de_pago", 0) != 0:
+            fallos.append("con la puerta cerrada, llamadas_de_pago no es 0")
+        if not r_cerrado.sentido:
+            fallos.append("con la puerta cerrada se perdio tambien el diccionario")
+
+        # 6.2 La cache antes de pagar: la misma consulta dos veces paga una.
+        del llamadas[:]
+        primera = consultor_espia.consultar("fetters", ORACION_ESPIA, nivel=1.0,
+                                            usar_openai=True)
+        n_primera = len([c for c in llamadas if c != "ctor"])
+        del llamadas[:]
+        segunda = consultor_espia.consultar("fetters", ORACION_ESPIA, nivel=1.0,
+                                            usar_openai=True)
+        n_segunda = len([c for c in llamadas if c != "ctor"])
+        print(f"  1a consulta: {n_primera} peticiones | 2a identica: {n_segunda}")
+        if n_primera == 0:
+            fallos.append("la 1a consulta con la puerta abierta no pidio nada: "
+                          "el montaje no es fiel")
+        if n_segunda != 0:
+            fallos.append(f"la 2a consulta identica volvio a pagar {n_segunda} "
+                          "peticiones: no se mira la cache antes de pagar")
+        if getattr(primera, "llamadas_de_pago", 0) != n_primera:
+            fallos.append(f"llamadas_de_pago={primera.llamadas_de_pago} y de "
+                          f"verdad hubo {n_primera}")
+        if getattr(segunda, "llamadas_de_pago", -1) != 0:
+            fallos.append("la 2a consulta dice haber pagado y no pago nada")
+
+        # 6.3 Las variantes de la misma palabra no pagan un audio cada una.
+        del llamadas[:]
+        for variante in ("Fetters", "FETTERS", "fetters."):
+            consultor_espia.consultar(variante, ORACION_ESPIA, nivel=1.0,
+                                      usar_openai=True)
+        pedidas = [c for c in llamadas if c != "ctor"]
+        print(f"  'Fetters' / 'FETTERS' / 'fetters.' -> peticiones: {pedidas}")
+        if pedidas:
+            fallos.append(f"las variantes de la misma palabra pagan de nuevo: "
+                          f"{pedidas}")
+        print()
+    finally:
+        consultor_espia.cerrar()
+        openai.OpenAI = viejo_openai
+        lexicon.RUTA_AUDIO_GENERADO = viejo_dir_audio
+        if viejo_clave is None:
+            os.environ.pop("OPENAI_API_KEY", None)
+        else:
+            os.environ["OPENAI_API_KEY"] = viejo_clave
+        ruta_espia.unlink(missing_ok=True)
+        shutil.rmtree(dir_audio_espia, ignore_errors=True)
 
     consultor.cerrar()
 

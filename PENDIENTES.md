@@ -1,29 +1,51 @@
 # Pendientes de LiteraLevel
 
-Actualizado: **10 de septiembre de 2026**.
+Actualizado: **10 de septiembre de 2026**, tarde.
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
 **Si acabas de entrar: lee primero
-[`auditoria/cierre_auditoria_11.md`](auditoria/cierre_auditoria_11.md)** —la
-ronda más productiva del proyecto: 1 crítico, 5 serios y 9 menores, y la razón
-fue pedirle al auditor que **mutara el código**—, después
+[`auditoria/cierre_auditoria_13.md`](auditoria/cierre_auditoria_13.md)** —la
+última: 8 serios, 14 menores y 3 notas cerrados, con banco de mutantes propio—,
+después
+[`auditoria/cierre_auditoria_11.md`](auditoria/cierre_auditoria_11.md) —la más
+productiva del proyecto, y la razón fue pedirle al auditor que **mutara el
+código**—, luego
 [`auditoria/cierre_2026-09-09_noche.md`](auditoria/cierre_2026-09-09_noche.md)
-—el cierre de la décima, hallazgo por hallazgo—, luego
-[`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md) para la
-tanda de la tarde, y luego `git log` desde `aed7751`.
+y [`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md), y luego
+`git log` desde `aed7751`.
 
-Dos avisos del cierre de la noche que valen para cualquiera que toque esto:
-**una prueba que pasa no demuestra que cazaría el fallo** —la del fallo del Hub
-pasaba también con el código roto, y se comprobó mutándolo—, y **la prueba de
-contraste mide variables de la paleta, así que un color clavado en el CSS le es
-invisible**. Los cambios de esta ronda **no están desplegados todavía**.
+Tres avisos que valen para cualquiera que toque esto:
+
+1. **Una prueba que pasa no demuestra que cazaría el fallo.** Hay tres formas de
+   que no pruebe nada, y la tercera la encontró la auditoría 13: el manejador
+   rechaza la entrada **antes** de llegar al código que quieres probar, y la
+   aserción se cumple sobre el vacío. Está en la skill
+   `probar-la-app-de-verdad`, con el banco de mutantes en
+   `scratchpad/mutar.py`.
+2. **La prueba de contraste mide variables de la paleta**, así que un color
+   clavado en el CSS le es invisible.
+3. **Arreglar algo puede quitar una red que otra cosa usaba.** Al limpiar los
+   títulos de capítulo, la portadilla legal de tres libros pasó a contar como
+   capítulo, porque el detector de licencia vivía de ese título sin que nadie lo
+   hubiera escrito. Se vio midiendo lo mismo con el árbol de antes y el de
+   después, no leyendo.
+
+**El Space está a medias:** los cinco módulos que faltaban se subieron
+(`f14bc3a`), pero **lo de la auditoría 13 todavía no**. Se sube con
+`python tools/desplegar_app.py`.
 
 Son muchos commits y tocan archivos compartidos: `app/ui.py`, `app/cuentas.py`
 —con interfaz pública nueva: `problemas()`, `declaradas()` y `devolver()`—,
-`app/paletas.py`, `app/perfil.py`, `app/scoring.py`, `app/ficha.py`,
-`validar_local.py`, `pruebas_extremas.py` y `colab_precalculo.py`.
+`app/paletas.py`, `app/perfil.py` —con `HOLGURA`, que es **la única** holgura de
+recomendación y la lee `ui`—, `app/scoring.py`, `app/ficha.py` —con `miles()`,
+que usan `ui` y `catalogo`—, `app/catalogo.py`, `validar_local.py`,
+`pruebas_extremas.py`, `pruebas_lexicon.py` y `colab_precalculo.py`.
+
+Y dos de Codex, avisados en su commit: `app/reader.py` (la cabecera corrida de
+Gutenberg y los pies de ilustración) y `app/lexicon.py` (`llamadas_de_pago` en
+`ResultadoLexico` y la clave del audio normalizada).
 
 `auditoria/estado_real.md` **está superado**: úsalo como histórico. El estado
 vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
@@ -38,7 +60,7 @@ vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profesor pidió ver. Unos audífonos con micro bastan |
 | **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (561 palabras, 3:44) y compilado en PDF |
 | **Cupo de Astra / Codex** | la auditoría de cifras | Agotado el 9 de sep por la noche: murió tras 9.981 tokens sin emitir nada. **No vuelve hasta el 15 de septiembre a las 8:46.** El encargo está escrito y listo en `auditoria/encargo_7.md`; solo hay que relanzarlo. Comprar créditos lo desbloquea antes |
-| ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada |
+| ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada. El token vive en `C:\Users\laura\.hf_token` y **hay que revocarlo** cuando se acabe de subir |
 | ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Cuesta 7 USD/mes (cuenta Pro, ya pagada). Arranque medido: 31 s hasta `RUNNING`, 32 s hasta que responde |
 | ~~Aceptar la pestaña de Colab~~ | **HECHO** | Conectado a `rayko800@gmail.com`, que es la cuenta con Colab Pro y con `literalevel_bigdata` |
 
@@ -94,7 +116,7 @@ todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **232** | `pruebas_extremas.py` |
+| Pruebas de estrés | **261** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
 | Parejas de contraste | **85** (17 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |

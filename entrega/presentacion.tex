@@ -193,10 +193,10 @@ ordinal es sobre sextiles de CLEAR, no sobre niveles MCER.}
 \begin{tikzpicture}
 \begin{axis}[
   width=0.86\linewidth, height=4.4cm, xbar, bar width=9pt,
-  xmin=0, xmax=1.75, xlabel={Error ordinal medio (menos es mejor)},
+  xmin=0, xmax=1.85, xlabel={Error ordinal medio (menos es mejor)},
   symbolic y coords={trans,emb,conteos},
   ytick={conteos,emb,trans},
-  yticklabels={17 variables de conteo,\emph{Embedding} de 384 d,Transformador},
+  yticklabels={3 variables clásicas,\emph{Embedding} de 384 d,Transformador},
   yticklabel style={font=\scriptsize}, tick style={draw=none},
   xmajorgrids=true, grid style={llgrisclaro},
   axis line style={draw=llgrisclaro}, enlarge y limits=0.3,
@@ -204,7 +204,7 @@ ordinal es sobre sextiles de CLEAR, no sobre niveles MCER.}
   nodes near coords style={font=\scriptsize, color=llgris},
   nodes near coords align={horizontal},
 ]
-\addplot[fill=llgris!25, draw=llgris!60] coordinates {(1.061,conteos)};
+\addplot[fill=llgris!25, draw=llgris!60] coordinates {(1.39,conteos)};
 \addplot[fill=llcian!35, draw=llcian!80] coordinates {(0.93,emb)};
 \addplot[fill=llazul!45, draw=llazul!90] coordinates {(0.67,trans)};
 \end{axis}
@@ -214,7 +214,9 @@ ordinal es sobre sextiles de CLEAR, no sobre niveles MCER.}
 \vspace{-1mm}
 {\footnotesize Subir la potencia del clasificador sobre las mismas variables
 \textbf{no movió el resultado}: un XGBoost de 300 árboles queda por detrás de
-una regresión logística. Cambiar la representación sí.}
+una regresión logística. Cambiar la representación sí. Las tres barras salen de
+\textbf{la misma tanda}: aquí decía 1,06, que es la tanda recalculada, y restarle
+las otras dos es la resta que el documento dice que no se puede hacer.}
 \end{frame}
 
 % ===========================================================================

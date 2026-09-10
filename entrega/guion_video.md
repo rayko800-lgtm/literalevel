@@ -77,8 +77,8 @@ Baskerville* le quedaba justo. Eso es lo que hace LiteraLevel.»
 
 > **En pantalla:** tres cifras grandes, una por línea. Nada más.
 > **1.500 millones** de personas estudian inglés · **la lectura extensiva**
-> es el método con más respaldo · **0 herramientas** te dicen si *ese* libro
-> es para ti.
+> es el método con más respaldo · **0 de los 61.642** libros gratis traen su
+> nivel medido.
 
 «La investigación sobre adquisición de segundas lenguas es bastante clara: leer
 mucho y a un nivel ligeramente por encima del tuyo es de lo que mejor funciona.

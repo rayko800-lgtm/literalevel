@@ -10,7 +10,7 @@ directamente comparables.
 Se ofrece un cuestionario como alternativa para quien no tenga un texto a mano.
 """
 from __future__ import annotations
-import json, os
+import json, math, os
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 
@@ -23,6 +23,15 @@ RUTA_PERFIL_POR_DEFECTO = os.path.join(
 # poco al lector sin frustrarlo (i+1 de Krashen, en la escala publica 0..2).
 RETO = 0.15
 
+# Holgura alrededor del nivel del lector para recomendar: LA UNICA. La usan
+# `rango_recomendado` -que es lo que se le dice al lector- y
+# `catalogo.por_nivel` a traves de `ui.HOLGURA_POR_NIVEL`. Vive aqui, y no en
+# `ui`, porque `perfil.describir` la anuncia antes de que `ui` filtre nada:
+# tenerla en dos sitios ya nos costo dos pestanas prometiendo rangos distintos
+# para el mismo perfil. Los niveles del catalogo son seis valores discretos y
+# 0,25 es lo que garantiza que casi cualquier nivel tenga vecinos.
+HOLGURA = 0.25
+
 
 @dataclass
 class Perfil:
@@ -34,12 +43,29 @@ class Perfil:
 
     @property
     def objetivo(self) -> float:
-        """Dificultad recomendada: algo por encima de lo comodo."""
+        """Dificultad de reto: algo por encima de lo comodo (i+1 de Krashen).
+
+        OJO: **ya no es el techo del rango que se recomienda.** Lo fue, y de
+        ahi salio que "Mi nivel" prometiera un rango asimetrico -nivel-0,10 a
+        nivel+0,15- mientras "Sorprendeme" filtraba con nivel±`HOLGURA`. El
+        rango vive en `rango_recomendado` y sale de `HOLGURA`, que es una sola.
+        Esto se queda porque nombra una idea del documento -leer un escalon por
+        encima- y puede hacer falta para decirla en la interfaz.
+        """
         return round(min(self.nivel + RETO, 2.0), 3)
 
     @property
     def rango_recomendado(self) -> tuple[float, float]:
-        return (round(max(self.nivel - 0.10, 0.0), 3), self.objetivo)
+        """El rango que se ANUNCIA al lector, que es el que se FILTRA.
+
+        Era asimetrico -nivel-0,10 a nivel+0,15- y la pestana "Mi nivel" lo
+        anunciaba mientras "Sorprendeme" filtraba y anunciaba nivel±0,25:
+        con nivel 1,13, una pestana prometia "entre 1.03 y 1.28" y la
+        siguiente "entre 0.88 y 1.38" para el mismo perfil. Un solo numero,
+        aqui, y `ui.HOLGURA_POR_NIVEL` lo lee de aqui.
+        """
+        return (round(max(self.nivel - HOLGURA, 0.0), 3),
+                round(min(self.nivel + HOLGURA, 2.0), 3))
 
     def guardar(self, ruta: str = RUTA_PERFIL_POR_DEFECTO) -> str:
         os.makedirs(os.path.dirname(ruta), exist_ok=True)
@@ -64,6 +90,13 @@ def cargar(ruta: str = RUTA_PERFIL_POR_DEFECTO) -> Perfil | None:
     try:
         p.nivel = float(p.nivel)
     except (TypeError, ValueError):
+        return None
+    # Y FINITO, y dentro de la escala. `float("1e400")` es `inf` y `float("nan")`
+    # es `nan`: los dos pasan el `float()` de arriba sin queja, y con ellos la
+    # pestana decia "Tu nivel de lectura: **inf / 2.00**" y "Lo mas leido entre
+    # **inf** y **2.00**". La escala publica es 0..2 y todo lo que se salga de
+    # ahi es un perfil corrupto.
+    if not math.isfinite(p.nivel) or not 0.0 <= p.nivel <= 2.0:
         return None
     return p
 

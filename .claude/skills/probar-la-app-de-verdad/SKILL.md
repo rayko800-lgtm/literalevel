@@ -360,6 +360,75 @@ imposible» imprimía `ok <generator object …>` y pasaba igual con un
 `IndexError` dentro. Un `if inspect.isgenerator(r): r = list(r)` en el
 envoltorio lo arregla para todas a la vez.
 
+### La tercera forma de que una prueba no pruebe nada
+
+Las dos primeras están arriba: devolver un booleano que nadie asevera, y no
+iterar una generadora. La tercera la encontró un banco de mutaciones **sobre
+pruebas recién escritas para cerrar una auditoría**, y es la más engañosa:
+
+> **El manejador rechaza la entrada antes de llegar al código que quieres
+> probar, y tu aserción se cumple sobre el vacío.**
+
+El caso literal. Para comprobar que `_consultar` recorta la oración antes de
+mandarla a OpenAI, la prueba pasaba una «palabra» de 300 caracteres y miraba lo
+que había recibido un consultor doble:
+
+```python
+list(ui._consultar(None, None, None, "x" * 300, largo, "es", None))
+assert len(vistas.get("oracion", "")) <= ui.LIMITE_ORACION      # se cumple sola
+```
+
+`_consultar` contesta «eso son 300 caracteres seguidos: ninguna palabra inglesa
+pasa de 40» y **vuelve sin llamar al consultor**. `vistas` queda vacío,
+`len("") <= 400` es cierto, y quitar el recorte del código no rompía la prueba.
+
+Dos costumbres que lo cierran:
+
+- **Asevera que el doble se llamó.** `assert "oracion" in vistas` antes de
+  medir lo que vio. Un espía que no registró nada es un espía que no vio nada,
+  no una prueba que pasó.
+- **Exige el valor exacto, no una cota.** `== LIMITE_ORACION` en vez de
+  `<= LIMITE_ORACION`: la cota la cumple el vacío y la igualdad no.
+
+Y lo mismo con los datos de prueba, que fue el otro par de fallos de esa tanda:
+una licencia de Gutenberg escrita **en una sola línea** cuando la de verdad son
+párrafos —el ayudante que quita la primera línea se la llevaba entera—, y un
+epub de prueba cuya portadilla tenía el título sacado del texto legal, así que
+caía por una regla vieja y la nueva no hacía falta. **Un dato de prueba
+demasiado limpio prueba el camino equivocado.**
+
+### Arreglar algo puede quitar una red que otra cosa usaba
+
+En la misma tanda: `reader` ponía como título del capítulo la cabecera corrida
+de Gutenberg («The Project Gutenberg eBook of…»), y eso era un fallo de verdad
+—trece capítulos con el mismo nombre—. Al limpiarlo, **tres libros empeoraron**:
+su portadilla legal dejaba de tener «Project Gutenberg» en el título, y resulta
+que el detector de licencia estaba viviendo de eso sin que nadie lo hubiera
+escrito.
+
+No se vio leyendo. Se vio porque antes de dar el arreglo por bueno se midió lo
+mismo con el código de antes y con el de después, sobre los nueve libros
+cacheados:
+
+```
+antes:  P&P 14 de 15   Grimms 62 de 63   W&P 362 de 366   Alicia-il. 1 de 13
+tras 1: P&P 15 de 15   Grimms 63 de 63   W&P 363 de 366   Alicia-il. 12 de 13
+                       ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  la portadilla entro
+```
+
+**La costumbre:** cuando arregles algo que otra cosa consultaba, corre la
+medición completa con el árbol de antes y con el de después y compara fila por
+fila. `git show HEAD:app/x.py > copia/app/x.py` sobre una copia del árbol cuesta
+un minuto y es la única forma de ver el daño colateral, porque la prueba nueva
+solo mira lo que fuiste a arreglar.
+
+Y el remate: **el primer parche fue un umbral inventado** («es portadilla si le
+quedan menos de 1.200 palabras»), y una prueba lo tumbó por llevarse un capítulo
+de verdad de mil palabras. El criterio bueno no era una longitud, era una
+propiedad: que lo que queda tras quitar la licencia **no sea prosa corrida**. Si
+tienes que elegir un número a ojo para que tus cinco casos caigan bien, casi
+siempre existe una propiedad que no necesita número.
+
 **Y una advertencia sobre el propio banco de mutaciones:** apunta qué prueba
 falla, no solo que la suite falla. En la primera pasada, tres mutantes «se
 cazaban»… por una prueba de rutas que fallaba en la copia por un archivo que no

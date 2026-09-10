@@ -280,11 +280,10 @@ coinciden en 53 de 59 casos, el 89,8 %.
 **Ese filtro es el del análisis, no el que aplica la aplicación**, y conviene no
 confundirlos porque dan resultados distintos. Lo que corre en producción es
 `scoring.continuous_prose`, con otras reglas: al menos 150 palabras, al menos
-cuatro frases, entre 5 y 55 palabras de media por frase, y rechazo si hay dos o
-de una sexta parte de las palabras vive en líneas de maquetado —viñetas o
-líneas de cuatro palabras o menos— o si más del 35 % de las líneas son cortas.
-Coinciden en el propósito —tirar
-menús, listas y tablas— pero no en los umbrales.
+cuatro frases, entre 5 y 55 palabras de media por frase, y rechazo si más del
+17,5 % de las palabras vive en líneas de maquetado —viñetas o líneas de cuatro
+palabras o menos— o si más del 35 % de las líneas son cortas. Coinciden en el
+propósito —tirar menús, listas y tablas— pero no en los umbrales.
 
 **Y aquí hay que contar la secuencia real, porque el filtro no se fijó antes de
 mirar ningún resultado.** El orden fue el contrario: primero se puntuaron los
@@ -860,11 +859,10 @@ no esconderlo en el código.
 **Qué regla se desactiva, y por qué.** El guion de reproducción une las líneas
 del PDF con un espacio, y eso **desactiva una de las cuatro reglas** de
 `scoring.continuous_prose`, la del maquetado de lista: sus dos comprobaciones
-—demasiadas palabras en líneas de maquetado, o más de un tercio de líneas muy
-cortas— necesitan saltos
-de línea para ver nada. Es decir, este validador filtra **más flojo que la
+—más del 17,5 % de las palabras en líneas de maquetado, o más de un tercio de
+líneas muy cortas— necesitan saltos de línea para ver nada. Es decir, este validador filtra **más flojo que la
 propia aplicación**, que sí recibe saltos de párrafo. Medido cambiando una cosa
-y sólo una: con saltos de línea sobreviven **31 textos en vez de 47**, y A1 se
+y solo una: con saltos de línea sobreviven **36 textos en vez de 47**, y A1 se
 queda con uno solo, con lo que la comprobación de orden creciente ya no se puede
 hacer sobre cinco niveles.
 

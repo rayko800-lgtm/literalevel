@@ -130,7 +130,7 @@ No imprime ni un fragmento de los textos: el corpus tiene derechos.
 
 | Archivo | Qué hace |
 |---|---|
-| `main.py` | Punto de entrada. **No renombrar a `app.py`**: chocaría con `app/` |
+| `main.py` | Punto de entrada en local. En el Space el mismo papel lo hace un `app.py` |
 | `app/ui.py` | La interfaz: ocho pestañas en Gradio 6 |
 | `app/scoring.py` | Puntuación de dificultad. Port fiel del v4 |
 | `app/reader.py` | Lector de epub, pdf y txt → capítulos |
@@ -151,7 +151,7 @@ torch.
 
 ```bash
 python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # 232 pruebas que intentan romper la interfaz
+python -X utf8 pruebas_extremas.py     # 261 pruebas que intentan romper la interfaz
 python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
 python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
 python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel

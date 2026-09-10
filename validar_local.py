@@ -43,12 +43,14 @@ def cuerpo(lineas):
     # lineas de cuatro palabras o menos- o si mas de un tercio de las lineas
     # tienen cuatro palabras o menos. (Antes la regla contaba DOS VINETAS en
     # absoluto, y eso tiraba capitulos de novela enteros por una tarjeta de
-    # carrera o unos separadores de escena.) Uniendo con espacio esa regla no se dispara nunca, asi que este validador filtra MAS FLOJO que la app -que
-    # si recibe saltos de parrafo, porque reader._limpiar_html los restaura-.
+    # carrera o unos separadores de escena.) Uniendo con espacio esa regla
+    # no se dispara nunca, asi que este validador filtra MAS FLOJO que la
+    # app -que si recibe saltos de parrafo, porque reader._limpiar_html los
+    # restaura-.
     #
     # Medido cambiando el espacio por salto de linea:
     #     con espacio  47 textos, cinco niveles, medias crecientes
-    #     con salto    31 textos, A1 se queda en 1 y la validacion FALLA
+    #     con salto    36 textos, A1 se queda en 1 y la validacion FALLA
     #
     # Se conserva el espacio porque es lo que reproduce el Cuadro 11 del `.md` -16 del PDF-, del
     # documento -la reproduccion local- y porque cambiarlo dejaria el resultado
