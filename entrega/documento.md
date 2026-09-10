@@ -1032,6 +1032,33 @@ y vuelta—, así que con seis hilos esas esperas se solapan. Seis y no treinta 
 propósito: el espejo lo mantiene alguien de forma gratuita, y cada hilo conserva
 su pausa.
 
+**Después se buscó una vía más rápida, y la decisión que importa no fue
+técnica.** El archivo único de Gutenberg —11,3 GB, una petición en lugar de
+treinta y tres mil— parecía el atajo evidente y no lo era: medido en dos
+máquinas distintas, el espejo entrega **0,29 MB/s**, o sea **casi once horas**,
+y con seis conexiones simultáneas sube a 0,46 y rechaza la séptima. No es el
+ancho de banda de nadie: es un servidor que mantiene un voluntario. La lección
+es del mismo tipo que las dos anteriores: **un atajo no es un atajo hasta que
+se cronometra**.
+
+La vía rápida existe y también se midió: pedir los libros uno a uno a
+`www.gutenberg.org` con treinta y dos hilos da **3.362 libros por minuto**,
+unos nueve minutos para lo que faltaba. **Se descartó.** La política del sitio
+lo dice sin ambigüedad —«está pensado para usuarios humanos; cualquier uso
+aparente de herramientas automatizadas resultará en el bloqueo de su dirección
+IP»— y autoriza tres caminos: un espejo privado, el punto de acceso
+`/robot/harvest` con dos segundos de espera entre ficheros, o el catálogo. Que
+una puerta esté abierta y sea rápida no la convierte en una entrada.
+
+Lo que sí resuelve el problema es no pedirle nada a Gutenberg.
+`common-pile/project_gutenberg` es un volcado ya publicado de esos mismos
+textos de dominio público, servido por una red de distribución de contenidos.
+Medido sobre el primer fragmento: **8,0 MB/s**, unos **veintidós minutos** para
+los 10,5 GB, y el identificador de cada documento **es** el número de Gutenberg
+—239 de 239 cruzaron con el catálogo oficial en la comprobación, sin una sola
+excepción—. Veintisiete veces más rápido que el archivo único, y con la
+infraestructura de los voluntarios intacta.
+
 ### 8.4 Dos decisiones de producto que merecen argumento
 
 **Se ofrecen dos velocidades de análisis y siempre se dice cuál se usó.** El

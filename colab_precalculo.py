@@ -225,7 +225,32 @@ if popularidad:
         print(f"  {int(popularidad.get(n, 0)):>7} descargas · {cab.get(n, '?')}")
 
 # %%
-# --- 6b. La descarga, de un tirón ----------------------------------------
+# --- 6b. La descarga de un tirón: MEDIDA, y no sirve ---------------------
+# ESTA CELDA SE QUEDA COMO REGISTRO DE LO QUE SE PROBÓ. La que hay que correr
+# es la 6c.
+#
+# La idea era buena y el razonamiento también: una petición en lugar de
+# treinta y tres mil, y descomprimir en el disco local del entorno en vez de
+# escribir sesenta mil ficheros en Drive. Lo que no se midió antes de
+# construirla fue LA VELOCIDAD DE LA FUENTE, que es lo único que decidía si
+# funcionaba.
+#
+#     medido el 9 de septiembre de 2026, en dos máquinas distintas:
+#     gutenberg.pglaf.org   0,29 MB/s   ->  11,3 GB = 10,8 horas
+#     aleph.gutenberg.org   0,16 MB/s
+#
+# Con seis conexiones simultáneas sube a ~0,46 MB/s y el servidor rechaza a
+# partir de la sexta. No es el ancho de banda de nadie: es el espejo, que lo
+# mantiene un voluntario.
+#
+# Y encima la descarga NO es reanudable tal como está escrita: `open(...,"wb")`
+# empieza de cero. Un corte de luz a las dos horas se lleva las dos horas.
+#
+# Se cambió un cuello de botella por otro sin medir el nuevo. La lección, que
+# vale para cualquier atajo: un atajo no es un atajo hasta que se cronometra.
+#
+# Lo que decía esta celda cuando se escribió:
+#
 # Project Gutenberg publica **todos sus .txt en un solo archivo**, que se
 # regenera cada semana:
 #
@@ -405,6 +430,123 @@ print(f"\nTEXTOS LISTOS PARA ANALIZAR: {disponibles_ahora:,} "
 print(f"estan en {LOCAL} (disco del entorno, no Drive)")
 print("Los resultados si van a Drive: son seis ficheros, no sesenta mil.")
 
+
+# %%
+# --- 6c. La descarga que sí funciona: por Hugging Face --------------------
+# 27 veces más rápida que la 6b, y con una ventaja que no es de velocidad: no
+# le pide NADA a los servidores de Project Gutenberg.
+#
+# Esto último importa y conviene decirlo entero. La política de Gutenberg es
+# explícita —«The Project Gutenberg website is intended for human users only.
+# Any perceived use of automated tools ... will result in a temporary or
+# permanent block of your IP address»— y las únicas vías que autoriza son un
+# espejo privado, el punto de acceso `/robot/harvest` con dos segundos de
+# espera entre ficheros, o el catálogo. Bajar libro a libro con treinta y dos
+# hilos contra www.gutenberg.org es rapidísimo, y es exactamente lo que esa
+# política prohíbe: se midió, daba 3.362 libros/min, y se descartó por eso.
+#
+# `common-pile/project_gutenberg` es un volcado ya publicado de esos mismos
+# textos, servido por el CDN de Hugging Face. Comprobado sobre el shard 0:
+#
+#     30 shards de ~350 MB          = ~10,5 GB
+#     8,0 MB/s medidos desde casa   = ~22 min (desde Colab debería ir más)
+#     el campo `id` ES el Text# de Gutenberg: 239 de 239 cruzaron con
+#     pg_catalog.csv en la prueba, sin una sola excepción
+#     `metadata.language` separa el inglés
+#
+# Se descomprime AL VUELO y solo se escriben en disco los libros que faltan,
+# así que no hacen falta los 10,5 GB en `/content`: solo lo que se guarda.
+import gzip
+import json
+import shutil
+import urllib.request
+
+REPO_HF = "common-pile/project_gutenberg"
+SHARDS_HF = 30
+LOCAL = Path("/content/gutenberg_txt")
+LOCAL.mkdir(parents=True, exist_ok=True)
+
+# El token solo hace falta si el repositorio pasara a pedir identificación;
+# hoy es público. Si está en el entorno, se usa.
+_TOK = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN") or ""
+_CAB = {"Authorization": "Bearer " + _TOK} if _TOK else {}
+
+
+def _ids_en_ingles() -> set:
+    """Los Text# en inglés del catálogo oficial. El catálogo crece: el 8 de
+    septiembre eran 61.642 y hoy pueden ser algunos más."""
+    filas = pd.read_csv(RUTA_CAT, low_memory=False)
+    en = filas[(filas["Language"].astype(str).str.startswith("en"))
+               & (filas["Type"].astype(str) == "Text")]
+    return {int(x) for x in en["Text#"] if str(x).isdigit()}
+
+
+def bajar_de_hugging_face(quiero: set, tope_gb: float = 40.0) -> int:
+    """Escribe en LOCAL los libros de `quiero` que aún no estén. Devuelve
+    cuántos escribió."""
+    ya = {int(p.stem[2:]) for p in LOCAL.glob("pg*.txt") if p.stem[2:].isdigit()}
+    faltan = quiero - ya
+    print(f"quiero {len(quiero):,} · ya en disco {len(ya):,} · faltan {len(faltan):,}")
+    if not faltan:
+        return 0
+
+    escritos, vistos, t0 = 0, 0, time.time()
+    for k in range(SHARDS_HF):
+        if shutil.disk_usage("/content").free < tope_gb * 1e9 * 0.1:
+            print("  se acaba el disco local, paro aquí")
+            break
+        url = (f"https://huggingface.co/datasets/{REPO_HF}/resolve/main/"
+               f"v0/documents/{k:05d}_pg.jsonl.gz")
+        try:
+            req = urllib.request.Request(url, headers=_CAB)
+            with urllib.request.urlopen(req, timeout=180) as r:
+                # `gzip.GzipFile` sobre la respuesta: se descomprime según
+                # llega, sin guardar el shard entero en ninguna parte.
+                for linea in gzip.GzipFile(fileobj=r):
+                    vistos += 1
+                    try:
+                        f = json.loads(linea)
+                    except ValueError:
+                        continue
+                    if (f.get("metadata") or {}).get("language") != "en":
+                        continue
+                    ident = str(f.get("id") or "")
+                    if not ident.isdigit() or int(ident) not in faltan:
+                        continue
+                    texto = f.get("text") or ""
+                    if len(texto) < 2000:
+                        continue
+                    (LOCAL / f"pg{int(ident)}.txt").write_text(texto, encoding="utf-8")
+                    escritos += 1
+        except Exception as e:
+            print(f"  shard {k}: {type(e).__name__} {e}")
+            continue
+        v = time.time() - t0
+        print(f"  shard {k + 1}/{SHARDS_HF} · {escritos:,} libros escritos · "
+              f"{vistos:,} leídos · {v / 60:.1f} min")
+    print(f"LISTO: {escritos:,} libros nuevos en {(time.time() - t0) / 60:.1f} min")
+    return escritos
+
+
+QUIERO = _ids_en_ingles()
+print(f"catálogo: {len(QUIERO):,} libros en inglés")
+bajar_de_hugging_face(QUIERO)
+
+# Y los que ya estuvieran en Drive de sesiones anteriores se traen al disco
+# local, que es donde la celda 10 va a leerlos.
+_ya_drive = list(TEXTOS.glob("pg*.txt"))
+if _ya_drive:
+    print(f"copiando {len(_ya_drive):,} textos de Drive al disco local ...")
+    _t0 = time.time()
+    for _p in _ya_drive:
+        _d = LOCAL / _p.name
+        if not _d.exists():
+            shutil.copyfile(_p, _d)
+    print(f"  {(time.time() - _t0) / 60:.1f} min")
+
+TEXTOS_LISTOS = LOCAL
+print(f"\ntextos listos en {TEXTOS_LISTOS}: "
+      f"{sum(1 for _ in TEXTOS_LISTOS.glob('pg*.txt')):,} ficheros")
 
 # %%
 # --- 7. El modelo v4 en la GPU -------------------------------------------
