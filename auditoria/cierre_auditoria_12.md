@@ -104,6 +104,56 @@ Y dos que devolvían un valor que nunca es `False` —un número y una tupla—:
 
 ---
 
+## Segunda vuelta: cerrado también lo que quedaba abierto
+
+Miguel pidió cerrarlo todo, así que se cerraron los menores que la primera
+vuelta había dejado anotados.
+
+- **M1.** El cupo se cobraba en tres caminos sin gastar nada: resumen sin
+  cliente de OpenAI, consulta sin diccionario y voz sin transcripción. Los tres
+  devuelven ahora el uso. El primero además se sabía **antes** de cobrar.
+- **M2.** `--ll-lector-texto` ya se pinta: `#id` con `!important` gana a la
+  regla `.prose *` por especificidad, así que no hace falta debilitar la regla
+  que sostiene el crítico C1. Igual en `#ll-voz`.
+- **M3.** La caché de Gutenberg mira las dos extensiones. Un libro bajado como
+  `.txt` se volvía a pedir a la red —tres intentos— cada vez que se abría.
+- **M6.** La prueba de colores vigilaba ocho selectores, y por eso sobrevivían
+  mutantes que clavaban un color en cualquier otro sitio, incluido
+  `button.primary{background:#2e9cc4 !important}` —el botón que más se pulsa—.
+  Se invirtió la regla: **cero colores literales** en el CSS de `ui.py` y en el
+  generador de `paletas.py`; los colores viven en las definiciones de las
+  paletas y en ningún otro sitio.
+- **M7.** `puntuador()` se evaluaba antes de validar el texto, así que pegar una
+  lista cargaba 328 MB para leer «esto no parece prosa». El filtro va delante y
+  el mensaje al lector no cambia: es el mismo `continuous_prose` + `_MOTIVOS`.
+  De paso la suite dejó de cargar el modelo en esa prueba.
+- **S4.** El enlace de la tarjeta del modelo ya apunta al Space en el archivo
+  local. **Publicarlo sigue necesitando el token de Hugging Face.**
+
+**Y un fallo propio, encontrado mutando.** La primera versión de la prueba
+«ningún color literal en el CSS» quitaba «comentarios de Python» con
+`^\s*#.*$`, y un selector de id empieza exactamente por `#`: borraba **todas**
+las reglas de id —o sea casi todo el CSS— y daba cero literales midiendo el
+vacío. Pasaba en verde y no probaba nada. Lo destapó el mutante que clava un
+color en `#ll-cuaderno .ll-p`, que sobrevivía. Misma lección de siempre: una
+prueba que pasa no demuestra nada hasta que se la mide contra el código roto.
+
+Los seis mutantes de esta vuelta caen ahora **por su propia prueba**:
+
+| Mutante | Lo caza |
+|---|---|
+| Color clavado en el cuaderno | «ningún color literal en el CSS» |
+| `button.primary` clavado | ídem |
+| `label.selected` con el color del cuerpo | ídem (comprobando **dentro** de su regla: buscarlo en todo el CSS lo daba por bueno) |
+| Quitar la regla `.prose` de la paleta | ídem |
+| `devolver` que no hace nada | «no se cobra lo que no se gasta» |
+| Caché que solo mira `.epub` | «un txt ya descargado acierta en la caché» |
+
+**232 pruebas.** Siete suites en verde, cero llamadas de pago, PDF de 45
+páginas sin referencias rotas.
+
+---
+
 ## Lo que queda abierto, a propósito
 
 - **S4.** La tarjeta pública del modelo en Hugging Face enlaza «LiteraLevel» a

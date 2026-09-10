@@ -574,6 +574,15 @@ def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
     if not (texto or "").strip():
         pide = "Pega un fragmento que leas sin dificultad."
         return p_actual, pide, pide
+    # El filtro ANTES de `puntuador()`. Python evalua los argumentos antes de
+    # llamar, asi que pegar una lista o una carta de menu obligaba a cargar los
+    # 328 MB del modelo para leer "esto no parece prosa". El mensaje al lector
+    # no cambia: es el mismo `continuous_prose` + `_MOTIVOS` que aplica
+    # `puntuar`, solo que consultado antes de pagar la carga.
+    ok, motivo = scoring.continuous_prose(texto)
+    if not ok:
+        aviso = _aviso(scoring._MOTIVOS.get(motivo, motivo))
+        return p_actual, aviso, aviso
     try:
         p = perfil_mod.desde_muestra(texto, puntuador(), nombre=nombre or "")
         p.guardar(_archivo_lector("perfil.json", peticion))
@@ -680,8 +689,14 @@ def _descargar_gutenberg(id_libro: str) -> str:
 
     RUTA_LIBROS.mkdir(parents=True, exist_ok=True)
     destino = RUTA_LIBROS / f"pg{num}.epub"
-    if destino.exists() and destino.stat().st_size > 2000:
-        return str(destino)
+    # Se miran las DOS extensiones. Cuando el epub falla se baja el `.txt`, y
+    # esta comprobacion solo miraba el `.epub`: un libro ya descargado como
+    # texto no acertaba nunca en la cache y se volvia a pedir a Gutenberg las
+    # tres veces, cada vez que el lector lo abria.
+    for ext_cache in (".epub", ".txt"):
+        cacheado = destino.with_suffix(ext_cache)
+        if cacheado.exists() and cacheado.stat().st_size > 2000:
+            return str(cacheado)
 
     fuentes = [
         (f"https://www.gutenberg.org/ebooks/{num}.epub.noimages", ".epub"),
@@ -846,8 +861,15 @@ _CSS_LECTOR = """<style>
      dejaba esa variable muerta en las cinco paletas. Heredaba `--ll-texto`,
      asi que se leia; pero la paleta declara un color propio para el cuerpo
      del libro y era el que no se usaba nunca. */
-  color:var(--ll-lector-texto);
+  /* `!important` porque `gr.HTML` pinta esto dentro de un `div.prose`, y la
+     regla `.prose *{color:var(--ll-texto) !important}` de la paleta -la que
+     sostiene el arreglo del critico C1- le ganaba. `--ll-lector-texto` volvia
+     a ser codigo muerto: medido en el navegador, el color pintado era
+     `--ll-texto`. Un `#id` con `!important` gana por especificidad sin tocar
+     la regla de `.prose`, que sigue haciendo su trabajo en todo lo demas. */
+  color:var(--ll-lector-texto) !important;
   text-align:left}
+#ll-lector p{color:var(--ll-lector-texto) !important}
 #ll-lector p{margin:0 0 1.05em;max-width:66ch}
 #ll-lector p:first-child{margin-top:0}
 /* El amarillo estaba CLAVADO aqui, y este bloque va despues del de arriba
@@ -1486,6 +1508,11 @@ def _de_que_trata(libro, peticion: gr.Request = None):
                          "El resto de la ficha no lo necesita y sigue arriba.")
             return
         if cliente is None:
+            # Sin cliente no hay llamada, asi que el uso cobrado por
+            # `_puede_pagar` se devuelve. Este caso ademas se sabe ANTES de
+            # cobrar y no tiene excusa: al lector se le descontaba un uso de su
+            # cupo por pulsar un boton que ni salio a la red.
+            cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
             yield ("Para el resumen hace falta la clave de OpenAI. Todo lo "
                    "demás de la ficha —lo que está contado sobre el texto— "
                    "ya lo tienes arriba y no necesita clave.")
@@ -1968,6 +1995,10 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma,
                                   usar_openai=puede)
     except (FileNotFoundError, OSError) as e:
+        # Si el diccionario no esta, no hubo consulta ni llamada: se devuelve el
+        # uso que `_puede_pagar` acaba de cobrar. Antes el lector perdia un uso
+        # de su cupo por un fallo que no era suyo.
+        cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
         yield _aviso(e), "", gr.update(visible=False)
         return
     # Si la puerta de pago dijo que no, hay que decir POR QUE. Antes
@@ -2070,7 +2101,9 @@ _CSS_VOZ = """<style>
    corrigio en `#ll-lector` y que aqui se quedo sin corregir. */
 #ll-voz{padding:1.1rem 1.3rem;border:1px solid var(--ll-borde);
   border-radius:10px;font-family:Georgia,"Times New Roman",serif;
-  font-size:21px;line-height:2.1;color:var(--ll-lector-texto)}
+  /* `!important` por lo mismo que en `#ll-lector`: esto vive dentro de un
+     `div.prose` y la regla de la paleta le ganaba. */
+  font-size:21px;line-height:2.1;color:var(--ll-lector-texto) !important}
 #ll-voz .ll-w{padding:.12em .34em;border-radius:5px;margin:0 .06em;
   border-bottom:3px solid transparent}
 /* Verde de acierto y rojo de fallo. Salen de la paleta y no del CSS porque
@@ -2143,11 +2176,16 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                  ruta=_archivo_lector("voz.db", peticion))
     except Exception as e:
+        cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
         return "", _aviso(e), gr.update(visible=False)
 
     ev = s.evaluacion
     L = [f"## {ev.puntuacion:.0f} / 100"]
     if not s.transcripcion_ok:
+        # Sin transcripcion no hubo whisper, o sea que no se gasto nada: se
+        # devuelve el uso. Y ademas la puntuacion no vale, asi que cobrar por
+        # esto era cobrar dos veces mal.
+        cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
         L.append("[!] No se pudo transcribir (sin `OPENAI_API_KEY` o sin red). "
                  "La puntuación de arriba no es válida.")
     elif not ev.palabras_falladas:

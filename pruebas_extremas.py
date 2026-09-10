@@ -1373,6 +1373,108 @@ prueba("el CSS no clava los colores que ya fallaron",
        _el_css_no_clava_los_colores_que_ya_fallaron)
 
 
+def _ningun_color_literal_en_el_css():
+    """NINGUN color escrito a mano en el CSS de la aplicacion. Cero.
+
+    La prueba de aqui arriba vigila ocho selectores concretos, y por eso
+    sobrevivian mutantes que clavaban un color en cualquier OTRO sitio: el
+    fondo de una tarjeta del cuaderno, el de la estanteria, el degradado del
+    titulo, y -el peor- `button.primary{background:#2e9cc4 !important}`, o sea
+    el boton que mas se pulsa de la aplicacion, con la pareja `boton-alto` de
+    la prueba de contraste midiendo una variable que ya no se pintaba.
+
+    Vigilar selectores de uno en uno es perder siempre: hay que invertir la
+    regla. Los colores viven en `PALETAS[...]["vars"]` de `paletas.py` y en
+    ningun otro sitio; el CSS solo los referencia con `var(--ll-...)`. Hoy
+    `ui.py` cumple eso al pie de la letra -cero literales- y el generador
+    `css()` tambien, asi que la invariante se puede exigir entera.
+    """
+    import re
+    PERMITIDOS = {
+        # Transparencias deliberadas: el lienzo de la grafica y la leyenda van
+        # transparentes PARA que se vea el fondo de la paleta, que es lo
+        # contrario de un color clavado.
+        "rgba(0,0,0,0)", "transparent",
+    }
+    malos = []
+    for rel, trozo in (("app/ui.py", None), ("app/paletas.py", "def css(")):
+        t = (pathlib.Path(__file__).parent / rel).read_text(encoding="utf-8")
+        if trozo:
+            # Solo el GENERADOR, no las definiciones de las paletas: ahi los
+            # colores literales son el contenido legitimo. Aqui el CSS vive
+            # dentro de cadenas, asi que una linea que empiece por `#` si es un
+            # comentario de Python.
+            t = t[t.index(trozo):]
+            t = re.sub(r"^\s*#.*$", " ", t, flags=re.M)
+        else:
+            # Solo los bloques <style>. Y OJO: aqui NO se pueden quitar
+            # "comentarios de Python" por empezar la linea con `#`, porque un
+            # selector de id empieza exactamente asi. Al hacerlo, este mismo
+            # comprobador borraba TODAS las reglas de id -o sea casi todo el
+            # CSS- y daba cero literales midiendo el vacio. Se descubrio
+            # mutando: clavar un color en `#ll-cuaderno .ll-p` no lo cazaba.
+            t = "\n".join(re.findall(r"<style>.*?</style>", t, re.S))
+        t = re.sub(r"/\*.*?\*/", " ", t, flags=re.S)     # comentarios CSS
+        for c in _colores_literales(t):
+            if c.replace(" ", "") not in PERMITIDOS:
+                malos.append(f"{rel}: {c}")
+    # Y las dos reglas que sostienen el arreglo del critico: si desaparecen, el
+    # texto vuelve al color del tema del navegador -1,1:1 medido en el Space-.
+    css = paletas_mod.css("hielo")
+    if ".prose" not in css:
+        malos.append("paletas.py: falta la regla de .prose")
+    # Y DENTRO de su regla, no en cualquier parte del CSS: `--ll-boton-texto`
+    # aparece tambien en las variables del tema, asi que buscarlo en todo el
+    # CSS daba por bueno un `label.selected{color:var(--ll-texto)}`, que es el
+    # 1,03:1 medido en el Space. Comprobado mutando.
+    regla = re.search(r"label\.selected[^{]*\{([^}]*)\}", css)
+    if regla is None:
+        malos.append("paletas.py: falta la regla label.selected")
+    elif "--ll-boton-texto" not in regla.group(1):
+        malos.append(f"paletas.py: label.selected no usa el texto del boton: "
+                     f"{regla.group(1)[:60]}")
+    assert not malos, malos
+    return "cero colores literales en el CSS; solo var(--ll-...)"
+
+
+prueba("ningun color literal en el CSS", _ningun_color_literal_en_el_css)
+
+
+def _un_txt_ya_descargado_acierta_en_la_cache():
+    """La cache de Gutenberg mira las DOS extensiones, no solo `.epub`.
+
+    Cuando el epub falla se baja el `.txt`, pero la comprobacion de cache solo
+    miraba el `.epub`: un libro ya descargado como texto no acertaba nunca y se
+    volvia a pedir a Gutenberg -tres intentos de red- cada vez que el lector lo
+    abria. Se comprueba que con el `.txt` en la carpeta no se toca la red.
+    """
+    import urllib.request
+    ruta = pathlib.Path(ui.RUTA_LIBROS)
+    ruta.mkdir(parents=True, exist_ok=True)
+    txt = ruta / "pg99999.txt"
+    txt.write_bytes(b"x" * 5000)
+    intentos = []
+
+    def espia(*a, **k):
+        intentos.append(a[:1])
+        raise OSError("espia: la red no se debe tocar")
+
+    real = urllib.request.urlopen
+    urllib.request.urlopen = espia
+    try:
+        devuelto = ui._descargar_gutenberg("PG99999")
+    finally:
+        urllib.request.urlopen = real
+        txt.unlink(missing_ok=True)
+    assert not intentos, f"toco la red {len(intentos)} veces teniendo el .txt"
+    assert devuelto.endswith(".txt"), devuelto
+    return "con el .txt en cache no se toca la red"
+
+
+prueba("un txt ya descargado acierta en la cache",
+       _un_txt_ya_descargado_acierta_en_la_cache)
+
+
 def _todos_los_manejadores_reciben_la_peticion():
     """Declarar `peticion: gr.Request` no basta: Gradio tiene que inyectarla.
 
@@ -1874,6 +1976,50 @@ def _voz_y_sinopsis_respetan_su_tope():
 
 
 prueba("voz y sinopsis respetan su tope", _voz_y_sinopsis_respetan_su_tope)
+
+
+def _no_se_cobra_lo_que_no_se_gasta():
+    """`consumir` cobra ANTES de llamar, asi que hay que devolver si no se llamo.
+
+    Y tiene que hacerlo en TODOS los caminos, no en uno: se reprodujeron tres
+    -resumen sin cliente, consulta sin diccionario y voz sin transcripcion- que
+    dejaban al lector con tres usos menos y cero llamadas a la API. `devolver`
+    existia y solo se usaba en el acierto de cache.
+
+    Se comprueba tambien el suelo en cero y que `consumir` deshaga el
+    incremento que rechaza: cuatro mutantes de esa contabilidad sobrevivian.
+    """
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "invitado:LLAVE-B:3"
+    base = ui.BASE_DATOS_LECTOR
+    cta = cuentas_mod.validar("invitado:LLAVE-B")
+    try:
+        # Suelo en cero: devolver sin haber cobrado no puede dejar negativo.
+        for _ in range(3):
+            cuentas_mod.devolver(base, "invitado:LLAVE-B")
+        assert cuentas_mod.gastado(base, "invitado") == 0, "bajo de cero"
+        # Cobrar y devolver deja el contador donde estaba.
+        cuentas_mod.consumir(base, "invitado:LLAVE-B")
+        assert cuentas_mod.gastado(base, "invitado") == 1
+        cuentas_mod.devolver(base, "invitado:LLAVE-B")
+        assert cuentas_mod.gastado(base, "invitado") == 0, "no devolvio"
+        # Y al rechazar por tope, el contador no sigue subiendo.
+        for _ in range(3):
+            cuentas_mod.consumir(base, "invitado:LLAVE-B")
+        antes = cuentas_mod.gastado(base, "invitado")
+        for _ in range(5):
+            cuentas_mod.consumir(base, "invitado:LLAVE-B")
+        assert cuentas_mod.gastado(base, "invitado") == antes == cta.tope, \
+            f"el contador paso del tope: {cuentas_mod.gastado(base, 'invitado')}"
+        return f"cobra, devuelve, no baja de cero y se detiene en {cta.tope}"
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+
+
+prueba("no se cobra lo que no se gasta", _no_se_cobra_lo_que_no_se_gasta)
 prueba("la practica de voz pide codigo",
        lambda: _con_puerta(
            lambda: "entres con tu perfil" in str(ui._practicar("x.wav", "hello there")[1])))
