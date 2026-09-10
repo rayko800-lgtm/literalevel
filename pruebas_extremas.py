@@ -44,6 +44,7 @@ config_mod.cargar = lambda *a, **k: None
 os.environ.pop("OPENAI_API_KEY", None)
 import ficha as ficha_mod  # noqa: E402
 import reader  # noqa: E402
+import perfil as perfil_mod  # noqa: E402
 import ui  # noqa: E402
 
 FALLOS: list[str] = []
@@ -566,6 +567,106 @@ def _dos_lectores_no_se_ven_los_datos():
 prueba("dos lectores no se ven los datos", _dos_lectores_no_se_ven_los_datos)
 
 
+def _los_datos_sobreviven_a_recargar():
+    """Recargar la pagina NO puede estrenar carpeta.
+
+    Es lo que fallaba y ninguna prueba veia: Gradio estrena `session_hash` en
+    cada carga, asi que el lector fijaba su nivel, leia "Guardado", pulsaba F5
+    y volvia a "Todavia no has fijado tu nivel". La prueba de aislamiento
+    pasaba porque usa dos hashes FIJOS: no probaba lo que hace una persona.
+
+    Ahora la identidad la pone el navegador y vive en `localStorage`. Aqui se
+    simula una recarga: misma identidad, `session_hash` distinto.
+    """
+    def dentro():
+        ui._LECTOR_POR_SESION.clear()
+        claves = ui._claves_cuestionario()
+
+        antes = _Peticion("sesion-antes-de-F5")
+        ui._registrar_lector("lector-que-recarga", antes)
+        ui._desde_cuestionario(None, "Nadia", antes, *([1] * len(claves)))
+        p1 = ui._perfil_inicial(antes)[0]
+        assert p1 is not None and p1.nombre == "Nadia", "no guardo"
+
+        # F5: Gradio da un session_hash NUEVO, el navegador la misma identidad.
+        despues = _Peticion("sesion-despues-de-F5")
+        assert despues.session_hash != antes.session_hash
+        ui._registrar_lector("lector-que-recarga", despues)
+        p2 = ui._perfil_inicial(despues)[0]
+        assert p2 is not None, "tras recargar, el perfil se perdio"
+        assert p2.nombre == "Nadia", f"recupero otro perfil: {p2.nombre}"
+        assert ui._dir_lector(antes) == ui._dir_lector(despues),             "misma identidad y carpetas distintas"
+
+        # Y otro navegador sigue sin ver nada de este.
+        otro = _Peticion("sesion-de-otro")
+        ui._registrar_lector("otro-lector-distinto", otro)
+        assert ui._dir_lector(otro) != ui._dir_lector(antes), "se mezclan"
+        return "sobrevive a recargar y sigue separado de otro navegador"
+    return _con_nube(dentro)
+
+
+prueba("los datos sobreviven a recargar", _los_datos_sobreviven_a_recargar)
+
+
+def _sin_localStorage_no_revienta():
+    """En una ventana privada `localStorage` LANZA, y el JS devuelve "".
+
+    Si eso rompiera el registro, la pagina entera arrancaria en error. Tiene
+    que caer al `session_hash` de siempre, que es lo que habia antes.
+    """
+    def dentro():
+        ui._LECTOR_POR_SESION.clear()
+        pet = _Peticion("sesion-sin-almacen")
+        for vacio in ("", None):
+            ui._registrar_lector(vacio, pet)
+        d = ui._dir_lector(pet)
+        assert d.name == "sesion-sin-almacen", d.name
+        # Y una identidad con `../` no puede sacar la carpeta de su sitio.
+        ui._registrar_lector("../../etc/passwd", pet)
+        d = ui._dir_lector(pet)
+        base = (ui.BASE_DATOS_LECTOR / "lectores").resolve()
+        assert base in d.resolve().parents, f"escapo: {d.resolve()}"
+        assert ".." not in d.name and "/" not in d.name, d.name
+        return "sin almacen cae en la sesion, y un ../ no escapa"
+    return _con_nube(dentro)
+
+
+prueba("sin localStorage no revienta", _sin_localStorage_no_revienta)
+
+
+def _el_arranque_averigua_quien_es_antes_de_leer():
+    """`_perfil_inicial` y `_reanudar` NO pueden ir sueltos en `demo.load`.
+
+    Varios `demo.load` corren a la vez. Si leen los datos antes de que el
+    registro de identidad haya llegado, leen la carpeta equivocada -o la de
+    "anonimo"- y el lector ve su estanteria vacia justo despues de guardar. El
+    orden se garantiza encadenando con `.then()`, y eso es lo que se comprueba
+    aqui: en el codigo, porque para verlo correr haria falta el bucle de
+    eventos de Gradio.
+    """
+    import re
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    malos = []
+    for quien in ("_perfil_inicial", "_reanudar"):
+        if re.search(rf"demo\.load\(\s*{quien}\b", fuente):
+            malos.append(f"{quien} va suelto en demo.load, sin encadenar")
+        if not re.search(rf"\.then\(\s*{quien}\b", fuente):
+            malos.append(f"{quien} no esta encadenado con .then()")
+    i_reg = fuente.find("demo.load(_registrar_lector")
+    i_perfil = fuente.find(".then(_perfil_inicial")
+    if i_reg < 0:
+        malos.append("el registro de identidad no se cablea en demo.load")
+    elif not (0 < i_reg < i_perfil):
+        malos.append("el registro no va ANTES de leer el perfil")
+    assert not malos, malos
+    return "el arranque registra la identidad y despues lee los datos"
+
+
+prueba("el arranque averigua quien es antes de leer",
+       _el_arranque_averigua_quien_es_antes_de_leer)
+
+
 def _los_manejadores_que_guardan_pasan_la_peticion():
     """Un manejador cableado que toque datos del lector TIENE que anotar
     `gr.Request`; si no, Gradio no se la inyecta y escribe en `anonimo/`.
@@ -580,8 +681,13 @@ def _los_manejadores_que_guardan_pasan_la_peticion():
     fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
         encoding="utf-8")
     # Los nombres que se cablean a un evento de Gradio.
+    # `then` incluido: al encadenar el arranque con `.then()` para que la
+    # identidad del lector se registre ANTES de leer sus datos, dos manejadores
+    # dejaron de contarse aqui y esta prueba paso de 29 a 28 sin que fallara
+    # nada. Una prueba que vigila una lista puede perder cobertura en silencio
+    # solo con que el codigo cambie de forma.
     cableados = set(re.findall(
-        r"\.(?:click|change|submit|load|select|upload|stop|input)\(\s*"
+        r"\.(?:click|change|submit|load|select|upload|stop|input|then)\(\s*"
         r"(_[a-z_]+)", fuente))
     assert cableados, "no encuentro ningun manejador cableado"
     malos = []
@@ -1890,12 +1996,15 @@ def _la_consulta_lexica_pide_codigo():
                 [], 0.8, 2, None, None, None, None, False, None, None, None,
                 None, "basico", 5.0, False, [])
 
-    antes = ui.consultor
+    antes, falta_antes = ui.consultor, config_mod.falta
     ui.consultor = lambda: Consultor()
+    # Con clave: lo que se prueba es la PUERTA DE PERFIL. Sin clave no hay nada
+    # que cobrar y el aviso correcto pasa a ser "no hay clave", que es otra cosa.
+    config_mod.falta = lambda: []
     try:
         ficha = consulta(None, None, None, "hello", "Hello there.", "es")[0]
     finally:
-        ui.consultor = antes
+        ui.consultor, config_mod.falta = antes, falta_antes
     assert visto == [False], f"se le paso usar_openai={visto}"
     assert "perfil" in ficha.lower(), f"no dice por que: {ficha[:120]}"
     return "sin perfil, la consulta va con usar_openai=False y lo dice"
@@ -1962,6 +2071,10 @@ def _voz_y_sinopsis_respetan_su_tope():
     antes = (ui.LIMITE_VOZ_HORA, ui.LIMITE_SINOPSIS_HORA)
     ui.LIMITE_VOZ_HORA = ui.LIMITE_SINOPSIS_HORA = 1
     pet = _Pet(ip="10.7.7.7")
+    # El cubo por hora solo se gasta si la pulsacion PUEDE costar dinero, asi
+    # que aqui se finge que hay clave: sin ella no hay tope que probar.
+    falta_antes = config_mod.falta
+    config_mod.falta = lambda: []
     try:
         ui._practicar("no_existe.wav", "hello", pet)
         segunda_voz = str(ui._practicar("no_existe.wav", "hello", pet)[1])
@@ -1969,6 +2082,7 @@ def _voz_y_sinopsis_respetan_su_tope():
         segunda_sin = str(list(ui._de_que_trata(libro_ok, pet))[-1])
     finally:
         ui.LIMITE_VOZ_HORA, ui.LIMITE_SINOPSIS_HORA = antes
+        config_mod.falta = falta_antes
     aviso = ui._mensaje_limite("es", 60)[:28]
     assert aviso in segunda_voz, f"la voz no freno: {segunda_voz[:110]}"
     assert aviso in segunda_sin, f"la sinopsis no freno: {segunda_sin[:110]}"
@@ -2020,6 +2134,243 @@ def _no_se_cobra_lo_que_no_se_gasta():
 
 
 prueba("no se cobra lo que no se gasta", _no_se_cobra_lo_que_no_se_gasta)
+
+
+def _la_suite_no_puede_llamar_a_openai():
+    """El blindaje de la cabecera tiene que seguir puesto.
+
+    Borrar las dos lineas que anulan `config.cargar` y vacian la clave deja la
+    suite corriendo con la clave REAL de `CLAVES.txt`: medido, once llamadas de
+    pago por ejecucion. Y pasaba las pruebas, porque nada comprobaba el
+    blindaje. Esto lo comprueba.
+    """
+    assert config_mod.falta(), (
+        "la suite tiene clave de OpenAI: el blindaje de la cabecera no esta "
+        "puesto y estas pruebas van a gastar dinero")
+    assert not os.environ.get("OPENAI_API_KEY"), "hay clave en el entorno"
+    return "sin clave: la suite no puede llamar a OpenAI"
+
+
+prueba("la suite no puede llamar a OpenAI", _la_suite_no_puede_llamar_a_openai)
+
+
+def _los_clientes_de_openai_tienen_plazo():
+    """Un cliente sin `timeout` puede tumbar el Space entero.
+
+    El SDK de OpenAI espera 600 s por defecto y reintenta dos veces: una sola
+    peticion atascada retiene su hilo casi media hora, y con la cola de Gradio
+    en un solo trabajador todo lo demas se apila detras. Ocurrio: una consulta
+    con perfil dejo el Space sin servir HTTP mas de media hora, mientras la API
+    de Hugging Face seguia diciendo RUNNING.
+
+    Se comprueba sobre el CODIGO, no construyendo el cliente, porque construirlo
+    necesita clave y esta suite corre sin ella a proposito.
+    """
+    import re
+    malos = []
+    for rel in ("app/lexicon.py", "app/voz.py", "app/ficha.py"):
+        f = pathlib.Path(__file__).parent / rel
+        if not f.exists():
+            continue
+        for m in re.finditer(r"OpenAI\((.*?)\)", f.read_text(encoding="utf-8"),
+                             re.S):
+            args = m.group(1)
+            if "timeout" not in args:
+                malos.append(f"{rel}: OpenAI(...) sin timeout")
+            if "max_retries" not in args:
+                malos.append(f"{rel}: OpenAI(...) sin max_retries")
+    assert not malos, malos
+    return "los clientes de OpenAI llevan plazo y limite de reintentos"
+
+
+prueba("los clientes de OpenAI tienen plazo",
+       _los_clientes_de_openai_tienen_plazo)
+
+
+def _el_diagnostico_avisa_de_un_perfil_repetido():
+    """`problemas()` y `declaradas()` no las probaba nadie.
+
+    Son la interfaz publica que se anadio para que el secreto del Space deje
+    de editarse a ciegas, y con ellas mudas el diagnostico dice "9 de 9" con
+    una entrada rota. El caso caro es el usuario repetido: no desaparece el
+    perfil, cambia su contrasena.
+    """
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "ana:x:0,Ana:y:5,rota:sin-tope,:vacio:1"
+    try:
+        avisos = cuentas_mod.problemas()
+        assert cuentas_mod.declaradas() == 4, cuentas_mod.declaradas()
+        assert len(cuentas_mod._tabla()) == 1, cuentas_mod._tabla()
+        texto = " ".join(avisos).lower()
+        for pista in ("repite", "campos", "vac"):
+            assert pista in texto, f"no avisa de «{pista}»: {avisos}"
+        assert "x" not in [a.split()[-1] for a in avisos], "filtro una contrasena"
+        return f"{len(avisos)} avisos de 4 entradas declaradas, 1 valida"
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+
+
+prueba("el diagnostico avisa de un perfil repetido",
+       _el_diagnostico_avisa_de_un_perfil_repetido)
+
+
+def _el_cupo_cuadra_con_las_llamadas_de_pago():
+    """Los MANEJADORES, no solo la contabilidad de `cuentas`.
+
+    La prueba de aqui arriba ejercita `consumir`/`devolver`/`gastado` y ni
+    toca `ui`. Su docstring presumia de reproducir tres caminos de manejador y
+    no llamaba a ninguno: los cuatro `cuentas.devolver` de `ui.py` estaban sin
+    cubrir, y borrarlos pasaba las 232 pruebas. Decorativa, en la corrección
+    insignia de una auditoría entera.
+
+    Aqui se pulsa de verdad, con un espia sobre `openai.OpenAI` que cuenta las
+    llamadas de pago que HABRIA hecho cada pulsacion, y se exige la regla que
+    `cuentas.py` declara: **el cupo baja si y solo si se gasta dinero**.
+    """
+    import openai
+
+    llamadas = []
+
+    class Espia:
+        def __init__(self, *a, **k):
+            pass
+
+        class _Chat:
+            class _C:
+                @staticmethod
+                def parse(**k):
+                    llamadas.append("chat")
+                    raise RuntimeError("espia")
+            completions = _C()
+
+        class _Audio:
+            class _T:
+                @staticmethod
+                def create(**k):
+                    llamadas.append("whisper")
+                    raise RuntimeError("espia")
+
+            class _S:
+                @staticmethod
+                def create(**k):
+                    llamadas.append("tts")
+                    raise RuntimeError("espia")
+            transcriptions = _T()
+            speech = _S()
+
+        # `responses.parse` es la que usa `lexicon` para la explicacion
+        # contextual, y faltaba: sin ella el espia contaba CERO llamadas en una
+        # consulta que si intentaba pagar, y la prueba acusaba al codigo de
+        # cobrar sin gastar. Un espia incompleto miente en la direccion que
+        # parece un fallo del otro.
+        class _Responses:
+            @staticmethod
+            def parse(**k):
+                llamadas.append("responses")
+                raise RuntimeError("espia")
+
+            @staticmethod
+            def create(**k):
+                llamadas.append("responses")
+                raise RuntimeError("espia")
+        chat = _Chat()
+        audio = _Audio()
+        responses = _Responses()
+
+    class _P:
+        session_hash = "s-cupo"
+        headers = {}
+        client = type("X", (), {"host": "10.44.44.44"})()
+
+    pet = _P()
+    viejo_cli, viejo_cuentas = openai.OpenAI, os.environ.get("LITERALEVEL_CUENTAS")
+    viejo_falta, viejo_clave = config_mod.falta, os.environ.get("OPENAI_API_KEY")
+    openai.OpenAI = Espia
+    os.environ["LITERALEVEL_CUENTAS"] = "zoe:CLAVE-Z:9"
+    os.environ["OPENAI_API_KEY"] = "sk-falsa-de-prueba"
+    config_mod.falta = lambda: []
+    ui._CODIGO_SESION[ui._sesion_de(pet)] = "zoe:CLAVE-Z"
+    gastado = lambda: cuentas_mod.gastado(ui.BASE_DATOS_LECTOR, "zoe")
+
+    malos = []
+    try:
+        # `_de_que_trata` sin diccionario: revienta al construir el consultor,
+        # antes de cualquier llamada. No debe cobrar.
+        antes, n = gastado(), len(llamadas)
+        list(ui._de_que_trata(libro_ok, pet))
+        if len(llamadas) == n and gastado() != antes:
+            malos.append("el resumen cobro sin una sola llamada de pago")
+
+        # `_consultar`, con un consultor DOBLE. No vale espiar a `openai` aquí:
+        # en esta suite el consultor ya se construyó sin clave, así que no
+        # llamaría nunca y la prueba acusaría al código de cobrar sin gastar
+        # cuando el que no es fiel es el montaje. El doble hace explícito lo
+        # único que importa: si `usar_openai` llega True, hubo gasto.
+        from lexicon import ResultadoLexico
+
+        class ConsultorDoble:
+            def __init__(self, cache):
+                self.cache = cache
+
+            def consultar(self, *a, **k):
+                # Solo hay llamada si se permite Y no acierta en cache: el
+                # acierto de cache es justamente el caso en que `lexicon`
+                # recibe `usar_openai=True` y no llega a pagar nada.
+                if k.get("usar_openai") and not self.cache:
+                    llamadas.append("responses")
+                return ResultadoLexico(
+                    "hi", "hi", "hi", "hi", "INTJ", "interjection", "A greeting.",
+                    [], 0.8, 2, None, None, None, None, False, None, None, None,
+                    None, "basico", 5.0, self.cache, [])
+
+        antes_c = ui.consultor
+        for cache, etiqueta in ((False, "sin cache: hay llamada"),
+                                (True, "desde cache: no hay llamada")):
+            ui.consultor = lambda c=cache: ConsultorDoble(c)
+            antes, n = gastado(), len(llamadas)
+            consulta(None, None, None, "hello", "Hello there.", "es", pet)
+            hubo, cobro = len(llamadas) > n, gastado() != antes
+            if hubo != cobro:
+                malos.append(f"{etiqueta}: llamada={hubo} pero cobro={cobro}")
+
+        # Y el diccionario ausente: revienta al construir el consultor, antes
+        # de cualquier llamada. Tampoco puede cobrar.
+        def sin_diccionario():
+            raise FileNotFoundError("No encuentro el diccionario Kaikki")
+
+        ui.consultor = sin_diccionario
+        antes, n = gastado(), len(llamadas)
+        consulta(None, None, None, "hello", "Hello there.", "es", pet)
+        if len(llamadas) == n and gastado() != antes:
+            malos.append("sin diccionario: cobro sin una sola llamada")
+        ui.consultor = antes_c
+
+        # Y el reves, que es el que abrio un agujero: la voz sin transcripcion
+        # SI gasta -gpt y tts-1-, asi que tiene que cobrar.
+        antes, n = gastado(), len(llamadas)
+        ui._practicar("no_existe.wav", "hello there friend", pet)
+        if len(llamadas) > n and gastado() == antes:
+            malos.append(f"la voz hizo {len(llamadas) - n} llamadas de pago "
+                         "y NO cobro: se puede gastar sin limite")
+    finally:
+        openai.OpenAI = viejo_cli
+        config_mod.falta = viejo_falta
+        ui._CODIGO_SESION.clear()
+        for k, v in (("LITERALEVEL_CUENTAS", viejo_cuentas),
+                     ("OPENAI_API_KEY", viejo_clave)):
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    assert not malos, malos
+    return "el cupo baja si y solo si se gasta dinero"
+
+
+prueba("el cupo cuadra con las llamadas de pago",
+       _el_cupo_cuadra_con_las_llamadas_de_pago)
 prueba("la practica de voz pide codigo",
        lambda: _con_puerta(
            lambda: "entres con tu perfil" in str(ui._practicar("x.wav", "hello there")[1])))
@@ -2217,10 +2568,48 @@ def _el_aviso_de_tope_dice_los_minutos_que_faltan():
 prueba("el aviso de tope dice los minutos que faltan",
        _el_aviso_de_tope_dice_los_minutos_que_faltan)
 
+def _la_casilla_vacia_no_ensena_un_error_de_python():
+    """`gr.Number` vacio manda None, y salia "int() argument must be...".
+
+    La version anterior pasaba `p=None`, y con eso `_recomendar` vuelve en su
+    primer guardia y NUNCA llega al `int(n)`: probaba el guardia, no el
+    arreglo. Hay que darle un perfil de verdad. Y `_buscar` tiene el mismo
+    `int(n)` y no lo probaba nadie.
+    """
+    p = perfil_mod.Perfil(nivel=1.0, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+    malos = []
+    for etiqueta, salida in (
+            ("_recomendar", str(ui._recomendar(p, None))),
+            ("_buscar", str(ui._buscar(p, "aventuras", False, None)))):
+        if "int()" in salida:
+            malos.append(f"{etiqueta}: {salida[:90]}")
+    assert not malos, malos
+    return "con la casilla vacia, los dos responden sin error de Python"
+
+
 prueba("cuantos libros vacio no ensena un error de Python",
-       # `gr.Number` vacio manda None. Antes salia "int() argument must be...".
-       lambda: "int()" not in str(ui._recomendar(None, None))
-               and "sin error de Python")
+       _la_casilla_vacia_no_ensena_un_error_de_python)
+
+
+def _el_rango_anunciado_es_el_filtrado():
+    """El rotulo tiene que decir el rango que se USO para filtrar.
+
+    Anunciaba `rango_recomendado` -nivel-0,10 a nivel+0,15- mientras
+    `por_nivel` filtraba con holgura simetrica de 0,25: con nivel 1,00 decia
+    "entre 0.90 y 1.15" y listaba libros de 0,80 y 1,20. Volver al rango viejo
+    pasaba las pruebas, asi que la correccion no estaba protegida.
+    """
+    p = perfil_mod.Perfil(nivel=1.0, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+    texto = str(ui._recomendar(p, 5))
+    h = ui.HOLGURA_POR_NIVEL
+    lo, hi = f"{max(0.0, p.nivel - h):.2f}", f"{min(2.0, p.nivel + h):.2f}"
+    assert lo in texto and hi in texto,         f"esperaba anunciar {lo}-{hi} y dijo: {texto[:130]}"
+    return f"anuncia {lo}-{hi}, que es la holgura con la que filtra"
+
+
+prueba("el rango anunciado es el que se filtra", _el_rango_anunciado_es_el_filtrado)
 
 # --- Resultado ------------------------------------------------------------
 

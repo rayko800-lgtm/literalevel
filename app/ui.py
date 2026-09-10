@@ -104,18 +104,68 @@ EN_LA_NUBE = bool(os.environ.get("SPACE_ID") or os.environ.get("PORT"))
 _SESION_SEGURA = re.compile(r"[^A-Za-z0-9_-]")
 
 
+# Identidad del lector: `session_hash` del navegador -> id estable del lector.
+#
+# Gradio estrena `session_hash` en CADA carga de pagina, asi que colgar los
+# datos de ahi significa que recargar es estrenar carpeta: el lector fijaba su
+# nivel, leia "Guardado", pulsaba F5 y volvia a "Todavia no has fijado tu
+# nivel". Medido en el Space: `77zzh3u3pz5` antes de recargar, `rh9k3tdqku`
+# despues.
+#
+# Y no basta con persistir: los datos de dos visitantes distintos no pueden
+# mezclarse. Las dos cosas no salen del `session_hash`, asi que la identidad la
+# pone el NAVEGADOR y la guarda en `localStorage`: sobrevive a recargar y a
+# cerrar la pestana, y es distinta en cada navegador. `_registrar_lector` la
+# ata a la sesion en curso y `_dir_lector` la consulta.
+#
+# Sigue SIN ser autenticacion, igual que antes: quien copie el identificador de
+# otro entra en sus datos. Frena lo que de verdad importa -que un visitante
+# tropiece con lo de otro sin buscarlo- y nada mas. Lo que cuesta dinero va
+# detras de usuario y contrasena, que es otra puerta.
+_LECTOR_POR_SESION: dict[str, str] = {}
+_CANDADO_LECTOR = threading.Lock()
+
+
+def _registrar_lector(id_navegador: str, peticion: gr.Request = None) -> None:
+    """Ata la identidad que trae el navegador a esta sesion de Gradio.
+
+    La llama `demo.load` en cada carga, ANTES que nada que lea datos: si
+    `_perfil_inicial` o `_reanudar` corrieran primero, leerian la carpeta
+    equivocada. Por eso van encadenados con `.then()` y no sueltos.
+    """
+    sesion = getattr(peticion, "session_hash", None) if peticion else None
+    if not sesion:
+        return
+    # El id viene del navegador, o sea de fuera: se sanea igual que el
+    # `session_hash`. Sin esto, un `../../` en `localStorage` escribiria donde
+    # quisiera.
+    limpio = _SESION_SEGURA.sub("", str(id_navegador or ""))[:64]
+    if not limpio:
+        return
+    with _CANDADO_LECTOR:
+        _LECTOR_POR_SESION[str(sesion)] = limpio
+        # Limpieza barata, como en `_gasto`: sin esto el diccionario crece con
+        # cada carga de pagina y no se vacia nunca.
+        if len(_LECTOR_POR_SESION) > 5000:
+            for k in list(_LECTOR_POR_SESION)[:2500]:
+                del _LECTOR_POR_SESION[k]
+
+
 def _dir_lector(peticion=None) -> Path:
     """Carpeta de datos de ESTE lector.
 
     En local, la de siempre, para no partir en dos lo que ya haya guardado.
-    Desplegada, una por sesion de navegador. No es autenticacion -quien
-    recupere su `session_hash` vuelve a sus datos- pero impide lo que de
-    verdad importa: que un visitante tropiece con lo de otro sin buscarlo.
+    Desplegada, una por lector: la identidad que trae el navegador si la hay, y
+    si no el `session_hash`, que es lo que habia antes y sigue valiendo para la
+    primera carga -mientras el `demo.load` de registro no haya llegado- y para
+    quien tenga `localStorage` desactivado.
     """
     if not EN_LA_NUBE:
         return BASE_DATOS_LECTOR
-    h = getattr(peticion, "session_hash", None) if peticion is not None else None
-    limpio = _SESION_SEGURA.sub("", str(h))[:64] if h else ""
+    sesion = getattr(peticion, "session_hash", None) if peticion is not None else None
+    with _CANDADO_LECTOR:
+        propio = _LECTOR_POR_SESION.get(str(sesion)) if sesion else None
+    limpio = propio or (_SESION_SEGURA.sub("", str(sesion))[:64] if sesion else "")
     return BASE_DATOS_LECTOR / "lectores" / (limpio or "anonimo")
 
 
@@ -900,6 +950,34 @@ def _html_lectura(texto: str) -> str:
 # Doble clic (o arrastrar) sobre una palabra del lector la copia a la caja de
 # consulta. Se engancha a document una sola vez y sobrevive a que Gradio
 # vuelva a dibujar el capitulo.
+# La identidad del lector, puesta por el navegador y guardada en
+# `localStorage`. Se elige `localStorage` y no `sessionStorage` a proposito:
+# el segundo se borra al cerrar la pestana, y lo que promete la aplicacion es
+# que "Mis libros" siga ahi manana, no solo hasta que cierres.
+#
+# `crypto.randomUUID` no existe en contextos inseguros ni en navegadores
+# viejos, asi que hay respaldo. Y todo va en try/catch: en una ventana privada
+# o con las cookies bloqueadas, `localStorage` LANZA al tocarlo, y si eso
+# reventara el `demo.load` la pagina entera arrancaria en error. Sin
+# identidad, `_dir_lector` cae en el `session_hash` de siempre.
+JS_IDENTIDAD = r"""
+() => {
+  const CLAVE = 'literalevel_lector';
+  try {
+    let id = localStorage.getItem(CLAVE);
+    if (!id) {
+      id = (crypto && crypto.randomUUID)
+           ? crypto.randomUUID()
+           : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem(CLAVE, id);
+    }
+    return id;
+  } catch (e) {
+    return '';
+  }
+}
+"""
+
 JS_SELECCION = r"""
 () => {
   if (window.__llSel) return;
@@ -1486,7 +1564,17 @@ def _de_que_trata(libro, peticion: gr.Request = None):
         return
     datos = _sinopsis_guardada(libro)
     if datos is None:
-        if not _dentro_del_limite(peticion, "sinopsis", LIMITE_SINOPSIS_HORA):
+        # El tope por hora frena el GASTO, no el uso: si el visitante no puede
+        # pagar -no ha entrado, agoto su cupo, o no hay clave-, esta pulsacion
+        # no puede costar un centimo y no debe gastar ficha del cubo. Se
+        # arreglo primero en `_consultar` y estas dos puertas se quedaron sin
+        # el mismo trato: un visitante sin perfil agotaba en seis clics el cubo
+        # de TODA la IP y bloqueaba a quien si habia entrado.
+        va_a_costar = (not config.falta()
+                       and cuentas.permite(BASE_DATOS_LECTOR,
+                                           _codigo_de(peticion))[0])
+        if va_a_costar and not _dentro_del_limite(
+                peticion, "sinopsis", LIMITE_SINOPSIS_HORA):
             yield _aviso(_mensaje_limite(
                 "es", _minutos_para_la_siguiente("sinopsis", peticion)))
             return
@@ -1504,6 +1592,12 @@ def _de_que_trata(libro, peticion: gr.Request = None):
         try:
             cliente = consultor()._cliente()
         except Exception as e:
+            # Aqui SI se devuelve: la excepcion es al CONSTRUIR el consultor
+            # -el diccionario que falta- y ocurre antes de cualquier llamada a
+            # la API. Faltaba, y era la rama que este mismo `try` vino a cubrir:
+            # el Space con el dataset mal montado cobraba un uso por un boton
+            # que ni salio a la red.
+            cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
             yield _aviso(f"No pude preparar el resumen ({type(e).__name__}). "
                          "El resto de la ficha no lo necesita y sigue arriba.")
             return
@@ -1991,7 +2085,16 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     try:
         # `_puede_pagar` consume el uso si lo concede, en una sola operacion:
         # no hay que apuntarlo despues.
-        puede, motivo_pago = _puede_pagar(peticion)
+        if config.falta():
+            # Sin clave no puede haber llamada, asi que no hay nada que cobrar.
+            # `va_a_costar` ya lo sabia dos lineas mas arriba y no se usaba
+            # para esto: con perfiles declarados y la clave caducada o borrada
+            # del Space, CADA consulta descontaba un uso del cupo sin que
+            # pudiera salir una sola peticion a la API. `lexicon` pone el aviso
+            # de "sin OPENAI_API_KEY", que en este caso si es verdad.
+            puede, motivo_pago = False, ""
+        else:
+            puede, motivo_pago = _puede_pagar(peticion)
         r = consultor().consultar(palabra, oracion, nivel, idioma=idioma,
                                   usar_openai=puede)
     except (FileNotFoundError, OSError) as e:
@@ -2158,7 +2261,12 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         return "", "Escribe la frase que vas a leer en voz alta.", gr.update(visible=False)
     if not ruta_audio:
         return "", "Graba tu voz con el micrófono (o sube un audio).", gr.update(visible=False)
-    if not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
+    # Mismo motivo que en la sinopsis y en la consulta lexica: el cubo por hora
+    # solo se gasta si esta pulsacion puede costar dinero.
+    va_a_costar = (not config.falta()
+                   and cuentas.permite(BASE_DATOS_LECTOR,
+                                       _codigo_de(peticion))[0])
+    if va_a_costar and not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
         return ("", _aviso(_mensaje_limite(
             "es", _minutos_para_la_siguiente("voz", peticion))),
             gr.update(visible=False))
@@ -2176,16 +2284,27 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                  ruta=_archivo_lector("voz.db", peticion))
     except Exception as e:
-        cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
+        # Tampoco se devuelve aqui, y por lo mismo: `voz.practicar` puede haber
+        # reventado DESPUES de llamar a gpt o a tts-1, y desde fuera no hay
+        # forma de saberlo. Entre cobrar un uso que quiza no se gasto y abrir
+        # un camino para gastar sin limite, se cobra. Si algun dia `SesionVoz`
+        # dice cuantas llamadas hizo, esto se puede afinar.
         return "", _aviso(e), gr.update(visible=False)
 
     ev = s.evaluacion
     L = [f"## {ev.puntuacion:.0f} / 100"]
     if not s.transcripcion_ok:
-        # Sin transcripcion no hubo whisper, o sea que no se gasto nada: se
-        # devuelve el uso. Y ademas la puntuacion no vale, asi que cobrar por
-        # esto era cobrar dos veces mal.
-        cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
+        # AQUI NO SE DEVUELVE EL USO, aunque lo parezca. Durante unas horas si
+        # se devolvia, con un comentario que decia "sin transcripcion no hubo
+        # whisper, o sea que no se gasto nada". Era FALSO y abria un agujero:
+        # `voz.practicar` sigue adelante sin transcripcion, `evaluar_pronunciacion`
+        # contra "" marca TODAS las palabras como falladas, y eso GARANTIZA la
+        # llamada a `explicar_correccion` (gpt); `generar_audio_correcto` (tts-1)
+        # se llama siempre. Medido con un espia: cada pulsacion son dos llamadas
+        # de pago. Devolviendo el uso, un perfil de tope 3 podia gastar sin
+        # limite mandando audio que whisper no pudiera transcribir.
+        #
+        # Whisper no se factura, pero las otras dos si. Se cobra.
         L.append("[!] No se pudo transcribir (sin `OPENAI_API_KEY` o sin red). "
                  "La puntuación de arriba no es válida.")
     elif not ev.palabras_falladas:
@@ -2854,10 +2973,17 @@ def construir() -> gr.Blocks:
         b_abrir.click(_limpiar_consulta, None,
                       [ficha, palabra, oracion, audio_web, audio_local])
 
-        # Al abrir: primero de quien son los datos, luego donde se quedo.
-        demo.load(_perfil_inicial, None, [est_perfil, perfil_md])
-        demo.load(_reanudar, None,
-                  [est_libro, cap, texto, libro_md, pestanas])
+        # Al abrir, y EN ESTE ORDEN, que no es un detalle: primero se averigua
+        # QUIEN es el lector, y solo despues se leen sus datos. Encadenado con
+        # `.then()` a proposito: tres `demo.load` sueltos corren a la vez y
+        # `_perfil_inicial` podria leer la carpeta equivocada -o la de
+        # "anonimo"- antes de que el registro haya llegado. Es el mismo tipo de
+        # carrera que el cupo, y aqui se cierra ordenando.
+        id_lector = gr.Textbox(visible=False)
+        (demo.load(_registrar_lector, id_lector, None, js=JS_IDENTIDAD)
+            .then(_perfil_inicial, None, [est_perfil, perfil_md])
+            .then(_reanudar, None,
+                  [est_libro, cap, texto, libro_md, pestanas]))
 
         b_seguir.click(_seguir_leyendo, seguir,
                        [est_libro, cap, texto, libro_md, pestanas, estado_seguir])

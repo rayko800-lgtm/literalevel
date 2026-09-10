@@ -52,7 +52,11 @@ def _cliente():
     if not clave:
         return None
     from openai import OpenAI
-    return OpenAI(api_key=clave)
+    # Con plazo, por lo mismo que en `lexicon.py`: sin el, el SDK espera 600 s
+    # y reintenta dos veces, y un hilo atascado se lleva por delante la cola
+    # entera de Gradio. La voz son whisper + gpt + tts encadenados, asi que se
+    # le da mas margen que a la consulta lexica.
+    return OpenAI(api_key=clave, timeout=90.0, max_retries=1)
 
 
 # --- Normalizacion y comparacion (sin red, siempre disponible) --------

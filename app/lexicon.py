@@ -597,7 +597,18 @@ class ConsultorLexico:
             self._sin_clave = True
             return None
         from openai import OpenAI
-        self._cliente_openai = OpenAI(api_key=clave)
+        # CON PLAZO, y no es un detalle. El SDK trae 600 s por defecto y dos
+        # reintentos: una sola peticion atascada retiene su hilo casi media
+        # hora, y con la cola de Gradio en un solo trabajador todo lo demas se
+        # apila detras. Paso de verdad en el Space -una consulta con perfil lo
+        # dejo sin servir HTTP mas de media hora, con la API de Hugging Face
+        # diciendo RUNNING todo el rato-.
+        #
+        # 60 s es holgado: la explicacion contextual esta medida en 14,9 s con
+        # `reasoning.effort="low"`. Un reintento, no dos. Peor caso 2 minutos
+        # en vez de 30.
+        self._cliente_openai = OpenAI(api_key=clave, timeout=60.0,
+                                      max_retries=1)
         return self._cliente_openai
 
     def consultar(self, palabra_superficie: str, oracion: str, nivel: float,
