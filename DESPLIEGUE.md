@@ -9,13 +9,30 @@ repetirlo en otra plataforma. Lo que **no** está resuelto es el almacenamiento
 persistente: el Space arranca con la estantería vacía tras cada reinicio.
 
 ## Lo que hay que colocar
+> **Lo que hay desplegado NO es lo que decía este documento**, y se comprobó
+> listando el Space el 10 de septiembre de 2026:
+>
+> - El punto de entrada es **`app.py`** en la raíz del Space, no `main.py`.
+>   Hugging Face busca `app.py` por convención y ahí se declara
+>   `app_file: app.py`. `main.py` existe en el repositorio local y **no está
+>   subido**: son dos puntos de entrada equivalentes, y el que corre es el del
+>   Space.
+> - El **diccionario de 243 MB está dentro del Space**, junto con
+>   `catalogo_recomendaciones.csv` y los embeddings del catálogo. No se montan
+>   como repositorio de datos aparte: eso era el plan y no es lo que se hizo.
+>   Lo que sí vive fuera es el **modelo**, en `MikeMaki1763/literalevel-v4`, y
+>   `app.py` apunta ahí con `LITERALEVEL_MODELO`.
+>
+> Se deja escrito porque el plan y la realidad divergieron, y quien lea solo el
+> plan desplegará mal.
+
 
 | Qué | Tamaño | Dónde va |
 |---|---|---|
-| Código (`app/`, `main.py`, pruebas) | ~120 KB | el repositorio del despliegue |
+| Código (`app/`, el punto de entrada, pruebas) | ~120 KB | el repositorio del despliegue |
 | `catalogo_recomendaciones.csv` | 1 MB | el repositorio del despliegue |
 | `modelo_v4/` | **328 MB** | fuera: repo de modelo, montado de solo lectura |
-| `kaikki_diccionario.db` | **243 MB** | fuera: repo de datos, montado de solo lectura |
+| `kaikki_diccionario.db` | **243 MB** | **en el propio Space**, no en un repo aparte (ver el aviso de abajo) |
 
 Los 575 MB de datos **no van en el repositorio** y están en `.gitignore`. La app
 los localiza por variable de entorno, y eso ya está probado moviéndolos fuera:
@@ -51,10 +68,9 @@ Pasos:
 
 1. Suscribirse a PRO y crear un Space **Gradio**, hardware CPU Basic
    (2 vCPU / 16 GB / 50 GB efímeros, sin coste por hora).
-2. Subir modelo y diccionario como repos aparte: `python desplegar_datos.py`.
-3. En el README del Space, el front matter tiene que declarar el punto de
-   entrada, porque el nombre por defecto (`app.py`) chocaría con la carpeta
-   `app/`:
+2. Subir el **modelo** como repo aparte: `python desplegar_datos.py`. (El
+   diccionario acabó dentro del Space; ver el aviso de arriba.)
+3. En el README del Space, el front matter declara el punto de entrada:
 
    ```yaml
    ---
@@ -64,7 +80,7 @@ Pasos:
    colorTo: indigo
    sdk: gradio
    sdk_version: 6.26.0
-   app_file: main.py
+   app_file: app.py
    pinned: false
    ---
    ```
@@ -110,8 +126,11 @@ largo de los tres, y el único sin factura.
 
 ## Lo que ya no hace falta resolver
 
-- `main.py` en la raíz mete `app/` en `sys.path` y expone `demo`. **No lo
-  renombres a `app.py`.**
+- El punto de entrada mete `app/` en `sys.path` y expone `demo`. **Y sí puede
+  llamarse `app.py` conviviendo con la carpeta `app/`**, que es lo que hay
+  desplegado: aquí se decía que chocarían, y no chocan, porque el archivo
+  nunca hace `import app` —mete `app/` en la ruta e importa `ui` directamente—.
+  Comprobado en el Space, que lleva los dos y arranca.
 - Las rutas del modelo y del diccionario son configurables, y está comprobado
   con los datos fuera del repositorio.
 - `requirements.txt` instala `en_core_web_sm` por URL directa, porque en un

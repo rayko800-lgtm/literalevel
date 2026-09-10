@@ -106,10 +106,13 @@ inactividad.
 
 Cuatro cosas que hay que resolver antes de subir, sea cual sea la plataforma:
 
-1. ~~`app/` no es un paquete.~~ **RESUELTO:** `main.py` en la raíz mete `app/`
-   en `sys.path` y expone `demo`. **No lo renombres a `app.py`**: chocaría con
-   la carpeta `app/`. En un Space hay que declararlo en el README:
-   `app_file: main.py`.
+1. ~~`app/` no es un paquete.~~ **RESUELTO:** el punto de entrada mete `app/`
+   en `sys.path` y expone `demo`. **Corrección del 10 sep:** aquí decía «no lo
+   renombres a `app.py`, chocaría con la carpeta `app/`», y es falso. El Space
+   desplegado lleva **`app.py` en la raíz junto a la carpeta `app/`** y arranca
+   sin problema, porque ese archivo nunca hace `import app`: mete `app/` en la
+   ruta e importa `ui` directamente. En el Space el README declara
+   `app_file: app.py`; `main.py` es el equivalente local y no está subido.
 2. ~~La ruta del diccionario está clavada.~~ **RESUELTO:** `lexicon.py` lee
    `LITERALEVEL_DICCIONARIO` y cae al valor de siempre si no está. Igual que
    `LITERALEVEL_MODELO` para el modelo.
