@@ -1,13 +1,22 @@
 # Pendientes de LiteraLevel
 
-Actualizado: **9 de septiembre de 2026, por la tarde**.
+Actualizado: **9 de septiembre de 2026, por la noche**.
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
 **Si acabas de entrar: lee primero
-[`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md)** —qué se
-corrigió hoy y contra qué se comprobó— y después `git log` desde `aed7751`.
+[`auditoria/cierre_2026-09-09_noche.md`](auditoria/cierre_2026-09-09_noche.md)**
+—el cierre de la décima auditoría, hallazgo por hallazgo, con lo que estaba ya
+cerrado y lo que no—, después
+[`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md) para la
+tanda de la tarde, y luego `git log` desde `aed7751`.
+
+Dos avisos del cierre de la noche que valen para cualquiera que toque esto:
+**una prueba que pasa no demuestra que cazaría el fallo** —la del fallo del Hub
+pasaba también con el código roto, y se comprobó mutándolo—, y **la prueba de
+contraste mide variables de la paleta, así que un color clavado en el CSS le es
+invisible**. Los cambios de esta ronda **no están desplegados todavía**.
 Hay más de diez commits nuevos y tocan archivos compartidos: `app/scoring.py`,
 `app/paletas.py`, `app/ficha.py`, `validar_local.py`, `pruebas_extremas.py` y
 `colab_precalculo.py`.
@@ -76,9 +85,9 @@ Todas medidas el 9 de septiembre, y todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **205** | `pruebas_extremas.py` |
+| Pruebas de estrés | **216** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
-| Parejas de contraste | **40** (8 por paleta) | `pruebas_extremas.py` |
+| Parejas de contraste | **70** (14 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |
 | Modelo / diccionario | 328 MB / 243 MB | `os.path.getsize` |
 | Arranque en frío del Space | **31 s** | `medir_arranque.py` |

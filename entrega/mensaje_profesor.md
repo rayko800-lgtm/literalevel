@@ -2,9 +2,10 @@
 
 Para WhatsApp o correo. Está en **usted**; si con él se tutean, cámbialo y ya.
 
-> **Antes de mandarlo:** comprueba que el enlace abre desde tu móvil. Si la
-> computadora está apagada, el enlace está muerto — y que el profesor se
-> encuentre eso es peor que no mandárselo.
+> **Antes de mandarlo:** abre el enlace desde tu móvil y comprueba que
+> responde. Ya no depende de que tengas la computadora encendida, pero el Space
+> se duerme por inactividad y el primer arranque tarda unos 30 segundos:
+> conviene que lo despiertes tú y no el profesor.
 
 ---
 
@@ -40,11 +41,15 @@ Tres cosas que le quiero decir de una vez, para que no se lleve sorpresas:
    lleva días sin visitas, el primer arranque tarda unos 30 segundos.
 2. **El catálogo que ve es el chico** (1.197 libros, y solo se abren los de
    Project Gutenberg). Ahora mismo estoy midiendo los **61.642 libros en
-   inglés** del catálogo completo con el modelo leyendo cada libro entero; van
-   unas 6 horas de GPU.
-3. **Las consultas de palabra y de voz usan la API de OpenAI y las pago yo**,
-   así que están limitadas a 12 y 4 por hora. Si se topa con el límite, es
-   eso y no un error.
+   inglés** del catálogo completo con el modelo leyendo cada libro entero: son
+   unas **diecisiete horas de reloj**, de las que solo unas tres son cómputo de
+   la GPU —el resto se va esperando a que Drive entregue los archivos—, y el 9
+   de septiembre llevaba descargada algo más de la mitad.
+3. **Las consultas de palabra, el resumen y la corrección de pronunciación
+   usan la API de OpenAI y las pago yo**, así que hay dos frenos: un tope por
+   hora y por visitante —30 palabras consultadas, 10 prácticas de voz y 6
+   resúmenes de «¿de qué trata?»— y un cupo total asociado a su usuario. Si se
+   topa con alguno, es eso y no un error.
 
 Lo que más me interesa de su opinión es **la usabilidad**: si se entiende sola,
 qué le estorba, qué sobra. Mi prima de 15 años la probó y me dijo *"está bien
@@ -67,9 +72,11 @@ código; el cuaderno corre completo en Colab sin configuración.
 - **No digas "chat de voz".** No es conversación libre: es corrección de
   pronunciación sobre una frase concreta. Es lo que él pidió —practicar
   pronunciación— pero prometer un chat y entregar otra cosa se nota.
-- **Menciona el precálculo.** Estar a mitad de un trabajo de 6 horas de A100
-  sobre 61.642 libros no es una excusa por lo que falta: es la clase de cosa
-  que su propia rúbrica valora.
+- **Menciona el precálculo.** Estar a mitad de un trabajo de diecisiete horas
+  de reloj sobre 61.642 libros no es una excusa por lo que falta: es la clase
+  de cosa que su propia rúbrica valora. Y si pregunta por qué tarda tanto
+  teniendo una A100, la respuesta es buena: la GPU está parada el 80 % del
+  tiempo esperando al disco, o sea que el cuello de botella no es el modelo.
 - **Pide opinión de usabilidad, no del modelo.** El módulo declara que evalúa
   *"hacer que esos modelos sean accesibles y valiosos para un usuario final"*.
   Preguntar justo por eso demuestra que leíste la rúbrica.

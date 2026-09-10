@@ -272,7 +272,17 @@ def css(clave: str, estrellas_css: str = "") -> str:
         # tres, que es la firma de un color que no viene de la paleta.
         "--color-accent:var(--ll-acento) !important;"
         "--border-color-accent:var(--ll-acento) !important;"
-        "--border-color-accent-subdued:var(--ll-borde) !important}"
+        "--border-color-accent-subdued:var(--ll-borde) !important;"
+        # La franja de error era el UNICO sitio donde quedaba el fallo de
+        # C1 sin arreglar: su texto lo ponia el tema segun el modo del
+        # navegador -en oscuro, #fef2f2- y su fondo caia en
+        # --background-fill-primary, que aqui ya es --ll-fondo. Con las tres
+        # paletas claras eso daba 1,02:1, o sea que el aviso de que algo ha
+        # fallado era precisamente lo que no se podia leer.
+        "--error-text-color:var(--ll-texto) !important;"
+        "--error-background-fill:var(--ll-fondo-bajo) !important;"
+        "--error-icon-color:var(--ll-acento) !important;"
+        "--error-border-color:var(--ll-borde) !important}"
         ".prose,.prose *,.markdown-text,.markdown-text *{"
         "color:var(--ll-texto) !important}"
         "label,.label-wrap,.svelte-1gfkn6j{color:var(--ll-texto) !important}"

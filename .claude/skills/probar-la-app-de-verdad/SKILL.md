@@ -248,3 +248,74 @@ Y el corolario: **acota la medición a tu propia raíz**. Los primeros informes
 señalaban un `/` con 1,41:1 que resultó ser el separador de la cabecera que
 inyecta Hugging Face, fuera de `.gradio-container`. Un fallo que no puedes
 arreglar y no es tuyo solo gasta el tiempo del siguiente.
+
+---
+
+## 9. Una prueba que pasa no demuestra que cazaría el fallo. Mútala.
+
+Es la lección más cara del 9 de septiembre, y llegó por partida doble.
+
+El cierre del día afirmaba que los tres fallos que encontró Miguel usando la
+app «tienen ahora una prueba que los cazaría». Una auditoría lo desmintió con
+un `grep`: dos de los tres no la tenían. Se escribieron. Y la siguiente pasada
+encontró algo peor: **la prueba del fallo 1 existía, pasaba, y pasaba también
+con el código roto.**
+
+El fallo era un guardia en `scoring.Puntuador`:
+
+```python
+if not (os.path.isdir(ruta) or _parece_repo_hf(ruta)):   # bueno
+if not os.path.isdir(ruta):                              # la regresión
+```
+
+La prueba comprobaba `_parece_repo_hf("owner/name") is True` y que una carpeta
+inexistente diera el error legible. Las dos cosas siguen siendo verdad con el
+guardia roto: medía **el ayudante, no el guardia**. La única aserción que
+distingue un código del otro es construir el `Puntuador` con un identificador y
+comprobar que **llega a cargar**.
+
+**El procedimiento, que cuesta diez minutos y hay que hacerlo siempre:**
+
+1. Copia el módulo al scratchpad y **mete la regresión a mano** — la línea
+   exacta que estaba mal, no una parecida.
+2. Ejecuta la prueba contra las dos copias, en subprocesos separados.
+3. Exige las dos salidas: `código real -> PASA`, `código mutado -> FALLA`.
+
+Si el mutado también pasa, la prueba es decorativa. Y no vale cargar los dos
+módulos en el mismo proceso con `importlib`: `dataclasses` revienta al resolver
+tipos de un módulo que ya no está en `sys.modules`. Un subproceso por copia.
+
+### El caso hermano: una prueba puede medir lo que ya no se pinta
+
+`_contraste_suficiente` mide **variables de la paleta**. Cuando el CSS clava un
+color a mano, la prueba sigue en verde midiendo una variable que el navegador
+no usa. Así sobrevivieron cuatro colores clavados a un arreglo de contraste que
+se dio por cerrado: el resaltado de `::selection` en amarillo (1,20:1 en las
+paletas claras, **y seleccionar es cómo se consulta el diccionario**), el canal
+de la barra de avance (1,47:1), el borde de la cita del cuaderno (1,23:1) y el
+borde del lector. Dos variables —`--ll-seleccion`, `--ll-lector-texto`— estaban
+declaradas en las cinco paletas y **no las pintaba nadie**: código muerto que
+ninguna prueba podía delatar, porque las pruebas las medían a ellas.
+
+Contra eso hacen falta **dos** pruebas, no una:
+
+- la numérica, sobre las variables compuestas con su alfa;
+- una estructural que abra los bloques `<style>` y exija que esas reglas usen
+  `var(--ll-…)` y **no contengan ningún color literal**. Quitando primero los
+  comentarios del CSS, que citan los colores viejos a propósito.
+
+**Y ojo con el orden de las reglas.** Un `border:1px solid …` abreviado y
+posterior reescribe entero el `border-color:var(--ll-borde)` que puso la
+paleta. La especificidad no lo explica: es que va después.
+
+### Corolario sobre los regex de las pruebas
+
+`re.findall(r"opacity:(\.[0-9]+)", css)` no ve `opacity: 0.3`, ni `opacity:0`,
+ni `opacity:1`, ni `opacity:30%`. Pasaba **por convención de escritura**: con
+el mismo color pintado, `opacity:.3` la hacía fallar y `opacity:0.3` no. Lo
+mismo con `#[0-9a-fA-F]{6}`, que no ve `#8ce`, ni `rgb()`, ni `hsl()`.
+
+Cada vez que una prueba busque una declaración CSS con un regex, escribe las
+formas que **no** cubre y comprueba una a una que las cazaría. Y lee todos los
+archivos que llevan CSS, no solo el primero: la prueba de opacidad miraba
+`ui.py` y no `paletas.py`.

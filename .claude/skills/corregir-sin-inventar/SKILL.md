@@ -262,3 +262,44 @@ Un informe de auditoría no se lee entero de golpe. Ordénalo así:
 
 Y no des por bueno un hallazgo sin comprobarlo: en la sexta auditoría todos
 resultaron ciertos, pero en otras hubo tres FALSOS. Ve al archivo y a la línea.
+
+---
+
+## 9. El guion del barrido, escrito mal, deja la mitad del trabajo hecho
+
+Pasó el 9 de septiembre por la noche, propagando «205 pruebas» → «216» a ocho
+sitios. El guion recorría una lista de `(archivo, viejo, nuevo)`, y para cada
+entrada leía el archivo, sustituía y escribía. Informó de nueve sustituciones
+correctas. **Cinco no se habían hecho.**
+
+El motivo: tres entradas tocaban `documento.tex`, y cada una guardaba su propia
+foto del archivo leída antes de empezar. Al escribir, la última pisó a las dos
+anteriores. Sobrevivió una de tres, y el guion dijo «ok» a las tres.
+
+```python
+# MAL: una lectura y una escritura por SUSTITUCIÓN
+for rel, viejo, nuevo in CAMBIOS:
+    t = leer(rel); escribir(rel, t.replace(viejo, nuevo))
+
+# BIEN: agrupar por ARCHIVO, acumular en memoria, escribir una vez
+for rel, subs in agrupado.items():
+    t = original = leer(rel)
+    for viejo, nuevo, esperadas in subs:
+        assert original.count(viejo) == esperadas   # contar sobre el original
+        t = t.replace(viejo, nuevo)
+    escribir(rel, t)
+```
+
+Dos detalles que también se ganan a base de disgustos:
+
+- **Cuenta sobre el original, no sobre el texto ya sustituido.** Si una
+  sustitución es prefijo de otra, la segunda cuenta cero y el guion aborta
+  creyendo que el archivo ha cambiado.
+- **Que aborte sin escribir nada si una cuenta no cuadra.** Es mejor no hacer
+  nada que dejar tres archivos de ocho actualizados: eso es peor que el estado
+  inicial, porque ahora dos entregables se contradicen.
+
+Y la moraleja que ya estaba en el apartado 4, ahora con una cicatriz: **el
+barrido de comprobación no es opcional y no se hace antes, se hace después.**
+Corre el `grep` de la cifra vieja cuando el guion diga que terminó. Aquí fue lo
+único que destapó que cinco sitios seguían mal.

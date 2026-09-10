@@ -1,4 +1,4 @@
-"""Codigos de acceso a lo que cuesta dinero.
+"""Perfiles de acceso a lo que cuesta dinero.
 
 La aplicacion entera es libre: buscar, medir un libro, leerlo, el diccionario,
 el cuestionario de nivel. **Nada de eso pide cuenta ni gasta un centimo.**
@@ -51,6 +51,7 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,30 +72,81 @@ class Cuenta:
     tope: int          # 0 = sin limite
 
 
+def _analizar(crudo: str) -> tuple[dict[str, tuple[str, Cuenta]], list[str]]:
+    """Lee el secreto y, sobre todo, DICE lo que descarta.
+
+    Descartar en silencio no era un fallo de seguridad, era uno de
+    diagnostico, y de los peores: este secreto se edita a ciegas en el panel
+    del Space, asi que una entrada con un `:` de mas dejaba a ese perfil sin
+    existir y no habia forma de enterarse. El caso caro es el usuario
+    repetido: no desaparece el perfil, cambia su contrasena, y quien tenia la
+    otra recibe el mismo "No he podido entrar" que un impostor.
+
+    Ningun aviso lleva la contrasena. Se dice la POSICION de la entrada y el
+    motivo; el nombre de usuario si aparece, porque no es una credencial y sin
+    el no se puede arreglar nada.
+    """
+    fuera: dict[str, tuple[str, Cuenta]] = {}
+    avisos: list[str] = []
+    for i, trozo in enumerate(crudo.split(","), start=1):
+        trozo = trozo.strip()
+        if not trozo:
+            continue
+        partes = trozo.split(":")
+        if len(partes) != 3:
+            avisos.append(f"entrada {i}: {len(partes)} campos en vez de 3 "
+                          "(¿un «:» dentro de la contraseña?); descartada")
+            continue
+        usuario, clave, tope = (p.strip() for p in partes)
+        if not usuario or not clave:
+            avisos.append(f"entrada {i}: usuario o contraseña vacíos; "
+                          "descartada")
+            continue
+        try:
+            n = int(tope)
+        except ValueError:
+            avisos.append(f"entrada {i} ({usuario}): el tope «{tope}» no es un "
+                          "número; se toma 0, o sea sin límite")
+            n = 0
+        u = usuario.lower()
+        if u in fuera:
+            avisos.append(f"entrada {i} ({usuario}): repite un usuario ya "
+                          "declarado; gana esta, y la contraseña de la otra "
+                          "deja de servir")
+        fuera[u] = (clave, Cuenta(nombre=usuario, tope=max(0, n)))
+    return fuera, avisos
+
+
+_YA_AVISADO = False
+
+
 def _tabla() -> dict[str, tuple[str, Cuenta]]:
     """Perfiles declarados en el entorno: usuario -> (clave, cuenta).
 
     El usuario se compara en minusculas porque nadie recuerda si se lo dieron
     con mayuscula; la contrasena, tal cual, porque esa si es una credencial.
     """
-    crudo = os.environ.get("LITERALEVEL_CUENTAS", "").strip()
-    fuera: dict[str, tuple[str, Cuenta]] = {}
-    for trozo in crudo.split(","):
-        trozo = trozo.strip()
-        if not trozo:
-            continue
-        partes = trozo.split(":")
-        if len(partes) != 3:
-            continue
-        usuario, clave, tope = (p.strip() for p in partes)
-        if not usuario or not clave:
-            continue
-        try:
-            n = int(tope)
-        except ValueError:
-            n = 0
-        fuera[usuario.lower()] = (clave, Cuenta(nombre=usuario, tope=max(0, n)))
+    global _YA_AVISADO
+    fuera, avisos = _analizar(os.environ.get("LITERALEVEL_CUENTAS", "").strip())
+    # Una vez por proceso, no en cada `verificar`: esto se llama en cada
+    # intento de entrar y el registro del Space no necesita la misma queja
+    # cien veces. La carrera con otro hilo solo puede duplicar una linea.
+    if avisos and not _YA_AVISADO:
+        _YA_AVISADO = True
+        for a in avisos:
+            print(f"LITERALEVEL_CUENTAS, {a}", file=sys.stderr)
     return fuera
+
+
+def problemas() -> list[str]:
+    """Los avisos de la tabla, para la pestana de Estado. Sin contrasenas."""
+    return _analizar(os.environ.get("LITERALEVEL_CUENTAS", "").strip())[1]
+
+
+def declaradas() -> int:
+    """Entradas no vacias que declara el secreto, validas o no."""
+    crudo = os.environ.get("LITERALEVEL_CUENTAS", "").strip()
+    return len([t for t in crudo.split(",") if t.strip()])
 
 
 def hay_codigos() -> bool:

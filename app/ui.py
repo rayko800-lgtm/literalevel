@@ -177,11 +177,11 @@ def _dentro_del_limite(peticion, cubo: str, tope: int) -> bool:
     return True
 
 
-# --- Codigos de acceso a lo que cuesta dinero -----------------------------
-# El codigo canjeado se guarda por sesion de navegador, en memoria, y no viaja
-# en los componentes de la interfaz: asi no acaba en un `gr.State` que se
-# serializa al navegador ni se cuela en una traza de error. Se pierde al
-# reiniciar el proceso, y esta bien que sea asi: se vuelve a pegar y ya.
+# --- Perfiles de acceso a lo que cuesta dinero ----------------------------
+# El perfil con el que se entra se guarda por sesion de navegador, en memoria,
+# y no viaja en los componentes de la interfaz: asi no acaba en un `gr.State`
+# que se serializa al navegador ni se cuela en una traza de error. Se pierde
+# al reiniciar el proceso, y esta bien que sea asi: se vuelve a entrar y ya.
 _CODIGO_SESION: dict[str, str] = {}
 _CANDADO_CODIGO = threading.Lock()
 
@@ -216,15 +216,31 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
     if not cuentas.hay_codigos():
         return ("No hace falta entrar: esta copia no tiene perfiles "
                 "configurados y todo está disponible.")
-    c = cuentas.verificar(usuario, clave)
-    if c is None:
+    # Este manejador lo toca TODO visitante, y era el unico que no cumplia la
+    # regla del modulo: una ene en la contrasena hacia que `compare_digest`
+    # lanzase TypeError y la interfaz ensenaba un "Error" pelado. La causa ya
+    # esta arreglada en `cuentas.verificar`, pero la puerta de entrada no puede
+    # depender de que nada mas vuelva a fallar nunca: si el disco del cupo se
+    # queda sin sitio o el secreto llega mal formado, el visitante tiene que
+    # leer una frase, no un traceback.
+    try:
+        c = cuentas.verificar(usuario, clave)
+        if c is None:
+            with _CANDADO_CODIGO:
+                _CODIGO_SESION.pop(_sesion_de(peticion), None)
+            return ("**No he podido entrar.** Revisa el usuario y la contraseña; "
+                    "se distinguen mayúsculas en la contraseña, no en el usuario.")
         with _CANDADO_CODIGO:
-            _CODIGO_SESION.pop(_sesion_de(peticion), None)
-        return ("**No he podido entrar.** Revisa el usuario y la contraseña; "
-                "se distinguen mayúsculas en la contraseña, no en el usuario.")
-    with _CANDADO_CODIGO:
-        _CODIGO_SESION[_sesion_de(peticion)] = f"{usuario.strip()}:{clave.strip()}"
-    resto = cuentas.queda(BASE_DATOS_LECTOR, c)
+            _CODIGO_SESION[_sesion_de(peticion)] = f"{usuario.strip()}:{clave.strip()}"
+        resto = cuentas.queda(BASE_DATOS_LECTOR, c)
+    except Exception as e:
+        # El detalle va al registro del Space y NO a la pantalla: aqui, a
+        # diferencia de los demas manejadores, el mensaje de error lo lee quien
+        # esta probando contrasenas, y no tiene por que aprender si el fallo
+        # fue del usuario, de la clave o de la base de datos del cupo.
+        print(f"_entrar: {type(e).__name__}: {e}", file=sys.stderr)
+        return ("**No he podido entrar.** Ha fallado algo al comprobar el "
+                "perfil; vuelve a intentarlo.")
     if resto is None:
         return (f"Has entrado como **{c.nombre}**. Sin límite de usos: ya "
                 "tienes la explicación en contexto, «¿de qué trata?» y la "
@@ -754,13 +770,27 @@ def _recomendar(p, n):
 #    con reglas inglesas.
 _CSS_LECTOR = """<style>
 #ll-lector{padding:1.4rem 1.8rem;
-  border:1px solid rgba(128,128,128,.28);border-radius:10px;
+  /* El gris clavado de antes -rgba(128,128,128,.28)- le ganaba al
+     `border-color:var(--ll-borde)` que pone el bloque de la paleta, porque
+     este `border` abreviado va despues y lo reescribe entero. */
+  border:1px solid var(--ll-borde);border-radius:10px;
   font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
-  font-size:var(--ll-lectura, 19px);line-height:1.75;color:inherit;
+  font-size:var(--ll-lectura, 19px);line-height:1.75;
+  /* Era `color:inherit`, que gana al `--ll-lector-texto` de mas arriba y
+     dejaba esa variable muerta en las cinco paletas. Heredaba `--ll-texto`,
+     asi que se leia; pero la paleta declara un color propio para el cuerpo
+     del libro y era el que no se usaba nunca. */
+  color:var(--ll-lector-texto);
   text-align:left}
 #ll-lector p{margin:0 0 1.05em;max-width:66ch}
 #ll-lector p:first-child{margin-top:0}
-#ll-lector::selection,#ll-lector p::selection{background:rgba(255,205,0,.45)}
+/* El amarillo estaba CLAVADO aqui, y este bloque va despues del de arriba
+   con la misma especificidad, asi que ganaba el amarillo y `--ll-seleccion`
+   era codigo muerto en las cinco paletas. Sobre las tres claras el resaltado
+   quedaba en 1,20-1,22:1, o sea invisible: y seleccionar una palabra es COMO
+   SE CONSULTA EL DICCIONARIO, el gesto central de la aplicacion. */
+#ll-lector::selection,#ll-lector p::selection{
+  background:var(--ll-seleccion);color:var(--ll-lector-texto)}
 #ll-lector .ll-vacio{font-style:italic;opacity:.78;text-align:left}
 @media (max-width:640px){
   #ll-lector{padding:1.1rem 1.15rem;font-size:var(--ll-lectura, 18px)}
@@ -1978,7 +2008,9 @@ _CSS_CUADERNO = """<style>
 #ll-cuaderno .ll-p{font-weight:700;font-size:1.05rem}
 #ll-cuaderno .ll-d{opacity:.78;font-size:.82rem;font-weight:400}
 #ll-cuaderno .ll-f{margin:.4rem 0 .3rem;padding-left:.7rem;
-  border-left:3px solid rgba(143,211,232,.45);
+  /* Azul hielo clavado: 1,23:1 sobre las paletas claras. Mismo fallo que
+     las tarjetas, en el borde que sobrevivio al arreglo. */
+  border-left:3px solid var(--ll-acento);
   font-family:Georgia,serif;line-height:1.5}
 #ll-cuaderno .ll-s{font-size:.9rem;opacity:.85}
 </style>"""
@@ -2061,10 +2093,14 @@ _CSS_BIBLIO = """<style>
 #ll-biblio .ll-l *{overflow-wrap:anywhere}
 #ll-biblio .ll-t{font-weight:700;font-size:1.05rem}
 #ll-biblio .ll-a{opacity:.78;font-size:.85rem}
+/* El canal y el relleno de la barra de avance iban clavados en azul hielo
+   -rgba(143,211,232,.16) y #3aa9cf->#8fd3e8-, asi que la barra contra su
+   propio canal daba 1,47-1,53:1 en las tres paletas claras. Es el mismo
+   color clavado que las tarjetas de S3, en el sitio que no se reviso. */
 #ll-biblio .ll-b{height:7px;border-radius:4px;margin:.5rem 0 .35rem;
-  background:rgba(143,211,232,.16);overflow:hidden}
+  background:var(--ll-borde);overflow:hidden}
 #ll-biblio .ll-b i{display:block;height:100%;
-  background:linear-gradient(90deg,#3aa9cf,#8fd3e8)}
+  background:linear-gradient(90deg,var(--ll-acento-hondo),var(--ll-acento))}
 #ll-biblio .ll-n{font-size:.85rem;opacity:.8}
 #ll-biblio .ll-x{font-size:.82rem;opacity:.78;font-style:italic}
 </style>"""
@@ -2176,6 +2212,18 @@ def _diagnostico():
     dic = Path(RUTA_DICCIONARIO)
     tam = f"{dic.stat().st_size / 1e6:.0f} MB" if dic.exists() else "FALTA"
     L.append(f"- Diccionario Kaikki: {tam}")
+    # `LITERALEVEL_CUENTAS` se edita a ciegas en el panel del Space, y hasta
+    # ahora una entrada mal escrita se descartaba sin que nadie lo supiera.
+    # Aqui se ve el recuento; los motivos los da `cuentas.problemas()` y no
+    # incluyen ninguna contrasena.
+    validos, declarados = len(cuentas._tabla()), cuentas.declaradas()
+    if declarados:
+        L.append(f"- Perfiles: {validos} válidos de {declarados} declarados")
+        for a in cuentas.problemas():
+            L.append(f"  - ⚠️ {a}")
+    else:
+        L.append("- Perfiles: ninguno declarado, así que no hay puerta y todo "
+                 "está abierto")
     try:
         L.append(f"- Catálogo: {catalogo().resumen()}")
     except Exception as e:

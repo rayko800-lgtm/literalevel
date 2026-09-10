@@ -68,10 +68,19 @@ Pasos:
    pinned: false
    ---
    ```
-4. `OPENAI_API_KEY` como **Secret** del Space. `app/config.py` ya lee
-   `os.environ` antes que el archivo, así que no hay que tocar código.
+4. `OPENAI_API_KEY` y `LITERALEVEL_CUENTAS` como **Secrets** del Space —las dos
+   llevan credenciales: la clave de pago y las contraseñas de los perfiles. Sin
+   `LITERALEVEL_CUENTAS` no hay puerta y lo que cuesta dinero queda abierto a
+   cualquier visitante. `app/config.py` ya lee `os.environ` antes que el
+   archivo, así que no hay que tocar código.
 5. Ajustar `LITERALEVEL_MODELO` y `LITERALEVEL_DICCIONARIO` a donde queden
-   montados los datos.
+   montados los datos. `LITERALEVEL_MODELO` acepta una carpeta local o el
+   identificador de un repositorio del Hub; en el Space es
+   `MikeMaki1763/literalevel-v4`. `LITERALEVEL_DICCIONARIO` es siempre la ruta
+   de un archivo `.db`: ahí un identificador del Hub no vale.
+6. Comprobar en la pestaña **Estado** de la app que dice «Perfiles: N válidos
+   de N declarados». Si descarta alguno, ahí sale el motivo: el secreto se
+   edita a ciegas y una contraseña con `:` dentro rompe su entrada.
 
 Contra: en `cpu-basic` el Space **se duerme por inactividad** y el primer
 visitante paga un arranque frío de decenas de segundos (torch + 328 MB). Para

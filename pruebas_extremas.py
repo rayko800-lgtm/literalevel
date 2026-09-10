@@ -847,20 +847,40 @@ def _contraste_suficiente():
         # La curva por capitulos vive sobre el panel, no sobre el
         # fondo. Es un objeto grafico: WCAG le pide 3:1.
         "grafica-linea": ("--ll-acento", "--ll-panel", 3.0),
+        # Las tres que siguen las encontro la auditoria del contraste DESPUES
+        # de arreglar C1, y las tres son el mismo fallo en sitios que nadie
+        # habia revisado. El fondo puede ser una PILA de capas: un rgba sobre
+        # otro rgba no da lo mismo que sobre el fondo pelado.
+        #
+        # La franja de error: era el unico sitio donde el color seguia
+        # saliendo del tema del navegador, 1,02:1 en las paletas claras.
+        "error": ("--ll-texto", ("--ll-fondo-bajo",), 4.5),
+        # El resaltado al seleccionar una palabra, que es COMO SE CONSULTA EL
+        # DICCIONARIO. Estaba clavado en amarillo y daba 1,20:1 en las claras.
+        "seleccion": ("--ll-lector-texto",
+                      ("--ll-lector-fondo", "--ll-seleccion"), 4.5),
+        # La barra de avance de "Mis libros" contra su propio canal: 1,47:1.
+        # Objeto grafico, 3:1. (El borde de la cita del cuaderno es la misma
+        # pareja que `grafica-linea`, asi que no se repite aqui.)
+        "barra-avance": ("--ll-acento", ("--ll-panel", "--ll-borde"), 3.0),
     }
 
     malas = []
     for k, d in paletas_mod.PALETAS.items():
         v = d["vars"]
-        for etiqueta, (a, b, minimo) in PARES.items():
-            if a not in v or b not in v:
+        for etiqueta, (a, capas, minimo) in PARES.items():
+            capas = (capas,) if isinstance(capas, str) else capas
+            if a not in v or any(c not in v for c in capas):
                 malas.append(f"{k}/{etiqueta}=falta variable")
                 continue
-            # El fondo se compone sobre --ll-fondo antes de medir, y
-            # el texto sobre ese fondo ya compuesto. Medir el color
-            # declarado en vez del compuesto es exactamente el error
-            # que dejo pasar la opacidad del .62.
-            fondo = sobre(v[b], v["--ll-fondo"])
+            # El fondo se compone sobre --ll-fondo antes de medir, y el texto
+            # sobre ese fondo ya compuesto. Medir el color declarado en vez
+            # del compuesto es exactamente el error que dejo pasar la
+            # opacidad del .62. Y se admite una PILA: la seleccion del lector
+            # son tres capas semitransparentes, una encima de otra.
+            fondo = rgba(v["--ll-fondo"])
+            for c in capas:
+                fondo = sobre(v[c], "rgb(%d,%d,%d)" % fondo[:3])
             texto = sobre(v[a], "rgb(%d,%d,%d)" % fondo[:3])
             la = lum("rgb(%d,%d,%d)" % texto[:3])
             lb = lum("rgb(%d,%d,%d)" % fondo[:3])
@@ -891,8 +911,24 @@ def _opacidad_no_borra_el_texto():
     import re
 
     def rgb(c):
-        c = c.strip().lstrip("#")
-        return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+        """Acepta `#abc`, `#aabbcc`, `rgb(...)` y `rgba(...)`.
+
+        Antes solo entendia hex de seis y la paleta que no lo fuera se
+        SALTABA en silencio (un `continue`), o sea que declarar el fondo
+        como `rgb(...)` habria apagado la prueba entera sin avisar.
+        """
+        c = c.strip()
+        if c.startswith("#"):
+            c = c[1:]
+            if len(c) == 3:
+                c = "".join(x * 2 for x in c)
+            if len(c) != 6:
+                raise ValueError(f"color que no se sabe leer: {c!r}")
+            return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+        if c.startswith("rgb"):
+            n = c[c.find("(") + 1:c.find(")")].split(",")
+            return tuple(int(float(x)) for x in n[:3])
+        raise ValueError(f"color que no se sabe leer: {c!r}")
 
     def lum(c):
         def f(v):
@@ -909,16 +945,26 @@ def _opacidad_no_borra_el_texto():
         t_, f_ = rgb(texto), rgb(fondo)
         return tuple(round(t_[i] * alfa + f_[i] * (1 - alfa)) for i in range(3))
 
-    fuente = pathlib.Path(__file__).parent / "app" / "ui.py"
-    alfas = {float(x) for x in re.findall(r"opacity:(\.[0-9]+)", fuente.read_text(encoding="utf-8"))}
+    # El regex de antes era `opacity:(\.[0-9]+)`, y solo veia la forma `.NN`.
+    # Un `opacity: 0.3` o un `opacity:0` -texto invisible- no contaban, asi
+    # que la prueba pasaba por CONVENCION DE ESCRITURA y no por cobertura:
+    # con el mismo color pintado, `opacity:.3` la hacia fallar y `opacity:0.3`
+    # no. Ahora se aceptan las cuatro formas y el porcentaje. Y se leen los
+    # DOS archivos con CSS: una opacidad anadida en `paletas.py` no se media.
+    fuentes = [pathlib.Path(__file__).parent / "app" / f
+               for f in ("ui.py", "paletas.py")]
+    crudas = []
+    for f in fuentes:
+        crudas += re.findall(r"opacity\s*:\s*([0-9]*\.?[0-9]+%?)",
+                             f.read_text(encoding="utf-8"))
+    alfas = {float(x[:-1]) / 100 if x.endswith("%") else float(x)
+             for x in crudas}
     assert alfas, "no encuentro ninguna opacidad en el CSS"
 
     malas = []
     for nombre, d in paletas_mod.PALETAS.items():
         v = d["vars"]
         fondo, texto = v["--ll-fondo"], v["--ll-texto"]
-        if not (fondo.startswith("#") and texto.startswith("#")):
-            continue
         for a in alfas:
             r = ratio(componer(texto, fondo, a), rgb(fondo))
             if r < 4.5:
@@ -988,7 +1034,13 @@ def _las_superficies_tambien_salen_de_la_paleta():
                    "--button-secondary-text-color",
                    "--block-background-fill",
                    "--table-even-background-fill",
-                   "--color-accent")
+                   "--color-accent",
+                   # La franja de error se quedo fuera del arreglo de C1 y era
+                   # el unico sitio donde el color seguia saliendo del tema
+                   # del navegador: 1,02:1 con las paletas claras, o sea que
+                   # el aviso de que algo ha fallado era lo unico ilegible.
+                   "--error-text-color",
+                   "--error-background-fill")
     malas = []
     for nombre in paletas_mod.PALETAS:
         css = paletas_mod.css(nombre)
@@ -1008,6 +1060,63 @@ prueba("las superficies tambien salen de la paleta",
        _las_superficies_tambien_salen_de_la_paleta)
 
 
+def _el_css_no_clava_los_colores_que_ya_fallaron():
+    """Cuatro reglas del CSS pintaban un color fijo con la paleta que fuera.
+
+    Las encontro una auditoria DESPUES de dar C1 por cerrado, y todas se
+    escaparon por el mismo motivo: `_contraste_suficiente` mide VARIABLES de
+    la paleta, asi que un color clavado en el CSS le es invisible -puede
+    seguir en verde midiendo una variable que ya no se pinta-.
+
+    Medido antes del arreglo, en las tres paletas claras: el resaltado de
+    seleccion 1,20:1 (y es COMO SE CONSULTA EL DICCIONARIO), el canal de la
+    barra de avance 1,47:1, el borde de la cita del cuaderno 1,23:1. Y dos
+    variables declaradas en las cinco paletas eran codigo muerto porque otra
+    regla posterior les ganaba: `--ll-seleccion` y `--ll-lector-texto`.
+    """
+    import re
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    css = "\n".join(re.findall(r"<style>.*?</style>", fuente, re.S))
+    # Los comentarios del CSS citan los colores viejos A PROPOSITO, para que
+    # se sepa que fallaba. No cuentan como color clavado.
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    reglas = {
+        "#ll-lector::selection": "--ll-seleccion",
+        "#ll-lector{": "--ll-lector-texto",
+        "#ll-biblio .ll-b{": "--ll-borde",
+        "#ll-biblio .ll-b i{": "--ll-acento",
+        "#ll-cuaderno .ll-f{": "--ll-acento",
+    }
+    malas = []
+    for selector, variable in reglas.items():
+        # Cada selector puede aparecer VARIAS veces: el lector se pinta en
+        # dos bloques, uno de ellos una f-string con `{_RADIO}` dentro, asi
+        # que recortar hasta la primera `}` da un cuerpo a medias. Se miran
+        # todas las apariciones: ninguna puede clavar un color, y al menos
+        # una tiene que usar la variable de la paleta.
+        cuerpos, i = [], css.find(selector)
+        while i >= 0:
+            cuerpos.append(css[i:css.find("}", i) + 1])
+            i = css.find(selector, i + 1)
+        if not cuerpos:
+            malas.append(f"no encuentro la regla {selector}")
+            continue
+        if not any(variable in c for c in cuerpos):
+            malas.append(f"{selector} ya no usa {variable}")
+        for c in cuerpos:
+            clavados = (re.findall(r"#[0-9a-fA-F]{3,8}\b", c)
+                        + re.findall(r"(?:rgba?|hsla?)\([0-9][^)]*\)", c))
+            if clavados:
+                malas.append(f"{selector} vuelve a clavar {clavados}")
+    assert not malas, malas
+    return f"{len(reglas)} reglas atadas a la paleta, sin color clavado"
+
+
+prueba("el CSS no clava los colores que ya fallaron",
+       _el_css_no_clava_los_colores_que_ya_fallaron)
+
+
 def _la_grafica_no_lleva_colores_clavados():
     """Plotly no lee CSS: la grafica es una imagen con los colores dentro.
 
@@ -1024,7 +1133,15 @@ def _la_grafica_no_lleva_colores_clavados():
     cuerpo = fuente[i:j]
     assert i > 0 and j > i, "no encuentro _grafica_analisis"
     import re
-    clavados = re.findall(r"#[0-9a-fA-F]{6}", cuerpo)
+    # Antes esto era solo `#[0-9a-fA-F]{6}`, o sea que el MISMO color escrito
+    # como `#8ce` en vez de `#88ccee` se colaba sin que la prueba dijera nada,
+    # igual que cualquier `rgb()` o `hsl()`. Se buscan las cuatro formas.
+    clavados = (re.findall(r"#[0-9a-fA-F]{3,8}\b", cuerpo)
+                + re.findall(r"(?:rgba?|hsla?)\([0-9][^)]*\)", cuerpo))
+    # Excepcion legitima y a proposito: el fondo del lienzo y de la leyenda
+    # van TRANSPARENTES para que se vea el de la paleta. Es lo contrario de
+    # un color clavado; clavar aqui cualquier otra cosa si seria el fallo.
+    clavados = [c for c in clavados if c.replace(" ", "") != "rgba(0,0,0,0)"]
     assert not clavados, f"colores clavados en la grafica: {clavados}"
     assert "_colores_paleta(" in cuerpo, "no consulta la paleta"
     # Y que de verdad cambien de una paleta a otra.
@@ -1094,7 +1211,42 @@ def _el_modelo_vale_como_repositorio():
         raise AssertionError(f"deberia ser FileNotFoundError, fue {type(e).__name__}")
     else:
         raise AssertionError("no lanzo nada con una carpeta inexistente")
-    return "acepta repositorio, rechaza carpeta inexistente con mensaje"
+
+    # Y AHORA la comprobacion que de verdad caza la regresion. Todo lo de
+    # arriba mide `_parece_repo_hf` POR SEPARADO, y con el guardia roto -o
+    # sea, volviendo a `if not os.path.isdir(ruta)`- sigue pasando entero:
+    # se comprobo mutando esa linea. Lo unico que distingue el codigo bueno
+    # del roto es construir el Puntuador CON un identificador y ver que llega
+    # a cargar. No se descargan los 328 MB: se corta `from_pretrained` con un
+    # centinela en cuanto lo llaman, que es justo despues del guardia.
+    import transformers
+
+    class _Llego(Exception):
+        pass
+
+    def _centinela(*a, **k):
+        raise _Llego(str(a[0]) if a else "")
+
+    guardados = (transformers.AutoTokenizer.from_pretrained,
+                 transformers.AutoModelForSequenceClassification.from_pretrained)
+    transformers.AutoTokenizer.from_pretrained = _centinela
+    transformers.AutoModelForSequenceClassification.from_pretrained = _centinela
+    try:
+        scoring.Puntuador("MikeMaki1763/literalevel-v4")
+    except _Llego as e:
+        assert "MikeMaki1763/literalevel-v4" in str(e), str(e)
+    except FileNotFoundError as e:
+        raise AssertionError(
+            "el guardia rechaza el repositorio del Hub, que es EXACTAMENTE "
+            f"el fallo que dejo la app desplegada sin poder puntuar: {e}")
+    else:
+        raise AssertionError("no llego a cargar y no dijo por que")
+    finally:
+        (transformers.AutoTokenizer.from_pretrained,
+         transformers.AutoModelForSequenceClassification.from_pretrained) = guardados
+
+    return ("acepta repositorio -y LLEGA a cargarlo-, rechaza carpeta "
+            "inexistente con mensaje")
 
 
 prueba("el modelo vale como repositorio del Hub",
