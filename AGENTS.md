@@ -14,6 +14,7 @@ El afectado de una colisión es Miguel. Lee esto antes de tocar nada.
 | — | — | **9 sep, 09:25:** Claude Code ha tocado archivos compartidos cerrando dos auditorías. `app/scoring.py` (mensaje de error del modelo y comentario del lote), `app/paletas.py` (ocho colores oscurecidos por contraste), `pruebas_extremas.py` (la prueba de contraste pasa de 4 a 8 parejas por paleta), `validar_local.py` (el regex del nivel, el bloque del baseline y `cuerpo_estricto`), `colab_precalculo.py` y **`app/ficha.py`**: `_es_boilerplate` miraba las primeras 400 palabras SIN quitar la envoltura legal de Gutenberg, y por eso descartaba como licencia cualquier `.txt` sin encabezados de capitulo. Se perdian libros enteros. Todo desde el commit `aed7751`. **Lee `auditoria/cierre_2026-09-09.md` y `git log` antes de tocar nada.** |
 | — | — | **9 sep, 21:30 (Claude Code):** cierre de la décima auditoría. Tocados `app/ui.py`, `app/cuentas.py`, `app/paletas.py`, `pruebas_extremas.py`, `DESPLIEGUE.md`, `PENDIENTES.md`, `README.md`, `entrega/{documento.tex,estrategia.md,mensaje_profesor.md}`. **`app/cuentas.py` tiene interfaz pública nueva**: `problemas()` y `declaradas()`, y `_tabla` se apoya en `_analizar`. Lee `auditoria/cierre_2026-09-09_noche.md` antes de tocar nada. **Sin desplegar todavía.** |
 | — | — | **9 sep, 23:00 (Claude Code):** cierre de la **undécima** auditoría, la más productiva del proyecto. Tocados otra vez `app/ui.py`, `app/cuentas.py`, `app/paletas.py`, `app/perfil.py` y `pruebas_extremas.py`. **`app/cuentas.py` añade `devolver()`** a su interfaz pública, y **`app/perfil.py` valida ahora que `nivel` sea numérico** en `cargar` (un perfil con `nivel: "abc"` se daba por bueno y reventaba después). Lo importante para quien venga: **el envoltorio `prueba` trata `False` como fallo e itera generadoras**, así que una prueba que devuelva el booleano crudo ya no vale — tiene que aseverar su expectativa. Lee `auditoria/cierre_auditoria_11.md`. **Sin desplegar.** |
+| — | — | **10 sep, 01:00 (Claude Code):** cierre de la **duodécima** auditoría (0 críticos, 8 serios). Tocados `app/ui.py` y `pruebas_extremas.py`. **Cambio de comportamiento a tener en cuenta:** el tope por hora del cubo «lexico» ya solo se aplica cuando la consulta VA A COSTAR dinero —hay clave y la sesión puede pagar—, porque una consulta sin perfil es diccionario local y la cabecera del módulo promete que lo gratis no se limita. Y `_analisis_guardado`/`_sinopsis_guardada` validan ahora la FORMA del JSON, no solo que parsee. Lee `auditoria/cierre_auditoria_12.md`. **Sin desplegar, y la tarjeta del modelo en HF tiene un enlace roto que necesita tu token.** |
 | `app/scoring.py`, `app/perfil.py`, `app/catalogo.py`, `app/config.py` | compartido | Quien entre, avisa en el commit. |
 | `modelo_v4/`, `kaikki_diccionario.db` | nadie | Datos. No se regeneran ni se versionan. |
 
@@ -179,8 +180,11 @@ resolver las clases `Auto*` 5,4 s + sentence_transformers 0,8 s + spaCy 0,5 s
 = **~11,8 s**. El marginal de cada recurso es pequeno: Puntuador 0,74 s,
 catalogo 3,06 s (casi todo el modelo multilingue), consultor 1,6 s.
 
-**De los 28-44 s de una consulta lexica, 23-39 s son espera a OpenAI.** Todo el
-trabajo local -spaCy, SQLite, desambiguacion, IPA- son **40 ms** en caliente.
+**Casi todo el tiempo de una consulta lexica es espera a OpenAI.** La explicacion
+contextual esta medida en **14,9 s** con `reasoning.effort="low"`, que es el que
+corre, y en 67,7 s con el esfuerzo medio de antes. El trabajo local -spaCy,
+SQLite, desambiguacion, IPA- son **40 ms** en caliente. (Aqui decia "de los 28-44
+s, 23-39 son espera": era de antes de bajar el esfuerzo.)
 Por eso `_consultar` es generadora: la primera etapa sale al instante.
 
 Medido y **descartado**, para que nadie lo reintente:
@@ -194,8 +198,9 @@ Medido y **descartado**, para que nadie lo reintente:
   **rompe la busqueda**: el lector describe en espanol y el catalogo esta en
   ingles. No se toca.
 
-Pendiente para Codex, sin hacer: la llamada de `lexicon.py` va sin
-`reasoning.effort`, o sea esfuerzo medio para cuatro campos cortos de
-Structured Outputs. Probar `low` podría quitar 10-20 s, pero hay que
-comprobar que no cae la calidad, porque la regla de "OpenAI no redefine la
-palabra" depende de que siga las instrucciones al pie de la letra.
+~~Pendiente para Codex~~ **HECHO**: la llamada de `lexicon.py` ya va con
+`reasoning.effort="low"` (`ESFUERZO_RAZONAMIENTO`, usado en la llamada). Medido
+sobre tres palabras reales: 67,7 s con el esfuerzo medio, **14,9 s con `low`**,
+7,4 s con `minimal`. Se queda en `low` y **`minimal` esta descartado**: con el,
+"had peeped" se explico como pasado simple cuando es pasado perfecto, y el
+analisis gramatical es justo lo que se evalua.

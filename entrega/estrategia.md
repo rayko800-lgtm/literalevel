@@ -130,7 +130,7 @@ diagnosticó qué producía cada queja y se corrigió.
 | — | «Medir la dificultad de este capítulo» es lenguaje de laboratorio | «¿Cómo de difícil es este capítulo?» | Etiqueta reescrita |
 | — | «Vistazo rápido a la dificultad» no dice cuánto tarda | «Vistazo rápido (unos segundos)» | Etiqueta reescrita |
 | — | «Analizar el libro entero» no advierte del coste | «Leer el libro entero (tarda más)» | Etiqueta reescrita |
-| «No me gustan los colores» | El color es gusto, y el gusto no se discute: se ofrece | **Cinco paletas** con pestaña propia y cambio instantáneo: *hielo* (la original), *amanecer* (clara, crema y naranja), *menta*, *papel* (para leer horas) y *medianoche* | Una prueba automática comprueba las cinco contra el criterio de contraste **WCAG AA (4,5:1)**. Las cinco pasan en las **cuarenta parejas** de color que se comprueban —ocho por paleta, cada una con su umbral: 4,5:1 para el texto normal y 3:1 para el título grande—. La más ajustada del texto normal mide **4,53** y la del título, **3,11** |
+| «No me gustan los colores» | El color es gusto, y el gusto no se discute: se ofrece | **Cinco paletas** con pestaña propia y cambio instantáneo: *hielo* (la original), *amanecer* (clara, crema y naranja), *menta*, *papel* (para leer horas) y *medianoche* | Una prueba automática comprueba las cinco contra el criterio de contraste **WCAG AA (4,5:1)**. Las cinco pasan en las **ochenta y cinco parejas** de color que se comprueban —diecisiete por paleta, cada una con su umbral: 4,5:1 para el texto normal y 3:1 para el título grande—. La más ajustada del texto normal mide **4,53** y la del título, **3,11** |
 | «Todo muy recto, muy marcado» | Esto no es gusto, es diseño, y se corrige para todas las paletas | Esquinas de 14 px, bordes finos, sombras suaves y las opciones de lista como fichas tocables | — |
 | «Difícil de usar en celular… casi todo» | En un móvil, el círculo de un botón de radio es un blanco de 12 px | La ficha entera pasa a ser el blanco: **44 px** | — |
 
@@ -140,7 +140,7 @@ diagnosticó qué producía cada queja y se corrigió.
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono
 real —y no en el navegador del escritorio— había descubierto antes fallos que
-**ninguna de las 222 pruebas automáticas podía encontrar, porque todos
+**ninguna de las 229 pruebas automáticas podía encontrar, porque todos
 necesitaban un dedo y una pantalla pequeña**:
 
 - El doble toque para consultar una palabra **no funcionaba en el móvil**: el
@@ -196,7 +196,7 @@ El modelo devuelve un número continuo, pero su escala está comprimida
 (`predicho ≈ 0,72 × real + 0,38`). Presentar «1,27 sobre 2» como si fueran dos
 decimales de precisión sería mentir con exactitud. La interfaz muestra
 **bandas** —básico < 0,6 ≤ intermedio < 1,4 ≤ avanzado, que son los cortes
-del propio MCER, y no los 0,8 y 1,6 de antes, que ni siquiera partian el
+del propio MCER, y no los 0,8 y 1,6 de antes, que ni siquiera partían el
 0–2 en tres partes iguales— y la letra MCER
 únicamente como orientación, siempre junto al número y con la tabla de
 correspondencia a la vista.
@@ -220,7 +220,7 @@ palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
 
-La regla que verifican las 222 pruebas de robustez es una sola: **ningún
+La regla que verifican las 229 pruebas de robustez es una sola: **ningún
 manejador puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve
 como texto legible.
 
@@ -237,9 +237,11 @@ redefinir la palabra; la definición es siempre la de Wiktionary.
 
 ### 4.5 La latencia se reparte para que la pantalla no se quede quieta
 
-De los 28 a 44 segundos de una consulta léxica nueva, **23 a 39 son espera al
-servicio externo**; todo el trabajo local —lema, diccionario, desambiguación,
-fonética— son **40 milisegundos**. Por eso la ficha se pinta en dos etapas: lo
+En una consulta léxica nueva, casi todo el tiempo es **espera al servicio
+externo**: la explicación contextual se midió en **14,9 segundos** con el
+esfuerzo de razonamiento `low` que usa la aplicación —eran 67,7 con el esfuerzo
+medio de antes—, mientras todo el trabajo local —lema, diccionario,
+desambiguación, fonética— son **40 milisegundos**. Por eso la ficha se pinta en dos etapas: lo
 local aparece al instante y la explicación se añade cuando llega. El trabajo
 tarda lo mismo; deja de parecer que la aplicación se colgó. La misma idea
 gobierna la curva de dificultad, que se repinta cada pocos capítulos mientras
@@ -389,8 +391,8 @@ publicación y un micrófono.
 | Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5561 · 0,9276 · 1,2414 · 1,4952 |
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron 8 correcciones |
-| Producto | Accesibilidad de color | **Cumplido**: las cuarenta parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Cumplido**: 222 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
+| Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
+| Producto | Robustez | **Cumplido**: 229 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha. Sin disco persistente todavía (A4) |
 | Operación | Catálogo medido, no heredado | **En curso** (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |

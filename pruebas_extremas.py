@@ -39,8 +39,8 @@ os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_pruebas_"
 # camino degradado, que es precisamente el que `AGENTS.md` promete y el que
 # interesa ejercitar aqui: "sin OPENAI_API_KEY la app tiene que seguir
 # funcionando en todo lo que no usa red".
-import config  # noqa: E402
-config.cargar = lambda *a, **k: None
+import config as config_mod  # noqa: E402
+config_mod.cargar = lambda *a, **k: None
 os.environ.pop("OPENAI_API_KEY", None)
 import ficha as ficha_mod  # noqa: E402
 import reader  # noqa: E402
@@ -405,13 +405,18 @@ prueba("cae al host del cliente si no hay cabecera",
        lambda: ui._ip(_Pet(host="198.51.100.9")))
 prueba("sin peticion no revienta", lambda: ui._ip(None))
 prueba("cabeceras raras no rompen", lambda: ui._ip(_Pet(ip=None, host=None)))
+# Las dos que siguen devolvian un numero y una tupla, que NUNCA son False:
+# imprimian `ok 4` y `ok (True, True)` y con el tope roto habrian impreso
+# `ok 9` en verde. Se asevera lo que se espera.
 prueba("el tope se respeta",
-       lambda: sum(ui._dentro_del_limite(_Pet(ip="10.1.1.1"), "p1", 4)
-                   for _ in range(9)))
+       lambda: (lambda n: n == 4 and f"pasan {n} de 9")(
+           sum(ui._dentro_del_limite(_Pet(ip="10.1.1.1"), "p1", 4)
+               for _ in range(9))))
 prueba("una IP no consume la cuota de otra",
        lambda: (all(ui._dentro_del_limite(_Pet(ip="10.2.2.2"), "p2", 2)
-                    for _ in range(2)),
-                ui._dentro_del_limite(_Pet(ip="10.3.3.3"), "p2", 2)))
+                    for _ in range(2))
+                and ui._dentro_del_limite(_Pet(ip="10.3.3.3"), "p2", 2)
+                and "la segunda IP conserva su cuota"))
 prueba("tope 0 significa sin limite",
        lambda: all(ui._dentro_del_limite(_Pet(ip="10.4.4.4"), "p3", 0)
                    for _ in range(200)))
@@ -443,6 +448,11 @@ def _por_encima_del_tope_no_llega_al_consultor():
     tope_antes, consultor_antes = ui.LIMITE_CONSULTAS_HORA, ui.consultor
     ui.LIMITE_CONSULTAS_HORA = 1
     ui.consultor = no_deberia_llamarse
+    # El tope solo frena lo que VA A COSTAR dinero: una consulta sin clave es
+    # diccionario local y no se limita. Aqui se finge que hay clave, porque lo
+    # que se prueba es el freno de gasto, no el camino gratuito.
+    falta_antes = config_mod.falta
+    config_mod.falta = lambda: []
     try:
         # El primer uso gasta el unico permitido. Puede fallar por otras
         # razones -no hay diccionario en las pruebas- y da igual: lo que
@@ -458,6 +468,7 @@ def _por_encima_del_tope_no_llega_al_consultor():
         assert aviso in segunda, f"esperaba el aviso de limite, dio: {segunda[:90]}"
     finally:
         ui.LIMITE_CONSULTAS_HORA, ui.consultor = tope_antes, consultor_antes
+        config_mod.falta = falta_antes
     return "con el tope agotado devuelve el aviso y no consulta"
 
 
@@ -488,10 +499,115 @@ prueba("desplegada, una carpeta por sesion",
 prueba("dos sesiones no comparten carpeta",
        lambda: _con_nube(lambda: ui._dir_lector(_Peticion("aaa"))
                          != ui._dir_lector(_Peticion("bbb"))))
-prueba("session_hash con ../ no escapa",
-       lambda: _con_nube(lambda: (
-           ui.BASE_DATOS_LECTOR / "lectores") in ui._dir_lector(
-               _Peticion("../../etc/passwd")).parents))
+def _el_session_hash_no_escapa():
+    """Un `session_hash` con `../` no puede salirse de la carpeta de lectores.
+
+    La version anterior de esta prueba NO PODIA FALLAR: comprobaba
+    `base/lectores in ruta.parents`, y `Path.parents` es LEXICO, asi que
+    `base/lectores/../../etc/passwd` tiene a `base/lectores` entre sus padres
+    aunque resuelva fuera del disco. Quitando la sanitizacion entera la prueba
+    seguia en verde. La sanitizacion real esta bien; era la prueba la que no
+    valia.
+
+    Ahora se comprueba lo que importa de las dos formas: que el nombre no
+    contenga separadores ni puntos, y que la ruta RESUELTA siga dentro.
+    """
+    def dentro():
+        base = (ui.BASE_DATOS_LECTOR / "lectores").resolve()
+        malos = []
+        for h in ("../../etc/passwd", "..\\..\\Windows\\System32", "a/../..",
+                  "....//....//x", "/etc/passwd"):
+            d = ui._dir_lector(_Peticion(h))
+            if any(c in d.name for c in "/\\") or ".." in d.name:
+                malos.append(f"{h!r} deja el nombre {d.name!r}")
+            if base not in d.resolve().parents:
+                malos.append(f"{h!r} resuelve FUERA: {d.resolve()}")
+        assert not malos, malos
+        return "cinco intentos de escape, ninguno sale de lectores/"
+    return _con_nube(dentro)
+
+
+prueba("session_hash con ../ no escapa", _el_session_hash_no_escapa)
+
+
+def _dos_lectores_no_se_ven_los_datos():
+    """Que `_dir_lector` separe carpetas no basta: hay que ejercitar el camino.
+
+    Todas las pruebas de aqui arriba comprueban la FUNCION que reparte, y
+    ninguna llamaba a un manejador con dos sesiones distintas para ver que lo
+    guardado por uno no lo ve el otro. Por eso sobrevivian cinco mutantes que
+    devolvian el Space a "una carpeta para todos": bastaba con que un manejador
+    dejara de pasar la peticion -que es justamente el fallo que tuvo el
+    cuestionario- y ninguna prueba se enteraba.
+
+    Aqui se hace el recorrido de verdad: A fija su nivel, B fija otro, y cada
+    uno tiene que recuperar el suyo.
+    """
+    def dentro():
+        a, b = _Peticion("lector-aaa"), _Peticion("lector-bbb")
+        # Cada uno responde el cuestionario con respuestas distintas.
+        claves = ui._claves_cuestionario()
+        pa = ui._desde_cuestionario(None, "Ana", a, *([0] * len(claves)))[0]
+        pb = ui._desde_cuestionario(None, "Bruno", b,
+                                    *([3] * len(claves)))[0]
+        assert pa is not None and pb is not None, "no se creo algun perfil"
+        # Y cada uno recupera el SUYO al recargar la pagina.
+        va = ui._perfil_inicial(a)[0]
+        vb = ui._perfil_inicial(b)[0]
+        assert va is not None and vb is not None, "algun perfil no se recupero"
+        assert va.nombre == "Ana", f"A recupero {va.nombre!r}"
+        assert vb.nombre == "Bruno", f"B recupero {vb.nombre!r}"
+        assert ui._archivo_lector("perfil.json", a) != \
+            ui._archivo_lector("perfil.json", b), "misma ruta para los dos"
+        return f"A={va.nombre} ({va.nivel}), B={vb.nombre} ({vb.nivel})"
+    return _con_nube(dentro)
+
+
+prueba("dos lectores no se ven los datos", _dos_lectores_no_se_ven_los_datos)
+
+
+def _los_manejadores_que_guardan_pasan_la_peticion():
+    """Un manejador cableado que toque datos del lector TIENE que anotar
+    `gr.Request`; si no, Gradio no se la inyecta y escribe en `anonimo/`.
+
+    La otra prueba de inyeccion solo mira los que YA anotan `Request`, asi que
+    un mutante que le quite la anotacion al cuestionario se le escapa: deja de
+    anotar, deja de recibir, y la prueba lo salta por no anotar. Aqui se mira
+    al reves: se sacan los manejadores CABLEADOS a la interfaz, y si alguno usa
+    datos del lector sin anotar, es un fallo.
+    """
+    import re
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    # Los nombres que se cablean a un evento de Gradio.
+    cableados = set(re.findall(
+        r"\.(?:click|change|submit|load|select|upload|stop|input)\(\s*"
+        r"(_[a-z_]+)", fuente))
+    assert cableados, "no encuentro ningun manejador cableado"
+    malos = []
+    for nombre in sorted(cableados):
+        f = getattr(ui, nombre, None)
+        if f is None or not callable(f):
+            continue
+        try:
+            cuerpo = inspect.getsource(f)
+            sig = inspect.signature(f)
+        except (TypeError, OSError, ValueError):
+            continue
+        toca_datos = re.search(
+            r"_archivo_lector\([^)]*peticion|_dir_lector\(peticion|"
+            r"_ruta_sesion\(peticion|_codigo_de\(peticion", cuerpo)
+        if not toca_datos:
+            continue
+        p = sig.parameters.get("peticion")
+        if p is None or "Request" not in str(p.annotation):
+            malos.append(f"{nombre}{sig}")
+    assert not malos, malos
+    return f"{len(cableados)} manejadores cableados; los que guardan, anotados"
+
+
+prueba("los manejadores que guardan pasan la peticion",
+       _los_manejadores_que_guardan_pasan_la_peticion)
 prueba("session_hash vacio cae en 'anonimo'",
        lambda: _con_nube(lambda: ui._dir_lector(_Peticion("")).name))
 prueba("sin peticion tampoco revienta",
@@ -1648,6 +1764,116 @@ def _sinopsis_pide_codigo():
 
 
 prueba("la sinopsis pide codigo", lambda: _con_puerta(_sinopsis_pide_codigo))
+
+
+def _la_consulta_lexica_pide_codigo():
+    """La TERCERA puerta, que no tenia prueba y es la que mas se abre.
+
+    Una auditoria lo demostro mutando `puede, motivo_pago = _puede_pagar(...)`
+    por `True, ""`: las 222 pruebas seguian en verde. Es la puerta que se cruza
+    en cada palabra que consulta el lector, o sea la que mas veces decide si se
+    gasta dinero.
+
+    Se comprueba lo que de verdad importa: que al consultor se le pase
+    `usar_openai=False`, y que la ficha diga por que.
+    """
+    visto = []
+
+    class Consultor:
+        def consultar(self, *a, **k):
+            visto.append(k.get("usar_openai"))
+            from lexicon import ResultadoLexico
+            return ResultadoLexico(
+                "hi", "hi", "hi", "hi", "INTJ", "interjection", "A greeting.",
+                [], 0.8, 2, None, None, None, None, False, None, None, None,
+                None, "basico", 5.0, False, [])
+
+    antes = ui.consultor
+    ui.consultor = lambda: Consultor()
+    try:
+        ficha = consulta(None, None, None, "hello", "Hello there.", "es")[0]
+    finally:
+        ui.consultor = antes
+    assert visto == [False], f"se le paso usar_openai={visto}"
+    assert "perfil" in ficha.lower(), f"no dice por que: {ficha[:120]}"
+    return "sin perfil, la consulta va con usar_openai=False y lo dice"
+
+
+prueba("la consulta lexica pide codigo",
+       lambda: _con_puerta(_la_consulta_lexica_pide_codigo))
+
+
+def _los_topes_por_hora_estan_puestos():
+    """Los tres topes tienen que ser mayores que cero por defecto.
+
+    La prueba que ejercita el tope de consultas SUSTITUYE la constante por 1,
+    asi que el valor real del modulo no lo miraba nadie: poner
+    `LIMITE_VOZ_HORA = 0` -que significa SIN LIMITE- pasaba las 222 pruebas.
+    """
+    topes = {"consultas": ui.LIMITE_CONSULTAS_HORA,
+             "voz": ui.LIMITE_VOZ_HORA,
+             "sinopsis": ui.LIMITE_SINOPSIS_HORA}
+    malos = [f"{k}={v}" for k, v in topes.items() if not v or v <= 0]
+    assert not malos, f"topes apagados: {malos}"
+    assert ui._VENTANA == 3600.0, ui._VENTANA
+    return f"consultas {topes['consultas']}, voz {topes['voz']}, sinopsis {topes['sinopsis']}, por hora"
+
+
+prueba("los topes por hora estan puestos", _los_topes_por_hora_estan_puestos)
+
+
+def _medir_con_el_modelo_inalcanzable():
+    """Si el modelo no se puede cargar, `_medir` devuelve texto, no traceback.
+
+    `_medir` solo atrapaba `FileNotFoundError`, que cubre la carpeta local
+    ausente. Desplegada, `LITERALEVEL_MODELO` es un repositorio del Hub y
+    `from_pretrained` lanza `OSError` si el Hub no responde o la descarga se
+    corta en el arranque en frio: el boton "¿Como de dificil es este capitulo?"
+    escupia el traceback a la interfaz. Los otros tres manejadores que cargan
+    el modelo ya lo atrapaban; este se habia quedado fuera, y ninguna prueba
+    medía con un modelo ausente.
+    """
+    def revienta():
+        raise OSError("We couldn't connect to 'https://huggingface.co'")
+
+    antes = ui.puntuador
+    ui.puntuador = revienta
+    try:
+        # Se itera: `_medir` es generadora y sin iterarla no se ejecuta nada.
+        salida = str(list(ui._medir(libro_ok, 0))[-1])
+    finally:
+        ui.puntuador = antes
+    assert "huggingface" in salida.lower(), salida[:120]
+    return "con el modelo inalcanzable devuelve aviso, no traceback"
+
+
+prueba("medir con el modelo inalcanzable", _medir_con_el_modelo_inalcanzable)
+
+
+def _voz_y_sinopsis_respetan_su_tope():
+    """Los cubos «voz» y «sinopsis» tampoco tenian prueba.
+
+    Los dos mutantes que apagaban su `_dentro_del_limite` sobrevivian. Se
+    agota un tope de 1 de verdad y se comprueba que el segundo intento trae el
+    aviso de limite, no el resultado.
+    """
+    antes = (ui.LIMITE_VOZ_HORA, ui.LIMITE_SINOPSIS_HORA)
+    ui.LIMITE_VOZ_HORA = ui.LIMITE_SINOPSIS_HORA = 1
+    pet = _Pet(ip="10.7.7.7")
+    try:
+        ui._practicar("no_existe.wav", "hello", pet)
+        segunda_voz = str(ui._practicar("no_existe.wav", "hello", pet)[1])
+        list(ui._de_que_trata(libro_ok, pet))
+        segunda_sin = str(list(ui._de_que_trata(libro_ok, pet))[-1])
+    finally:
+        ui.LIMITE_VOZ_HORA, ui.LIMITE_SINOPSIS_HORA = antes
+    aviso = ui._mensaje_limite("es", 60)[:28]
+    assert aviso in segunda_voz, f"la voz no freno: {segunda_voz[:110]}"
+    assert aviso in segunda_sin, f"la sinopsis no freno: {segunda_sin[:110]}"
+    return "voz y sinopsis frenan al agotar su tope"
+
+
+prueba("voz y sinopsis respetan su tope", _voz_y_sinopsis_respetan_su_tope)
 prueba("la practica de voz pide codigo",
        lambda: _con_puerta(
            lambda: "entres con tu perfil" in str(ui._practicar("x.wav", "hello there")[1])))
@@ -1783,6 +2009,44 @@ def _perfil_con_nivel_no_numerico():
 
 
 prueba("perfil con nivel no numerico", _perfil_con_nivel_no_numerico)
+
+
+def _analisis_y_sinopsis_mal_formados():
+    """Los otros dos archivos que escribe la app y que si levantaban.
+
+    Un `analisis/*.json` con filas sin `dificultad` daba KeyError, y una
+    sinopsis que fuera `[]`, `"hola"` o llevara un numero donde se espera texto
+    daba AttributeError. Es el mismo fallo de `sesion.json` y `perfil.json` en
+    los dos archivos que quedaban: JSON valido, forma distinta.
+    """
+    import json as _json
+    ruta_a = pathlib.Path(ui._ruta_analisis(libro_ok, "completo"))
+    ruta_s = pathlib.Path(ui.RUTA_ANALISIS) / f"{ui._clave_libro(libro_ok)}-sinopsis.json"
+    ruta_a.parent.mkdir(parents=True, exist_ok=True)
+    guardados = [(r, r.read_text(encoding="utf-8") if r.exists() else None)
+                 for r in (ruta_a, ruta_s)]
+    basura_analisis = ['[]', '"hola"', '{"filas": 3}',
+                       '{"filas": [{"capitulo": 1}]}', '{"filas": ["x"]}']
+    basura_sinopsis = ['[]', '"hola"', '{"de_que_trata": 5}', 'null']
+    try:
+        for b in basura_analisis:
+            ruta_a.write_text(b, encoding="utf-8")
+            list(ui._analizar_libro(libro_ok, "completo"))
+        ruta_a.unlink(missing_ok=True)
+        for b in basura_sinopsis:
+            ruta_s.write_text(b, encoding="utf-8")
+            list(ui._de_que_trata(libro_ok))
+        return (f"{len(basura_analisis)} analisis y {len(basura_sinopsis)} "
+                "sinopsis mal formados, ninguno levanta")
+    finally:
+        for r, guardado in guardados:
+            if guardado is None:
+                r.unlink(missing_ok=True)
+            else:
+                r.write_text(guardado, encoding="utf-8")
+
+
+prueba("analisis y sinopsis mal formados", _analisis_y_sinopsis_mal_formados)
 
 prueba("mover con un indice que no es numero",
        lambda: (ui._mover(libro_ok, "abc", 1), ui._mover(libro_ok, None, 1))

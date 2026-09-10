@@ -724,7 +724,11 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
                         "puede tardar; después queda guardado.")
     try:
         ruta = _descargar_gutenberg(id_libro)
-    except (ValueError, ConnectionError) as e:
+    # OSError incluido: `RUTA_LIBROS.mkdir(...)` de la cache queda fuera del
+    # `try` interno, asi que un problema de disco -carpeta ocupada por un
+    # archivo, permisos, disco lleno- salia hacia Gradio. Era el unico error de
+    # disco que un manejador dejaba escapar.
+    except (ValueError, ConnectionError, OSError) as e:
         yield quieto[:3] + (gr.update(), gr.Tabs(), _aviso(e))
         return
     libro, upd, html, resumen = _abrir(ruta, peticion)
@@ -1153,7 +1157,15 @@ def _medir(libro, idx, como="cifra"):
         yield "Midiendo el capítulo…"
     try:
         r = puntuador().puntuar(ficha.sin_licencia(c.texto))
-    except (ValueError, FileNotFoundError) as e:
+    # OSError y no solo FileNotFoundError. La segunda solo cubre la carpeta
+    # local que no existe; desplegada, `LITERALEVEL_MODELO` es un repositorio
+    # del Hub y `from_pretrained` lanza OSError si el Hub no responde, si el
+    # repositorio se renombra o si la descarga se corta en el arranque en frio.
+    # Los otros tres manejadores que cargan el modelo ya atrapaban OSError;
+    # este -el boton "¿Como de dificil es este capitulo?"- se habia quedado
+    # fuera. `FileNotFoundError` desciende de `OSError`, asi que el mensaje de
+    # la carpeta ausente sigue saliendo igual.
+    except (ValueError, OSError) as e:
         yield _aviso(e)
         return
     yield (_nivel_dicho(r.puntuacion, r.banda, como)
@@ -1239,10 +1251,29 @@ def _ruta_analisis(libro, modo="completo"):
 
 
 def _analisis_guardado(libro, modo="completo"):
+    """El analisis guardado de este libro, o None si no vale.
+
+    Se comprueba la FORMA, no solo que el JSON parsee. Es el mismo fallo que ya
+    se corrigio en `sesion.json` y en `perfil.json`: un archivo valido pero con
+    otra estructura -una lista, o filas sin la clave `dificultad`- pasaba el
+    `except` y reventaba mas adelante con un KeyError hacia la interfaz. Los
+    escribe la app, no un usuario, pero un archivo a medias de un reinicio en
+    mitad de la escritura tiene exactamente esta pinta.
+    """
     try:
-        return json.loads(_ruta_analisis(libro, modo).read_text(encoding="utf-8"))
+        d = json.loads(_ruta_analisis(libro, modo).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    if not isinstance(d, dict):
+        return None
+    filas = d.get("filas")
+    if not isinstance(filas, list):
+        return None
+    for f in filas:
+        if (not isinstance(f, dict) or "capitulo" not in f
+                or "dificultad" not in f):
+            return None
+    return d
 
 
 def _guardar_analisis(libro, datos, modo="completo") -> None:
@@ -1397,11 +1428,22 @@ def _ficha_libro(libro, p=None) -> str:
 
 
 def _sinopsis_guardada(libro):
+    """La sinopsis guardada, o None si el archivo no tiene la forma esperada.
+
+    Mismo caso que `_analisis_guardado`: un JSON valido que fuera una lista o
+    una cadena pasaba el `except` y reventaba en el `.get`, y un campo numerico
+    reventaba en el `.strip()`. Se normaliza a texto lo que se vaya a tratar
+    como texto.
+    """
     try:
         ruta = RUTA_ANALISIS / f"{_clave_libro(libro)}-sinopsis.json"
-        return json.loads(ruta.read_text(encoding="utf-8"))
+        d = json.loads(ruta.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    if not isinstance(d, dict):
+        return None
+    return {k: (v if isinstance(v, list) else str(v))
+            for k, v in d.items() if v is not None}
 
 
 def _de_que_trata(libro, peticion: gr.Request = None):
@@ -1896,7 +1938,23 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         oracion = palabra
         origen = "sin contexto: la desambiguación será peor"
 
-    if not _dentro_del_limite(peticion, "lexico", LIMITE_CONSULTAS_HORA):
+    # El tope por hora es un freno de GASTO, no de uso. La cabecera de este
+    # modulo lo dice: "las acciones que no cuestan dinero no se limitan". Y una
+    # consulta sin perfil -o en una copia sin clave- es diccionario, IPA y
+    # audio de Wiktionary: todo local y gratis. Aplicarle el tope cortaba la
+    # consulta 31 de un aula entera detras de la misma NAT sin que ninguna
+    # pudiera costar un centimo, y encima el aviso les decia que "leer, buscar
+    # y medir siguen funcionando: no cuestan nada", como si esta si costara.
+    #
+    # `permite` PREGUNTA sin consumir. Quien decide de forma atomica sigue
+    # siendo `_puede_pagar` mas abajo, asi que esto no reabre la condicion de
+    # carrera que se cerro alli. Y se exige tambien que HAYA clave: sin ella no
+    # se llama a OpenAI por mucho perfil que tenga el visitante.
+    va_a_costar = (not config.falta()
+                   and cuentas.permite(BASE_DATOS_LECTOR,
+                                       _codigo_de(peticion))[0])
+    if va_a_costar and not _dentro_del_limite(peticion, "lexico",
+                                              LIMITE_CONSULTAS_HORA):
         yield (_aviso(_mensaje_limite(
             idioma, _minutos_para_la_siguiente("lexico", peticion))),
             "", gr.update(visible=False))

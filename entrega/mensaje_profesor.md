@@ -2,6 +2,13 @@
 
 Para WhatsApp o correo. Está en **usted**; si con él se tutean, cámbialo y ya.
 
+> **La contraseña no se escribe aquí.** Este archivo está versionado, y si
+> compartes el repositorio —como propone la última sección— la credencial que
+> abre el gasto de la API viaja con él. Cópiala del secreto `LITERALEVEL_CUENTAS`
+> del Space en el momento de mandar el mensaje, y no la dejes escrita. La que
+> estuvo aquí hasta el 10 de septiembre de 2026 **hay que rotarla**: estuvo en
+> el historial de git, que no se puede desescribir.
+
 > **Antes de mandarlo:** abre el enlace desde tu móvil y comprueba que
 > responde. Ya no depende de que tengas la computadora encendida, pero el Space
 > se duerme por inactividad y el primer arranque tarda unos 30 segundos:
@@ -20,7 +27,7 @@ libro a ciegas, la app le dice cuál puede leer y le dibuja la curva de
 dificultad capítulo a capítulo.
 
 🔗 **https://huggingface.co/spaces/MikeMaki1763/literalevel**
-usuario: `invitado1` · contraseña: `074cfd6zbjy8pc`
+usuario: `invitado1` · contraseña: `<pon aquí la del secreto del Space>`
 
 Se entra arriba del todo, en «Entrar con tu perfil». El usuario y la
 contraseña solo hacen falta para las tres cosas que llaman a un servicio
