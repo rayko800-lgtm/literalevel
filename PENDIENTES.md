@@ -101,7 +101,7 @@ todas reproducibles con un guion del repo.
 | Carpeta `modelo_v4/` / diccionario | 332 MB / 243 MB (los pesos solos son 328) | `os.path.getsize`, remedido el 10 de septiembre de 2026 |
 | Arranque en frío del Space | **31 s** hasta `RUNNING`, **32 s** hasta que responde | `medir_arranque.py` |
 | Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab); 0,67x + 0,41 con las 5 locales | recalculable |
-| Textos que pasan el filtro COMPLETO | **31** (el de la app; aquí se puntúan 47) | `validar_local.py` |
+| Textos que pasan el filtro COMPLETO | **36** (el de la app; aquí se puntúan 47) | `validar_local.py` |
 | Palabras habladas del guion | **561** = 3:44 | `tools/contar_guion.py` |
 | Coste del despliegue | **7 USD/mes** (cuenta Pro; tarifa 9, con descuento) | API `whoami-v2` |
 | Carpeta + diccionario | 575 MB (332,1 + 243,3) | `os.path.getsize`, remedido el 10 de septiembre de 2026 |

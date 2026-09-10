@@ -14,10 +14,69 @@ Septiembre de 2026
 
 ---
 
+## El marco: Peldaño, una compañía ficticia
+
+Este trabajo se plantea como el primer producto de **Peldaño**, una compañía
+ficticia de inteligencia artificial aplicada a la educación. La ficción es un
+requisito del módulo y conviene decir desde el principio **qué es ficticio y qué
+no**: la empresa lo es; el modelo, la aplicación desplegada, el corpus, las
+métricas y cada cifra de este documento, no. Todo lo que se afirma aquí está
+medido, y qué parte se puede además *reproducir* desde el repositorio y cuál no
+está dicho sin adornos en el documento principal: el código y la inferencia
+desde los pesos públicos se rehacen; las métricas del entrenamiento del v4, no,
+porque su corpus de anclaje tiene derechos y no acompaña al repositorio.
+
+El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
+*input* comprensible sostiene que se aprende con material que está justo un
+escalón por encima de lo que uno ya domina (Krashen, 1985). Ese escalón es el
+peldaño, y encontrarlo es exactamente el problema que el lector no puede
+resolver solo.
+
+**El nicho.** Peldaño no compite en el mercado general de aprendizaje de
+idiomas, que está saturado y lo dominan aplicaciones de repetición espaciada. Se
+sitúa en un hueco más estrecho y peor atendido: **la lectura extensiva en inglés
+para hispanohablantes que ya tienen base**, entre A2 y B2. Es el tramo donde el
+estudiante ya no cabe en el material graduado, todavía no aguanta una novela sin
+ayuda, y abandona. El apartado 5 documenta contra quién se compite y dónde se
+pierde.
+
+**La propuesta de valor, en una frase.** Convertir una biblioteca gratuita e
+inabarcable —Project Gutenberg— en una estantería personal ordenada por lo que
+cada lector puede leer hoy.
+
+**Cómo se sostendría.** La pregunta de negocio no es cómo cobrar por el modelo,
+que es pequeño y replicable, sino quién paga la parte cara. Medido en este
+proyecto: **medir un libro, leerlo, buscar y consultar el diccionario no cuestan
+nada** —corren en local sobre datos abiertos—, y solo tres acciones salen a un
+servicio externo de pago: explicar una palabra en su frase, resumir un libro y
+corregir la pronunciación. Esa separación, que en la aplicación es una puerta de
+acceso con cupo por perfil, es también la frontera natural entre un nivel
+gratuito y uno de pago, y no hubo que diseñarla: salió de medir qué costaba cada
+cosa.
+
+El cliente institucional —el docente de inglés del apartado 2.3— es el que
+justificaría una tarifa, porque su necesidad no es leer sino *asignar*: repartir
+lecturas de dificultad medida, y medida capítulo a capítulo, sin tener que
+leerse cuarenta libros antes. Conviene decir qué es esto y qué no: hoy el
+producto **no hace seguimiento de alumnos**, ni puede hacerlo tal como está
+construido —los datos de cada lector se guardan separados y no se comparten—, y
+la declaración de alcance del documento principal descarta expresamente usar
+esta medida para decisiones con consecuencias para el evaluado. El producto que
+hay sirve al docente para *elegir textos*; un panel de seguimiento sería otro
+producto.
+
+**Lo que Peldaño no promete.** No promete enseñar inglés, ni certificar un
+nivel, ni sustituir a un profesor. Mide la dificultad de un texto en una escala
+propia de 0 a 2 y la pone al lado del nivel estimado del lector. Las
+limitaciones del documento principal enumeran los límites de esa medida, y la
+aplicación los dice en pantalla en vez de esconderlos.
+
+---
+
 ## 1. La apuesta, en un párrafo
 
 La lectura extensiva es uno de los métodos con más respaldo para aprender una
-segunda lengua, y sin embargo casi nadie la practica bien, porque elegir el
+segunda lengua (Nakanishi, 2015), y sin embargo casi nadie la practica bien, porque elegir el
 libro adecuado es un problema que el lector no puede resolver solo. LiteraLevel
 convierte una medida continua de dificultad —producida por un modelo que lee el
 texto entero, no la portada— en tres decisiones cotidianas: **qué leer ahora**,
@@ -423,6 +482,9 @@ Deci, E. L., Koestner, R., & Ryan, R. M. (1999). A meta-analytic review of
 experiments examining the effects of extrinsic rewards on intrinsic motivation.
 *Psychological Bulletin, 125*(6), 627–668.
 https://doi.org/10.1037/0033-2909.125.6.627
+
+Krashen, S. D. (1985). *The input hypothesis: Issues and implications*.
+Longman.
 
 Krug, S. (2014). *Don't make me think, revisited: A common sense approach to
 web usability* (3ª ed.). New Riders.

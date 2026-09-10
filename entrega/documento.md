@@ -281,7 +281,9 @@ coinciden en 53 de 59 casos, el 89,8 %.
 confundirlos porque dan resultados distintos. Lo que corre en producción es
 `scoring.continuous_prose`, con otras reglas: al menos 150 palabras, al menos
 cuatro frases, entre 5 y 55 palabras de media por frase, y rechazo si hay dos o
-más viñetas o más del 35 % de líneas cortas. Coinciden en el propósito —tirar
+de una sexta parte de las palabras vive en líneas de maquetado —viñetas o
+líneas de cuatro palabras o menos— o si más del 35 % de las líneas son cortas.
+Coinciden en el propósito —tirar
 menús, listas y tablas— pero no en los umbrales.
 
 **Y aquí hay que contar la secuencia real, porque el filtro no se fijó antes de
@@ -483,7 +485,7 @@ es la del módulo 1 del diplomado: **no se transforma sin medir qué se rompió*
 
 | # | Transformación | Por qué | Evidencia / consecuencia |
 |---|---|---|---|
-| T1 | **Filtro de prosa continua** antes de puntuar: se rechaza si hay ≥2 viñetas o ≥6 líneas cortas | El modelo solo vio prosa; puntuar un menú da un número sin significado | El filtro estaba muerto en producción: se normalizaba *antes* de comprobar, y `normalize()` colapsa los saltos de línea, así que el detector recibía siempre una sola línea. Una carta de menú de 432 palabras se puntuaba como prosa. Corregido: el filtro va sobre el texto crudo |
+| T1 | **Filtro de prosa continua** antes de puntuar: se rechaza si más del 17,5 % de las palabras viven en líneas de maquetado, o si más del 35 % de las líneas son cortas | El modelo solo vio prosa; puntuar un menú da un número sin significado | El filtro estaba muerto en producción: se normalizaba *antes* de comprobar, y `normalize()` colapsa los saltos de línea, así que el detector recibía siempre una sola línea. Una carta de menú de 432 palabras se puntuaba como prosa. Corregido: el filtro va sobre el texto crudo |
 | T2 | **Normalización de espacios** (`\s+` → espacio) después del filtro | Estabiliza el troceado en bloques | Sin efecto sobre la puntuación; solo sobre el corte |
 | T3 | **Troceado en bloques de 250 palabras, mínimo 150** | Es la unidad con la que se entrenó; un bloque más corto no tiene señal suficiente | Constante del entrenamiento: cambiarla invalidaría las métricas reportadas |
 | T4 | **Truncado a 256 tokens** | Límite de contexto del modelo | Medido: de 200 bloques de 250 palabras, el **100 %** llega exactamente a 256 tokens tras truncar, porque en prosa inglesa real 250 palabras superan siempre los 256 BPE. Dentro de un texto troceado así no hay relleno; agrupando ventanas de capítulos distintos sí lo hay, y eso se trata en §8.3 |
@@ -672,7 +674,7 @@ con él; el resto del apartado los cita por su nombre.
 | **Validación ciega** (interno) | 144 | Partición de validación del corpus de anclaje MCER: 654 documentos aceptados, 510 de entrenamiento y 144 reservados | Exactitud, acierto dentro de ±1 nivel y Spearman 0,908 del modelo desplegado (Cuadro 10) | Presentarlo como validación externa. Sale del mismo corpus con el que se afinaron los pesos, así que su 0,908 no es comparable con las cifras de British Council |
 | **British Council, tanda de Colab** | 38 | Extracción de los PDF hecha en Colab durante el entrenamiento, con su propio filtro | Spearman 0,829 y el 100 % dentro de ±1 (Cuadro 10); las cuatro medias por nivel que ajustan la recta de compresión (7.5) | Restarlo de los 47. Es otra tanda, con otra extracción y otro filtro: la diferencia no son «nueve textos concretos» que se puedan nombrar |
 | **British Council, reproducción local** | 47 | Los 59 publicados, menos 2 sin cuerpo localizable al extraer el PDF y 10 rechazados por el filtro de prosa (Cuadro 12) | **El resultado principal**: el orden creciente por nivel (Cuadro 11) y las tres cifras del *baseline* —0,860, 0,807 y 0,668— del Cuadro 13 | Leerlo como «los textos que la aplicación aceptaría». El validador local filtra más flojo que la app (7.7) |
-| **Los que pasan el filtro completo** | 31 | Esos mismos 47 refiltrados conservando los saltos de línea, es decir con las cuatro reglas del filtro de prosa continua activas | Cuánto depende el conjunto evaluado de una regla que el validador desactiva: sobreviven 31 y A1 se queda con un solo texto (7.7) | Sostener el orden sobre cinco niveles. No se usa para ninguna cifra publicada en este documento |
+| **Los que pasan el filtro completo** | 36 | Esos mismos 47 refiltrados conservando los saltos de línea, es decir con las cuatro reglas del filtro de prosa continua activas | Cuánto depende el conjunto evaluado de una regla que el validador desactiva: sobreviven 36 y A1 se queda con un solo texto (7.7) | Sostener el orden sobre cinco niveles. No se usa para ninguna cifra publicada en este documento |
 | **Publicados por British Council** | 59 | Todos los PDF descargados del catálogo gratuito. Los nombres de los 59 están en `entrega/manifiesto_corpus_externo.md` | El diagnóstico del 4.3(a): que el corpus no es homogéneo, y el 89,8 % de coincidencia entre las dos vías con que se definió el filtro | Usarlo como corpus de validación. Incluye menús, pósters y horarios, y las correlaciones medidas sobre él no se comparan con las de después de filtrar |
 
 *Cuadro 9. Los cinco conjuntos de textos que aparecen en la validación. Cuatro
@@ -777,7 +779,7 @@ sobre los archivos reales, el balance de esta tanda cierra así:
 *Cuadro 12. De 59 a 47, paso a paso.*
 
 **Y cuatro: el validador local filtra más flojo que la propia aplicación.** Con
-el filtro completo de la app sobreviven **31 de esos 47** y A1 se queda con un
+el filtro completo de la app sobreviven **36 de esos 47** y A1 se queda con un
 solo texto, de modo que el orden creciente sobre cinco niveles está medido sobre
 un conjunto que la aplicación habría filtrado más. Por qué ocurre, qué regla se
 desactiva y qué textos caen se explica entero en el 7.7, al final del 7.
@@ -858,7 +860,8 @@ no esconderlo en el código.
 **Qué regla se desactiva, y por qué.** El guion de reproducción une las líneas
 del PDF con un espacio, y eso **desactiva una de las cuatro reglas** de
 `scoring.continuous_prose`, la del maquetado de lista: sus dos comprobaciones
-—dos viñetas seguidas, o más de un tercio de líneas muy cortas— necesitan saltos
+—demasiadas palabras en líneas de maquetado, o más de un tercio de líneas muy
+cortas— necesitan saltos
 de línea para ver nada. Es decir, este validador filtra **más flojo que la
 propia aplicación**, que sí recibe saltos de párrafo. Medido cambiando una cosa
 y sólo una: con saltos de línea sobreviven **31 textos en vez de 47**, y A1 se

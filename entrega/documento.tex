@@ -1022,7 +1022,8 @@ de frase en el intervalo $(0;\,0{,}11]$)—, que coinciden en 53 de 59 casos, el
 \textbf{Ese filtro es el del análisis, no el que aplica la aplicación}, y conviene no
 confundirlos porque dan resultados distintos. Lo que corre en producción es
 \cod{scoring.continuous\_prose}, con otras reglas: al menos 150 palabras, al menos cuatro
-frases, entre 5 y 55 palabras de media por frase, y rechazo si hay dos o más viñetas o más
+frases, entre 5 y 55 palabras de media por frase, y rechazo si más del 17,5\% de las
+palabras viven en líneas de maquetado —viñetas o líneas de cuatro palabras o menos— o más
 del 35\pct{} de líneas cortas. Coinciden en el propósito —tirar menús, listas y tablas—
 pero no en los umbrales.
 
@@ -1303,7 +1304,7 @@ llegar al modelo; la figura~\ref{fig:pipeline} las sitúa en la cadena completa.
 \caption{Transformaciones sobre el texto, con su justificación y su evidencia.}
 \label{cuad:textos}
 \endlastfoot
-T1 & \textbf{Filtro de prosa continua} antes de puntuar: se rechaza si hay $\geq 2$ viñetas o $\geq 6$ líneas cortas & El modelo solo vio prosa; puntuar un menú da un número sin significado & El filtro estaba muerto en producción: se normalizaba \emph{antes} de comprobar, y \cod{normalize()} colapsa los saltos de línea, así que el detector recibía siempre una sola línea. Una carta de menú de 432 palabras se puntuaba como prosa. Corregido: el filtro va sobre el texto crudo \\
+T1 & \textbf{Filtro de prosa continua} antes de puntuar: se rechaza si más del 17,5\% de las palabras viven en líneas de maquetado o más del 35\% de las líneas son cortas & El modelo solo vio prosa; puntuar un menú da un número sin significado & El filtro estaba muerto en producción: se normalizaba \emph{antes} de comprobar, y \cod{normalize()} colapsa los saltos de línea, así que el detector recibía siempre una sola línea. Una carta de menú de 432 palabras se puntuaba como prosa. Corregido: el filtro va sobre el texto crudo \\
 \addlinespace
 T2 & \textbf{Normalización de espacios} (\cod{\textbackslash s+} $\rightarrow$ espacio) después del filtro & Estabiliza el troceado en bloques & Sin efecto sobre la puntuación; solo sobre el corte \\
 \addlinespace
@@ -1697,10 +1698,10 @@ nivel (cuadro~\ref{cuad:validacion}) y las tres cifras del \emph{baseline} ---0,
 aplicación aceptaría». El validador local filtra más flojo que la app
 (§\ref{sec:filtro}) \\
 \addlinespace
-\textbf{Los que pasan el filtro completo} & 31 & Esos mismos 47 refiltrados conservando
+\textbf{Los que pasan el filtro completo} & 36 & Esos mismos 47 refiltrados conservando
 los saltos de línea, es decir con las cuatro reglas del filtro de prosa continua
 activas & Cuánto depende el conjunto evaluado de una regla que el validador desactiva:
-sobreviven 31 y A1 se queda con un solo texto (§\ref{sec:filtro}) & Sostener el orden
+sobreviven 36 y A1 se queda con un solo texto (§\ref{sec:filtro}) & Sostener el orden
 sobre cinco niveles. No se usa para ninguna cifra publicada en este documento \\
 \addlinespace
 \textbf{Publicados por British Council} & 59 & Todos los PDF descargados del catálogo
@@ -1879,7 +1880,7 @@ es el filtro de prosa continua.}
 \end{table}
 
 \textbf{Y cuatro: el validador local filtra más flojo que la propia aplicación.} Con el
-filtro completo de la app sobreviven \textbf{31 de esos 47} y A1 se queda con un solo
+filtro completo de la app sobreviven \textbf{36 de esos 47} y A1 se queda con un solo
 texto, de modo que el orden creciente sobre cinco niveles está medido sobre un conjunto
 que la aplicación habría filtrado más. Por qué ocurre, qué regla se desactiva y qué
 textos caen se explica entero en el §\ref{sec:filtro}, al final del
@@ -2058,7 +2059,7 @@ conviene ponerlo aquí y no esconderlo en el código.
 \textbf{Qué regla se desactiva, y por qué.} El guion de reproducción une las líneas del
 PDF con un espacio, y eso \textbf{desactiva una de las cuatro reglas} de
 \cod{scoring.continuous\_prose}, la del maquetado de lista: sus dos comprobaciones —dos
-viñetas seguidas, o más de un tercio de líneas muy cortas— necesitan saltos de línea para
+palabras en líneas de maquetado, o más de un tercio de líneas muy cortas— necesitan saltos de línea para
 ver nada. Es decir, este validador filtra \textbf{más flojo que la propia aplicación}, que
 sí recibe saltos de párrafo. Medido cambiando una cosa y sólo una: con saltos de línea
 sobreviven \textbf{31 textos en vez de 47}, y A1 se queda con uno solo, con lo que la

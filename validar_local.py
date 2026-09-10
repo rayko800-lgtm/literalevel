@@ -39,8 +39,11 @@ def cuerpo(lineas):
               and len(l.strip()) >= 3]
     # OJO, que esto no es un detalle. `continuous_prose` tiene cuatro reglas y
     # UNA de ellas -la del maquetado de lista- mira `splitlines()`: salta si hay
-    # dos vinetas seguidas o si mas de un tercio de las lineas tienen cuatro
-    # palabras o menos. Uniendo con espacio esa regla no se dispara nunca, asi que este validador filtra MAS FLOJO que la app -que
+    # mas del 17,5% de las palabras vive en lineas de maquetado -vinetas o
+    # lineas de cuatro palabras o menos- o si mas de un tercio de las lineas
+    # tienen cuatro palabras o menos. (Antes la regla contaba DOS VINETAS en
+    # absoluto, y eso tiraba capitulos de novela enteros por una tarjeta de
+    # carrera o unos separadores de escena.) Uniendo con espacio esa regla no se dispara nunca, asi que este validador filtra MAS FLOJO que la app -que
     # si recibe saltos de parrafo, porque reader._limpiar_html los restaura-.
     #
     # Medido cambiando el espacio por salto de linea:
