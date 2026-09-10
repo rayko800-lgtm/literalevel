@@ -53,9 +53,19 @@ def cargar(ruta: str = RUTA_PERFIL_POR_DEFECTO) -> Perfil | None:
         return None
     try:
         with open(ruta, encoding="utf-8") as f:
-            return Perfil(**json.load(f))
-    except (json.JSONDecodeError, TypeError):
+            p = Perfil(**json.load(f))
+    except (json.JSONDecodeError, TypeError, ValueError):
         return None   # perfil corrupto o de una version vieja: se rehace
+    # Y el TIPO, que no lo comprobaba nadie: `Perfil(**{"nivel": "abc"})` se
+    # construye sin queja y revienta luego, en la aritmetica de quien lo use
+    # -`_describir` hacia `nivel - 0.10` y salia un TypeError hacia la
+    # interfaz-. Un perfil con el nivel no numerico es un perfil corrupto, y
+    # aqui es donde se decide eso.
+    try:
+        p.nivel = float(p.nivel)
+    except (TypeError, ValueError):
+        return None
+    return p
 
 
 def _ahora() -> str:

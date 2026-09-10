@@ -156,6 +156,24 @@ def _ip(peticion) -> str:
     return str(getattr(cliente, "host", None) or "desconocida")[:64]
 
 
+def _minutos_para_la_siguiente(cubo: str, peticion) -> int:
+    """Cuanto falta para que se libere una ficha de este cubo, en minutos.
+
+    El aviso de tope decia siempre "60 minutos", que es la ventana entera y
+    casi nunca lo que falta: quien agoto el cupo hace cincuenta y ocho minutos
+    leia que tenia que esperar una hora mas. Se calcula con la marca mas
+    antigua que sigue viva.
+    """
+    clave = f"{cubo}:{_ip(peticion)}"
+    ahora = time.time()
+    with _CANDADO_GASTO:
+        marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]
+    if not marcas:
+        return 0
+    faltan = _VENTANA - (ahora - min(marcas))
+    return max(1, int(faltan // 60) + (1 if faltan % 60 else 0))
+
+
 def _dentro_del_limite(peticion, cubo: str, tope: int) -> bool:
     """Consume una ficha del cubo. False si ya no quedan en esta hora."""
     if tope <= 0:
@@ -458,7 +476,29 @@ def _claves_cuestionario() -> list[str]:
             + [f["clave"] for f in getattr(perfil_mod, "FRAGMENTOS", [])])
 
 
-def _desde_cuestionario(p_actual, nombre, *valores, peticion: gr.Request = None):
+def _desde_cuestionario(p_actual, nombre, peticion: gr.Request, *valores):
+    """Estima el nivel con las respuestas del cuestionario y lo guarda.
+
+    OJO CON EL ORDEN DE LA FIRMA. `peticion` va ANTES de `*valores`, y no al
+    final como en los demas manejadores. Gradio solo inyecta el `Request` en
+    parametros posicionales: su `special_args` recorre la firma y **corta en el
+    primer parametro que no lo sea** (`gradio/helpers.py`). Con `*valores`
+    delante, `peticion` era keyword-only, no se inspeccionaba nunca y llegaba
+    `None` siempre.
+
+    Y `None` aqui no era inofensivo: desplegada, `_archivo_lector(..., None)`
+    resuelve a `lectores/anonimo/`, UNA carpeta para todos los visitantes. Cada
+    "Estimar mi nivel" pisaba el perfil del anterior -con su nombre dentro-, y
+    al recargar la pagina `_perfil_inicial`, que si recibe el Request, buscaba
+    en la carpeta de la sesion y no encontraba nada: el lector volvia a
+    "Todavia no has fijado tu nivel" despues de leer "Guardado". En local no se
+    nota, y por eso nadie lo habia visto.
+
+    Poner `peticion` en la tercera posicion SI funciona, aunque parezca que
+    desplazaria las respuestas: `special_args` inserta el Request en el indice
+    de su parametro, asi que las entradas quedan alineadas. Comprobado
+    ejecutando `special_args` con las dos firmas.
+    """
     claves = _claves_cuestionario()
     respuestas = {k: v for k, v in zip(claves, valores) if v is not None}
     try:
@@ -602,8 +642,13 @@ def _buscar(p, consulta, ajustar, n):
     except (FileNotFoundError, OSError) as e:
         return _aviso(e), gr.update(choices=[], value=None)
     nivel = p.nivel if (ajustar and p is not None) else None
+    # Vaciar la casilla "¿Cuántos te propongo?" hace que `gr.Number` mande
+    # None, y el `int(None)` de dentro del try le ensenaba al lector un
+    # "int() argument must be a string... not 'NoneType'". No es un aviso: es
+    # un error de Python en la cara de quien solo borro un numero.
+    n = int(n or 10)
     try:
-        libros, aviso = cat.buscar(consulta, nivel_lector=nivel, n=int(n))
+        libros, aviso = cat.buscar(consulta, nivel_lector=nivel, n=n)
     except Exception as e:                      # red o modelo de embeddings
         return _aviso(e), gr.update(choices=[], value=None)
     cabecera = ""
@@ -689,12 +734,25 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
     yield libro, upd, html, resumen, gr.Tabs(selected="leer"), ""
 
 
+# La holgura con la que "Sorprendeme" busca por nivel. Esta aqui y se pasa
+# EXPLICITA para que el rotulo y el filtro no puedan volver a separarse: el
+# rotulo anunciaba `rango_recomendado` -nivel-0,10 a nivel+0,15- mientras
+# `por_nivel` filtraba con una holgura simetrica de 0,25. Con un lector en 1,00
+# la app decia "Lo mas leido entre 0.90 y 1.15" y listaba B1 (0,80) y B2
+# (1,20): ni uno de los dos dentro del rango que acababa de anunciar.
+HOLGURA_POR_NIVEL = 0.25
+
+
 def _recomendar(p, n):
     vacio = gr.update(choices=[], value=None)
     if p is None:
         return "Primero fija tu nivel en la pestaña **Mi nivel**.", vacio
+    # `gr.Number` vacio llega como None, y el `int(None)` de dentro del try
+    # devolvia al lector un "int() argument must be... not 'NoneType'".
+    n = int(n or 10)
     try:
-        libros = catalogo().por_nivel(p.nivel, n=int(n))
+        libros = catalogo().por_nivel(p.nivel, holgura=HOLGURA_POR_NIVEL,
+                                      n=n)
     except Exception as e:
         return _aviso(e), vacio
 
@@ -730,7 +788,11 @@ def _recomendar(p, n):
                        "mismo**, aunque queden por encima de tu nivel. Ve "
                        "despacio y usa el doble clic sobre las palabras.\n\n")
 
-    lo, hi = p.rango_recomendado
+    # El rango que se ANUNCIA tiene que ser el que se uso para filtrar. Antes
+    # aqui se leia `p.rango_recomendado`, que es otra cosa -el rango de reto
+    # del lector- y no lo que `por_nivel` acababa de aplicar.
+    lo = max(0.0, p.nivel - HOLGURA_POR_NIVEL)
+    hi = min(2.0, p.nivel + HOLGURA_POR_NIVEL)
     # Los niveles del catalogo son seis valores discretos, asi que un lector
     # que salga del cuestionario en 0.62 puede no tener NINGUN libro dentro de
     # la holgura. Decirlo y decir que hacer, en vez del generico "Sin
@@ -871,7 +933,14 @@ def _mover(libro, idx, paso):
     """Capitulo anterior / siguiente, sin salirse del libro."""
     if libro is None or idx is None:
         return gr.update()
-    return gr.update(value=max(0, min(len(libro.capitulos) - 1, int(idx) + paso)))
+    # `int(idx)` pelado lanzaba ValueError con cualquier indice que no fuera un
+    # numero. `_capitulo` y `_medir` ya pasaban por `_cap`, que lo valida; este
+    # se habia quedado fuera.
+    try:
+        actual = int(idx)
+    except (TypeError, ValueError):
+        return gr.update()
+    return gr.update(value=max(0, min(len(libro.capitulos) - 1, actual + paso)))
 
 
 # Titulos que en un epub casi siempre son paratexto y no la obra en si.
@@ -908,6 +977,13 @@ def _leer_sesion(peticion=None) -> dict | None:
     try:
         d = json.loads(_ruta_sesion(peticion).read_text(encoding="utf-8"))
     except (OSError, ValueError):
+        return None
+    # `isinstance` y no solo `d.get`: un `sesion.json` que sea JSON VALIDO pero
+    # no un objeto -`[]`, `"hola"`, `3`- pasaba el `except` y reventaba en el
+    # `.get` con un AttributeError. Y esto lo llama `_reanudar`, que corre en
+    # `demo.load`, o sea que la pagina entera arrancaba con error para ese
+    # lector hasta que alguien borrara el archivo a mano.
+    if not isinstance(d, dict):
         return None
     return d if d.get("ruta") and os.path.exists(d["ruta"]) else None
 
@@ -1201,9 +1277,12 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
     - **completo**: cada capitulo, ventana a ventana, sin muestrear. Es la
       respuesta a "¿de verdad lo lee todo?" y con un libro de 500.000 palabras
       son minutos. Se guarda en disco: se paga una vez por libro.
-    - **rapido**: hasta 40 capitulos repartidos por la obra y 2 ventanas de
-      cada uno. Da la forma de la curva en segundos. Es un vistazo, y se dice
-      que lo es.
+    - **rapido**: hasta `RAPIDO_CAPITULOS` capitulos repartidos por la obra y
+      `RAPIDO_VENTANAS` de cada uno. Da la forma de la curva en segundos. Es
+      un vistazo, y se dice que lo es. (Aqui decia "hasta 40 capitulos y 2
+      ventanas", que era el valor de antes de bajarlo a 30: el comentario de
+      las constantes explica por que se bajo y este docstring se quedo con la
+      cifra vieja. Mejor no repetir el numero y nombrar la constante.)
 
     Va dibujando la grafica MIENTRAS mide, no al final. Es la diferencia entre
     esperar mirando una barra de progreso y ver aparecer la curva: el trabajo
@@ -1344,13 +1423,26 @@ def _de_que_trata(libro, peticion: gr.Request = None):
     datos = _sinopsis_guardada(libro)
     if datos is None:
         if not _dentro_del_limite(peticion, "sinopsis", LIMITE_SINOPSIS_HORA):
-            yield _aviso(_mensaje_limite("es", 60))
+            yield _aviso(_mensaje_limite(
+                "es", _minutos_para_la_siguiente("sinopsis", peticion)))
             return
         puede, motivo_pago = _puede_pagar(peticion)
         if not puede:
             yield motivo_pago
             return
-        cliente = consultor()._cliente()
+        # `consultor()` construye el ConsultorLexico ENTERO, que abre el
+        # diccionario Kaikki y lanza `FileNotFoundError` si el `.db` no esta.
+        # El resumen no necesita el diccionario -ni spaCy, ni MiniLM-: solo
+        # quiere un cliente de OpenAI. Sin este `try`, en el Space con el
+        # dataset mal montado la pestana Leer funcionaba, la ficha contada
+        # funcionaba, y este boton devolvia un "Error" pelado. En `_consultar`
+        # la misma construccion si estaba protegida.
+        try:
+            cliente = consultor()._cliente()
+        except Exception as e:
+            yield _aviso(f"No pude preparar el resumen ({type(e).__name__}). "
+                         "El resto de la ficha no lo necesita y sigue arriba.")
+            return
         if cliente is None:
             yield ("Para el resumen hace falta la clave de OpenAI. Todo lo "
                    "demás de la ficha —lo que está contado sobre el texto— "
@@ -1805,7 +1897,9 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
         origen = "sin contexto: la desambiguación será peor"
 
     if not _dentro_del_limite(peticion, "lexico", LIMITE_CONSULTAS_HORA):
-        yield _aviso(_mensaje_limite(idioma, 60)), "", gr.update(visible=False)
+        yield (_aviso(_mensaje_limite(
+            idioma, _minutos_para_la_siguiente("lexico", peticion))),
+            "", gr.update(visible=False))
         return
 
     nivel = p.nivel if p is not None else NIVEL_POR_DEFECTO
@@ -1818,6 +1912,23 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     except (FileNotFoundError, OSError) as e:
         yield _aviso(e), "", gr.update(visible=False)
         return
+    # Si la puerta de pago dijo que no, hay que decir POR QUE. Antes
+    # `motivo_pago` se tiraba: `lexicon` seguia su camino de "sin clave" y el
+    # visitante leia "Sin clave de OpenAI: no hay explicacion de contexto" en
+    # un servidor que SI tiene clave. Lo que pasaba era que no habia entrado
+    # con su perfil, o que habia agotado su cupo, y no se le decia ninguna de
+    # las dos cosas. Los otros dos manejadores de pago si lo mostraban.
+    if not puede and motivo_pago:
+        r.avisos = ([a for a in r.avisos if "OPENAI_API_KEY" not in a]
+                    + [motivo_pago])
+    # Y el cupo: `_puede_pagar` cobra ANTES de saber si se va a llamar a
+    # OpenAI. Si la respuesta sale de la cache de `lexicon.db` no se gasta un
+    # centimo, pero el contador bajaba igual, asi que `tope` no era "llamadas
+    # de pago permitidas" como declara `cuentas.py`, sino pulsaciones. Se
+    # devuelve el uso. Cobrar primero y devolver despues, y no al reves, para
+    # no reabrir la condicion de carrera que `consumir` cerro.
+    elif puede and getattr(r, "desde_cache", False):
+        cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
     # Al cuaderno **solo si el diccionario encontro algo**. Sin este filtro
     # acababan dentro las pruebas y los errores de dedo, y la pestana "Mis
     # palabras" se llenaba de cadenas sin sentido. Una palabra que el
@@ -1894,13 +2005,26 @@ def _frase_del_capitulo(libro, idx):
 # --- Punto 5: pronunciacion ----------------------------------------------
 
 _CSS_VOZ = """<style>
-#ll-voz{padding:1.1rem 1.3rem;border:1px solid rgba(128,128,128,.28);
+/* Este bloque llega DESPUES de `#ll-css` en el DOM y con la misma
+   especificidad, asi que su `border` abreviado reescribia entero el
+   `border-color:var(--ll-borde)` de alli, y el `color:inherit` tapaba
+   `--ll-lector-texto`. Era, palabra por palabra, el mismo fallo que se
+   corrigio en `#ll-lector` y que aqui se quedo sin corregir. */
+#ll-voz{padding:1.1rem 1.3rem;border:1px solid var(--ll-borde);
   border-radius:10px;font-family:Georgia,"Times New Roman",serif;
-  font-size:21px;line-height:2.1;color:inherit}
+  font-size:21px;line-height:2.1;color:var(--ll-lector-texto)}
 #ll-voz .ll-w{padding:.12em .34em;border-radius:5px;margin:0 .06em;
   border-bottom:3px solid transparent}
-#ll-voz .ok{border-bottom-color:#3fbf8f}
-#ll-voz .mal{background:rgba(224,72,92,.22);border-bottom-color:#e0485c;
+/* Verde de acierto y rojo de fallo. Salen de la paleta y no del CSS porque
+   NO hay un par de colores que valga para las cinco: medidos contra el fondo
+   del lector, el verde clavado daba 2,21-2,30 en las tres paletas claras y el
+   rojo 2,86-2,95 sobre su propio fondo, los dos por debajo del 3:1 que WCAG
+   pide a un objeto grafico. Y oscurecerlos para las claras los hunde en las
+   oscuras: el rojo a x0,8 sube a 4,04 en amanecer y cae a 2,45 en
+   medianoche. El significado no cambia -verde es bien y rojo es mal en las
+   cinco-, solo el tono. */
+#ll-voz .ok{border-bottom-color:var(--ll-bien)}
+#ll-voz .mal{background:var(--ll-mal-fondo);border-bottom-color:var(--ll-mal);
   font-weight:600}
 #ll-voz .leyenda{display:block;margin-top:1rem;font-family:system-ui,sans-serif;
   font-size:13px;opacity:.78;line-height:1.5}
@@ -1944,7 +2068,9 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     if not ruta_audio:
         return "", "Graba tu voz con el micrófono (o sube un audio).", gr.update(visible=False)
     if not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
-        return "", _aviso(_mensaje_limite("es", 60)), gr.update(visible=False)
+        return ("", _aviso(_mensaje_limite(
+            "es", _minutos_para_la_siguiente("voz", peticion))),
+            gr.update(visible=False))
     # Esta es la funcion mas cara de la aplicacion: transcribe con whisper y
     # genera un audio de referencia, y ninguna de las dos cosas acierta en
     # cache. Por eso es la que se cierra detras del codigo.
@@ -2444,7 +2570,12 @@ def construir() -> gr.Blocks:
                     b_rapido = gr.Button("Vistazo rápido (unos segundos)")
                     b_analizar = gr.Button("Leer el libro entero (tarda más)",
                                            variant="primary")
-                gr.Markdown("_El vistazo toma unas 80 ventanas repartidas por "
+                # El numero SALE de las constantes. Decia "unas 80" cuando
+                # el producto real es 30 x 2 = 60, porque la cifra se escribio
+                # a mano y luego se bajaron los capitulos de 40 a 30.
+                gr.Markdown(f"_El vistazo toma unas "
+                            f"{RAPIDO_CAPITULOS * RAPIDO_VENTANAS} ventanas "
+                            "repartidas por "
                             "toda la obra y tarda segundos. El análisis "
                             "completo lee **todas** las ventanas del libro: en "
                             "uno largo son minutos, y queda guardado para "

@@ -236,6 +236,48 @@ def _sumar(base: Path, cuenta: Cuenta) -> int | None:
         return None
 
 
+def _restar(base: Path, cuenta: Cuenta) -> None:
+    """Baja un uso, sin bajar nunca de cero. Bajo el mismo candado que `_sumar`."""
+    try:
+        with _CANDADO:
+            b = Path(base)
+            d = _leer(b)
+            actual = d.get(cuenta.nombre, 0)
+            if actual <= 0:
+                return
+            d[cuenta.nombre] = actual - 1
+            tmp = _ruta_uso(b).with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(d, f)
+            os.replace(tmp, _ruta_uso(b))
+    except Exception:
+        # Si no se puede devolver, el lector pierde un uso. Es lo malo menos
+        # malo: lo contrario seria no cobrar por no poder escribir.
+        return
+
+
+def devolver(base: Path, codigo: str | None) -> None:
+    """Devuelve un uso ya cobrado, cuando resulta que no se pago nada.
+
+    `consumir` cobra ANTES de llamar a OpenAI, y tiene que ser asi: preguntar
+    primero y apuntar despues abre la condicion de carrera que ese docstring
+    explica. Pero entonces una consulta que sale de la cache de `lexicon.db`
+    -sin una sola llamada a la API- bajaba el contador igual, y `tope` dejaba
+    de ser "llamadas de pago permitidas", como se declara arriba, para ser
+    "pulsaciones".
+
+    Asi que se cobra siempre y se devuelve cuando se sabe que no hubo gasto.
+    Nunca baja de cero: si dos hilos devolvieran a la vez sobre un contador ya
+    en cero, el cupo se volveria mas generoso de lo declarado.
+    """
+    if not hay_codigos():
+        return
+    cuenta = validar(codigo)
+    if cuenta is None or cuenta.tope == 0:
+        return
+    _restar(base, cuenta)
+
+
 def consumir(base: Path, codigo: str | None) -> tuple[bool, str]:
     """Comprueba el cupo Y lo consume, en una sola operacion atomica.
 
@@ -267,6 +309,13 @@ def consumir(base: Path, codigo: str | None) -> tuple[bool, str]:
         # un uso a tumbar la aplicacion porque el disco no admite escrituras.
         return True, ""
     if total > cuenta.tope:
+        # Se deshace el incremento que acaba de rechazarse. Antes no: el
+        # contador seguia subiendo con cada intento fallido, asi que un perfil
+        # de tope 5 podia acabar marcando 40 usos, `queda()` daba negativo y el
+        # numero del diagnostico dejaba de significar nada. La decision de
+        # rechazar ya se tomo de forma atomica al sumar, asi que devolverlo
+        # despues no reabre la carrera que este metodo cerro.
+        _restar(base, cuenta)
         return False, (f"El perfil de **{cuenta.nombre}** ha agotado su cupo de "
                        f"{cuenta.tope} usos. El resto de la aplicación sigue "
                        "funcionando.")

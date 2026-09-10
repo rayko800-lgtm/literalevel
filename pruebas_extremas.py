@@ -13,8 +13,10 @@ Uso:  python -X utf8 pruebas_extremas.py
 """
 from __future__ import annotations
 
+import inspect
 import os
 import sys
+import time
 import pathlib
 import tempfile
 import traceback
@@ -26,6 +28,20 @@ sys.path.insert(0, "app")
 # las pruebas escriben en los datos reales de quien las ejecuta, y de hecho lo
 # hicieron: 24 archivos de prueba acabaron en la biblioteca del usuario.
 os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_pruebas_")
+# Y ANTES de importar cualquier cosa que use la clave: esta suite NO PUEDE
+# llamar a OpenAI, y lo hacia. La prueba "audio inexistente" llegaba a
+# `voz.explicar_correccion`, que no tiene cache, y pagaba un `gpt-4o-mini` en
+# CADA ejecucion, con la clave real: `config.cargar` la lee de `CLAVES.txt` y
+# la mete en el entorno al importarse. Ademas tardaba segundos de red y daba un
+# resultado distinto sin conexion, o sea que la suite no era reproducible.
+#
+# Se corta en el origen y no prueba a prueba. Sin clave, la aplicacion toma su
+# camino degradado, que es precisamente el que `AGENTS.md` promete y el que
+# interesa ejercitar aqui: "sin OPENAI_API_KEY la app tiene que seguir
+# funcionando en todo lo que no usa red".
+import config  # noqa: E402
+config.cargar = lambda *a, **k: None
+os.environ.pop("OPENAI_API_KEY", None)
 import ficha as ficha_mod  # noqa: E402
 import reader  # noqa: E402
 import ui  # noqa: E402
@@ -51,11 +67,31 @@ def prueba(nombre: str, fn):
     en el envoltorio, rechazando toda lista no vacia, y NO sirve -muchas
     pruebas legitimas devuelven una lista como resultado, no como queja, y
     saltaron veinte falsos fallos de golpe-.
+
+    Y quedaba el OTRO patron, que lo encontro la auditoria siguiente y era
+    peor: **39 pruebas devolvian un booleano que nadie aseveraba**, asi que un
+    `False` se imprimia como `ok False` y la suite terminaba en verde. Con eso,
+    un banco de mutaciones demostro que la suite pasaba con `_entrar`
+    aceptando cualquier contrasena, con los tres topes por hora apagados, con
+    la practica de voz sin puerta de pago, con `_salir` que no olvida y con
+    `_dir_lector` mezclando las carpetas de dos lectores. Ahora un `False`
+    explicito es un fallo: a diferencia de una lista vacia, nunca es un
+    resultado legitimo.
+
+    Tambien se itera lo que devuelva una generadora. `_medir`, `_consultar` y
+    `_de_que_trata` lo son, y una lambda que las llama sin iterarlas devuelve
+    el generador **sin ejecutar una sola linea del cuerpo**: la prueba "medir
+    indice imposible" imprimia `ok <generator object>` y pasaba igual con un
+    IndexError dentro.
     """
     global HECHAS
     HECHAS += 1
     try:
         r = fn()
+        if inspect.isgenerator(r):
+            r = list(r)
+        assert r is not False, (
+            "la prueba devolvio False: eso es un fallo, no un resultado")
         resumen = str(r)
         if len(resumen) > 90:
             resumen = resumen[:87] + "..."
@@ -301,9 +337,17 @@ prueba("sin transcripcion no inventa marcas",
        lambda: "no puedo marcarte" in ui._palabras_html(_ev, False))
 prueba("frase vacia",
        lambda: repr(ui._palabras_html(ui.voz.evaluar_pronunciacion("", ""), True)))
+# Esperaba encontrar "&lt;" y llevaba tiempo devolviendo False, o sea
+# informando de un fallo como exito. Y la expectativa era la equivocada:
+# `normalizar_palabras` quita la puntuacion ANTES, asi que de
+# "<script>alert(1)</script>" solo quedan las palabras y no hay ningun "<"
+# que escapar. Lo que hay que aseverar es la propiedad de seguridad de
+# verdad: que no salga HTML vivo.
 prueba("html incrustado en la frase",
-       lambda: "&lt;" in ui._palabras_html(
-           ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello", "hello"), True))
+       lambda: "<script" not in ui._palabras_html(
+           ui.voz.evaluar_pronunciacion("<script>alert(1)</script> hello",
+                                        "hello"), True)
+               and "ni una etiqueta viva en la salida")
 
 titulo("Avisos legibles cuando algo falla")
 
@@ -377,11 +421,48 @@ prueba("cubos distintos no se mezclan",
 prueba("el mensaje de limite existe en los dos idiomas",
        lambda: (len(ui._mensaje_limite("es", 60)) > 40,
                 len(ui._mensaje_limite("en", 60)) > 40))
+def _por_encima_del_tope_no_llega_al_consultor():
+    """Agotado el tope por hora, `_consultar` devuelve el aviso y no consulta.
+
+    La version anterior de esta prueba no probaba NADA: preguntaba por el cupo
+    con `tope=0`, que significa justamente SIN LIMITE, asi que la condicion
+    nunca se cumplia, la rama que hacia la consulta no se ejecutaba jamas y la
+    prueba imprimia "tope generoso, no aplica" en verde. Lo encontro una
+    auditoria externa leyendo la expresion condicional.
+
+    Ahora se agota un tope de verdad -bajando la constante del modulo- y se
+    comprueba lo que de verdad importa: que la segunda consulta trae el aviso
+    de limite y que NO llega a construir el consultor, que es lo que costaria
+    dinero. Si llegara, el doble revienta y la prueba falla.
+    """
+    pet = _Pet(ip="10.6.6.7")
+
+    def no_deberia_llamarse():
+        raise AssertionError("llego al consultor con el tope agotado")
+
+    tope_antes, consultor_antes = ui.LIMITE_CONSULTAS_HORA, ui.consultor
+    ui.LIMITE_CONSULTAS_HORA = 1
+    ui.consultor = no_deberia_llamarse
+    try:
+        # El primer uso gasta el unico permitido. Puede fallar por otras
+        # razones -no hay diccionario en las pruebas- y da igual: lo que
+        # interesa es que consuma el cupo.
+        try:
+            consulta(None, None, None, "word", "A sentence with the word.",
+                     "es", pet)
+        except AssertionError:
+            pass          # llego al consultor, que en el primer uso es normal
+        segunda = consulta(None, None, None, "word",
+                           "A sentence with the word.", "es", pet)[0]
+        aviso = ui._mensaje_limite("es", 60)[:30]
+        assert aviso in segunda, f"esperaba el aviso de limite, dio: {segunda[:90]}"
+    finally:
+        ui.LIMITE_CONSULTAS_HORA, ui.consultor = tope_antes, consultor_antes
+    return "con el tope agotado devuelve el aviso y no consulta"
+
+
 prueba("consultar por encima del tope no llama a OpenAI",
-       lambda: consulta(None, None, None, "word", "A sentence with the word.",
-                        "es", _Pet(ip="10.6.6.6"))[0][:40]
-       if not all(ui._dentro_del_limite(_Pet(ip="10.6.6.6"), "lexico", 0)
-                  for _ in range(1)) else "tope generoso, no aplica")
+       _por_encima_del_tope_no_llega_al_consultor)
 
 titulo("Datos de cada lector, no de todos")
 
@@ -432,10 +513,16 @@ prueba("registrar una consulta",
                                   oracion="the convicts were in fetters",
                                   zipf=2.3, libro="Dead House", capitulo=5,
                                   ruta=_CDB))
+# Estas dos devuelven False cuando la palabra SE RECHAZA, que es lo que se
+# quiere. Devolver el booleano pelado las dejaba a merced del envoltorio: se
+# imprimian como `ok False` y habrian pasado igual si el rechazo dejara de
+# funcionar. Se asevera la expectativa y se devuelve algo legible.
 prueba("palabra vacia se rechaza",
-       lambda: cuaderno.registrar(palabra="", lema="x", oracion="y", ruta=_CDB))
+       lambda: not cuaderno.registrar(palabra="", lema="x", oracion="y",
+                                      ruta=_CDB) and "rechazada")
 prueba("oracion en blanco se rechaza",
-       lambda: cuaderno.registrar(palabra="x", lema="x", oracion="   ", ruta=_CDB))
+       lambda: not cuaderno.registrar(palabra="x", lema="x", oracion="   ",
+                                      ruta=_CDB) and "rechazada")
 prueba("ruta imposible no lanza",
        lambda: (cuaderno.registrar(palabra="a", lema="a", oracion="b",
                                    ruta="Z:/no/existe/c.db"),
@@ -506,6 +593,8 @@ prueba("tabla sin aviso", lambda: ui._tabla_libros([]))
 titulo("Perfil")
 
 prueba("cuestionario sin responder",
+       # El tercer None es `peticion`, que en este manejador va ANTES de
+       # `*valores`: ver su docstring. Los dos ultimos son respuestas vacias.
        lambda: ui._desde_cuestionario(None, "", None, None, None)[1][:70])
 prueba("muestra vacia", lambda: ui._desde_muestra(None, "", "")[1][:70])
 prueba("muestra que no es prosa",
@@ -611,12 +700,17 @@ prueba("anotar un libro",
        lambda: biblioteca.anotar(ruta_libro=str(TMP / "l.epub"), titulo="T",
                                  autor="A", capitulos=10, capitulo=3,
                                  palabras=5000, ruta=_BIB))
+# Mismo caso que las del cuaderno: False significa "rechazado", que es el
+# exito. Se asevera, para que aceptar un libro sin ruta o sin titulo pase a
+# ser un fallo de verdad y no un `ok False`.
 prueba("sin ruta se rechaza",
-       lambda: biblioteca.anotar(ruta_libro="", titulo="T", autor="", capitulos=1,
-                                 capitulo=0, palabras=1, ruta=_BIB))
+       lambda: not biblioteca.anotar(ruta_libro="", titulo="T", autor="",
+                                     capitulos=1, capitulo=0, palabras=1,
+                                     ruta=_BIB) and "rechazado")
 prueba("sin titulo se rechaza",
-       lambda: biblioteca.anotar(ruta_libro="x", titulo="", autor="", capitulos=1,
-                                 capitulo=0, palabras=1, ruta=_BIB))
+       lambda: not biblioteca.anotar(ruta_libro="x", titulo="", autor="",
+                                     capitulos=1, capitulo=0, palabras=1,
+                                     ruta=_BIB) and "rechazado")
 prueba("ruta imposible no lanza",
        lambda: (biblioteca.anotar(ruta_libro="x", titulo="t", autor="", capitulos=1,
                                   capitulo=0, palabras=1, ruta="Z:/no/b.json"),
@@ -635,7 +729,9 @@ prueba("avance con un solo capitulo",
 prueba("avance con capitulo fuera de rango",
        lambda: biblioteca.Entrada("r", "t", "a", 5, 99, 10, "").avance)
 prueba("libro que ya no existe se marca",
-       lambda: biblioteca.Entrada("Z:/no.epub", "t", "a", 5, 1, 10, "").existe)
+       # `.existe` es False, que es el acierto: el libro no esta.
+       lambda: not biblioteca.Entrada("Z:/no.epub", "t", "a", 5, 1, 10,
+                                      "").existe and "marcado como ausente")
 prueba("seguir sin elegir",
        lambda: list(ui._seguir_leyendo(""))[-1][-1])
 prueba("seguir con ruta muerta",
@@ -863,6 +959,14 @@ def _contraste_suficiente():
         # Objeto grafico, 3:1. (El borde de la cita del cuaderno es la misma
         # pareja que `grafica-linea`, asi que no se repite aqui.)
         "barra-avance": ("--ll-acento", ("--ll-panel", "--ll-borde"), 3.0),
+        # El subrayado de acierto y el de fallo de la pronunciacion. Iban
+        # clavados en el CSS: verde 2,21 y rojo 2,86 en las paletas claras.
+        # El del fallo se mide sobre SU fondo rojizo, que es donde vive.
+        "voz-bien": ("--ll-bien", ("--ll-lector-fondo",), 3.0),
+        "voz-mal": ("--ll-mal", ("--ll-lector-fondo", "--ll-mal-fondo"), 3.0),
+        # Y la palabra fallada tiene que leerse sobre ese fondo rojizo.
+        "voz-mal-texto": ("--ll-lector-texto",
+                          ("--ll-lector-fondo", "--ll-mal-fondo"), 4.5),
     }
 
     malas = []
@@ -1060,6 +1164,36 @@ prueba("las superficies tambien salen de la paleta",
        _las_superficies_tambien_salen_de_la_paleta)
 
 
+def _colores_literales(fragmento: str) -> list[str]:
+    """Los colores escritos a mano en un trozo de CSS o de Python.
+
+    Vive aparte porque lo usan dos pruebas y porque su historia es una lista
+    de agujeros que se fueron tapando de uno en uno:
+
+    - primero solo miraba `#[0-9a-fA-F]{6}`, asi que el MISMO color escrito
+      `#8ce` en vez de `#88ccee` pasaba sin que nadie dijera nada;
+    - luego se le anadieron `rgb()` y `hsl()`;
+    - y seguia sin ver los colores POR NOMBRE. Un banco de mutaciones lo
+      demostro clavando `background:yellow` en el resaltado del lector: la
+      prueba de colores clavados pasaba en verde, con el amarillo que un
+      comentario de `ui.py` dice haber desterrado.
+
+    `transparent` NO cuenta: es lo contrario de un color clavado y se usa a
+    proposito -el lienzo de la grafica y el subrayado de la voz-. `inherit` y
+    `currentColor` si cuentan cuando aparecen como color, porque son la otra
+    forma de saltarse la paleta: fue el fallo de `#ll-lector` y de `#ll-voz`.
+    """
+    import re
+    NOMBRES = (r"\b(?:yellow|red|blue|green|white|black|gray|grey|orange|pink|"
+               r"purple|violet|brown|cyan|magenta|lime|navy|teal|olive|maroon|"
+               r"silver|gold|beige|ivory|khaki|salmon|coral|crimson|indigo|"
+               r"turquoise|aqua|fuchsia)\b")
+    return (re.findall(r"#[0-9a-fA-F]{3,8}\b", fragmento)
+            + re.findall(r"(?:rgba?|hsla?)\([0-9][^)]*\)", fragmento)
+            + re.findall(NOMBRES, fragmento)
+            + re.findall(r"currentColor|(?<=color:)\s*inherit", fragmento))
+
+
 def _el_css_no_clava_los_colores_que_ya_fallaron():
     """Cuatro reglas del CSS pintaban un color fijo con la paleta que fuera.
 
@@ -1087,6 +1221,13 @@ def _el_css_no_clava_los_colores_que_ya_fallaron():
         "#ll-biblio .ll-b{": "--ll-borde",
         "#ll-biblio .ll-b i{": "--ll-acento",
         "#ll-cuaderno .ll-f{": "--ll-acento",
+        # `#ll-voz` repetia palabra por palabra el fallo de `#ll-lector`: un
+        # `border` abreviado y posterior en el DOM que reescribia entero el
+        # `border-color:var(--ll-borde)`, y un `color:inherit` encima. Se
+        # corrigio en uno y no en el otro.
+        "#ll-voz{": "--ll-borde",
+        "#ll-voz .ok{": "--ll-bien",
+        "#ll-voz .mal{": "--ll-mal",
     }
     malas = []
     for selector, variable in reglas.items():
@@ -1105,8 +1246,7 @@ def _el_css_no_clava_los_colores_que_ya_fallaron():
         if not any(variable in c for c in cuerpos):
             malas.append(f"{selector} ya no usa {variable}")
         for c in cuerpos:
-            clavados = (re.findall(r"#[0-9a-fA-F]{3,8}\b", c)
-                        + re.findall(r"(?:rgba?|hsla?)\([0-9][^)]*\)", c))
+            clavados = _colores_literales(c)
             if clavados:
                 malas.append(f"{selector} vuelve a clavar {clavados}")
     assert not malas, malas
@@ -1115,6 +1255,54 @@ def _el_css_no_clava_los_colores_que_ya_fallaron():
 
 prueba("el CSS no clava los colores que ya fallaron",
        _el_css_no_clava_los_colores_que_ya_fallaron)
+
+
+def _todos_los_manejadores_reciben_la_peticion():
+    """Declarar `peticion: gr.Request` no basta: Gradio tiene que inyectarla.
+
+    `special_args` (en `gradio/helpers.py`) recorre la firma y **corta en el
+    primer parametro que no sea posicional**, asi que un `peticion` detras de
+    un `*valores` es keyword-only y no se inspecciona nunca: llega `None`
+    siempre. Le paso a `_desde_cuestionario`, y `None` significa que
+    `_archivo_lector` resuelve a `lectores/anonimo/`, una sola carpeta para
+    TODOS los visitantes del Space. Cada lector pisaba el perfil del anterior
+    y ninguno lo recuperaba al recargar.
+
+    En local no se nota, porque fuera del Space no se reparte por sesion. O
+    sea que esto solo se puede cazar aqui, comprobando la inyeccion de verdad
+    contra el Gradio instalado y no contra lo que uno cree que hace.
+    """
+    from gradio.helpers import special_args
+
+    malos = []
+    for nombre in dir(ui):
+        f = getattr(ui, nombre)
+        if not callable(f) or not nombre.startswith("_"):
+            continue
+        try:
+            sig = inspect.signature(f)
+        except (TypeError, ValueError):
+            continue
+        p = sig.parameters.get("peticion")
+        # Solo los que ANOTAN `gr.Request`, que es como Gradio decide donde
+        # inyectar. Los ayudantes internos -`_dir_lector`, `_sesion_de`,
+        # `_ip`...- reciben la peticion de quien les llama, no de Gradio, y
+        # llevan el parametro sin anotar a proposito.
+        if p is None or "Request" not in str(p.annotation):
+            continue
+        # Se le dan tantas entradas como parametros posicionales, y se mira si
+        # `special_args` mete el centinela en el sitio de `peticion`.
+        centinela = object()
+        entradas = [None] * max(0, len(sig.parameters) - 1)
+        nuevas, *_ = special_args(f, inputs=list(entradas), request=centinela)
+        if centinela not in nuevas:
+            malos.append(f"{nombre}{sig}")
+    assert not malos, malos
+    return f"los manejadores con `peticion` la reciben ({len(dir(ui))} nombres revisados)"
+
+
+prueba("todos los manejadores reciben la peticion",
+       _todos_los_manejadores_reciben_la_peticion)
 
 
 def _la_grafica_no_lleva_colores_clavados():
@@ -1136,8 +1324,7 @@ def _la_grafica_no_lleva_colores_clavados():
     # Antes esto era solo `#[0-9a-fA-F]{6}`, o sea que el MISMO color escrito
     # como `#8ce` en vez de `#88ccee` se colaba sin que la prueba dijera nada,
     # igual que cualquier `rgb()` o `hsl()`. Se buscan las cuatro formas.
-    clavados = (re.findall(r"#[0-9a-fA-F]{3,8}\b", cuerpo)
-                + re.findall(r"(?:rgba?|hsla?)\([0-9][^)]*\)", cuerpo))
+    clavados = _colores_literales(cuerpo)
     # Excepcion legitima y a proposito: el fondo del lienzo y de la leyenda
     # van TRANSPARENTES para que se vea el de la paleta. Es lo contrario de
     # un color clavado; clavar aqui cualquier otra cosa si seria el fallo.
@@ -1473,8 +1660,25 @@ prueba("un usuario que no existe no entra",
 prueba("el usuario no distingue mayusculas y la clave si",
        lambda: _con_puerta(lambda: "jefe" in ui._entrar("JEFE", "LLAVE-A")
                            and "No he podido" in ui._entrar("jefe", "llave-a")))
-prueba("salir olvida el perfil",
-       lambda: _con_puerta(lambda: "Has salido" in ui._salir()))
+def _salir_olvida_de_verdad():
+    """No basta con que diga "Has salido": tiene que olvidar la sesion.
+
+    La version anterior solo miraba el mensaje, asi que un `_salir` que no
+    borrara nada -probado quitandole el `pop`- seguia pasando en verde. En un
+    ordenador compartido eso significa que el siguiente en sentarse hereda el
+    perfil y el cupo del anterior.
+    """
+    def dentro():
+        assert "jefe" in ui._entrar("jefe", "LLAVE-A"), "no pudo entrar"
+        assert ui._codigo_de(None) is not None, "no recordo el perfil"
+        salida = ui._salir()
+        assert "Has salido" in salida, salida
+        assert ui._codigo_de(None) is None, "dijo que salio y NO olvido nada"
+        return "sale, y la sesion queda sin perfil"
+    return _con_puerta(dentro)
+
+
+prueba("salir olvida el perfil", _salir_olvida_de_verdad)
 
 def _apuntar_en_ruta_imposible():
     r = _con_codigos(
@@ -1527,6 +1731,86 @@ def _caso_de_la_auditoria():
 prueba("el caso que destapo la auditoria", _caso_de_la_auditoria)
 prueba("un libro sin ventanas no revienta",
        lambda: ui.ficha.dificultad_global([]))
+
+
+titulo("Archivos propios mal formados")
+# Los escribe la app, no un usuario, asi que son bordes. Pero la cabecera de
+# `ui.py` promete que NINGUN manejador levanta, y estos cuatro lo hacian. El
+# de `_reanudar` es el peor: corre en `demo.load`, o sea que la pagina entera
+# arrancaba con error para ese lector hasta que borrara el archivo a mano.
+
+
+def _sesion_que_no_es_un_objeto():
+    """`sesion.json` con JSON valido que no sea un diccionario."""
+    ruta = pathlib.Path(ui._ruta_sesion(None))
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    guardado = ruta.read_text(encoding="utf-8") if ruta.exists() else None
+    try:
+        for basura in ("[]", '"hola"', "3", "null"):
+            ruta.write_text(basura, encoding="utf-8")
+            list(ui._reanudar())          # generadora: hay que iterarla
+        return "cuatro formas de basura y ninguna levanta"
+    finally:
+        if guardado is None:
+            ruta.unlink(missing_ok=True)
+        else:
+            ruta.write_text(guardado, encoding="utf-8")
+
+
+prueba("sesion.json que no es un objeto", _sesion_que_no_es_un_objeto)
+
+
+def _perfil_con_nivel_no_numerico():
+    """Un `perfil.json` con `nivel: "abc"` se construia sin queja y reventaba
+    despues, en la aritmetica de quien lo usara."""
+    ruta = pathlib.Path(ui._archivo_lector("perfil.json", None))
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    guardado = ruta.read_text(encoding="utf-8") if ruta.exists() else None
+    try:
+        import json as _json
+        import perfil as perfil_mod
+        ruta.write_text(_json.dumps({"nivel": "abc", "banda": "basico",
+                                     "origen": "cuestionario", "creado": "",
+                                     "nombre": ""}), encoding="utf-8")
+        assert perfil_mod.cargar(str(ruta)) is None, "deberia darlo por corrupto"
+        ui._perfil_inicial()
+        return "se da por corrupto y no revienta"
+    finally:
+        if guardado is None:
+            ruta.unlink(missing_ok=True)
+        else:
+            ruta.write_text(guardado, encoding="utf-8")
+
+
+prueba("perfil con nivel no numerico", _perfil_con_nivel_no_numerico)
+
+prueba("mover con un indice que no es numero",
+       lambda: (ui._mover(libro_ok, "abc", 1), ui._mover(libro_ok, None, 1))
+       and "no revienta")
+def _el_aviso_de_tope_dice_los_minutos_que_faltan():
+    """Decia siempre "60 minutos", que es la ventana entera y casi nunca lo
+    que falta: quien agoto el cupo hace cincuenta y ocho minutos leia que
+    tenia que esperar una hora mas."""
+    pet = _Pet(ip="10.9.9.9")
+    assert ui._minutos_para_la_siguiente("lexico", pet) == 0, "sin gasto, 0"
+    ui._dentro_del_limite(pet, "lexico", 1)
+    m = ui._minutos_para_la_siguiente("lexico", pet)
+    assert m == 60, f"recien gastado deberian faltar 60, no {m}"
+    # Y con una marca vieja, lo que de verdad falta.
+    with ui._CANDADO_GASTO:
+        ui._gasto[f"lexico:{ui._ip(pet)}"] = [time.time() - 58 * 60]
+    m = ui._minutos_para_la_siguiente("lexico", pet)
+    assert m == 2, f"tras 58 minutos deberian faltar 2, no {m}"
+    return "dice los minutos que faltan, no siempre 60"
+
+
+prueba("el aviso de tope dice los minutos que faltan",
+       _el_aviso_de_tope_dice_los_minutos_que_faltan)
+
+prueba("cuantos libros vacio no ensena un error de Python",
+       # `gr.Number` vacio manda None. Antes salia "int() argument must be...".
+       lambda: "int()" not in str(ui._recomendar(None, None))
+               and "sin error de Python")
 
 # --- Resultado ------------------------------------------------------------
 

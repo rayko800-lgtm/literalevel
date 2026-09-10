@@ -140,7 +140,7 @@ diagnosticó qué producía cada queja y se corrigió.
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono
 real —y no en el navegador del escritorio— había descubierto antes fallos que
-**ninguna de las 216 pruebas automáticas podía encontrar, porque todos
+**ninguna de las 222 pruebas automáticas podía encontrar, porque todos
 necesitaban un dedo y una pantalla pequeña**:
 
 - El doble toque para consultar una palabra **no funcionaba en el móvil**: el
@@ -220,7 +220,7 @@ palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
 
-La regla que verifican las 216 pruebas de robustez es una sola: **ningún
+La regla que verifican las 222 pruebas de robustez es una sola: **ningún
 manejador puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve
 como texto legible.
 
@@ -390,7 +390,7 @@ publicación y un micrófono.
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron 8 correcciones |
 | Producto | Accesibilidad de color | **Cumplido**: las cuarenta parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Cumplido**: 216 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
+| Producto | Robustez | **Cumplido**: 222 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha. Sin disco persistente todavía (A4) |
 | Operación | Catálogo medido, no heredado | **En curso** (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |

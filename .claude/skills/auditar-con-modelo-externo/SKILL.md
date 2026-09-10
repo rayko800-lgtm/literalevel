@@ -112,3 +112,29 @@ distingue lo revisado de lo no revisado, y acabas re-auditando lo mismo.
 
 Programa la siguiente pasada para cuando el cupo se recupere en vez de
 reintentar en caliente: reintentar sin cambiar el alcance falla igual.
+
+---
+
+## 7. Comprueba el cupo ANTES de escribir el encargo
+
+El 9 de septiembre por la noche, un encargo estrecho y bien dimensionado para
+Astra —solo coherencia de cifras, con instrucción de usar `grep`, esfuerzo
+intermedio— murió tras **9.981 tokens**, sin un solo hallazgo:
+
+```
+ERROR: You've hit your usage limit. … or try again at Sep 15th, 2026 8:46 AM.
+```
+
+No fue un problema de dimensionado: el cupo ya estaba agotado antes de empezar,
+y la ventana de recuperación era de **casi una semana**, no de unas horas. El
+encargo estaba escrito, el fichero preparado y el tiempo gastado.
+
+Así que antes de redactar nada, gasta una llamada mínima en preguntar si hay
+cupo. Y cuando el error llegue, **apunta la hora exacta de vuelta**: es lo único
+que permite programar la pasada siguiente en vez de reintentar en caliente, que
+falla igual.
+
+Corolario de reparto: si solo hay un auditor disponible, dale el alcance
+**amplio** y no el estrecho. Lo mecánico —que una cifra coincida consigo misma
+en ocho archivos— lo puedes barrer tú con un `grep`; lo que no puedes hacer solo
+es que alguien con otros puntos ciegos mire tu trabajo.

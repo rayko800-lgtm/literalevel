@@ -319,3 +319,49 @@ Cada vez que una prueba busque una declaración CSS con un regex, escribe las
 formas que **no** cubre y comprueba una a una que las cazaría. Y lee todos los
 archivos que llevan CSS, no solo el primero: la prueba de opacidad miraba
 `ui.py` y no `paletas.py`.
+
+### El envoltorio que imprime `ok False`
+
+El caso mayor de todo esto no estaba en una prueba, sino en el **envoltorio**
+que las ejecuta. `prueba(nombre, fn)` imprimía lo que devolviera `fn`, así que
+un `False` salía como `ok False` y la suite terminaba en verde. Treinta y nueve
+pruebas devolvían un booleano que nadie aseveraba. Con eso, un banco de
+mutaciones demostró que la suite pasaba entera con:
+
+- `_entrar` aceptando **cualquier contraseña**;
+- los tres topes por hora apagados;
+- la práctica de voz **sin puerta de pago**;
+- `_salir` que no olvida la sesión;
+- `_dir_lector` devolviendo la misma carpeta a todos los lectores.
+
+Dos cosas que se aprenden aquí y no son obvias:
+
+**1. Prohibir el valor no es la solución.** El arreglo que sugería el auditor
+—`assert r is not False` a secas— rompía cinco pruebas legítimas de golpe:
+«palabra vacía se rechaza», «sin título se rechaza», «libro que ya no existe se
+marca»… En todas ellas `False` **es** el resultado correcto, porque la función
+devuelve `False` cuando rechaza. Lo que hay que arreglar es que la prueba
+**asevere su expectativa** en vez de devolver el booleano crudo:
+
+```python
+prueba("palabra vacia se rechaza",
+       lambda: not cuaderno.registrar(palabra="", ...) and "rechazada")
+```
+
+Así devuelve una cadena legible cuando acierta y `False` —ahora sí, un fallo—
+cuando el rechazo deja de funcionar. La regla en el envoltorio y la aserción en
+la prueba son las dos necesarias: sin la primera nadie mira el valor, sin la
+segunda la primera dispara sobre inocentes.
+
+**2. Itera lo que devuelva una generadora.** `_medir`, `_consultar` y
+`_de_que_trata` lo son, y una `lambda` que las llama sin iterarlas devuelve el
+generador **sin ejecutar una sola línea del cuerpo**. La prueba «medir índice
+imposible» imprimía `ok <generator object …>` y pasaba igual con un
+`IndexError` dentro. Un `if inspect.isgenerator(r): r = list(r)` en el
+envoltorio lo arregla para todas a la vez.
+
+**Y una advertencia sobre el propio banco de mutaciones:** apunta qué prueba
+falla, no solo que la suite falla. En la primera pasada, tres mutantes «se
+cazaban»… por una prueba de rutas que fallaba en la copia por un archivo que no
+había copiado. El mutante parecía cubierto y no lo estaba. Exige el nombre de
+la prueba que salta, y que sea la que te esperas.
