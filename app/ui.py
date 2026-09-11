@@ -784,6 +784,22 @@ def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
 
 # --- Punto 2: buscador del catalogo --------------------------------------
 
+# La letra que sale al lado de cada libro NO la mide el modelo v4: viene del
+# catalogo heredado de la version 1, y el propio documento la declara poco
+# fiable (Cuadro 3, limitacion 3). En una demo en vivo eso se nota mucho mas
+# que en una tabla: «Sorprendeme» propone un B2 a un lector de 1,20, el lector
+# lo abre, pulsa "¿Como de dificil es este capitulo?" y la app le contesta C1.
+# La app desmentida por la app cuatro clics despues.
+#
+# Hasta que el catalogo este remedido entero con el v4 -esta en marcha-, lo
+# honesto es decirlo donde se ve la etiqueta, y no solo en el PDF.
+NOTA_NIVEL_HEREDADO = (
+    "La letra de cada libro es la etiqueta del catálogo, heredada y **sin "
+    "medir con el modelo**. Al abrirlo, «¿Cómo de difícil es este capítulo?» "
+    "mide el texto de verdad; cuando no coinciden, manda el número del modelo."
+)
+
+
 def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
     """`vacio` SUSTITUYE a la tabla cuando no hay libros; `nota` va al pie
     cuando si los hay.
@@ -865,7 +881,8 @@ def _buscar(p, consulta, ajustar, n):
     # Aqui el mismo texto vale en los dos huecos: `catalogo.buscar` devuelve
     # "ningun libro supera el umbral" cuando la lista sale vacia y "se
     # descartaron N por parecido bajo" cuando trae resultados, nunca las dos.
-    return (cabecera + _tabla_libros(libros, vacio=aviso, nota=aviso),
+    pie = f"{aviso} {NOTA_NIVEL_HEREDADO}" if aviso else NOTA_NIVEL_HEREDADO
+    return (cabecera + _tabla_libros(libros, vacio=aviso, nota=pie),
             _opciones_libros(libros))
 
 
@@ -1065,10 +1082,12 @@ def _recomendar(p, n):
                  f"arriba: ahí sí se ajusta a tu nivel sin exigir una "
                  f"coincidencia exacta.")
     if rescate:
-        return (rescate + _tabla_libros(libros, vacio=si_no_hay),
+        return (rescate + _tabla_libros(libros, vacio=si_no_hay,
+                                        nota=NOTA_NIVEL_HEREDADO),
                 _opciones_libros(libros))
     return (f"Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:\n\n"
-            + _tabla_libros(libros, vacio=si_no_hay), _opciones_libros(libros))
+            + _tabla_libros(libros, vacio=si_no_hay, nota=NOTA_NIVEL_HEREDADO),
+            _opciones_libros(libros))
 
 
 # --- Punto 3: lector, y punto 4 dentro de el ------------------------------

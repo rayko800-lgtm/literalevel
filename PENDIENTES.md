@@ -6,9 +6,11 @@ La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
 **Si acabas de entrar: lee primero
-[`auditoria/cierre_auditoria_13.md`](auditoria/cierre_auditoria_13.md)** —la
-última: 8 serios, 14 menores y 3 notas cerrados, con banco de mutantes propio—,
-después
+[`auditoria/cierre_auditoria_15.md`](auditoria/cierre_auditoria_15.md)** —la
+última: 7 serios, 6 menores y 2 notas cerrados, y sobre todo **veintidós
+mutantes vivos** que se convirtieron en diecinueve pruebas—, después
+[`auditoria/cierre_auditoria_13.md`](auditoria/cierre_auditoria_13.md) —8
+serios, 14 menores y 3 notas, con banco de mutantes propio—, después
 [`auditoria/cierre_auditoria_11.md`](auditoria/cierre_auditoria_11.md) —la más
 productiva del proyecto, y la razón fue pedirle al auditor que **mutara el
 código**—, luego
@@ -16,12 +18,19 @@ código**—, luego
 y [`auditoria/cierre_2026-09-09.md`](auditoria/cierre_2026-09-09.md), y luego
 `git log` desde `aed7751`.
 
-Tres avisos que valen para cualquiera que toque esto:
+Cuatro avisos que valen para cualquiera que toque esto:
 
-1. **Una prueba que pasa no demuestra que cazaría el fallo.** Hay tres formas de
-   que no pruebe nada, y la tercera la encontró la auditoría 13: el manejador
+1. **Una prueba que pasa no demuestra que cazaría el fallo.** Hay CUATRO formas
+   de que no pruebe nada. La tercera la encontró la auditoría 13: el manejador
    rechaza la entrada **antes** de llegar al código que quieres probar, y la
-   aserción se cumple sobre el vacío. Está en la skill
+   aserción se cumple sobre el vacío. **La cuarta, la 15, y es la más
+   traicionera: un doble puesto por prudencia que anula justo lo que se quiere
+   medir.** En la cabecera de `pruebas_extremas.py` había un
+   `ui.voz.registrar_fallos = lambda *a, **k: None` para no ensuciar el
+   `voz.db` de quien ejecutara las pruebas; desde que `LITERALEVEL_DATOS`
+   apunta a una carpeta temporal ya no hacía falta, y mientras estuvo ahí el
+   mutante que daba a todos los visitantes la misma `voz.db` **no lo podía
+   cazar nadie**. Está en la skill
    `probar-la-app-de-verdad`, y el banco de mutantes vive en
    [`tools/banco_mutantes.py`](tools/banco_mutantes.py) —en el repositorio y
    no en `scratchpad/`, porque un subagente de auditoría sobrescribió el
@@ -34,11 +43,12 @@ Tres avisos que valen para cualquiera que toque esto:
    hubiera escrito. Se vio midiendo lo mismo con el árbol de antes y el de
    después, no leyendo.
 
-**El Space está al día** hasta la auditoría 14 incluida: el 11 de septiembre de
-2026 los catorce archivos publicados son idénticos byte a byte a los locales, y
-la auditoría 15 lo comprobó por su cuenta descargándolos. Lo que venga después
-se sube con `python tools/desplegar_app.py`, que dice él mismo qué falta —no te
-fíes de esta línea, que es la que se queda vieja.
+**El Space** estuvo al día hasta la auditoría 14 —el 11 de septiembre de 2026
+los catorce archivos publicados eran idénticos byte a byte a los locales, y la
+auditoría 15 lo comprobó por su cuenta descargándolos—. **Las correcciones de
+la auditoría 15 tocan `ui.py`, `lexicon.py`, `ficha.py` y `cuentas.py`, así que
+hay que volver a subir.** Se hace con `python tools/desplegar_app.py`, que dice
+él mismo qué falta —no te fíes de esta línea, que es la que se queda vieja.
 
 Son muchos commits y tocan archivos compartidos: `app/ui.py`, `app/cuentas.py`
 —con interfaz pública nueva: `problemas()`, `declaradas()` y `devolver()`—,
@@ -135,7 +145,7 @@ todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **276** | `pruebas_extremas.py` |
+| Pruebas de estrés | **295** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
 | Parejas de contraste | **85** (17 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |

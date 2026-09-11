@@ -741,7 +741,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono real —y no
 en el navegador del escritorio— había descubierto antes fallos que \textbf{ninguna de
-las 276 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
+las 295 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
 pantalla pequeña}:
 
 \begin{itemize}[leftmargin=*, itemsep=3pt]
@@ -818,7 +818,7 @@ ficha—, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
-La regla que verifican las 276 pruebas de robustez es una sola: \textbf{ningún manejador
+La regla que verifican las 295 pruebas de robustez es una sola: \textbf{ningún manejador
 puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
 
 \subsubsection{Cada número dice de dónde viene}
@@ -906,7 +906,7 @@ Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textb
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas--- \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Cumplido}: 276 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Producto & Robustez & \textbf{Cumplido}: 295 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
@@ -1373,7 +1373,7 @@ americana--- quedan \textbf{33.635 (2,3\pct)}. Pero eso cuenta entradas, y el di
 es en su mayoría palabra rara mientras que un libro es en su mayoría palabra corriente.
 Medido por el lado del lector ---400 palabras tomadas al azar del texto de \emph{Crime and
 Punishment} y resueltas por el mismo camino que usa la aplicación, lematización
-incluida---, \textbf{el 58\pct llega con fonética y el 32\pct con audio grabado}.
+incluida---, \textbf{el 58\pct{} llega con fonética y el 32\pct{} con audio grabado}.
 
 Las dos mediciones apuntan a lo mismo desde sitios distintos: \textbf{dos de cada tres
 consultas necesitan síntesis de voz}, y esa es la medición que justificó paralelizar las
@@ -2123,7 +2123,7 @@ decisiones, y el producto está construido para producir exactamente esas tres
 \addlinespace
 ¿Por dónde se va a complicar? & Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear (figura~\ref{fig:curva_wp}) & De 12,7 s (vistazo, medido sobre \emph{Crime and Punishment}) a minutos (libro completo) \\
 \addlinespace
-¿Qué significa esta palabra \emph{aquí}? & Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58\pct de las consultas sobre un libro real), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio & Instantáneo en local; la explicación contextual tarda más \\
+¿Qué significa esta palabra \emph{aquí}? & Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58\pct{} de las consultas sobre un libro real), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio & Instantáneo en local; la explicación contextual tarda más \\
 \addlinespace
 ¿Lo estoy pronunciando bien? & Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla & Una frase \\
 \bottomrule
@@ -2642,7 +2642,14 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
   \item \textbf{Las etiquetas del catálogo heredado no son fiables}
         (cuadro~\ref{cuad:catalogo}). Son predicciones de un modelo v1 sobre las primeras
         $\sim$190 palabras. La remedición está en curso y es el trabajo pendiente más
-        importante.
+        importante. Y no es una limitación que se quede en el papel: con perfil 1,20,
+        «Sorpréndeme» propone \emph{The Secret Adversary} con etiqueta \textbf{B2}, y el
+        botón de al lado ---el modelo v4 leyendo el texto--- devuelve \textbf{1,50} en el
+        prólogo y \textbf{1,77} de media en el vistazo, o sea \textbf{C1}. La aplicación
+        desmentida por la aplicación cuatro clics después. Mientras dura la remedición,
+        las dos tablas que enseñan la letra llevan escrito al pie que es heredada y que
+        \textbf{manda el número del modelo}; decirlo en el PDF y no en la pantalla habría
+        sido decirlo donde no se ve.
   \item \textbf{De los 1.197 libros del catálogo actual, solo 148 son descargables.} Los
         1.049 de StoryWeaver no tienen fichero que abrir.
   \item \textbf{Los tamaños muestrales de la validación externa son pequeños}: 38 textos

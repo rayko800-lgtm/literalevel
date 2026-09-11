@@ -1174,7 +1174,15 @@ repetirlo en cada párrafo corregido.
    los altos se subestiman. Es la razón de mostrar bandas y no decimales.
 3. **Las etiquetas del catálogo heredado no son fiables** (Cuadro 3). Son
    predicciones de un modelo v1 sobre las primeras ~190 palabras. La remedición
-   está en curso y es el trabajo pendiente más importante.
+   está en curso y es el trabajo pendiente más importante. Y no es una
+   limitación que se quede en el papel: con perfil 1,20, «Sorpréndeme»
+   propone *The Secret Adversary* con etiqueta **B2**, y el botón de al lado
+   —el modelo v4 leyendo el texto— devuelve **1,50** en el prólogo y **1,77**
+   de media en el vistazo, o sea **C1**. La aplicación desmentida por la
+   aplicación cuatro clics después. Mientras dura la remedición, las dos
+   tablas que enseñan la letra llevan escrito al pie que es heredada y que
+   **manda el número del modelo**; decirlo en el PDF y no en la pantalla
+   habría sido decirlo donde no se ve.
 4. **De los 1.197 libros del catálogo actual, solo 148 son descargables.** Los
    1.049 de StoryWeaver no tienen fichero que abrir.
 5. **Los tamaños muestrales de la validación externa son pequeños**: 38 textos

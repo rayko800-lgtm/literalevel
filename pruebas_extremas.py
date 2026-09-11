@@ -5038,6 +5038,244 @@ prueba("los dos botones de voz no se pisan",
        _los_dos_botones_de_voz_no_se_pisan)
 
 
+def _la_casilla_de_acercar_al_nivel_hace_algo():
+    """«Acercar los resultados a mi nivel» pesa 0,3; ponerlo a 0 no rompia nada.
+
+    Ninguna prueba llamaba a `buscar` con perfil, asi que la casilla podia
+    quedarse sin efecto y la pestana seguia prometiendo que lo tiene. Aqui el
+    parecido se deja CLAVADO -todos los libros empatan- para que lo unico que
+    pueda ordenar la lista sea el nivel.
+    """
+    import numpy as np
+    import pandas as pd
+    import catalogo as cat_mod
+
+    df = pd.DataFrame({
+        "id": ["PG1", "PG2", "PG3"], "title": ["Uno", "Dos", "Tres"],
+        "author": ["A", "B", "C"], "nivel_cefr": ["A1", "B2", "C2"],
+        "hook": ["de que va", "de que va", "de que va"], "downloads": [1, 1, 1]})
+    cat = object.__new__(cat_mod.Catalogo)
+    cat.df = df
+    # `embeddings` es una propiedad perezosa que codificaria el catalogo con
+    # MiniLM; se rellena su respaldo para que devuelva la matriz de mentira.
+    cat._emb = np.full((3, 4), 0.5, dtype=np.float32)
+    cat._fichas = ["uno a", "dos b", "tres c"]
+    cat._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+        lambda x, **k: np.full((1, 4), 0.5, dtype=np.float32))})()
+
+    facil, _ = cat.buscar("algo cualquiera", nivel_lector=0.0, n=3)
+    dificil, _ = cat.buscar("algo cualquiera", nivel_lector=2.0, n=3)
+    assert facil and dificil, "la busqueda no devuelve nada con el montaje"
+    assert facil[0].nivel == "A1", (
+        f"con nivel 0,0 el primero es {facil[0].nivel}: la casilla no acerca nada")
+    assert dificil[0].nivel == "C2", (
+        f"con nivel 2,0 el primero es {dificil[0].nivel}")
+    return "con el parecido empatado, manda el nivel: A1 primero y C2 primero"
+
+
+prueba("la casilla de acercar al nivel hace algo",
+       _la_casilla_de_acercar_al_nivel_hace_algo)
+
+
+def _la_frase_de_voz_no_viaja_entera():
+    """T8 promete 300 caracteres, y esa linea no la aseveraba nadie.
+
+    `voz.practicar` transcribe con whisper y genera audio con tts-1: mandar un
+    capitulo entero en vez de una frase es caro y ademas no se puede leer en
+    voz alta.
+    """
+    visto = []
+
+    class _Ev:
+        puntuacion = 50.0
+        palabras_objetivo = ["a"]
+        palabras_falladas = []
+        transcripcion = "a"
+
+    class _Sesion:
+        evaluacion = _Ev()
+        transcripcion_ok = True
+        transcripcion = "a"
+        correccion = None
+        audio_correcto = None
+
+    import voz as voz_mod
+    viejo = voz_mod.practicar
+    pet = _Visitante("frase-larga", ip="10.66.66.66")
+    try:
+        def espia(ruta, frase, **k):
+            visto.append(frase)
+            return _Sesion()
+        voz_mod.practicar = espia
+        ui._practicar(escribir("audio_largo.wav", b"RIFF"), "palabra " * 900, pet)
+    finally:
+        voz_mod.practicar = viejo
+
+    assert visto, "la practica no llego a llamar a `voz.practicar`"
+    assert len(visto[0]) <= ui.LIMITE_FRASE_VOZ, (
+        f"a whisper le viajan {len(visto[0])} caracteres y el tope es "
+        f"{ui.LIMITE_FRASE_VOZ}")
+    assert ui.LIMITE_FRASE_VOZ == 300, (
+        f"el tope de la frase es {ui.LIMITE_FRASE_VOZ} y el documento promete 300")
+    return f"a whisper le llegan {len(visto[0])} caracteres, no 6.300"
+
+
+prueba("la frase de voz no viaja entera",
+       _la_frase_de_voz_no_viaja_entera)
+
+
+def _traer_una_frase_no_devuelve_siempre_la_misma():
+    """Practicar dos veces seguidas tiene que ser practicar dos frases.
+
+    Devolver siempre la primera candidata hacia que el boton pareciera roto
+    -pulsas y no cambia nada- aunque estuviera haciendo su trabajo. La prueba
+    que habia solo medía el largo de lo que devolvia.
+    """
+    frases = [
+        "The rain fell on the moor and the train ran west that morning.",
+        "She opened the window and the cold air came into the small room.",
+        "He counted the coins twice before he put them back in the drawer.",
+        "Nobody in the village had seen the doctor since the end of March.",
+    ]
+
+    class _Cap:
+        titulo = "CHAPTER I"
+        texto = " ".join(frases)
+        palabras = len(texto.split())
+
+    class _Libro:
+        titulo, autor = "Rotacion", "Autor"
+        capitulos = [_Cap()]
+        palabras = len(_Cap.texto.split())
+
+    libro = _Libro()
+    salidas = []
+    for _ in range(3):
+        v = ui._frase_del_capitulo(libro, 0)
+        salidas.append(v if isinstance(v, str) else str(v.get("value", "")))
+    assert all(salidas), f"el boton devolvio algo vacio: {salidas}"
+    assert len(set(salidas)) > 1, (
+        f"tres pulsaciones y la misma frase: {salidas[0]!r}")
+    return f"{len(set(salidas))} frases distintas en tres pulsaciones"
+
+
+prueba("traer una frase no devuelve siempre la misma",
+       _traer_una_frase_no_devuelve_siempre_la_misma)
+
+
+def _el_vistazo_rapido_muestrea_de_verdad():
+    """El vistazo es un vistazo: 30 capitulos y 2 ventanas de cada uno.
+
+    Si deja de muestrear, el boton «Vistazo rápido (unos segundos)» pasa a
+    medir el libro entero y tarda minutos con la etiqueta puesta. Ninguna
+    prueba lo miraba porque todas evitan cargar el modelo; con un puntuador de
+    mentira se puede mirar sin cargarlo.
+    """
+    medidos, topes = [], []
+
+    class _Espia:
+        @staticmethod
+        def perfil_de_texto(texto, tope=0):
+            medidos.append(texto[:20])
+            topes.append(tope)
+            return [1.0] * (tope or 5)
+
+    cuerpo = "The rain fell on the moor and the train ran west. " * 20
+
+    class _Cap:
+        def __init__(self, n):
+            self.titulo, self.texto = f"CHAPTER {n}", cuerpo
+            self.palabras = len(cuerpo.split())
+
+    class _Libro:
+        titulo, autor = "Vistazo de mentira", "Autor"
+        capitulos = [_Cap(i) for i in range(50)]
+        palabras = 50 * len(cuerpo.split())
+
+    viejo = ui.puntuador
+    try:
+        ui.puntuador = lambda: _Espia()
+        list(ui._analizar_libro(_Libro(), "rapido"))
+    finally:
+        ui.puntuador = viejo
+
+    assert medidos, "el vistazo no midio ni un capitulo"
+    assert len(medidos) <= ui.RAPIDO_CAPITULOS, (
+        f"el vistazo mide {len(medidos)} capitulos de 50 y el tope es "
+        f"{ui.RAPIDO_CAPITULOS}: ya no es un vistazo")
+    assert len(medidos) == ui.RAPIDO_CAPITULOS, (
+        f"mide {len(medidos)} y deberia repartir {ui.RAPIDO_CAPITULOS}")
+    assert set(topes) == {ui.RAPIDO_VENTANAS}, (
+        f"las ventanas por capitulo son {set(topes)} y no {ui.RAPIDO_VENTANAS}")
+    assert (ui.RAPIDO_CAPITULOS, ui.RAPIDO_VENTANAS) == (30, 2), (
+        f"el vistazo son {ui.RAPIDO_CAPITULOS}x{ui.RAPIDO_VENTANAS} ventanas; "
+        "la pestana anuncia 30 x 2 = 60 y el documento las cronometra")
+    return f"{len(medidos)} capitulos x {ui.RAPIDO_VENTANAS} ventanas, de 50"
+
+
+prueba("el vistazo rapido muestrea de verdad",
+       _el_vistazo_rapido_muestrea_de_verdad)
+
+
+def _la_letra_del_catalogo_se_declara_heredada():
+    """La app no puede desmentirse a si misma cuatro clics despues.
+
+    «Sorprendeme» propone diez B2 a un lector de 1,20; el lector abre uno y
+    «¿Como de dificil es este capitulo?» le contesta C1. La letra sale del
+    catalogo heredado de la v1 y el numero sale del modelo v4, y hasta que el
+    catalogo este remedido entero eso no se arregla: lo que si se puede es
+    decirlo DONDE se ve la etiqueta, y no solo en el PDF.
+    """
+    class _L:
+        def __init__(self, ident="PG1155", titulo="The Secret Adversary"):
+            self.id, self.titulo, self.autor = ident, titulo, "Christie"
+            self.nivel, self.gancho, self.descargas = "B2", "detectives", 10
+            self.similitud = self.afinidad = 0.6
+            self.puntuacion_nivel = 1.2
+
+    p = perfil_mod.Perfil(nivel=1.20, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+    clave = "sin medir con el modelo"
+    malos = []
+
+    class _CatalogoDoble:
+        @staticmethod
+        def por_nivel(*a, **k):
+            return [_L()]
+
+        @staticmethod
+        def buscar(*a, **k):
+            return [_L()], ""
+
+    viejo = ui.catalogo
+    try:
+        ui.catalogo = lambda: _CatalogoDoble()
+        pantalla, _ = ui._recomendar(p, 10)
+        if clave not in pantalla:
+            malos.append(f"«Sorprendeme» no avisa: {pantalla[-200:]!r}")
+        pantalla, _ = ui._buscar(p, "detectives victorianos", True, 10)
+        if clave not in pantalla:
+            malos.append(f"el buscador no avisa: {pantalla[-200:]!r}")
+
+        # Y con aviso del catalogo, el aviso no se come la nota.
+        class _ConAviso(_CatalogoDoble):
+            @staticmethod
+            def buscar(*a, **k):
+                return [_L()], "Se descartaron 3 por parecido bajo."
+        ui.catalogo = lambda: _ConAviso()
+        pantalla, _ = ui._buscar(p, "detectives victorianos", True, 10)
+        if clave not in pantalla or "parecido bajo" not in pantalla:
+            malos.append(f"el aviso y la nota no caben juntos: {pantalla[-220:]!r}")
+    finally:
+        ui.catalogo = viejo
+    assert not malos, malos
+    return "las dos pantallas dicen que la letra es heredada"
+
+
+prueba("la letra del catalogo se declara heredada",
+       _la_letra_del_catalogo_se_declara_heredada)
+
+
 def _lo_que_mas_se_repite_no_son_muletillas():
     """«Lo que mas se repite: tommy, tuppence, julius, don't, james, think...»
 

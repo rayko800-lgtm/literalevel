@@ -105,6 +105,14 @@ capítulo a capítulo.»
 > **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
 > hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
 >
+> **No pulses «Sorpréndeme» en cámara.** La letra que sale al lado de
+> cada libro es la etiqueta heredada del catálogo, no la del modelo: si
+> abres uno que dice B2 y pulsas «¿Cómo de difícil es este capítulo?»,
+> la app puede contestar C1 y quedarse desmentida a sí misma en directo.
+> El paso Dos del recorrido es el **buscador**, que no tiene ese
+> problema. Si aun así sale, dilo en voz alta: *«esa letra es del
+> catálogo viejo; el número es el que acaba de medir el modelo»*.
+>
 > **Y la palabra del paso Cuatro se elige antes, no en directo.** El
 > diccionario solo trae fonética en el 3,1 % de sus entradas —el 58 % de las
 > consultas sobre un libro real, §6.4 del documento—, así que «la fonética

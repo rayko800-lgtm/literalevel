@@ -30,8 +30,8 @@ BASE = pathlib.Path(os.environ.get("TEMP", "/tmp")) / "literalevel_banco"
 NL = chr(10)
 
 COPIAR = ["app", "pruebas_extremas.py", "pruebas_integracion.py", "tests_smoke.py",
-          "pruebas_ficha.py", "pruebas_perfil.py", "main.py", "validar_local.py",
-          "catalogo_recomendaciones.csv"]
+          "pruebas_ficha.py", "pruebas_perfil.py", "pruebas_lexicon.py",
+          "main.py", "validar_local.py", "catalogo_recomendaciones.csv"]
 
 # (id, archivo, viejo, nuevo, prueba que debe cazarlo)
 MUTANTES = [
@@ -217,6 +217,157 @@ MUTANTES = [
      "    if not _esta_cacheado(id_libro) and not _dentro_del_limite(",
      "    if False and not _dentro_del_limite(",
      "las descargas nuevas tienen tope por hora"),
+
+    # --- Los veintidos que sobrevivieron a la auditoria 15 ----------------
+    # Cuatro familias: los datos de un lector que se le dan a todos (01-06),
+    # las devoluciones del cupo en el resumen (08, 09), las constantes del
+    # modelo aseveradas contra si mismas (14-17) y las promesas del documento
+    # que no probaba nadie (18-23, 31, 32, 39, 40).
+    ("F15-01-sesion", "app/ui.py",
+     '    return str(_lector_de_sesion(h) or h or "local")',
+     '    return "local"',
+     "la sesion de pago es de cada visitante"),
+    ("F15-02-estanteria", "app/ui.py",
+     '    todos = biblioteca.listar(_archivo_lector("biblioteca.json", peticion))',
+     '    todos = biblioteca.listar(_archivo_lector("biblioteca.json"))',
+     "la estanteria, la voz y el perfil son de cada lector"),
+    ("F15-03-debiles", "app/ui.py",
+     '        filas = voz.puntos_debiles(n=15, ruta=_archivo_lector("voz.db", peticion))',
+     '        filas = voz.puntos_debiles(n=15, ruta=_archivo_lector("voz.db"))',
+     "la estanteria, la voz y el perfil son de cada lector"),
+    ("F15-04-fallos", "app/ui.py",
+     '                                 ruta=_archivo_lector("voz.db", peticion))',
+     '                                 ruta=_archivo_lector("voz.db"))',
+     "la estanteria, la voz y el perfil son de cada lector"),
+    ("F15-05-biblioteca", "app/ui.py",
+     "                      capitulo=inicial, palabras=libro.palabras," + NL +
+     '                      ruta=_archivo_lector("biblioteca.json", peticion))',
+     "                      capitulo=inicial, palabras=libro.palabras," + NL +
+     '                      ruta=_archivo_lector("biblioteca.json"))',
+     "la estanteria, la voz y el perfil son de cada lector"),
+    ("F15-06-perfil", "app/ui.py",
+     "        p = perfil_mod.desde_muestra(texto, puntuador(), nombre=nombre or " +
+     chr(34) + chr(34) + ")" + NL +
+     '        p.guardar(_archivo_lector("perfil.json", peticion))',
+     "        p = perfil_mod.desde_muestra(texto, puntuador(), nombre=nombre or " +
+     chr(34) + chr(34) + ")" + NL +
+     '        p.guardar(_archivo_lector("perfil.json"))',
+     "la estanteria, la voz y el perfil son de cada lector"),
+    ("F15-08-constructor", "app/ui.py",
+     "            cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))" + NL +
+     '            yield _aviso(f"No pude preparar el resumen ({type(e).__name__}). "',
+     '            yield _aviso(f"No pude preparar el resumen ({type(e).__name__}). "',
+     "el resumen devuelve el uso cuando no sale a la red"),
+    ("F15-09-sin-red", "app/ui.py",
+     '            if causa in ("sin_red", "sin_pasajes"):' + NL +
+     "                cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))",
+     "            if False:" + NL +
+     "                cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))",
+     "el resumen devuelve el uso cuando no sale a la red"),
+    ("F15-14-clip", "app/scoring.py",
+     "            fuera.extend(float(v) for v in np.clip(np.atleast_1d(salida), 0, 5))",
+     "            fuera.extend(float(v) for v in np.atleast_1d(salida))",
+     "el recorte va dentro del sumatorio"),
+    ("F15-15-bloques", "app/scoring.py",
+     "MAX_BLOCKS_PER_DOC = 8",
+     "MAX_BLOCKS_PER_DOC = 800",
+     "las ventanas son las del entrenamiento"),
+    ("F15-16-ventana", "app/scoring.py",
+     "BLOCK_WORDS = 250",
+     "BLOCK_WORDS = 200",
+     "las ventanas son las del entrenamiento"),
+    ("F15-17-holgura", "app/perfil.py",
+     "HOLGURA = 0.25",
+     "HOLGURA = 0.5",
+     "las dos pestanas prometen el mismo rango"),
+    ("F15-18-portada", "app/reader.py",
+     '            caps.append(Capitulo("Antes del primer capítulo", preambulo))',
+     '            caps.append(Capitulo("Preámbulo", preambulo))',
+     "la portada de un txt se llama siempre igual"),
+    ("F15-19-licencia", "app/ui.py",
+     "        r = puntuador().puntuar(ficha.sin_licencia(c.texto))",
+     "        r = puntuador().puntuar(c.texto)",
+     "medir un capitulo no puntua la licencia"),
+    ("F15-20-escape", "app/ui.py",
+     '                  f\'<div class="ll-f">{_html.escape(_recortar(a.oracion, 220))}</div>\']',
+     '                  f\'<div class="ll-f">{_recortar(a.oracion, 220)}</div>\']',
+     "la tarjeta del cuaderno escapa el html"),
+    ("F15-21-tabla", "app/ui.py",
+     "| 1.00 – 1.40 | **B2** | novela adulta corriente |",
+     "| 1.00 – 1.50 | **B2** | novela adulta corriente |",
+     "la tabla que ve el lector es la del codigo"),
+    ("F15-22-subida", "app/ui.py",
+     'TAMANO_MAXIMO_SUBIDA = "20mb"',
+     'TAMANO_MAXIMO_SUBIDA = "20gb"',
+     "el tope de subida es el que se declara"),
+    ("F15-23-peso-nivel", "app/catalogo.py",
+     "               peso_nivel: float = 0.3, n: int = 10,",
+     "               peso_nivel: float = 0.0, n: int = 10,",
+     "la casilla de acercar al nivel hace algo"),
+    ("F15-31-pasaje", "app/ficha.py",
+     "    return [" + chr(34) + " " + chr(34) +
+     ".join(sin_licencia(cuerpo[i].texto).split()[:_TOPE_EXTRACTO])",
+     "    return [" + chr(34) + " " + chr(34) +
+     ".join(sin_licencia(cuerpo[i].texto).split())",
+     "ningun pasaje de la sinopsis viaja entero",
+     "pruebas_ficha.py"),
+    ("F15-32-frase-voz", "app/ui.py",
+     '    frase = (frase or "").strip()[:LIMITE_FRASE_VOZ]',
+     '    frase = (frase or "").strip()',
+     "la frase de voz no viaja entera"),
+    ("F15-39-primera", "app/ui.py",
+     "    return candidatas[n % len(candidatas)]",
+     "    return candidatas[0]",
+     "traer una frase no devuelve siempre la misma"),
+    ("F15-40-vistazo", "app/ui.py",
+     "        if rapido and len(cuerpo) > RAPIDO_CAPITULOS:",
+     "        if False and len(cuerpo) > RAPIDO_CAPITULOS:",
+     "el vistazo rapido muestrea de verdad"),
+
+    # --- Y lo que se arreglo el 11 de septiembre: que no se pueda deshacer -
+    ("F15-m5a-cupo", "app/lexicon.py",
+     "        llamadas_de_pago = (int(audio_pagado)" + NL +
+     "                            + int(pedir_explicacion and extra is not None))",
+     "        llamadas_de_pago = (int(bool(pedir_audio))" + NL +
+     "                            + int(bool(pedir_explicacion)))",
+     "una llamada que fallo cobro",
+     "pruebas_lexicon.py --sin-openai"),
+    ("F15-m5a-tts", "app/lexicon.py",
+     "    if ruta.exists():" + NL +
+     "        return str(ruta), False",
+     "    if ruta.exists():" + NL +
+     "        return str(ruta), True",
+     "una llamada que fallo cobro",
+     "pruebas_lexicon.py --sin-openai"),
+    ("F15-m5b-freno", "app/ui.py",
+     '    if _cubo_agotado(peticion, "entrar", LIMITE_INTENTOS_ENTRAR):',
+     "    if False:",
+     "la puerta de entrada tiene freno"),
+    ("F15-m5b-ficha", "app/ui.py",
+     '            _dentro_del_limite(peticion, "entrar", LIMITE_INTENTOS_ENTRAR)',
+     "            pass",
+     "la puerta de entrada tiene freno"),
+    ("F15-m6c-recarga", "app/ui.py",
+     "            cadena = cadena.then(_estado_de_entrada, None, estado_codigo)",
+     "            pass",
+     "recargar no borra el has entrado como"),
+    ("F15-m6d-botones", "app/ui.py",
+     "                b_debiles.click(_debiles, None, debiles_md)",
+     "                b_debiles.click(_debiles, None, veredicto)",
+     "los dos botones de voz no se pisan"),
+    ("F15-m6a-tokens", "app/ficha.py",
+     '_PALABRA_RE = re.compile(r"[^' + chr(92) + 'W' + chr(92) + 'd_](?:[^'
+     + chr(92) + 'W' + chr(92) + 'd_]|[' + "'’-])*" + chr(34) + ", re.UNICODE)",
+     '_PALABRA_RE = re.compile(r"[A-Za-z][A-Za-z' + "'’-]{2,}" + chr(34) + ")",
+     "lo que mas se repite no son muletillas"),
+    ("F15-s5-nota", "app/ui.py",
+     "    return (f" + chr(34) + "Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:"
+     + chr(92) + "n" + chr(92) + "n" + chr(34) + NL +
+     "            + _tabla_libros(libros, vacio=si_no_hay, nota=NOTA_NIVEL_HEREDADO),",
+     "    return (f" + chr(34) + "Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:"
+     + chr(92) + "n" + chr(92) + "n" + chr(34) + NL +
+     "            + _tabla_libros(libros, vacio=si_no_hay),",
+     "la letra del catalogo se declara heredada"),
 ]
 
 
@@ -236,11 +387,12 @@ def preparar(destino: pathlib.Path) -> None:
 
 
 def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
+    """`suite` puede traer argumentos: "pruebas_lexicon.py --sin-openai"."""
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     env["LITERALEVEL_MODELO"] = str(RAIZ / "modelo_v4")
     env["LITERALEVEL_DICCIONARIO"] = str(RAIZ / "kaikki_diccionario.db")
-    r = subprocess.run([sys.executable, "-X", "utf8", suite],
+    r = subprocess.run([sys.executable, "-X", "utf8"] + suite.split(),
                        cwd=destino, capture_output=True, text=True,
                        encoding="utf-8", errors="replace", env=env, timeout=1800)
     fallos = [l.split(":", 1)[0].strip(" -")
@@ -264,18 +416,23 @@ def main():
 
     hechos = [m for m in MUTANTES if not pedidos or any(p in m[0] for p in pedidos)]
     cazados, vivos = [], []
-    for ident, rel, viejo, nuevo, esperada in hechos:
+    for mutante in hechos:
+        # El sexto elemento es opcional: la suite que tiene que cazarlo, si no
+        # es la de extremas. Los mutantes de `lexicon` y de `ficha` no los ve
+        # `pruebas_extremas.py`, y sin esto el banco los daba por vivos.
+        ident, rel, viejo, nuevo, esperada = mutante[:5]
+        suite = mutante[5] if len(mutante) > 5 else "pruebas_extremas.py"
         d = BASE / ident
         preparar(d)
         p = d / rel.replace("/", os.sep)
         t = p.read_text(encoding="utf-8")
         if t.count(viejo) != 1:
-            print(f"{ident:18} NO SE PUDO APLICAR: {t.count(viejo)} coincidencias",
+            print(f"{ident:22} NO SE PUDO APLICAR: {t.count(viejo)} coincidencias",
                   flush=True)
             vivos.append(ident + " (no aplicado)")
             continue
         p.write_text(t.replace(viejo, nuevo), encoding="utf-8")
-        rc, fallos, salida = correr(d)
+        rc, fallos, salida = correr(d, suite)
         acierto = any(esperada in f for f in fallos)
         if acierto:
             estado = "CAZADO por su prueba"
@@ -283,7 +440,7 @@ def main():
             estado = "cazado por OTRA: " + str(fallos[:3])
         else:
             estado = "VIVO"
-        print(f"{ident:18} {estado}", flush=True)
+        print(f"{ident:22} {estado}", flush=True)
         (cazados if acierto else vivos).append(ident)
     print(flush=True)
     print(f"cazados por su prueba: {len(cazados)} de {len(hechos)}")

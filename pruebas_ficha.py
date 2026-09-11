@@ -141,6 +141,16 @@ comprobar("el ultimo pasaje viene del final del libro",
           pasajes[-1].startswith("Chapter 5"), pasajes[-1][:20])
 comprobar("un libro de un solo capitulo da un pasaje",
           len(ficha._pasajes(Lib("x", "", [Cap("I", NARRACION)]))) == 1)
+# Y lo que se manda a OpenAI va RECORTADO. Ninguna prueba aseveraba ese tope:
+# quitarlo mandaba el capitulo entero -90.000 palabras en un libro largo- en
+# cada uno de los cuatro pasajes. La prueba de "lo que viaja a OpenAI va
+# recortado" de `pruebas_extremas.py` solo cubre la consulta lexica.
+largo = Lib("Largo", "", [Cap(f"C{i}", "word " * 4000) for i in range(6)])
+tamanos = [len(p.split()) for p in ficha._pasajes(largo)]
+comprobar("ningun pasaje de la sinopsis viaja entero",
+          all(t <= ficha._TOPE_EXTRACTO for t in tamanos), str(tamanos))
+comprobar("el tope del pasaje es el que se documenta",
+          ficha._TOPE_EXTRACTO == 900, str(ficha._TOPE_EXTRACTO))
 
 
 print()
