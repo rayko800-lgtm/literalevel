@@ -5000,6 +5000,19 @@ def _recargar_no_borra_el_has_entrado_como():
         ui._registrar_lector("otro-navegador", otro)
         assert ui._estado_de_entrada(otro) == "", \
             "le dice a un visitante cualquiera que ha entrado"
+
+        # Y lo que de verdad faltaba: que este CABLEADO. Todo lo de arriba
+        # comprueba que la funcion hace su trabajo, y eso se cumple igual si
+        # nadie la llama al cargar la pagina. Un mutante que quitara el
+        # `.then(_estado_de_entrada, ...)` de `demo.load` pasaba esta prueba
+        # entera. Lo caz`o el banco, no yo.
+        demo = ui.construir()
+        fns = demo.fns
+        cableados = [getattr(getattr(f, "fn", None), "__name__", "")
+                     for f in (fns.values() if isinstance(fns, dict) else fns)]
+        assert "_estado_de_entrada" in cableados, (
+            "`_estado_de_entrada` no esta cableada a ningun evento: la funcion "
+            "existe y funciona, y al cargar la pagina no la llama nadie")
         return "tras recargar, la caja sigue diciendo con que perfil se entro"
 
     try:

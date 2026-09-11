@@ -395,8 +395,16 @@ def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
     r = subprocess.run([sys.executable, "-X", "utf8"] + suite.split(),
                        cwd=destino, capture_output=True, text=True,
                        encoding="utf-8", errors="replace", env=env, timeout=1800)
+    # Cada suite dice sus fallos a su manera, y el banco tiene que entender
+    # las dos. `pruebas_extremas` y `pruebas_lexicon` los listan con "- ";
+    # `pruebas_ficha` y `pruebas_perfil` escriben "  FALLA <nombre>". Sin la
+    # segunda, un mutante cazado por `ficha` salia como "cazado por OTRA: []",
+    # que es peor que un fallo: parece que lo caza cualquier cosa menos la
+    # prueba que se escribio para el.
     fallos = [l.split(":", 1)[0].strip(" -")
               for l in r.stdout.splitlines() if l.strip().startswith("- ")]
+    fallos += [l.strip()[len("FALLA"):].split("  ->")[0].strip()
+               for l in r.stdout.splitlines() if l.strip().startswith("FALLA")]
     return r.returncode, fallos, r.stdout
 
 

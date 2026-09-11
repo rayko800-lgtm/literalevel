@@ -215,6 +215,32 @@ de sus seis tramos case con `_cefr` en los dos extremos.
 
 ---
 
+## La comprobación: 30 de 30
+
+Escribir la prueba no demuestra nada. Los veintidós mutantes del informe, más
+ocho que rompen a propósito lo que se arregló hoy, se metieron en
+[`tools/banco_mutantes.py`](../tools/banco_mutantes.py) y se corrieron contra
+el árbol real, con el control sin mutar en verde antes de cada tanda.
+
+**Primera pasada: 28 de 30.** Los dos que fallaron enseñan más que los 28:
+
+- **`F15-m6c-recarga` salió VIVO.** Mi prueba de «recargar no borra el has
+  entrado como» llamaba a `_estado_de_entrada` a mano y comprobaba que
+  devolviera el mensaje. Eso es verdad **aunque nadie la llame al cargar la
+  página**: quitar el `.then(_estado_de_entrada, ...)` de `demo.load` la pasaba
+  entera. Una prueba que comprueba que la función funciona y no que esté
+  conectada. Ahora construye la interfaz de verdad y mira `demo.fns`.
+- **`F15-31-pasaje` salió «cazado por OTRA: []».** No era el mutante: era el
+  banco. Cada suite dice sus fallos a su manera —`pruebas_extremas` los lista
+  con `- ` y `pruebas_ficha` escribe `FALLA <nombre>`— y el banco solo entendía
+  la primera. Un mutante cazado por la prueba que le tocaba salía como cazado
+  por casualidad, que es peor que un fallo porque parece una debilidad de la
+  red y es una debilidad del medidor.
+
+**Segunda pasada, con las dos cosas arregladas: 30 de 30.**
+
+---
+
 ## Lo que no se cerró, y por qué
 
 **La remedición del catálogo** (A3 del informe, y la raíz de S5). Está corriendo
