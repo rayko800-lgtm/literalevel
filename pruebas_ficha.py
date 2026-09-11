@@ -151,6 +151,21 @@ comprobar("ningun pasaje de la sinopsis viaja entero",
           all(t <= ficha._TOPE_EXTRACTO for t in tamanos), str(tamanos))
 comprobar("el tope del pasaje es el que se documenta",
           ficha._TOPE_EXTRACTO == 900, str(ficha._TOPE_EXTRACTO))
+# El separador de miles. En espanol es el PUNTO, y `f"{n:,}"` usa la coma, que
+# aqui es el decimal. La app llego a decir "1,197 libros" y "130,104 palabras"
+# en la misma pantalla en la que el documento escribe 1.197 y 130.104. Volver a
+# `format(int(n), ",")` no rompia ninguna prueba.
+comprobar("los miles llevan punto, no coma",
+          ficha.miles(1197) == "1.197" and ficha.miles(203699) == "203.699",
+          f"{ficha.miles(1197)} / {ficha.miles(203699)}")
+comprobar("los numeros pequenos no se tocan",
+          ficha.miles(840) == "840", ficha.miles(840))
+# Y el tope de la muestra con la que se cuentan dialogo, frase media y riqueza:
+# el documento lo publica, y bajarlo a 6.000 cambiaba esas tres cifras sin que
+# fallara nada.
+comprobar("el tope de la muestra es el que se documenta",
+          ficha._muestra.__defaults__[0] == 60000,
+          str(ficha._muestra.__defaults__[0]))
 
 
 print()

@@ -87,9 +87,14 @@ finally:
 
 # --- 4) puntos_debiles: varias repeticiones en una DB de prueba ----------
 print("\n=== registrar_fallos / puntos_debiles (DB de prueba) ===")
-db_prueba = os.path.join(tempfile.gettempdir(), "literalevel_voz_prueba.db")
-if os.path.exists(db_prueba):
-    os.remove(db_prueba)
+# Carpeta PROPIA de esta ejecucion, y no un nombre fijo en el temporal del
+# sistema. Con el nombre fijo, dos ejecuciones a la vez -que es justo lo que
+# hace el banco de mutantes- se pisan el SQLite y sale un `PermissionError`
+# que no tiene nada que ver con lo que se esta midiendo: un mutante parecia
+# cazado por esta suite cuando lo unico que pasaba era que dos procesos
+# abrieron el mismo archivo. Lo encontro la auditoria 16.
+_TMP_VOZ = tempfile.mkdtemp(prefix="literalevel_voz_")
+db_prueba = os.path.join(_TMP_VOZ, "voz_prueba.db")
 
 voz.registrar_fallos(["fox", "jumps"], ruta=db_prueba)
 voz.registrar_fallos(["fox"], ruta=db_prueba)
@@ -110,7 +115,7 @@ os.remove(db_prueba)
 if TIENE_CLAVE:
     print("\n=== ciclo completo con API real (tts-1 + whisper-1) ===")
     frase_prueba = "I would like a cup of coffee, please."
-    audio_tmp = os.path.join(tempfile.gettempdir(), "literalevel_prueba_voz.mp3")
+    audio_tmp = os.path.join(_TMP_VOZ, "prueba_voz.mp3")
     ruta_audio = voz.generar_audio_correcto(frase_prueba, ruta_salida=audio_tmp)
     check("generar_audio_correcto devuelve una ruta", ruta_audio is not None, str(ruta_audio))
     check("el archivo de audio existe y no esta vacio",
@@ -129,9 +134,7 @@ if TIENE_CLAVE:
               str(ev_real.puntuacion))
 
     # Ciclo end-to-end vía practicar(), con una DB de prueba para no tocar la real.
-    db_practicar = os.path.join(tempfile.gettempdir(), "literalevel_voz_practicar.db")
-    if os.path.exists(db_practicar):
-        os.remove(db_practicar)
+    db_practicar = os.path.join(_TMP_VOZ, "voz_practicar.db")
     voz.RUTA_DB_POR_DEFECTO_ORIGINAL = voz.RUTA_DB_POR_DEFECTO
     voz.RUTA_DB_POR_DEFECTO = db_practicar
     try:

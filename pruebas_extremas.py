@@ -1994,12 +1994,24 @@ titulo("Las tres puertas del dinero")
 # deciden si se gasta dinero. Estas tres los ejercitan sin red: con la puerta
 # puesta y sin codigo, los tres tienen que negarse y devolver texto legible.
 def _con_puerta(fn):
+    """Con perfiles declarados Y con clave.
+
+    Lo de la clave se anadio con la auditoria 16: los tres manejadores de pago
+    se cortan ahora ANTES de la puerta de perfil cuando no hay
+    `OPENAI_API_KEY`, porque sin clave no puede haber llamada y no hay nada que
+    cobrar. Esta suite corre sin clave a proposito, asi que sin fingirla las
+    pruebas de la puerta de perfil ya no llegan a la puerta: medirian el
+    mensaje de «falta la clave», que es otra cosa.
+    """
     viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    viejo_falta = config_mod.falta
     os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0"
+    config_mod.falta = lambda: []
     ui._CODIGO_SESION.clear()
     try:
         return fn()
     finally:
+        config_mod.falta = viejo_falta
         if viejo is None:
             os.environ.pop("LITERALEVEL_CUENTAS", None)
         else:
@@ -4562,9 +4574,13 @@ def _la_estanteria_la_voz_y_el_perfil_son_de_cada_lector():
             "B ve la estanteria de A: un solo biblioteca.json para todos"
 
         # 2) La voz. `voz.practicar` se dobla para no pagar ni grabar nada:
-        # lo que se prueba es DONDE se apunta el fallo, no como se evalua.
+        # lo que se prueba es DONDE se apunta el fallo, no como se evalua. Y la
+        # clave se finge, porque desde la auditoria 16 `_practicar` se corta
+        # antes si no la hay.
         viejo_practicar = voz_mod.practicar
+        viejo_falta = config_mod.falta
         try:
+            config_mod.falta = lambda: []
             voz_mod.practicar = lambda *a_, **k_: _Sesion()
             dicho = ui._practicar(escribir("audio_falso.wav", b"RIFF"),
                                   "the zarzaparrilla", a)
@@ -4572,6 +4588,7 @@ def _la_estanteria_la_voz_y_el_perfil_son_de_cada_lector():
                 f"la practica no llego a evaluar nada: {str(dicho[1])[:200]}")
         finally:
             voz_mod.practicar = viejo_practicar
+            config_mod.falta = viejo_falta
         mias = str(ui._debiles(a))
         suyas = str(ui._debiles(b))
         assert "zarzaparrilla" in mias, \
@@ -5136,8 +5153,11 @@ def _la_frase_de_voz_no_viaja_entera():
 
     import voz as voz_mod
     viejo = voz_mod.practicar
+    viejo_falta = config_mod.falta
     pet = _Visitante("frase-larga", ip="10.66.66.66")
     try:
+        # Con clave fingida: sin ella `_practicar` se corta antes de llamar.
+        config_mod.falta = lambda: []
         def espia(ruta, frase, **k):
             visto.append(frase)
             return _Sesion()
@@ -5145,6 +5165,7 @@ def _la_frase_de_voz_no_viaja_entera():
         ui._practicar(escribir("audio_largo.wav", b"RIFF"), "palabra " * 900, pet)
     finally:
         voz_mod.practicar = viejo
+        config_mod.falta = viejo_falta
 
     assert visto, "la practica no llego a llamar a `voz.practicar`"
     assert len(visto[0]) <= ui.LIMITE_FRASE_VOZ, (
@@ -5348,6 +5369,280 @@ def _lo_que_mas_se_repite_no_son_muletillas():
 
 prueba("lo que mas se repite no son muletillas",
        _lo_que_mas_se_repite_no_son_muletillas)
+
+
+# --- La auditoria 16, la del dia antes de grabar ---------------------------
+#
+# Cuatro serios que nadie cubria, y tres de ellos se ven en camara.
+
+titulo("Lo que encontro la auditoria 16")
+
+
+def _abrir_un_libro_no_pinta_un_error_rojo():
+    """«Value: 1 is not in the list of choices: []», en el paso estrella.
+
+    Abrir un libro desde el buscador cambia `est_libro` y `cap` a la vez, y el
+    indice tenia DOS manejadores: uno que ponia sus opciones y otro que ponia
+    su valor. Si el valor llegaba primero -o con el numero de capitulo del
+    libro anterior, que tiene menos capitulos- Gradio pintaba un recuadro rojo
+    de Error. El libro se abria bien; lo que no puede es salir un Error rojo
+    delante de una camara.
+
+    Reproducido en el Space el 11 de septiembre de 2026, dos veces de dos.
+    """
+    class _Cap:
+        def __init__(self, n):
+            self.titulo, self.texto = f"CHAPTER {n}", "word " * 200
+            self.palabras = 200
+
+    class _Libro:
+        def __init__(self, n):
+            self.titulo, self.autor = f"Libro de {n}", "Autor"
+            self.capitulos = [_Cap(i) for i in range(n)]
+            self.palabras = 200 * n
+
+    def opciones_y_valor(upd):
+        d = upd if isinstance(upd, dict) else getattr(upd, "__dict__", {})
+        return d.get("choices"), d.get("value")
+
+    # 1. El capitulo del libro ANTERIOR no puede quedarse seleccionado en el
+    #    indice del nuevo, que tiene menos capitulos.
+    ops, val = opciones_y_valor(_indice := ui._indice_de(_Libro(12), 40))
+    indices = [o[1] if isinstance(o, (list, tuple)) else o for o in (ops or [])]
+    assert val is None or val in indices, (
+        f"el indice queda seleccionado en {val} y sus opciones son {indices[:5]}…: "
+        "eso es el recuadro rojo de Gradio")
+
+    # 2. Y los casos torcidos que Gradio sabe mandar.
+    for actual in (None, "3", -1, 99, float("nan"), [1]):
+        ops, val = opciones_y_valor(ui._indice_de(_Libro(5), actual))
+        idx = [o[1] if isinstance(o, (list, tuple)) else o for o in (ops or [])]
+        assert val is None or val in idx, f"con actual={actual!r} sale value={val!r}"
+
+    # 3. Un valor bueno SI se conserva: si no, el indice no marcaria nunca
+    #    donde estas y esta prueba se cumpliria sola.
+    ops, val = opciones_y_valor(ui._indice_de(_Libro(12), 3))
+    assert val == 3, f"un capitulo valido tiene que quedar marcado, y sale {val!r}"
+
+    # 4. Y NINGUN manejador de los dos mandos puede mandar un valor pelado.
+    #    Son `cap` (el desplegable) e `indice` (el radio de abajo), y los dos
+    #    tienen `choices`: meterles un valor mientras sus opciones estan vacias
+    #    -lo estan un instante, porque `_abrir_del_catalogo` es generadora y su
+    #    primer yield las vacia- es exactamente el recuadro rojo.
+    import re
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    sueltos = [l.strip() for l in fuente.split("\n")
+               if re.search(r"^\s*(cap|indice)\.(change|select)\(lambda", l)]
+    assert not sueltos, (
+        f"un manejador de los mandos del capitulo manda un valor sin sus "
+        f"opciones: {sueltos}")
+    # Y que sigan cableados los dos, que si no esta prueba se cumpliria sola.
+    for linea in ("cap.change(_indice_de, [est_libro, cap], indice)",
+                  "indice.select(_indice_de, [est_libro, indice], cap)"):
+        assert linea in fuente, f"falta el cableado: {linea}"
+    return "el indice manda opciones y valor juntos, y el valor es de este libro"
+
+
+prueba("abrir un libro no pinta un error rojo",
+       _abrir_un_libro_no_pinta_un_error_rojo)
+
+
+def _la_practica_de_voz_no_cobra_sin_clave():
+    """Sin clave no puede haber llamada, asi que no hay nada que cobrar.
+
+    `_consultar` y `_de_que_trata` ya lo hacian; `_practicar` llamaba a
+    `_puede_pagar` sin mirar si habia clave. Con perfiles declarados y la clave
+    caducada o borrada del Space -que ya ha pasado aqui-, cada intento de
+    pronunciacion descontaba un uso del cupo sin que saliera una peticion. Y es
+    ademas la unica de las tres que, a proposito, no devuelve el uso.
+    """
+    def dentro():
+        viejo_cuentas = os.environ.get("LITERALEVEL_CUENTAS")
+        viejo_falta = config_mod.falta
+        os.environ["LITERALEVEL_CUENTAS"] = "elena:CLAVE-E:20"
+        pet = _Visitante("voz-sin-clave", ip="10.33.33.33")
+        ui._CODIGO_SESION[ui._sesion_de(pet)] = "elena:CLAVE-E"
+        gastado = lambda: cuentas_mod.gastado(ui.BASE_DATOS_LECTOR, "elena")
+        audio = escribir("audio_sin_clave.wav", b"RIFF")
+        try:
+            config_mod.falta = lambda: ["OPENAI_API_KEY"]
+            antes = gastado()
+            _, dicho, _ = ui._practicar(audio, "the quiet harbour", pet)
+            assert gastado() == antes, (
+                f"sin clave, la practica cobro {gastado() - antes} uso(s) del "
+                "cupo sin que pudiera salir una sola peticion")
+            assert "clave" in str(dicho).lower(), (
+                f"y ademas no dice por que no se puede: {str(dicho)[:160]}")
+
+            # Con clave si cobra: si no, esta prueba estaria pidiendo que la
+            # puerta de pago no cobre nunca.
+            config_mod.falta = lambda: []
+            antes = gastado()
+            ui._practicar(audio, "the quiet harbour", pet)
+            assert gastado() > antes, (
+                "con clave tampoco cobra: la puerta de pago dejo de cobrar")
+            return "sin clave no cobra, con clave si"
+        finally:
+            config_mod.falta = viejo_falta
+            ui._CODIGO_SESION.clear()
+            if viejo_cuentas is None:
+                os.environ.pop("LITERALEVEL_CUENTAS", None)
+            else:
+                os.environ["LITERALEVEL_CUENTAS"] = viejo_cuentas
+
+    return dentro()
+
+
+prueba("la practica de voz no cobra sin clave",
+       _la_practica_de_voz_no_cobra_sin_clave)
+
+
+def _la_ficha_no_promete_un_ritmo_que_no_sabe():
+    """El mismo libro y el mismo lector no pueden tener dos tiempos.
+
+    Con perfil y sin la curva calculada, `_ficha_libro` daba por bueno el ritmo
+    comodo y lo rotulaba «a tu ritmo de lectura». Calculabas la curva, reabrias
+    el libro y decia «(va por encima de tu nivel)» con doce horas mas. Medido
+    en vivo sobre *Crime and Punishment* con perfil 1,20: 18 h 52 antes y
+    30 h 52 despues.
+    """
+    class _Cap:
+        titulo = "CHAPTER I"
+        texto = "The rain fell on the quiet moor and the train ran west. " * 400
+        palabras = len(texto.split())
+
+    class _Libro:
+        titulo, autor = "Sin medir todavia", "Autor"
+        capitulos = [_Cap()]
+        palabras = _Cap.palabras
+
+    p = perfil_mod.Perfil(nivel=1.20, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+    viejo = ui._analisis_guardado
+    try:
+        # a) Sin analisis: no puede comprometerse con un ritmo.
+        ui._analisis_guardado = lambda *a, **k: None
+        sin = ui._ficha_libro(_Libro(), p)
+        assert "a tu ritmo de lectura" not in sin, (
+            f"promete «a tu ritmo» sin haber medido el libro: {sin[:200]}")
+        assert sin.count(" y ") >= 1 and "entre" in sin, (
+            f"tendria que dar las dos velocidades: {sin[:200]}")
+
+        # b) Con analisis y el libro por encima del lector: ahi si se moja.
+        ui._analisis_guardado = lambda *a, **k: {
+            "filas": [{"capitulo": 1, "dificultad": 1.70, "ventanas": 10}],
+            "ventanas": 10, "palabras": _Libro.palabras}
+        con = ui._ficha_libro(_Libro(), p)
+        assert "va por encima de tu nivel" in con, (
+            f"con la curva medida en 1,70 y el lector en 1,20 tendria que "
+            f"avisar: {con[:200]}")
+
+        # c) Y con un libro por DEBAJO, el ritmo comodo, que es el otro lado.
+        ui._analisis_guardado = lambda *a, **k: {
+            "filas": [{"capitulo": 1, "dificultad": 0.60, "ventanas": 10}],
+            "ventanas": 10, "palabras": _Libro.palabras}
+        facil = ui._ficha_libro(_Libro(), p)
+        assert "a tu ritmo de lectura" in facil, (
+            f"un libro por debajo de su nivel tendria que ir a ritmo comodo: "
+            f"{facil[:200]}")
+    finally:
+        ui._analisis_guardado = viejo
+    return "sin medir da el rango; medido, se moja"
+
+
+prueba("la ficha no promete un ritmo que no sabe",
+       _la_ficha_no_promete_un_ritmo_que_no_sabe)
+
+
+def _el_buscador_encuentra_un_nombre_mal_escrito():
+    """El paso 2 de la demo, que no probaba nadie.
+
+    «dostoyevski» mal escrito encuentra a Dostoyevsky por parecido ortografico
+    del nombre, no por tema. Subir `_PARECIDO_NOMBRE` a 0,99 apaga ese rescate
+    y la suite entera seguia en verde: el paso estrella del guion se podia
+    romper sin que se enterara nadie. Y bajar `minimo_similitud` a 0 hace que
+    no se descarte nunca un resultado flojo, asi que el aviso de «ningun libro
+    supera el umbral» no sale jamas.
+    """
+    import numpy as np
+    import pandas as pd
+    import catalogo as cat_mod
+
+    df = pd.DataFrame({
+        "id": ["PG2554", "PG11", "PG1342"],
+        "title": ["Crime and Punishment", "Alice in Wonderland",
+                  "Pride and Prejudice"],
+        "author": ["Dostoyevsky, Fyodor", "Carroll, Lewis", "Austen, Jane"],
+        "nivel_cefr": ["C1", "B1", "C2"],
+        "hook": ["de que va", "de que va", "de que va"],
+        "downloads": [1, 1, 1]})
+    cat = object.__new__(cat_mod.Catalogo)
+    cat.df = df
+    # Parecido por TEMA nulo: lo unico que puede encontrar al autor es el
+    # rescate por parecido del nombre. Si no, la prueba se cumpliria sola.
+    cat._emb = np.zeros((3, 4), dtype=np.float32)
+    cat._fichas = None
+    cat._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+        lambda x, **k: np.zeros((1, 4), dtype=np.float32))})()
+
+    libros, aviso = cat.buscar("dostoyevski", n=3)
+    assert libros, (
+        f"«dostoyevski» mal escrito no encuentra nada: el rescate por parecido "
+        f"del nombre esta apagado. Aviso: {aviso!r}")
+    assert "Dostoyevsky" in libros[0].autor, (
+        f"el primero es {libros[0].titulo!r} de {libros[0].autor!r}")
+
+    # Y el umbral: una consulta que no se parece a nada no puede devolver
+    # resultados, tiene que devolver el aviso.
+    vacios, aviso = cat.buscar("zzzqqq nada que ver con esto", n=3)
+    assert not vacios, f"una consulta absurda devuelve {len(vacios)} libros"
+    assert "umbral" in aviso.lower() or "parecido" in aviso.lower(), (
+        f"y sin decir por que: {aviso!r}")
+    return "«dostoyevski» encuentra a Dostoyevsky, y lo que no se parece avisa"
+
+
+prueba("el buscador encuentra un nombre mal escrito",
+       _el_buscador_encuentra_un_nombre_mal_escrito)
+
+
+def _la_pestana_publica_no_dice_que_usuarios_hay():
+    """«Estado» es publica y la leen los visitantes.
+
+    La prueba del diagnostico comprobaba que no se filtrara la CONTRASEÑA, y
+    no que faltara el NOMBRE DE USUARIO. Invertir el `con_nombre=False` de
+    `problemas()` sacaba los usuarios configurados a una pestaña publica y le
+    ahorraba medio trabajo a quien prueba contraseñas.
+    """
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = (
+        "zoraida:x:0,Zoraida:y:5,rota:sin-tope,:vacio:1")
+    try:
+        publico = " ".join(cuentas_mod.problemas()).lower()
+        assert "zoraida" not in publico, (
+            f"la pestaña publica dice que existe el usuario «zoraida»: {publico}")
+        assert "x" not in [a.split()[-1] for a in cuentas_mod.problemas()], \
+            "filtro una contrasena"
+        # Y sigue sirviendo para arreglar el secreto: dice QUE entrada falla.
+        assert "entrada" in publico and "repite" in publico, (
+            f"sin el nombre ya no se sabe que arreglar: {publico}")
+        # En el registro del Space, que solo lee el dueno, el nombre SI va:
+        # sin el, quien edita el secreto a ciegas no sabe cual es.
+        privado = " ".join(cuentas_mod._analizar(
+            os.environ["LITERALEVEL_CUENTAS"], con_nombre=True)[1]).lower()
+        assert "zoraida" in privado, (
+            "el registro privado tambien perdio el nombre: ahora el secreto "
+            "no se puede arreglar desde ningun sitio")
+        return "la pestaña publica dice que entrada falla, no quien es"
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+
+
+prueba("la pestana publica no dice que usuarios hay",
+       _la_pestana_publica_no_dice_que_usuarios_hay)
 
 
 # --- Resultado ------------------------------------------------------------

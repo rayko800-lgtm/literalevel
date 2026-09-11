@@ -105,6 +105,25 @@ capítulo a capítulo.»
 > **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
 > hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
 >
+> **Enciende la aplicación antes de grabar, y úsala.** Tres cosas de la
+> primera vez, medidas el 11 de septiembre de 2026:
+>
+> - La **primera consulta léxica de la sesión tarda unos 55 segundos**:
+>   carga el diccionario de 243 MB, spaCy y el modelo de similitud. Los
+>   **40 milisegundos** que dices a cámara son **en caliente**, y son
+>   ciertos: la segunda palabra sale al instante. **Consulta una palabra
+>   cualquiera antes de grabar** y el paso Cuatro va fluido.
+> - **Calcula la curva del libro antes.** Queda guardada, así que en la
+>   toma sale en segundos en vez de en dos minutos de silencio. Y hasta
+>   que no está calculada, la ficha no sabe si el libro te queda por
+>   encima y te da el rango en vez del dato.
+> - **Con tu perfil puesto, *Crime and Punishment* no sale el primero.**
+>   «dostoyevski» devuelve *The Idiot*, *Karamázov*, *Notes from the
+>   Underground* y luego el nuestro: la casilla «acercar a mi nivel»
+>   sube los B2 porque tu perfil es 1,20. Está en la lista y se abre
+>   bien; **elígelo sin dudar**, que dudar delante de la cámara parece
+>   que la app no lo encuentra.
+>
 > **No pulses «Sorpréndeme» en cámara.** La letra que sale al lado de
 > cada libro es la etiqueta heredada del catálogo, no la del modelo: si
 > abres uno que dice B2 y pulsas «¿Cómo de difícil es este capítulo?»,

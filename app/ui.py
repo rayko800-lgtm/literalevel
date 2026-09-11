@@ -1382,10 +1382,7 @@ def _abrir(archivo, peticion: gr.Request = None):
     # El recuento va en la etiqueta porque muchos epub traen los titulos
     # repetidos ("I", "II"...) en dos partes y ademas portadillas sueltas:
     # sin las palabras no hay forma de distinguir el capitulo del relleno.
-    opciones = []
-    for i, c in enumerate(libro.capitulos):
-        t = c.titulo if len(c.titulo) <= 46 else c.titulo[:43] + "..."
-        opciones.append((f"{i + 1}. {t} · {ficha.miles(c.palabras)} pal.", i))
+    opciones = _opciones_capitulos(libro)
 
     # No abrir en la portadilla. Solo el recuento de palabras no basta: el
     # apendice de "Notes from a Dead House" trae 2,143 y aparece el segundo,
@@ -1421,20 +1418,46 @@ def _abrir(archivo, peticion: gr.Request = None):
             _html_lectura(libro.capitulos[inicial].texto), resumen)
 
 
-def _indice_de(libro, actual=None):
-    """Las opciones del indice. Mismas etiquetas que el desplegable de arriba.
+def _opciones_capitulos(libro) -> list:
+    """Las etiquetas de los capitulos, en UN solo sitio.
 
-    El recuento de palabras va en la etiqueta por la misma razon que alli: hay
-    epub que repiten los titulos ("I", "II") y traen portadillas sueltas, y sin
-    las palabras no hay forma de saber cual es el capitulo de verdad.
+    Las usan el desplegable de arriba y el indice de abajo, y tienen que decir
+    exactamente lo mismo: son dos mandos del mismo estado. El recuento de
+    palabras va en la etiqueta porque muchos epub repiten los titulos ("I",
+    "II") en dos partes y traen portadillas sueltas, y sin las palabras no hay
+    forma de saber cual es el capitulo de verdad.
     """
-    if libro is None or not libro.capitulos:
-        return gr.update(choices=[], value=None)
-    opciones = []
+    fuera = []
     for i, c in enumerate(libro.capitulos):
         t = c.titulo if len(c.titulo) <= 46 else c.titulo[:43] + "..."
-        opciones.append((f"{i + 1}. {t} · {ficha.miles(c.palabras)} pal.", i))
-    return gr.update(choices=opciones, value=actual)
+        fuera.append((f"{i + 1}. {t} · {ficha.miles(c.palabras)} pal.", i))
+    return fuera
+
+
+def _indice_de(libro, actual=None):
+    """Opciones Y valor del indice, SIEMPRE juntos y validados contra ESTE libro.
+
+    Las dos cosas son la misma correccion. Al abrir un libro desde el buscador
+    saltaba un recuadro rojo de Gradio —«Value: 1 is not in the list of
+    choices: []»— porque `_abrir_del_catalogo` es una generadora: su primer
+    `yield` VACIA el desplegable de capitulos mientras descarga, y con las
+    opciones vacias cualquier valor que llegue a destiempo es invalido. El
+    libro se abria bien; lo que no se puede es ensenar un Error rojo en el paso
+    estrella de la demo.
+
+    Vale para los dos mandos -el indice y el desplegable-, que es lo que
+    permite que ninguno de los dos mande nunca un valor suelto.
+    """
+    if libro is None or not getattr(libro, "capitulos", None):
+        return gr.update(choices=[], value=None)
+    # Un indice que no es de este libro no se pinta: mejor sin seleccion que
+    # con una seleccion que no existe.
+    try:
+        valido = 0 <= int(actual) < len(libro.capitulos)
+    except (TypeError, ValueError):
+        valido = False
+    return gr.update(choices=_opciones_capitulos(libro),
+                     value=int(actual) if valido else None)
 
 
 def _cap(libro, idx):
@@ -1809,10 +1832,22 @@ def _ficha_libro(libro, p=None) -> str:
         guardado = _analisis_guardado(libro)
         nivel_libro = (ficha.dificultad_global(guardado["filas"])
                        if guardado else None)
-        exigente = nivel_libro is not None and nivel_libro > p.nivel + 0.15
-        tiempo = ficha.reloj(c.minutos(exigente))
-        tiempo += (" (va por encima de tu nivel)" if exigente
-                   else " a tu ritmo de lectura")
+        if nivel_libro is None:
+            # Con perfil pero SIN medir el libro no se sabe si le queda cuesta
+            # arriba, asi que se dan las dos velocidades, igual que sin perfil.
+            # Antes se daba por bueno el ritmo comodo y se rotulaba "a tu ritmo
+            # de lectura": el mismo libro y el mismo lector leian "18 h 52 min
+            # a tu ritmo" antes de calcular la curva y "30 h 52 min (va por
+            # encima de tu nivel)" despues. Doce horas de diferencia, y la
+            # primera cifra afirmaba algo que la aplicacion no sabia todavia.
+            tiempo = (f"entre {ficha.reloj(c.minutos(False))} y "
+                      f"{ficha.reloj(c.minutos(True))} de lectura, según lo "
+                      f"que te cueste")
+        else:
+            exigente = nivel_libro > p.nivel + 0.15
+            tiempo = ficha.reloj(c.minutos(exigente))
+            tiempo += (" (va por encima de tu nivel)" if exigente
+                       else " a tu ritmo de lectura")
     lineas = [
         "#### Cómo es de leer",
         f"- **{ficha.miles(c.palabras)} palabras** en {c.capitulos} "
@@ -2745,6 +2780,18 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     # Esta es la funcion mas cara de la aplicacion: transcribe con whisper y
     # genera un audio de referencia, y ninguna de las dos cosas acierta en
     # cache. Por eso es la que se cierra detras del codigo.
+    #
+    # Y la misma guardia que `_consultar` y `_de_que_trata`, que aqui faltaba:
+    # sin clave no puede haber llamada, asi que no hay nada que cobrar. Con
+    # perfiles declarados y la clave caducada o borrada del Space, CADA intento
+    # de pronunciacion descontaba un uso del cupo sin que saliera una sola
+    # peticion a la API -y esta es ademas la unica de las tres que, a
+    # proposito, no devuelve el uso cuando no hay transcripcion-.
+    if config.falta():
+        return ("", _aviso("Para corregir la pronunciación hace falta la clave "
+                           "de OpenAI. Lo demás de la aplicación no la necesita "
+                           "y sigue funcionando."),
+                gr.update(visible=False))
     puede, motivo_pago = _puede_pagar(peticion)
     if not puede:
         return "", motivo_pago, gr.update(visible=False)
@@ -3378,8 +3425,19 @@ def construir() -> gr.Blocks:
                 # `.select` y no `.change`: solo dispara cuando lo toca una
                 # persona. Con `.change` se hacia un bucle, porque justo abajo
                 # se actualiza el indice cada vez que cambia el capitulo.
-                indice.select(lambda v: v, indice, cap)
-                cap.change(lambda v: gr.update(value=v), cap, indice)
+                #
+                # Y manda opciones Y valor, no el valor pelado. Este era el
+                # recuadro rojo: `lambda v: v` metia el numero de capitulo en
+                # un desplegable cuyas opciones estaban vacias un instante
+                # -las vacia el primer `yield` de `_abrir_del_catalogo`
+                # mientras descarga-, y Gradio pinta un Error con eso.
+                indice.select(_indice_de, [est_libro, indice], cap)
+                # `_indice_de` y no un `gr.update(value=v)` pelado: los dos
+                # manejadores del indice tienen que mandar opciones Y valor
+                # juntos. Con el value suelto, abrir un libro desde el buscador
+                # -que cambia `est_libro` y `cap` a la vez- podia poner el valor
+                # antes que las opciones y Gradio pintaba un Error rojo.
+                cap.change(_indice_de, [est_libro, cap], indice)
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,
                                 [ficha, audio_web, audio_local])

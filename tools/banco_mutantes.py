@@ -360,6 +360,64 @@ MUTANTES = [
      + chr(92) + 'W' + chr(92) + 'd_]|[' + "'’-])*" + chr(34) + ", re.UNICODE)",
      '_PALABRA_RE = re.compile(r"[A-Za-z][A-Za-z' + "'’-]{2,}" + chr(34) + ")",
      "lo que mas se repite no son muletillas"),
+    # --- Lo que encontro la auditoria 16 ----------------------------------
+    ("F16-indice-valor", "app/ui.py",
+     "                cap.change(_indice_de, [est_libro, cap], indice)",
+     "                cap.change(lambda v: gr.update(value=v), cap, indice)",
+     "abrir un libro no pinta un error rojo"),
+    ("F16-indice-select", "app/ui.py",
+     "                indice.select(_indice_de, [est_libro, indice], cap)",
+     "                indice.select(lambda v: v, indice, cap)",
+     "abrir un libro no pinta un error rojo"),
+    ("F16-indice-rango", "app/ui.py",
+     "    try:" + NL +
+     "        valido = 0 <= int(actual) < len(libro.capitulos)" + NL +
+     "    except (TypeError, ValueError):" + NL +
+     "        valido = False",
+     "    try:" + NL +
+     "        valido = actual is not None" + NL +
+     "    except (TypeError, ValueError):" + NL +
+     "        valido = False",
+     "abrir un libro no pinta un error rojo"),
+    ("F16-voz-sin-clave", "app/ui.py",
+     "    if config.falta():" + NL +
+     "        return (" + chr(34) + chr(34) + ", _aviso(" + chr(34) +
+     "Para corregir la pronunciación hace falta la clave " + chr(34),
+     "    if False:" + NL +
+     "        return (" + chr(34) + chr(34) + ", _aviso(" + chr(34) +
+     "Para corregir la pronunciación hace falta la clave " + chr(34),
+     "la practica de voz no cobra sin clave"),
+    ("F16-ficha-ritmo", "app/ui.py",
+     "        if nivel_libro is None:",
+     "        if False:",
+     "la ficha no promete un ritmo que no sabe"),
+    ("F16-rescate", "app/catalogo.py",
+     "_PARECIDO_NOMBRE = 0.75",
+     "_PARECIDO_NOMBRE = 0.99",
+     "el buscador encuentra un nombre mal escrito"),
+    ("F16-umbral", "app/catalogo.py",
+     "               minimo_similitud: float = 0.10) -> tuple[list[Libro], str]:",
+     "               minimo_similitud: float = 0.0) -> tuple[list[Libro], str]:",
+     "el buscador encuentra un nombre mal escrito"),
+    ("F16-miles", "app/ficha.py",
+     '    return format(int(n), ",").replace(",", ".")',
+     '    return format(int(n), ",")',
+     "los miles llevan punto, no coma",
+     "pruebas_ficha.py"),
+    ("F16-muestra", "app/ficha.py",
+     "def _muestra(libro, tope_palabras: int = 60000) -> str:",
+     "def _muestra(libro, tope_palabras: int = 6000) -> str:",
+     "el tope de la muestra es el que se documenta",
+     "pruebas_ficha.py"),
+    ("F16-usuarios", "app/cuentas.py",
+     "    return _analizar(os.environ.get(" + chr(34) + "LITERALEVEL_CUENTAS" +
+     chr(34) + ", " + chr(34) + chr(34) + ").strip()," + NL +
+     "                     con_nombre=False)[1]",
+     "    return _analizar(os.environ.get(" + chr(34) + "LITERALEVEL_CUENTAS" +
+     chr(34) + ", " + chr(34) + chr(34) + ").strip()," + NL +
+     "                     con_nombre=True)[1]",
+     "la pestana publica no dice que usuarios hay"),
+
     ("F15-s5-nota", "app/ui.py",
      "    return (f" + chr(34) + "Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:"
      + chr(92) + "n" + chr(92) + "n" + chr(34) + NL +

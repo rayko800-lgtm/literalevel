@@ -43,12 +43,11 @@ Cuatro avisos que valen para cualquiera que toque esto:
    hubiera escrito. Se vio midiendo lo mismo con el árbol de antes y el de
    después, no leyendo.
 
-**El Space** estuvo al día hasta la auditoría 14 —el 11 de septiembre de 2026
-los catorce archivos publicados eran idénticos byte a byte a los locales, y la
-auditoría 15 lo comprobó por su cuenta descargándolos—. **Las correcciones de
-la auditoría 15 tocan `ui.py`, `lexicon.py`, `ficha.py` y `cuentas.py`, así que
-hay que volver a subir.** Se hace con `python tools/desplegar_app.py`, que dice
-él mismo qué falta —no te fíes de esta línea, que es la que se queda vieja.
+**El Space está al día hasta la auditoría 16**, subida el 11 de septiembre de
+2026 y cotejada por hash: los catorce archivos publicados son idénticos byte a
+byte a los locales. **No te fíes de esta línea**, que es la que se queda vieja:
+`python tools/desplegar_app.py` lo compara y lo dice él mismo. La auditoría 16
+ya avisó una vez de que esta frase iba por detrás del repositorio.
 
 Son muchos commits y tocan archivos compartidos: `app/ui.py`, `app/cuentas.py`
 —con interfaz pública nueva: `problemas()`, `declaradas()` y `devolver()`—,
@@ -145,7 +144,7 @@ todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **296** | `pruebas_extremas.py` |
+| Pruebas de estrés | **301** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
 | Parejas de contraste | **85** (17 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |
