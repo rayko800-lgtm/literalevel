@@ -3,14 +3,13 @@
 Escrito el **jueves 10 de septiembre de 2026** por la noche. Diez minutos de tu
 tiempo, y luego se queda trabajando solo.
 
-> **Por qué lo tienes que hacer tú y no yo.** El conector de Colab está roto en
-> esta máquina por un fallo diagnosticado: el servidor liga dos puertos
-> distintos (IPv4 e IPv6) y anuncia solo el de IPv6, así que el navegador falla
-> la conexión. Se probó cuatro veces el 8 de septiembre; dos de ellas colgaron
-> treinta minutos y tumbaron el servidor. Y el Chrome que yo puedo controlar es
-> **otro Chrome, aislado**, sin tu sesión de Google: hacerte teclear tu
-> contraseña ahí sería peor que pedirte tres clics. Detalle en la skill
-> `conectar-google`.
+> **Qué hice yo y qué te toca a ti.** El conector *de Colab* (`colab-mcp`) sigue
+> roto en esta máquina: liga dos puertos distintos —IPv4 e IPv6— y anuncia solo
+> el de IPv6, así que el navegador falla. Eso no se arregló. Lo que sí resultó
+> ser **falso** es que yo no pudiera tocar tu navegador: `chrome-devtools` sí
+> controla tu Chrome de verdad, con tu sesión de Google dentro. Así que el
+> montaje entero lo hice yo. Lo único tuyo es **el permiso de Drive**, que es
+> tuyo por definición y no pienso dártelo yo.
 
 ---
 
@@ -24,7 +23,7 @@ Y hay un motivo para pensar que la T4 no va a ir tanto peor: en la A100 se midi�
 que **la tarjeta estaba parada el 80 % del tiempo** esperando a que Google Drive
 entregase el siguiente `.txt`. Si el cuello de botella es el disco, una tarjeta
 más lenta cuesta menos de lo que parece. **Pero eso hay que medirlo, no
-suponerlo**, y la celda 11 lo mide.
+suponerlo**, y la celda 9 lo mide.
 
 ---
 
@@ -88,7 +87,7 @@ HORAS_TOPE_ANALISIS = 3.5     # sesion gratuita: se corta antes que una de Pro
 
 Estaba en 8.0, que era para Colab Pro. Las sesiones gratuitas se cortan antes, y
 **no pasa nada si se corta**: los resultados se guardan en Drive cada 500 libros
-y la celda 13 es reanudable — al volver, se salta lo ya hecho. Si la dejas en
+y la celda 10b es reanudable — al volver, se salta lo ya hecho. Si la dejas en
 8.0 tampoco rompe nada, solo que el aviso ordenado de «guardo lo que llevo» no
 llegará a tiempo.
 
@@ -129,7 +128,7 @@ si la T4 gratis llega sola.
 - **«No hay GPU disponible»**: la T4 gratis se reparte. Espera y reintenta, o
   prueba en un rato. No hay nada que arreglar del lado del cuaderno.
 - **Se desconecta a media tanda**: normal en la capa gratuita. Vuelve a
-  ejecutar la celda 13 y sigue donde iba.
+  ejecutar la celda 10b y sigue donde iba.
 - **La celda 2 no te pide permiso y falla**: cierra la sesión de Colab entera
   (Entorno de ejecución → Desconectar y eliminar) y vuelve a empezar. Montar
   Drive dos veces en la misma sesión da problemas.

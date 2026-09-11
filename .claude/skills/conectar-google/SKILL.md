@@ -44,7 +44,7 @@ falló una vez en esta sesión.
 | El servidor MCP entero cae con `Connection closed` justo después de usar la herramienta | Log más reciente: busca `Closing WebSocket server` cerca de la hora del fallo. | La propia llamada tumbó el servidor (pasó dos veces el 8 sep). Hace falta reiniciar el MCP (reiniciar la sesión de Claude Code), no reintentar en caliente: el proceso ya no existe. |
 | Pestaña de Colab vieja muestra "Disconnected from the local Colab MCP server" | Compara el puerto en la URL de esa pestaña (`...&mcpProxyPort=NNNNN`) contra el puerto `server listening on 127.0.0.1:NNNNN` del log **más reciente**. | Si no coinciden, la pestaña pertenece a una sesión anterior del MCP. Ciérrala; no sirve para nada, cada arranque rota puerto y token. |
 | Drive/Gmail devuelven `Operation is not implemented, or supported, or enabled` | ¿Aparece Drive en el aviso de sistema de "servidores que requieren autenticación"? | Si **no** aparece pero igual falla, no es sesión caducada — el conector está deshabilitado o restringido del lado de claude.ai. Reiniciar no lo arregla; solo el usuario puede tocarlo en claude.ai → Ajustes → Conectores. |
-| chrome-devtools no ve ni cierra las pestañas del usuario | ¿Puertos 9222/9223/9333 abiertos en el Chrome del usuario? | En esta máquina están cerrados los tres: chrome-devtools controla un Chrome **aislado**, no el del usuario. No vas a poder gestionar sus pestañas reales desde ahí. |
+| ¿chrome-devtools ve las pestañas del usuario? | **Llama a `list_pages` y míralo.** No mires los puertos 9222/9223/9333: están cerrados y aun así funciona. | **Sí las ve.** Corregido el 10 sep 2026: aquí decía que controlaba un Chrome aislado, y es **falso** — `list_pages` devolvió las pestañas reales de Miguel, con su sesión de Google dentro, y desde ahí se subió un cuaderno a su Drive y se ejecutó. Se dedujo de que los puertos TCP estuvieran cerrados, pero se conecta por *pipe* (`--remote-debugging-pipe`), no por puerto. **Comprobar cuesta una llamada; deducirlo casi cuesta no hacer el trabajo.** |
 
 ---
 
@@ -103,13 +103,65 @@ comando, solo se confirmó dónde vive `uv.exe`.
 
 ---
 
+## 3 bis. Lo que SÍ funciona: pilotar el Chrome del usuario
+
+Verificado el **10 de septiembre de 2026**: se subió un cuaderno al Drive de
+Miguel, se cambió de cuenta de Google y se ejecutaron celdas, todo desde aquí.
+El conector de Colab siguió roto; no hizo falta.
+
+**El camino:**
+
+1. `list_pages` de `chrome-devtools`. Si ves sus pestañas reales, estás en su
+   Chrome y tienes su sesión de Google.
+2. Para abrirle una pestaña nueva: `cmd //c start chrome "<url>"` desde el
+   shell. Aparece en su Chrome, no en uno aislado.
+3. **Cuidado con la cuenta.** Su Chrome puede estar dentro con otra cuenta de
+   Google. Mira el `aria-label` del botón de cuenta y, si hace falta, cambia
+   con `?authuser=1` en la URL. Aquí casi se monta el Drive equivocado: la
+   cuenta con `literalevel_bigdata` y Colab Pro es `rayko800@gmail.com`, y el
+   navegador estaba dentro con `miguel.reyes.carrillo19@gmail.com`.
+
+**Las tres trampas del DOM de Colab**, que costaron media hora:
+
+- **El contenido vive en un iframe.** `evaluate_script` corre en el marco de
+  arriba: `document.body.innerText` sale vacío y `querySelectorAll('button')`
+  devuelve dos botones vacíos. El árbol de accesibilidad (`take_snapshot` +
+  `click`) **sí** cruza marcos: para pulsar, usa eso.
+- **El resto vive en shadow roots.** Para buscar por script hay que recorrerlos
+  a mano (`el.shadowRoot` recursivo). Un `querySelector` normal no los ve.
+- **`take_snapshot` de un cuaderno abierto no cabe**: 245.000 caracteres. Se
+  guarda en un archivo y se lee con `grep` desde el shell. Para mapear los
+  botones de ejecutar celda, correlaciona cada `uid` con la cabecera `# --- N.`
+  que le sigue.
+
+**Subir un archivo local a Colab**, que es lo que parece imposible y no lo es:
+el botón «Subir cuaderno» abre un diálogo **nativo** del sistema, que no se
+pilota. Pero el `<input type="file" accept=".ipynb">` existe en el DOM. No se le
+puede dar una ruta —JavaScript solo acepta objetos `File`—, así que se le da un
+`File` de verdad:
+
+1. Levanta un servidor mínimo en `127.0.0.1` que sirva el archivo **con
+   `Access-Control-Allow-Origin: *`** (sin esa cabecera, CORS lo bloquea).
+2. Pulsa «Subir cuaderno» con el árbol de accesibilidad — eso *crea* el input.
+3. En la página: `fetch` → `File` → `DataTransfer` → `input.files` →
+   `dispatchEvent(new Event('change', {bubbles: true}))`.
+
+El guion está en `scratchpad/servir_cuaderno.py`.
+
+**Y lo que no hace falta pilotar:** el acelerador. Colab guarda la elección en
+los metadatos del `.ipynb` (`"accelerator": "GPU"`, `colab.gpuType`), así que se
+escribe en el archivo antes de subirlo y el cuaderno se abre ya con la GPU
+puesta. Pelearse con ese menú es trabajo tirado.
+
+---
+
 ## 4. Qué puede y qué no puede hacer Claude Code aquí
 
-- **No puede lanzar ni completar un flujo OAuth de Google.** No puede pedir
-  permisos, autorizar una cuenta ni renovar un token caducado. Si algo exige
-  reautorizar Drive, Gmail o Colab desde cero, dilo así al usuario en vez de
-  intentarlo: *"esto lo tienes que hacer tú, en el navegador o en claude.ai →
-  Ajustes → Conectores"*.
+- **No puede lanzar ni completar un flujo OAuth de Google**, y **tampoco debe**.
+  El diálogo «¿Permitir que este cuaderno acceda a tus archivos de Drive?» es un
+  consentimiento del usuario sobre sus propios datos: se le deja a él aunque el
+  navegador esté a mano. Déjale el trabajo hecho hasta ese diálogo y dile
+  exactamente qué botón pulsar y con qué cuenta.
 - **Puede** leer los logs, comprobar y matar procesos, y hacer **un** intento
   de conexión ya diagnosticado — nunca una serie de intentos ciegos.
 - **Puede** trabajar sin ningún conector: pedir al usuario que pegue el
