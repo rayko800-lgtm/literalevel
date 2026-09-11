@@ -756,10 +756,26 @@ LADO = "A"      # "A" en una cuenta, "B" en la otra
 DIVISOR = 1     # 1 = una sola sesion, entran todos. Con dos cuentas, 2
 RESTO = 0       # con DIVISOR=2:  A -> pares (0)  ·  B -> impares (1)
 
+# Y el ORDEN. Con una tanda que no llega a todo el catalogo, el orden deja
+# de ser un detalle: los ids de Gutenberg van por orden de digitalizacion,
+# que es cronologico, asi que los primeros miles son sistematicamente mas
+# viejos -ingles del XIX, otra tipografia, otra longitud de frase-. Una
+# tanda corta sobre el prefijo mide ESO, no el catalogo, y con la muestra
+# aleatoria mide el catalogo con un margen que se puede escribir.
+#
+# La semilla va fija para que la muestra se pueda repetir y para que dos
+# sesiones reanudadas no se pisen: lo ya hecho se descuenta antes.
+import random          # tambien aqui: en Colab se ejecutan celdas sueltas
+
+MUESTRA_ALEATORIA = True
+SEMILLA_MUESTRA = 20260910
+
 ORIGEN = globals().get("TEXTOS_LISTOS", TEXTOS)
 disponibles = [r for r in sorted(ORIGEN.glob("*.txt"))
                if int(r.stem[2:]) not in ya
                and int(r.stem[2:]) % DIVISOR == RESTO]
+if MUESTRA_ALEATORIA:
+    random.Random(SEMILLA_MUESTRA).shuffle(disponibles)
 print(f"leyendo los textos de:  {ORIGEN}")
 print(f"por calcular:  {len(disponibles):,}"
       + (f"   (lado {LADO}: los que dan resto {RESTO} entre {DIVISOR})"
@@ -769,6 +785,18 @@ print(f"por calcular:  {len(disponibles):,}"
 # --- 10b. Lanzar una tanda ----------------------------------------------
 # Igual que la descarga: todo lo que haya, no una tanda fija.
 TANDA = 10 ** 9
+# HORAS de reloj, no unidades. Es el freno para que una tanda quepa en el
+# cupo que quede: en una A100 se gastan 5,3 unidades por hora, asi que
+#
+#     unidades disponibles / 5,3 = horas que se pueden poner aqui
+#
+# Con 1,9 unidades (9 de septiembre de 2026) salen 0,35 h = 21 min. Y lo
+# primero que hay que sacar de una tanda corta no son libros: es LA
+# VELOCIDAD REAL con el prefetch puesto. Sin prefetch se midieron 61
+# libros/min con la A100 parada el 80 % del tiempo esperando a Drive; si el
+# prefetch cumple, la cifra sube y el catalogo entero baja de 37 unidades a
+# unas 15. Esas 15 son una PROYECCION, no una medida. Hasta que una tanda
+# la confirme, no se sabe lo que cuesta el catalogo.
 HORAS_TOPE_ANALISIS = 8.0
 
 # Cuantos libros se van leyendo por delante mientras la GPU trabaja.
