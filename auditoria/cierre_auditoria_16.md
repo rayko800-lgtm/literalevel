@@ -154,11 +154,32 @@ puede encontrar al autor sea el rescate del nombre. Sin eso se cumpliría sola.
   «su capítulo más llevadero y su capítulo más exigente», sin números. Es el
   patrón de siempre: el `.md` corregido y el `.tex` sin corregir. Propagado y
   recompilado.
-- **M2 · «clerk» sale con una acepción equivocada y marcada dudosa.** Cierto, y
-  es la palabra que el guion manda tocar: en «petty clerks» el diccionario
-  devuelve la acepción eclesiástica arcaica con afinidad 0,18. La IPA UK/US —que
-  es lo que el guion quiere enseñar— sale bien. Queda como nota de producción:
-  con perfil, la explicación de contexto la desmiente.
+- **M2 · «clerk» sale con una acepción equivocada.** Cierto, y **peor de lo que
+  decía el informe**. Medidas las tres apariciones de *clerk* en los primeros
+  capítulos, por el camino de la app y con las frases reales del libro:
+
+  | Frase | Afinidad | Acepción |
+  |---|---|---|
+  | «tailors, locksmiths, cooks… clerks» | 0,225 | oficinista — **correcta** |
+  | «a German clerk in the civil service» | 0,213 | laico anglicano — **mal** |
+  | «a retired government clerk» | 0,359 | clérigo — **mal** |
+
+  Dos de tres, y las tres por debajo del umbral de duda (0,40), así que la app
+  las marca «dudosa». La palabra del guion no puede ser una que falle dos de
+  cada tres veces delante de una cámara.
+
+  Un barrido por las 150 primeras palabras largas de esos capítulos deja nueve
+  por encima del umbral. **La del guion pasa a ser `poverty`**: afinidad
+  **0,505** —sin aviso de duda—, acepción correcta, */ˈpɒvəti/* frente a
+  */ˈpɑːvɚti/* se oye, y es el tema del libro. Se pierde el audio grabado de
+  Wiktionary, que `clerk` sí traía; se cambia igual, porque que la definición
+  sea correcta importa más que de dónde salga la voz.
+
+  Y hay una lección detrás que el guion ahora dice: **las palabras con el
+  contraste británico/americano más bonito son las polisémicas, que es justo
+  donde el desambiguador flojea.** Si el aviso de «acepción dudosa» sale en
+  cámara, hay que decirlo en voz alta: que el modelo avise de que no está
+  seguro es de lo mejor que tiene esta aplicación.
 - **M3 y M4 · El separador de miles y el tope de la muestra.** Dos constantes
   que la aplicación enseña por todas partes («1.197», «203.699») y que ninguna
   prueba fijaba: volver a `format(int(n), ",")` daba «1,197» sin romper nada.

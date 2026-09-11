@@ -135,11 +135,24 @@ capítulo a capítulo.»
 > **Y la palabra del paso Cuatro se elige antes, no en directo.** El
 > diccionario solo trae fonética en el 3,1 % de sus entradas —el 58 % de las
 > consultas sobre un libro real, §6.4 del documento—, así que «la fonética
-> británica y americana» depende de la palabra que se toque. Del capítulo I
-> de este libro, con las dos transcripciones **y** audio grabado: **clerk**
-> —que se oye distinta a un lado y a otro del Atlántico, y por eso es la del
-> guion—, **glance**, **curtain**, **abject**, **disgust**,
-> **preponderance**.
+> británica y americana» depende de la palabra que se toque. Y hay una
+> segunda trampa, medida: **las palabras con el contraste británico/
+> americano más bonito son las polisémicas, que es justo donde el
+> desambiguador flojea**. De las tres apariciones de *clerk* en estos
+> capítulos, dos devuelven una acepción eclesiástica —«laico que asiste en
+> el oficio anglicano»— y las tres salen marcadas «dudosa».
+>
+> Así que la palabra del plano está **medida**, no elegida por bonita:
+> **poverty**, afinidad **0,505** —por encima del umbral de duda, así que
+> sale sin aviso—, acepción correcta, y */ˈpɒvəti/* frente a */ˈpɑːvɚti/*
+> se oye. Está en *«He was in terrible poverty, yet he took upon himself
+> the payment of his brother's debts»*, y encima es el tema del libro. Si
+> quieres otra: **torture** (0,504) o **cruelty** (0,502).
+>
+> Y si alguna vez sale el aviso de **«la acepción elegida es dudosa»,
+> dilo en voz alta**: que el modelo avise de que no está seguro es de lo
+> mejor que tiene esta aplicación, y es el mismo criterio que la banda en
+> vez del decimal.
 
 «Esto es LiteraLevel.
 
@@ -158,7 +171,7 @@ dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
 **840 ventanas en 134 segundos**: media **1,70**. Mi nivel es 1,20. Este libro
 me queda por encima, y lo sé antes de la primera página.
 
-**Cuatro.** *(doble clic en* clerk*)* Toco una palabra y en **40
+**Cuatro.** *(doble clic en* poverty*)* Toco una palabra y en **40
 milisegundos** tengo el diccionario y la fonética británica y americana, del
 archivo local: la misma palabra suena distinta a los dos lados del Atlántico. Y
 unos segundos después llega lo que no se puede contar: qué significa **en esta
