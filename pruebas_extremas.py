@@ -5038,6 +5038,28 @@ prueba("los dos botones de voz no se pisan",
        _los_dos_botones_de_voz_no_se_pisan)
 
 
+def _construir_con_perfiles_configurados():
+    """La interfaz se monta tambien con la puerta puesta, que es el Space.
+
+    «construir() no carga nada pesado» corre SIN `LITERALEVEL_CUENTAS`, asi que
+    toda la caja de entrada -que solo existe si hay perfiles- se quedaba sin
+    montar en las pruebas. Encadenar `_estado_de_entrada` a `demo.load` la
+    rompio, y de eso me entere por la otra prueba, la del caso sin puerta:
+    desplegado habria arrancado en error y en local no.
+    """
+    def dentro():
+        demo = ui.construir()
+        n = len(demo.blocks)
+        assert n > 0, "la interfaz con puerta sale vacia"
+        return f"{n} bloques con la puerta puesta"
+
+    return _con_codigos(dentro)
+
+
+prueba("construir con perfiles configurados",
+       _construir_con_perfiles_configurados)
+
+
 def _la_casilla_de_acercar_al_nivel_hace_algo():
     """«Acercar los resultados a mi nivel» pesa 0,3; ponerlo a 0 no rompia nada.
 
