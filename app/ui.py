@@ -2053,6 +2053,77 @@ def _resumen_analisis(datos, como="cifra") -> str:
           f"{min(medias):.2f} a {max(medias):.2f}")
 
 
+# Abreviaturas que llevan punto y NO acaban la frase. `scoring.SENT_RE`
+# corta en cada punto -es el partidor con el que se entreno el modelo y no se
+# toca-, pero lo que se le ensena a una persona no puede salir partido: la
+# practica de voz ofrecia "on the afternoon of May 7, 1915." como frase para
+# leer en alto, que es la mitad de la primera frase de *The Secret Adversary*,
+# y el contexto que viaja a OpenAI en *Orgullo y prejuicio* acababa en
+# "the advent of Mr.". Medido: 13,1 % de las candidatas de ese libro eran
+# fragmentos.
+_ABREVIATURAS = ("Mr", "Mrs", "Ms", "Dr", "St", "Prof", "Sr", "Jr", "Rev",
+                 "Hon", "Col", "Gen", "Capt", "Lt", "Sgt", "Esq", "vs",
+                 "etc", "No", "Vol", "pp", "cf", "viz", "approx")
+_PUNTO = "\x00"          # marcador que no aparece en un libro
+_ABREV_RE = re.compile(
+    r"\b(?:" + "|".join(_ABREVIATURAS) + r")\.|\b[ap]\.?m\.|\b[A-Z]\.(?=[ \t]*[A-Z])",
+    re.IGNORECASE)
+
+
+def _oraciones(texto: str) -> list[str]:
+    """Las oraciones de un texto, RESPETANDO las abreviaturas.
+
+    Se esconde el punto de la abreviatura tras un marcador, se parte con el
+    mismo `SENT_RE` de siempre y se devuelve el punto a su sitio. Asi el
+    partidor del modelo sigue siendo el del modelo y lo que ve el lector deja
+    de salir a medias.
+    """
+    protegido = _ABREV_RE.sub(lambda m: m.group(0).replace(".", _PUNTO), texto)
+    fuera = []
+    for frase in scoring.SENT_RE.findall(protegido):
+        limpia = " ".join(frase.replace(_PUNTO, ".").split())
+        if limpia:
+            fuera.append(limpia)
+    return fuera
+
+
+def _sin_encabezado(parrafo: str) -> str:
+    """El parrafo sin el titulillo en versales que lleva pegado delante.
+
+    Muchos epub repiten el encabezado y lo dejan en el MISMO parrafo que el
+    texto, asi que el filtro de parrafos cortos no lo tira: la frase que se
+    ofrecia para leer en voz alta en *The Secret Adversary* era `PROLOGUE
+    PROLOGUE It was 2 p.m. on the afternoon of May 7, 1915.`.
+
+    Se quitan solo los tokens ENTERAMENTE en mayusculas de tres letras o mas,
+    y solo mientras quede frase detras. Un `I` o un `A` sueltos no se tocan,
+    y una frase que empiece por un acronimo de verdad pierde como mucho esa
+    palabra, que es mejor que ensenar el titulillo.
+    """
+    tokens = parrafo.split()
+    i = 0
+    while (i < len(tokens) and i < 6 and len(tokens) - i > 6
+           and len(tokens[i]) >= 3
+           and tokens[i].strip(".,;:!?'\"()[]").isupper()):
+        i += 1
+    return " ".join(tokens[i:]) if i else parrafo
+
+
+def _empieza_entera(frase: str) -> bool:
+    """True si la frase empieza donde empieza una frase.
+
+    Una que arranca en minuscula o con una comilla de cierre es el final de
+    otra: "” thought Alice to herself, ..." salia como frase para leer en voz
+    alta.
+    """
+    f = frase.lstrip()
+    if not f:
+        return False
+    if f[0] in "”’'" + chr(34) + "»)]-–—,;:.!?":
+        return False
+    return not f[0].islower()
+
+
 def _oracion_de(texto: str, palabra: str) -> str:
     """Primera oracion con cuerpo del capitulo que contiene la palabra.
 
@@ -2074,7 +2145,7 @@ def _oracion_de(texto: str, palabra: str) -> str:
     # manda a desambiguar tiene que ser una frase, no una frase con un titulo
     # pegado delante.
     trozos = [" ".join(p.split()) for p in re.split(r"\n\s*\n", texto)]
-    for frase in scoring.SENT_RE.findall(
+    for frase in _oraciones(
             " ".join(p for p in trozos if len(p.split()) >= 6) or texto):
         if not patron.search(frase):
             continue
@@ -2124,7 +2195,16 @@ _ROTULOS = {
 
 # Por debajo de esto la eleccion de acepcion es practicamente un sorteo: se
 # avisa en vez de presentarla como si fuera segura.
-AFINIDAD_DUDOSA = 0.35
+# Por debajo de esto, la acepcion elegida se marca como dudosa. Estaba en
+# 0,35 y dejaba pasar sin aviso los casos que mas duelen: "torpedoes" en una
+# frase sobre un barco torpedeado salia como "An electric ray of the genus
+# Torpedo" con afinidad 0,38, y asi se guardaba en el cuaderno del lector.
+# Medido sobre 15 palabras del prologo de *The Secret Adversary*: 6 acepciones
+# equivocadas, y con 0,35 dos de ellas salian sin ningun aviso.
+#
+# Subirlo no mejora la desambiguacion: la hace HONESTA. Es mejor un lector
+# que duda de una definicion correcta que uno que se cree una equivocada.
+AFINIDAD_DUDOSA = 0.40
 
 
 # Traduccion de los avisos tecnicos a algo que un lector pueda entender. Los
@@ -2252,12 +2332,27 @@ def _ficha(r, idioma: str = "es") -> str:
         pie.append(t["tts"])
     if pie:
         L.append("_" + " · ".join(pie) + "_")
+    # El aviso del audio se decide AQUI, que es donde se sabe si lo hubo.
+    # "sin audio en el diccionario" se traducia siempre por "la pronunciacion
+    # de arriba esta generada", y sin clave no se genera ninguna: si ademas la
+    # palabra no trae IPA -el diccionario solo la tiene para el 2,3 %- la ficha
+    # hablaba de una pronunciacion que no estaba en ninguna parte.
+    avisos = list(r.avisos)
+    if not r.audio_generado:
+        sin_nada = not (r.ipa_uk or r.ipa_us or r.audio_uk or r.audio_us)
+        avisos = [a for a in avisos if "sin audio en el diccionario" not in a]
+        if sin_nada:
+            avisos.append({"es": "De esta palabra no hay pronunciación: ni el "
+                                 "diccionario la trae ni se pudo generar.",
+                           "en": "There is no pronunciation for this word: the "
+                                 "dictionary has none and none could be "
+                                 "generated."}.get(idioma, "es"))
     # `dict.fromkeys` y no un `set`: quita repetidos conservando el orden.
     # Dos avisos distintos pueden humanizarse al MISMO texto -"no se pudo
     # generar audio: AuthenticationError" y "OpenAI no disponible:
     # AuthenticationError" son los dos "clave rechazada"-, y el lector veia la
     # misma linea dos veces seguidas.
-    for a in dict.fromkeys(_humanizar(a, idioma) for a in r.avisos):
+    for a in dict.fromkeys(_humanizar(a, idioma) for a in avisos):
         L.append(f"[!] {a}")
     return "\n\n".join(L)
 
@@ -2466,9 +2561,11 @@ def _frase_del_capitulo(libro, idx):
         limpio = " ".join(parrafo.split())
         if len(limpio.split()) < 30:      # titulillo o linea suelta
             continue
-        for frase in scoring.SENT_RE.findall(limpio):
-            f = " ".join(frase.split())
-            if 6 <= len(f.split()) <= 25:
+        for f in _oraciones(_sin_encabezado(limpio)):
+            # Y que EMPIECE donde empieza una frase: la primera candidata de
+            # *Alicia* era `” thought Alice to herself, ...`, que es el
+            # final de otra.
+            if 6 <= len(f.split()) <= 25 and _empieza_entera(f):
                 candidatas.append(f)
     if not candidatas:
         return gr.update()

@@ -4303,6 +4303,133 @@ prueba("la pantalla del libro no se contradice ni en la curva",
        _la_pantalla_del_libro_no_se_contradice_ni_en_la_curva)
 
 
+def _las_frases_no_se_parten_en_las_abreviaturas():
+    """Lo que se le ensena a una persona no puede salir a medias.
+
+    `scoring.SENT_RE` corta en cada punto -es el partidor con el que se entreno
+    el modelo y no se toca-, pero `ui` lo usaba para la frase de la practica de
+    voz y para el contexto que VIAJA A OPENAI. Medido sobre cuatro libros: 13,1 %
+    de las candidatas de *Orgullo y prejuicio* eran fragmentos, y la practica de
+    voz ofrecia `on the afternoon of May 7, 1915.`, que es media frase.
+    """
+    casos = [
+        ("It was 2 p.m. on the afternoon of May 7, 1915. The ship sank.",
+         "It was 2 p.m. on the afternoon of May 7, 1915."),
+        ("The advent of Mr. Collins was perfect. She smiled.",
+         "The advent of Mr. Collins was perfect."),
+        ("She saw Mrs. Bennet at the door. He left.",
+         "She saw Mrs. Bennet at the door."),
+        ("Dr. Watson arrived at St. Mary's at 9 a.m. today. It rained.",
+         "Dr. Watson arrived at St. Mary's at 9 a.m. today."),
+    ]
+    malos = []
+    for texto, esperada in casos:
+        salen = ui._oraciones(texto)
+        if not salen or salen[0] != esperada:
+            malos.append(f"{texto[:40]!r} -> {salen[:2]}")
+    assert not malos, malos
+
+    # Y que el partidor del modelo NO se ha tocado: es el del entrenamiento.
+    assert scoring_mod.SENT_RE.pattern == r"[^.!?]+[.!?]+|[^.!?]+$", \
+        "alguien cambio SENT_RE, que es el partidor con el que se entreno el v4"
+
+    # Una frase que empieza donde acaba otra no vale para leer en voz alta.
+    assert not ui._empieza_entera("” thought Alice to herself, after such a fall")
+    assert not ui._empieza_entera("on the afternoon of May 7, 1915.")
+    assert ui._empieza_entera("It was 2 p.m. on the afternoon of May 7, 1915.")
+
+    # Y el titulillo en versales no viaja pegado a la frase.
+    assert ui._sin_encabezado(
+        "PROLOGUE PROLOGUE It was two in the afternoon of a day in May."
+    ).startswith("It was two"), "el encabezado sigue pegado"
+
+    # Y por el BOTON, que es el camino que ve el lector. Con el partidor
+    # viejo la candidata seria `She said that the advent of Mr.`: siete
+    # palabras y empieza en mayuscula, asi que pasa los dos filtros y acaba
+    # en la caja para leer en voz alta.
+    class Cap:
+        titulo = "CHAPTER I"
+        # La primera frase tiene diez palabras, que cae dentro del 6-25 que
+        # exige el boton. Con el partidor viejo se corta en `Mr.` y deja
+        # `She said that the advent of Mr.`: siete palabras y empieza en
+        # mayuscula, asi que pasa los dos filtros igual.
+        texto = ("She said that the advent of Mr. Collins was perfect. "
+                 "Everyone in the house agreed with her that same morning, "
+                 "and nobody could have arranged it better than her own dear "
+                 "sister had arranged it.")
+        palabras = 40
+
+    class Libro:
+        titulo, autor = "Abreviaturas", "Autor"
+        capitulos = [Cap()]
+        palabras = 40
+
+    ofrecida = ui._frase_del_capitulo(Libro(), 0)
+    v = ofrecida if isinstance(ofrecida, str) else (
+        ofrecida.get("value") if isinstance(ofrecida, dict) else "")
+    assert v, "el boton no ofrecio ninguna frase"
+    assert not str(v).rstrip().endswith(("Mr.", "Mrs.", "Dr.", "St.")), (
+        f"el boton ofrece un fragmento cortado en una abreviatura: {v!r}")
+    assert "Collins" in str(v), f"la frase llega partida: {v!r}"
+
+    return f"{len(casos)} abreviaturas respetadas, SENT_RE intacto y el boton entero"
+
+
+prueba("las frases no se parten en las abreviaturas",
+       _las_frases_no_se_parten_en_las_abreviaturas)
+
+
+def _la_ficha_no_promete_una_pronunciacion_que_no_existe():
+    """Y avisa cuando la acepcion es dudosa de verdad.
+
+    Dos fallos que se veian a la vez en la misma ficha, medidos sobre el prologo
+    de *The Secret Adversary*:
+
+    - "torpedoes", en una frase sobre un barco torpedeado, salia como "An
+      electric ray of the genus Torpedo" con afinidad 0,38 y SIN aviso, porque
+      el umbral estaba en 0,35. Y esa acepcion se guarda en el cuaderno.
+    - El aviso decia "la pronunciacion de arriba esta generada" cuando no hay
+      ninguna: sin clave no se genera audio, y el diccionario solo trae IPA para
+      el 2,3 % de las palabras.
+    """
+    from lexicon import ResultadoLexico
+
+    def resultado(**kw):
+        base = dict(
+            palabra_superficie="torpedoes", oracion="struck by two torpedoes",
+            lema="torpedo", lema_buscado="torpedo", pos_spacy="NOUN",
+            categoria="noun", sentido="An electric ray of the genus Torpedo.",
+            etiquetas_sentido=[], similitud=0.38, n_sentidos_candidatos=15,
+            ipa_uk=None, ipa_us=None, audio_uk=None, audio_us=None,
+            audio_generado=False, definicion_contextual=None,
+            explicacion_gramatical=None, explicacion_adaptada=None,
+            ejemplo_simplificado=None, banda_lector="intermedio",
+            frecuencia_zipf=2.9, desde_cache=False,
+            avisos=["sin audio en el diccionario"])
+        base.update(kw)
+        return ResultadoLexico(**base)
+
+    assert ui.AFINIDAD_DUDOSA >= 0.40, (
+        f"el umbral de duda bajo a {ui.AFINIDAD_DUDOSA}: con 0,35, 'torpedoes' "
+        f"(0,38) salia como el pez electrico sin un solo aviso")
+
+    sin_nada = ui._ficha(resultado(), "es")
+    assert "pronunciación de arriba" not in sin_nada, \
+        f"promete una pronunciacion que no existe: {sin_nada[:200]}"
+    assert "no hay pronunciación" in sin_nada, sin_nada[:200]
+    assert "confianza" in sin_nada.lower() or "dudosa" in sin_nada.lower(), \
+        f"afinidad 0,38 y ningun aviso de duda: {sin_nada[:220]}"
+
+    # Con audio generado de verdad, el aviso de siempre sigue saliendo.
+    con_audio = ui._ficha(resultado(audio_generado=True, ipa_uk="/x/"), "es")
+    assert "pronunciación de arriba" in con_audio, con_audio[:200]
+    return "sin audio no promete audio, y 0,38 avisa"
+
+
+prueba("la ficha no promete una pronunciacion que no existe",
+       _la_ficha_no_promete_una_pronunciacion_que_no_existe)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)
