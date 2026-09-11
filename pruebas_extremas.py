@@ -4175,6 +4175,134 @@ prueba("los tres cubos por hora son de verdad distintos",
        _los_tres_cubos_por_hora_son_de_verdad_distintos)
 
 
+def _los_archivos_que_escribe_la_app_no_la_tumban():
+    """Tres formas de tumbar un manejador con archivos que la app MISMA escribe.
+
+    No es paranoia de disco corrupto:
+
+    - `_analizar_libro` guarda `round(sum(vs) / len(vs), 3)`, y si el modelo
+      devuelve `NaN` -`np.clip(nan)` sigue siendo `nan`- se PERSISTE en el
+      JSON. `json.loads` lo lee de vuelta tan contento, y revienta con
+      `ValueError: cannot convert float NaN to integer` **la siguiente vez que
+      se abra ese libro**. Una bomba puesta por nosotros mismos.
+    - La sinopsis viene de un modelo de lenguaje: un campo que tenia que ser
+      texto puede llegar como lista, y el `.strip()` de quien la pinta levanta
+      `AttributeError`.
+    - Y `perfil.json` convertido en carpeta: `_perfil_inicial` corre en
+      `demo.load`, asi que la pagina entera arrancaba en error para ese lector.
+    """
+    class Cap:
+        titulo = "CHAPTER I"
+        texto = "The rain fell on the moor and the train ran west. " * 40
+        palabras = 400
+
+    class Libro:
+        titulo, autor, palabras = "Bomba", "Autor", 1000
+        capitulos = [Cap()]
+        ruta = "bomba.txt"
+
+    lib = Libro()
+    malos = []
+
+    # 1. El analisis con NaN e inf, que es lo que el propio modelo puede guardar.
+    pa = ui._ruta_analisis(lib, "completo")
+    pa.parent.mkdir(parents=True, exist_ok=True)
+    for etiqueta, crudo in (
+            ("NaN", '{"filas": [{"capitulo": 1, "dificultad": NaN, "titulo": "I"}], '
+                    '"ventanas": 1, "palabras": 1, "titulo": "X", "autor": "Y"}'),
+            ("inf", '{"filas": [{"capitulo": 1, "dificultad": 1.0, "titulo": "I"}], '
+                    '"ventanas": 1e400, "palabras": 1, "titulo": "X", "autor": "Y"}')):
+        pa.write_text(crudo, encoding="utf-8")
+        d = ui._analisis_guardado(lib, "completo")
+        if d is not None:
+            try:
+                ui._resumen_analisis(d)
+            except Exception as e:
+                malos.append(f"analisis con {etiqueta}: {type(e).__name__}: {e}")
+        try:
+            list(ui._analizar_libro(lib, "rapido"))
+        except Exception as e:
+            malos.append(f"_analizar_libro con {etiqueta}: {type(e).__name__}: {e}")
+    pa.unlink(missing_ok=True)
+
+    # 2. La sinopsis con una lista donde iba texto, y una cadena donde iba lista.
+    ps = ui.RUTA_ANALISIS / f"{ui._clave_libro(lib)}-sinopsis.json"
+    for etiqueta, crudo in (
+            ("lista en de_que_trata",
+             '{"de_que_trata": ["a", "b"], "temas": ["x"], "para_quien": "tu"}'),
+            ("lista en para_quien",
+             '{"de_que_trata": "ok", "temas": ["x"], "para_quien": ["a"]}'),
+            ("cadena en temas",
+             '{"de_que_trata": "ok", "temas": "una cadena", "para_quien": "tu"}')):
+        ps.write_text(crudo, encoding="utf-8")
+        try:
+            salida = str(list(ui._de_que_trata(lib)))
+        except Exception as e:
+            malos.append(f"sinopsis con {etiqueta}: {type(e).__name__}: {e}")
+            continue
+        if etiqueta == "cadena en temas" and "u · n · a" in salida:
+            malos.append("los temas se pintan letra a letra")
+    ps.unlink(missing_ok=True)
+
+    # 3. `perfil.json` que es una carpeta: lo lee `demo.load`.
+    import tempfile
+    carpeta = pathlib.Path(tempfile.mkdtemp()) / "perfil.json"
+    carpeta.mkdir()
+    try:
+        if perfil_mod.cargar(str(carpeta)) is not None:
+            malos.append("acepto una CARPETA como perfil")
+    except Exception as e:
+        malos.append(f"perfil.cargar con carpeta: {type(e).__name__}: {e}")
+
+    assert not malos, malos
+    return "NaN, inf, listas donde iba texto y una carpeta: ninguno tumba nada"
+
+
+prueba("los archivos que escribe la app no la tumban",
+       _los_archivos_que_escribe_la_app_no_la_tumban)
+
+
+def _la_pantalla_del_libro_no_se_contradice_ni_en_la_curva():
+    """El resumen de la curva tambien. Mi arreglo anterior se quedo a medias.
+
+    Alinee la cabecera con la ficha y deje fuera el resumen del analisis, que
+    seguia imprimiendo `libro.palabras` crudo: la misma pantalla decia 129.589
+    arriba y "sobre 130.104 en total" debajo de la grafica. Y 130.104 era la
+    cifra que el guion del video dice a camara.
+    """
+    # CON la envoltura legal de Gutenberg, a proposito: sin ella el recuento
+    # crudo y el descontado son el MISMO numero, devolver uno u otro da igual
+    # y el mutante sobrevive. Es el tercer patron de prueba decorativa que
+    # este archivo documenta: un dato de prueba demasiado limpio prueba el
+    # camino equivocado.
+    texto = (_LICENCIA + "CHAPTER I. The Journey\n\n"
+             + "He said nothing for a long while, and the train ran on through the "
+               "brown moor towards the west, with the rain beginning to streak the "
+               "glass of the window beside us. " * 40)
+    libro, _, _, resumen = ui._abrir(escribir("tres_cifras.txt", texto))
+    assert libro is not None, resumen
+    cuenta = ficha_mod.miles(ficha_mod.caracteristicas(libro).palabras)
+    crudo = ficha_mod.miles(libro.palabras)
+    assert crudo != cuenta, (
+        f"el caso no discrimina: crudo y descontado son los dos {crudo}")
+    assert cuenta in resumen, f"la cabecera no dice {cuenta}: {resumen[:120]}"
+
+    datos = {"titulo": libro.titulo, "autor": libro.autor,
+             "palabras": ui._palabras_del_cuerpo(libro), "ventanas": 10,
+             "filas": [{"capitulo": 1, "titulo": "I", "dificultad": 1.0}],
+             "modo": "completo"}
+    curva = ui._resumen_analisis(datos)
+    assert cuenta in curva, \
+        f"la curva dice otra cifra que la cabecera ({cuenta}): {curva[:160]}"
+    if crudo != cuenta:
+        assert crudo not in curva, f"la curva sigue con el recuento crudo {crudo}"
+    return f"cabecera, ficha y curva dicen las mismas {cuenta} palabras"
+
+
+prueba("la pantalla del libro no se contradice ni en la curva",
+       _la_pantalla_del_libro_no_se_contradice_ni_en_la_curva)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)

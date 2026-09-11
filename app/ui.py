@@ -1494,13 +1494,34 @@ def _clave_libro(libro) -> str:
     return h.hexdigest()[:20]
 
 
+def _palabras_del_cuerpo(libro) -> int:
+    """Las palabras del LIBRO, sin portadilla ni licencia.
+
+    El mismo recuento que la cabecera y la ficha. El resumen de la curva
+    imprimia `libro.palabras` crudo, asi que la misma pantalla decia 129.589
+    arriba y "sobre 130.104 en total" debajo de la grafica, y la cifra que
+    el guion del video dice a camara era la segunda. Una pantalla con dos
+    recuentos de lo mismo es lo primero que alguien compara.
+    """
+    try:
+        return ficha.caracteristicas(libro).palabras or libro.palabras
+    except Exception:
+        return libro.palabras      # un recuento jamas puede tumbar el analisis
+
+
 def _es_numero(x) -> bool:
     """Numero de verdad, y `True` no lo es.
 
     `isinstance(True, int)` da True en Python, y un `"dificultad": true` en un
     JSON pasaria por numero y luego sumaria 1 sin que nadie lo notara.
     """
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
+    # Y FINITO. `json.loads` acepta `NaN` y `1e400`, y los dos revientan al
+    # formatear o al convertir a entero. El caso no es solo de disco
+    # corrupto: `_analizar_libro` guarda `round(sum(vs)/len(vs), 3)` y
+    # `np.clip(nan)` es `nan`, asi que un NaN del modelo se PERSISTE y
+    # revienta la siguiente vez que se abra ese libro.
+    return (isinstance(x, (int, float)) and not isinstance(x, bool)
+            and math.isfinite(x))
 
 
 def _ruta_analisis(libro, modo="completo"):
@@ -1642,7 +1663,7 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
                 # lo que ya se midio vale y se ensena, con el aviso al lado.
                 if filas:
                     parcial = {"titulo": libro.titulo, "autor": libro.autor,
-                               "palabras": libro.palabras, "ventanas": ventanas,
+                               "palabras": _palabras_del_cuerpo(libro), "ventanas": ventanas,
                                "filas": filas, "modo": modo}
                     yield (_aviso(e) + f"\n\nMedidos {len(filas)} capitulos "
                            f"antes de fallar.", _grafica_analisis(parcial, paleta))
@@ -1657,7 +1678,7 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
                               "ventanas": len(vs), "palabras": c.palabras})
             if filas and (n % cada == 0 or n == total):
                 parcial = {"titulo": libro.titulo, "autor": libro.autor,
-                           "palabras": libro.palabras, "ventanas": ventanas,
+                           "palabras": _palabras_del_cuerpo(libro), "ventanas": ventanas,
                            "filas": filas, "modo": modo}
                 yield (f"Midiendo con el modelo v4: capítulo **{n} de {total}** · "
                        f"{ficha.miles(ventanas)} ventanas leídas."
@@ -1669,7 +1690,7 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
             yield "No pude medir ningún capítulo de este libro.", None
             return
         datos = {"titulo": libro.titulo, "autor": libro.autor,
-                 "palabras": libro.palabras, "ventanas": ventanas,
+                 "palabras": _palabras_del_cuerpo(libro), "ventanas": ventanas,
                  "filas": filas, "modo": modo,
                  "capitulos_medidos": total,
                  "capitulos_totales": len(_capitulos_de_cuerpo(libro))}
@@ -1740,8 +1761,20 @@ def _sinopsis_guardada(libro):
         return None
     if not isinstance(d, dict):
         return None
-    return {k: (v if isinstance(v, list) else str(v))
-            for k, v in d.items() if v is not None}
+    # `temas` es la UNICA lista; lo demas es texto. Antes se dejaba pasar
+    # cualquier lista tal cual, y `de_que_trata` o `para_quien` con una lista
+    # dentro levantaban un AttributeError en el `.strip()` de quien la pinta.
+    # Y al reves: `temas` con una cadena se pintaba letra a letra
+    # -"u · n · a · c · a · d · e · n · a"-.
+    fuera = {}
+    for k, v in d.items():
+        if v is None:
+            continue
+        if k == "temas":
+            fuera[k] = [str(x) for x in (v if isinstance(v, list) else [v])]
+        else:
+            fuera[k] = " ".join(str(x) for x in v) if isinstance(v, list) else str(v)
+    return fuera
 
 
 def _de_que_trata(libro, peticion: gr.Request = None):

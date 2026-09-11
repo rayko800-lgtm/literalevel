@@ -94,6 +94,29 @@ MUTANTES = [
      "    fallo = set(ev.palabras_falladas)",
      "    fallo = set()",
      "marca bien y mal"),
+    # --- Auditoria 15 ------------------------------------------------------
+    ("F15-nan", "app/ui.py",
+     "    return (isinstance(x, (int, float)) and not isinstance(x, bool)" + NL +
+     "            and math.isfinite(x))",
+     "    return isinstance(x, (int, float)) and not isinstance(x, bool)",
+     "los archivos que escribe la app no la tumban"),
+    ("F15-sinopsis-lista", "app/ui.py",
+     "            fuera[k] = " + chr(34) + " " + chr(34) +
+     ".join(str(x) for x in v) if isinstance(v, list) else str(v)",
+     "            fuera[k] = v if isinstance(v, list) else str(v)",
+     "los archivos que escribe la app no la tumban"),
+    ("F15-perfil-carpeta", "app/perfil.py",
+     "    except (json.JSONDecodeError, TypeError, ValueError, OSError):",
+     "    except (json.JSONDecodeError, TypeError, ValueError):",
+     "los archivos que escribe la app no la tumban"),
+    # Se muta la FUNCION y no sus tres usos: el texto de la llamada aparece
+    # tres veces y el arnes exige una sola coincidencia, a proposito.
+    ("F15-curva-palabras", "app/ui.py",
+     "    try:" + NL +
+     "        return ficha.caracteristicas(libro).palabras or libro.palabras",
+     "    try:" + NL +
+     "        return libro.palabras",
+     "la pantalla del libro no se contradice ni en la curva"),
     ("S3-tts", "app/ui.py",
      'elif puede and getattr(r, "llamadas_de_pago", 0) == 0:',
      'elif puede and getattr(r, "desde_cache", False):',

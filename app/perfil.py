@@ -80,7 +80,11 @@ def cargar(ruta: str = RUTA_PERFIL_POR_DEFECTO) -> Perfil | None:
     try:
         with open(ruta, encoding="utf-8") as f:
             p = Perfil(**json.load(f))
-    except (json.JSONDecodeError, TypeError, ValueError):
+    except (json.JSONDecodeError, TypeError, ValueError, OSError):
+        # `OSError` incluido: si `perfil.json` acaba siendo una CARPETA -o sin
+        # permisos- `open` lanza PermissionError/IsADirectoryError, y esto lo
+        # llama `_perfil_inicial`, que corre en `demo.load`: la pagina entera
+        # arrancaba en error para ese lector.
         return None   # perfil corrupto o de una version vieja: se rehace
     # Y el TIPO, que no lo comprobaba nadie: `Perfil(**{"nivel": "abc"})` se
     # construye sin queja y revienta luego, en la aritmetica de quien lo use
