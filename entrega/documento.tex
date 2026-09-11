@@ -872,7 +872,7 @@ terminado. No son «se podría»: son «se hace».
 \addlinespace
 \textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & $\sim$3 h de tarjeta y $\sim$17 h de reloj —el 80\pct{} del tiempo la tarjeta espera a Drive—, dentro del crédito. La descarga va por el volcado de Common Pile: 10,5 GB a 8,0 MB/s, veintidós minutos. El archivo único de 11,3 GB se midió a 0,29 MB/s y se descartó (\S\ref{sec:escalado}) & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
 \addlinespace
-\textbf{A4} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros». Hoy todo eso vive en disco efímero & 12 USD por TB y mes; los datos del lector ocupan 10,9 MB medidos en local el 10 de septiembre de 2026, así que el coste es despreciable & Cerrar y reabrir tras un reinicio conserva libros, avance, cuaderno y perfil \\
+\textbf{A4 · HECHO} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» & 18 USD por TB y mes en repositorio privado; los datos del lector ocupan 10,9 MB medidos, así que el coste es despreciable & \textbf{Cumplido y verificado}: bucket montado en \cod{/data}; se fijó un perfil, se reinició el Space y el perfil seguía ahí \\
 \addlinespace
 \textbf{A5} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla \\
 \addlinespace
@@ -907,7 +907,7 @@ Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correla
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron 8 correcciones \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
 Producto & Robustez & \textbf{Cumplido}: 262 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
-Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha. Sin disco persistente todavía (A4) \\
+Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
 \bottomrule
@@ -2677,10 +2677,13 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         \emph{torch} y los 328 MB del modelo. Está medido: reiniciando el Space,
         \textbf{31 s hasta que el runtime dice \cod{RUNNING} y 32 s hasta que la página
         responde}. Es la cota inferior, porque ahí la imagen del contenedor ya estaba
-        construida; despertar de una suspensión de 48 h añade traerla. Y
-        \textbf{no da almacenamiento persistente}, así que la estantería, el avance de
-        lectura y el cuaderno del lector viven en disco efímero y no sobreviven a un
-        reinicio del contenedor. Lo segundo es la acción A4 de la estrategia.
+        construida; despertar de una suspensión de 48 h añade traerla. El disco del
+        contenedor \textbf{sí es efímero}, y por eso la estantería, el avance de
+        lectura, el cuaderno y el perfil del lector se guardan en un \textbf{bucket de
+        almacenamiento montado en \cod{/data}} (18 USD por TB y mes en repositorio
+        privado, y esto ocupa megas). Verificado de punta a punta: se fijó un perfil,
+        se reinició el Space y el perfil seguía ahí. Era la acción A4 de la estrategia
+        y está cerrada.
   \item \textbf{La prueba de usuario tiene $n = 1$.} Esmeralda es una sola lectora. Su
         valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar fallos
         de usabilidad graves —y encontró varios—, no para estimar satisfacción media.

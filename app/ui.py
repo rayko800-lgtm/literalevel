@@ -662,7 +662,11 @@ def _nivel_desde_libro(p_actual, nombre, archivo, peticion: gr.Request = None):
     try:
         p = perfil_mod.desde_muestra(muestra, puntuador(), nombre=nombre or "")
         p.guardar(_archivo_lector("perfil.json", peticion))
-    except (ValueError, FileNotFoundError, OSError) as e:
+    # `Exception` y no `(ValueError, OSError)`: lo que lanza torch al quedarse
+    # sin memoria es `RuntimeError` -DefaultCPUAllocator: not enough memory- y
+    # lo que lanza `safetensors` con una descarga del Hub cortada tampoco
+    # desciende de OSError. El invariante de la cabecera no dice "casi nunca".
+    except Exception as e:
         return p_actual, _aviso(e), _aviso(e)
     partes = min(PARTES_MUESTRA, len(_cuerpo_para_muestra(libro)))
     texto = (f"Medido con **{libro.titulo}**"
@@ -690,7 +694,11 @@ def _desde_muestra(p_actual, nombre, texto, peticion: gr.Request = None):
     try:
         p = perfil_mod.desde_muestra(texto, puntuador(), nombre=nombre or "")
         p.guardar(_archivo_lector("perfil.json", peticion))
-    except (ValueError, FileNotFoundError, OSError) as e:
+    # `Exception` y no `(ValueError, OSError)`: lo que lanza torch al quedarse
+    # sin memoria es `RuntimeError` -DefaultCPUAllocator: not enough memory- y
+    # lo que lanza `safetensors` con una descarga del Hub cortada tampoco
+    # desciende de OSError. El invariante de la cabecera no dice "casi nunca".
+    except Exception as e:
         return p_actual, _aviso(e), _aviso(e)
     return p, _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas.", _describir(p) + "\n\nGuardado. Ya puedo recomendarte lecturas."
 
@@ -1380,7 +1388,11 @@ def _medir(libro, idx, como="cifra"):
     # este -el boton "¿Como de dificil es este capitulo?"- se habia quedado
     # fuera. `FileNotFoundError` desciende de `OSError`, asi que el mensaje de
     # la carpeta ausente sigue saliendo igual.
-    except (ValueError, OSError) as e:
+    # `Exception` y no `(ValueError, OSError)`: lo que lanza torch al quedarse
+    # sin memoria es `RuntimeError` -DefaultCPUAllocator: not enough memory- y
+    # lo que lanza `safetensors` con una descarga del Hub cortada tampoco
+    # desciende de OSError. El invariante de la cabecera no dice "casi nunca".
+    except Exception as e:
         yield _aviso(e)
         return
     yield (_nivel_dicho(r.puntuacion, r.banda, como)
@@ -1584,9 +1596,13 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
             import numpy as np
             idx = np.linspace(0, len(cuerpo) - 1, RAPIDO_CAPITULOS)
             cuerpo = [cuerpo[i] for i in sorted(set(idx.round().astype(int).tolist()))]
+        # El `try` cubria SOLO `puntuador()`, o sea la construccion. La
+        # llamada que de verdad puntua -`perfil_de_texto`, mas abajo- estaba
+        # fuera de todo `try`, y es la que puede quedarse sin memoria a mitad
+        # de un libro de 366 capitulos. Se envuelve el trabajo entero.
         try:
             p = puntuador()
-        except (FileNotFoundError, OSError) as e:
+        except Exception as e:
             yield _aviso(e), None
             return
 
@@ -1595,8 +1611,21 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
         # Cada cuanto se repinta. Redibujar 366 veces cuesta mas que medir.
         cada = 1 if total <= 30 else max(2, total // 30)
         for n, (i, c) in enumerate(cuerpo, 1):
-            vs = p.perfil_de_texto(ficha.sin_licencia(c.texto),
-                                   tope=RAPIDO_VENTANAS if rapido else 0)
+            try:
+                vs = p.perfil_de_texto(ficha.sin_licencia(c.texto),
+                                       tope=RAPIDO_VENTANAS if rapido else 0)
+            except Exception as e:
+                # Un capitulo que revienta no puede llevarse el libro entero:
+                # lo que ya se midio vale y se ensena, con el aviso al lado.
+                if filas:
+                    parcial = {"titulo": libro.titulo, "autor": libro.autor,
+                               "palabras": libro.palabras, "ventanas": ventanas,
+                               "filas": filas, "modo": modo}
+                    yield (_aviso(e) + f"\n\nMedidos {len(filas)} capitulos "
+                           f"antes de fallar.", _grafica_analisis(parcial, paleta))
+                else:
+                    yield _aviso(e), None
+                return
             if vs:
                 ventanas += len(vs)
                 filas.append({"capitulo": n, "titulo": c.titulo[:40],

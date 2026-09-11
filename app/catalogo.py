@@ -19,11 +19,17 @@ import pandas as pd
 # Solo por `miles()`, el separador de miles en espanol. Es de presentacion y
 # vive alli porque `ui` y este modulo lo necesitan los dos; `ficha` no arrastra
 # nada pesado (re, dataclasses y scoring, que carga torch en perezoso).
+import config
 import ficha
 
 RAIZ = Path(__file__).resolve().parent.parent
 CSV_POR_DEFECTO = RAIZ / "catalogo_recomendaciones.csv"
-DIR_CACHE = Path(os.path.expanduser("~")) / ".literalevel"
+# La cache de embeddings del catalogo. Sale de `config.dir_datos()` como las
+# demas rutas de escritura: clavada a `~/.literalevel` se quedaba en el disco
+# EFIMERO del Space, y cada reinicio recodificaba los 1.197 libros con el
+# modelo multilingue. Medido: 56,9 s en un Ryzen de 12 hilos, y el Space tiene
+# 2 vCPU. Es la espera de la primera busqueda, que en el video sale en camara.
+DIR_CACHE = config.dir_datos()
 
 # Multilingue a proposito: el usuario describe lo que quiere leer en espanol
 # ("algo con mucho suspenso"), y el catalogo esta en ingles.
@@ -180,12 +186,24 @@ class Catalogo:
         if self._emb is not None:
             return self._emb
         DIR_CACHE.mkdir(parents=True, exist_ok=True)
-        cache = DIR_CACHE / f"catalogo_emb_{_huella(self.ruta)}.npy"
-        if cache.exists():
-            emb = np.load(cache)
-            if len(emb) == len(self.df):      # cinturon y tirantes
-                self._emb = emb
-                return emb
+        nombre = f"catalogo_emb_{_huella(self.ruta)}.npy"
+        cache = DIR_CACHE / nombre
+        # Y TAMBIEN en la raiz del repositorio. Ahi es donde viaja el `.npy`
+        # que se sube al Space, y hasta hoy no lo leia nadie: `embeddings`
+        # solo miraba `DIR_CACHE`, que en el Space es otra carpeta. Con esto,
+        # el primer arranque no recodifica nada y ademas se guarda la copia en
+        # la raiz configurable, que si sobrevive al reinicio.
+        for candidata in (cache, RAIZ / nombre):
+            if candidata.exists():
+                emb = np.load(candidata)
+                if len(emb) == len(self.df):      # cinturon y tirantes
+                    if candidata != cache:
+                        try:
+                            np.save(cache, emb)
+                        except OSError:
+                            pass          # sin sitio donde copiarla, da igual
+                    self._emb = emb
+                    return emb
         emb = self._modelo_emb().encode(self._texto_indexable(),
                                         normalize_embeddings=True,
                                         batch_size=64, show_progress_bar=False)

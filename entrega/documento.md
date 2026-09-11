@@ -1209,10 +1209,13 @@ repetirlo en cada párrafo corregido.
     Está medido: reiniciando el Space, **31 s hasta que el runtime dice
     `RUNNING` y 32 s hasta que la página responde**. Es la cota inferior,
     porque ahí la imagen del contenedor ya estaba construida; despertar de
-    una suspensión de 48 h añade traerla; y **no da
-    almacenamiento persistente**, así que la estantería, el avance de lectura y
-    el cuaderno del lector viven en disco efímero y no sobreviven a un
-    reinicio del contenedor. Lo segundo es la acción A4 de la estrategia.
+    una suspensión de 48 h añade traerla. El disco del contenedor **sí es
+    efímero**, y por eso la estantería, el avance de lectura, el cuaderno y el
+    perfil del lector se guardan en un **bucket de almacenamiento montado en
+    `/data`** (18 USD por TB y mes en repositorio privado, y esto ocupa
+    megas). Verificado de punta a punta: se fijó un perfil, se reinició el
+    Space y el perfil seguía ahí. Era la acción A4 de la estrategia y está
+    cerrada.
 13. **La prueba de usuario tiene n = 1.** Esmeralda es una sola lectora. Su
     valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar
     fallos de usabilidad graves —y encontró varios—, no para estimar
@@ -1328,7 +1331,8 @@ criterio de contraste WCAG AA y una interfaz que se puede usar con el pulgar.
 
 **Y queda pendiente lo que más pesa.** La aplicación funciona y ya tiene
 dirección fija, pero sobre el hardware más barato: se suspende por
-inactividad y no guarda nada entre reinicios. El catálogo se está remidiendo.
+inactividad, y el primer visitante tras la siesta paga el arranque en frío.
+El catálogo se está remidiendo.
 Y el cuaderno, aunque ya corre entero desde los pesos publicados, cita las
 métricas del v4 en vez de recalcularlas, porque su corpus de anclaje no es
 redistribuible. Las tres cosas están
@@ -1348,8 +1352,7 @@ por título.
 **Lo que este proyecto recomienda hacer a continuación, en orden de valor por
 hora de trabajo**, está en el documento de estrategia con coste y criterio de
 terminado: terminar la remedición del catálogo, que es lo que separa un
-prototipo de un producto; montar almacenamiento persistente, sin el cual el
-lector pierde su estantería en cada reinicio; y calibrar la escala, que es la
+prototipo de un producto; y calibrar la escala, que es la
 diferencia entre decirle a alguien que un libro es A2 y que lo sea.
 
 ---

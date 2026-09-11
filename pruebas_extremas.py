@@ -3685,8 +3685,14 @@ def _una_sola_raiz_de_datos():
         "tmp = tempfile.mkdtemp()" + chr(10) +
         "os.environ['LITERALEVEL_DATOS'] = tmp" + chr(10) +
         "sys.path.insert(0, %r)" % str(pathlib.Path(__file__).parent / "app") + chr(10) +
-        "import config, ui, lexicon, voz" + chr(10) +
+        "import catalogo, config, ui, lexicon, voz" + chr(10) +
         "rutas = {" + chr(10) +
+        # La decima. Se quedo fuera cuando se escribio esta prueba, la prueba
+        # decia 'TODO' igual, y con ella fuera la cache del catalogo seguia
+        # yendo al disco efimero del Space: 56,9 s de recodificar en cada
+        # arranque. Una lista escrita a mano miente en cuanto alguien anade
+        # una ruta, asi que lo que hay que mirar es que no falte ninguna." + chr(10) +
+        "  'catalogo.DIR_CACHE': str(catalogo.DIR_CACHE)," + chr(10) +
         "  'BASE_DATOS_LECTOR': str(ui.BASE_DATOS_LECTOR)," + chr(10) +
         "  'RUTAS_PERMITIDAS': ui.RUTAS_PERMITIDAS[0]," + chr(10) +
         "  'RUTA_LIBROS': str(ui.RUTA_LIBROS)," + chr(10) +
@@ -3709,6 +3715,70 @@ def _una_sola_raiz_de_datos():
 
 
 prueba("una sola raiz de datos, configurable", _una_sola_raiz_de_datos)
+
+
+def _el_modelo_puede_reventar_de_cualquier_forma():
+    """Los cuatro manejadores del modelo, contra lo que NO es ValueError ni OSError.
+
+    La cabecera de este modulo declara que ningun manejador levanta hacia
+    Gradio. Se cumplia para `ValueError` y `OSError` y para nada mas, y la
+    prueba que lo cubria solo lanzaba `OSError` y solo contra `_medir`.
+
+    Lo que lanza torch al quedarse sin memoria es `RuntimeError`
+    -"DefaultCPUAllocator: not enough memory"-, y lo que lanza `safetensors`
+    con una descarga del Hub cortada en un arranque en frio tampoco desciende
+    de OSError. En `cpu-basic`, con dos analisis completos encolados, no es
+    exotico.
+
+    Se prueban las cuatro puertas con tres excepciones distintas, y se exige
+    que vuelva texto con el aviso en vez de una traza.
+    """
+    class Revienta:
+        def __init__(self, que):
+            self.que = que
+
+        def puntuar(self, *a, **k):
+            raise self.que
+
+        def perfil_de_texto(self, *a, **k):
+            raise self.que
+
+    libro = ui._abrir(escribir(
+        "revienta.txt", "The rain fell on the moor and the train ran west. " * 120))[0]
+    assert libro is not None
+
+    viejo = ui.puntuador
+    malos = []
+    try:
+        for que in (RuntimeError("DefaultCPUAllocator: not enough memory"),
+                    MemoryError("sin memoria"),
+                    KeyError("safetensors")):
+            ui.puntuador = lambda q=que: Revienta(q)
+            casos = {
+                "_medir": lambda: list(ui._medir(libro, 0)),
+                "_analizar_libro": lambda: list(ui._analizar_libro(libro, "rapido")),
+                "_desde_muestra": lambda: ui._desde_muestra(
+                    None, "x", "The rain fell on the moor and the train ran west. " * 40),
+                "_nivel_desde_libro": lambda: ui._nivel_desde_libro(
+                    None, "x", escribir("revienta2.txt",
+                                        "The rain fell on the moor. " * 400)),
+            }
+            for nombre, fn in casos.items():
+                try:
+                    salida = str(fn())
+                except Exception as e:
+                    malos.append(f"{nombre} LEVANTA {type(e).__name__} con {type(que).__name__}")
+                    continue
+                if "[!]" not in salida:
+                    malos.append(f"{nombre} no avisa con {type(que).__name__}: {salida[:90]}")
+    finally:
+        ui.puntuador = viejo
+    assert not malos, malos
+    return "las cuatro puertas del modelo avisan en vez de levantar"
+
+
+prueba("el modelo puede reventar de cualquier forma",
+       _el_modelo_puede_reventar_de_cualquier_forma)
 
 
 # --- Resultado ------------------------------------------------------------

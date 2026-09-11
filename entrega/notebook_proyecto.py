@@ -1950,11 +1950,13 @@ plt.show()
 #    sin medir en 61.642 libros medidos **libro entero,
 #    capítulo a capítulo**, y jubilan definitivamente las etiquetas del v1 cuyo
 #    fracaso documenta la Figura 8.
-# 3. **Almacenamiento persistente para el lector.** El despliegue permanente ya
-#    está hecho —`MikeMaki1763/literalevel` en Hugging Face Spaces, público y en
-#    marcha, 7 USD/mes de cuenta Pro—, pero sobre disco efímero: la estantería,
-#    el avance y el cuaderno del lector no sobreviven a un reinicio, y el
-#    servicio se suspende tras 48 h sin visitas. Consumo medido: **1,05 GB de
+# 3. **Más lectores, ahora que los datos se conservan.** El despliegue
+#    permanente está hecho —`MikeMaki1763/literalevel` en Hugging Face Spaces,
+#    público y en marcha, 7 USD/mes de cuenta Pro— y desde el 10 de septiembre
+#    de 2026 la estantería, el avance, el cuaderno y el perfil del lector viven
+#    en un bucket montado en `/data` y sobreviven a un reinicio. Lo que sigue
+#    siendo cierto es que el servicio se suspende tras 48 h sin visitas y que
+#    el primero en volver paga el arranque. Consumo medido: **1,05 GB de
 #    RSS** con modelo y catálogo cargados, con pico realista de 1,2-1,5 GB, y
 #    575 MB en disco. Eso **descarta cualquier plan de 512 MB de memoria**.
 # 4. **Cerrar el ciclo de usuario con más lectores como Esmeralda.** El primero
