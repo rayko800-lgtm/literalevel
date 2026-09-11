@@ -887,7 +887,11 @@ def _rutas_permitidas():
     ruta permitida fuese `~/.literalevel` entera, cualquiera se descargaria
     `cuaderno.db`, `voz.db`, `perfil.json` y `sesion.json` de los demas.
     """
-    base = Path(os.path.expanduser("~")) / ".literalevel"
+    # La raiz CONFIGURADA, no `~/.literalevel` a pelo: desde que la app puede
+    # apuntar sus datos a un disco persistente, `RUTAS_PERMITIDAS` cuelga de
+    # `LITERALEVEL_DATOS`, y esta prueba media contra otra carpeta -pasaba por
+    # casualidad, porque en local las dos coinciden-.
+    base = ui.BASE_DATOS_LECTOR
     audio = base / "audio"
 
     def cubierta(ruta):
@@ -3659,6 +3663,52 @@ def _la_poda_de_sesiones_no_tira_al_que_sigue_leyendo():
 
 prueba("la poda de sesiones no tira al que sigue leyendo",
        _la_poda_de_sesiones_no_tira_al_que_sigue_leyendo)
+
+
+def _una_sola_raiz_de_datos():
+    """Todo lo que la app escribe cuelga de `LITERALEVEL_DATOS`. TODO.
+
+    Es lo que permite montar un disco persistente en un Space sin tocar codigo,
+    y `DESPLIEGUE.md` lo prometia -"no hace falta tocar codigo, solo la ruta
+    base"- cuando era falso a medias: la carpeta de audio que Gradio sirve, los
+    libros descargados, la cache de lexico, la de audio y `voz.db` estaban
+    clavadas a `~/.literalevel`. Las dos caches son las que evitan volver a
+    PAGAR a OpenAI por lo mismo, asi que perderlas en cada reinicio cuesta
+    dinero de verdad.
+
+    Esta prueba corre en un proceso aparte a proposito: las rutas se resuelven
+    al importar cada modulo, y esta suite ya tiene la suya fijada.
+    """
+    import subprocess
+    guion = (
+        "import os, sys, tempfile" + chr(10) +
+        "tmp = tempfile.mkdtemp()" + chr(10) +
+        "os.environ['LITERALEVEL_DATOS'] = tmp" + chr(10) +
+        "sys.path.insert(0, %r)" % str(pathlib.Path(__file__).parent / "app") + chr(10) +
+        "import config, ui, lexicon, voz" + chr(10) +
+        "rutas = {" + chr(10) +
+        "  'BASE_DATOS_LECTOR': str(ui.BASE_DATOS_LECTOR)," + chr(10) +
+        "  'RUTAS_PERMITIDAS': ui.RUTAS_PERMITIDAS[0]," + chr(10) +
+        "  'RUTA_LIBROS': str(ui.RUTA_LIBROS)," + chr(10) +
+        "  'RUTA_ANALISIS': str(ui.RUTA_ANALISIS)," + chr(10) +
+        "  'RUTA_SESION': str(ui.RUTA_SESION)," + chr(10) +
+        "  'lexicon.RUTA_CACHE': str(lexicon.RUTA_CACHE)," + chr(10) +
+        "  'lexicon.RUTA_AUDIO_GENERADO': str(lexicon.RUTA_AUDIO_GENERADO)," + chr(10) +
+        "  'voz.RUTA_DB_POR_DEFECTO': str(voz.RUTA_DB_POR_DEFECTO)," + chr(10) +
+        "  'voz.RUTA_AUDIO_GENERADO': str(voz.RUTA_AUDIO_GENERADO)," + chr(10) +
+        "}" + chr(10) +
+        "fuera = {k: v for k, v in rutas.items() if not v.startswith(tmp)}" + chr(10) +
+        "print(len(rutas), fuera)" + chr(10))
+    r = subprocess.run([sys.executable, "-X", "utf8", "-c", guion],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=600)
+    assert r.returncode == 0, r.stderr[-600:]
+    cuantas, _, resto = r.stdout.strip().partition(" ")
+    assert resto == "{}", f"rutas clavadas fuera de la raiz: {resto}"
+    return f"las {cuantas} rutas de escritura cuelgan de LITERALEVEL_DATOS"
+
+
+prueba("una sola raiz de datos, configurable", _una_sola_raiz_de_datos)
 
 
 # --- Resultado ------------------------------------------------------------

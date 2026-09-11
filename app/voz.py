@@ -23,8 +23,10 @@ from pydantic import BaseModel, Field
 
 import config
 
-RUTA_DB_POR_DEFECTO = os.path.join(os.path.expanduser("~"), ".literalevel", "voz.db")
-RUTA_AUDIO_GENERADO = Path(os.path.expanduser("~")) / ".literalevel" / "audio"
+# Bajo la raiz configurable de `config`, por lo mismo que en `lexicon`: el
+# disco de un Space se borra al reiniciar.
+RUTA_DB_POR_DEFECTO = str(config.dir_datos() / "voz.db")
+RUTA_AUDIO_GENERADO = config.dir_datos() / "audio"
 
 # Modelos: gpt-4o-mini basta y abarata la explicacion breve; whisper-1 y
 # tts-1 son los unicos disponibles para voz.

@@ -51,6 +51,7 @@ from pathlib import Path
 
 import numpy as np
 
+import config
 from config import obtener
 from scoring import public_band
 
@@ -60,8 +61,12 @@ RAIZ = Path(__file__).resolve().parent.parent
 # volumen de solo lectura fuera del repositorio.
 RUTA_DICCIONARIO = Path(os.environ.get("LITERALEVEL_DICCIONARIO",
                                        RAIZ / "kaikki_diccionario.db"))
-RUTA_CACHE = Path(os.path.expanduser("~")) / ".literalevel" / "lexicon.db"
-RUTA_AUDIO_GENERADO = Path(os.path.expanduser("~")) / ".literalevel" / "audio"
+# Bajo la raiz configurable de `config`: en un Space el disco del contenedor
+# es efimero, y estas dos son las caches que EVITAN VOLVER A PAGAR. Perder
+# `lexicon.db` significa pagar otra vez la explicacion de cada palabra ya
+# consultada, y perder el audio significa otro tts-1 por palabra.
+RUTA_CACHE = config.dir_datos() / "lexicon.db"
+RUTA_AUDIO_GENERADO = config.dir_datos() / "audio"
 
 MODELO_EMBEDDINGS = "all-MiniLM-L6-v2"
 MODELO_OPENAI_POR_DEFECTO = "gpt-5"

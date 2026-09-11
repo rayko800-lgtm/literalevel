@@ -136,7 +136,9 @@ todas reproducibles con un guion del repo.
   A7. No se toca sin validar contra el catálogo, y el catálogo aún no está.
 - **Publicar el diccionario Kaikki** (243 MB). El guion de subida existe; es la
   mitad que falta del accionable A1.
-- **Disco persistente en el Space** (A4). Sin él, la estantería del lector no
-  sobrevive a un reinicio del contenedor.
+- ~~**Disco persistente en el Space** (A4)~~ **HECHO** el 10 de septiembre de
+  2026 por la noche. Bucket privado `MikeMaki1763/literalevel-datos` montado en
+  `/data`, con `LITERALEVEL_DATOS=/data`. Verificado reiniciando el Space: el
+  perfil sigue ahí. Detalle en `DESPLIEGUE.md`.
 - **El modelo v2 de Codex.** Gana en material graduado y pierde en literatura,
   que es nuestro caso de uso. No entra en esta entrega.

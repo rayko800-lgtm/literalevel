@@ -150,8 +150,34 @@ Cuando ahí solo había cachés (léxico, audio) daba igual: se rehacen solas y 
 | `perfil.json` | el nivel del lector, y habría que rehacer el cuestionario |
 
 Un Space que se duerme y despierta con la estantería vacía deja en ridículo la
-pestaña *Mis libros*. El Space de hoy no lo tiene: hay que montar almacenamiento
-persistente, y es el accionable A4.
+pestaña *Mis libros*.
+
+> **HECHO el 10 de septiembre de 2026 por la noche (accionable A4 cerrado).**
+> Hay un **Storage Bucket privado**, `MikeMaki1763/literalevel-datos`, montado
+> en `/data` del Space, y la variable `LITERALEVEL_DATOS=/data` apuntando la app
+> ahí. Verificado de punta a punta: se fijó un perfil, se **reinició el Space** y
+> el `perfil.json` seguía en el bucket.
+>
+> Lo que hubo que arreglar en el código: este documento prometía que «no hace
+> falta tocar código, solo la ruta base», y era verdad **a medias**. Los cuatro
+> archivos que importan ya colgaban de `LITERALEVEL_DATOS`, pero la carpeta de
+> audio que Gradio sirve, los libros descargados, `voz.db` y las **dos cachés
+> que evitan volver a pagar a OpenAI** —`lexicon.db` y el audio de tts-1—
+> estaban clavadas a `~/.literalevel`. Ahora las nueve rutas de escritura salen
+> de `config.dir_datos()`, y una prueba lo exige.
+>
+> **Y SQLite sobre el montaje funciona**, que era el riesgo de verdad: un bucket
+> se monta por NFS/FUSE y SQLite en modo WAL no vale ahí. Este proyecto no usa
+> WAL —no toca ningún `PRAGMA`, así que va en `journal_mode=DELETE`, que sí
+> funciona—. Comprobado en el Space: una consulta léxica escribió `cuaderno.db`
+> (16 KB) y `lexicon.db` (20 KB) en el bucket sin un solo error. Si alguna vez
+> saliera un «database is locked» con varios visitantes a la vez, `_consultar`
+> lo atrapa y devuelve el uso del cupo: degrada, no revienta.
+>
+> **Coste:** 18 USD/TB al mes en repositorio privado (12 si fuera público), y
+> hay franja gratuita. Con 20 KB dentro, no suma nada a la factura; privado y no
+> público porque ahí viven el cuaderno de vocabulario, el perfil y la estantería
+> de cada lector.
 
 La buena noticia es el precio: los Storage Buckets del Hub cuestan **12 $/TB al
 mes** en repositorio público y 18 $/TB en privado. Esto ocupa unos cientos de

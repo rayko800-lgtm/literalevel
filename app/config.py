@@ -19,6 +19,26 @@ RUTA_ENV = RUTAS_ENV[0]
 CLAVES = ("OPENAI_API_KEY",)
 
 
+def dir_datos() -> Path:
+    """LA raiz de todo lo que la app escribe. Una sola, y configurable.
+
+    Por defecto `~/.literalevel`. Con `LITERALEVEL_DATOS` se mueve entera, y eso
+    es lo que permite montar un disco persistente en un Space sin tocar codigo:
+    el disco del contenedor es EFIMERO y ahi viven la estanteria del lector, su
+    cuaderno de vocabulario, su perfil, las curvas ya calculadas, los libros
+    descargados y las caches de lexico y de audio que evitan volver a pagar a
+    OpenAI por lo mismo.
+
+    Se lee en cada llamada y no se guarda en una constante de modulo: las
+    pruebas fijan `LITERALEVEL_DATOS` a un temporal, y una constante congelada
+    en el import las haria escribir en los datos de verdad segun el orden de los
+    imports. Aqui ya paso: la bateria de pruebas abria libro.txt, vacio.txt y
+    falso.txt y los anotaba en la biblioteca de Miguel.
+    """
+    return Path(os.environ.get("LITERALEVEL_DATOS",
+                               Path(os.path.expanduser("~")) / ".literalevel"))
+
+
 def cargar(rutas=RUTAS_ENV) -> None:
     """Mete las variables de los archivos de claves en os.environ.
 

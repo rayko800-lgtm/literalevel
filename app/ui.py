@@ -83,7 +83,7 @@ TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
 # autenticacion cuando el Space es publico. Apuntar al directorio padre
 # regalaba `cuaderno.db`, `voz.db`, `perfil.json` y `sesion.json` a cualquiera
 # que escribiera la ruta, y los nombres estan en este mismo repositorio.
-RUTAS_PERMITIDAS = [os.path.join(os.path.expanduser("~"), ".literalevel", "audio")]
+RUTAS_PERMITIDAS = [str(config.dir_datos() / "audio")]
 
 # --- Datos personales: uno por lector, no uno para todos ------------------
 # En local hay un solo lector y todo vive en ~/.literalevel. En un despliegue
@@ -93,13 +93,14 @@ RUTAS_PERMITIDAS = [os.path.join(os.path.expanduser("~"), ".literalevel", "audio
 # `demo.load` se ejecuta en cada carga de pagina y pintaria el capitulo del
 # PDF privado del visitante anterior.
 
-# Configurable por entorno para que las PRUEBAS no escriban en los datos
-# reales de quien ejecuta la app. No es teoria: la bateria de pruebas extremas
-# abre libro.txt, vacio.txt, falso.txt... y los iba anotando en la biblioteca
-# de verdad. Miguel abrio "Mis libros" en el movil y se encontro 24 archivos de
-# prueba entre sus cuatro libros. Las pruebas ahora apuntan a un temporal.
-BASE_DATOS_LECTOR = Path(os.environ.get(
-    "LITERALEVEL_DATOS", Path(os.path.expanduser("~")) / ".literalevel"))
+# Configurable por entorno (`LITERALEVEL_DATOS`, ver `config.dir_datos`) para
+# dos cosas distintas. Una: que las PRUEBAS no escriban en los datos reales de
+# quien ejecuta la app -la bateria abre libro.txt, vacio.txt, falso.txt... y los
+# iba anotando en la biblioteca de verdad; Miguel abrio "Mis libros" en el movil
+# y se encontro 24 archivos de prueba entre sus cuatro libros-. Y dos: que en un
+# Space se pueda apuntar a un DISCO PERSISTENTE, porque el del contenedor se
+# borra en cada reinicio y ahi vive todo lo del lector.
+BASE_DATOS_LECTOR = config.dir_datos()
 EN_LA_NUBE = bool(os.environ.get("SPACE_ID") or os.environ.get("PORT"))
 _SESION_SEGURA = re.compile(r"[^A-Za-z0-9_-]")
 
@@ -781,7 +782,10 @@ def _buscar(p, consulta, ajustar, n):
             _opciones_libros(libros))
 
 
-RUTA_LIBROS = Path(os.path.expanduser("~")) / ".literalevel" / "libros"
+# Bajo la raiz configurable, no bajo `~` a pelo: si el Space monta un disco
+# persistente, los libros descargados sobreviven al reinicio y no hay que
+# volver a pedirlos a gutenberg.org.
+RUTA_LIBROS = BASE_DATOS_LECTOR / "libros"
 
 
 def _esta_cacheado(id_libro: str) -> bool:
