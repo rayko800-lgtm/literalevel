@@ -3867,7 +3867,22 @@ def _la_pantalla_del_libro_no_se_contradice():
         f"la cabecera dice otra cosa que la ficha ({cuenta}): {resumen[:140]}"
     ficha_texto = ui._ficha_libro(libro)
     assert cuenta in ficha_texto, f"la ficha dice otra cosa: {ficha_texto[:140]}"
-    return f"cabecera y ficha dicen las mismas {cuenta} palabras"
+
+    # Y tampoco se contradicen en el SINGULAR. Con un libro de un capitulo la
+    # cabecera decia "1 capítulos" y la ficha, tres lineas mas abajo,
+    # "1 capítulo": la misma pantalla, dos formas de contar lo mismo.
+    uno, _, _, _ = ui._abrir(escribir(
+        "un_capitulo.txt",
+        "The lantern swung above the quiet harbour wall and nobody moved. " * 40))
+    assert uno is not None and len(uno.capitulos) == 1, (
+        f"el libro de prueba no tiene un solo capitulo: {uno and len(uno.capitulos)}")
+    cab_uno = ui._abrir(escribir(
+        "un_capitulo_b.txt",
+        "The lantern swung above the quiet harbour wall and nobody moved. " * 40))[3]
+    assert "1 capítulo " in cab_uno and "1 capítulos" not in cab_uno, (
+        f"la cabecera no concuerda en singular: {cab_uno[:140]}")
+    assert "1 capítulos" not in ui._ficha_libro(uno), "y la ficha tampoco"
+    return f"cabecera y ficha dicen las mismas {cuenta} palabras, y el singular"
 
 
 prueba("la pantalla del libro no se contradice",
@@ -5413,16 +5428,40 @@ def _abrir_un_libro_no_pinta_un_error_rojo():
         f"el indice queda seleccionado en {val} y sus opciones son {indices[:5]}…: "
         "eso es el recuadro rojo de Gradio")
 
-    # 2. Y los casos torcidos que Gradio sabe mandar.
-    for actual in (None, "3", -1, 99, float("nan"), [1]):
+    # 2. Y los casos torcidos que Gradio sabe mandar. El valor tiene que ser
+    #    **None**, no «cualquiera que este dentro de rango»: con un respaldo
+    #    de `0` el indice marcaria el capitulo 1 y, viniendo de `indice.select`,
+    #    te mandaria al capitulo 1 de un libro que acabas de abrir por otro
+    #    sitio. Un mutante con `else 0` pasaba la version anterior de esto.
+    for actual in (None, -1, 99, float("nan"), [1], "hola"):
         ops, val = opciones_y_valor(ui._indice_de(_Libro(5), actual))
-        idx = [o[1] if isinstance(o, (list, tuple)) else o for o in (ops or [])]
-        assert val is None or val in idx, f"con actual={actual!r} sale value={val!r}"
+        assert val is None, (
+            f"con actual={actual!r} el indice se queda marcado en {val!r}: "
+            "si no vale, no se marca nada")
+    # Un numero en texto SI vale -Gradio los manda asi- y marca su capitulo.
+    _, val = opciones_y_valor(ui._indice_de(_Libro(5), "3"))
+    assert val == 3, f"«3» tendria que marcar el capitulo 4, y sale {val!r}"
 
     # 3. Un valor bueno SI se conserva: si no, el indice no marcaria nunca
     #    donde estas y esta prueba se cumpliria sola.
     ops, val = opciones_y_valor(ui._indice_de(_Libro(12), 3))
     assert val == 3, f"un capitulo valido tiene que quedar marcado, y sale {val!r}"
+
+    # 3b. Y los DOS mandos dicen exactamente lo mismo. Son dos vistas del
+    #     mismo estado -el desplegable de arriba y el indice de abajo- y el
+    #     comentario del codigo lo promete; hasta ahora no lo probaba nadie, y
+    #     reconstruir las etiquetas en `_abrir` con otro formato pasaba entero.
+    ruta_dos = escribir(
+        "dos_mandos.txt",
+        "CHAPTER I\n" + "The rain fell on the quiet moor and the train ran west. " * 20
+        + "\n\nCHAPTER II\n" + "She opened the window and the cold air came in. " * 20)
+    libro_dos, upd_cap, _, _ = ui._abrir(ruta_dos)
+    assert libro_dos is not None, "no se pudo abrir el libro de dos capitulos"
+    ops_cap, _ = opciones_y_valor(upd_cap)
+    ops_ind, _ = opciones_y_valor(ui._indice_de(libro_dos, 0))
+    assert ops_cap == ops_ind, (
+        f"el desplegable y el indice ofrecen etiquetas distintas del mismo "
+        f"libro:\n  desplegable {ops_cap}\n  indice      {ops_ind}")
 
     # 4. Y el descargador no puede VACIAR el desplegable mientras trabaja.
     #    Es el disparador de verdad, aislado en el Space: con un libro ya
@@ -5439,8 +5478,72 @@ def _abrir_un_libro_no_pinta_un_error_rojo():
             f"{etiqueta}: el descargador vacia el desplegable de capitulos "
             f"({choices_de(primero[1])!r}), y eso borra el indice del libro "
             "que se estaba leyendo y pinta un Error rojo")
+        # Y tampoco tira el LECTOR entero: pulsar sin elegir nada no puede
+        # dejarte sin el libro que estabas leyendo y con el desplegable
+        # lleno de sus capitulos. Mandos vivos sobre un lector vacio.
+        assert primero[0] == ui.gr.skip(), (
+            f"{etiqueta}: te quita el libro que estabas leyendo ({primero[0]!r})")
+        assert primero[2] == ui.gr.skip(), (
+            f"{etiqueta}: te borra el texto del libro que estabas leyendo")
 
-    # 5. Y NINGUN manejador de los dos mandos puede mandar un valor pelado.
+    # 4b. Y el ULTIMO yield, el que abre el libro de verdad, tiene que traer
+    #     el desplegable LLENO. Dejarlo vacio ahi abre el libro sin desplegable
+    #     y sin indice —el paso estrella de la demo, con los dos mandos
+    #     muertos— y las siete suites seguian en verde: ninguna pasa por
+    #     `_abrir_del_catalogo`. Se dobla la descarga para no salir a la red.
+    viejo_bajar = ui._descargar_gutenberg
+    try:
+        ui._descargar_gutenberg = lambda i: ruta_dos
+        ultimo = None
+        for tramo in ui._abrir_del_catalogo("PG-de-mentira"):
+            ultimo = tramo
+    finally:
+        ui._descargar_gutenberg = viejo_bajar
+    assert ultimo is not None, "el descargador no llego a devolver nada"
+    assert ultimo[0] is not None and getattr(ultimo[0], "capitulos", None), (
+        f"el descargador no deja el libro abierto: {ultimo[0]!r}")
+    ops_fin, val_fin = opciones_y_valor(ultimo[1])
+    assert ops_fin and len(ops_fin) == len(ultimo[0].capitulos), (
+        f"el libro se abre con el desplegable de capitulos vacio o a medias "
+        f"({ops_fin!r}): los dos mandos quedan muertos")
+    idx_fin = [o[1] if isinstance(o, (list, tuple)) else o for o in ops_fin]
+    assert val_fin in idx_fin, (
+        f"el desplegable abre marcando {val_fin!r}, que no esta entre sus "
+        f"opciones")
+
+    # Y «Retomar donde lo dejé», que es el mismo camino y se quedo sin arreglar
+    # la primera vez. Sus DOS salidas: la de "no has elegido nada" y la de
+    # "abriendo". El banco enseno que probar solo la primera no vale: el
+    # mutante que vacia el desplegable en la segunda sobrevivia entero.
+    for entrada, etiqueta in ((None, "sin elegir"),
+                              (escribir("retomar.txt", "word " * 300), "abriendo")):
+        primero = next(iter(ui._seguir_leyendo(entrada)))
+        assert choices_de(primero[1]) == "sin tocar", (
+            f"«Retomar donde lo dejé» ({etiqueta}) vacia el desplegable de "
+            "capitulos: pinta el mismo Error rojo siempre que ya hay un libro "
+            "abierto")
+
+    # 5. Y NINGUN manejador puede LEER el desplegable de capitulos como
+    #    entrada cuando lo que dispara es el cambio de LIBRO. Esta es la
+    #    linea del recuadro rojo de verdad, y la anterior no la cubria:
+    #    abrir un libro es una generadora, cambia `est_libro` y `cap` a la vez,
+    #    y el evento del libro se dispara con el valor VIEJO del desplegable.
+    #    Si ese capitulo no existe en el libro nuevo -el 90 de «Karamazov» y
+    #    un libro de 24 capitulos- Gradio lo rechaza en `Dropdown.preprocess`,
+    #    ANTES de llamar a la funcion, asi que validar dentro no sirve.
+    #    `est_libro` es un `gr.State` y su valor vive en el servidor: ese si
+    #    llega al dia.
+    import re as _re
+    fuente2 = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    for m in _re.finditer(r"est_libro\.change\(([^)]*)\)", fuente2):
+        args = m.group(1)
+        assert "cap" not in _re.findall(r"[a-z_]+", args), (
+            f"`est_libro.change` vuelve a leer el desplegable de capitulos "
+            f"({args.strip()}): en una generadora ese valor llega rancio y "
+            "Gradio pinta el Error rojo antes de entrar en la funcion")
+
+    # 6. Y NINGUN manejador de los dos mandos puede mandar un valor pelado.
     #    Son `cap` (el desplegable) e `indice` (el radio de abajo), y los dos
     #    tienen `choices`: meterles un valor mientras sus opciones estan vacias
     #    -lo estan un instante, porque `_abrir_del_catalogo` es generadora y su
@@ -5544,6 +5647,14 @@ def _la_ficha_no_promete_un_ritmo_que_no_sabe():
             f"promete «a tu ritmo» sin haber medido el libro: {sin[:200]}")
         assert sin.count(" y ") >= 1 and "entre" in sin, (
             f"tendria que dar las dos velocidades: {sin[:200]}")
+        # Y EN ESE ORDEN: «entre 18 h 52 y 30 h 52», no al reves. Con solo
+        # exigir «entre» y « y », un rango invertido pasaba igual.
+        c = ficha_mod.caracteristicas(_Libro())
+        comodo, exigente_t = ficha_mod.reloj(c.minutos(False)), ficha_mod.reloj(c.minutos(True))
+        assert comodo in sin and exigente_t in sin, (
+            f"el rango no trae los dos tiempos ({comodo} / {exigente_t}): {sin[:200]}")
+        assert sin.index(comodo) < sin.index(exigente_t), (
+            f"el rango va al reves: dice «{exigente_t}» antes que «{comodo}»")
 
         # b) Con analisis y el libro por encima del lector: ahi si se moja.
         ui._analisis_guardado = lambda *a, **k: {

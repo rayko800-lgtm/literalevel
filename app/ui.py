@@ -971,7 +971,6 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
     usuario pulsaba el boton y no veia nada: ni espera, ni error, porque todas
     las salidas estaban en una pestana a la que no se saltaba si algo fallaba.
     """
-    vacio = gr.update(choices=[], value=None)
     # El desplegable de capitulos NO SE TOCA mientras esto trabaja. Vaciarlo
     # era el recuadro rojo de la auditoria 16: si ya hay un libro abierto -y lo
     # hay siempre que se haya leido algo antes, porque `_reanudar` lo repinta
@@ -981,9 +980,15 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
     # el no. Y ademas vaciarlo estaba mal por si solo: pulsar «Leerlo ahora»
     # sin elegir nada te borraba el indice del libro que estabas leyendo.
     sin_tocar = gr.update()
-    quieto = (None, sin_tocar, _html_lectura(""), gr.update(), gr.Tabs())
+    # Y mientras trabaja NO SE TOCA EL LECTOR ENTERO, no solo el desplegable.
+    # Antes esto ponia el libro a `None` y borraba el texto: pulsar «Leerlo
+    # ahora» sin elegir nada, o que se cayera la descarga, te dejaba sin el
+    # libro que estabas leyendo y con el desplegable lleno de sus capitulos.
+    # Mandos vivos sobre un lector vacio. `gr.skip()` deja cada salida como
+    # esta; lo unico que cambia es el aviso, que es lo que hay que decir.
+    quieto = (gr.skip(), sin_tocar, gr.skip(), gr.skip(), gr.Tabs())
     if not id_libro:
-        yield quieto[:3] + ("Elige un libro de la lista.", gr.Tabs(),
+        yield quieto[:3] + (gr.skip(), gr.Tabs(),
                             "Elige un libro de la lista.")
         return
     # Esta SI lleva tope por hora, aunque no cueste dinero, y no contradice la
@@ -1017,7 +1022,10 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
         return
     libro, upd, html, resumen = _abrir(ruta, peticion)
     if libro is None:
-        yield None, vacio, _html_lectura(""), resumen, gr.Tabs(), _aviso(resumen)
+        # Tampoco aqui se tira el lector. Que el libro NUEVO no se pueda abrir
+        # no es razon para dejarte sin el que estabas leyendo; se dice lo que
+        # ha pasado y se queda todo como estaba.
+        yield gr.skip(), sin_tocar, gr.skip(), gr.skip(), gr.Tabs(), _aviso(resumen)
         return
     yield libro, upd, html, resumen, gr.Tabs(selected="leer"), ""
 
@@ -1413,8 +1421,12 @@ def _abrir(archivo, peticion: gr.Request = None):
         palabras = ficha.caracteristicas(libro).palabras or libro.palabras
     except Exception:
         palabras = libro.palabras      # la cabecera nunca puede tumbar el libro
+    # El singular importa: con un .txt de un capitulo la cabecera decia
+    # "1 capítulos" y la ficha, tres lineas mas abajo, "1 capítulo".
+    n_caps = len(libro.capitulos)
     resumen = (f"**{libro.titulo}** — {libro.autor or 'autor desconocido'} · "
-               f"{len(libro.capitulos)} capítulos · {ficha.miles(palabras)} palabras")
+               f"{n_caps} {'capítulo' if n_caps == 1 else 'capítulos'} · "
+               f"{ficha.miles(palabras)} palabras")
     if inicial:
         resumen += (f"\n\n_Empiezo en el capítulo {inicial + 1}: "
                     f"los anteriores son portadilla._")
@@ -3022,12 +3034,17 @@ def _mis_libros(peticion: gr.Request = None):
 
 def _seguir_leyendo(ruta_libro, peticion: gr.Request = None):
     """Reabre un libro de la estanteria por el capitulo donde se quedo."""
+    # El desplegable de capitulos NO se vacia mientras esto trabaja, por lo
+    # mismo que en `_abrir_del_catalogo`: quitarle las opciones a un
+    # componente que conserva su valor hace que Gradio pinte un Error rojo
+    # encima del libro. Aqui se quedo sin arreglar la primera vez.
     vacio = gr.update(choices=[], value=None)
+    sin_tocar = gr.update()
     if not ruta_libro:
-        yield (None, vacio, _html_lectura(""), gr.update(), gr.Tabs(),
+        yield (None, sin_tocar, _html_lectura(""), gr.update(), gr.Tabs(),
                "Elige uno de tus libros.")
         return
-    yield (None, vacio, _html_lectura(""), gr.update(), gr.Tabs(),
+    yield (None, sin_tocar, _html_lectura(""), gr.update(), gr.Tabs(),
            "Abriendo…")
     # El capitulo guardado se lee ANTES de abrir: `_abrir` vuelve a anotar el
     # libro en la biblioteca con su capitulo inicial, asi que leerlo despues
@@ -3430,22 +3447,34 @@ def construir() -> gr.Blocks:
                 # asi que no hay dos estados que puedan discrepar.
                 b_prev2.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
                 b_next2.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
-                est_libro.change(_indice_de, [est_libro, cap], indice)
+                # **`cap` NO entra aqui, y esa es la linea del recuadro rojo.**
+                #
+                # Cuando cambia el libro, este manejador leia tambien el
+                # desplegable de capitulos. Los manejadores que abren un libro
+                # son GENERADORAS y cambian `est_libro` y `cap` a la vez, asi
+                # que este evento se dispara con el valor VIEJO del desplegable
+                # -medido en la traza de red: recibe el capitulo del libro
+                # anterior-. Si ese numero no existe en el libro nuevo -leias
+                # el 90 de *Karamazov* y abres uno de 24 capitulos- Gradio lo
+                # rechaza en `Dropdown.preprocess`, o sea ANTES de llamar a
+                # `_indice_de`, y pinta «Value: 89 is not in the list of
+                # choices: [0...23]». Por eso validar dentro de `_indice_de` no
+                # servia de nada: la funcion no llegaba a ejecutarse.
+                #
+                # `est_libro` es un `gr.State` y su valor vive en el servidor,
+                # asi que ese si llega al dia. Con el libro solo, el indice se
+                # repinta con las opciones nuevas y sin seleccion, y el
+                # `cap.change` de abajo -donde `cap` es el que dispara, no una
+                # entrada rancia- marca el capitulo.
+                est_libro.change(_indice_de, est_libro, indice)
                 # `.select` y no `.change`: solo dispara cuando lo toca una
                 # persona. Con `.change` se hacia un bucle, porque justo abajo
                 # se actualiza el indice cada vez que cambia el capitulo.
                 #
-                # Y manda opciones Y valor, no el valor pelado. Este era el
-                # recuadro rojo: `lambda v: v` metia el numero de capitulo en
-                # un desplegable cuyas opciones estaban vacias un instante
-                # -las vacia el primer `yield` de `_abrir_del_catalogo`
-                # mientras descarga-, y Gradio pinta un Error con eso.
+                # Y manda opciones Y valor, no el valor pelado: con el value
+                # suelto, meter un numero en un desplegable cuyas opciones
+                # estan vacias un instante es otra forma del mismo Error.
                 indice.select(_indice_de, [est_libro, indice], cap)
-                # `_indice_de` y no un `gr.update(value=v)` pelado: los dos
-                # manejadores del indice tienen que mandar opciones Y valor
-                # juntos. Con el value suelto, abrir un libro desde el buscador
-                # -que cambia `est_libro` y `cap` a la vez- podia poner el valor
-                # antes que las opciones y Gradio pintaba un Error rojo.
                 cap.change(_indice_de, [est_libro, cap], indice)
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,

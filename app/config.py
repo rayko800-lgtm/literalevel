@@ -44,7 +44,18 @@ def cargar(rutas=RUTAS_ENV) -> None:
 
     No pisa lo que ya este definido, asi que una variable de entorno real
     siempre gana sobre el archivo.
+
+    Con `LITERALEVEL_SIN_CLAVES=1` no lee ningun archivo. Existe para poder
+    ENSAYAR el modo degradado -el que promete `AGENTS.md`: sin clave, la app
+    sigue funcionando en todo lo que no usa red- sin tener que borrar
+    `CLAVES.txt`. Un auditor probo el camino "sin clave" desde la interfaz
+    creyendo que en local no habia, y como `RUTAS_ENV` incluye la raiz del
+    repositorio si la habia: se gasto una ronda de whisper + gpt + tts de
+    verdad. Vaciar el entorno no basta, porque esta funcion lo vuelve a
+    llenar desde el archivo.
     """
+    if os.environ.get("LITERALEVEL_SIN_CLAVES", "").strip() not in ("", "0"):
+        return
     for ruta in rutas:
         if not ruta.exists():
             continue

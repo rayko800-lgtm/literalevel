@@ -365,9 +365,48 @@ MUTANTES = [
      "                cap.change(_indice_de, [est_libro, cap], indice)",
      "                cap.change(lambda v: gr.update(value=v), cap, indice)",
      "abrir un libro no pinta un error rojo"),
-    ("F16-descarga-vacia", "app/ui.py",
+    # --- Auditoria 17: la regresion sobre los arreglos de la 16 -----------
+    ("F17-indice-cero", "app/ui.py",
+     "    return gr.update(choices=_opciones_capitulos(libro)," + NL +
+     "                     value=int(actual) if valido else None)",
+     "    return gr.update(choices=_opciones_capitulos(libro)," + NL +
+     "                     value=int(actual) if valido else 0)",
+     "abrir un libro no pinta un error rojo"),
+    ("F17-dos-mandos", "app/ui.py",
+     "    opciones = _opciones_capitulos(libro)",
+     "    opciones = [(c.titulo, i) for i, c in enumerate(libro.capitulos)]",
+     "abrir un libro no pinta un error rojo"),
+    ("F17-final-vacio", "app/ui.py",
+     "    yield libro, upd, html, resumen, gr.Tabs(selected=" + chr(34) + "leer" + chr(34) + "), " + chr(34) * 2,
+     "    yield libro, gr.update(choices=[], value=None), html, resumen, gr.Tabs(selected=" + chr(34) + "leer" + chr(34) + "), " + chr(34) * 2,
+     "abrir un libro no pinta un error rojo"),
+    ("F17-rango-invertido", "app/ui.py",
+     'tiempo = (f"entre {ficha.reloj(c.minutos(False))} y "' + NL +
+     '                      f"{ficha.reloj(c.minutos(True))} de lectura, según lo "',
+     'tiempo = (f"entre {ficha.reloj(c.minutos(True))} y "' + NL +
+     '                      f"{ficha.reloj(c.minutos(False))} de lectura, según lo "',
+     "la ficha no promete un ritmo que no sabe"),
+    ("F17-plural", "app/ui.py",
+     "               f" + chr(34) + "{n_caps} {'capítulo' if n_caps == 1 else 'capítulos'} · " + chr(34),
+     "               f" + chr(34) + "{n_caps} capítulos · " + chr(34),
+     "la pantalla del libro no se contradice"),
+    ("F17-libro-lee-cap", "app/ui.py",
+     "                est_libro.change(_indice_de, est_libro, indice)",
+     "                est_libro.change(_indice_de, [est_libro, cap], indice)",
+     "abrir un libro no pinta un error rojo"),
+    ("F17-retomar-vacia", "app/ui.py",
+     "    yield (None, sin_tocar, _html_lectura(" + chr(34) + chr(34) + "), gr.update(), gr.Tabs()," + NL +
+     "           " + chr(34) + "Abriendo…" + chr(34) + ")",
+     "    yield (None, vacio, _html_lectura(" + chr(34) + chr(34) + "), gr.update(), gr.Tabs()," + NL +
+     "           " + chr(34) + "Abriendo…" + chr(34) + ")",
+     "abrir un libro no pinta un error rojo"),
+    ("F17-lector-tirado", "app/ui.py",
+     "    quieto = (gr.skip(), sin_tocar, gr.skip(), gr.skip(), gr.Tabs())",
      "    quieto = (None, sin_tocar, _html_lectura(" + chr(34) + chr(34) + "), gr.update(), gr.Tabs())",
-     "    quieto = (None, vacio, _html_lectura(" + chr(34) + chr(34) + "), gr.update(), gr.Tabs())",
+     "abrir un libro no pinta un error rojo"),
+    ("F16-descarga-vacia", "app/ui.py",
+     "    quieto = (gr.skip(), sin_tocar, gr.skip(), gr.skip(), gr.Tabs())",
+     "    quieto = (gr.skip(), gr.update(choices=[], value=None), gr.skip(), gr.skip(), gr.Tabs())",
      "abrir un libro no pinta un error rojo"),
     ("F16-indice-select", "app/ui.py",
      "                indice.select(_indice_de, [est_libro, indice], cap)",
@@ -463,10 +502,18 @@ def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
     # segunda, un mutante cazado por `ficha` salia como "cazado por OTRA: []",
     # que es peor que un fallo: parece que lo caza cualquier cosa menos la
     # prueba que se escribio para el.
+    # Y solo se miran las lineas de DESPUES del titular de fallos. Sin eso,
+    # una vinieta de Markdown de cualquier docstring que la suite imprima
+    # -empiezan por "- " igual que los fallos- entraba en la lista y el banco
+    # decia "cazado por OTRA" citando un texto que no era ningun fallo.
+    lineas = r.stdout.splitlines()
+    desde = next((i for i, l in enumerate(lineas)
+                  if "FALLOS de" in l or "fallo(s)" in l), None)
+    cola = lineas[desde:] if desde is not None else []
     fallos = [l.split(":", 1)[0].strip(" -")
-              for l in r.stdout.splitlines() if l.strip().startswith("- ")]
+              for l in cola if l.strip().startswith("- ")]
     fallos += [l.strip()[len("FALLA"):].split("  ->")[0].strip()
-               for l in r.stdout.splitlines() if l.strip().startswith("FALLA")]
+               for l in lineas if l.strip().startswith("FALLA")]
     return r.returncode, fallos, r.stdout
 
 

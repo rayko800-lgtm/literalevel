@@ -6,9 +6,15 @@ La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
 **Si acabas de entrar: lee primero
-[`auditoria/cierre_auditoria_15.md`](auditoria/cierre_auditoria_15.md)** —la
-última: 7 serios, 6 menores y 2 notas cerrados, y sobre todo **veintidós
-mutantes vivos** que se convirtieron en diecinueve pruebas—, después
+[`auditoria/cierre_auditoria_17.md`](auditoria/cierre_auditoria_17.md)** —la
+última, y la más barata de todas: una pasada ESTRECHA sobre el diff del día
+encontró un **crítico** que la auditoría completa de unas horas antes no podía
+ver, porque el diff no existía todavía—, luego
+[`auditoria/cierre_auditoria_16.md`](auditoria/cierre_auditoria_16.md) —6
+serios, con tres de ellos visibles en cámara— y
+[`auditoria/cierre_auditoria_15.md`](auditoria/cierre_auditoria_15.md) —7
+serios, 6 menores y sobre todo **veintidós mutantes vivos** que se
+convirtieron en diecinueve pruebas—, después
 [`auditoria/cierre_auditoria_13.md`](auditoria/cierre_auditoria_13.md) —8
 serios, 14 menores y 3 notas, con banco de mutantes propio—, después
 [`auditoria/cierre_auditoria_11.md`](auditoria/cierre_auditoria_11.md) —la más
@@ -43,7 +49,7 @@ Cuatro avisos que valen para cualquiera que toque esto:
    hubiera escrito. Se vio midiendo lo mismo con el árbol de antes y el de
    después, no leyendo.
 
-**El Space está al día hasta la auditoría 16**, subida el 11 de septiembre de
+**El Space está al día hasta la auditoría 17**, subida el 11 de septiembre de
 2026 y cotejada por hash: los catorce archivos publicados son idénticos byte a
 byte a los locales. **No te fíes de esta línea**, que es la que se queda vieja:
 `python tools/desplegar_app.py` lo compara y lo dice él mismo. La auditoría 16
