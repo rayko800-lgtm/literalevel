@@ -491,14 +491,23 @@ def bajar_de_hugging_face(quiero: set, tope_gb: float = 40.0) -> int:
     if not faltan:
         return 0
 
+    # Un 429 de Hugging Face NO puede costar un shard entero. Medido en una
+    # tanda de verdad: de 30 shards, cuatro se saltaron con "HTTP Error 429:
+    # Too Many Requests", el `except` los tiraba con un `continue`, y la
+    # descarga imprimia LISTO habiendo perdido el 13 % del corpus sin decirlo.
+    # Se reintenta con espera creciente, que es lo que un 429 pide, y al final
+    # se dice cuantos shards se perdieron de verdad.
+    INTENTOS, ESPERA = 4, 20
     escritos, vistos, t0 = 0, 0, time.time()
+    perdidos = []
     for k in range(SHARDS_HF):
         if shutil.disk_usage("/content").free < tope_gb * 1e9 * 0.1:
             print("  se acaba el disco local, paro aquí")
             break
         url = (f"https://huggingface.co/datasets/{REPO_HF}/resolve/main/"
                f"v0/documents/{k:05d}_pg.jsonl.gz")
-        try:
+        for intento in range(1, INTENTOS + 1):
+          try:
             req = urllib.request.Request(url, headers=_CAB)
             with urllib.request.urlopen(req, timeout=180) as r:
                 # `gzip.GzipFile` sobre la respuesta: se descomprime según
@@ -519,13 +528,25 @@ def bajar_de_hugging_face(quiero: set, tope_gb: float = 40.0) -> int:
                         continue
                     (LOCAL / f"pg{int(ident)}.txt").write_text(texto, encoding="utf-8")
                     escritos += 1
-        except Exception as e:
-            print(f"  shard {k}: {type(e).__name__} {e}")
-            continue
+            break                      # el shard salió entero
+          except Exception as e:
+            ultimo = f"{type(e).__name__} {e}"
+            if intento == INTENTOS:
+                print(f"  shard {k}: SE PIERDE tras {INTENTOS} intentos · {ultimo}")
+                perdidos.append(k)
+            else:
+                espera = ESPERA * intento
+                print(f"  shard {k}: {ultimo} · reintento {intento + 1}/{INTENTOS} "
+                      f"en {espera} s")
+                time.sleep(espera)
         v = time.time() - t0
         print(f"  shard {k + 1}/{SHARDS_HF} · {escritos:,} libros escritos · "
               f"{vistos:,} leídos · {v / 60:.1f} min")
     print(f"LISTO: {escritos:,} libros nuevos en {(time.time() - t0) / 60:.1f} min")
+    if perdidos:
+        print(f"  OJO: se perdieron {len(perdidos)} shards de {SHARDS_HF} "
+              f"-{perdidos}-. Vuelve a ejecutar esta celda: lo que ya está "
+              f"en disco no se vuelve a pedir.")
     return escritos
 
 
