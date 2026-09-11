@@ -56,7 +56,7 @@ vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
 
 | Qué | Desbloquea | Por qué solo tú |
 |---|---|---|
-| **Unidades de Colab** | el catálogo medido | Quedaban **1,9 unidades** el 9 de septiembre de 2026 (5,3/hora): 21 min de A100. Con el prefetch nuevo el catálogo entero sale por unas 15 unidades en vez de 37 |
+| ~~Unidades de Colab~~ | **YA NO BLOQUEA** | La **T4 gratuita** hace el trabajo: medido el 10 de septiembre de 2026, 492 ventanas/s, que son **84 libros/min** contra los 61 de la A100 de pago. El cuello de botella era Drive, no la tarjeta, y el prefetch lo tapó. El catálogo entero son ~12 h de T4 gratis y reanudables. Las «15 unidades» ya no hacen falta |
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profesor pidió ver. Unos audífonos con micro bastan |
 | **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (561 palabras, 3:44) y compilado en PDF |
 | **Cupo de Astra / Codex** | la auditoría de cifras | Agotado el 9 de sep por la noche: murió tras 9.981 tokens sin emitir nada. **No vuelve hasta el 15 de septiembre a las 8:46.** El encargo está escrito y listo en `auditoria/encargo_7.md`; solo hay que relanzarlo. Comprar créditos lo desbloquea antes |
@@ -79,11 +79,26 @@ la descarga y el precalculo sigan corriendo. Sin fecha son falsas mañana.
 |---|---|
 | Libros objetivo (inglés, Project Gutenberg) | 61.642 de 79.337 entradas (instantánea del catálogo oficial del 7 de septiembre de 2026) |
 | Descargados a Drive | **31.974** (51,9 %) el 9 de septiembre de 2026 |
-| Analizados por el v4 | ver `perfiles_*.jsonl` en Drive; la sonda del cuaderno los cuenta |
-| Velocidad medida en A100 | **61 libros/min** de extremo a extremo. Esta tabla decía 103 y se contradecía con las 17 h de la línea de abajo: 61.642 / 61 = 16,8 h; a 103 saldrían 10. La que cuadra con lo medido en el cuaderno es 61 |
+| **Con perfil medido por el v4** | **29.875** el 10 de septiembre de 2026, sin duplicados (29.875 líneas, 29.875 ids distintos). En `literalevel_bigdata/catalogo_medido.csv` |
+| Velocidad | **84 libros/min en T4 gratis** (492 ventanas/s ÷ 350 ventanas por libro), medido el 10 de septiembre de 2026. En A100 sin prefetch eran 61 de extremo a extremo, con la tarjeta parada el 80 % esperando a Drive. **La gratis con prefetch gana a la de pago sin él** |
 | Cuello de botella | **no es la GPU**: el 80 % del tiempo espera a Drive |
 | Ventanas por libro | **332,3 de media**, mediana 266 (medido sobre 5.153 el 9 de septiembre de 2026) |
 | Coste real del catálogo | **2,8 h** de cómputo A100; ~17 h de extremo a extremo |
+
+**Lo que falta ya no es medir: es DESCARGAR.** 29.875 de los ~31.974 textos que
+hay en Drive tienen perfil; quedan ~29.700 libros del catálogo oficial sin bajar.
+Y descargar **no necesita GPU ni unidades**.
+
+> **Y un hallazgo que hay que decidir, pero NO antes del vídeo.** La dificultad
+> media de los 29.875 es **1,75 sobre 2**, con el cuartil 1 en 1,664: **al menos
+> tres cuartas partes del corpus puntúan C1 o por encima**. El catálogo que usa
+> la app dice lo contrario —sus etiquetas del v1 son 60,4 % A1—. No es un fallo
+> del v4: sus propias medias en los textos graduados van de 0,50 (A1) a 1,50
+> (C1), así que que la literatura del XIX promedie 1,75 es lo esperable. Lo que
+> hay que decidir es qué le ofrece la app a un lector de B1. **La app no se ha
+> tocado**: sigue con `catalogo_recomendaciones.csv`. Cambiarla a dos días de
+> grabar sería meter una variable enorme en la demo. Todo el detalle en
+> [`auditoria/medicion_catalogo_2026-09-10.md`](auditoria/medicion_catalogo_2026-09-10.md).
 
 `colab_precalculo.ipynb` es reanudable: lee los shards que ya hay y se salta
 los ids hechos. La descarga **no necesita GPU** — se puede dejar corriendo en
