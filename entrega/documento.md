@@ -927,7 +927,7 @@ intermedia, ancla B2).
    devuelve la búsqueda **no está filtrado por el nivel del lector**: ordena
    por cercanía al tema, y la dificultad va al lado de cada resultado para que
    el lector decida. En este recorrido eso importa, porque el libro que abre
-   mide 1,73 y ella está en 1,20: le queda por encima, y el valor de la
+   mide 1,70 y ella está en 1,20: le queda por encima, y el valor de la
    herramienta es precisamente que **lo sabe antes de la primera página**.
 2. Abre el libro. Se descarga de Project Gutenberg y se abre dentro de la
    aplicación, sin salir a buscarlo.
@@ -946,10 +946,11 @@ intermedia, ancla B2).
    *Pride and Prejudice* 28 %, *Crime and Punishment* 31 %—, cosa que no hacía
    cuando se medía por párrafo en lugar de por oración, porque un epub no
    conserva los saltos de párrafo y las tres daban 100 %.
-4. Pide la curva de dificultad. Sobre *Notes from a Dead House*, el modelo
-   recorre **487 ventanas de 130.104 palabras en 86 segundos** y devuelve una
-   media de 1,73 sobre 2, además de decir si el libro se va complicando o
-   soltando y cuáles son su capítulo más llevadero y su capítulo más exigente.
+4. Pide la curva de dificultad. Sobre *Crime and Punishment* (PG2554), el
+   modelo recorre **840 ventanas de 203.699 palabras en 134 segundos** y
+   devuelve una media de **1,70 sobre 2** —orientativo C1—, además de decir si
+   el libro se va complicando o soltando y cuáles son su capítulo más
+   llevadero (el 19, 1,52) y su capítulo más exigente (el 36, 1,87).
    La segunda vez tarda 0,02 s porque queda guardada.
 5. Toca una palabra que no conoce. El trabajo local —lema, categoría
    gramatical, consulta al diccionario, desambiguación por similitud, IPA— son

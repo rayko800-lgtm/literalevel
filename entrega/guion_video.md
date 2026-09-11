@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 570 palabras y son 3:48 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. El minuto que
+**El texto hablado son 569 palabras y son 3:48 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. El minuto que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
@@ -36,7 +36,7 @@ párrafos, objetivos numerados, métricas sin adornos, y sobre todo su
 **«Ejemplo de uso y aplicación»** — tomar *un* caso real y recorrerlo paso a
 paso. En su proyecto de Yelp ese recorrido es el corazón de la presentación.
 Aquí es **el mismo caso que recorren el documento (§8.2) y la diapositiva 8**:
-una lectora con perfil **1,20 sobre 2** y *Notes from a Dead House*. Los tres
+una lectora con perfil **1,20 sobre 2** y *Crime and Punishment*. Los tres
 entregables cuentan el mismo recorrido, con el mismo lector y el mismo libro.
 
 ---
@@ -97,9 +97,13 @@ capítulo a capítulo.»
 > **En pantalla:** compartir pantalla y **usar la aplicación de verdad**.
 > Nada de capturas. Que se vea el cursor moverse.
 > **Usa el mismo caso que el documento §8.2 y la diapositiva 8**: perfil
-> **1,20** y *Notes from a Dead House*. Las cifras que se dicen —130.104
-> palabras, 487 ventanas, 86 segundos, media 1,73, 40 milisegundos— son las
-> medidas sobre ese libro, no las de un libro cualquiera.
+> **1,20** y *Crime and Punishment* (PG2554). Las cifras que se dicen
+> —203.699 palabras, 840 ventanas, 134 segundos, media 1,70— son las medidas
+> sobre ese libro con el código de la app, no las de un libro cualquiera. Y
+> el libro **se abre desde el buscador**: escribe «dostoyevski» y sale.
+>
+> **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
+> hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
 
 «Esto es LiteraLevel.
 
@@ -111,11 +115,11 @@ En segundos tengo mi nivel: **1,20 sobre 2**, banda intermedia.
 significado, no por título, **con mi nivel al lado de cada libro**. Y
 escribo *dostoyevski* mal escrito, y aun así lo encuentra.
 
-**Tres.** Abro *Notes from a Dead House* y aparece su ficha, contada sobre el
-texto y no sobre la portada: **130.104 palabras**, cuánto es diálogo, qué se
-repite, y cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta curva:
-**la dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
-**487 ventanas en 86 segundos**: media **1,73**. Mi nivel es 1,20. Este libro
+**Tres.** Abro *Crimen y castigo* y aparece su ficha, contada sobre el texto y
+no sobre la portada: **203.699 palabras**, cuánto es diálogo, qué se repite, y
+cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta curva: **la
+dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
+**840 ventanas en 134 segundos**: media **1,70**. Mi nivel es 1,20. Este libro
 me queda por encima, y lo sé antes de la primera página.
 
 **Cuatro.** *(doble clic en una palabra)* Toco una palabra y en **40
