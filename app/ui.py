@@ -972,7 +972,16 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
     las salidas estaban en una pestana a la que no se saltaba si algo fallaba.
     """
     vacio = gr.update(choices=[], value=None)
-    quieto = (None, vacio, _html_lectura(""), gr.update(), gr.Tabs())
+    # El desplegable de capitulos NO SE TOCA mientras esto trabaja. Vaciarlo
+    # era el recuadro rojo de la auditoria 16: si ya hay un libro abierto -y lo
+    # hay siempre que se haya leido algo antes, porque `_reanudar` lo repinta
+    # al cargar-, quitarle las opciones a un componente que conserva su valor
+    # hace que Gradio pinte «Value: 1 is not in the list of choices: []» encima
+    # del libro. Reproducido y aislado en el Space: con marcapaginas sale, sin
+    # el no. Y ademas vaciarlo estaba mal por si solo: pulsar «Leerlo ahora»
+    # sin elegir nada te borraba el indice del libro que estabas leyendo.
+    sin_tocar = gr.update()
+    quieto = (None, sin_tocar, _html_lectura(""), gr.update(), gr.Tabs())
     if not id_libro:
         yield quieto[:3] + ("Elige un libro de la lista.", gr.Tabs(),
                             "Elige un libro de la lista.")

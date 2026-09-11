@@ -32,22 +32,50 @@ pulsar: buscar «dostoyevski» → elegir *Crime and Punishment* → «Leerlo ah
 El libro se abre perfectamente; lo que sale es un recuadro rojo de Gradio
 encima.
 
-La causa es una carrera entre dos manejadores del mismo componente. El índice
-del libro tenía uno que ponía sus **opciones** (`est_libro.change(_indice_de…)`)
-y otro que ponía su **valor** (`cap.change(lambda v: gr.update(value=v)…)`).
-Abrir desde el buscador cambia `est_libro` y `cap` a la vez, así que el valor
-podía llegar antes que las opciones —o traer el número de capítulo del libro
-anterior, que tiene otros capítulos—.
+**Me costó tres diagnósticos, y los dos primeros eran falsos.** Lo supe las dos
+veces porque **volví a reproducirlo en el Space con el arreglo puesto** y el
+recuadro seguía ahí. Vale la pena dejarlo escrito, porque es la lección de la
+casa aplicada a mí: un arreglo que no se vuelve a comprobar contra el fallo
+original es una hipótesis, no una corrección. Si me hubiera fiado del primero,
+habría dado por cerrado un fallo que iba a salir en cámara.
 
-Arreglado por los dos lados a la vez, que es lo que lo hace robusto en vez de
-afortunado:
+Lo que lo resolvió no fue leer más código, fue **una prueba A/B**: repetir el
+recorrido en una sesión con `localStorage` limpio. Sin marcapáginas previo el
+recuadro **no sale**; con un libro ya abierto, **sale siempre**.
 
-1. Los dos manejadores usan ahora `_indice_de`, que manda **opciones y valor
-   juntos**. Ninguno puede poner un valor sin sus opciones.
-2. `_indice_de` **valida el valor contra ESTE libro**: si el índice no existe en
+La causa, entonces: `_abrir_del_catalogo` es una **generadora**, y su primer
+`yield` **vaciaba el desplegable de capítulos** —`gr.update(choices=[],
+value=None)`— para enseñar «Descargando de Project Gutenberg…». Si ya hay un
+libro abierto —y lo hay siempre que se haya leído algo antes, porque
+`_reanudar` lo repinta al cargar la página—, quitarle las opciones a un
+componente que conserva su valor hace que Gradio pinte
+«Value: 1 is not in the list of choices: []» encima del libro.
+
+Y vaciarlo estaba mal por sí solo, aparte del recuadro: pulsar «Leerlo ahora»
+sin haber elegido nada te borraba el índice del libro que estabas leyendo.
+
+Arreglado en tres sitios, que es lo que lo hace robusto en vez de afortunado:
+
+1. **El descargador no toca el desplegable mientras trabaja.** Solo lo cambia
+   al final, cuando ya tiene el libro, o al fallar, cuando el lector se vacía
+   entero de todas formas.
+2. Los dos mandos del capítulo —el desplegable y el índice— usan ahora
+   `_indice_de`, que manda **opciones y valor juntos**. Ninguno de los dos
+   puede mandar un valor sin sus opciones.
+3. `_indice_de` **valida el valor contra ESTE libro**: si el índice no existe en
    él —o llega como `None`, `"3"`, `-1`, `99`, `NaN` o una lista, que Gradio
    sabe mandar—, no se selecciona nada. Mejor sin selección que con una
-   selección que no existe.
+   selección que no existe. Y las etiquetas se construyen en **un solo sitio**,
+   porque los dos mandos son dos vistas del mismo estado.
+
+La prueba vigila las tres: que el descargador no vacíe el desplegable, que
+ningún manejador de `cap` ni de `indice` mande un valor suelto, y que los dos
+sigan cableados —si no, se cumpliría sola—. Cuatro mutantes, uno por cada
+manera de deshacerlo.
+
+**Comprobado en el Space con el caso exacto que fallaba**: con *The Brothers
+Karamazov* abierto, buscar «dostoyevski» y abrir *Crime and Punishment*. Sin
+recuadro, el libro abre y la cabecera dice «42 capítulos · 203.699 palabras».
 
 ### S2 · «40 milisegundos» son en caliente: la primera consulta tarda ~55 s — CERRADO como nota de producción
 

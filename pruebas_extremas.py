@@ -5424,7 +5424,23 @@ def _abrir_un_libro_no_pinta_un_error_rojo():
     ops, val = opciones_y_valor(ui._indice_de(_Libro(12), 3))
     assert val == 3, f"un capitulo valido tiene que quedar marcado, y sale {val!r}"
 
-    # 4. Y NINGUN manejador de los dos mandos puede mandar un valor pelado.
+    # 4. Y el descargador no puede VACIAR el desplegable mientras trabaja.
+    #    Es el disparador de verdad, aislado en el Space: con un libro ya
+    #    abierto -o sea siempre que se haya leido algo antes- quitarle las
+    #    opciones a un componente que conserva su valor pinta el Error rojo.
+    def choices_de(upd):
+        d = upd if isinstance(upd, dict) else getattr(upd, "__dict__", {})
+        return d.get("choices", "sin tocar")
+
+    for entrada, etiqueta in ((None, "sin elegir libro"),
+                              ("", "con el id vacio")):
+        primero = next(iter(ui._abrir_del_catalogo(entrada)))
+        assert choices_de(primero[1]) == "sin tocar", (
+            f"{etiqueta}: el descargador vacia el desplegable de capitulos "
+            f"({choices_de(primero[1])!r}), y eso borra el indice del libro "
+            "que se estaba leyendo y pinta un Error rojo")
+
+    # 5. Y NINGUN manejador de los dos mandos puede mandar un valor pelado.
     #    Son `cap` (el desplegable) e `indice` (el radio de abajo), y los dos
     #    tienen `choices`: meterles un valor mientras sus opciones estan vacias
     #    -lo estan un instante, porque `_abrir_del_catalogo` es generadora y su
