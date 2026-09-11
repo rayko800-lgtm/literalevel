@@ -481,8 +481,13 @@ plt.show()
 #   modelo estaría extrapolando fuera del régimen en el que aprendió.
 # - **`MAX_LENGTH = 256` tokens**: 250 palabras inglesas siempre superan los 256
 #   subtokens BPE, de modo que **todas las ventanas ocupan exactamente el mismo
-#   tensor**. No hay relleno, y por tanto agrupar las ventanas de una manera u
-#   otra no puede cambiar ni un decimal del resultado.
+#   tensor**. Dentro de un texto no hay relleno, y por tanto agrupar sus
+#   ventanas de una manera u otra no cambia el resultado. (En el precálculo del
+#   catálogo sí puede haberlo: ahí entran en el mismo lote las ventanas de
+#   todos los capítulos de un libro, y un capítulo corto aporta una ventana
+#   corta. Medido sobre *Alicia*, 112 ventanas: 103 idénticas y el resto
+#   difiere como mucho en 4,8 × 10⁻⁷, por debajo de los tres decimales que se
+#   guardan.)
 #
 # Y anticipa un hallazgo del análisis bivariado: si en el corpus todos los
 # textos miden casi lo mismo, **la longitud no puede ser una señal de dificultad
@@ -975,7 +980,7 @@ print("Correlación de PC1 con BT_easiness:",
 # **Figura 10 — Cuántos ejes independientes hay realmente.**
 #
 # **Un solo componente explica el 55,1 % de la varianza de las diecisiete
-# variables**, y los dos primeros llegan al 70,0 %. Confirma numéricamente lo que
+# variables**, y los dos primeros llegan a cerca del 70 %. Confirma lo que
 # el mapa de calor insinuaba: diecisiete columnas contienen, en la práctica, dos
 # informaciones.
 #
@@ -1225,7 +1230,8 @@ print(importancias.head(6).round(3))
 # %% [markdown]
 # **Figura 12 — Dónde mira el Random Forest.**
 #
-# El bosque concentra el **34,9 % de su importancia en una sola variable**,
+# El bosque concentra **alrededor del 35 % de su importancia en una sola
+# variable**,
 # `New Dale-Chall`, y otro 12,5 % en `CML2RI`. Las seis restantes reparten
 # migajas, y ninguno de los rasgos propios entra entre las cinco primeras.
 #
@@ -1238,7 +1244,9 @@ print(importancias.head(6).round(3))
 #
 # Y el resultado de conjunto es más elocuente todavía: el Random Forest, con
 # capacidad de sobra para relaciones no lineales e interacciones, **no supera a
-# la regresión lineal** (RMSE 0,765 frente a 0,748). **El cuello de botella no
+# la regresión lineal** (RMSE ≈0,77 frente a ≈0,75; las cifras exactas las
+# imprime la celda de arriba y bailan en la tercera decimal según la versión de
+# scikit-learn). **El cuello de botella no
 # es el algoritmo: es la representación del texto.** Ninguna de estas diecisiete
 # variables sabe qué dice el texto.
 
@@ -1631,8 +1639,9 @@ else:
 #
 # Dos bloques, separados a propósito. El primero se **calcula en esta ejecución**
 # y sus cifras cambian si alguien cambia la semilla. El segundo se **midió en su
-# momento** y se reporta sin recalcular, porque exige horas de GPU o los pesos
-# que aún no están publicados.
+# momento** y se reporta sin recalcular, porque exige horas de GPU. (Los pesos
+# del v4 sí están publicados desde entonces, y este cuadernillo los baja del
+# Hub más abajo.)
 
 # %%
 tabla_regresion = pd.DataFrame(resultados)
@@ -1681,7 +1690,7 @@ print(tabla_reportada.to_string(index=False))
 # - Las once métricas clásicas bajan a **0,764**. Un 27 % de mejora sobre no
 #   hacer nada, con fórmulas de los años cuarenta.
 # - Añadir los seis rasgos propios llega a **0,748**. Mejora real pero pequeña.
-# - El Random Forest **no mejora** a la regresión lineal (0,765). Cuando más
+# - El Random Forest **no mejora** a la regresión lineal (≈0,77). Cuando más
 #   capacidad no compra nada, el problema son las variables.
 # - `roberta-base`, leyendo el texto, baja a **0,560**. Es un 25 % mejor que la
 #   mejor combinación de conteos, y el salto se produce **sin ninguna variable
@@ -1799,8 +1808,8 @@ decisiones = pd.DataFrame([
      "Resultado": "4,8 veces MÁS LENTA que fp32 en una GTX 1650 SUPER",
      "Decisión": "DESCARTADO en esa tarjeta: un TU116 no tiene tensor cores"},
     {"Prueba": "Agrupar ventanas en lotes fijos de 64 en vez de por capítulo",
-     "Resultado": "+18 % de velocidad, 300/300 valores idénticos bit a bit",
-     "Decisión": "ADOPTADO: sin relleno dentro de un texto, no cambia nada"},
+     "Resultado": "+18 % de velocidad, 300/300 idénticos bit a bit dentro de un texto",
+     "Decisión": "ADOPTADO: sin relleno dentro de un texto. Entre capítulos de un libro sí lo hay, y ahí difiere como mucho 4,8e-7"},
 ])
 print(decisiones.to_string(index=False))
 

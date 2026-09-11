@@ -289,8 +289,21 @@ _CANDADO_CODIGO = threading.Lock()
 
 
 def _sesion_de(peticion) -> str:
+    """La clave con la que se recuerda con QUE perfil entro este visitante.
+
+    La identidad del NAVEGADOR primero, y el `session_hash` solo si no la
+    hay. Gradio estrena `session_hash` en cada carga de pagina, asi que
+    indexar por el significaba que recargar cerraba la sesion de pago: los
+    datos del lector volvian -esos ya cuelgan de `localStorage`- y la consulta
+    lexica le decia otra vez "necesita que entres con tu perfil". En una demo,
+    teclear usuario y contrasena delante del profesor cada vez que se recarga.
+
+    Sigue SIN ser autenticacion, igual que para los datos: quien copie el
+    identificador de otro hereda su sesion. Lo que cambia es que recargar deja
+    de ser un cierre de sesion.
+    """
     h = getattr(peticion, "session_hash", None) if peticion is not None else None
-    return str(h or "local")
+    return str(_lector_de_sesion(h) or h or "local")
 
 
 def _codigo_de(peticion) -> str | None:
@@ -1299,8 +1312,18 @@ def _abrir(archivo, peticion: gr.Request = None):
                    next((i for i, c in enumerate(libro.capitulos)
                          if c.palabras >= 500), 0))
 
+    # El MISMO recuento que la ficha de abajo. Aqui se pintaba
+    # `libro.palabras` -crudo, con portadilla y licencia dentro- y tres lineas
+    # mas abajo la ficha pinta el descontado: en *Metamorphosis* salia
+    # "25.077 palabras" arriba y "21.938 palabras" debajo, en la misma
+    # pantalla. Dos cifras distintas de lo mismo a tres lineas de distancia es
+    # lo primero que alguien compara, y no hay explicacion que lo salve.
+    try:
+        palabras = ficha.caracteristicas(libro).palabras or libro.palabras
+    except Exception:
+        palabras = libro.palabras      # la cabecera nunca puede tumbar el libro
     resumen = (f"**{libro.titulo}** — {libro.autor or 'autor desconocido'} · "
-               f"{len(libro.capitulos)} capítulos · {ficha.miles(libro.palabras)} palabras")
+               f"{len(libro.capitulos)} capítulos · {ficha.miles(palabras)} palabras")
     if inicial:
         resumen += (f"\n\n_Empiezo en el capítulo {inicial + 1}: "
                     f"los anteriores son portadilla._")
@@ -1787,10 +1810,20 @@ def _de_que_trata(libro, peticion: gr.Request = None):
                    "ya lo tienes arriba y no necesita clave.")
             return
         yield "Leyendo pasajes del principio, del medio y del final…"
-        datos = ficha.sinopsis(libro, cliente)
+        datos, causa = ficha.sinopsis(libro, cliente)
         if datos is None:
+            # El uso vuelve SOLO si no salio nada a la red. `_puede_pagar`
+            # cobra antes de saber si se va a gastar, y el mensaje de abajo
+            # invita a reintentar: sin esto, cada "vuelve a intentarlo"
+            # costaba un uso por un fallo que no era del lector. Y al reves:
+            # devolverlo cuando la peticion SI salio seria regalar tokens ya
+            # pagados.
+            if causa in ("sin_red", "sin_pasajes"):
+                cuentas.devolver(BASE_DATOS_LECTOR, _codigo_de(peticion))
             yield ("No pude preparar el resumen ahora mismo. Vuelve a "
-                   "intentarlo; el resto de la ficha no depende de esto.")
+                   "intentarlo; el resto de la ficha no depende de esto."
+                   + ("" if causa in ("sin_red", "sin_pasajes")
+                      else " Este intento sí ha consumido uno de tus usos."))
             return
         try:
             RUTA_ANALISIS.mkdir(parents=True, exist_ok=True)
@@ -2000,7 +2033,16 @@ def _oracion_de(texto: str, palabra: str) -> str:
         return ""
     patron = re.compile(rf"\b{re.escape(palabra.strip())}\b", re.IGNORECASE)
     respaldo = ""
-    for frase in scoring.SENT_RE.findall(texto):
+    # Por PARRAFOS antes que por oraciones, como ya hacia
+    # `_frase_del_capitulo`. Los encabezados no llevan punto, asi que partir el
+    # capitulo entero con SENT_RE se los traga y los pega a la primera frase:
+    # el contexto que se citaba de *Metamorphosis* empezaba "I I One morning,
+    # when Gregor Samsa woke...", con el numero de capitulo dentro. Lo que se
+    # manda a desambiguar tiene que ser una frase, no una frase con un titulo
+    # pegado delante.
+    trozos = [" ".join(p.split()) for p in re.split(r"\n\s*\n", texto)]
+    for frase in scoring.SENT_RE.findall(
+            " ".join(p for p in trozos if len(p.split()) >= 6) or texto):
         if not patron.search(frase):
             continue
         limpia = " ".join(frase.split())
@@ -2087,6 +2129,16 @@ _AVISOS_HUMANOS = (
     (("sin sentido elegido",), {
         "es": "No se pudo elegir una acepción para esta palabra.",
         "en": "No sense could be picked for this word."}),
+    # Este salia EN CRUDO, sin acentos y con el margen en decimales, al lado de
+    # avisos escritos con cuidado: "acepcion provisional: margen bajo (0.004)
+    # frente a otra acepcion: An animal that preys on game...". Lo que el lector
+    # necesita saber es que la eleccion es dudosa y cual era la otra.
+    (("acepcion provisional", "margen bajo"), {
+        "es": "La acepción elegida es dudosa: había otra muy parecida. Si no "
+              "encaja con lo que lees, fíate del contexto de la frase.",
+        "en": "The sense picked here is uncertain: another one was almost as "
+              "close. If it does not fit what you are reading, trust the "
+              "sentence."}),
     (("timeout", "timed out", "connection", "network", "getaddrinfo"), {
         "es": "No hay conexión con OpenAI ahora mismo. El diccionario y la "
               "fonética son locales y siguen aquí.",

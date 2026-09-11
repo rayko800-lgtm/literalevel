@@ -721,7 +721,7 @@ diagnosticó qué producía cada queja y se corrigió (cuadro~\ref{cuad:esmerald
 \addlinespace
 Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etiqueta prometía más de lo que hacía & «Sorpréndeme con algo de mi nivel» & Etiqueta reescrita \\
 \addlinespace
-— & «Ajustar a mi nivel» es abstracto & «Solo libros que pueda leer», con información & Etiqueta reescrita \\
+— & «Ajustar a mi nivel» es abstracto & «Acercar los resultados a mi nivel · no descarta libros» & Etiqueta reescrita \textbf{dos veces}: la primera versión, «Solo libros que pueda leer», prometía un filtro que la búsqueda no hace \\
 \addlinespace
 — & «Medir la dificultad de este capítulo» es lenguaje de laboratorio & «¿Cómo de difícil es este capítulo?» & Etiqueta reescrita \\
 \addlinespace
@@ -741,7 +741,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono real —y no
 en el navegador del escritorio— había descubierto antes fallos que \textbf{ninguna de
-las 262 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
+las 272 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
 pantalla pequeña}:
 
 \begin{itemize}[leftmargin=*, itemsep=3pt]
@@ -818,7 +818,7 @@ ficha—, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
-La regla que verifican las 262 pruebas de robustez es una sola: \textbf{ningún manejador
+La regla que verifican las 272 pruebas de robustez es una sola: \textbf{ningún manejador
 puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
 
 \subsubsection{Cada número dice de dónde viene}
@@ -906,7 +906,7 @@ Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textb
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron 8 correcciones \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Cumplido}: 262 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Producto & Robustez & \textbf{Cumplido}: 272 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
@@ -2599,10 +2599,11 @@ alternativa reúne son las \textbf{tres a la vez}.
 \section{Limitaciones}
 \label{sec:limitaciones}
 
-\textbf{Antes de la lista, de dónde sale.} Este trabajo se sometió a \textbf{cinco
+\textbf{Antes de la lista, de dónde sale.} Este trabajo se sometió a \textbf{catorce
 auditorías externas} hechas por modelos de dos familias distintas, con el encargo
-explícito de ser duros y sin decirles qué se había corregido antes. Entre las cinco
-señalaron alrededor de setenta hallazgos: fugas de datos, cifras que no cuadraban entre
+explícito de ser duros y \textbf{a ciegas}: sin decirles qué se había corregido antes,
+para que lo que volviera a salir fuera lo que seguía mal. Entre todas señalaron más de
+un centenar de hallazgos: fugas de datos, cifras que no cuadraban entre
 archivos, métricas atribuidas al corpus equivocado, pruebas que no podían fallar y
 conclusiones más fuertes que su evidencia. Los informes están en \cod{auditoria/} y las
 correcciones, en el historial del repositorio.

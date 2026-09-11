@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 561 palabras y son 3:44 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. El minuto que
+**El texto hablado son 570 palabras y son 3:48 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. El minuto que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
@@ -107,8 +107,8 @@ capítulo a capítulo.»
 En segundos tengo mi nivel: **1,20 sobre 2**, banda intermedia.
 *(mostrar el resultado)*
 
-**Dos.** Le describo en español lo que me apetece leer y me busca entre los
-libros que **puedo** leer. No busca por título: busca por significado. Y
+**Dos.** Le describo en español lo que me apetece leer y me busca por
+significado, no por título, **con mi nivel al lado de cada libro**. Y
 escribo *dostoyevski* mal escrito, y aun así lo encuentra.
 
 **Tres.** Abro *Notes from a Dead House* y aparece su ficha, contada sobre el
@@ -119,9 +119,9 @@ repite, y cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta curva:
 me queda por encima, y lo sé antes de la primera página.
 
 **Cuatro.** *(doble clic en una palabra)* Toco una palabra y en **40
-milisegundos** me da su significado **en esta frase**, no en abstracto: la
-definición del diccionario, la gramática, la fonética británica y americana, y
-el audio.
+milisegundos** tengo el diccionario, la fonética británica y americana y el
+audio, todo local. Y unos segundos después llega lo que no se puede contar:
+qué significa **en esta frase**, y su gramática.
 
 **Cinco.** *(leer una frase en voz alta al micrófono)* Y leo en voz alta. Me
 marca en verde lo que sonó bien y en rojo lo que no, palabra por palabra.»

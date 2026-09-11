@@ -1129,10 +1129,11 @@ que lee el texto. Lo que ninguna alternativa reúne son las **tres a la vez**.
 
 ## 9. Limitaciones
 
-**Antes de la lista, de dónde sale.** Este trabajo se sometió a **cinco
+**Antes de la lista, de dónde sale.** Este trabajo se sometió a **catorce
 auditorías externas** hechas por modelos de dos familias distintas, con el
-encargo explícito de ser duros y sin decirles qué se había corregido antes.
-Entre las cinco señalaron alrededor de setenta hallazgos: fugas de datos,
+encargo explícito de ser duros y **a ciegas**: sin decirles qué se había
+corregido antes, para que lo que volviera a salir fuera lo que seguía mal.
+Entre todas señalaron más de un centenar de hallazgos: fugas de datos,
 cifras que no cuadraban entre archivos, métricas atribuidas al corpus
 equivocado, pruebas que no podían fallar y conclusiones más fuertes que su
 evidencia. Los informes están en `auditoria/` y las correcciones, en el

@@ -49,6 +49,51 @@ MUTANTES = [
      "DIR_CACHE = config.dir_datos()",
      'DIR_CACHE = Path(os.path.expanduser("~")) / ".literalevel"',
      "una sola raiz de datos, configurable"),
+    # --- Los trece que sobrevivieron a la auditoria 14 --------------------
+    ("M26-marcapaginas", "app/ui.py",
+     "    return Path(_archivo_lector(" + chr(34) + "sesion.json" + chr(34) + ", peticion))",
+     "    return RUTA_SESION",
+     "el marcapaginas y el cuaderno son de cada lector"),
+    ("M27-cuaderno", "app/ui.py",
+     "            ruta=_archivo_lector(" + chr(34) + "cuaderno.db" + chr(34) + ", peticion))",
+     "            ruta=_archivo_lector(" + chr(34) + "cuaderno.db" + chr(34) + "))",
+     "el marcapaginas y el cuaderno son de cada lector"),
+    ("M21-cuestionario", "app/ui.py",
+     "    claves = _claves_cuestionario()",
+     "    claves = _claves_cuestionario()[::-1]",
+     "cada respuesta del cuestionario va a su pregunta"),
+    ("M33-por-nivel", "app/catalogo.py",
+     "        d = self.df[np.abs(obj - nivel_lector) <= holgura]",
+     "        d = self.df",
+     "sorprendeme filtra de verdad por nivel"),
+    ("M02-opciones", "app/ui.py",
+     "                for b in libros if str(b.id).upper().startswith(\"PG\")]",
+     "                for b in [] if str(b.id).upper().startswith(\"PG\")]",
+     "un libro de Gutenberg se puede abrir desde la tabla"),
+    ("M32-sinopsis", "app/ui.py",
+     "    datos = _sinopsis_guardada(libro)",
+     "    datos = None",
+     "la sinopsis guardada no se vuelve a pagar"),
+    ("M03-cubos", "app/ui.py",
+     "    clave = f" + chr(34) + "{cubo}:{_ip(peticion)}" + chr(34) + NL +
+     "    ahora = time.time()" + NL +
+     "    with _CANDADO_GASTO:" + NL +
+     "        marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]" + NL +
+     "        if len(marcas) >= tope:",
+     "    clave = f" + chr(34) + "lexico:{_ip(peticion)}" + chr(34) + NL +
+     "    ahora = time.time()" + NL +
+     "    with _CANDADO_GASTO:" + NL +
+     "        marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]" + NL +
+     "        if len(marcas) >= tope:",
+     "cubos distintos no se mezclan"),
+    ("M01-paletas", "app/ui.py",
+     "def _css_paleta(clave: str) -> str:",
+     "def _css_paleta(clave: str) -> str:" + NL + "    return " + chr(34) * 2,
+     "todas las paletas dan css"),
+    ("M28-pronunciacion", "app/ui.py",
+     "    fallo = set(ev.palabras_falladas)",
+     "    fallo = set()",
+     "marca bien y mal"),
     ("S3-tts", "app/ui.py",
      'elif puede and getattr(r, "llamadas_de_pago", 0) == 0:',
      'elif puede and getattr(r, "desde_cache", False):',

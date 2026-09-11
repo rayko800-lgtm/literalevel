@@ -32,9 +32,10 @@ Tres avisos que valen para cualquiera que toque esto:
    hubiera escrito. Se vio midiendo lo mismo con el árbol de antes y el de
    después, no leyendo.
 
-**El Space está a medias:** los cinco módulos que faltaban se subieron
-(`f14bc3a`), pero **lo de la auditoría 13 todavía no**. Se sube con
-`python tools/desplegar_app.py`.
+**El Space está al día** hasta la auditoría 13 incluida: cotejados los quince
+archivos por hash el 10 de septiembre de 2026. Lo de la auditoría **14** se sube
+con `python tools/desplegar_app.py`, que dice él mismo qué falta por subir —no
+te fíes de esta línea, que es la que se queda vieja.
 
 Son muchos commits y tocan archivos compartidos: `app/ui.py`, `app/cuentas.py`
 —con interfaz pública nueva: `problemas()`, `declaradas()` y `devolver()`—,
@@ -58,7 +59,7 @@ vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
 |---|---|---|
 | ~~Unidades de Colab~~ | **YA NO BLOQUEA** | La **T4 gratuita** hace el trabajo: medido el 10 de septiembre de 2026, 492 ventanas/s, que son **84 libros/min** contra los 61 de la A100 de pago. El cuello de botella era Drive, no la tarjeta, y el prefetch lo tapó. El catálogo entero son ~12 h de T4 gratis y reanudables. Las «15 unidades» ya no hacen falta |
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profesor pidió ver. Unos audífonos con micro bastan |
-| **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (561 palabras, 3:44) y compilado en PDF |
+| **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (570 palabras, 3:48) y compilado en PDF |
 | **Cupo de Astra / Codex** | la auditoría de cifras | Agotado el 9 de sep por la noche: murió tras 9.981 tokens sin emitir nada. **No vuelve hasta el 15 de septiembre a las 8:46.** El encargo está escrito y listo en `auditoria/encargo_7.md`; solo hay que relanzarlo. Comprar créditos lo desbloquea antes |
 | ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada. El token vive en `C:\Users\laura\.hf_token` y **hay que revocarlo** cuando se acabe de subir |
 | ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Cuesta 7 USD/mes (cuenta Pro, ya pagada). Arranque medido: 31 s hasta `RUNNING`, 32 s hasta que responde |
@@ -131,7 +132,7 @@ todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **262** | `pruebas_extremas.py` |
+| Pruebas de estrés | **272** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
 | Parejas de contraste | **85** (17 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |
@@ -139,7 +140,7 @@ todas reproducibles con un guion del repo.
 | Arranque en frío del Space | **31 s** hasta `RUNNING`, **32 s** hasta que responde | `medir_arranque.py` |
 | Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab); 0,67x + 0,41 con las 5 locales | recalculable |
 | Textos que pasan el filtro COMPLETO | **36** (el de la app; aquí se puntúan 47) | `validar_local.py` |
-| Palabras habladas del guion | **561** = 3:44 | `tools/contar_guion.py` |
+| Palabras habladas del guion | **570** = 3:48 | `tools/contar_guion.py` |
 | Coste del despliegue | **7 USD/mes** (cuenta Pro; tarifa 9, con descuento) | API `whoami-v2` |
 | Carpeta + diccionario | 575 MB (332,1 + 243,3) | `os.path.getsize`, remedido el 10 de septiembre de 2026 |
 

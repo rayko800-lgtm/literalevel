@@ -125,9 +125,9 @@ comprobar("capitulo vacio", ficha.caracteristicas(
 comprobar("capitulo de una palabra", ficha.caracteristicas(
     Lib("x", "", [Cap("I", "Hola")])).frase_media >= 0)
 comprobar("sinopsis sin cliente devuelve None",
-          ficha.sinopsis(narrado, None) is None)
+          ficha.sinopsis(narrado, None) == (None, "sin_cliente"))
 comprobar("sinopsis de un libro vacio devuelve None",
-          ficha.sinopsis(vacio, object()) is None)
+          ficha.sinopsis(vacio, object()) == (None, "sin_pasajes"))
 # Seis capitulos distintos: se piden cuatro pasajes repartidos y tienen que
 # salir cuatro y distintos. Con capitulos de texto identico esta comprobacion
 # no dice nada, que fue como estaba escrita al principio.

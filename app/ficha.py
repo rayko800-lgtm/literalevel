@@ -322,18 +322,25 @@ def _pasajes(libro) -> list[str]:
             for i in idx]
 
 
-def sinopsis(libro, cliente, *, modelo: str = MODELO_POR_DEFECTO) -> dict | None:
-    """De que trata el libro, en espanol. `None` si no hay cliente o falla.
+def sinopsis(libro, cliente, *, modelo: str = MODELO_POR_DEFECTO
+             ) -> tuple[dict | None, str]:
+    """De que trata el libro, en espanol. Devuelve `(datos, causa)`.
+
+    `causa` es "" si fue bien, "sin_cliente", "sin_pasajes" o "sin_red" si no
+    salio NADA a la API, y "fallo" si la peticion llego a salir y fallo.
+    La diferencia no es cosmetica: quien llama cobra un uso del cupo ANTES
+    de saber si se va a gastar, y devolverlo cuando la llamada si salio
+    seria regalar lo que ya se pago.
 
     Se le dan pasajes del principio, del medio y del final, y se le prohibe
     apoyarse en lo que "sepa" del titulo: si el archivo no es el libro que dice
     su portada, la ficha tiene que describir el archivo, no la portada.
     """
     if cliente is None:
-        return None
+        return None, "sin_cliente"
     trozos = _pasajes(libro)
     if not trozos:
-        return None
+        return None, "sin_pasajes"
     Sinopsis = _modelo_sinopsis()
     instrucciones = (
         "Eres el bibliotecario de LiteraLevel, una app de lectura en ingles "
@@ -364,11 +371,18 @@ def sinopsis(libro, cliente, *, modelo: str = MODELO_POR_DEFECTO) -> dict | None
         r = cliente.responses.parse(
             model=modelo, instructions=instrucciones, input=entrada,
             text_format=Sinopsis, reasoning={"effort": ESFUERZO})
-        return r.output_parsed.model_dump()
-    except Exception:
+        return r.output_parsed.model_dump(), ""
+    except Exception as e:
         # La sinopsis es un extra. Si OpenAI falla, cambia de formato o no hay
         # red, la ficha se queda con lo medido y el lector no ve un error.
-        return None
+        #
+        # Pero SE DICE si la peticion llego a salir. Las de conexion y plazo
+        # no gastaron nada, y quien llama tiene que poder devolver el uso del
+        # cupo; las demas si pueden haber costado tokens.
+        nombre = type(e).__name__
+        sin_red = ("Connection" in nombre or "Timeout" in nombre
+                   or isinstance(e, (ConnectionError, TimeoutError, OSError)))
+        return None, ("sin_red" if sin_red else "fallo")
 
 
 # --- Que partes de un libro son el libro ---------------------------------

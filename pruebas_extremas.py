@@ -325,15 +325,33 @@ class _LibroFalso:
 
 
 prueba("opciones con un libro de Gutenberg",
-       lambda: ui._opciones_libros([_LibroFalso()])["choices"])
+       lambda: (ui._opciones_libros([_LibroFalso()])["choices"] or None)
+       and "lista una opcion")
 
 titulo("Correccion de pronunciacion palabra a palabra")
 
 _ev = ui.voz.evaluar_pronunciacion(
     "Our prison stood at the edge of the fortress",
     "Our prison stood at the age of the fortes")
-prueba("marca bien y mal",
-       lambda: (_ev.palabras_falladas, ui._palabras_html(_ev, True).count('class="ll-w')))
+# Marcarlo TODO en verde -`fallo = set()`- pasaba esta prueba: devolvia una
+# tupla, y una tupla nunca es False. Es el paso cinco del guion del video.
+def _marca_bien_y_mal():
+    html = ui._palabras_html(_ev, True)
+    falladas = list(_ev.palabras_falladas)
+    assert falladas, "el caso de prueba no tiene ninguna palabra fallada"
+    marcadas = html.count('class="ll-w')
+    assert marcadas, "no marco ni una palabra"
+    # Las clases son `ll-w mal` y `ll-w ok`, no `ll-w-mal`: la primera version
+    # de esta asercion se invento el nombre y fallaba sobre codigo correcto.
+    mal = html.count('class="ll-w mal"')
+    assert mal == len(falladas), (
+        f"{len(falladas)} palabras falladas y {mal} marcadas en rojo: "
+        f"si sale 0, la correccion pinta todo en verde")
+    assert html.count('class="ll-w ok"') == marcadas - mal
+    return f"{mal} en rojo y {marcadas - mal} en verde"
+
+
+prueba("marca bien y mal", _marca_bien_y_mal)
 prueba("sin transcripcion no inventa marcas",
        lambda: "no puedo marcarte" in ui._palabras_html(_ev, False))
 prueba("frase vacia",
@@ -401,9 +419,11 @@ class _Pet:
 
 
 prueba("saca la IP de x-forwarded-for",
-       lambda: ui._ip(_Pet(ip="203.0.113.7, 10.0.0.1")))
+       lambda: ui._ip(_Pet(ip="203.0.113.7, 10.0.0.1")) == "203.0.113.7"
+       and "203.0.113.7")
 prueba("cae al host del cliente si no hay cabecera",
-       lambda: ui._ip(_Pet(host="198.51.100.9")))
+       lambda: ui._ip(_Pet(host="198.51.100.9")) == "198.51.100.9"
+       and "198.51.100.9")
 prueba("sin peticion no revienta", lambda: ui._ip(None))
 prueba("cabeceras raras no rompen", lambda: ui._ip(_Pet(ip=None, host=None)))
 # Las dos que siguen devolvian un numero y una tupla, que NUNCA son False:
@@ -421,9 +441,13 @@ prueba("una IP no consume la cuota de otra",
 prueba("tope 0 significa sin limite",
        lambda: all(ui._dentro_del_limite(_Pet(ip="10.4.4.4"), "p3", 0)
                    for _ in range(200)))
+# Devolvia una TUPLA `(True, False)`, que nunca es False: con los tres cubos
+# contados en el mismo, una hora de consultas te dejaba sin practica de voz.
 prueba("cubos distintos no se mezclan",
-       lambda: (ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "lexico", 1),
-                ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "voz", 1)))
+       lambda: (ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "lexico", 1)
+                and ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "voz", 1)
+                and not ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "lexico", 1))
+       and "el lexico se agota y la voz sigue")
 prueba("el mensaje de limite existe en los dos idiomas",
        lambda: (len(ui._mensaje_limite("es", 60)) > 40,
                 len(ui._mensaje_limite("en", 60)) > 40))
@@ -719,7 +743,9 @@ prueba("session_hash vacio cae en 'anonimo'",
 prueba("sin peticion tampoco revienta",
        lambda: _con_nube(lambda: ui._dir_lector(None).name))
 prueba("session_hash larguisimo se recorta",
-       lambda: _con_nube(lambda: len(ui._dir_lector(_Peticion("z" * 500)).name)))
+       lambda: _con_nube(
+           lambda: len(ui._dir_lector(_Peticion("z" * 500)).name) <= 64)
+       and "recortado a 64 o menos")
 prueba("session_hash raro no deja el nombre vacio",
        lambda: _con_nube(lambda: ui._dir_lector(_Peticion("///")).name))
 
@@ -758,8 +784,10 @@ prueba("n negativo o cero no rompe",
        lambda: (len(cuaderno.ultimas(0, _CDB)), len(cuaderno.para_repasar(-3, _CDB))))
 prueba("repasar agrupa por lema",
        lambda: (cuaderno.registrar(palabra="fetters", lema="fetter",
-                                   oracion="in fetters again", zipf=2.3, ruta=_CDB),
-                len([a for a in cuaderno.para_repasar(9, _CDB) if a.lema == "fetter"]))[1])
+                                   oracion="in fetters again", zipf=2.3, ruta=_CDB)
+                or len([a for a in cuaderno.para_repasar(9, _CDB)
+                        if a.lema == "fetter"]) == 1)
+       and "una sola entrada para fetter y fetters")
 prueba("rareza sin zipf", lambda: repr(cuaderno.Anotacion(
     "x", "x", None, None, "o", None, None, None, "2026").rareza))
 
@@ -1037,7 +1065,8 @@ prueba("nivel dicho como cefr", lambda: ui._nivel_dicho(1.2, "intermedio", "cefr
 prueba("nivel dicho con modo desconocido",
        lambda: ui._nivel_dicho(1.2, "", "loquesea"))
 prueba("los seis anclajes salen de la escala 0-2",
-       lambda: sorted({ui._cefr(v / 20) for v in range(41)}))
+       lambda: sorted({ui._cefr(v / 20) for v in range(41)})
+       == ["A1", "A2", "B1", "B2", "C1", "C2"] and "los seis, y solo los seis")
 # Los limites de la tabla que ve el usuario TIENEN que ser los del codigo. Con
 # round() de Python no lo eran: redondea los empates al par, asi que 1.00 daba
 # B1 y 1.80 daba C1, y la tabla decia B2 y C2.
@@ -1082,9 +1111,13 @@ titulo("Paletas de color")
 
 import paletas as paletas_mod  # noqa: E402
 
+# `or "las cinco"` hacia que devolver la LISTA DE LAS QUE FALLAN contara como
+# exito: con `_css_paleta` devolviendo "", la pagina se queda sin paleta y
+# esta prueba imprimia ok.
 prueba("todas las paletas dan css",
-       lambda: [k for k in paletas_mod.PALETAS if not ui._css_paleta(k).startswith("<style>")]
-       or "las cinco")
+       lambda: not [k for k in paletas_mod.PALETAS
+                    if not ui._css_paleta(k).startswith("<style>")]
+       and f"las {len(paletas_mod.PALETAS)}")
 prueba("clave inventada vuelve a la de siempre",
        lambda: ui._css_paleta("noexiste") == ui._css_paleta(paletas_mod.POR_DEFECTO))
 prueba("clave None", lambda: ui._css_paleta(None)[:7])
@@ -1843,7 +1876,8 @@ def _una_sola_letra():
 
 prueba("la interfaz y el contrato dan la misma letra", _una_sola_letra)
 prueba("los empates suben, no se van al par",
-       lambda: [ui.scoring.anchor_cefr(y) for y in (0.5, 1.5, 2.5, 3.5, 4.5)])
+       lambda: [ui.scoring.anchor_cefr(y) for y in (0.5, 1.5, 2.5, 3.5, 4.5)]
+       == ["A2", "B1", "B2", "C1", "C2"] and "suben todos")
 
 
 titulo("Codigos de acceso a lo que cuesta dinero")
@@ -2431,6 +2465,12 @@ def _el_cupo_cuadra_con_las_llamadas_de_pago():
     finally:
         openai.OpenAI = viejo_cli
         config_mod.falta = viejo_falta
+        # Y el consultor. La primera seccion construye el `ConsultorLexico`
+        # de verdad con `openai.OpenAI` espiado, y el espia se queda guardado
+        # en `_cliente_openai`: restaurar `openai.OpenAI` no lo deshace.
+        # Hoy no rompe nada porque las pruebas de despues ponen dobles, pero
+        # es un espia vivo paseandose por el resto de la suite.
+        ui._consultor = None
         ui._CODIGO_SESION.clear()
         for k, v in (("LITERALEVEL_CUENTAS", viejo_cuentas),
                      ("OPENAI_API_KEY", viejo_clave)):
@@ -3779,6 +3819,360 @@ def _el_modelo_puede_reventar_de_cualquier_forma():
 
 prueba("el modelo puede reventar de cualquier forma",
        _el_modelo_puede_reventar_de_cualquier_forma)
+
+
+def _la_pantalla_del_libro_no_se_contradice():
+    """Un solo recuento de palabras por pantalla.
+
+    La cabecera pintaba `libro.palabras` -crudo, con portadilla y licencia
+    dentro- y tres lineas mas abajo la ficha pintaba el descontado. En
+    *Metamorphosis* eran 25.077 arriba y 21.938 abajo, a la vez, en el tercer
+    clic del recorrido de la demo. Dos cifras distintas de lo mismo a tres
+    lineas de distancia es lo primero que alguien compara.
+    """
+    texto = ("CHAPTER I. The Journey\n\n"
+             + "He said nothing for a long while, and the train ran on through the "
+               "brown moor towards the west, with the rain beginning to streak the "
+               "glass of the window beside us. " * 40)
+    libro, _, _, resumen = ui._abrir(escribir("un_recuento.txt", texto))
+    assert libro is not None, resumen
+    c = ficha_mod.caracteristicas(libro)
+    cuenta = ficha_mod.miles(c.palabras)
+    assert cuenta in resumen, \
+        f"la cabecera dice otra cosa que la ficha ({cuenta}): {resumen[:140]}"
+    ficha_texto = ui._ficha_libro(libro)
+    assert cuenta in ficha_texto, f"la ficha dice otra cosa: {ficha_texto[:140]}"
+    return f"cabecera y ficha dicen las mismas {cuenta} palabras"
+
+
+prueba("la pantalla del libro no se contradice",
+       _la_pantalla_del_libro_no_se_contradice)
+
+
+def _la_oracion_de_contexto_no_arrastra_el_titulo():
+    """Lo que se manda a desambiguar tiene que ser una frase, no un titulo pegado.
+
+    `_oracion_de` partia el capitulo entero con `SENT_RE`, y los encabezados no
+    llevan punto: se los tragaba y los pegaba delante. El contexto que se
+    citaba de *Metamorphosis* empezaba "I I One morning, when Gregor Samsa
+    woke...". `_frase_del_capitulo` ya lo tenia resuelto partiendo por parrafos
+    primero; esta no.
+    """
+    texto = ("CHAPTER I\n\nDown the Rabbit-Hole\n\n"
+             "Alice was beginning to get very tired of sitting by her sister on "
+             "the bank, and of having nothing to do. Once or twice she had peeped "
+             "into the book her sister was reading, but it had no pictures.")
+    o = ui._oracion_de(texto, "Alice")
+    assert o, "no devolvio ninguna oracion"
+    assert not o.startswith("CHAPTER"), f"arrastra el encabezado: {o[:80]}"
+    assert "Rabbit-Hole" not in o, f"arrastra el titulillo: {o[:80]}"
+    assert o.startswith("Alice was beginning"), o[:80]
+    # Y si NO hay mas que el encabezado, sigue devolviendo algo antes que nada.
+    assert ui._oracion_de("CHAPTER XII\n\nAlice's Evidence", "Alice"), \
+        "sin cuerpo tendria que devolver el respaldo"
+    return "la oracion empieza donde empieza la prosa"
+
+
+prueba("la oracion de contexto no arrastra el titulo",
+       _la_oracion_de_contexto_no_arrastra_el_titulo)
+
+
+def _ningun_aviso_llega_en_crudo_al_lector():
+    """Los avisos que `lexicon` escribe para el log no valen para la pantalla.
+
+    Salia tal cual: "acepcion provisional: margen bajo (0.004) frente a otra
+    acepcion: An animal that preys on game...". Sin acentos, con el margen en
+    decimales y con jerga, al lado de avisos redactados con cuidado.
+    """
+    crudos = [
+        "acepcion provisional: margen bajo (0.004) frente a otra acepcion: An animal.",
+        "sin audio en el diccionario",
+        "sin OPENAI_API_KEY: no hay explicacion contextual",
+        "OpenAI no disponible: AuthenticationError: 401",
+        "OpenAI no disponible: APITimeoutError: timed out",
+        "no se pudo generar audio: RateLimitError 429 insufficient_quota",
+    ]
+    malos = []
+    for idioma in ("es", "en"):
+        for crudo in crudos:
+            humano = ui._humanizar(crudo, idioma)
+            if humano == crudo:
+                malos.append(f"{idioma}: sin traducir -> {crudo[:60]}")
+            elif any(j in humano for j in ("acepcion", "OPENAI_API_KEY", "Error",
+                                           "429", "401")):
+                malos.append(f"{idioma}: sigue con jerga -> {humano[:60]}")
+    assert not malos, malos
+    return f"los {len(crudos)} avisos salen redactados, en los dos idiomas"
+
+
+prueba("ningun aviso llega en crudo al lector",
+       _ningun_aviso_llega_en_crudo_al_lector)
+
+
+# --- S3: lo que trece mutantes demostraron que nadie protegia --------------
+#
+# De 37 mutantes de la auditoria 14, trece sobrevivieron. No son fallos: son
+# agujeros en la red. Cada prueba de aqui abajo existe porque, sin ella, se
+# podia deshacer una correccion sin que nada se enterase.
+
+titulo("La red que faltaba (auditoria 14)")
+
+
+def _el_marcapaginas_y_el_cuaderno_son_de_cada_lector():
+    """El recorrido de verdad, con DOS visitantes, no solo la funcion que reparte.
+
+    `_dos_lectores_no_se_ven_los_datos` recorre el perfil y nada mas, asi que
+    dos mutantes sobrevivian:
+
+      - `_ruta_sesion` devolviendo `RUTA_SESION` -un marcapaginas para todos-,
+        que es literalmente "el caso mas feo" que describe la cabecera de
+        `ui.py`: `demo.load` le pinta a cada visitante el capitulo del PDF
+        privado del anterior.
+      - `_archivo_lector("cuaderno.db", ...)` sin la peticion: un cuaderno de
+        vocabulario para todos, con las palabras y las FRASES del libro de otro.
+
+    La prueba que vigilaba esto miraba el CUERPO de los manejadores buscando
+    `_archivo_lector(... peticion`, asi que el manejador que dejaba de pasarla
+    ya no casaba con el patron y se saltaba: la red no cubria justo lo que
+    queria cubrir.
+    """
+    from lexicon import ResultadoLexico
+
+    def dentro():
+        a, b = _Peticion("aisla-aaa"), _Peticion("aisla-bbb")
+        libro_a = escribir("libro_de_a.txt",
+                           "The rain fell on the moor and the train ran west. " * 120)
+
+        # A abre un libro y se queda en un capitulo.
+        ui._abrir(libro_a, a)
+        assert ui._leer_sesion(a), "A no guardo su marcapaginas"
+        assert ui._leer_sesion(b) is None, \
+            "B ve el marcapaginas de A: un solo sesion.json para todos"
+
+        # Y `_reanudar`, que es lo que corre en `demo.load`.
+        recuperado_b = str(list(ui._reanudar(b)))
+        assert "libro_de_a" not in recuperado_b, \
+            f"demo.load le pinta a B el libro de A: {recuperado_b[:120]}"
+
+        # A consulta una palabra; el cuaderno es suyo.
+        antes = ui.consultor
+
+        def doble():
+            class C:
+                @staticmethod
+                def consultar(palabra, oracion, nivel, **k):
+                    return ResultadoLexico(
+                        palabra, oracion, palabra, palabra, "NOUN", "noun",
+                        "A private word.", [], 0.9, 1, None, None, None, None,
+                        False, None, None, None, None, "basico", 3.0, False, [], 0)
+            return C()
+
+        try:
+            ui.consultor = doble
+            list(ui._consultar(None, None, None, "zarzaparrilla",
+                               "The zarzaparrilla grew by the wall.", "es", a))
+        finally:
+            ui.consultor = antes
+
+        mias = str(ui._mis_palabras(a))
+        suyas = str(ui._mis_palabras(b))
+        assert "zarzaparrilla" in mias, f"A no ve su propia palabra: {mias[:120]}"
+        assert "zarzaparrilla" not in suyas, \
+            "B lee el cuaderno de A: un solo cuaderno.db para todos"
+        assert ui._archivo_lector("cuaderno.db", a) != \
+            ui._archivo_lector("cuaderno.db", b), "mismo cuaderno para los dos"
+        assert ui._ruta_sesion(a) != ui._ruta_sesion(b), "mismo sesion.json"
+        return "marcapaginas y cuaderno separados por lector"
+
+    return _con_nube(dentro)
+
+
+prueba("el marcapaginas y el cuaderno son de cada lector",
+       _el_marcapaginas_y_el_cuaderno_son_de_cada_lector)
+
+
+def _cada_respuesta_del_cuestionario_va_a_su_pregunta():
+    """El primer clic de la demo, y nadie comprobaba que las respuestas casaran.
+
+    Invertir la lista de claves -`_claves_cuestionario()[::-1]`- asigna cada
+    respuesta a otra pregunta y sobrevivia a las 266 extremas y a
+    `pruebas_perfil.py`: aquella prueba `perfil.desde_cuestionario` con
+    diccionarios ya construidos, y las de `ui` solo miraban el nombre y que el
+    perfil no fuera `None`.
+
+    Aqui se pone valor en UNA sola posicion y se exige el nivel que le toca.
+    """
+    claves = ui._claves_cuestionario()
+    frag = [c for c in claves if c in perfil_mod._CLAVES_FRAGMENTOS]
+    opin = [c for c in claves if c not in perfil_mod._CLAVES_FRAGMENTOS]
+    assert frag and opin, f"el cuestionario ya no tiene los dos grupos: {claves}"
+
+    # UN solo valor no discrimina: con un dato, el promedio de las de opinion y
+    # el maximo de los fragmentos devuelven los dos ese dato, asi que invertir
+    # las claves daba el mismo nivel. Hacen falta dos valores en grupos
+    # DISTINTOS, y entonces cambiarlos de sitio cambia el resultado.
+    vector = [None] * len(claves)
+    vector[claves.index(opin[0])] = 0.0
+    vector[claves.index(frag[0])] = 2.0
+    peso = perfil_mod.PESO_FRAGMENTOS
+    esperado = round((1.0 - peso) * 0.0 + peso * 2.0, 3)
+    alreves = round((1.0 - peso) * 2.0 + peso * 0.0, 3)
+    assert abs(esperado - alreves) > 1e-6, \
+        "con este peso los dos grupos dan lo mismo: la prueba no discriminaria"
+
+    p = ui._desde_cuestionario(None, "Ana", None, *vector)[0]
+    assert p is not None, "no salio perfil"
+    assert abs(p.nivel - esperado) < 1e-6, (
+        f"{opin[0]}=0,0 y {frag[0]}=2,0 tendrian que dar {esperado} y dio "
+        f"{p.nivel}; {alreves} seria con las respuestas cambiadas de pregunta")
+    return f"opinion 0,0 + fragmento 2,0 -> {esperado}, y no {alreves}"
+
+
+prueba("cada respuesta del cuestionario va a su pregunta",
+       _cada_respuesta_del_cuestionario_va_a_su_pregunta)
+
+
+def _sorprendeme_filtra_de_verdad_por_nivel():
+    """`por_nivel` tiene que FILTRAR, no solo anunciar.
+
+    `_el_rango_anunciado_es_el_filtrado` mira el rotulo; que `por_nivel`
+    ignorara la holgura -`d = self.df`- y devolviera cualquier libro sobrevivia
+    entera. Es la pantalla que el guion ensena en el segundo paso.
+    """
+    try:
+        cat = ui.catalogo()
+    except Exception as e:
+        return f"sin catalogo en esta maquina ({type(e).__name__}), no se puede medir"
+    h = ui.HOLGURA_POR_NIVEL
+    malos = []
+    for nivel in (0.0, 0.8, 2.0):
+        libros = cat.por_nivel(nivel, holgura=h, n=10)
+        fuera = [(b.nivel, b.puntuacion_nivel) for b in libros
+                 if abs(b.puntuacion_nivel - nivel) > h + 1e-9]
+        if fuera:
+            malos.append(f"nivel {nivel}: devuelve {fuera} fuera de ±{h}")
+    assert not malos, malos
+    return f"por_nivel respeta ±{h} en los tres extremos"
+
+
+prueba("sorprendeme filtra de verdad por nivel",
+       _sorprendeme_filtra_de_verdad_por_nivel)
+
+
+def _un_libro_de_gutenberg_se_puede_abrir_desde_la_tabla():
+    """Dos mutantes vivian aqui, y los dos dejan el boton "Leerlo ahora" muerto.
+
+    `_opciones_libros` sin listar nada, y `_tabla_libros` marcando TODO como
+    abrible -incluido StoryWeaver, que no se puede descargar-. Las pruebas que
+    los cubrian devolvian `["choices"]` y no aseveraban nada.
+    """
+    class L:
+        def __init__(self, ident, titulo):
+            self.id, self.titulo, self.autor = ident, titulo, "Autor"
+            self.nivel, self.gancho, self.descargas = "B1", "de que va", 10
+            self.similitud = self.afinidad = 0.5
+
+    libros = [L("PG1342", "Pride and Prejudice"), L("SW201", "Un cuento")]
+    upd = ui._opciones_libros(libros)
+    opciones = upd.get("choices") if isinstance(upd, dict) else getattr(upd, "choices", [])
+    assert opciones, "el desplegable de 'Leerlo ahora' sale vacio"
+    ids = [str(o[1] if isinstance(o, (list, tuple)) else o) for o in opciones]
+    assert any("PG1342" in i for i in ids), f"no ofrece el de Gutenberg: {ids}"
+    assert not any("SW201" in i for i in ids), \
+        f"ofrece abrir uno de StoryWeaver, que no se puede descargar: {ids}"
+
+    tabla = ui._tabla_libros(libros)
+    assert "▸ 1 de 2" in tabla, f"el recuento de abribles no cuadra: {tabla[:160]}"
+    return "el de Gutenberg se ofrece y el de StoryWeaver no"
+
+
+prueba("un libro de Gutenberg se puede abrir desde la tabla",
+       _un_libro_de_gutenberg_se_puede_abrir_desde_la_tabla)
+
+
+def _la_sinopsis_guardada_no_se_vuelve_a_pagar():
+    """"Un libro se resume una vez y ya", dice el documento. Nadie lo probaba.
+
+    Ignorar la sinopsis guardada -`datos = None`- hace que cada pulsacion de
+    "¿De que trata?" pague cuatro pasajes a la API. La prueba del cupo
+    comprueba que no se cobre sin llamar; no que no se llame cuando ya esta.
+    """
+    class Cap:
+        titulo = "CHAPTER I"
+        texto = "The rain fell on the moor and the train ran west. " * 40
+        palabras = 400
+
+    class Libro:
+        titulo, autor, palabras = "Guardado", "Autor", 1000
+        capitulos = [Cap()]
+        ruta = "guardado.txt"
+
+    lib = Libro()
+    p = ui.RUTA_ANALISIS / f"{ui._clave_libro(lib)}-sinopsis.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    guardado = p.read_text(encoding="utf-8") if p.exists() else None
+    try:
+        p.write_text('{"de_que_trata": "Va de esto.", "temas": ["a"], '
+                     '"para_quien": "para ti", "aviso": ""}', encoding="utf-8")
+        assert ui._sinopsis_guardada(lib), \
+            "no reconoce la sinopsis que acaba de guardarse: se pagaria otra vez"
+        # Y con ella puesta, el manejador no puede llegar a pedir cliente.
+        llamadas = []
+        antes = ui.consultor
+        try:
+            ui.consultor = lambda: (_ for _ in ()).throw(
+                AssertionError("pidio consultor con la sinopsis ya guardada"))
+            salida = str(list(ui._de_que_trata(lib)))
+        finally:
+            ui.consultor = antes
+        assert "Va de esto" in salida, f"no uso la guardada: {salida[:140]}"
+        assert not llamadas
+    finally:
+        if guardado is None:
+            p.unlink(missing_ok=True)
+        else:
+            p.write_text(guardado, encoding="utf-8")
+    return "la sinopsis guardada se reutiliza y no se vuelve a pagar"
+
+
+prueba("la sinopsis guardada no se vuelve a pagar",
+       _la_sinopsis_guardada_no_se_vuelve_a_pagar)
+
+
+def _los_tres_cubos_por_hora_son_de_verdad_distintos():
+    """La prueba que habia devolvia una TUPLA `(True, False)`, que nunca es False.
+
+    Con los tres cubos contados en el mismo, una hora de consultas lexicas te
+    deja sin practica de voz.
+    """
+    class _P:
+        headers = {}
+        client = type("X", (), {"host": "10.8.8.8"})()
+
+    pet = _P()
+    claves = [f"{c}:{ui._ip(pet)}" for c in ("lexico", "voz", "sinopsis")]
+    try:
+        with ui._CANDADO_GASTO:
+            for c in claves:
+                ui._gasto.pop(c, None)
+        # Se agota SOLO el de lexico.
+        for _ in range(ui.LIMITE_CONSULTAS_HORA):
+            assert ui._dentro_del_limite(pet, "lexico", ui.LIMITE_CONSULTAS_HORA)
+        assert not ui._dentro_del_limite(pet, "lexico", ui.LIMITE_CONSULTAS_HORA), \
+            "el cubo de lexico no se agota"
+        assert ui._dentro_del_limite(pet, "voz", ui.LIMITE_VOZ_HORA), \
+            "agotar lexico deja sin voz: los cubos estan mezclados"
+        assert ui._dentro_del_limite(pet, "sinopsis", ui.LIMITE_SINOPSIS_HORA), \
+            "agotar lexico deja sin sinopsis: los cubos estan mezclados"
+    finally:
+        with ui._CANDADO_GASTO:
+            for c in claves:
+                ui._gasto.pop(c, None)
+    return "agotar el lexico no toca ni la voz ni la sinopsis"
+
+
+prueba("los tres cubos por hora son de verdad distintos",
+       _los_tres_cubos_por_hora_son_de_verdad_distintos)
 
 
 # --- Resultado ------------------------------------------------------------
