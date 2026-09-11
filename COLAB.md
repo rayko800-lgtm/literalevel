@@ -28,51 +28,71 @@ suponerlo**, y la celda 11 lo mide.
 
 ---
 
-## Los tres clics
+## Ya está montado: lo hice yo
 
-1. **Abre Colab** (te lo dejo abierto en el navegador, si no:
-   <https://colab.research.google.com>).
-2. **Archivo → Subir cuaderno** y elige:
-   ```
-   C:\Users\laura\literalevel\colab_precalculo.ipynb
-   ```
-   *No se puede abrir desde GitHub porque el repositorio es privado.*
-3. **Entorno de ejecución → Cambiar tipo de entorno → GPU → T4**, y guarda.
+El **jueves 10 a las 19:00** quedó así, y lo puedes comprobar en pantalla:
+
+- Cuaderno subido a tu Drive y abierto:
+  <https://colab.research.google.com/drive/15P43BFhYBlmZCnbJcxIYj_H_Y6Ps9CkX>
+- Cuenta: **rayko800@gmail.com** (la que tiene Colab Pro y `literalevel_bigdata`).
+  Tu Chrome estaba dentro con `miguel.reyes.carrillo19@gmail.com`, que **no**
+  tiene el Drive del proyecto: con esa cuenta el cuaderno no habría encontrado
+  ni un texto.
+- GPU: **Tesla T4, 14,6 GB**, CUDA activo, torch 2.11.0+cu128. Confirmado
+  ejecutando la celda 1.
+- La T4 va escrita en el propio `.ipynb` (`gpuType: "T4"`, sin `machine_shape`),
+  así que cualquiera que lo abra la hereda. Antes decía A100 con memoria alta,
+  que es de pago.
+
+### Lo único que tienes que tocar
+
+La celda 2 monta tu Drive y eso **exige tu permiso**: sale un diálogo
+«¿Permitir que este cuaderno acceda a tus archivos de Google Drive?».
+
+1. **Conectar con Google Drive**
+2. En la ventana de Google, elige **rayko800@gmail.com**
+3. **Permitir**
+
+Es el único permiso de toda la sesión. Cuando lo des, avísame y sigo con el
+resto de las celdas.
 
 ---
 
-## Qué ejecutar, en este orden
+## Qué celdas van, con la numeración del cuaderno
 
-| Celda | Qué hace | Ojo |
+| Celda | Qué hace | |
 |---|---|---|
-| **1** | Dice qué GPU tocó | Tiene que decir **Tesla T4** y ~15 GB |
-| **2** | Monta Drive | **Te pide permiso en una ventana**: acepta con `rayko800@gmail.com` |
-| **3** | Instala dependencias | Un par de minutos |
-| **4** | Trae el código de LiteraLevel | |
+| **1** | Qué GPU tocó | ✅ hecha: Tesla T4 |
+| **2** | Monta Drive | ⏳ **espera tu permiso** |
+| **3** | Dependencias | un par de minutos |
+| **4** | El código de LiteraLevel | |
 | **5** | El catálogo oficial de Gutenberg | |
-| **9** | Baja el modelo v4 del Hub y lo pone en la GPU | |
-| **11** | **Mide la velocidad real** | **Pégame lo que imprima** |
-| **12** | Prepara la lista de pendientes | Dirá cuántos libros quedan |
-| **13** | Lanza la tanda | Es la que tarda |
+| ~~6, 6b, 6c~~ | Descargar textos | **se saltan**: medimos sobre lo ya descargado |
+| **7** | Baja el modelo v4 y lo pone en la GPU | |
+| ~~8~~ | Desviación de media precisión | se salta, no hace falta |
+| **9** | **Mide la velocidad real** | **la importante** |
+| **10** | Prepara la lista de pendientes | dirá cuántos quedan |
+| **10b** | Lanza la tanda | la que tarda |
+| ~~11, 11b~~ | El catálogo final y una sonda | al final, otro día |
 
-**Sáltate la 6, la 7 y la 8** si solo vas a medir: son la descarga de textos.
-**La 10** es la comprobación de media precisión y no hace falta.
+*(Ojo: es la numeración que lleva el cuaderno en sus propios títulos, no la
+posición en la lista. La celda «7» es la novena de arriba abajo.)*
 
-### Antes de darle a la 13, dos valores
+### Los dos valores, ya puestos
 
-En la celda 13, arriba:
+En la celda **10b** ya está puesto:
 
 ```python
-HORAS_TOPE_ANALISIS = 3.5     # ponlo así para una sesión gratuita
+HORAS_TOPE_ANALISIS = 3.5     # sesion gratuita: se corta antes que una de Pro
 ```
 
-Está en 8.0, que era para Colab Pro. Las sesiones gratuitas se cortan antes, y
+Estaba en 8.0, que era para Colab Pro. Las sesiones gratuitas se cortan antes, y
 **no pasa nada si se corta**: los resultados se guardan en Drive cada 500 libros
 y la celda 13 es reanudable — al volver, se salta lo ya hecho. Si la dejas en
 8.0 tampoco rompe nada, solo que el aviso ordenado de «guardo lo que llevo» no
 llegará a tiempo.
 
-En la celda 12 ya está puesto lo que quiero:
+Y en la celda **10**:
 
 ```python
 MUESTRA_ALEATORIA = True      # no lo cambies
@@ -91,12 +111,12 @@ puede escribir en el documento con su margen.
 
 Tres cosas, y con eso hago las cuentas de verdad:
 
-1. Lo que imprime la **celda 1** (qué GPU y cuánta memoria).
-2. Lo que imprime la **celda 11**: `N ventanas/s` y las horas proyectadas.
-3. Lo que imprime la **celda 13** al terminar o al cortarse: cuántos libros
+1. ~~Qué GPU~~ ya lo tengo: Tesla T4, 14,6 GB.
+2. Lo que imprime la **celda 9**: `N ventanas/s` y las horas proyectadas.
+3. Lo que imprime la **celda 10b** al terminar o al cortarse: cuántos libros
    lleva y en cuánto tiempo.
 
-Con el número de la celda 11 se sabe **por fin** lo que cuesta el catálogo
+Con el número de la celda 9 se sabe **por fin** lo que cuesta el catálogo
 entero. Hasta ahora lo que hay escrito son 61 libros/min medidos con la tarjeta
 esperando al disco, y una proyección de «unas 15 unidades» que **nadie ha
 confirmado**. Esa proyección es la que decide si vale la pena comprar unidades o

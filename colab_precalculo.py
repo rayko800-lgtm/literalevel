@@ -797,7 +797,7 @@ TANDA = 10 ** 9
 # prefetch cumple, la cifra sube y el catalogo entero baja de 37 unidades a
 # unas 15. Esas 15 son una PROYECCION, no una medida. Hasta que una tanda
 # la confirme, no se sabe lo que cuesta el catalogo.
-HORAS_TOPE_ANALISIS = 8.0
+HORAS_TOPE_ANALISIS = 3.5     # sesion gratuita: se corta antes que una de Pro
 
 # Cuantos libros se van leyendo por delante mientras la GPU trabaja.
 #
