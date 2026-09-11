@@ -52,6 +52,11 @@ _BOILERPLATE_RE = re.compile(
 # Palabras que estan en todos los libros y no dicen de que va ninguno. No es
 # una lista de "stopwords" academica: es corta y solo sirve para que las
 # palabras distintivas no sean 'the', 'said' y 'would'.
+#
+# Faltaban dos familias enteras, y se veian en la pantalla del libro: las
+# CONTRACCIONES -"Lo que mas se repite: tommy, tuppence, julius, don't, james,
+# think, down, young, jane, got"- y los VERBOS CORRIENTES de narracion. Cuatro
+# de diez puestos gastados en palabras que estan en todas las novelas.
 _VACIAS = frozenset("""
 the be to of and a in that have i it for not on with he as you do at this but
 his by from they we say her she or an will my one all would there their what
@@ -61,9 +66,24 @@ look only come its over also back after use two how our work first well way
 even new want because any these give day most us is was are were been has had
 said upon shall must very much such may own more many might should did does
 made men man old great little upon thou thee thy ye sir mr mrs am pm chapter
+think thought though thing things something nothing anything everything
+got went came going gone asked answered replied cried told tell knew known
+seemed seem looked looking felt feel began begin turned turn left put down
+never always ever every before without again away while here where why yes
+still quite rather perhaps indeed however almost enough perhaps another
+don't didn't couldn't wouldn't shouldn't can't won't isn't aren't wasn't
+weren't hasn't haven't hadn't doesn't ain't i'm i'll i've i'd it's that's
+there's he's she's we're you're they're let's
+too himself herself myself itself themselves once last being soon right
+suddenly together whole same both each few long part place side end course
+moment thus therefore towards toward off took saw let gave done
 """.split())
 
-_PALABRA_RE = re.compile(r"[A-Za-z][A-Za-z'’-]{2,}")
+# Cualquier LETRA, no solo la ASCII: con `[A-Za-z]`, "Svidrigaïlov" se partia
+# en "svidriga" y "lov", y las dos mitades subian a "lo que mas se repite" de
+# *Crimen y castigo* como si fueran palabras. Igual "Natasha" y "Rostov" en
+# *Guerra y paz*. Se piden tres letras o mas, como antes.
+_PALABRA_RE = re.compile(r"[^\W\d_](?:[^\W\d_]|['’-])*", re.UNICODE)
 
 
 @dataclass
@@ -269,7 +289,13 @@ def caracteristicas(libro) -> Caracteristicas:
     con_voz = sum(bool(_DIALOGO_RE.search(f)) for f in frases)
     dialogo = con_voz / len(frases) if frases else 0.0
 
-    toks = [t.lower() for t in _PALABRA_RE.findall(texto)]
+    # El apostrofo tipografico se normaliza al recto: Gutenberg escribe
+    # "don’t" con el curvo, y sin esto `_VACIAS` -que lleva el recto- no lo
+    # reconocia, asi que la contraccion seguia subiendo a las distintivas por
+    # mucho que se anadiera a la lista. De paso, "don’t" y "don't" dejan de
+    # contar como dos palabras distintas en la riqueza lexica.
+    toks = [t.lower().replace("’", "'") for t in _PALABRA_RE.findall(texto)
+            if len(t) >= 3]
     muestra = toks[:20000]
     riqueza = len(set(muestra)) / len(muestra) if muestra else 0.0
 

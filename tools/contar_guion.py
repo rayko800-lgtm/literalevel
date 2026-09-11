@@ -13,6 +13,12 @@ ejecutable:
      en una palabra)"-, que son indicaciones de lo que se hace, no de lo que
      se dice.
   4. Se quitan las marcas de Markdown, que no se pronuncian.
+  5. Se tiran antes las NOTAS DE PRODUCCION -las lineas que empiezan por ">"-,
+     aunque lleven comillas angulares dentro. Ahi las angulares citan lo que se
+     teclea o lo que se ve en pantalla ("escribe «dostoyevski» y sale"), no lo
+     que se dice a camara. Esta regla faltaba: la auditoria 15 hizo anadir una
+     nota que nombraba «la fonetica britanica y americana» y el contador la
+     sumo al parlamento.
 
 Uso:  python -X utf8 tools/contar_guion.py
 """
@@ -31,7 +37,10 @@ def parlamento(texto: str) -> list[str]:
     fin = texto.find("## Comprobación antes de grabar")
     if ini < 0 or fin < ini:
         raise SystemExit("no encuentro las marcas de las fases ANSVA")
-    return re.findall("«(.+?)»", texto[ini:fin], flags=re.S)
+    dentro = texto[ini:fin]
+    # Regla 5: fuera las notas de produccion antes de buscar el parlamento.
+    dentro = "\n".join(l for l in dentro.split("\n") if not l.lstrip().startswith(">"))
+    return re.findall("«(.+?)»", dentro, flags=re.S)
 
 
 def palabras(bloques: list[str]) -> int:

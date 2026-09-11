@@ -134,9 +134,14 @@ prueba("construir() no carga nada pesado",
 assert (ui._puntuador, ui._catalogo, ui._consultor) == (None, None, None), \
     "construir() cargo un recurso pesado: la app tardara en abrir"
 
-# `practicar()` registra en ~/.literalevel/voz.db las palabras falladas. Esto
-# son pruebas, no practica real: no deben ensuciar los puntos debiles de nadie.
-ui.voz.registrar_fallos = lambda *a, **k: None
+# Aqui habia un `ui.voz.registrar_fallos = lambda *a, **k: None`, puesto cuando
+# la suite escribia en el `~/.literalevel/voz.db` de quien la ejecutara. Ya no
+# hace falta -`LITERALEVEL_DATOS` apunta a una carpeta temporal desde la linea
+# 29- y hacia daño: apagar el registro deja SIN EFECTO la unica linea que
+# decide en que voz.db se apunta el fallo, asi que el mutante que le quitaba la
+# `peticion` -una voz.db compartida por todos los visitantes- no lo podia cazar
+# ninguna prueba. Un doble puesto por prudencia que anula lo que se quiere
+# medir es la tercera forma de que una prueba no pruebe nada.
 
 
 def escribir(nombre: str, contenido: bytes | str) -> str:
@@ -3559,6 +3564,14 @@ def _las_dos_pestanas_prometen_el_mismo_rango():
     p = perfil_mod.Perfil(nivel=1.13, banda="intermedio",
                           origen="cuestionario", creado="", nombre="Ana")
     h = ui.HOLGURA_POR_NIVEL
+    # Y el numero, clavado. Sin esto la prueba solo dice que las dos pestanas
+    # LEEN la misma variable: subirla a 0,5 -o sea, recomendar de 0,63 a 1,63
+    # al que esta en 1,13- las deja de acuerdo las dos en la misma barbaridad
+    # y la prueba sigue verde. 0,25 sobre 2 es medio nivel del MCER, y eso es
+    # una promesa al lector, no un detalle interno.
+    assert h == 0.25, (
+        f"la holgura de recomendacion es {h} y no 0,25. Si de verdad cambia, "
+        "cambiala aqui a mano y di por que en el commit")
     lo, hi = f"{max(0.0, p.nivel - h):.2f}", f"{min(2.0, p.nivel + h):.2f}"
     mi_nivel = perfil_mod.describir(p)
     assert lo in mi_nivel and hi in mi_nivel, \
@@ -4428,6 +4441,640 @@ def _la_ficha_no_promete_una_pronunciacion_que_no_existe():
 
 prueba("la ficha no promete una pronunciacion que no existe",
        _la_ficha_no_promete_una_pronunciacion_que_no_existe)
+
+
+# --- S6: los veintidos mutantes que sobrevivieron a la auditoria 15 --------
+#
+# De 30 mutantes, 22 vivieron. Seis de ellos daban a TODOS los visitantes los
+# datos de uno -la sesion de pago, la estanteria, la voz, el perfil-, y las
+# pruebas que vigilaban eso miraban el CUERPO de los manejadores buscando
+# `_archivo_lector(..., peticion)`: quitar el argumento en la llamada tambien
+# quita el patron, asi que el manejador mutado dejaba de vigilarse solo.
+#
+# Lo que sigue no mira codigo: pone dos visitantes y comprueba que lo que
+# escribe uno no lo lee el otro.
+
+titulo("La red que faltaba (auditoria 15)")
+
+
+class _Visitante:
+    """Una peticion de Gradio con identidad de navegador y direccion propias."""
+
+    def __init__(self, sesion, ip="10.0.0.1"):
+        self.session_hash = sesion
+        self.headers = {"x-forwarded-for": ip}
+        self.client = type("X", (), {"host": ip})()
+
+
+def _la_sesion_de_pago_es_de_cada_visitante():
+    """Entrar con un perfil no puede abrirle la puerta a los demas.
+
+    `_sesion_de` devolviendo `"local"` para todos -un mutante de una linea-
+    pasaba las 276 pruebas: el que entra paga, y todo el que llegue despues
+    gasta su cupo sin escribir una contrasena.
+
+    Y la promesa de la otra direccion tambien se comprueba aqui, porque son la
+    misma linea: recargar la pagina NO cierra la sesion. Gradio estrena
+    `session_hash` en cada carga, asi que la identidad tiene que venir del
+    navegador.
+    """
+    def dentro():
+        antes = dict(ui._CODIGO_SESION)
+        ui._CODIGO_SESION.clear()
+        try:
+            primera = _Visitante("s-antes-de-f5")
+            recarga = _Visitante("s-despues-de-f5")
+            otro = _Visitante("s-otro-visitante")
+            # Las dos primeras son el MISMO navegador; la tercera, otro.
+            ui._registrar_lector("navegador-de-ana", primera)
+            ui._registrar_lector("navegador-de-ana", recarga)
+            ui._registrar_lector("navegador-de-beto", otro)
+
+            assert ui._sesion_de(primera) == ui._sesion_de(recarga), (
+                "recargar cambia la sesion de pago: hay que volver a entrar "
+                "cada F5, y eso es teclear la contrasena delante del profesor")
+            assert ui._sesion_de(primera) != ui._sesion_de(otro), (
+                "dos navegadores distintos comparten sesion de pago")
+
+            dicho = ui._entrar("jefe", "LLAVE-A", primera)
+            assert "jefe" in dicho, dicho
+            assert ui._codigo_de(recarga) == ui._codigo_de(primera), (
+                "la sesion de pago no sobrevive a recargar")
+            assert ui._codigo_de(otro) is None, (
+                "el perfil de pago de uno vale para todos: quien entre "
+                "segundo gasta el cupo del primero sin dar contrasena")
+            return "la sesion de pago aguanta un F5 y no se contagia"
+        finally:
+            ui._CODIGO_SESION.clear()
+            ui._CODIGO_SESION.update(antes)
+
+    return _con_codigos(lambda: _con_nube(dentro))
+
+
+prueba("la sesion de pago es de cada visitante",
+       _la_sesion_de_pago_es_de_cada_visitante)
+
+
+def _la_estanteria_la_voz_y_el_perfil_son_de_cada_lector():
+    """Los otros cinco manejadores que escriben, por el camino del lector.
+
+    `_mis_libros`, `_abrir`, `_debiles`, `_practicar` y `_desde_muestra`
+    leian y escribian sin `peticion` en cinco mutantes distintos, y ninguna
+    prueba se enteraba. Aqui A hace las tres cosas y B no ve ninguna.
+    """
+    import voz as voz_mod
+
+    class _Ev:
+        puntuacion = 62.0
+        palabras_objetivo = ["the", "zarzaparrilla"]
+        palabras_falladas = ["zarzaparrilla"]
+        transcripcion = "the zarzaparrilla"
+
+    class _Sesion:
+        evaluacion = _Ev()
+        transcripcion_ok = True
+        transcripcion = "the zarzaparrilla"
+        correccion = None
+        audio_correcto = None
+
+    class _FalsoPuntuador:
+        @staticmethod
+        def puntuar(texto):
+            return type("R", (), {"puntuacion": 1.2, "banda": "intermedio",
+                                  "n_bloques": 1, "confianza": "alta"})()
+
+    def dentro():
+        a, b = _Visitante("estante-a"), _Visitante("estante-b")
+        ui._registrar_lector("navegador-a", a)
+        ui._registrar_lector("navegador-b", b)
+        ui._CODIGO_SESION[ui._sesion_de(a)] = "jefe:LLAVE-A"
+        ui._CODIGO_SESION[ui._sesion_de(b)] = "jefe:LLAVE-A"
+
+        # 1) La estanteria. A abre un libro; B no lo tiene en la suya.
+        ruta = escribir("libro_solo_de_a.txt",
+                        "The lantern swung above the quiet harbour wall. " * 120)
+        ui._abrir(ruta, a)
+        mios = str(ui._mis_libros(a))
+        suyos = str(ui._mis_libros(b))
+        assert "libro_solo_de_a" in mios or "lantern" in mios.lower(), \
+            f"A no ve su propio libro en la estanteria: {mios[:160]}"
+        assert "libro_solo_de_a" not in suyos, \
+            "B ve la estanteria de A: un solo biblioteca.json para todos"
+
+        # 2) La voz. `voz.practicar` se dobla para no pagar ni grabar nada:
+        # lo que se prueba es DONDE se apunta el fallo, no como se evalua.
+        viejo_practicar = voz_mod.practicar
+        try:
+            voz_mod.practicar = lambda *a_, **k_: _Sesion()
+            dicho = ui._practicar(escribir("audio_falso.wav", b"RIFF"),
+                                  "the zarzaparrilla", a)
+            assert "62" in str(dicho[1]), (
+                f"la practica no llego a evaluar nada: {str(dicho[1])[:200]}")
+        finally:
+            voz_mod.practicar = viejo_practicar
+        mias = str(ui._debiles(a))
+        suyas = str(ui._debiles(b))
+        assert "zarzaparrilla" in mias, \
+            f"A no ve la palabra que acaba de fallar: {mias[:160]}"
+        assert "zarzaparrilla" not in suyas, \
+            "B ve los puntos debiles de A: una sola voz.db para todos"
+
+        # 3) El perfil por muestra.
+        viejo_p = ui.puntuador
+        try:
+            ui.puntuador = lambda: _FalsoPuntuador()
+            ui._desde_muestra(None, "Ana",
+                              "The harbour was quiet and the boats were still. " * 40,
+                              a)
+        finally:
+            ui.puntuador = viejo_p
+        assert perfil_mod.cargar(ui._archivo_lector("perfil.json", a)) is not None, \
+            "A no guardo su perfil"
+        assert perfil_mod.cargar(ui._archivo_lector("perfil.json", b)) is None, \
+            "B hereda el perfil de A: un solo perfil.json para todos"
+        return "estanteria, voz y perfil separados por lector"
+
+    return _con_codigos(lambda: _con_nube(dentro))
+
+
+prueba("la estanteria, la voz y el perfil son de cada lector",
+       _la_estanteria_la_voz_y_el_perfil_son_de_cada_lector)
+
+
+def _el_resumen_devuelve_el_uso_cuando_no_sale_a_la_red():
+    """Las tres salidas de `_de_que_trata`, y cual de ellas cobra.
+
+    La prueba grande del cupo solo llegaba a una: para cuando corre, el
+    consultor ya esta construido, asi que la rama del constructor roto y las
+    de `sin_red` / `sin_pasajes` no se recorrian nunca. Tres mutantes vivos.
+
+    La regla es la de `cuentas.py`, y es de una linea: **el cupo baja si y
+    solo si la peticion sale a la red.**
+    """
+    def dentro():
+        viejo_cons, viejo_sin = ui.consultor, ficha_mod.sinopsis
+        viejo_falta = config_mod.falta
+        # Cuenta PROPIA y con sitio de sobra: con la compartida, otra prueba de
+        # la suite puede haberle gastado el cupo y entonces el manejador se va
+        # por la puerta de "no puedes pagar" sin llegar a lo que se mide.
+        viejo_cuentas = os.environ.get("LITERALEVEL_CUENTAS")
+        os.environ["LITERALEVEL_CUENTAS"] = "sofia:CLAVE-S:50"
+        pet = _Visitante("resumen-cupo", ip="10.55.55.55")
+        ui._CODIGO_SESION[ui._sesion_de(pet)] = "sofia:CLAVE-S"
+        gastado = lambda: cuentas_mod.gastado(ui.BASE_DATOS_LECTOR, "sofia")
+        malos = []
+
+        class _Cliente:
+            pass
+
+        class _Consultor:
+            @staticmethod
+            def _cliente():
+                return _Cliente()
+
+        try:
+            config_mod.falta = lambda: []
+
+            # a) El consultor revienta al construirse -el diccionario que
+            #    falta en el Space-: no ha salido nada a la red.
+            def revienta():
+                raise FileNotFoundError("No encuentro el diccionario Kaikki")
+
+            ui.consultor = revienta
+            antes = gastado()
+            list(ui._de_que_trata(libro_ok, pet))
+            if gastado() != antes:
+                malos.append("el constructor roto cobro un uso sin salir a la red")
+
+            # b) `sinopsis` dice que no hubo red, o que el libro no daba
+            #    pasajes. Tampoco se gasto nada.
+            ui.consultor = lambda: _Consultor()
+            for causa in ("sin_red", "sin_pasajes"):
+                ficha_mod.sinopsis = lambda *a_, **k_: (None, causa)
+                antes = gastado()
+                list(ui._de_que_trata(libro_ok, pet))
+                if gastado() != antes:
+                    malos.append(f"«{causa}» cobro un uso sin salir a la red")
+
+            # c) Y al reves, que es la mitad que hace que esto no sea
+            #    regalar: si la peticion SALIO y fallo despues, se cobra.
+            ficha_mod.sinopsis = lambda *a_, **k_: (None, "fallo")
+            antes = gastado()
+            list(ui._de_que_trata(libro_ok, pet))
+            if gastado() == antes:
+                malos.append("una llamada que si salio a la red no cobro nada")
+        finally:
+            ui.consultor, ficha_mod.sinopsis = viejo_cons, viejo_sin
+            config_mod.falta = viejo_falta
+            ui._CODIGO_SESION.clear()
+            if viejo_cuentas is None:
+                os.environ.pop("LITERALEVEL_CUENTAS", None)
+            else:
+                os.environ["LITERALEVEL_CUENTAS"] = viejo_cuentas
+        assert not malos, malos
+        return "el resumen cobra si y solo si sale a la red"
+
+    return dentro()
+
+
+prueba("el resumen devuelve el uso cuando no sale a la red",
+       _el_resumen_devuelve_el_uso_cuando_no_sale_a_la_red)
+
+
+def _medir_un_capitulo_no_puntua_la_licencia():
+    """El boton «¿Como de dificil es este capitulo?» mide PROSA.
+
+    Quitar el `ficha.sin_licencia` de esa linea no rompia nada: el capitulo se
+    medía con los dos parrafos legales de Gutenberg dentro, que son ingles
+    juridico y arrastran la dificultad hacia arriba. El lector veia C2 en un
+    capitulo de novela juvenil.
+    """
+    visto = []
+
+    class _Espia:
+        @staticmethod
+        def puntuar(texto):
+            visto.append(texto)
+            return type("R", (), {"puntuacion": 1.0, "banda": "intermedio",
+                                  "n_bloques": 3, "confianza": "alta"})()
+
+    class _Cap:
+        titulo = "CHAPTER I"
+        texto = ("*** START OF THE PROJECT GUTENBERG EBOOK PRUEBA ***\n"
+                 + "The rain fell on the moor and the train ran west. " * 60
+                 + "\n*** END OF THE PROJECT GUTENBERG EBOOK PRUEBA ***\n"
+                 + "You may copy it, give it away or re-use it under the terms "
+                   "of the Project Gutenberg License included with this eBook. "
+                   "Redistribution is subject to the trademark license. " * 8)
+        palabras = 700
+
+    class _Libro:
+        titulo, autor = "Prueba", "Autor"
+        capitulos = [_Cap()]
+        palabras = 600
+
+    viejo = ui.puntuador
+    try:
+        ui.puntuador = lambda: _Espia()
+        list(ui._medir(_Libro(), 0))
+    finally:
+        ui.puntuador = viejo
+
+    assert visto, "el boton no llego a puntuar nada"
+    medido = visto[-1]
+    assert "PROJECT GUTENBERG" not in medido.upper(), (
+        "se esta midiendo la licencia junto con el capitulo: "
+        f"{medido[:120]!r}")
+    assert "Redistribution" not in medido, (
+        "el texto legal del final entra en la medicion y sube la dificultad")
+    assert "rain fell" in medido, "se ha llevado por delante la prosa tambien"
+    return "el capitulo se mide sin la licencia de Gutenberg"
+
+
+prueba("medir un capitulo no puntua la licencia",
+       _medir_un_capitulo_no_puntua_la_licencia)
+
+
+def _el_recorte_va_dentro_del_sumatorio():
+    """§2.1 del documento: cada ventana se recorta a 0..5 ANTES de promediar.
+
+    Quitar ese `np.clip` no rompia ninguna prueba porque el promedio se vuelve
+    a recortar al final, y parece lo mismo. No lo es: una ventana que el
+    modelo puntua -10 arrastra la media hacia abajo y el recorte final ya no
+    puede deshacerlo. Con tres ventanas 5, 5 y -10 la media honesta es 3,33 y
+    la rota es 0,00, o sea C2 contra A1 del mismo texto.
+
+    Se prueba con un modelo de mentira, que es lo unico que permite elegir los
+    numeros que el de verdad casi nunca da -pero da-.
+    """
+    import contextlib
+    import numpy as np
+    import scoring as sc
+
+    crudos = [5.0, 5.0, -10.0]
+
+    class _Tensor:
+        def squeeze(self, *a): return self
+        def float(self): return self
+        def cpu(self): return self
+        def numpy(self): return np.array(crudos, dtype=float)
+
+    class _Modelo:
+        def __call__(self, **kw):
+            return type("O", (), {"logits": _Tensor()})()
+
+    stub = type("P", (), {})()
+    stub._torch = type("T", (), {"no_grad": staticmethod(contextlib.nullcontext)})()
+    stub.tokenizer = lambda bloques, **kw: {"input_ids": bloques}
+    stub.modelo = _Modelo()
+    stub.dispositivo = "cpu"
+
+    salida = sc.Puntuador._puntuar_bloques(stub, ["a", "b", "c"])
+    assert all(0.0 <= v <= 5.0 for v in salida), (
+        f"una ventana sale fuera de la escala interna 0..5: {salida}")
+    media = float(np.mean(salida))
+    assert abs(media - 10 / 3) < 0.01, (
+        f"la media de 5, 5 y -10 recortadas es 3,33 y sale {media:.2f}: el "
+        "recorte no esta dentro del sumatorio")
+    assert sc.public_band(sc.public_score(media)) != sc.public_band(
+        sc.public_score(float(np.mean(crudos)))), \
+        "recortar o no recortar por ventana daria la misma banda: el caso no separa"
+    return "cada ventana se recorta antes de promediar (5, 5, -10 -> 3,33)"
+
+
+prueba("el recorte va dentro del sumatorio",
+       _el_recorte_va_dentro_del_sumatorio)
+
+
+def _las_ventanas_son_las_del_entrenamiento():
+    """250 palabras por ventana y 8 ventanas por documento, medido en bloques.
+
+    `tests_smoke.py` lo comprobaba contra las propias constantes -"todas las
+    ventanas miden `BLOCK_WORDS`"-, que es una cota autorreferente: cambiar la
+    constante cambia las dos mitades de la igualdad y la prueba sigue verde.
+    Cambiarlas SI importa: el modelo v4 se entreno con estas dos, y con otras
+    puntua otra cosa sin avisar.
+    """
+    import scoring as sc
+    mil = " ".join(["word"] * 1000)
+    b = sc.fixed_blocks(mil)
+    tam = [len(x.split()) for x in b]
+    assert tam == [250] * 4, (
+        f"1.000 palabras tenian que dar cuatro ventanas de 250 y dan {tam}")
+
+    cinco_mil = " ".join(["word"] * 5000)
+    n = len(sc.fixed_blocks(cinco_mil))
+    assert n == 8, (
+        f"5.000 palabras dan {n} ventanas y el tope del entrenamiento es 8")
+    return "cuatro ventanas de 250 en 1.000 palabras, y tope de 8"
+
+
+prueba("las ventanas son las del entrenamiento",
+       _las_ventanas_son_las_del_entrenamiento)
+
+
+def _la_portada_de_un_txt_se_llama_siempre_igual():
+    """"Antes del primer capitulo" no es un titulo bonito: es un contrato.
+
+    `ficha.capitulos_de_cuerpo` descarta la portada por ESE nombre. Cambiarlo
+    en `reader` -a "Preambulo", por ejemplo- no rompia nada visible y dejaba la
+    portadilla contando como capitulo: el indice del libro pasa a tener un
+    capitulo de mas y la curva de dificultad mide la portada.
+    """
+    # Los capitulos han de pasar de 150 palabras: por debajo, `ficha` los
+    # descarta por cortos y la prueba no llegaria a mirar el titulo.
+    cuerpo = "The rain fell on the quiet moor and the train ran west. " * 20
+    ruta = escribir("con_portada.txt",
+                    "Translated by someone. " * 30 + "\n\n"
+                    + "CHAPTER I\n" + cuerpo + "\n\n"
+                    + "CHAPTER II\n" + cuerpo)
+    libro = reader.cargar(ruta)
+    titulos = [c.titulo for c in libro.capitulos]
+    assert titulos[0] == "Antes del primer capítulo", (
+        f"la portada de un .txt se llama {titulos[0]!r} y `ficha` descarta "
+        "«Antes del primer capítulo»: ya no la descarta nadie")
+    indices = [i for i, _ in ficha_mod.capitulos_de_cuerpo(libro)]
+    assert 0 not in indices, (
+        f"la portada cuenta como capitulo de cuerpo: {indices}")
+    assert len(indices) == 2, f"deberian quedar los dos capitulos: {indices}"
+    return "la portada se llama como `ficha` espera y queda fuera del cuerpo"
+
+
+prueba("la portada de un txt se llama siempre igual",
+       _la_portada_de_un_txt_se_llama_siempre_igual)
+
+
+def _la_tarjeta_del_cuaderno_escapa_el_html():
+    """La frase del libro se pinta dentro de un `<div>`, y viene del libro.
+
+    La prueba que habia comprobaba `cuaderno.registrar` -que guarda bien- y no
+    la TARJETA, que es donde se pinta. Quitarle el `_html.escape` a la frase
+    dejaba que un `.txt` con `<img onerror=...>` ejecutara su script en la
+    pestana "Mis palabras" de quien lo hubiera consultado.
+    """
+    import cuaderno as cuaderno_mod
+    pet = _Visitante("cuaderno-html", ip="10.77.77.77")
+    ruta = ui._archivo_lector("cuaderno.db", pet)
+    cuaderno_mod.registrar(
+        palabra="fetters", lema="fetter",
+        oracion='He wore <img src=x onerror="alert(1)"> fetters "always".',
+        categoria="noun", sentido="A chain.", libro="Prueba", capitulo=1,
+        banda="intermedio", zipf=2.8, ruta=ruta)
+    html = str(ui._mis_palabras(pet))
+    assert "fetters" in html, f"la palabra no llego a la tarjeta: {html[:160]}"
+    assert "<img" not in html, "la frase del libro se pinta sin escapar"
+    assert "&lt;img" in html, "la frase no aparece escapada por ningun lado"
+    assert "onerror=" not in html or "&quot;" in html, \
+        "el atributo del libro entra crudo en la tarjeta"
+    return "la frase del libro llega escapada a la tarjeta"
+
+
+prueba("la tarjeta del cuaderno escapa el html",
+       _la_tarjeta_del_cuaderno_escapa_el_html)
+
+
+def _la_tabla_que_ve_el_lector_es_la_del_codigo():
+    """La tabla A1-C2 de la pestana Leer es texto, y `_cefr` es codigo.
+
+    La prueba de `_cefr` comprobaba los limites contra numeros escritos en la
+    propia prueba, asi que cambiar «1.00 - 1.40» por «1.00 - 1.50» en la tabla
+    no rompia nada: el lector compara su cifra con la tabla y encuentra una
+    letra distinta de la que le acaba de dar la app.
+
+    Aqui se LEE la tabla y se exige que cada tramo case con `_cefr`.
+    """
+    import re
+    filas = re.findall(r"\|\s*([\d.]+)\s*–\s*([\d.]+)\s*\|\s*\*\*([A-C][12])\*\*",
+                       ui._TABLA_CEFR)
+    assert len(filas) == 6, f"la tabla ya no tiene seis tramos: {filas}"
+    malos = []
+    for lo, hi, letra in filas:
+        lo, hi = float(lo), float(hi)
+        for cifra in (lo, round(hi - 0.01, 2)):
+            dicho = ui._cefr(cifra)
+            if dicho != letra:
+                malos.append(f"la tabla dice {letra} para {cifra:.2f} y "
+                             f"la app dice {dicho}")
+    assert not malos, malos
+    return f"los {len(filas)} tramos de la tabla dicen lo que dice `_cefr`"
+
+
+prueba("la tabla que ve el lector es la del codigo",
+       _la_tabla_que_ve_el_lector_es_la_del_codigo)
+
+
+def _el_tope_de_subida_es_el_que_se_declara():
+    """Un epub es un zip, y sin tope cabe una bomba de descompresion.
+
+    La prueba de `main.py` miraba que apareciera `max_file_size=`, no cuanto
+    valia: ponerlo en "2000mb" la pasaba entera.
+    """
+    assert ui.TAMANO_MAXIMO_SUBIDA == "20mb", (
+        f"el tope de subida es {ui.TAMANO_MAXIMO_SUBIDA!r}. Si cambia de "
+        "verdad, cambialo aqui a mano: es la unica defensa contra un zip que "
+        "se descomprime en gigas")
+    fuente = (pathlib.Path(__file__).parent / "main.py").read_text(encoding="utf-8")
+    assert "max_file_size=TAMANO_MAXIMO_SUBIDA" in fuente, (
+        "`main.py` ya no pasa el tope a Gradio")
+    return "20mb, y `main.py` lo pasa"
+
+
+prueba("el tope de subida es el que se declara",
+       _el_tope_de_subida_es_el_que_se_declara)
+
+
+def _la_puerta_de_entrada_tiene_freno():
+    """`compare_digest` no protege de un diccionario de contrasenas.
+
+    El tiempo de respuesta no dice nada, cierto, pero nada impedia probar
+    contrasenas corrientes contra `LITERALEVEL_CUENTAS` a la velocidad de la
+    red: `caja_clave.submit` esta cableado y no cuesta un centimo. La ficha la
+    gasta el intento FALLIDO, no el que acierta.
+    """
+    def dentro():
+        ui._gasto.clear()
+        tope = ui.LIMITE_INTENTOS_ENTRAR
+        assert 0 < tope <= 30, (
+            f"el freno de la puerta esta en {tope}: o no frena, o el dia de "
+            "la demo un dedo torpe deja fuera a quien presenta")
+
+        # Acertar no gasta ficha: cinco entradas buenas seguidas.
+        bueno = _Visitante("freno-bueno", ip="10.90.90.1")
+        for _ in range(5):
+            dicho = ui._entrar("jefe", "LLAVE-A", bueno)
+            assert "jefe" in dicho, dicho
+
+        malo = _Visitante("freno-malo", ip="10.90.90.2")
+        for i in range(tope):
+            dicho = ui._entrar("jefe", f"INVENTADA-{i}", malo)
+            assert "No he podido entrar" in dicho, (i, dicho)
+        cerrado = ui._entrar("jefe", "OTRA-MAS", malo)
+        assert "Demasiados intentos" in cerrado, (
+            f"tras {tope} intentos fallidos se puede seguir probando: {cerrado}")
+        # Y con la puerta cerrada no se comprueba nada, ni siquiera la buena:
+        # si no, el freno seria un oraculo de contrasenas correctas.
+        assert "Demasiados intentos" in ui._entrar("jefe", "LLAVE-A", malo), \
+            "la puerta cerrada sigue comprobando contrasenas"
+        # El de al lado no paga lo que hizo este: el cubo es por IP.
+        otra_ip = _Visitante("freno-vecino", ip="10.90.90.3")
+        assert "jefe" in ui._entrar("jefe", "LLAVE-A", otra_ip), \
+            "un solo cubo para todas las IP: uno bloquea a los demas"
+        return f"{tope} intentos fallidos por IP y hora; acertar no gasta ficha"
+
+    try:
+        return _con_codigos(dentro)
+    finally:
+        ui._gasto.clear()
+        ui._CODIGO_SESION.clear()
+
+
+prueba("la puerta de entrada tiene freno",
+       _la_puerta_de_entrada_tiene_freno)
+
+
+def _recargar_no_borra_el_has_entrado_como():
+    """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
+
+    El visitante recargaba, veia la caja vacia y sin el «Has entrado como», y
+    no tenia forma de saber si seguia dentro hasta que consultaba una palabra
+    -y le cobraban-. Asi que volvia a teclear la contrasena por si acaso, que
+    es justo lo que no se quiere delante de una camara.
+    """
+    def dentro():
+        ui._CODIGO_SESION.clear()
+        ui._gasto.clear()
+        primera = _Visitante("f5-antes", ip="10.91.91.1")
+        recarga = _Visitante("f5-despues", ip="10.91.91.1")
+        ui._registrar_lector("navegador-que-recarga", primera)
+        ui._registrar_lector("navegador-que-recarga", recarga)
+
+        assert ui._estado_de_entrada(recarga) == "", \
+            "dice «has entrado» sin haber entrado nadie"
+        assert "jefe" in ui._entrar("jefe", "LLAVE-A", primera)
+        dicho = ui._estado_de_entrada(recarga)
+        assert "Has entrado como" in dicho and "jefe" in dicho, (
+            f"tras recargar, la caja no dice que sigue dentro: {dicho!r}")
+
+        # Y quien no ha entrado no ve nada, aunque recargue.
+        otro = _Visitante("f5-otro", ip="10.91.91.2")
+        ui._registrar_lector("otro-navegador", otro)
+        assert ui._estado_de_entrada(otro) == "", \
+            "le dice a un visitante cualquiera que ha entrado"
+        return "tras recargar, la caja sigue diciendo con que perfil se entro"
+
+    try:
+        return _con_codigos(lambda: _con_nube(dentro))
+    finally:
+        ui._CODIGO_SESION.clear()
+
+
+prueba("recargar no borra el has entrado como",
+       _recargar_no_borra_el_has_entrado_como)
+
+
+def _los_dos_botones_de_voz_no_se_pisan():
+    """«Corrigeme» y «Mis puntos debiles» escribian en la misma caja.
+
+    Pulsar el segundo borraba la correccion que acababa de costar una llamada
+    de pago, y para volver a verla habia que pagar otra.
+    """
+    import re
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(
+        encoding="utf-8")
+    m_pract = re.search(r"b_practicar\.click\((.*?)\)\n", fuente, re.S)
+    m_deb = re.search(r"b_debiles\.click\((.*?)\)\n", fuente, re.S)
+    assert m_pract and m_deb, "ya no encuentro los dos botones cableados"
+    salidas_pract = set(re.findall(r"[a-z_]+", m_pract.group(1).split("[")[-1]))
+    destino_deb = m_deb.group(1).split(",")[-1].strip()
+    assert destino_deb, f"no leo el destino de «Mis puntos debiles»: {m_deb.group(1)!r}"
+    assert destino_deb not in salidas_pract, (
+        f"«Mis puntos debiles» escribe en «{destino_deb}», que es una de las "
+        f"salidas de «Corrigeme» ({sorted(salidas_pract)}): pulsar uno borra "
+        "lo del otro")
+    return f"«Corrigeme» y «Mis puntos debiles» escriben en cajas distintas"
+
+
+prueba("los dos botones de voz no se pisan",
+       _los_dos_botones_de_voz_no_se_pisan)
+
+
+def _lo_que_mas_se_repite_no_son_muletillas():
+    """«Lo que mas se repite: tommy, tuppence, julius, don't, james, think...»
+
+    Cuatro de diez puestos gastados en palabras que estan en todas las
+    novelas. Y con el apostrofo tipografico -el que usa Gutenberg- no bastaba
+    con anadir `don't` a la lista: `don’t` no casaba. Ademas, `[A-Za-z]`
+    partia «Svidrigaïlov» en «svidriga» y «lov», y las dos mitades subian a la
+    lista como si fueran palabras del libro.
+    """
+    relleno = ("Tuppence said that Svidrigaïlov thought so too. "
+               "She don’t think she got down. ") * 15
+
+    class _Cap:
+        titulo = "CHAPTER I"
+        texto = relleno
+        palabras = len(relleno.split())
+
+    class _Libro:
+        titulo, autor = "Muletillas", "Autor"
+        capitulos = [_Cap()]
+        palabras = len(relleno.split())
+
+    d = ficha_mod.caracteristicas(_Libro()).distintivas
+    assert "tuppence" in d, f"el nombre del personaje no sale: {d}"
+    assert "svidrigaïlov" in d, (
+        f"el nombre con tilde llega partido o no llega: {d}")
+    assert not any(x in d for x in ("svidriga", "lov")), (
+        f"el nombre sigue partido en dos: {d}")
+    muletillas = [x for x in ("don't", "don’t", "think", "got", "down",
+                              "said", "too", "she") if x in d]
+    assert not muletillas, (
+        f"siguen subiendo muletillas a «lo que mas se repite»: {muletillas}")
+    return f"salen los nombres y no las muletillas: {', '.join(d[:4])}"
+
+
+prueba("lo que mas se repite no son muletillas",
+       _lo_que_mas_se_repite_no_son_muletillas)
 
 
 # --- Resultado ------------------------------------------------------------

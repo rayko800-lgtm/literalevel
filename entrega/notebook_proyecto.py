@@ -1706,11 +1706,11 @@ print(tabla_reportada.to_string(index=False))
 # ## 7.2 Validación externa (no del todo ciega)
 #
 # La prueba que de verdad sostiene el trabajo no es ninguna de las anteriores,
-# porque todas comparten corpus con el entrenamiento. Es esta: **textos con nivel
-# MCER oficial, de una fuente ajena al proyecto, que **no se uso para ajustar
-# los pesos** -aunque si se miro durante el desarrollo, para descubrir que el
-# modelo no sabe leer un menu de restaurante; eso es explorar, no entrenar, pero
-# tampoco es un conjunto virgen y conviene decirlo-.
+# porque todas comparten corpus con el entrenamiento. Es esta: textos con nivel
+# MCER oficial, de una fuente ajena al proyecto, que **no se usó para ajustar
+# los pesos** —aunque sí se miró durante el desarrollo, para descubrir que el
+# modelo no sabe leer un menú de restaurante; eso es explorar, no entrenar, pero
+# tampoco es un conjunto virgen y conviene decirlo—.
 #
 # Se usaron los textos de lectura graduada de **British Council**, cada uno con
 # su nivel oficial en el nombre del archivo. El material tiene derechos y no se
@@ -1969,8 +1969,8 @@ plt.show()
 #    RSS** con modelo y catálogo cargados, con pico realista de 1,2-1,5 GB, y
 #    575 MB en disco. Eso **descarta cualquier plan de 512 MB de memoria**.
 # 4. **Cerrar el ciclo de usuario con más lectores como Esmeralda.** El primero
-#    produjo seis correcciones concretas. No hay razón para pensar que el
-#    segundo produzca menos.
+#    produjo nueve correcciones concretas, seis de ellas etiquetas reescritas.
+#    No hay razón para pensar que el segundo produzca menos.
 #
 # ## 8.5 Usabilidad: cómo se presenta el modelo al usuario
 #

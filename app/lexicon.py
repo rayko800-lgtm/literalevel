@@ -559,19 +559,25 @@ def _escribir_audio_atomico(respuesta, ruta: Path) -> None:
         temporal.unlink(missing_ok=True)
 
 
-def _generar_audio_tts(cliente, palabra: str, destino_dir: Path) -> str:
+def _generar_audio_tts(cliente, palabra: str, destino_dir: Path) -> tuple[str, bool]:
     """Genera audio de respaldo con tts-1 cuando la BD no trae ninguno.
-    Devuelve la ruta del mp3 (se cachea tambien como archivo, ademas de la
-    entrada en CacheLexico que evita repetir la llamada)."""
+
+    Devuelve `(ruta_del_mp3, se_pago)`. El mp3 se cachea tambien como ARCHIVO,
+    aparte de la entrada en `CacheLexico`, asi que puede estar ya en disco
+    aunque esta cache no lo sepa -otro lector lo pidio, o la base se borro-. En
+    ese caso no hay llamada y no hay nada que cobrar: devolver solo la ruta
+    hacia creer a quien llama que se habia pagado un tts-1.
+    """
     texto_tts = _texto_para_tts(palabra)
     huella = "\x1f".join((VERSION_AUDIO_TTS, MODELO_TTS, VOZ_TTS, texto_tts))
     nombre = hashlib.sha256(huella.encode("utf-8")).hexdigest() + ".mp3"
     ruta = destino_dir / nombre
-    if not ruta.exists():
-        respuesta = cliente.audio.speech.create(
-            model=MODELO_TTS, voice=VOZ_TTS, input=texto_tts, response_format="mp3")
-        _escribir_audio_atomico(respuesta, ruta)
-    return str(ruta)
+    if ruta.exists():
+        return str(ruta), False
+    respuesta = cliente.audio.speech.create(
+        model=MODELO_TTS, voice=VOZ_TTS, input=texto_tts, response_format="mp3")
+    _escribir_audio_atomico(respuesta, ruta)
+    return str(ruta), True
 
 
 # --- Punto de entrada -------------------------------------------------
@@ -718,10 +724,8 @@ class ConsultorLexico:
 
         pedir_audio = falta_audio and cliente is not None and not ruta_audio_cacheada
         pedir_explicacion = partes_clave is not None and extra is None
-        # Lo que se va a pagar, contado ANTES de pedirlo: es lo que `ui` mira
-        # para decidir si devuelve el uso del cupo.
-        llamadas_de_pago = int(bool(pedir_audio)) + int(bool(pedir_explicacion))
         ruta_audio_nueva = None
+        audio_pagado = False
         if pedir_audio or pedir_explicacion:
             from concurrent.futures import ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=2) as grupo:
@@ -737,7 +741,7 @@ class ConsultorLexico:
 
                 if f_audio is not None:
                     try:
-                        ruta_audio_nueva = f_audio.result()
+                        ruta_audio_nueva, audio_pagado = f_audio.result()
                     except Exception as e:
                         avisos.append(f"no se pudo generar audio: {type(e).__name__}")
                 if f_expl is not None:
@@ -746,6 +750,20 @@ class ConsultorLexico:
                     except Exception as e:
                         avisos.append(f"OpenAI no disponible: {type(e).__name__}: {e}")
                         extra = None
+
+        # Lo que se ha pagado DE VERDAD, contado DESPUES de pedirlo. Antes se
+        # contaba la intencion -"voy a pedir dos"- y `ui` cobraba el cupo
+        # aunque la llamada muriera en un timeout o en un 401, que no cuestan
+        # un centimo. `ficha.sinopsis` ya devolvia el uso cuando no habia red:
+        # eran dos criterios distintos para lo mismo y gana el de `ficha`.
+        #
+        # Queda un caso que desde aqui no se distingue: que OpenAI cobre la
+        # peticion y reviente al escribir el archivo. Eso cuenta como no
+        # cobrada. Es el lado en el que conviene equivocarse: el cupo existe
+        # para que nadie se coma la cuenta del mes, y un fallo del servidor no
+        # es del visitante.
+        llamadas_de_pago = (int(audio_pagado)
+                            + int(pedir_explicacion and extra is not None))
 
         # Ya fuera de los hilos: guardar en la cache y componer el resultado.
         if ruta_audio_nueva:

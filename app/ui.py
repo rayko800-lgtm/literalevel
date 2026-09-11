@@ -219,6 +219,13 @@ LIMITE_SINOPSIS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_SINOPSIS", "6"))
 # que puede dejar a los demas sin servicio. Alto a proposito: veinte libros
 # NUEVOS en una hora no es leer, y los ya descargados no cuentan.
 LIMITE_DESCARGAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_DESCARGAS", "20"))
+# Intentos FALLIDOS de entrar por IP y por hora. `compare_digest` hace que el
+# tiempo de respuesta no diga nada, pero sin freno se puede probar un
+# diccionario de contrasenas corrientes contra `LITERALEVEL_CUENTAS` a la
+# velocidad de la red. Solo gastan ficha los intentos que fallan: quien acierta
+# puede entrar las veces que quiera. Quince y no tres porque la contrasena del
+# profesor va por WhatsApp y el dia de la demo nadie quiere un candado.
+LIMITE_INTENTOS_ENTRAR = int(os.environ.get("LITERALEVEL_LIMITE_INTENTOS", "15"))
 _VENTANA = 3600.0
 
 _gasto: dict[str, list[float]] = {}
@@ -256,6 +263,22 @@ def _minutos_para_la_siguiente(cubo: str, peticion) -> int:
         return 0
     faltan = _VENTANA - (ahora - min(marcas))
     return max(1, int(faltan // 60) + (1 if faltan % 60 else 0))
+
+
+def _cubo_agotado(peticion, cubo: str, tope: int) -> bool:
+    """Si el cubo ya no tiene fichas. MIRA, no consume.
+
+    Hace falta para la puerta de entrada: ahi la ficha la gasta el intento
+    fallido, asi que preguntar y cobrar no pueden ser la misma operacion como
+    en `_dentro_del_limite`.
+    """
+    if tope <= 0:
+        return False
+    clave = f"{cubo}:{_ip(peticion)}"
+    ahora = time.time()
+    with _CANDADO_GASTO:
+        marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]
+    return len(marcas) >= tope
 
 
 def _dentro_del_limite(peticion, cubo: str, tope: int) -> bool:
@@ -331,6 +354,12 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
     if not cuentas.hay_codigos():
         return ("No hace falta entrar: esta copia no tiene perfiles "
                 "configurados y todo está disponible.")
+    # El freno va ANTES de comprobar nada: si ya se agotaron los intentos, esta
+    # peticion no llega a `verificar` y no sirve para descartar contrasenas.
+    if _cubo_agotado(peticion, "entrar", LIMITE_INTENTOS_ENTRAR):
+        faltan = _minutos_para_la_siguiente("entrar", peticion)
+        return (f"**Demasiados intentos fallidos.** Vuelve a probar en "
+                f"{faltan} minuto{'s' if faltan != 1 else ''}.")
     # Este manejador lo toca TODO visitante, y era el unico que no cumplia la
     # regla del modulo: una ene en la contrasena hacia que `compare_digest`
     # lanzase TypeError y la interfaz ensenaba un "Error" pelado. La causa ya
@@ -343,6 +372,8 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
         if c is None:
             with _CANDADO_CODIGO:
                 _CODIGO_SESION.pop(_sesion_de(peticion), None)
+            # La ficha la gasta el que falla, no el que entra.
+            _dentro_del_limite(peticion, "entrar", LIMITE_INTENTOS_ENTRAR)
             return ("**No he podido entrar.** Revisa el usuario y la contraseña; "
                     "se distinguen mayúsculas en la contraseña, no en el usuario.")
         with _CANDADO_CODIGO:
@@ -356,12 +387,47 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
         print(f"_entrar: {type(e).__name__}: {e}", file=sys.stderr)
         return ("**No he podido entrar.** Ha fallado algo al comprobar el "
                 "perfil; vuelve a intentarlo.")
+    return _bienvenida(c, resto)
+
+
+def _bienvenida(c, resto: int | None) -> str:
+    """El «Has entrado como...», que lo dicen dos sitios: el boton de entrar y
+    la carga de la pagina."""
     if resto is None:
         return (f"Has entrado como **{c.nombre}**. Sin límite de usos: ya "
                 "tienes la explicación en contexto, «¿de qué trata?» y la "
                 "corrección de pronunciación.")
     return (f"Has entrado como **{c.nombre}**. Te quedan **{resto}** usos de "
             "la explicación en contexto, «¿de qué trata?» y la pronunciación.")
+
+
+def _estado_de_entrada(peticion: gr.Request = None) -> str:
+    """Lo que dice la caja de entrada al CARGAR la pagina.
+
+    La sesion de pago ya sobrevive a recargar -la identidad la pone el
+    navegador-, pero la caja volvia vacia y sin el «Has entrado como...». El
+    visitante no tenia forma de saber si seguia dentro hasta que consultaba
+    una palabra, asi que volvia a teclear usuario y contrasena por si acaso.
+
+    Va encadenado DESPUES de `_registrar_lector`, como `_perfil_inicial`: si
+    corriera suelto, `_sesion_de` leeria un `session_hash` recien estrenado y
+    no encontraria la sesion de pago que si existe.
+    """
+    codigo = _codigo_de(peticion)
+    if not codigo:
+        return ""
+    usuario, _, clave = codigo.partition(":")
+    try:
+        c = cuentas.verificar(usuario, clave)
+        if c is None:
+            # El secreto del Space pudo cambiar con la sesion viva.
+            with _CANDADO_CODIGO:
+                _CODIGO_SESION.pop(_sesion_de(peticion), None)
+            return ""
+        return _bienvenida(c, cuentas.queda(BASE_DATOS_LECTOR, c))
+    except Exception as e:
+        print(f"_estado_de_entrada: {type(e).__name__}: {e}", file=sys.stderr)
+        return ""
 
 
 def _salir(peticion: gr.Request = None) -> str:
@@ -2985,6 +3051,10 @@ def construir() -> gr.Blocks:
         # externo; el resto es libre. Solo aparece si esta copia tiene
         # perfiles configurados: en el ordenador de casa no hay a quien
         # limitar, y una caja pidiendo una llave que no existe solo confunde.
+        # `None` cuando no hay perfiles: la caja no existe y `demo.load` no
+        # puede encadenar `_estado_de_entrada` contra un componente que no se
+        # ha creado. Lo encontro la prueba de `construir()`, no yo.
+        estado_codigo = None
         if cuentas.hay_codigos():
             with gr.Accordion("Entrar con tu perfil", open=True):
                 gr.Markdown(
@@ -3311,11 +3381,16 @@ def construir() -> gr.Blocks:
                 veredicto = gr.Markdown()
                 audio_ref = gr.Audio(label="Cómo debería sonar", type="filepath",
                                  elem_id="ll-audio-ref", visible=False)
+                # Su propia caja, y no la del veredicto. Los dos botones
+                # escribian en `veredicto`: pulsar "Mis puntos debiles" borraba
+                # la correccion que acababa de costar una llamada de pago, y no
+                # habia forma de volver a verla sin pagar otra.
+                debiles_md = gr.Markdown()
 
                 b_traer.click(_frase_del_capitulo, [est_libro, cap], frase)
                 b_practicar.click(_practicar, [mi_audio, frase],
                                   [palabras_html, veredicto, audio_ref])
-                b_debiles.click(_debiles, None, veredicto)
+                b_debiles.click(_debiles, None, debiles_md)
 
             with gr.Tab("Mis libros", id="biblioteca"):
                 gr.Markdown("Los libros que has abierto, por dónde vas en cada "
@@ -3379,10 +3454,12 @@ def construir() -> gr.Blocks:
         # "anonimo"- antes de que el registro haya llegado. Es el mismo tipo de
         # carrera que el cupo, y aqui se cierra ordenando.
         id_lector = gr.Textbox(visible=False)
-        (demo.load(_registrar_lector, id_lector, None, js=JS_IDENTIDAD)
-            .then(_perfil_inicial, None, [est_perfil, perfil_md])
-            .then(_reanudar, None,
-                  [est_libro, cap, texto, libro_md, pestanas]))
+        cadena = (demo.load(_registrar_lector, id_lector, None, js=JS_IDENTIDAD)
+                  .then(_perfil_inicial, None, [est_perfil, perfil_md]))
+        if estado_codigo is not None:
+            cadena = cadena.then(_estado_de_entrada, None, estado_codigo)
+        cadena.then(_reanudar, None,
+                    [est_libro, cap, texto, libro_md, pestanas])
 
         b_seguir.click(_seguir_leyendo, seguir,
                        [est_libro, cap, texto, libro_md, pestanas, estado_seguir])

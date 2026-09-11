@@ -226,7 +226,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | **British Council LearnEnglish** | Validación externa contra niveles MCER oficiales | 59 textos A1–C1 | Descarga de los PDF públicos | Con derechos: no se distribuye ni se imprime texto |
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
-| **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
+| **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 (§6.4) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
 | **StoryWeaver / Global Digital Library** | Lecturas graduadas del catálogo heredado | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
 
 *Cuadro 2. Fuentes de datos, con volumen y procedencia.*
@@ -528,11 +528,22 @@ primera consulta sobre 1.487.639 filas tarda **0,001 s** con el índice puesto y
 la base abierta en modo solo lectura. Los 243 MB del fichero no cuestan nada en
 tiempo de respuesta.
 
-Un dato de cobertura que condiciona el diseño de la aplicación: solo **7.003 de
-las 1.487.639 entradas (0,5 %) traen audio de pronunciación**. Es decir, casi
-cualquier palabra que un lector consulte por primera vez necesitará síntesis de
-voz. Esa medición es la que justificó paralelizar las dos llamadas de red de una
-consulta en lugar de encadenarlas.
+Dos datos de cobertura que condicionan el diseño de la aplicación. Sobre las
+1.487.639 entradas, solo **7.003 (0,5 %) traen audio de pronunciación** y
+**46.794 (3,1 %) traen transcripción fonética**; con las dos variantes —la
+británica y la americana— quedan **33.635 (2,3 %)**. Pero eso cuenta entradas, y
+el diccionario es en su mayoría palabra rara mientras que un libro es en su
+mayoría palabra corriente. Medido por el lado del lector —400 palabras tomadas
+al azar del texto de *Crime and Punishment* y resueltas por el mismo camino que
+usa la aplicación, lematización incluida—, **el 58 % llega con fonética y el
+32 % con audio grabado**.
+
+Las dos mediciones apuntan a lo mismo desde sitios distintos: **dos de cada tres
+consultas necesitan síntesis de voz**, y esa es la medición que justificó
+paralelizar las dos llamadas de red de una consulta en lugar de encadenarlas. La
+ficha de la palabra lo dice cuando toca: si no hay ni transcripción ni audio ni
+clave para generarlo, escribe *«de esta palabra no hay pronunciación»* en lugar
+de dejar el hueco en blanco.
 
 ---
 
@@ -906,7 +917,7 @@ esas tres:
 | ¿Cuál es mi nivel? | Seis preguntas sobre hábitos observables y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo | Menos de dos minutos |
 | ¿Qué leo ahora? | Búsqueda semántica en español sobre el catálogo, acotada al rango de lectura del perfil | Segundos |
 | ¿Por dónde se va a complicar? | Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear | De 12,7 s (vistazo, medido sobre Crime and Punishment) a minutos (libro completo) |
-| ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana, definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
+| ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58 % de las consultas sobre un libro real, §6.4), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
 
 *Cuadro 15. Del modelo a las decisiones del usuario.*
@@ -921,7 +932,15 @@ intermedia, ancla B2).
    funcionan igual— sin estorbar a las búsquedas por tema, porque el buscador
    no busca por título sino por significado, sobre embeddings multilingües.
    Podría haber escrito en español lo que le apetece —*«una novela de
-   detectives victoriana»*— y el buscador respondería igual.
+   detectives victoriana»*— y el buscador respondería igual. Medido el 11 de
+   septiembre de 2026 con su perfil de 1,20 y la casilla de acercar al nivel
+   puesta, esa frase en español devuelve *The Secret Adversary* (Christie,
+   B2), un cuento infantil A1 de StoryWeaver, *Great Expectations*, *North
+   and South*, *Bleak House* y, en séptimo lugar, *The Memoirs of Sherlock
+   Holmes*. Que el segundo puesto sea un A1 para una lectora de 1,20 no es un
+   fallo del buscador: es el libro cuyo texto más se parece a la palabra
+   «detective», la casilla **acerca y no filtra**, y su nivel va escrito al
+   lado.
 
    **Y aquí conviene decir algo que el propio recorrido enseña.** Lo que
    devuelve la búsqueda **no está filtrado por el nivel del lector**: ordena
@@ -1130,7 +1149,7 @@ que lee el texto. Lo que ninguna alternativa reúne son las **tres a la vez**.
 
 ## 9. Limitaciones
 
-**Antes de la lista, de dónde sale.** Este trabajo se sometió a **catorce
+**Antes de la lista, de dónde sale.** Este trabajo se sometió a **quince
 auditorías externas** hechas por modelos de dos familias distintas, con el
 encargo explícito de ser duros y **a ciegas**: sin decirles qué se había
 corregido antes, para que lo que volviera a salir fuera lo que seguía mal.

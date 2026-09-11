@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 569 palabras y son 3:48 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. El minuto que
+**El texto hablado son 578 palabras y son 3:51 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta —y la regla de las notas se le añadió al contador el 11 de septiembre, cuando una nota que citaba «la fonética británica y americana» se le coló en el parlamento. El minuto que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
@@ -104,6 +104,15 @@ capítulo a capítulo.»
 >
 > **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
 > hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
+>
+> **Y la palabra del paso Cuatro se elige antes, no en directo.** El
+> diccionario solo trae fonética en el 3,1 % de sus entradas —el 58 % de las
+> consultas sobre un libro real, §6.4 del documento—, así que «la fonética
+> británica y americana» depende de la palabra que se toque. Del capítulo I
+> de este libro, con las dos transcripciones **y** audio grabado: **clerk**
+> —que se oye distinta a un lado y a otro del Atlántico, y por eso es la del
+> guion—, **glance**, **curtain**, **abject**, **disgust**,
+> **preponderance**.
 
 «Esto es LiteraLevel.
 
@@ -122,10 +131,11 @@ dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
 **840 ventanas en 134 segundos**: media **1,70**. Mi nivel es 1,20. Este libro
 me queda por encima, y lo sé antes de la primera página.
 
-**Cuatro.** *(doble clic en una palabra)* Toco una palabra y en **40
-milisegundos** tengo el diccionario, la fonética británica y americana y el
-audio, todo local. Y unos segundos después llega lo que no se puede contar:
-qué significa **en esta frase**, y su gramática.
+**Cuatro.** *(doble clic en* clerk*)* Toco una palabra y en **40
+milisegundos** tengo el diccionario y la fonética británica y americana, del
+archivo local: la misma palabra suena distinta a los dos lados del Atlántico. Y
+unos segundos después llega lo que no se puede contar: qué significa **en esta
+frase**, y su gramática.
 
 **Cinco.** *(leer una frase en voz alta al micrófono)* Y leo en voz alta. Me
 marca en verde lo que sonó bien y en rojo lo que no, palabra por palabra.»

@@ -450,7 +450,7 @@ publicación y un micrófono.
 |---|---|---|
 | Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5561 · 0,9276 · 1,2414 · 1,4952 |
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
-| Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron 8 correcciones |
+| Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas— |
 | Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
 | Producto | Robustez | **Cumplido**: 276 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en `/data` |

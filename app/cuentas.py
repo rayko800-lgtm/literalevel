@@ -72,7 +72,8 @@ class Cuenta:
     tope: int          # 0 = sin limite
 
 
-def _analizar(crudo: str) -> tuple[dict[str, tuple[str, Cuenta]], list[str]]:
+def _analizar(crudo: str, con_nombre: bool = True,
+              ) -> tuple[dict[str, tuple[str, Cuenta]], list[str]]:
     """Lee el secreto y, sobre todo, DICE lo que descarta.
 
     Descartar en silencio no era un fallo de seguridad, era uno de
@@ -83,11 +84,20 @@ def _analizar(crudo: str) -> tuple[dict[str, tuple[str, Cuenta]], list[str]]:
     otra recibe el mismo "No he podido entrar" que un impostor.
 
     Ningun aviso lleva la contrasena. Se dice la POSICION de la entrada y el
-    motivo; el nombre de usuario si aparece, porque no es una credencial y sin
-    el no se puede arreglar nada.
+    motivo, que es lo que hace falta para arreglar el secreto.
+
+    `con_nombre` decide si ademas sale el nombre de usuario, y existe porque
+    estos avisos van a DOS sitios: al registro del Space, que solo lee el
+    dueno, y a la pestana «Estado», que es publica. En la publica no puede
+    salir: ahorrarle al que prueba contrasenas la mitad del trabajo -saber
+    que usuarios existen- no cuesta nada, y el numero de entrada basta para
+    encontrarla en el secreto.
     """
     fuera: dict[str, tuple[str, Cuenta]] = {}
     avisos: list[str] = []
+
+    def con(usuario: str) -> str:
+        return f" ({usuario})" if con_nombre else ""
     for i, trozo in enumerate(crudo.split(","), start=1):
         trozo = trozo.strip()
         if not trozo:
@@ -105,12 +115,12 @@ def _analizar(crudo: str) -> tuple[dict[str, tuple[str, Cuenta]], list[str]]:
         try:
             n = int(tope)
         except ValueError:
-            avisos.append(f"entrada {i} ({usuario}): el tope «{tope}» no es un "
-                          "número; se toma 0, o sea sin límite")
+            avisos.append(f"entrada {i}{con(usuario)}: el tope «{tope}» no es "
+                          "un número; se toma 0, o sea sin límite")
             n = 0
         u = usuario.lower()
         if u in fuera:
-            avisos.append(f"entrada {i} ({usuario}): repite un usuario ya "
+            avisos.append(f"entrada {i}{con(usuario)}: repite un usuario ya "
                           "declarado; gana esta, y la contraseña de la otra "
                           "deja de servir")
         fuera[u] = (clave, Cuenta(nombre=usuario, tope=max(0, n)))
@@ -139,8 +149,13 @@ def _tabla() -> dict[str, tuple[str, Cuenta]]:
 
 
 def problemas() -> list[str]:
-    """Los avisos de la tabla, para la pestana de Estado. Sin contrasenas."""
-    return _analizar(os.environ.get("LITERALEVEL_CUENTAS", "").strip())[1]
+    """Los avisos de la tabla para la pestana «Estado», que es PUBLICA.
+
+    Sin contrasenas y sin nombres de usuario: solo el numero de entrada y el
+    motivo. Con nombre van al registro del Space, que no lee cualquiera.
+    """
+    return _analizar(os.environ.get("LITERALEVEL_CUENTAS", "").strip(),
+                     con_nombre=False)[1]
 
 
 def declaradas() -> int:

@@ -365,6 +365,61 @@ def main() -> int:
         if pedidas:
             fallos.append(f"las variantes de la misma palabra pagan de nuevo: "
                           f"{pedidas}")
+
+        # 6.4 Una llamada que REVIENTA no puede gastar cupo.
+        #
+        # `llamadas_de_pago` se contaba ANTES de llamar -"voy a pedir dos"-, asi
+        # que un timeout o un 401 le descontaban un uso al lector por algo que
+        # no costo un centimo. `ficha.sinopsis` ya devolvia el uso cuando no
+        # habia red: eran dos criterios distintos para la misma regla.
+        class _EspiaQueRevienta:
+            def __init__(self, *a, **k):
+                llamadas.append("ctor")
+
+                class _Speech:
+                    @staticmethod
+                    def create(**kw):
+                        llamadas.append("tts")
+                        raise RuntimeError("timeout de mentira")
+
+                class _Audio:
+                    speech = _Speech()
+
+                class _Respuestas:
+                    @staticmethod
+                    def parse(**kw):
+                        llamadas.append("responses")
+                        raise RuntimeError("401 de mentira")
+
+                self.audio = _Audio()
+                self.responses = _Respuestas()
+
+        openai.OpenAI = _EspiaQueRevienta
+        ruta_rota = Path(tempfile.gettempdir()) / f"lexicon_roto_{uuid.uuid4().hex}.db"
+        consultor_roto = lexicon.ConsultorLexico(ruta_cache=ruta_rota)
+        consultor_roto._sin_clave = False
+        consultor_roto._cliente_openai = None
+        try:
+            del llamadas[:]
+            r_roto = consultor_roto.consultar("fetters", ORACION_ESPIA,
+                                              nivel=1.0, usar_openai=True)
+            pedidas = [c for c in llamadas if c != "ctor"]
+            print(f"  la llamada revienta -> peticiones: {pedidas} | "
+                  f"llamadas_de_pago: {r_roto.llamadas_de_pago}")
+            if not pedidas:
+                fallos.append("6.4: no se intento ninguna llamada; el montaje "
+                              "no es fiel y la comprobacion se cumple sola")
+            if getattr(r_roto, "llamadas_de_pago", -1) != 0:
+                fallos.append(f"una llamada que fallo cobro "
+                              f"{r_roto.llamadas_de_pago} usos del cupo")
+            if not any("no disponible" in a or "no se pudo" in a
+                       for a in r_roto.avisos):
+                fallos.append(f"el fallo no se le cuenta al lector: {r_roto.avisos}")
+            if not r_roto.sentido:
+                fallos.append("con la llamada rota se perdio tambien el diccionario")
+        finally:
+            consultor_roto.cerrar()
+            ruta_rota.unlink(missing_ok=True)
         print()
     finally:
         consultor_espia.cerrar()

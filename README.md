@@ -38,7 +38,7 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
    libro, marcado como tal. Y **la curva de dificultad capítulo a capítulo**,
    que sí lee el libro entero con el v4: ahí no se muestrea.
 4. **Explica una palabra.** Doble clic sobre cualquier palabra del texto:
-   lema, IPA británica y americana, definición de Wiktionary, el sentido que
+   lema, IPA británica y americana cuando Wiktionary las trae, definición, el sentido que
    tiene *en esa frase*, la gramática y el audio de pronunciación. En español
    o en inglés, a elegir.
 5. **Corrige la pronunciación.** Se lee una frase en voz alta y se marca
