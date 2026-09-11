@@ -134,6 +134,22 @@ cupo. Y cuando el error llegue, **apunta la hora exacta de vuelta**: es lo únic
 que permite programar la pasada siguiente en vez de reintentar en caliente, que
 falla igual.
 
+### Y cambiar de modelo no compra otra auditoría
+
+El 10 de septiembre se probó: con Astra agotado, se lanzó la misma llamada de
+una palabra a `gpt-5.6-sol`. **Mismo muro, misma hora de vuelta**, palabra por
+palabra:
+
+```
+ERROR: You've hit your usage limit. … or try again at Sep 15th, 2026 8:46 AM.
+```
+
+El cupo es **de la cuenta de ChatGPT**, no del modelo: todos los modelos de
+Codex comen del mismo. Así que ante un «usa el otro modelo, que ese está
+agotado», la respuesta honesta es que no cambia nada — lo que desbloquea es
+comprar créditos o esperar a la hora que dice el error. Comprobarlo cuesta una
+llamada de una palabra; suponerlo cuesta el encargo entero.
+
 Corolario de reparto: si solo hay un auditor disponible, dale el alcance
 **amplio** y no el estrecho. Lo mecánico —que una cifra coincida consigo misma
 en ocho archivos— lo puedes barrer tú con un `grep`; lo que no puedes hacer solo
