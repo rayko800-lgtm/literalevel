@@ -2517,8 +2517,11 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
 
     # El tope por hora es un freno de GASTO, no de uso. La cabecera de este
     # modulo lo dice: "las acciones que no cuestan dinero no se limitan". Y una
-    # consulta sin perfil -o en una copia sin clave- es diccionario, IPA y
-    # audio de Wiktionary: todo local y gratis. Aplicarle el tope cortaba la
+    # consulta sin perfil -o en una copia sin clave- es diccionario e IPA del
+    # SQLite de aqui, y el audio de Wiktionary, que lo pide el navegador a
+    # upload.wikimedia.org: ni uno ni otro nos cuesta un centimo, que es de lo
+    # que habla este tope. -Local del todo no es: eso solo vale para el
+    # diccionario y la fonetica-. Aplicarle el tope cortaba la
     # consulta 31 de un aula entera detras de la misma NAT sin que ninguna
     # pudiera costar un centimo, y encima el aviso les decia que "leer, buscar
     # y medir siguen funcionando: no cuestan nada", como si esta si costara.

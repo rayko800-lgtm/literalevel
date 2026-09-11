@@ -28,6 +28,12 @@ Pipeline por consulta, portado y ampliado desde el prototipo en Streamlit:
      en disco, marcando `audio_generado=True`.
   6. Cache en disco obligatoria en SQLite (~/.literalevel/lexicon.db): antes
      de cualquier llamada a OpenAI (texto o audio) se consulta la cache.
+     `ResultadoLexico.llamadas_de_pago` cuenta las que SALIERON Y VOLVIERON
+     con algo, no las que se pensaban hacer: es lo que `ui` mira para decidir
+     si devuelve el uso del cupo, y un timeout o un 401 no cuestan un
+     centimo. El audio tiene ademas una segunda cache, la de ARCHIVO
+     (`_generar_audio_tts` devuelve `(ruta, se_pago)`): el mp3 puede estar ya
+     en disco aunque esta cache no lo sepa, y entonces tampoco se paga.
   7. Degradacion elegante: sin OPENAI_API_KEY o sin red, `consultar()` NUNCA
      lanza excepcion; devuelve lo que si consiguio (diccionario + IPA +
      audio) y describe en `avisos` que falto.
