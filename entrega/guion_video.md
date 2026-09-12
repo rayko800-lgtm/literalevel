@@ -98,8 +98,11 @@ capítulo a capítulo.»
 > Nada de capturas. Que se vea el cursor moverse.
 > **Usa el mismo caso que el documento §8.2 y la diapositiva 8**: perfil
 > **1,20** y *Crime and Punishment* (PG2554). Las cifras que se dicen
-> —203.699 palabras, 840 ventanas, 134 segundos, media 1,70— son las medidas
-> sobre ese libro con el código de la app, no las de un libro cualquiera. Y
+> —203.415 palabras, 836 ventanas, media 1,70— son las que dio la app
+> publicada el 12 de septiembre de 2026, con el libro abierto desde el
+> buscador (ahora en `.txt`, el mismo texto con el que se midió el
+> catálogo; el documento cita 203.699 y 840 porque aquella medida se hizo
+> sobre el EPUB). Y
 > el libro **se abre desde el buscador**: escribe «dostoyevski» y sale.
 >
 > **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
@@ -124,13 +127,11 @@ capítulo a capítulo.»
 >   bien; **elígelo sin dudar**, que dudar delante de la cámara parece
 >   que la app no lo encuentra.
 >
-> **No pulses «Sorpréndeme» en cámara.** La letra que sale al lado de
-> cada libro es la etiqueta heredada del catálogo, no la del modelo: si
-> abres uno que dice B2 y pulsas «¿Cómo de difícil es este capítulo?»,
-> la app puede contestar C1 y quedarse desmentida a sí misma en directo.
-> El paso Dos del recorrido es el **buscador**, que no tiene ese
-> problema. Si aun así sale, dilo en voz alta: *«esa letra es del
-> catálogo viejo; el número es el que acaba de medir el modelo»*.
+> **«Sorpréndeme» ya se puede pulsar.** Desde el 12 de septiembre de 2026
+> la letra de cada libro es la que midió el modelo sobre el libro entero,
+> no la etiqueta heredada, así que ya no se desmiente sola. Aun así, un
+> capítulo concreto puede salir por encima o por debajo de la media del
+> libro: si pasa, es la curva haciendo su trabajo, y se puede decir.
 >
 > **Y la palabra del paso Cuatro se elige antes, no en directo.** El
 > diccionario solo trae fonética en el 3,1 % de sus entradas —el 58 % de las
@@ -165,10 +166,10 @@ significado, no por título, **con mi nivel al lado de cada libro**. Y
 escribo *dostoyevski* mal escrito, y aun así lo encuentra.
 
 **Tres.** Abro *Crimen y castigo* y aparece su ficha, contada sobre el texto y
-no sobre la portada: **203.699 palabras**, cuánto es diálogo, qué se repite, y
+no sobre la portada: **203.415 palabras**, cuánto es diálogo, qué se repite, y
 cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta curva: **la
 dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
-**840 ventanas en 134 segundos**: media **1,70**. Mi nivel es 1,20. Este libro
+**836 ventanas**: media **1,70**. Mi nivel es 1,20. Este libro
 me queda por encima, y lo sé antes de la primera página.
 
 **Cuatro.** *(doble clic en* poverty*)* Toco una palabra y en **40
