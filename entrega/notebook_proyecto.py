@@ -241,7 +241,7 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 # | **CLEAR Corpus** (Crossley et al.) | Corpus de **entrenamiento**: extractos con dificultad medida sobre juicios humanos | 4.724 extractos | GitHub, descarga directa |
 # | **Project Gutenberg** | El **catálogo** que la aplicación ordena | 79.337 entradas | Feed CSV oficial |
 # | **SPGC** (Gerlach & Font-Clos) | Lista de frecuencia de vocabulario en inglés | 45.345 libros, solo conteos | Zenodo (procesado aparte) |
-# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (47 legibles en local) | Material con derechos, no se distribuye |
+# | **British Council** | **Validación externa** (no del todo ciega), con nivel CEFR oficial | 59 textos (47 legibles en local) | Material con derechos, no se distribuye; se reconstruye con su manifiesto de hashes (§7.2) |
 #
 # En este cuadernillo se descargan y se analizan las dos primeras. El SPGC se
 # usó en su momento con PySpark para construir la lista de palabras familiares
@@ -249,7 +249,8 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 # y su resultado se resume aquí, pero no se reprocesa: son horas de cómputo para
 # una lista que después resultó no aportar (§4.2). El corpus de British Council
 # **tiene derechos y no se distribuye**; su papel es la validación externa y sus
-# resultados se reportan en la §7.
+# resultados se reportan en la §7, donde se explica también cómo reconstruirlo y
+# verificarlo archivo por archivo.
 #
 # ## 3.2 Por qué CLEAR y no otra cosa
 #
@@ -1715,7 +1716,8 @@ print(tabla_reportada.to_string(index=False))
 # Se usaron los textos de lectura graduada de **British Council**, cada uno con
 # su nivel oficial en el nombre del archivo. El material tiene derechos y no se
 # distribuye; el guion de validación del repositorio (`validar_local.py`) no
-# imprime ni un fragmento, solo puntuaciones.
+# imprime ni un fragmento, solo puntuaciones. Al final de este apartado se
+# explica cómo reconstruir el corpus y verificarlo archivo por archivo.
 
 # %%
 validacion_externa = pd.DataFrame({
@@ -1787,6 +1789,238 @@ plt.show()
 # cero, queda **indefinida** —el denominador es una desviación típica cero—. Lo
 # que se puede afirmar es más simple: el contador no aporta ninguna señal por
 # encima de la longitud, porque es esa misma variable. El modelo sí.
+
+# %% [markdown]
+# ### Reproducir esta validación usted mismo
+#
+# El corpus tiene derechos y no se distribuye, pero **se puede reconstruir y
+# auditar**. Los 59 PDF son de descarga pública y gratuita en
+# learnenglish.britishcouncil.org, así que en vez de entregar los archivos se
+# entrega la receta: la URL de cada uno y su **SHA-256**, que es la huella exacta
+# del archivo con el que se midió. Si los 59 cuadran, las cifras del Cuadro 13 se
+# reproducen al decimal.
+#
+# **Los PDF se descargan con el navegador, no con código.** Comprobado el 12 de
+# septiembre de 2026: el CDN de British Council responde 403 a `curl` y deja sin
+# respuesta a Python aunque se identifique como navegador. Es una protección
+# antibots y no se intenta esquivar. Con un navegador de verdad las 59 URLs
+# funcionan, y así se verificaron: los 59 archivos del sitio son idénticos byte a
+# byte a los que se midieron.
+#
+# El reparto, por tanto:
+#
+# 1. **Descargue los PDF** desde las URLs del manifiesto
+#    (`entrega/corpus_bc_manifiesto.csv`; la celda de abajo lista las que faltan).
+# 2. **Súbalos a la carpeta `corpus_bc/`** (en Colab, panel de archivos → subir).
+# 3. **Ejecute la celda.** Empareja cada PDF con el manifiesto **por su hash**,
+#    no por su nombre, así que da igual que el navegador añada «(1)».
+# 4. Con los 59 verificados, las cifras se recalculan con
+#    `python -X utf8 validar_local.py corpus_bc` desde la raíz del repositorio.
+#    Ese guion necesita `pypdf` y el modelo, que este cuadernillo no instala.
+#
+# En el repositorio, `tools/bajar_corpus_bc.py` hace lo mismo en local y distingue
+# además un archivo roto de uno que British Council haya actualizado después.
+
+# %%
+import hashlib
+from pathlib import Path
+
+# (nivel, URL, SHA-256) de los 59 PDF con los que se midió. Generado desde
+# entrega/corpus_bc_manifiesto.csv, no copiado a mano.
+MANIFIESTO_BC = [
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-A-poster-at-work.pdf",
+     "512bbae954334a3c3aefb070d22ee0f7bafd323344642fdd8ee664c9ab480f1b"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-A-poster-for-exam-candidates.pdf",
+     "ee927814edfcf9db36bc2deb607686072c12af6afa03dba6a06de8d0a3abc789"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-A-restaurant-menu.pdf",
+     "411160cccc986755f603ebfeb718905a92efd4bc18dcc3071697135bb33ab441"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-A-study-timetable.pdf",
+     "6989828cadbd5f0c03f3d306af3652068e0e5c6bb3103865f62a4a6a92bd6262"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-An-airport-departures-board.pdf",
+     "c9247e2269eec1c20cb474c39c169468c7412d8d7484131b10fe4cf053a47c11"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Business-cards.pdf",
+     "0612458d4ac08edba483398bd4d69e20d29e52deaa7ac41e7ff013a16e5504b9"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Dictionary-definitions.pdf",
+     "ab48ba4aa6d37b8e7af98960e8d47e5a8a4b300884155d052184ad7061728ff3"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Holiday%20home%20adverts.pdf",
+     "60028bcf9a589c2e661f50e49deb8e3f1164d7852d0f368abd0ab93f71bace5a"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Job-adverts.pdf",
+     "d35b336b729b034556d9d72d00ae63c12d0f0369b17ce634112a093f4b9c0581"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Notes-at-work.pdf",
+     "1df616e07471964d34b0a12b9ff43b341a6c376ed02927c8a8d7d9c8ebcb1e2a"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Student-card-application.pdf",
+     "3e22d6fde4ff65d77d42f58321eb7ea94a0bb8d632bc42b8ed377eaab47f5ba8"),
+    ("A1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A1-Text-messages-to-a-friend.pdf",
+     "f4ba9622797ced48c3b9847e8fe683cce645e5f0abf5631dd6f7b8cb891cf7f2"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-A-message-to-a-new-friend.pdf",
+     "c513953222def1f7627f6d3ffe6dc426768b5394149c15415a47d671d6d9a309"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-An-airport-notice.pdf",
+     "bd47cff83954072b785fff630c87676e632fe92a464c9e556a170334f3a589ad"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-An-end-of-term-report.pdf",
+     "de093afe5b530572d531af5981a3b409b3773193fa55fab4b3b60a63b3233721"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-An-infographic.pdf",
+     "8192ef3cb9b01a513d4455d5a0f325763974391e76c3696bc3a812fc5ab40026"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-An-invitation-to-a-job-interview.pdf",
+     "6afb9a4ae9b6d58bd2ea8c4dd52e97f60f81f6d36444f02ad4a133135b633443"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-Choosing-a-conference-venue.pdf",
+     "2dc9e8ae383393561a46721a698f1b699a355b573339ff7ae4da20bc55d5353b"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-English-course-prospectus.pdf",
+     "050917c78f9ebd036e31d912c01ebeed0ed568d8b3f8c435a4877590a794528c"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-Professional-profile-summaries.pdf",
+     "4d38d8f37c7907f171eb0db87ea2264c8cdbd17f549e08fd87b3a16748f56b75"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-A2-Study-skills-tips.pdf",
+     "049ae3609aae4c303dd58ef3ea0638430d725fbbf6921ec63e392c0422e5b1a4"),
+    ("A2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish_Reading-A2-An-email-from-a-friend.pdf",
+     "4a1369013f8c67571e96434d91e5ffaf81d959bedc01cf34b2b0a9a93566218b"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-A-conference-programme.pdf",
+     "2744c66ae7d73e464360ab4cba7a5b2467e6088954e1152ea59d7e64463b6a33"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-A-flyer-for-a-gym.pdf",
+     "33dd2c64a21cbeeecf90724ad97510a46705353f126fad3301623c5250cb75f7"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-A-travel-guide.pdf",
+     "bf10685bd8de9432b32afe60a9b924d82ab7c16428f2be50ae4f3542db309866"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-An-email-request-for-help.pdf",
+     "7202270a5a609a35d6d7bdb6954dffb3f9a63918767ed28f177129af63d0f9c4"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-Digital-habits-across_generations.pdf",
+     "e148f382ac8ca555d97e049e82d3e50f2c91f429b84e447f70c8c17170bc7d25"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-Encyclopedia-entry.pdf",
+     "a1361ad6a7deb8479725d401a6ae039dea27124410a98fc318dff98de46bf451"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-How-to-spot-fake-news.pdf",
+     "6ef4bcd116322c5f1619a104094f61bff8d788bf32c89e372e6e26d6a3083955"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-Innovation-in-business.pdf",
+     "e7319f652c9b1c198487daafe007fa625320dc19b7f167541fd67678d0f4d9ae"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-Planning-an-event.pdf",
+     "87c3e0c5eda0bac4381bfab778d44a275eb68a5e56878de4a14ed412d782be94"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-Robot-teachers.pdf",
+     "65a06bbeae4ec664db2af84863293274c46552dec9431c22ed77a85d5fff6781"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-Social-media-influencers.pdf",
+     "72d3f461400d45b8816b15e5d3349cc4d788b9aad7f0423058f89a9858a56539"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-The-Martian-a-book-review.pdf",
+     "0ea812c0d1617b53bc306c525a90f945dd75acb36a3430263ddf42d969f8817a"),
+    ("B1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B1-The-legend-of-fairies.pdf",
+     "efa0247db7475e129b349501c7b61afc76e54879f8cef4aeb4d9a47f1322a411"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-A-Plastic-Ocean-a-film-review.pdf",
+     "f5e4312432b3a778ba46939efec634e34b29c0899a276bb02738227f997e32db"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-A-short-story-extract.pdf",
+     "76ec704564c9f1c0c5b54ec13e7267c42a6c84aa73d6593289c68337c7456105"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-An-email-from-a-friend.pdf",
+     "a90093e02c850e8a47f28bd75ce56c9dc1ebc45aed45ddea66875982990b7b97"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-Asteroids.pdf",
+     "43622f4ec3ff507ff647ac9b560b11fdc4f07c02809d67509cdf4c45c5783e5c"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-Cultural-expectations-and-leadership.pdf",
+     "dccd0c22596f7c2259cb4715e5b4c5685687b2f88bcdd59de72734e6eca6f1a4"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-Instant-messages.pdf",
+     "a44b11a904342d85e559b9098e507c3a219a17962cf96e5474fc301d47595de7"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-Millennials-in-the-workplace.pdf",
+     "dc38d02813fe2acbdf2c3a1501fb4c6d98c0febcc0e40ff628ddab51f80ec1bb"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-Star-Wars-and-the-hero-myth.pdf",
+     "d489e554ebda9a950370bf7e244fc8a36b887503dc526cd4e171fc1cecd43790"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-The-Buy-Nothing-movement.pdf",
+     "e76c773498fe6a4ad3f428e7695521cd92e241ff988f6df9019889258bf6135d"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-The-sharing-economy.pdf",
+     "62c4b395edb2517964aa957cb8deb80de6b8e0549a3f980ec499c9d98bce9c70"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2-Why-bridges-collapse.pdf",
+     "db7a70e3c2303eef308ed75407a0eb07dd08331ad3e163deaab8f73d3a92e589"),
+    ("B2", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-B2_Work-life-balance.pdf",
+     "1471955e5a425fa9e23d2ac59a8a4da60631038ccb5596e1a56e162f3d74d6b9"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-A-biography-of-Kilian-Jornet.pdf",
+     "e7b927d44225b563d73b9b827542eb9beb9ac3cfed31c958bfe2f7c36cde31de"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-A-threat-to-bananas.pdf",
+     "c273771ee2986cf313643537c54076e4cec456c3522a16e061f9beac80a021cb"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Cultural-behaviour-in-business.pdf",
+     "975d558680707643b4d5c1a361b8dad0731a32306e5e6b3a0b676fa00aab9037"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Four-book-summaries.pdf",
+     "0771a55f4f3579e0a5557f5776f89bf2c45717b519d171f796bbd7f53a032713"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Giving-and-receiving-positive-feedback.pdf",
+     "f38f1b4d0ae50b36eff70bb015dcb98e1e9493f44664e049f96c66d95c83764d"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Horror-film-cliches.pdf",
+     "ece20fb605949cb54efabdbaa1c68eb0ada17ee2fc2f8ade765ca7456614065c"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-How-humans-evolved-language.pdf",
+     "c138bf87a27daed03af472658c439e7bf36473d16e55d0a02ad9f68ac527c8d3"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Life-on-Mars.pdf",
+     "d93e7b367a037cde6d59863d6bde285ac64b7988c9e76a82b61656eaeb502357"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Managing-a-problem.pdf",
+     "5fe28644ba498d1ac94d01aa29421b1a6a3ccbf4c2ac9e0248ea957a438217f1"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Political-manifestos.pdf",
+     "9da301e4faca1ea7922470fb8bde3fb7a9d57e6a4d1ceb5344beb1f9803fcb5b"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-Sustainable-supermarkets.pdf",
+     "b7b5f5aefed72beb74f259489c93f25ac06d792eea581debccd0e9a797b9240e"),
+    ("C1", "https://learnenglish.britishcouncil.org/sites/podcasts/files/LearnEnglish-Reading-C1-The-state-of-the-world.pdf",
+     "a3b79b3e5e72f979f41ff3564f7453367bd633b5a6f50584afddc7548db4e8cb"),
+]
+
+CORPUS_BC = Path("corpus_bc")
+CORPUS_BC.mkdir(exist_ok=True)
+
+esperados = {h for _, _, h in MANIFIESTO_BC}
+presentes = set()
+for p in CORPUS_BC.glob("*.pdf"):
+    h = hashlib.sha256(p.read_bytes()).hexdigest()
+    if h in esperados:
+        presentes.add(h)
+faltan = [(n, u) for n, u, h in MANIFIESTO_BC if h not in presentes]
+
+print(f"{len(presentes)}/{len(MANIFIESTO_BC)} PDF verificados byte a byte en {CORPUS_BC}/")
+if faltan:
+    print(f"Faltan {len(faltan)}. Ábralos en el navegador y súbalos a {CORPUS_BC}/. "
+          f"Los cinco primeros:")
+    for n, u in faltan[:5]:
+        print(f"  {n}  {u}")
+    print("  (la lista completa, en entrega/corpus_bc_manifiesto.csv)")
+else:
+    print("Corpus completo. Desde la raíz del repositorio:")
+    print(f"  python -X utf8 validar_local.py {CORPUS_BC}")
+
+# %% [markdown]
+# ### Una segunda validación, reproducible y a escala: UniversalCEFR
+#
+# 47 textos de una sola fuente son poca base. El 12 de septiembre de 2026 se
+# repitió la validación con los dos conjuntos **ingleses, de referencia y de
+# documento completo** de UniversalCEFR (Imperial et al., EMNLP 2025), públicos
+# en Hugging Face con licencia CC BY-NC-SA 4.0: `cambridge_exams_en` (A2–C2) y
+# `elg_cefr_en` (A1–C2). Se solapan —130 textos están en los dos, y con el mismo
+# nivel—, así que se deduplican: 901 textos distintos, y **739 puntuados** tras
+# quitar los de menos de 150 palabras y los que el filtro de la aplicación
+# rechaza como listas o tablas. El guion del repositorio,
+# `validar_universalcefr.py`, se baja el corpus solo.
+#
+# **Una advertencia que va antes que la cifra.** No se puede afirmar que esta sea
+# una validación externa. La composición del corpus de anclaje del v4 no está
+# documentada, y si incluye textos de Cambridge o de ELG, el modelo ya los vio.
+# Hay además una señal que empuja en esa dirección: el Spearman de aquí es **más
+# alto** que el de la validación interna del propio v4 (0,908), y un conjunto
+# externo rara vez supera al interno. Por eso se presenta como validación
+# reproducible y a escala, no como externa.
+
+# %%
+universalcefr = pd.DataFrame({
+    "Nivel": ["A1", "A2", "B1", "B2", "C1", "C2"],
+    "n": [24, 100, 203, 180, 127, 105],
+    "Media v4 (escala 0-2)": [0.0797, 0.3421, 0.7596, 1.3021, 1.6564, 1.8971],
+})
+print("UniversalCEFR (cambridge_exams_en + elg_cefr_en, sin repetir): 739 textos")
+print()
+print(universalcefr.to_string(index=False))
+print()
+print(pd.DataFrame({
+    "Medida": ["Spearman del v4", "Spearman de contar palabras",
+               "v4 descontando la longitud"],
+    "UniversalCEFR (739)": [0.946, 0.663, 0.906],
+    "British Council (47)": [0.860, 0.807, 0.668],
+}).to_string(index=False))
+
+# %% [markdown]
+# Tres cosas cambian respecto a British Council, y las tres matizan limitaciones
+# de este mismo cuadernillo:
+#
+# 1. **La escala no sale comprimida.** Los seis niveles van de 0,08 a 1,90, frente
+#    al 0,50–1,50 de British Council. La compresión se observó en 47 textos de una
+#    sola fuente; con 739 de dos fuentes no aparece.
+# 2. **A1 y A2 sí se distinguen**: 0,08 frente a 0,34, con n = 24 y 100.
+# 3. **La longitud explica mucho menos.** Contar palabras da 0,663, y el modelo
+#    conserva 0,906 descontándola.
+#
+# Las tres son reales en este corpus, pero heredan la advertencia de arriba: si
+# parte de él estaba en el anclaje, el modelo juega en casa.
 
 # %% [markdown]
 # ## 7.3 Decisiones de despliegue que también son evaluación
@@ -2030,12 +2264,15 @@ plt.show()
 #    entrenó, no un certificado que se emita.
 # 2. **La escala está comprimida y sesgada a la baja** frente al ancla real, y
 #    A1 y A2 son prácticamente indistinguibles (0,504 frente a 0,556, con n = 3
-#    en A1).
+#    en A1). **Ojo: esto se observó en British Council.** En UniversalCEFR, con
+#    739 textos de dos fuentes, la escala va de 0,08 a 1,90 y A1 y A2 sí se
+#    separan (§7.2), aunque esa validación tiene su propia advertencia.
 # 3. **El dominio confunde la medida.** El texto informativo puntúa medio punto
 #    más difícil que el literario con la misma sintaxis (Figura 6); el modelo no
 #    ve esa distinción.
-# 4. **La validación externa es pequeña**: 47 textos legibles de 59, y el corpus
-#    tiene derechos, así que no se distribuye ni se puede auditar desde fuera.
+# 4. **La validación externa es pequeña**: 47 textos legibles de 59. El corpus
+#    tiene derechos y no se distribuye, **pero se puede reconstruir y auditar**:
+#    el manifiesto trae la URL y el SHA-256 de cada PDF (§7.2).
 # 5. **Las cifras de 0,908 y 97,2 % no son verificables desde el repositorio**,
 #    porque el corpus de validación de 144 textos no está incluido.
 # 6. **El guion de entrenamiento del v4 no forma parte del repositorio.** Este
@@ -2046,15 +2283,16 @@ plt.show()
 #
 # ## 9.3 Qué se reproduce aquí y qué no
 #
-# Conviene separar cuatro cosas que suelen mezclarse bajo la palabra
-# «reproducible», porque solo tres de ellas son ciertas:
+# Conviene separar cinco cosas que suelen mezclarse bajo la palabra
+# «reproducible», porque solo cuatro de ellas son ciertas:
 #
 # | | ¿Se hace aquí? |
 # |---|---|
 # | **Ejecutarse de principio a fin sin errores** en un Colab limpio | **Sí** |
 # | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
 # | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
-# | **Recalcular las métricas del v4** (0,908, 97,2 %, las medias por nivel) | **No** |
+# | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí**, reconstruyendo el corpus con su manifiesto de hashes (§7.2) |
+# | **Recalcular las métricas internas del v4** (0,908, 97,2 %) | **No** |
 #
 # Lo último no depende de publicar pesos: depende del **corpus de anclaje MCER**,
 # 654 documentos que no se pueden redistribuir. Esas cifras se citan de la

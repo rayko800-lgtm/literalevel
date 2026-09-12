@@ -223,7 +223,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 |---|---|---|---|---|
 | **CLEAR Corpus** | Etiqueta continua de legibilidad (`BT_easiness`) para el modelado supervisado | 4.724 extractos | Repositorio público del proyecto CLEAR (Crossley et al., 2023) | Uso investigador, descarga directa |
 | **OneStopEnglish** | Corpus de **afinado** de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados | 567 textos (189 por nivel) | GitHub (Vajjala & Lučić, 2018) | CC BY-SA 4.0 |
-| **British Council LearnEnglish** | Validación externa contra niveles MCER oficiales | 59 textos A1–C1 | Descarga de los PDF públicos | Con derechos: no se distribuye ni se imprime texto |
+| **British Council LearnEnglish** | Validación externa contra niveles MCER oficiales | 59 textos A1–C1 | Descarga de los PDF públicos, con la URL y el SHA-256 de cada uno en un manifiesto | Con derechos: no se distribuye ni se imprime texto, pero se reconstruye y se verifica byte a byte |
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
 | **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 (§6.4) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
@@ -839,6 +839,44 @@ competente C1–C2—, y las fronteras quedan en **0,6 y 1,4**. Así la palabra 
 letra no pueden contradecirse por construcción. Ninguna puntuación cambió: solo
 cambió cómo se agrupan.
 
+**Una segunda validación, reproducible y a escala, que matiza lo anterior.** El
+12 de septiembre de 2026 se repitió la medición sobre los dos conjuntos ingleses
+de referencia y de documento completo de UniversalCEFR (Imperial et al., 2025),
+públicos y con licencia CC BY-NC-SA 4.0: `cambridge_exams_en` y `elg_cefr_en`.
+Se solapan —130 textos están en los dos, con el mismo nivel—, así que se
+deduplican, y tras quitar los de menos de 150 palabras y los que el filtro de la
+aplicación rechaza como listas o tablas quedan **739 textos en seis niveles**.
+Lo reproduce `validar_universalcefr.py`, que se baja el corpus solo.
+
+| Nivel | n | Media v4 (0–2) |
+|---|---|---|
+| A1 | 24 | 0,080 |
+| A2 | 100 | 0,342 |
+| B1 | 203 | 0,760 |
+| B2 | 180 | 1,302 |
+| C1 | 127 | 1,656 |
+| C2 | 105 | 1,897 |
+
+| Señal | Spearman con el nivel (739 textos) |
+|---|---|
+| Modelo v4 | **0,946** |
+| Contar las palabras del texto, sin modelo | 0,663 |
+| Modelo, descontando la longitud (correlación parcial) | **0,906** |
+
+*Cuadro 13b. La misma prueba sobre UniversalCEFR. Por fuente, el modelo da
+0,933 en Cambridge (220 textos) y 0,942 en ELG (519).*
+
+En este corpus **la escala no sale comprimida** —los seis niveles van de 0,08 a
+1,90—, **A1 y A2 se separan** y la longitud explica mucho menos. Pero esas
+cifras no se pueden leer sin su advertencia al lado, porque cambia lo que se
+puede afirmar: **no es una validación externa demostrada.** La composición del
+corpus de anclaje del v4 no está documentada (§9), y si incluye textos de
+Cambridge o de ELG, el modelo ya los vio. Hay además una señal que apunta en esa
+dirección: el 0,946 **supera** al 0,908 de la validación interna, y un conjunto
+externo rara vez supera al interno. Por eso no sustituye al Cuadro 11 —cuya
+independencia tampoco está demostrada, pero no muestra esa señal— y se presenta
+como lo que es: validación reproducible y a escala.
+
 ### 7.6 Cuadro de decisiones metodológicas
 
 Incluye las hipótesis que se probaron y se rechazaron. Reportarlas es parte del
@@ -1185,6 +1223,10 @@ repetirlo en cada párrafo corregido.
    por nivel de Colab; con las cinco locales sale 0,67x + 0,41), así que los
    niveles bajos se sobreestiman y
    los altos se subestiman. Es la razón de mostrar bandas y no decimales.
+   **Pero se observó en British Council, con 47 textos de una sola fuente.** En
+   los 739 de UniversalCEFR la escala va de 0,08 a 1,90 y la compresión no
+   aparece (Cuadro 13b), aunque esa validación tiene su propia advertencia de
+   posible solapamiento con el anclaje.
 3. **Las etiquetas del catálogo heredado no son fiables** (Cuadro 3). Son
    predicciones de un modelo v1 sobre las primeras ~190 palabras. La remedición
    está en curso y es el trabajo pendiente más importante. Y no es una
@@ -1226,7 +1268,11 @@ repetirlo en cada párrafo corregido.
 10. **Dos corpus no se pueden redistribuir**: British Council tiene derechos y
     el corpus de validación de 144 documentos no acompaña al repositorio, de
     modo que las cifras de 0,908 y 97,2 % **no son verificables clonando el
-    proyecto**. Lo que sí se reproduce en cualquier máquina es el Cuadro 11.
+    proyecto**. Lo que sí se reproduce en cualquier máquina es el Cuadro 11: el
+    corpus del British Council no se distribuye, pero se reconstruye desde su
+    manifiesto de URLs y SHA-256 y se verifica archivo por archivo con
+    `tools/bajar_corpus_bc.py`. Comprobado desde una carpeta vacía el 12 de
+    septiembre de 2026: da las mismas cifras publicadas.
 11. **El cuaderno corre entero en un Colab limpio, pero correr no es
     recalcular.** Los pesos del v4 están publicados en Hugging Face
     (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin

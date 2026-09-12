@@ -199,7 +199,7 @@ diagnosticó qué producía cada queja y se corrigió.
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono
 real —y no en el navegador del escritorio— había descubierto antes fallos que
-**ninguna de las 301 pruebas automáticas podía encontrar, porque todos
+**ninguna de las 302 pruebas automáticas podía encontrar, porque todos
 necesitaban un dedo y una pantalla pequeña**:
 
 - El doble toque para consultar una palabra **no funcionaba en el móvil**: el
@@ -280,7 +280,7 @@ palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
 
-La regla que verifican las 301 pruebas de robustez es una sola: **ningún
+La regla que verifican las 302 pruebas de robustez es una sola: **ningún
 manejador puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve
 como texto legible.
 
@@ -414,6 +414,16 @@ peor: es que **no está definida**, porque descontar la longitud de la propia
 longitud deja un residuo de varianza cero. Dicho de otro modo, el contador no
 aporta nada por encima de la longitud porque es la longitud; el modelo sí.
 
+**Con dieciséis veces más textos la comparación mejora mucho, y hay que llevar
+preparada también su letra pequeña.** En los 739 textos de UniversalCEFR —dos
+conjuntos públicos de lecturas graduadas y exámenes de Cambridge, reproducibles
+con `validar_universalcefr.py`— contar palabras se queda en **0,663**, el modelo
+llega a **0,946** y, descontando la longitud, conserva **0,906**. La letra
+pequeña: no se puede demostrar que esos textos no estuvieran en el corpus de
+anclaje, cuya composición no está documentada, y que el 0,946 supere al 0,908 de
+la validación interna apunta en esa dirección. Se defiende como validación
+reproducible y a escala, nunca como externa.
+
 ---
 
 ## 6. Accionables
@@ -452,7 +462,7 @@ publicación y un micrófono.
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas— |
 | Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Cumplido**: 301 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
+| Producto | Robustez | **Cumplido**: 302 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en `/data` |
 | Operación | Catálogo medido, no heredado | **En curso** (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |

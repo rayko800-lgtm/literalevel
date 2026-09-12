@@ -6,6 +6,24 @@ que declara cada uno: el cuerpo tiene derechos y no se redistribuye, ni
 siquiera en fragmentos. Con esta lista cualquiera puede bajarse los mismos
 documentos de learnenglish.britishcouncil.org y repetir `validar_local.py`.
 
+## Cómo reconstruir el corpus y comprobar que es el mismo
+
+**La URL y el SHA-256 de cada archivo están en
+[`corpus_bc_manifiesto.csv`](corpus_bc_manifiesto.csv).** Las 59 URLs se
+comprobaron el 12 de septiembre de 2026 descargándolas desde un navegador: los
+59 archivos del sitio son idénticos byte a byte a los que se midieron.
+
+1. Descarga los PDF **con el navegador**. British Council bloquea las descargas
+   automáticas (403 a `curl`, sin respuesta a Python aunque se identifique como
+   navegador), así que no hay guion que los baje solo, y no se intenta esquivar.
+2. `python -X utf8 tools/bajar_corpus_bc.py [carpeta_de_descargas]` los empareja
+   con el manifiesto **por su hash**, los copia a `corpus_bc/` con el nombre que
+   espera el validador y dice cuáles faltan, cuáles están rotos y cuáles ha
+   actualizado British Council desde que se midieron.
+3. `python -X utf8 validar_local.py corpus_bc` reproduce las cifras. Comprobado
+   desde una carpeta vacía: 47 textos, cinco niveles, Spearman 0,860, contar
+   palabras 0,807, parcial 0,668, que son las publicadas.
+
 | Nivel | n |
 |---|---|
 | A1 | 12 |

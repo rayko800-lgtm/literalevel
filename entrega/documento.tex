@@ -741,7 +741,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono real —y no
 en el navegador del escritorio— había descubierto antes fallos que \textbf{ninguna de
-las 301 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
+las 302 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
 pantalla pequeña}:
 
 \begin{itemize}[leftmargin=*, itemsep=3pt]
@@ -818,7 +818,7 @@ ficha—, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
-La regla que verifican las 301 pruebas de robustez es una sola: \textbf{ningún manejador
+La regla que verifican las 302 pruebas de robustez es una sola: \textbf{ningún manejador
 puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
 
 \subsubsection{Cada número dice de dónde viene}
@@ -851,7 +851,7 @@ protegidos u obtenidos por hora de trabajo. Cada una lleva coste real y criterio
 terminado. No son «se podría»: son «se hace».
 
 \begin{small}
-\begin{longtable}{@{}c L{3.5cm} L{4.1cm} L{2.2cm} L{3.2cm}@{}}
+\begin{longtable}{@{}c L{3.2cm} L{3.6cm} L{2.0cm} L{2.9cm}@{}}
 \toprule
 \textbf{\#} & \textbf{Acción} & \textbf{Por qué} & \textbf{Coste} & \textbf{Terminado cuando} \\
 \midrule
@@ -906,7 +906,7 @@ Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textb
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas--- \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Cumplido}: 301 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Producto & Robustez & \textbf{Cumplido}: 302 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
@@ -961,7 +961,7 @@ entorno de cómputo: solo estadísticas agregadas.
 \addlinespace
 \textbf{One\-Stop\-English} & Corpus de \textbf{afinado} de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
 \addlinespace
-\textbf{British Council Learn\-English} & Validación externa contra niveles MCER oficiales & 59 textos A1--C1 & Descarga de los PDF públicos & Con derechos: no se distribuye ni se imprime texto \\
+\textbf{British Council Learn\-English} & Validación externa contra niveles MCER oficiales & 59 textos A1--C1 & Descarga de los PDF públicos, con la URL y el SHA-256 de cada uno en un manifiesto & Con derechos: no se distribuye ni se imprime texto, pero se reconstruye y se verifica byte a byte \\
 \addlinespace
 \textbf{SPGC} (Standar\-dized Project Guten\-berg Corpus) & Lista global de frecuencia de palabras (solo conteos, sin texto) & 45.345 libros en inglés de 55.905 & Zenodo, registro 2422561 \parencite{gerlach2018spgc,gerlach2020standardized} & Abierta \\
 \addlinespace
@@ -1948,6 +1948,48 @@ independiente B1--B2, competente C1--C2—, y las fronteras quedan en \textbf{0,
 Así la palabra y la letra no pueden contradecirse por construcción. Ninguna puntuación
 cambió: solo cambió cómo se agrupan.
 
+\textbf{Una segunda validación, reproducible y a escala, que matiza lo anterior.} El
+12 de septiembre de 2026 se repitió la medición sobre los dos conjuntos ingleses de
+referencia y de documento completo de UniversalCEFR (Imperial et al., 2025), públicos y
+con licencia CC BY-NC-SA 4.0: \cod{cambridge\_exams\_en} y \cod{elg\_cefr\_en}. Se
+solapan ---130 textos están en los dos, con el mismo nivel---, así que se deduplican, y
+tras quitar los de menos de 150 palabras y los que el filtro de la aplicación rechaza
+como listas o tablas quedan \textbf{739 textos en seis niveles}
+(cuadro~\ref{cuad:universalcefr}). Lo reproduce \cod{validar\_universalcefr.py}, que se
+baja el corpus solo.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lrr@{\hspace{2.5em}}lr@{}}
+\toprule
+\textbf{Nivel} & \textbf{n} & \textbf{Media v4 (0--2)} & \textbf{Señal} & \textbf{Spearman} \\
+\midrule
+A1 & 24 & 0,080 & Modelo v4 & \textbf{0,946} \\
+A2 & 100 & 0,342 & Contar palabras, sin modelo & 0,663 \\
+B1 & 203 & 0,760 & Modelo descontando la longitud & \textbf{0,906} \\
+B2 & 180 & 1,302 & & \\
+C1 & 127 & 1,656 & & \\
+C2 & 105 & 1,897 & & \\
+\bottomrule
+\end{tabular}
+\caption{La misma prueba del cuadro~\ref{cuad:validacion}, sobre los 739 textos de
+UniversalCEFR. Por fuente, el modelo da 0,933 en Cambridge (220 textos) y 0,942 en ELG
+(519).}
+\label{cuad:universalcefr}
+\end{table}
+
+En este corpus \textbf{la escala no sale comprimida} ---los seis niveles van de 0,08 a
+1,90---, \textbf{A1 y A2 se separan} y la longitud explica mucho menos. Pero esas cifras
+no se pueden leer sin su advertencia al lado, porque cambia lo que se puede afirmar:
+\textbf{no es una validación externa demostrada.} La composición del corpus de anclaje
+del v4 no está documentada, y si incluye textos de Cambridge o de ELG, el modelo ya los
+vio. Hay además una señal que apunta en esa dirección: el 0,946 \textbf{supera} al 0,908
+de la validación interna, y un conjunto externo rara vez supera al interno. Por eso no
+sustituye a la validación con British Council ---cuya independencia tampoco está
+demostrada, pero no muestra esa señal--- y se presenta como lo que es: validación
+reproducible y a escala.
+
 % ---------------------------------------------------- FIGURA: compresión
 \begin{figure}[htbp]
 \centering
@@ -2651,6 +2693,10 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         (figura~\ref{fig:compresion}; mínimos cuadrados sobre las cuatro medias por nivel
         de Colab, y $0{,}67x + 0{,}41$ con las cinco locales), así que los niveles bajos se
         sobreestiman y los altos se subestiman. Es la razón de mostrar bandas y no decimales.
+        \textbf{Pero se observó en British Council, con 47 textos de una sola fuente.} En
+        los 739 de UniversalCEFR la escala va de 0,08 a 1,90 y la compresión no aparece
+        (cuadro~\ref{cuad:universalcefr}), aunque esa validación tiene su propia advertencia
+        de posible solapamiento con el anclaje.
   \item \textbf{Las etiquetas del catálogo heredado no son fiables}
         (cuadro~\ref{cuad:catalogo}). Son predicciones de un modelo v1 sobre las primeras
         $\sim$190 palabras. La remedición está en curso y es el trabajo pendiente más
@@ -2689,7 +2735,11 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
   \item \textbf{Dos corpus no se pueden redistribuir}: British Council tiene derechos y el
         corpus de validación de 144 documentos no acompaña al repositorio, de modo que las
         cifras de 0,908 y 97,2\pct{} \textbf{no son verificables clonando el proyecto}. Lo
-        que sí se reproduce en cualquier máquina es el cuadro~\ref{cuad:validacion}.
+        que sí se reproduce en cualquier máquina es el cuadro~\ref{cuad:validacion}: el corpus
+        del British Council no se distribuye, pero se reconstruye desde su manifiesto de URLs y
+        SHA-256 y se verifica archivo por archivo con \cod{tools/\allowbreak bajar\_corpus\_bc.py}.
+        Comprobado desde una carpeta vacía el 12 de septiembre de 2026: da las mismas cifras
+        publicadas.
   \item \textbf{El cuaderno corre entero en un Colab limpio, pero correr no es
         recalcular.} Los pesos del v4 están publicados en Hugging Face
         (\cod{MikeMaki1763/\allowbreak literalevel-v4}, repositorio público, descarga sin
