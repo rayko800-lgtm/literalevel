@@ -1,5 +1,41 @@
 # Validación del v4 con UniversalCEFR — 12 de septiembre de 2026
 
+> **ACTUALIZACIÓN, el mismo día: hubo fuga, confirmada.** Lo que sigue abajo
+> es la primera versión de esta validación y **sus cifras no valen como
+> validación**. Se deja como registro de cómo se encontró.
+>
+> **La prueba.** El guion de entrenamiento del v4, `ll_v4_transformer.py`
+> (Drive del proyecto, carpeta `src`, 6 de septiembre de 2026), carga un único
+> archivo de datos:
+>
+> ```
+> DATA_PATH = DRIVE / "elg-cefr-en.json"
+> "source": "ELG CEFR English, CC BY-NC-SA 4.0"
+> train_test_split(docs, test_size=0.22, random_state=SEED, stratify=strata)
+> ```
+>
+> Y su tarjeta de métricas, `metricas_literalevel_v4.json` (carpeta `outputs`),
+> lo confirma al número: **654 documentos aceptados + 57 cortos + 1 descartado
+> por forma de frase = 712**, que es exactamente el tamaño de
+> `UniversalCEFR/elg_cefr_en`. Partición 510 / 144, Spearman de validación
+> 0,9084 y 97,22 % dentro de un nivel: las cifras que publica el documento.
+>
+> **Consecuencias:**
+>
+> 1. `elg_cefr_en` **es el corpus de entrenamiento del v4**. Medirlo no es
+>    validar: el 0,946 de abajo medía, en su mayor parte, textos vistos.
+> 2. `cambridge_exams_en` comparte 130 textos con ELG, así que **también está
+>    contaminado en parte**. Solo vale lo que no esté en ELG.
+> 3. **Se cierra un hueco abierto desde la primera auditoría**
+>    (`informe_fable.md`, crítico 2): ya se sabe de qué está hecho el corpus de
+>    anclaje. **British Council no estaba en el entrenamiento**: el guion lo usa
+>    como `british_council_development_validation` (38 documentos, Spearman
+>    0,829). Se miró durante el desarrollo, que es lo que el documento ya
+>    llamaba «no del todo ciega».
+>
+> `validar_universalcefr.py` se reescribió para excluir ELG y medir solo los
+> textos de Cambridge que no están en él, ni idénticos ni casi idénticos.
+
 Medido con `validar_universalcefr.py`, en local (CPU), en 4,3 minutos. Se
 reproduce en cualquier máquina: el guion se baja solo los dos conjuntos.
 
@@ -83,3 +119,21 @@ advertencia escrita al lado**, nunca como «externa» a secas.
    0,663 y el modelo conserva 0,906 descontándola, frente a 0,807 y 0,668 en
    British Council. En exámenes graduados, nivel y longitud van confundidos; en
    este corpus, bastante menos.
+
+## La comprobación limpia, con `validar_universalcefr.py` reescrito
+
+| `cambridge_exams_en` sin repetir | 325 |
+|---|---|
+| Idénticos a un texto de ELG | 130 |
+| Casi idénticos (≥ 50 % de sus 8-gramas dentro de un texto de ELG) | 195 |
+| **Limpios** | **0** |
+
+Los 195 casi idénticos no salen de un umbral flojo. La fracción de 8-gramas
+compartidos con el texto de ELG más parecido tiene **mediana 0,921** (percentil
+10: 0,781; mínimo: 0,557); 122 comparten el 90 % o más; y **en los 195 el texto
+de ELG tiene el mismo nivel**. Es el mismo texto con otra puntuación o con otro
+encabezado.
+
+**Conclusión: ninguno de los dos conjuntos ingleses de referencia de
+UniversalCEFR sirve para validar el v4.** Las cifras de la primera versión se
+retiran de los entregables y quedan aquí solo como registro.

@@ -1,0 +1,88 @@
+{
+  "version": "LiteraLevel V4 transformer candidate",
+  "created": "2026-09-05T20:22:53.435507+00:00",
+  "base_model": "distilroberta-base",
+  "design": {
+    "scope": "continuous English prose only",
+    "block_words": 250,
+    "minimum_words": 150,
+    "maximum_blocks_sampled": 8,
+    "document_aggregation": "unweighted mean of block predictions",
+    "uses_total_document_length": false,
+    "split_unit": "document",
+    "public_scale": "0..2; basic <0.8, intermediate <1.6, advanced otherwise",
+    "cefr_claim": "research alignment only; not an official CEFR assessment"
+  },
+  "data": {
+    "source": "ELG CEFR English, CC BY-NC-SA 4.0",
+    "documents_accepted": 654,
+    "documents_rejected": {
+      "sentence_shape": 1,
+      "short": 57
+    },
+    "train_documents": 510,
+    "validation_documents": 144,
+    "train_blocks": 1146,
+    "validation_blocks": 317
+  },
+  "validation": {
+    "n_documents": 144,
+    "exact_anchor_accuracy": 0.5347222222222222,
+    "within_one_anchor": 0.9722222222222222,
+    "mae_cefr_steps": 0.4985111602418194,
+    "spearman": 0.9083979787412784
+  },
+  "british_council_development_validation": {
+    "available": true,
+    "n_documents": 38,
+    "exact_anchor_accuracy": 0.5,
+    "within_one_anchor": 1.0,
+    "mae_cefr_steps": 0.5173111014198838,
+    "spearman": 0.8290673351751217,
+    "mean_score_0_2_by_level": {
+      "A2": 0.6479,
+      "B1": 0.9513,
+      "B2": 1.2883,
+      "C1": 1.495
+    },
+    "adjacent_means_strictly_ordered": true
+  },
+  "training_history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.0295717710008223,
+      "n_documents": 144,
+      "exact_anchor_accuracy": 0.3819444444444444,
+      "within_one_anchor": 0.8402777777777778,
+      "mae_cefr_steps": 0.8010360094408194,
+      "spearman": 0.8706491801466307
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.22739130237864125,
+      "n_documents": 144,
+      "exact_anchor_accuracy": 0.5277777777777778,
+      "within_one_anchor": 0.9652777777777778,
+      "mae_cefr_steps": 0.4997184835512329,
+      "spearman": 0.91096208039422
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.15649916293720403,
+      "n_documents": 144,
+      "exact_anchor_accuracy": 0.5138888888888888,
+      "within_one_anchor": 0.9652777777777778,
+      "mae_cefr_steps": 0.5362174598896807,
+      "spearman": 0.9063738030584703
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.1219506164909237,
+      "n_documents": 144,
+      "exact_anchor_accuracy": 0.5347222222222222,
+      "within_one_anchor": 0.9722222222222222,
+      "mae_cefr_steps": 0.4985111602418194,
+      "spearman": 0.9083979787412784
+    }
+  ]
+}
