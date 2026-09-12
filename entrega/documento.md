@@ -1213,7 +1213,7 @@ comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
 sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
 decisión de afinar un codificador; no demuestran una victoria medida.*
 
-Los 61.642 libros del catálogo caen en el tramo más alto de la tarifa de Lexile;
+Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa de Lexile;
 medirlos aquí cabe en la cuota de una suscripción de unos 10 USD al mes. **No es
 una razón monetaria estricta** —una licencia anual y unas horas de cómputo no se
 dividen— y tampoco son servicios equivalentes: Lexile vende una escala aceptada

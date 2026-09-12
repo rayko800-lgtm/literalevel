@@ -178,6 +178,12 @@ nada.
 
 ### 4.2 El catálogo entero, medido por el v4
 
+> **HECHO el 12 de septiembre de 2026.** 53.179 libros y 585.111 capítulos
+> medidos, publicados en el Space y probados en el navegador. Lo confirmó: B2 o
+> más fácil son 3.726 libros de 53.179, y entre los literarios apenas 290
+> quedan en A1–B1. La recomendación por capítulos (fase 1) ya está en el lector;
+> la fase 2, en el buscador, es lo siguiente. Lo de abajo es el histórico.
+
 Estado al 9 de septiembre: **31.974 descargados** de 61.642, **29.875 con
 perfil del v4**. Lo que falta **no es medir, es descargar** unos 29.700 libros,
 y descargar **no necesita GPU ni unidades**. Medirlos después son ~6 h de T4

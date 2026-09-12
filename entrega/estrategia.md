@@ -243,6 +243,9 @@ Cuadro 21 del PDF —el 16 de la copia de lectura—: 8,19 ventanas/s en CPU, 11
 local y **2.022 en una A100**, con lo que los 61.642 libros en inglés de
 Project Gutenberg son **unas tres horas** de cómputo puro. De extremo a extremo
 son **unas diecisiete**, y la diferencia no la pone la tarjeta sino el disco.
+**Y se hizo**: el 12 de septiembre de 2026 quedaron medidos 53.179 libros y
+585.111 capítulos en una T4 gratuita, en tandas reanudables que guardaban en
+Hugging Face y no en Drive; la última, 9.795 libros, tardó 55 minutos.
 
 Cuando el cómputo sí tiene que ocurrir en vivo, se ofrecen **dos velocidades y
 se dice cuál se usó**: un vistazo (30 capítulos repartidos, 2 ventanas de cada
@@ -331,7 +334,7 @@ integración con bibliotecas y pruebas oficiales, y algo que aquí solo se
 aproxima —una escala común que compara al lector con el texto—. **Su medida la
 acepta un colegio; la nuestra no.** Lo que no tiene es precio accesible. Su tarifa
 publicada para creadores de contenido va de **3.824 a 54.636 USD al año** según
-el volumen, y los 61.642 libros del catálogo caen en el tramo más alto.
+el volumen, y los 53.179 libros del catálogo medido caen en el tramo más alto.
 
 Medirlos aquí son **unas tres horas de GPU A100** —**diecisiete de reloj**,
 contando la lectura de los archivos—, y eso cabe en la cuota de una suscripción
