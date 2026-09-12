@@ -1,6 +1,7 @@
 # Pendientes de LiteraLevel
 
-Actualizado: **11 de septiembre de 2026**, tarde.
+Actualizado: **12 de septiembre de 2026**, tarde. El plan de aquí al 3 de
+octubre está en [`PLAN_3_OCTUBRE.md`](PLAN_3_OCTUBRE.md).
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
@@ -91,6 +92,26 @@ entero a través de Colab con `drive.mount`.
 
 ## El catálogo, que es lo único grande que falta
 
+> **12 de septiembre de 2026: midiendo, y ya sin Drive.** El freno de estos días
+> no era la descarga: era que los resultados iban a Google Drive, que pide un
+> permiso interactivo en cada sesión nueva. Ahora van a un repositorio privado
+> de Hugging Face (`MikeMaki1763/literalevel-catalogo`) con el token en los
+> Secretos de Colab, y una sesión caída se reanuda sin que nadie dé un clic.
+>
+> - **Rescatados de Drive: 153 shards** (117 antiguos + 36 del lado A),
+>   verificados en el repositorio de Hugging Face. Fue el último permiso de Drive.
+> - **Descarga: 57.226 libros en 7,7 minutos** desde el volcado de Common Pile.
+> - **Por medir: 9.795.** La tanda arrancó a las 16:07 en una T4 gratuita.
+> - **Cómo va, sin abrir Colab:** `python -X utf8 tools/ver_progreso.py`.
+> - Cómo reanudar si Colab corta: [`COLAB.md`](COLAB.md).
+>
+> **Decidido por Miguel: el catálogo medido entra en la app en cuanto esté.** La
+> celda 11 ya exporta, además del CSV por libro, la curva por capítulo
+> (`capitulos_medidos.parquet`) y los embeddings del buscador con el nombre que
+> espera `app/catalogo.py`.
+>
+> Lo de abajo es el estado del 9 y el 10 de septiembre, y se queda como histórico.
+
 Cifras vivas: **medidas el 9 de septiembre de 2026** y en movimiento mientras
 la descarga y el precalculo sigan corriendo. Sin fecha son falsas mañana.
 
@@ -135,7 +156,15 @@ un entorno de CPU gratuito mientras no haya unidades.
 - [x] **Apartado de competencia** — §8.5 del documento y §5 de la estrategia
 - [x] **Manifiesto del corpus externo** (`entrega/manifiesto_corpus_externo.md`)
 - [ ] **Vídeo grabado** — bloqueado en el micrófono
-- [ ] **Catálogo remedido** — bloqueado en las unidades de Colab
+- [ ] **Catálogo remedido** — midiendo en Colab desde el 12 de septiembre de 2026
+- [x] **Corpus del British Council reconstruible** — manifiesto con URL y SHA-256
+  (`entrega/corpus_bc_manifiesto.csv`) y `tools/bajar_corpus_bc.py`; comprobado
+  desde una carpeta vacía: da las cifras publicadas
+- [x] **Validación con UniversalCEFR** — 739 textos, Spearman 0,946, con su
+  advertencia de posible solapamiento con el anclaje
+  ([`auditoria/validacion_universalcefr_2026-09-12.md`](auditoria/validacion_universalcefr_2026-09-12.md))
+- [x] **Capítulos a tu nivel, fase 1** (dentro del lector) — 302 pruebas extremas y
+  8 mutantes nuevos, los 8 cazados por su prueba
 
 ---
 
@@ -150,7 +179,7 @@ todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **301** | `pruebas_extremas.py` |
+| Pruebas de estrés | **302** | `pruebas_extremas.py` |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
 | Parejas de contraste | **85** (17 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |

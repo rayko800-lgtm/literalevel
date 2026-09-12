@@ -151,7 +151,7 @@ torch.
 
 ```bash
 python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # 301 pruebas que intentan romper la interfaz
+python -X utf8 pruebas_extremas.py     # 302 pruebas que intentan romper la interfaz
 python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
 python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
 python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel
