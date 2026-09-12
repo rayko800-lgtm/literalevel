@@ -497,7 +497,7 @@ MUTANTES = [
     ("F15-s5-nota", "app/ui.py",
      "    return (f" + chr(34) + "Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:"
      + chr(92) + "n" + chr(92) + "n" + chr(34) + NL +
-     "            + _tabla_libros(libros, vacio=si_no_hay, nota=NOTA_NIVEL_HEREDADO),",
+     "            + _tabla_libros(libros, vacio=si_no_hay, nota=_nota_nivel()),",
      "    return (f" + chr(34) + "Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:"
      + chr(92) + "n" + chr(92) + "n" + chr(34) + NL +
      "            + _tabla_libros(libros, vacio=si_no_hay),",

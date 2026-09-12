@@ -160,9 +160,17 @@ un entorno de CPU gratuito mientras no haya unidades.
 - [x] **Corpus del British Council reconstruible** — manifiesto con URL y SHA-256
   (`entrega/corpus_bc_manifiesto.csv`) y `tools/bajar_corpus_bc.py`; comprobado
   desde una carpeta vacía: da las cifras publicadas
-- [x] **Validación con UniversalCEFR** — 739 textos, Spearman 0,946, con su
-  advertencia de posible solapamiento con el anclaje
+- [x] ~~Validación con UniversalCEFR~~ — **retirada: era el entrenamiento.** El v4
+  se entrenó con ELG CEFR English (= `elg_cefr_en`), y los 325 textos de Cambridge
+  están dentro de él. De paso se sabe ya de qué está hecho el corpus de anclaje:
+  guion y métricas del entrenamiento en `entrenamiento_v4/`
   ([`auditoria/validacion_universalcefr_2026-09-12.md`](auditoria/validacion_universalcefr_2026-09-12.md))
+- [x] **Métricas internas del v4 recalculadas**: guion + pesos + datos públicos
+  dan 0,5347 / 0,9722 / MAE 0,4985 / Spearman 0,9084, idénticas a cuatro decimales
+- [x] **Validación externa con OneStopEnglish** — 0 solapamiento con el
+  entrenamiento; 560 unidades, Spearman 0,800 (palabras 0,692), parcial 0,688; en
+  orden dentro del artículo 183/185, con la longitud sola en 179
+  ([`auditoria/validacion_onestop_2026-09-12.md`](auditoria/validacion_onestop_2026-09-12.md))
 - [x] **Capítulos a tu nivel, fase 1** (dentro del lector) — 302 pruebas extremas y
   8 mutantes nuevos, los 8 cazados por su prueba
 

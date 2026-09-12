@@ -180,14 +180,14 @@ corpus como argumento.
 **Qué se puede reproducir clonando este repositorio y qué no.** El modelo v4
 **está publicado** en Hugging Face, en un repositorio público y sin
 credenciales: [`MikeMaki1763/literalevel-v4`](https://huggingface.co/MikeMaki1763/literalevel-v4).
-Basta apuntar `LITERALEVEL_MODELO` ahí. El corpus de British Council no se
-distribuye (tiene derechos) y el corpus de validación de 144 textos tampoco
-está aquí: las cifras de 0.908 y 97.2 % **no son verificables desde este
-repositorio**, aunque su aritmética interna sí cuadra (510 + 144 = 654,
-77/144 = 53,47 %, 140/144 = 97,22 %). Lo que sí se
-comprueba en local es la tabla de arriba, con los PDF de British Council en
-una carpeta. El código de entrenamiento del v4 no forma parte de este
-repositorio: aquí vive la aplicación, no el experimento.
+Basta apuntar `LITERALEVEL_MODELO` ahí. **El entrenamiento del v4 también está
+aquí**, en [`entrenamiento_v4/`](entrenamiento_v4/): el guion, su tarjeta de
+métricas y las 144 predicciones de validación. Sus datos (ELG CEFR English) son
+públicos, y las cifras de 0,908 y 97,2 % se recalcularon el 12 de septiembre de
+2026, idénticas a cuatro decimales. El corpus de British Council no se
+distribuye (tiene derechos), pero se reconstruye con
+`tools/bajar_corpus_bc.py` y su manifiesto de hashes, y con él se comprueba la
+tabla de arriba.
 
 **Sin `OPENAI_API_KEY` la app sigue funcionando**: diccionario, IPA, buscador
 y puntuación no salen a la red. El audio de Wiktionary sí: es un enlace a

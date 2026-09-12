@@ -1,0 +1,561 @@
+articulo,nivel,puntuacion,palabras
+Amazon,Advanced,1.702,609.0
+Amazon,Elementary,1.234,412.0
+Amazon,Intermediate,1.4275,508.0
+Amsterdam,Advanced,1.221,449.0
+Amsterdam,Elementary,0.666,443.0
+Amsterdam,Intermediate,1.056,449.0
+Anita,Advanced,1.804,923.0
+Anita,Elementary,1.081,451.0
+Anita,Intermediate,1.53,673.5
+Arctic mapping,Advanced,1.706,785.0
+Arctic mapping,Elementary,0.901,480.0
+Arctic mapping,Intermediate,1.3405,574.0
+Banksy,Advanced,1.397,765.0
+Banksy,Elementary,0.92,413.0
+Banksy,Intermediate,1.1825,587.5
+Billionaires,Advanced,1.511,572.0
+Billionaires,Elementary,1.003,362.0
+Billionaires,Intermediate,1.2645,474.0
+Blackberry,Advanced,1.563,917.0
+Blackberry,Elementary,0.944,630.0
+Blackberry,Intermediate,1.3330000000000002,810.0
+Bolivia,Advanced,1.587,800.0
+Bolivia,Elementary,0.975,570.0
+Bolivia,Intermediate,1.2285,663.0
+Bonus pay,Advanced,1.56,618.0
+Bonus pay,Elementary,1.064,397.0
+Bonus pay,Intermediate,1.3475000000000001,497.0
+Brazil,Advanced,1.262,873.0
+Brazil,Elementary,0.75,563.0
+Brazil,Intermediate,0.989,661.0
+Cigarettes,Advanced,1.367,701.0
+Cigarettes,Elementary,0.872,469.0
+Cigarettes,Intermediate,1.173,592.0
+Coal to challenge oil,Advanced,1.669,671.0
+Coal to challenge oil,Elementary,1.116,369.0
+Coal to challenge oil,Intermediate,1.447,425.0
+Copyright,Advanced,1.635,576.0
+Copyright,Elementary,1.286,484.0
+Copyright,Intermediate,1.5259999999999998,564.0
+Crowdfunding,Advanced,1.499,929.0
+Crowdfunding,Elementary,1.005,506.0
+Crowdfunding,Intermediate,1.262,797.0
+Denmark,Advanced,1.289,612.0
+Denmark,Elementary,0.597,567.0
+Denmark,Intermediate,0.9155,614.0
+Everest,Advanced,1.532,919.0
+Everest,Elementary,0.89,633.0
+Everest,Intermediate,1.399,896.0
+Exercise,Advanced,1.636,886.0
+Exercise,Elementary,0.806,635.0
+Exercise,Intermediate,1.238,749.0
+Facebook deserted by millions of users,Advanced,1.515,688.0
+Facebook deserted by millions of users,Elementary,0.673,434.0
+Facebook deserted by millions of users,Intermediate,1.1360000000000001,556.0
+False memory,Advanced,1.715,1006.0
+False memory,Elementary,1.099,575.0
+False memory,Intermediate,1.4735,768.5
+Ferguson,Advanced,1.491,953.0
+Ferguson,Elementary,1.062,628.0
+Ferguson,Intermediate,1.376,767.0
+Fitness,Advanced,1.569,790.0
+Fitness,Elementary,0.973,593.0
+Fitness,Intermediate,1.2814999999999999,681.0
+Food shortages,Advanced,1.519,686.0
+Food shortages,Elementary,0.902,396.0
+Food shortages,Intermediate,1.2365,526.5
+Gangs,Advanced,1.477,1017.0
+Gangs,Elementary,0.816,658.0
+Gangs,Intermediate,1.149,810.0
+Gorillas and oil,Advanced,1.512,775.0
+Gorillas and oil,Elementary,0.939,398.0
+Gorillas and oil,Intermediate,1.2534999999999998,599.0
+Greeks and drugs,Advanced,1.747,814.0
+Greeks and drugs,Elementary,0.789,457.0
+Greeks and drugs,Intermediate,1.351,690.0
+Hillsborough,Advanced,1.564,968.0
+Hillsborough,Elementary,0.823,643.0
+Hillsborough,Intermediate,1.1764999999999999,710.0
+Insects,Advanced,1.519,771.0
+Insects,Elementary,0.865,591.0
+Insects,Intermediate,1.224,676.0
+Japan,Advanced,1.413,960.0
+Japan,Elementary,0.843,662.0
+Japan,Intermediate,1.2814999999999999,760.0
+Japan menu,Advanced,1.591,770.0
+Japan menu,Elementary,1.047,413.0
+Japan menu,Intermediate,1.3045,594.0
+Kashmir,Advanced,1.494,997.0
+Kashmir,Elementary,0.58,607.0
+Kashmir,Intermediate,1.0755,792.0
+Kate and William,Advanced,1.532,646.0
+Kate and William,Elementary,0.807,272.0
+Kate and William,Intermediate,1.0514999999999999,368.0
+Kenya,Advanced,1.407,829.0
+Kenya,Elementary,0.71,589.0
+Kenya,Intermediate,1.0885,673.0
+Liberia,Advanced,1.059,970.0
+Liberia,Elementary,0.417,631.0
+Liberia,Intermediate,0.8574999999999999,803.0
+Lie detector,Advanced,1.778,844.0
+Lie detector,Elementary,1.096,415.0
+Lie detector,Intermediate,1.3530000000000002,752.0
+Life expectancy,Advanced,1.642,838.0
+Life expectancy,Elementary,0.99,615.0
+Life expectancy,Intermediate,1.31,773.0
+Life on Mars,Advanced,1.651,939.0
+Life on Mars,Elementary,1.185,497.0
+Life on Mars,Intermediate,1.5030000000000001,640.0
+Loterry,Advanced,1.413,536.0
+Loterry,Elementary,0.952,382.0
+Loterry,Intermediate,1.2255,484.0
+Malala,Advanced,1.402,784.0
+Malala,Elementary,0.717,513.0
+Malala,Intermediate,1.251,738.0
+Meteorite,Advanced,1.318,758.0
+Meteorite,Elementary,0.692,461.0
+Meteorite,Intermediate,1.0295,621.0
+Midlife crisis,Advanced,1.727,667.0
+Midlife crisis,Elementary,1.233,455.0
+Midlife crisis,Intermediate,1.5145,545.0
+Murderers beware,Advanced,1.735,633.0
+Murderers beware,Elementary,1.025,375.0
+Murderers beware,Intermediate,1.42,513.0
+NSA 2,Advanced,1.456,921.0
+NSA 2,Elementary,0.982,483.0
+NSA 2,Intermediate,1.3135,669.0
+NSA scandal,Advanced,1.352,935.0
+NSA scandal,Elementary,1.033,556.0
+NSA scandal,Intermediate,1.0885,768.0
+Nelson Mandela,Advanced,1.369,941.0
+Nelson Mandela,Elementary,0.744,465.0
+Nelson Mandela,Intermediate,1.154,709.0
+Nepal,Advanced,0.963,553.0
+Nepal,Elementary,0.571,499.0
+Nepal,Intermediate,0.842,534.0
+Norwegian sun,Advanced,1.528,906.0
+Norwegian sun,Elementary,1.015,696.0
+Norwegian sun,Intermediate,1.203,797.5
+Obama,Advanced,1.588,958.0
+Obama,Elementary,0.876,458.0
+Obama,Intermediate,1.2850000000000001,697.0
+Old age,Advanced,1.44,775.0
+Old age,Elementary,0.901,521.0
+Old age,Intermediate,1.2325,666.0
+Organs,Advanced,1.346,779.0
+Organs,Elementary,0.951,471.0
+Organs,Intermediate,1.2280000000000002,637.0
+Pope,Advanced,1.89,924.0
+Pope,Elementary,1.119,625.0
+Pope,Intermediate,1.516,688.0
+Prince Harry,Advanced,1.453,851.0
+Prince Harry,Elementary,0.928,472.0
+Prince Harry,Intermediate,1.308,662.0
+Rats,Advanced,1.511,709.0
+Rats,Elementary,1.091,638.0
+Rats,Intermediate,1.339,670.0
+Richard III,Advanced,1.612,952.0
+Richard III,Elementary,1.131,687.0
+Richard III,Intermediate,1.4375,780.0
+Royal Baby,Advanced,1.183,945.0
+Royal Baby,Elementary,1.057,655.0
+Royal Baby,Intermediate,0.9550000000000001,726.0
+Skydiver,Advanced,1.498,915.0
+Skydiver,Intermediate,1.186,761.0
+Spain,Advanced,1.466,1009.0
+Spain,Elementary,0.679,607.0
+Spain,Intermediate,1.137,719.5
+Starbucks,Advanced,1.356,739.0
+Starbucks,Elementary,1.148,399.0
+Starbucks,Intermediate,1.2595,632.0
+Superbugs,Advanced,1.767,905.0
+Superbugs,Elementary,0.709,462.0
+Superbugs,Intermediate,1.308,771.0
+Swedish prisons,Advanced,1.231,888.0
+Swedish prisons,Elementary,1.037,402.0
+Swedish prisons,Intermediate,1.0554999999999999,659.0
+Syria,Advanced,1.74,864.0
+Syria,Elementary,0.844,556.0
+Syria,Intermediate,1.2725,733.0
+Teff,Advanced,1.605,908.0
+Teff,Elementary,0.982,508.0
+Teff,Intermediate,1.2875,718.0
+Thatcher,Advanced,1.643,870.0
+Thatcher,Elementary,0.972,541.0
+Thatcher,Intermediate,1.3135,712.0
+US shutdown,Advanced,1.517,579.0
+US shutdown,Elementary,0.951,386.0
+US shutdown,Intermediate,1.2610000000000001,436.0
+Violence,Advanced,1.291,731.0
+Violence,Elementary,0.865,527.0
+Violence,Intermediate,1.258,670.0
+WNL 101 year old bottle message,Advanced,1.01,621.0
+WNL 101 year old bottle message,Elementary,0.744,567.0
+WNL 101 year old bottle message,Intermediate,0.8645,620.0
+WNL A good night sleep,Advanced,1.739,838.0
+WNL A good night sleep,Elementary,1.144,601.0
+WNL A good night sleep,Intermediate,1.492,752.0
+WNL Apple,Advanced,1.675,702.0
+WNL Apple,Elementary,1.141,458.0
+WNL Apple,Intermediate,1.435,584.0
+WNL Arctic Ramadan,Advanced,1.335,844.0
+WNL Arctic Ramadan,Elementary,0.901,480.0
+WNL Arctic Ramadan,Intermediate,1.173,709.0
+WNL Are MOOCs the future,Advanced,1.858,929.0
+WNL Are MOOCs the future,Elementary,1.241,659.0
+WNL Are MOOCs the future,Intermediate,1.508,746.0
+WNL Bangladesh factory owners,Advanced,1.311,616.0
+WNL Bangladesh factory owners,Elementary,0.869,486.0
+WNL Bangladesh factory owners,Intermediate,1.181,588.0
+WNL Bangladeshi organization,Advanced,0.845,790.0
+WNL Bangladeshi organization,Elementary,0.217,368.0
+WNL Bangladeshi organization,Intermediate,0.5675,679.0
+WNL Barack Obama,Advanced,1.398,751.0
+WNL Barack Obama,Elementary,0.979,324.0
+WNL Barack Obama,Intermediate,1.1615,578.0
+WNL Basic phone logs,Advanced,1.618,894.0
+WNL Basic phone logs,Elementary,0.947,456.0
+WNL Basic phone logs,Intermediate,1.263,579.0
+WNL Billionaires,Advanced,1.57,924.0
+WNL Billionaires,Elementary,1.036,625.0
+WNL Billionaires,Intermediate,1.4085,768.5
+WNL Black Friday,Advanced,1.144,702.0
+WNL Black Friday,Elementary,0.803,548.0
+WNL Black Friday,Intermediate,0.9319999999999999,635.0
+WNL Bogus Allergy,Advanced,1.508,709.0
+WNL Bogus Allergy,Elementary,0.829,510.0
+WNL Bogus Allergy,Intermediate,1.2925,649.0
+WNL Bright Future,Advanced,1.658,849.0
+WNL Bright Future,Elementary,1.331,635.0
+WNL Bright Future,Intermediate,1.472,720.0
+WNL Brown bears,Advanced,1.56,710.0
+WNL Brown bears,Elementary,0.922,567.0
+WNL Brown bears,Intermediate,1.351,664.0
+WNL Calais Migrants,Advanced,1.172,925.0
+WNL Calais Migrants,Elementary,0.381,669.0
+WNL Calais Migrants,Intermediate,0.755,855.0
+WNL Can the US,Advanced,1.437,869.0
+WNL Can the US,Elementary,0.859,509.0
+WNL Can the US,Intermediate,1.0435,741.0
+WNL Canadian Pair,Advanced,1.489,636.0
+WNL Canadian Pair,Elementary,0.713,517.0
+WNL Canadian Pair,Intermediate,1.0755,595.0
+WNL Castaway,Advanced,1.118,836.0
+WNL Castaway,Elementary,0.609,647.0
+WNL Castaway,Intermediate,0.9455,624.0
+WNL Changing India,Advanced,1.64,727.0
+WNL Changing India,Elementary,0.713,413.0
+WNL Changing India,Intermediate,1.2925,617.0
+WNL Coloring Books,Advanced,1.54,754.0
+WNL Coloring Books,Elementary,0.876,460.0
+WNL Coloring Books,Intermediate,1.2355,630.0
+WNL Criminal Links,Advanced,1.502,988.0
+WNL Criminal Links,Elementary,0.818,353.0
+WNL Criminal Links,Intermediate,1.1475,586.0
+WNL Cuba,Advanced,1.613,657.0
+WNL Cuba,Elementary,1.135,569.0
+WNL Cuba,Intermediate,1.433,632.0
+WNL David Bowie,Advanced,1.586,1144.0
+WNL David Bowie,Elementary,1.041,742.0
+WNL David Bowie,Intermediate,1.2595,971.0
+WNL David Mitchell,Advanced,1.806,697.0
+WNL David Mitchell,Elementary,1.191,538.0
+WNL David Mitchell,Intermediate,1.6844999999999999,614.0
+WNL Drowning in rubbish,Advanced,1.53,611.0
+WNL Drowning in rubbish,Elementary,0.788,355.0
+WNL Drowning in rubbish,Intermediate,1.2125,419.0
+WNL EU Pollution,Advanced,1.611,775.0
+WNL EU Pollution,Elementary,1.091,552.0
+WNL EU Pollution,Intermediate,1.404,606.0
+WNL Experience,Advanced,1.092,721.0
+WNL Experience,Elementary,0.686,629.0
+WNL Experience,Intermediate,0.9955,667.0
+WNL Extinction,Advanced,1.761,693.0
+WNL Extinction,Elementary,1.124,512.0
+WNL Extinction,Intermediate,1.6475,630.0
+WNL Extreme heat,Advanced,1.312,855.0
+WNL Extreme heat,Elementary,1.019,556.0
+WNL Extreme heat,Intermediate,1.1065,710.5
+WNL FIFA,Advanced,1.358,733.0
+WNL FIFA,Elementary,0.908,548.0
+WNL FIFA,Intermediate,1.1755,640.5
+WNL Fifth of young adults,Advanced,1.303,954.0
+WNL Fifth of young adults,Elementary,1.034,621.0
+WNL Fifth of young adults,Intermediate,1.2025000000000001,806.0
+WNL First female coach,Advanced,1.379,923.0
+WNL First female coach,Elementary,1.082,673.0
+WNL First female coach,Intermediate,1.28,755.5
+WNL First high resolution images,Advanced,1.6,1011.0
+WNL First high resolution images,Elementary,1.084,500.0
+WNL First high resolution images,Intermediate,1.3025,823.0
+WNL Five jobs,Advanced,1.537,1347.0
+WNL Five jobs,Elementary,0.77,867.0
+WNL Five jobs,Intermediate,1.255,1065.0
+WNL Four new elements,Advanced,1.729,689.0
+WNL Four new elements,Elementary,1.191,520.0
+WNL Four new elements,Intermediate,1.4344999999999999,588.0
+WNL Glastonbury,Advanced,1.644,542.0
+WNL Glastonbury,Elementary,0.769,336.0
+WNL Glastonbury,Intermediate,1.273,449.0
+WNL Goodbye fish and chips,Advanced,1.488,710.0
+WNL Goodbye fish and chips,Elementary,0.92,557.0
+WNL Goodbye fish and chips,Intermediate,1.31,597.0
+WNL Google boss,Advanced,1.792,878.0
+WNL Google boss,Elementary,1.195,592.0
+WNL Google boss,Intermediate,1.695,762.0
+WNL Google car,Advanced,1.418,718.0
+WNL Google car,Elementary,0.865,527.0
+WNL Google car,Intermediate,1.302,579.0
+WNL How downtown Abbey,Advanced,1.651,924.0
+WNL How downtown Abbey,Elementary,0.952,534.0
+WNL How downtown Abbey,Intermediate,1.2854999999999999,686.0
+WNL I confused my numbers,Advanced,1.843,636.0
+WNL I confused my numbers,Elementary,1.221,549.0
+WNL I confused my numbers,Intermediate,1.625,608.5
+WNL Icebucket challenge,Advanced,1.385,788.0
+WNL Icebucket challenge,Elementary,0.793,565.0
+WNL Icebucket challenge,Intermediate,1.1364999999999998,664.0
+WNL Icelandic names,Advanced,1.52,564.0
+WNL Icelandic names,Elementary,0.952,463.0
+WNL Icelandic names,Intermediate,1.2665000000000002,539.5
+WNL In flight,Intermediate,1.375,838.0
+WNL India's rich,Advanced,1.655,716.0
+WNL India's rich,Elementary,0.987,657.0
+WNL India's rich,Intermediate,1.3735,678.0
+WNL Inky the octopus,Advanced,1.258,602.0
+WNL Inky the octopus,Elementary,0.884,525.0
+WNL Inky the octopus,Intermediate,0.9285,555.0
+WNL Inventions,Intermediate,1.341,484.0
+WNL JMW Turner,Advanced,1.598,496.0
+WNL JMW Turner,Elementary,1.226,421.0
+WNL JMW Turner,Intermediate,1.4500000000000002,517.0
+WNL Japan,Advanced,1.655,657.0
+WNL Japan,Elementary,0.898,400.0
+WNL Japan,Intermediate,1.2225000000000001,554.0
+WNL John Lewis,Advanced,1.309,827.0
+WNL John Lewis,Elementary,0.844,489.0
+WNL John Lewis,Intermediate,1.2345000000000002,638.0
+WNL Kate Bush,Advanced,1.434,920.0
+WNL Kate Bush,Elementary,0.725,480.0
+WNL Kate Bush,Intermediate,1.2165,724.0
+WNL Kiruna,Advanced,1.754,888.0
+WNL Kiruna,Elementary,0.835,625.0
+WNL Kiruna,Intermediate,1.255,698.0
+WNL Lego movie,Advanced,1.547,336.0
+WNL Lego movie,Elementary,1.003,249.0
+WNL Lego movie,Intermediate,1.3005,306.5
+WNL Loneliness,Advanced,1.604,947.0
+WNL Loneliness,Elementary,1.053,503.0
+WNL Loneliness,Intermediate,1.3675000000000002,708.0
+WNL Love hormonw,Advanced,1.498,711.0
+WNL Love hormonw,Elementary,0.889,525.0
+WNL Love hormonw,Intermediate,1.218,631.0
+WNL Making a killing,Advanced,1.871,1068.0
+WNL Making a killing,Elementary,1.041,574.0
+WNL Making a killing,Intermediate,1.5390000000000001,770.0
+WNL Man falls,Advanced,1.466,896.0
+WNL Man falls,Elementary,0.916,584.0
+WNL Man falls,Intermediate,1.1895,726.5
+WNL Mars,Advanced,1.77,701.0
+WNL Mars,Elementary,1.005,363.0
+WNL Mars,Intermediate,1.4340000000000002,559.0
+WNL Men in black,Advanced,1.607,965.0
+WNL Men in black,Elementary,0.976,625.0
+WNL Men in black,Intermediate,1.355,808.0
+WNL Mirrors,Advanced,1.564,720.0
+WNL Mirrors,Elementary,1.006,398.0
+WNL Mirrors,Intermediate,1.392,668.0
+WNL Morocco,Advanced,1.719,1123.0
+WNL Morocco,Elementary,1.144,461.0
+WNL Morocco,Intermediate,1.484,765.5
+WNL Music,Advanced,1.408,471.0
+WNL Music,Elementary,0.807,291.0
+WNL Music,Intermediate,1.3845,403.0
+WNL Mystery Shopper,Advanced,1.519,1009.0
+WNL Mystery Shopper,Elementary,1.116,632.0
+WNL Mystery Shopper,Intermediate,1.3735,795.0
+WNL NASA Astronaut,Advanced,1.582,951.0
+WNL NASA Astronaut,Elementary,1.06,616.0
+WNL NASA Astronaut,Intermediate,1.498,770.5
+WNL Neuroscientists,Advanced,1.635,891.0
+WNL Neuroscientists,Elementary,0.971,570.0
+WNL Neuroscientists,Intermediate,1.303,768.5
+WNL New Orleans,Advanced,1.432,1001.0
+WNL New Orleans,Elementary,0.904,582.0
+WNL New Orleans,Intermediate,1.2205,840.0
+WNL Nigerian low tech,Advanced,1.641,509.0
+WNL Nigerian low tech,Elementary,0.766,362.0
+WNL Nigerian low tech,Intermediate,1.379,460.5
+WNL Noise pollution,Advanced,1.555,777.0
+WNL Noise pollution,Elementary,0.908,452.0
+WNL Noise pollution,Intermediate,1.3535,690.0
+WNL Novel way,Advanced,1.552,749.0
+WNL Novel way,Elementary,0.884,483.0
+WNL Novel way,Intermediate,1.177,693.0
+WNL On the trail,Advanced,1.27,1080.0
+WNL On the trail,Elementary,0.819,637.0
+WNL On the trail,Intermediate,0.915,896.0
+WNL Organic Food,Advanced,1.508,856.0
+WNL Organic Food,Elementary,1.035,558.0
+WNL Organic Food,Intermediate,1.475,673.5
+WNL Pacific Islanders,Advanced,1.638,953.0
+WNL Pacific Islanders,Elementary,1.013,573.0
+WNL Pacific Islanders,Intermediate,1.4455,750.0
+WNL Pizza chain,Advanced,1.338,728.0
+WNL Pizza chain,Elementary,0.796,559.0
+WNL Pizza chain,Intermediate,1.0554999999999999,688.5
+WNL Planet,Advanced,1.934,729.0
+WNL Planet,Elementary,1.598,656.0
+WNL Planet,Intermediate,1.806,685.0
+WNL Poverty,Advanced,1.718,1004.0
+WNL Poverty,Elementary,0.985,623.0
+WNL Poverty,Intermediate,1.4115,738.5
+WNL Revolution,Advanced,1.294,651.0
+WNL Revolution,Elementary,0.942,425.0
+WNL Revolution,Intermediate,1.1099999999999999,555.0
+WNL Rwanda,Advanced,1.266,783.0
+WNL Rwanda,Elementary,0.845,526.0
+WNL Rwanda,Intermediate,1.1795,630.5
+WNL Satnav,Advanced,1.666,634.0
+WNL Satnav,Elementary,0.962,441.0
+WNL Satnav,Intermediate,1.447,576.0
+WNL Scarlett,Advanced,1.507,659.0
+WNL Scarlett,Elementary,1.009,411.0
+WNL Scarlett,Intermediate,1.3385,517.5
+WNL School,Advanced,1.318,748.0
+WNL School,Elementary,0.848,631.0
+WNL School,Intermediate,1.1435,692.5
+WNL School Sports,Advanced,1.692,707.0
+WNL School Sports,Elementary,1.29,567.0
+WNL School Sports,Intermediate,1.6145,653.5
+WNL Scientist,Advanced,1.468,780.0
+WNL Scientist,Elementary,0.819,493.0
+WNL Scientist,Intermediate,1.423,677.0
+WNL Scottish referendum,Advanced,1.176,902.0
+WNL Scottish referendum,Elementary,0.737,554.0
+WNL Scottish referendum,Intermediate,1.03,761.0
+WNL SeaWorld,Advanced,1.474,552.0
+WNL SeaWorld,Elementary,0.971,373.0
+WNL SeaWorld,Intermediate,1.2075,486.5
+WNL Shakespeare,Advanced,1.563,862.0
+WNL Shakespeare,Elementary,0.953,635.0
+WNL Shakespeare,Intermediate,1.3585,726.0
+WNL Ships noise,Advanced,1.498,733.0
+WNL Ships noise,Elementary,0.951,565.0
+WNL Ships noise,Intermediate,1.3035,695.0
+WNL Shocking,Advanced,1.609,663.0
+WNL Shocking,Elementary,0.963,513.0
+WNL Shocking,Intermediate,1.332,604.0
+WNL Shops,Advanced,1.676,984.0
+WNL Shops,Elementary,0.99,607.0
+WNL Shops,Intermediate,1.2415,750.5
+WNL Six year olds,Advanced,1.555,760.0
+WNL Six year olds,Elementary,0.915,445.0
+WNL Six year olds,Intermediate,1.4125,599.5
+WNL Spain Robin Hood,Advanced,1.637,605.0
+WNL Spain Robin Hood,Elementary,0.777,373.0
+WNL Spain Robin Hood,Intermediate,1.256,481.0
+WNL Spain Wetlands,Advanced,1.635,1018.0
+WNL Spain Wetlands,Elementary,1.001,680.0
+WNL Spain Wetlands,Intermediate,1.1920000000000002,779.5
+WNL Star Wars,Advanced,1.863,861.0
+WNL Star Wars,Elementary,0.954,559.0
+WNL Star Wars,Intermediate,1.3984999999999999,700.0
+WNL Still no flying cars,Advanced,1.612,995.0
+WNL Still no flying cars,Elementary,1.18,567.0
+WNL Still no flying cars,Intermediate,1.482,779.0
+WNL Swarthy caveman,Advanced,1.695,721.0
+WNL Swarthy caveman,Elementary,0.973,426.0
+WNL Swarthy caveman,Intermediate,1.2970000000000002,563.5
+WNL Switched Babies,Advanced,1.391,730.0
+WNL Switched Babies,Elementary,0.735,358.0
+WNL Switched Babies,Intermediate,1.246,642.5
+WNL Ten ideas,Intermediate,1.441,461.0
+WNL The Greek island,Advanced,1.328,967.0
+WNL The Greek island,Elementary,0.773,626.0
+WNL The Greek island,Intermediate,1.105,776.5
+WNL The age of music,Advanced,1.51,790.0
+WNL The age of music,Elementary,0.965,456.0
+WNL The age of music,Intermediate,1.2814999999999999,606.0
+WNL The last,Advanced,1.636,741.0
+WNL The last,Elementary,0.811,479.0
+WNL The last,Intermediate,1.0865,535.0
+WNL The lightweight,Advanced,1.411,869.0
+WNL The lightweight,Elementary,0.882,580.0
+WNL The lightweight,Intermediate,1.2245,697.0
+WNL The millenials,Advanced,1.336,1026.0
+WNL The millenials,Elementary,1.12,520.0
+WNL The millenials,Intermediate,1.142,811.5
+WNL Tributes,Advanced,1.601,729.0
+WNL Tributes,Elementary,1.13,525.0
+WNL Tributes,Intermediate,1.416,738.0
+WNL Use of e-cig,Advanced,1.685,966.0
+WNL Use of e-cig,Elementary,0.876,622.0
+WNL Use of e-cig,Intermediate,1.413,736.5
+WNL Vienna,Advanced,1.374,830.0
+WNL Vienna,Elementary,0.76,348.0
+WNL Vienna,Intermediate,1.1535,702.5
+WNL Waiters,Advanced,1.192,1061.0
+WNL Waiters,Elementary,0.699,569.0
+WNL Waiters,Intermediate,0.8795,851.5
+WNL Ways Facebook changed,Advanced,1.472,1208.0
+WNL Ways Facebook changed,Elementary,0.976,622.0
+WNL Ways Facebook changed,Intermediate,1.226,919.0
+WNL We must,Advanced,1.38,916.0
+WNL We must,Elementary,0.702,582.0
+WNL We must,Intermediate,1.104,680.0
+WNL Wealth therapy,Advanced,1.386,930.0
+WNL Wealth therapy,Elementary,0.878,576.0
+WNL Wealth therapy,Intermediate,1.2614999999999998,771.0
+WNL What does Apple,Advanced,1.589,931.0
+WNL What does Apple,Elementary,0.716,605.0
+WNL What does Apple,Intermediate,1.138,773.5
+WNL What is world's,Advanced,1.754,1022.0
+WNL What is world's,Elementary,0.739,591.0
+WNL What is world's,Intermediate,1.532,736.0
+WNL What's the secret,Advanced,1.743,875.0
+WNL What's the secret,Elementary,0.952,462.0
+WNL What's the secret,Intermediate,1.379,701.0
+WNL Who can stop Trump,Advanced,1.723,939.0
+WNL Who can stop Trump,Elementary,1.151,543.0
+WNL Who can stop Trump,Intermediate,1.418,736.0
+WNL Who invented,Advanced,1.497,990.0
+WNL Who invented,Elementary,1.017,527.0
+WNL Who invented,Intermediate,1.306,737.5
+WNL Why are people so wrong,Advanced,1.651,688.0
+WNL Why are people so wrong,Elementary,0.763,484.0
+WNL Why are people so wrong,Intermediate,1.501,605.0
+WNL Why we should,Advanced,1.892,584.0
+WNL Why we should,Elementary,1.145,419.0
+WNL Why we should,Intermediate,1.4505,550.5
+WNL Why you should start work at 10,Advanced,1.643,596.0
+WNL Why you should start work at 10,Elementary,1.048,500.0
+WNL Why you should start work at 10,Intermediate,1.468,572.0
+WNL Will drones,Advanced,1.705,934.0
+WNL Will drones,Elementary,0.9,551.0
+WNL Will drones,Intermediate,1.3545,764.0
+WNL Winter,Advanced,1.267,1157.0
+WNL Winter,Elementary,0.743,592.0
+WNL Winter,Intermediate,0.9595,740.0
+WNL World Cup,Advanced,1.274,785.0
+WNL World Cup,Elementary,0.68,627.0
+WNL World Cup,Intermediate,0.9165,701.5
+WNL Young Americans,Advanced,1.558,936.0
+WNL Young Americans,Elementary,1.104,588.0
+WNL Young Americans,Intermediate,1.5455,789.5
+WNL are you a bad boyfriend,Advanced,1.49,558.0
+WNL are you a bad boyfriend,Elementary,1.108,341.0
+WNL are you a bad boyfriend,Intermediate,1.1829999999999998,481.0
+WNL shark,Advanced,0.946,616.0
+WNL shark,Elementary,1.389,686.0
+WNL shark,Intermediate,1.1775,635.5
+WNL six well paid jobs,Advanced,1.335,842.0
+WNL six well paid jobs,Elementary,0.956,668.0
+WNL six well paid jobs,Intermediate,1.252,773.0
+Zero Hours,Advanced,1.52,778.0
+Zero Hours,Elementary,1.123,441.0
+Zero Hours,Intermediate,1.3695,617.0
+climate change,Advanced,1.614,655.0
+climate change,Elementary,1.013,501.0
+climate change,Intermediate,1.4365,533.0

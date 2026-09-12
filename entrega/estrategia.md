@@ -22,9 +22,10 @@ requisito del módulo y conviene decir desde el principio **qué es ficticio y q
 no**: la empresa lo es; el modelo, la aplicación desplegada, el corpus, las
 métricas y cada cifra de este documento, no. Todo lo que se afirma aquí está
 medido, y qué parte se puede además *reproducir* desde el repositorio y cuál no
-está dicho sin adornos en el documento principal: el código y la inferencia
-desde los pesos públicos se rehacen; las métricas del entrenamiento del v4, no,
-porque su corpus de anclaje tiene derechos y no acompaña al repositorio.
+está dicho sin adornos en el documento principal: el código, la inferencia
+desde los pesos públicos y las métricas del entrenamiento del v4 se rehacen
+desde el repositorio, con datos públicos; lo único que no se redistribuye es el
+corpus de British Council, que se reconstruye con su manifiesto.
 
 El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 *input* comprensible sostiene que se aprende con material que está justo un
@@ -391,9 +392,9 @@ nivel tiene este texto?» sino «¿puedo leer esto yo, hoy?».
 
 **Es auditable y de acceso gratuito para el lector.** El modelo está publicado,
 el código está a la vista y las métricas vienen con su *n* y sus limitaciones.
-Conviene precisar qué significa aquí «auditable», porque no es todo: el código y
-la inferencia desde los pesos públicos **sí** se pueden rehacer; las métricas del
-v4 **no**, porque su corpus de anclaje tiene derechos y no se distribuye. Y
+Conviene precisar qué significa aquí «auditable»: el código, la inferencia desde
+los pesos públicos **y** las métricas internas del v4 se pueden rehacer
+—recalculadas el 12 de septiembre de 2026, idénticas a cuatro decimales—. Y
 «gratuito» se refiere a quien usa la aplicación: alojarla y servirla cuesta
 dinero, y ese coste aparece en los accionables A2 y A4.
 
@@ -414,15 +415,19 @@ peor: es que **no está definida**, porque descontar la longitud de la propia
 longitud deja un residuo de varianza cero. Dicho de otro modo, el contador no
 aporta nada por encima de la longitud porque es la longitud; el modelo sí.
 
-**Con dieciséis veces más textos la comparación mejora mucho, y hay que llevar
-preparada también su letra pequeña.** En los 739 textos de UniversalCEFR —dos
-conjuntos públicos de lecturas graduadas y exámenes de Cambridge, reproducibles
-con `validar_universalcefr.py`— contar palabras se queda en **0,663**, el modelo
-llega a **0,946** y, descontando la longitud, conserva **0,906**. La letra
-pequeña: no se puede demostrar que esos textos no estuvieran en el corpus de
-anclaje, cuya composición no está documentada, y que el 0,946 supere al 0,908 de
-la validación interna apunta en esa dirección. Se defiende como validación
-reproducible y a escala, nunca como externa.
+**Y una cifra que parecía mejor y hubo que retirar.** Sobre UniversalCEFR el
+modelo daba 0,946 y contar palabras 0,663. Pero el v4 se entrenó con uno de sus
+dos conjuntos (ELG CEFR English) y el otro está contenido en él, así que era
+medir el entrenamiento. Conviene llevarlo preparado igual que el 0,807: a la
+pregunta «¿habéis comprobado que la validación no se solapa con el
+entrenamiento?» la respuesta es que sí, que se encontró un solapamiento, y que
+la cifra se retiró.
+
+**Y la que sí se puede defender, con un corpus que el v4 no vio.** En
+OneStopEnglish el modelo llega a 0,800 y contar palabras a 0,692, y descontando
+la longitud el modelo conserva 0,688. Conviene no vender de más la cifra más
+vistosa de ese corpus: dentro de cada artículo el modelo ordena las tres
+versiones en 183 de 185, pero la longitud sola ya acierta 179.
 
 ---
 

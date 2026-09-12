@@ -522,9 +522,10 @@ del módulo y conviene decir desde el principio \textbf{qué es ficticio y qué 
 empresa lo es; el modelo, la aplicación desplegada, el corpus, las métricas y cada cifra
 de este documento, no. Todo lo que se afirma aquí está medido, y qué parte se puede
 además \emph{reproducir} desde este repositorio y cuál no está dicho sin adornos en el
-apartado~\ref{sec:validacion} y en las limitaciones: el código y la inferencia desde los
-pesos públicos se rehacen; las métricas del entrenamiento del v4, no, porque su corpus de
-anclaje tiene derechos y no acompaña al repositorio.
+apartado~\ref{sec:validacion} y en las limitaciones: el código, la inferencia desde los
+pesos públicos y las métricas del entrenamiento del v4 se rehacen desde el repositorio, con
+datos públicos; lo único que no se redistribuye es el corpus de British Council, que se
+reconstruye con su manifiesto.
 
 El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 \emph{input} comprensible sostiene que se aprende con material que está justo un
@@ -959,7 +960,7 @@ entorno de cómputo: solo estadísticas agregadas.
 \midrule
 \textbf{CLEAR Corpus} & Etiqueta continua de legibilidad (\cod{BT\_easiness}) para el modelado supervisado & 4.724 extractos & Repositorio público del proyecto CLEAR \parencite{crossley2023clear} & Uso investigador, descarga directa \\
 \addlinespace
-\textbf{One\-Stop\-English} & Corpus de \textbf{afinado} de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
+\textbf{One\-Stop\-English} & Corpus de \textbf{afinado} de la variante v2 (151 artículos), validación ordinal en 3 niveles sobre los 38 reservados y \textbf{validación externa del v4} (560 unidades) & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
 \addlinespace
 \textbf{British Council Learn\-English} & Validación externa contra niveles MCER oficiales & 59 textos A1--C1 & Descarga de los PDF públicos, con la URL y el SHA-256 de cada uno en un manifiesto & Con derechos: no se distribuye ni se imprime texto, pero se reconstruye y se verifica byte a byte \\
 \addlinespace
@@ -1690,8 +1691,8 @@ subconjuntos unos de otros y sus tamaños no se restan.}
 MCER: 654 documentos aceptados, 510 de entrenamiento y 144 reservados & Exactitud,
 acierto dentro de $\pm 1$ nivel y Spearman 0,908 del modelo desplegado
 (cuadro~\ref{cuad:desplegado}) & Presentarlo como validación externa. Sale del mismo
-corpus con el que se afinaron los pesos, así que su 0,908 no es comparable con las cifras
-de British Council \\
+corpus con el que se afinaron los pesos, y sobre él se eligió el punto de control, así que
+su 0,908 no es comparable con las cifras de British Council \\
 \addlinespace
 \textbf{British Council, tanda de Colab} & 38 & Extracción de los PDF hecha en Colab
 durante el entrenamiento, con su propio filtro & Spearman 0,829 y el 100\pct{} dentro de
@@ -1723,18 +1724,21 @@ comparan con las de después de filtrar \\
 \end{longtable}
 \end{footnotesize}
 
-El corpus de anclaje MCER con el que se afinó son 654 documentos aceptados —57
-descartados por longitud insuficiente—, repartidos en 510 de entrenamiento y 144 de
-validación. Esos 144 documentos son el conjunto de validación ciega que produce las
-cifras de la primera fila del cuadro~\ref{cuad:desplegado}.
+El corpus de anclaje MCER con el que se afinó es \textbf{ELG CEFR English} (CC BY-NC-SA
+4.0), una sola fuente: 712 documentos, de los que se aceptan 654 como prosa —57 son cortos
+y 1 tiene forma de frase anómala—, repartidos por documento y con semilla fija en 510 de
+entrenamiento y 144 de validación. Esos 144 producen las cifras de la primera fila del
+cuadro~\ref{cuad:desplegado}.
 
-\textbf{De dónde salen esas cifras, dicho con precisión.} De la ejecución de
-entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
-\textbf{no hay ningún archivo que las respalde}, y una versión anterior de este documento
-citaba una tarjeta \cod{metricas\_lite\allowbreak ralevel\_v4.json} que no existe. Lo único
-comprobable desde el repositorio es la aritmética interna —$510 + 144 = 654$,
-$77/144 = 53{,}47\pct$ y $140/144 = 97{,}22\pct$—, que cuadra. Quien quiera verificar el
-resto tiene que confiar en esa ejecución o rehacerla.
+\textbf{De dónde salen esas cifras, y cómo se comprueban.} Del guion de entrenamiento del
+v4 y de su tarjeta de métricas, que desde el 12 de septiembre de 2026 están en el
+repositorio (\cod{entrenamiento\_v4/}). Ese día se \textbf{recalcularon} con el guion, los
+pesos publicados y los datos públicos de ELG: la misma partición y las cuatro métricas
+idénticas a cuatro decimales (exactitud 0,5347, dentro de un nivel 0,9722, MAE 0,4985,
+Spearman 0,9084). Las 144 parejas de nivel y predicción están en
+\cod{entrenamiento\_v4/\allowbreak validacion\_144\_recalculada.csv}. Y un matiz que no se
+esconde: \textbf{no es un conjunto de prueba virgen}, porque el entrenamiento se quedó con el
+punto de control que mejor puntuaba en esos mismos 144 documentos.
 
 \begin{table}[htbp]
 \centering
@@ -1743,8 +1747,8 @@ resto tiene que confiar en esa ejecución o rehacerla.
 \toprule
 \textbf{Conjunto} & \textbf{n} & \textbf{Exacto} & \textbf{Dentro de $\pm 1$ nivel} & \textbf{Spearman} \\
 \midrule
-Validación ciega & 144 & 53,5\pct & \textbf{97,2\pct} & \textbf{0,908} \\
-British Council (externo) & 38 & 50,0\pct & \textbf{100\pct} & 0,829 \\
+Validación interna (ELG reservado) & 144 & 53,5\pct & \textbf{97,2\pct} & \textbf{0,908} \\
+British Council (desarrollo) & 38 & 50,0\pct & \textbf{100\pct} & 0,829 \\
 \bottomrule
 \end{tabular}
 \caption{Métricas del modelo desplegado. MAE de 0,499 niveles de la escala interna
@@ -1861,8 +1865,8 @@ a 12 textos por nivel, el primer escalón no se sostendría por sí solo.
 \textbf{Dos: es una reproducción local, no una reproducción independiente.} El
 cuadro~\ref{cuad:validacion} se \textbf{recalcula} con \cod{validar\_local.py} en
 cualquier máquina que tenga los mismos PDF y los mismos pesos, pero los PDF de British
-Council tienen derechos y no acompañan al repositorio, así que quien quiera rehacerla
-tiene que reunirlos por su cuenta. Lo que se reproduce exactamente es \textbf{el orden};
+Council tienen derechos y no acompañan al repositorio: quien quiera rehacerla los descarga
+con el navegador y los verifica por hash con \cod{tools/\allowbreak bajar\_corpus\_bc.py}. Lo que se reproduce exactamente es \textbf{el orden};
 las medias difieren ligeramente de las obtenidas en Colab (C1 coincide hasta la tercera
 cifra decimal —1,4952 frente a 1,4950—, A2 se desvía 0,09).
 
@@ -1948,47 +1952,53 @@ independiente B1--B2, competente C1--C2—, y las fronteras quedan en \textbf{0,
 Así la palabra y la letra no pueden contradecirse por construcción. Ninguna puntuación
 cambió: solo cambió cómo se agrupan.
 
-\textbf{Una segunda validación, reproducible y a escala, que matiza lo anterior.} El
-12 de septiembre de 2026 se repitió la medición sobre los dos conjuntos ingleses de
-referencia y de documento completo de UniversalCEFR (Imperial et al., 2025), públicos y
-con licencia CC BY-NC-SA 4.0: \cod{cambridge\_exams\_en} y \cod{elg\_cefr\_en}. Se
-solapan ---130 textos están en los dos, con el mismo nivel---, así que se deduplican, y
-tras quitar los de menos de 150 palabras y los que el filtro de la aplicación rechaza
-como listas o tablas quedan \textbf{739 textos en seis niveles}
-(cuadro~\ref{cuad:universalcefr}). Lo reproduce \cod{validar\_universalcefr.py}, que se
-baja el corpus solo.
+\textbf{Un intento de ampliar la validación que hubo que retirar, y por qué se deja
+escrito.} El 12 de septiembre de 2026 se midió el v4 sobre los dos conjuntos ingleses de
+referencia de UniversalCEFR (Imperial et al., 2025), \cod{cambridge\_exams\_en} y
+\cod{elg\_cefr\_en}: 739 textos, Spearman \textbf{0,946}. Era más alto que la validación
+interna (0,908), y eso bastó para no creérselo. Leyendo el guion de entrenamiento del v4
+salió la causa: \textbf{el v4 se entrenó con ELG CEFR English}, que es exactamente
+\cod{elg\_cefr\_en} (654 aceptados + 57 cortos + 1 descartado = 712, el tamaño del
+conjunto). Y los 325 textos distintos de Cambridge están \textbf{todos} dentro de él: 130
+idénticos y 195 casi idénticos, con una mediana del 92\pct{} de sus 8-gramas compartidos y
+el mismo nivel en los 195. Aquel 0,946 medía el modelo sobre su propio entrenamiento. No
+hay en UniversalCEFR un subconjunto inglés limpio para el v4, y la validación de este
+apartado sigue siendo la del cuadro~\ref{cuad:validacion}.
+
+\textbf{Una validación externa de verdad: OneStopEnglish.} Con la composición del anclaje ya
+conocida se pudo buscar un corpus que los pesos del v4 no hubieran visto, y comprobarlo en vez
+de suponerlo: ninguno de los textos de OneStopEnglish \parencite{vajjala2018onestop} comparte
+con ELG CEFR English ni una secuencia de ocho palabras. Son 189 artículos de prensa escritos
+tres veces, en nivel Elementary, Intermediate y Advanced. Se mide una puntuación por artículo
+y nivel ---560 unidades--- con \cod{validar\_onestop.py}, que repite la comprobación de fuga
+cada vez que se ejecuta (cuadro~\ref{cuad:onestop}).
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular}{@{}lrr@{\hspace{2.5em}}lr@{}}
+\begin{tabular}{@{}lrr@{\hspace{2em}}lrr@{}}
 \toprule
-\textbf{Nivel} & \textbf{n} & \textbf{Media v4 (0--2)} & \textbf{Señal} & \textbf{Spearman} \\
+\textbf{Nivel} & \textbf{n} & \textbf{Media v4} & \textbf{Señal} & \textbf{Modelo} & \textbf{Palabras} \\
 \midrule
-A1 & 24 & 0,080 & Modelo v4 & \textbf{0,946} \\
-A2 & 100 & 0,342 & Contar palabras, sin modelo & 0,663 \\
-B1 & 203 & 0,760 & Modelo descontando la longitud & \textbf{0,906} \\
-B2 & 180 & 1,302 & & \\
-C1 & 127 & 1,656 & & \\
-C2 & 105 & 1,897 & & \\
+Elementary & 185 & 0,934 & Spearman con el nivel & \textbf{0,800} & 0,692 \\
+Intermediate & 189 & 1,272 & Parcial, sin la longitud & \textbf{0,688} & --- \\
+Advanced & 186 & 1,515 & Artículos en orden (de 185) & \textbf{183} & 179 \\
 \bottomrule
 \end{tabular}
-\caption{La misma prueba del cuadro~\ref{cuad:validacion}, sobre los 739 textos de
-UniversalCEFR. Por fuente, el modelo da 0,933 en Cambridge (220 textos) y 0,942 en ELG
-(519).}
-\label{cuad:universalcefr}
+\caption{Validación externa con OneStopEnglish, un corpus que los pesos del v4 no vieron. La
+media va en la escala pública 0--2; «Palabras» es contar palabras, sin modelo.}
+\label{cuad:onestop}
 \end{table}
 
-En este corpus \textbf{la escala no sale comprimida} ---los seis niveles van de 0,08 a
-1,90---, \textbf{A1 y A2 se separan} y la longitud explica mucho menos. Pero esas cifras
-no se pueden leer sin su advertencia al lado, porque cambia lo que se puede afirmar:
-\textbf{no es una validación externa demostrada.} La composición del corpus de anclaje
-del v4 no está documentada, y si incluye textos de Cambridge o de ELG, el modelo ya los
-vio. Hay además una señal que apunta en esa dirección: el 0,946 \textbf{supera} al 0,908
-de la validación interna, y un conjunto externo rara vez supera al interno. Por eso no
-sustituye a la validación con British Council ---cuya independencia tampoco está
-demostrada, pero no muestra esa señal--- y se presenta como lo que es: validación
-reproducible y a escala.
+Las medias suben en los tres niveles y el modelo conserva 0,688 descontando la longitud: aporta
+señal propia en un corpus que no vio. \textbf{Pero la última fila hay que leerla con cuidado},
+porque es tentadora: dentro de cada artículo el modelo ordena bien las tres versiones en 183 de
+185, y \textbf{la longitud sola ya acierta 179}, porque las versiones avanzadas son más largas
+(523, 667 y 809 palabras de media). Donde la longitud falla ---seis artículos--- el modelo
+acierta en cinco. Es una ventaja real, y es pequeña. Dos matices más: la escala vuelve a salir
+comprimida y desplazada hacia arriba ---un texto Elementary puntúa 0,93, en la banda
+intermedia---, y OneStopEnglish \textbf{sí se usó para desarrollar los modelos anteriores} (el
+v2 se afinó con él), así que es externo para los pesos del v4, no virgen para el proyecto.
 
 % ---------------------------------------------------- FIGURA: compresión
 \begin{figure}[htbp]
@@ -2659,8 +2669,9 @@ para un \textbf{hispanohablante que elige qué leer}, no para un profesor que cl
 textos; y es \textbf{auditable en lo que se puede auditar y de acceso gratuito para el
 lector}, con el modelo publicado y el código a la vista.
 
-Esa tercera hay que acotarla: el código y la inferencia desde los pesos públicos se pueden
-rehacer, \textbf{las métricas del v4 no}, porque su corpus de anclaje tiene derechos. Y las
+Esa tercera hay que acotarla: el código, la inferencia desde los pesos públicos \textbf{y}
+las métricas internas del v4 se pueden rehacer ---recalculadas el 12 de septiembre de 2026,
+idénticas a cuatro decimales---. Y las
 fórmulas clásicas también son gratuitas y reproducibles, así que la ventaja no está en la
 auditabilidad sola, sino en tenerla junto con un modelo que lee el texto. Lo que ninguna
 alternativa reúne son las \textbf{tres a la vez}.
@@ -2693,10 +2704,6 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         (figura~\ref{fig:compresion}; mínimos cuadrados sobre las cuatro medias por nivel
         de Colab, y $0{,}67x + 0{,}41$ con las cinco locales), así que los niveles bajos se
         sobreestiman y los altos se subestiman. Es la razón de mostrar bandas y no decimales.
-        \textbf{Pero se observó en British Council, con 47 textos de una sola fuente.} En
-        los 739 de UniversalCEFR la escala va de 0,08 a 1,90 y la compresión no aparece
-        (cuadro~\ref{cuad:universalcefr}), aunque esa validación tiene su propia advertencia
-        de posible solapamiento con el anclaje.
   \item \textbf{Las etiquetas del catálogo heredado no son fiables}
         (cuadro~\ref{cuad:catalogo}). Son predicciones de un modelo v1 sobre las primeras
         $\sim$190 palabras. La remedición está en curso y es el trabajo pendiente más
@@ -2723,35 +2730,29 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         palabras alcanza 0,807 donde el modelo alcanza 0,860 (cuadro~\ref{cuad:baseline}).
   \item \textbf{El modelo solo mide prosa continua en inglés.} Poesía, teatro, diálogo muy
         fragmentado y cualquier lengua distinta del inglés quedan fuera.
-  \item \textbf{El corpus de anclaje MCER es pequeño} (654 documentos aceptados) y el
-        guion de entrenamiento del v4 vive en Google Drive, no en el repositorio. Las
-        cifras del apartado~\ref{sec:validacion} se reportan \textbf{tal como salieron
-        de aquella ejecución}, sin ningún archivo en el repositorio que las respalde. \textbf{Y su composición no está publicada}: no se dice
-        cuántos documentos vienen de cada fuente ni cuántos por nivel. Eso importa más de
-        lo que parece, porque la validación externa del apartado~\ref{sec:validacion} se
-        apoya en que las fuentes usadas para validar sean ajenas a las usadas para
-        entrenar, y sin esa tabla nadie puede comprobarlo desde fuera. Publicar los recuentos no exige
-        redistribuir ni una línea de texto con derechos.
-  \item \textbf{Dos corpus no se pueden redistribuir}: British Council tiene derechos y el
-        corpus de validación de 144 documentos no acompaña al repositorio, de modo que las
-        cifras de 0,908 y 97,2\pct{} \textbf{no son verificables clonando el proyecto}. Lo
-        que sí se reproduce en cualquier máquina es el cuadro~\ref{cuad:validacion}: el corpus
-        del British Council no se distribuye, pero se reconstruye desde su manifiesto de URLs y
+  \item \textbf{El corpus de anclaje MCER es pequeño y de una sola fuente}: 654 documentos
+        aceptados de ELG CEFR English. Hasta el 12 de septiembre de 2026 ni su composición
+        ni el guion de entrenamiento estaban en el repositorio, y una auditoría externa lo
+        señaló con razón: sin esa lista nadie podía comprobar que las fuentes de validación
+        fueran ajenas a las de entrenamiento. \textbf{Ya están}: guion, tarjeta de métricas y
+        las 144 predicciones, en \cod{entrenamiento\_v4/}. Y la comprobación resultó necesaria
+        de verdad: la primera validación con UniversalCEFR se hizo sobre este mismo corpus y
+        hubo que retirarla.
+  \item \textbf{British Council no se puede redistribuir, pero sí reconstruir.} Tiene
+        derechos y no acompaña al repositorio; se reconstruye desde su manifiesto de URLs y
         SHA-256 y se verifica archivo por archivo con \cod{tools/\allowbreak bajar\_corpus\_bc.py}.
         Comprobado desde una carpeta vacía el 12 de septiembre de 2026: da las mismas cifras
-        publicadas.
+        del cuadro~\ref{cuad:validacion}. Las cifras internas del v4 (0,908 y 97,2\pct)
+        también se recalculan desde el repositorio.
   \item \textbf{El cuaderno corre entero en un Colab limpio, pero correr no es
         recalcular.} Los pesos del v4 están publicados en Hugging Face
         (\cod{MikeMaki1763/\allowbreak literalevel-v4}, repositorio público, descarga sin
         credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra la
-        inferencia sobre texto real. Lo que \textbf{no} recalcula son las métricas del v4
-        —el 0,908 y el 97,2\pct—, porque el corpus de anclaje MCER incluye material con
-        derechos y no se puede redistribuir. \textbf{Pero conviene separar tres cosas que
-        aquí se mezclaban en una:} repetir el entrenamiento, volver a ejecutar la
-        inferencia y recalcular la aritmética de las métricas. Lo tercero \textbf{sí se
-        podría comprobar sin publicar un solo texto}, publicando las 144 parejas de
-        etiqueta y predicción con un identificador anónimo. No está hecho, y decir que
-        «no se arregla publicando nada» era falso.
+        inferencia sobre texto real. El cuaderno no reentrena el v4, que pide una GPU, pero
+        \textbf{sus métricas sí se recalculan fuera de él}: los datos de entrenamiento son
+        públicos (ELG CEFR English, en Hugging Face), el guion está en \cod{entrenamiento\_v4/}
+        y las 144 parejas de nivel y predicción están publicadas. Recalculadas en CPU en menos
+        de un minuto, dan las mismas cifras a cuatro decimales.
   \item \textbf{El despliegue está en el escalón más barato, y eso tiene dos
         consecuencias.} La aplicación
         está publicada en Hugging Face Spaces (\cod{MikeMaki1763/\allowbreak literalevel}, hardware
@@ -2790,9 +2791,9 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
 \begin{enumerate}[leftmargin=*, itemsep=3pt]
   \item Terminar la remedición del catálogo completo y sustituir las etiquetas heredadas
         por medidas del v4 sobre el libro entero.
-  \item Reunir un corpus de anclaje MCER redistribuible, que es lo único que permitiría
-        recalcular las métricas del v4 en lugar de citarlas. Los pesos ya están
-        publicados; el corpus es el que no puede estarlo.
+  \item \textbf{Hecho el 12 de septiembre de 2026:} publicar el guion de entrenamiento y la
+        composición del corpus de anclaje, que resultó ser público (ELG CEFR English). Las
+        métricas del v4 ya se recalculan en lugar de citarse.
   \item Ampliar el corpus de anclaje MCER, que hoy es el eslabón más delgado de la cadena
         de evidencia.
   \item Calibrar explícitamente la escala comprimida (una transformación afín de dos
@@ -2900,9 +2901,9 @@ interfaz que se puede usar con el pulgar.
 
 \textbf{Y queda pendiente lo que más pesa.} La aplicación funciona y ya tiene dirección
 fija, pero sobre el hardware más barato: se suspende por inactividad y no guarda nada entre
-reinicios. El catálogo se está remidiendo. Y el cuaderno, aunque ya corre entero desde los
-pesos publicados, cita las métricas del v4 en vez de recalcularlas, porque su corpus de
-anclaje no es redistribuible. Las tres cosas están planificadas con coste y
+reinicios. El catálogo se está remidiendo. Y las métricas del v4, que el documento citaba
+sin poder recalcular, ya se recalculan desde el repositorio. Lo que queda está planificado
+con coste y
 criterio de terminado en el cuadro~\ref{cuad:accionables}.
 
 \textbf{Y para qué sirve esto, dicho como decisión y no como métrica.} Un lector que hoy

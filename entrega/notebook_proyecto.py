@@ -1415,14 +1415,12 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 # Con `roberta-base`, la curva de dificultad capítulo a capítulo de una novela
 # larga dejaría de ser interactiva.
 #
-# **Aviso de reproducibilidad, otra vez y en su sitio:** el guion de
-# entrenamiento del v4 no forma parte del repositorio de la aplicación —el
-# repositorio contiene el producto, no el experimento—. **Los pesos sí están
-# publicados**, en `MikeMaki1763/literalevel-v4`, en abierto y sin
-# credenciales, y la celda siguiente los descarga. Lo que no se puede rehacer
-# desde aquí es el entrenamiento: el corpus de anclaje MCER tiene material con
-# derechos y no se redistribuye. Se puede **usar** el modelo; no se puede
-# **reentrenar**.
+# **Aviso de reproducibilidad, otra vez y en su sitio:** los pesos están
+# publicados en `MikeMaki1763/literalevel-v4`, en abierto y sin credenciales, y
+# la celda siguiente los descarga. El guion de entrenamiento y su tarjeta de
+# métricas están en `entrenamiento_v4/`, y los datos del anclaje (ELG CEFR
+# English) son públicos. Este cuadernillo no reentrena —pide una GPU—, pero el
+# entrenamiento se puede rehacer, y sus métricas se recalcularon en CPU.
 
 # %%
 # ============================================================
@@ -1971,56 +1969,68 @@ else:
     print(f"  python -X utf8 validar_local.py {CORPUS_BC}")
 
 # %% [markdown]
-# ### Una segunda validación, reproducible y a escala: UniversalCEFR
+# ### Un intento de ampliar esta validación que hubo que retirar
 #
-# 47 textos de una sola fuente son poca base. El 12 de septiembre de 2026 se
-# repitió la validación con los dos conjuntos **ingleses, de referencia y de
-# documento completo** de UniversalCEFR (Imperial et al., EMNLP 2025), públicos
-# en Hugging Face con licencia CC BY-NC-SA 4.0: `cambridge_exams_en` (A2–C2) y
-# `elg_cefr_en` (A1–C2). Se solapan —130 textos están en los dos, y con el mismo
-# nivel—, así que se deduplican: 901 textos distintos, y **739 puntuados** tras
-# quitar los de menos de 150 palabras y los que el filtro de la aplicación
-# rechaza como listas o tablas. El guion del repositorio,
-# `validar_universalcefr.py`, se baja el corpus solo.
+# El 12 de septiembre de 2026 se midió el v4 sobre los dos conjuntos ingleses de
+# referencia de UniversalCEFR (Imperial et al., EMNLP 2025), `cambridge_exams_en` y
+# `elg_cefr_en`: 739 textos y Spearman **0,946**, más alto que la validación
+# interna del propio modelo (0,908). Eso bastó para desconfiar.
 #
-# **Una advertencia que va antes que la cifra.** No se puede afirmar que esta sea
-# una validación externa. La composición del corpus de anclaje del v4 no está
-# documentada, y si incluye textos de Cambridge o de ELG, el modelo ya los vio.
-# Hay además una señal que empuja en esa dirección: el Spearman de aquí es **más
-# alto** que el de la validación interna del propio v4 (0,908), y un conjunto
-# externo rara vez supera al interno. Por eso se presenta como validación
-# reproducible y a escala, no como externa.
+# Leyendo el guion de entrenamiento del v4 (`entrenamiento_v4/ll_v4_transformer.py`)
+# salió la causa: **el v4 se entrenó con ELG CEFR English**, que es exactamente
+# `elg_cefr_en` —654 documentos aceptados, 57 cortos y 1 descartado: 712, el tamaño
+# del conjunto—. Y los 325 textos distintos de Cambridge están **todos** dentro de
+# él: 130 idénticos y 195 casi idénticos, con una mediana del 92 % de sus 8-gramas
+# compartidos y el mismo nivel en los 195.
+#
+# Aquel 0,946 medía el modelo sobre su propio entrenamiento. No hay en UniversalCEFR
+# un subconjunto inglés limpio para el v4, y la validación de este apartado sigue
+# siendo la de British Council. Se deja escrito porque es exactamente el error que
+# produce la cifra más bonita de un proyecto: `validar_universalcefr.py` excluye
+# ahora el entrenamiento y lo comprueba solo.
+
+# %% [markdown]
+# ### Una validación externa de verdad: OneStopEnglish
+#
+# Con la composición del anclaje ya conocida se pudo buscar un corpus que los
+# pesos del v4 no hubieran visto, y comprobarlo en vez de suponerlo: ninguno de
+# los textos de OneStopEnglish (Vajjala y Lučić, 2018) comparte con ELG CEFR
+# English ni una secuencia de ocho palabras. Son 189 artículos de prensa escritos
+# tres veces, en nivel Elementary, Intermediate y Advanced. `validar_onestop.py`
+# mide una puntuación por artículo y nivel —560 unidades— y repite la comprobación
+# de fuga cada vez que se ejecuta.
 
 # %%
-universalcefr = pd.DataFrame({
-    "Nivel": ["A1", "A2", "B1", "B2", "C1", "C2"],
-    "n": [24, 100, 203, 180, 127, 105],
-    "Media v4 (escala 0-2)": [0.0797, 0.3421, 0.7596, 1.3021, 1.6564, 1.8971],
+onestop = pd.DataFrame({
+    "Nivel": ["Elementary", "Intermediate", "Advanced"],
+    "n": [185, 189, 186],
+    "Media v4 (escala 0-2)": [0.9343, 1.2715, 1.5149],
 })
-print("UniversalCEFR (cambridge_exams_en + elg_cefr_en, sin repetir): 739 textos")
+print("OneStopEnglish, una puntuación por artículo y nivel: 560 unidades")
 print()
-print(universalcefr.to_string(index=False))
+print(onestop.to_string(index=False))
 print()
 print(pd.DataFrame({
-    "Medida": ["Spearman del v4", "Spearman de contar palabras",
-               "v4 descontando la longitud"],
-    "UniversalCEFR (739)": [0.946, 0.663, 0.906],
-    "British Council (47)": [0.860, 0.807, 0.668],
+    "Medida": ["Spearman con el nivel", "Correlación parcial sin la longitud",
+               "Artículos con sus tres versiones en orden (de 185)"],
+    "Modelo v4": ["0.800", "0.688", "183"],
+    "Contar palabras": ["0.692", "indefinida", "179"],
 }).to_string(index=False))
 
 # %% [markdown]
-# Tres cosas cambian respecto a British Council, y las tres matizan limitaciones
-# de este mismo cuadernillo:
+# Las medias suben en los tres niveles y el modelo conserva 0,688 descontando la
+# longitud: aporta señal propia en un corpus que no vio.
 #
-# 1. **La escala no sale comprimida.** Los seis niveles van de 0,08 a 1,90, frente
-#    al 0,50–1,50 de British Council. La compresión se observó en 47 textos de una
-#    sola fuente; con 739 de dos fuentes no aparece.
-# 2. **A1 y A2 sí se distinguen**: 0,08 frente a 0,34, con n = 24 y 100.
-# 3. **La longitud explica mucho menos.** Contar palabras da 0,663, y el modelo
-#    conserva 0,906 descontándola.
+# **La última fila hay que leerla con cuidado**, porque es tentadora. Dentro de
+# cada artículo el modelo ordena bien las tres versiones en 183 de 185, y **la
+# longitud sola ya acierta 179**: las versiones avanzadas son más largas (523, 667
+# y 809 palabras de media). Donde la longitud falla —seis artículos— el modelo
+# acierta en cinco. Es una ventaja real, y es pequeña.
 #
-# Las tres son reales en este corpus, pero heredan la advertencia de arriba: si
-# parte de él estaba en el anclaje, el modelo juega en casa.
+# Dos matices más. La escala vuelve a salir comprimida y desplazada hacia arriba:
+# un texto Elementary puntúa 0,93, en la banda intermedia. Y OneStopEnglish **sí se
+# usó para desarrollar los modelos anteriores** (el v2 se afinó con él), así que es
+# externo para los pesos del v4, no virgen para el proyecto.
 
 # %% [markdown]
 # ## 7.3 Decisiones de despliegue que también son evaluación
@@ -2264,50 +2274,46 @@ plt.show()
 #    entrenó, no un certificado que se emita.
 # 2. **La escala está comprimida y sesgada a la baja** frente al ancla real, y
 #    A1 y A2 son prácticamente indistinguibles (0,504 frente a 0,556, con n = 3
-#    en A1). **Ojo: esto se observó en British Council.** En UniversalCEFR, con
-#    739 textos de dos fuentes, la escala va de 0,08 a 1,90 y A1 y A2 sí se
-#    separan (§7.2), aunque esa validación tiene su propia advertencia.
+#    en A1).
 # 3. **El dominio confunde la medida.** El texto informativo puntúa medio punto
 #    más difícil que el literario con la misma sintaxis (Figura 6); el modelo no
 #    ve esa distinción.
 # 4. **La validación externa es pequeña**: 47 textos legibles de 59. El corpus
 #    tiene derechos y no se distribuye, **pero se puede reconstruir y auditar**:
 #    el manifiesto trae la URL y el SHA-256 de cada PDF (§7.2).
-# 5. **Las cifras de 0,908 y 97,2 % no son verificables desde el repositorio**,
-#    porque el corpus de validación de 144 textos no está incluido.
-# 6. **El guion de entrenamiento del v4 no forma parte del repositorio.** Este
-#    cuadernillo reproduce la cadena de datos, el EDA y los modelos de
-#    referencia, no el afinado final.
+#    Desde el 12 de septiembre de 2026 la acompaña OneStopEnglish: 560
+#    unidades, externo para los pesos del v4 (§7.2).
+# 5. **Las cifras de 0,908 y 97,2 % no salen de un conjunto de prueba virgen**:
+#    el entrenamiento eligió el punto de control que mejor puntuaba en esos 144
+#    documentos. Sí son verificables: se recalcularon idénticas (§9.3).
+# 6. **El corpus de anclaje es de una sola fuente** (ELG CEFR English, 654
+#    documentos). Por eso UniversalCEFR no sirve para validar el v4 (§7.2).
 # 7. **Este cuadernillo corre entero en un Colab limpio**, con el matiz que se
 #    explica abajo: correr no es lo mismo que recalcular.
 #
 # ## 9.3 Qué se reproduce aquí y qué no
 #
 # Conviene separar cinco cosas que suelen mezclarse bajo la palabra
-# «reproducible», porque solo cuatro de ellas son ciertas:
+# «reproducible», y hoy son ciertas las cinco:
 #
-# | | ¿Se hace aquí? |
+# | | ¿Se hace? |
 # |---|---|
 # | **Ejecutarse de principio a fin sin errores** en un Colab limpio | **Sí** |
 # | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
 # | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
 # | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí**, reconstruyendo el corpus con su manifiesto de hashes (§7.2) |
-# | **Recalcular las métricas internas del v4** (0,908, 97,2 %) | **No** |
+# | **Recalcular las métricas internas del v4** (0,908, 97,2 %) | **Sí**, fuera de este cuadernillo: `entrenamiento_v4/` con los datos públicos de ELG, idénticas a cuatro decimales |
 #
-# Lo último no depende de publicar pesos: depende del **corpus de anclaje MCER**,
-# 654 documentos que no se pueden redistribuir. Esas cifras se citan de la
-# tarjeta del modelo, no se recalculan, y quien quiera comprobarlas tiene que
-# reunir su propio corpus etiquetado. Decirlo así es más honesto que anunciar
-# una reproducibilidad del cien por cien que los derechos de autor impiden.
+# Hasta el 12 de septiembre de 2026 la última fila decía «No», y este párrafo lo
+# justificaba con un corpus de anclaje «que no se puede redistribuir». Era falso:
+# el anclaje es ELG CEFR English, público con licencia CC BY-NC-SA 4.0. Lo que
+# faltaba eran el guion y la tarjeta de métricas, que vivían en Drive. Ya están en
+# `entrenamiento_v4/`, junto con las 144 parejas de nivel y predicción.
 #
-# **Y hay que reconocer un hueco.** La
-# composición exacta de esos 654 documentos —cuántos por fuente y cuántos por
-# nivel— no está documentada en este repositorio, y esa tarjeta del modelo
-# tampoco está aquí. Sin esa lista no se puede comprobar desde fuera que las
-# fuentes usadas para validar sean ajenas a las usadas para entrenar. La
-# validación con British Council de §7.2 se apoya en que sea así; **quien
-# audite este trabajo tiene derecho a exigir esa lista, y hoy no está**.
-# Publicarla es la primera recomendación de §9.4.
+# Y publicar la composición del anclaje no era un trámite. En cuanto se supo de
+# qué estaba hecho, se vio que la validación con UniversalCEFR medía el propio
+# entrenamiento y se retiró (§7.2). Sin esa lista, la cifra más alta del
+# proyecto habría sido la más falsa.
 #
 # Lo que sí se calcula en cada ejecución es: la descarga y
 # validación de las 4.724 filas del corpus de entrenamiento, la descarga del
@@ -2317,14 +2323,11 @@ plt.show()
 #
 # ## 9.4 Recomendaciones y trabajo futuro
 #
-# 1. **Publicar la composición del corpus de anclaje**: cuántos documentos por
-#    fuente, cuántos por nivel, y la regla con la que se partió en entrenamiento
-#    y validación. No hace falta redistribuir ni una línea de texto con derechos
-#    para publicar esa tabla, y sin ella nadie puede comprobar desde fuera que la
-#    validación externa sea de verdad externa. Es lo primero, y es barato.
-# 2. **Reunir un corpus de anclaje redistribuible.** Es lo que permitiría
-#    recalcular las métricas del v4 en vez de citarlas. Los pesos ya están
-#    publicados; el corpus no puede estarlo, y ese es el límite real.
+# 1. ~~Publicar la composición del corpus de anclaje~~ **Hecho el 12 de
+#    septiembre de 2026**: ELG CEFR English, 654 documentos, partición 510 / 144
+#    por documento. Guion y métricas en `entrenamiento_v4/`.
+# 2. ~~Reunir un corpus de anclaje redistribuible~~ **No hacía falta**: el
+#    anclaje ya era público, y sus métricas se recalculan idénticas.
 # 3. **Recalibrar la escala pública con una transformación afín** ajustada sobre
 #    el ancla externa. El proyecto ya usó esa técnica con éxito en una iteración
 #    anterior (`y = 0,322 x − 0,832`), corrigiendo la magnitud **sin tocar los

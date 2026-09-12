@@ -222,7 +222,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | Fuente | Qué aporta | Tamaño | Origen | Licencia / acceso |
 |---|---|---|---|---|
 | **CLEAR Corpus** | Etiqueta continua de legibilidad (`BT_easiness`) para el modelado supervisado | 4.724 extractos | Repositorio público del proyecto CLEAR (Crossley et al., 2023) | Uso investigador, descarga directa |
-| **OneStopEnglish** | Corpus de **afinado** de la variante v2 (151 artículos) y validación ordinal en 3 niveles sobre los 38 reservados | 567 textos (189 por nivel) | GitHub (Vajjala & Lučić, 2018) | CC BY-SA 4.0 |
+| **OneStopEnglish** | Corpus de **afinado** de la variante v2 (151 artículos), validación ordinal en 3 niveles sobre los 38 reservados y **validación externa del v4** (560 unidades, Cuadro 13b) | 567 textos (189 por nivel) | GitHub (Vajjala & Lučić, 2018) | CC BY-SA 4.0 |
 | **British Council LearnEnglish** | Validación externa contra niveles MCER oficiales | 59 textos A1–C1 | Descarga de los PDF públicos, con la URL y el SHA-256 de cada uno en un manifiesto | Con derechos: no se distribuye ni se imprime texto, pero se reconstruye y se verifica byte a byte |
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
@@ -681,7 +681,7 @@ con él; el resto del apartado los cita por su nombre.
 
 | Conjunto | n | De dónde sale | Qué se mide con él | Qué **no** se puede hacer con él |
 |---|---|---|---|---|
-| **Validación ciega** (interno) | 144 | Partición de validación del corpus de anclaje MCER: 654 documentos aceptados, 510 de entrenamiento y 144 reservados | Exactitud, acierto dentro de ±1 nivel y Spearman 0,908 del modelo desplegado (Cuadro 10) | Presentarlo como validación externa. Sale del mismo corpus con el que se afinaron los pesos, así que su 0,908 no es comparable con las cifras de British Council |
+| **Validación interna** | 144 | Partición de validación de ELG CEFR English, el corpus de anclaje MCER: 654 documentos aceptados, 510 de entrenamiento y 144 reservados | Exactitud, acierto dentro de ±1 nivel y Spearman 0,908 del modelo desplegado (Cuadro 10) | Presentarlo como validación externa. Sale del mismo corpus con el que se afinaron los pesos, y sobre él se eligió el punto de control, así que su 0,908 no es comparable con las cifras de British Council |
 | **British Council, tanda de Colab** | 38 | Extracción de los PDF hecha en Colab durante el entrenamiento, con su propio filtro | Spearman 0,829 y el 100 % dentro de ±1 (Cuadro 10); las cuatro medias por nivel que ajustan la recta de compresión (7.5) | Restarlo de los 47. Es otra tanda, con otra extracción y otro filtro: la diferencia no son «nueve textos concretos» que se puedan nombrar |
 | **British Council, reproducción local** | 47 | Los 59 publicados, menos 2 sin cuerpo localizable al extraer el PDF y 10 rechazados por el filtro de prosa (Cuadro 12) | **El resultado principal**: el orden creciente por nivel (Cuadro 11) y las tres cifras del *baseline* —0,860, 0,807 y 0,668— del Cuadro 13 | Leerlo como «los textos que la aplicación aceptaría». El validador local filtra más flojo que la app (7.7) |
 | **Los que pasan el filtro completo** | 36 | Esos mismos 47 refiltrados conservando los saltos de línea, es decir con las cuatro reglas del filtro de prosa continua activas | Cuánto depende el conjunto evaluado de una regla que el validador desactiva: sobreviven 36 y A1 se queda con un solo texto (7.7) | Sostener el orden sobre cinco niveles. No se usa para ninguna cifra publicada en este documento |
@@ -692,23 +692,26 @@ de los cinco salen del mismo catálogo de British Council, con extracciones y
 filtros distintos: no son subconjuntos unos de otros y sus tamaños no se
 restan.*
 
-El corpus de anclaje MCER con el que se afinó son 654 documentos aceptados
-—57 descartados por longitud insuficiente—, repartidos en 510 de entrenamiento
-y 144 de validación. Esos 144 documentos son el conjunto de validación ciega
-que produce las cifras de la primera fila del Cuadro 10.
+El corpus de anclaje MCER con el que se afinó es **ELG CEFR English** (CC BY-NC-SA
+4.0), una sola fuente: 712 documentos, de los que se aceptan 654 como prosa —57
+son cortos y 1 tiene forma de frase anómala—, repartidos por documento y con
+semilla fija en 510 de entrenamiento y 144 de validación. Esos 144 producen las
+cifras de la primera fila del Cuadro 10.
 
-**De dónde salen esas cifras, dicho con precisión.** De la ejecución de
-entrenamiento del v4, que vive en Google Drive y no en este repositorio: aquí
-**no hay ningún archivo que las respalde**, y una versión anterior de este
-documento citaba una tarjeta `metricas_literalevel_v4.json` inexistente. Lo
-único comprobable desde el repositorio es la aritmética interna —510 + 144 =
-654, 77/144 = 53,47 % y 140/144 = 97,22 %—, que cuadra. Quien quiera verificar
-el resto tiene que confiar en esa ejecución o rehacerla.
+**De dónde salen esas cifras, y cómo se comprueban.** Del guion de entrenamiento
+del v4 y de su tarjeta de métricas, que desde el 12 de septiembre de 2026 están en
+el repositorio (`entrenamiento_v4/`). Ese día se **recalcularon** con el guion, los
+pesos publicados y los datos públicos de ELG: la misma partición y las cuatro
+métricas idénticas a cuatro decimales (exactitud 0,5347, dentro de un nivel
+0,9722, MAE 0,4985, Spearman 0,9084). Las 144 parejas de nivel y predicción están
+en `entrenamiento_v4/validacion_144_recalculada.csv`. Y un matiz que no se
+esconde: **no es un conjunto de prueba virgen**, porque el entrenamiento se quedó
+con el punto de control que mejor puntuaba en esos mismos 144 documentos.
 
 | Conjunto | n | Exacto | Dentro de ±1 nivel | Spearman |
 |---|---|---|---|---|
-| Validación ciega | 144 | 53,5 % | **97,2 %** | **0,908** |
-| British Council (externo) | 38 | 50,0 % | **100 %** | 0,829 |
+| Validación interna (ELG reservado) | 144 | 53,5 % | **97,2 %** | **0,908** |
+| British Council (validación de desarrollo) | 38 | 50,0 % | **100 %** | 0,829 |
 
 *Cuadro 10. Métricas del modelo desplegado. MAE de 0,499 niveles de la escala
 interna 0–5 —0,200 en la escala pública 0–2— en el conjunto
@@ -768,8 +771,8 @@ sí solo.
 **Dos: es una reproducción local, no una reproducción independiente.** El Cuadro
 11 se **recalcula** con `validar_local.py` en cualquier máquina que tenga los
 mismos PDF y los mismos pesos, pero los PDF de British Council tienen derechos y
-no acompañan al repositorio, así que quien quiera rehacerla tiene que reunirlos
-por su cuenta. El `.dat` de la figura guarda los agregados, no las entradas. Lo
+no acompañan al repositorio: quien quiera rehacerla los descarga con el
+navegador y los verifica por hash con `tools/bajar_corpus_bc.py`. El `.dat` de la figura guarda los agregados, no las entradas. Lo
 que se reproduce exactamente es **el orden**; las medias difieren ligeramente de
 las obtenidas en Colab (C1 coincide hasta la tercera cifra decimal —1,4952
 frente a 1,4950—, A2 se desvía 0,09).
@@ -839,43 +842,54 @@ competente C1–C2—, y las fronteras quedan en **0,6 y 1,4**. Así la palabra 
 letra no pueden contradecirse por construcción. Ninguna puntuación cambió: solo
 cambió cómo se agrupan.
 
-**Una segunda validación, reproducible y a escala, que matiza lo anterior.** El
-12 de septiembre de 2026 se repitió la medición sobre los dos conjuntos ingleses
-de referencia y de documento completo de UniversalCEFR (Imperial et al., 2025),
-públicos y con licencia CC BY-NC-SA 4.0: `cambridge_exams_en` y `elg_cefr_en`.
-Se solapan —130 textos están en los dos, con el mismo nivel—, así que se
-deduplican, y tras quitar los de menos de 150 palabras y los que el filtro de la
-aplicación rechaza como listas o tablas quedan **739 textos en seis niveles**.
-Lo reproduce `validar_universalcefr.py`, que se baja el corpus solo.
+**Un intento de ampliar la validación que hubo que retirar, y por qué se deja
+escrito.** El 12 de septiembre de 2026 se midió el v4 sobre los dos conjuntos
+ingleses de referencia de UniversalCEFR (Imperial et al., 2025),
+`cambridge_exams_en` y `elg_cefr_en`: 739 textos, Spearman **0,946**. Era más
+alto que la validación interna (0,908), y eso bastó para no creérselo. Leyendo
+el guion de entrenamiento del v4 salió la causa: **el v4 se entrenó con ELG CEFR
+English**, que es exactamente `elg_cefr_en` (654 aceptados + 57 cortos + 1
+descartado = 712, el tamaño del conjunto). Y los 325 textos distintos de
+Cambridge están **todos** dentro de él: 130 idénticos y 195 casi idénticos, con
+una mediana del 92 % de sus 8-gramas compartidos y el mismo nivel en los 195.
+Aquel 0,946 medía el modelo sobre su propio entrenamiento. No hay en
+UniversalCEFR un subconjunto inglés limpio para el v4, y la validación de este
+apartado sigue siendo la del Cuadro 11.
+
+**Una validación externa de verdad: OneStopEnglish.** Con la composición del
+anclaje ya conocida se pudo buscar un corpus que los pesos del v4 no hubieran
+visto, y comprobarlo en vez de suponerlo: ninguno de los textos de
+OneStopEnglish (Vajjala y Lučić, 2018) comparte con ELG CEFR English ni una
+secuencia de ocho palabras. Son 189 artículos de prensa escritos tres veces, en
+nivel Elementary, Intermediate y Advanced. Se mide una puntuación por artículo y
+nivel —560 unidades— con `validar_onestop.py`, que repite la comprobación de
+fuga cada vez que se ejecuta.
 
 | Nivel | n | Media v4 (0–2) |
 |---|---|---|
-| A1 | 24 | 0,080 |
-| A2 | 100 | 0,342 |
-| B1 | 203 | 0,760 |
-| B2 | 180 | 1,302 |
-| C1 | 127 | 1,656 |
-| C2 | 105 | 1,897 |
+| Elementary | 185 | 0,934 |
+| Intermediate | 189 | 1,272 |
+| Advanced | 186 | 1,515 |
 
-| Señal | Spearman con el nivel (739 textos) |
-|---|---|
-| Modelo v4 | **0,946** |
-| Contar las palabras del texto, sin modelo | 0,663 |
-| Modelo, descontando la longitud (correlación parcial) | **0,906** |
+| Señal | Modelo v4 | Contar palabras |
+|---|---|---|
+| Spearman con el nivel (560) | **0,800** | 0,692 |
+| Correlación parcial, descontando la longitud | **0,688** | indefinida |
+| Artículos con sus tres versiones en orden (185) | **183** | 179 |
 
-*Cuadro 13b. La misma prueba sobre UniversalCEFR. Por fuente, el modelo da
-0,933 en Cambridge (220 textos) y 0,942 en ELG (519).*
+*Cuadro 13b. Validación externa con OneStopEnglish.*
 
-En este corpus **la escala no sale comprimida** —los seis niveles van de 0,08 a
-1,90—, **A1 y A2 se separan** y la longitud explica mucho menos. Pero esas
-cifras no se pueden leer sin su advertencia al lado, porque cambia lo que se
-puede afirmar: **no es una validación externa demostrada.** La composición del
-corpus de anclaje del v4 no está documentada (§9), y si incluye textos de
-Cambridge o de ELG, el modelo ya los vio. Hay además una señal que apunta en esa
-dirección: el 0,946 **supera** al 0,908 de la validación interna, y un conjunto
-externo rara vez supera al interno. Por eso no sustituye al Cuadro 11 —cuya
-independencia tampoco está demostrada, pero no muestra esa señal— y se presenta
-como lo que es: validación reproducible y a escala.
+Las medias suben en los tres niveles y el modelo conserva 0,688 descontando la
+longitud: aporta señal propia en un corpus que no vio. **Pero la última fila hay
+que leerla con cuidado**, porque es tentadora: dentro de cada artículo el modelo
+ordena bien las tres versiones en 183 de 185, y **la longitud sola ya acierta
+179**, porque las versiones avanzadas son más largas (523, 667 y 809 palabras de
+media). Donde la longitud falla —seis artículos— el modelo acierta en cinco. Es
+una ventaja real, y es pequeña. Dos matices más: la escala vuelve a salir
+comprimida y desplazada hacia arriba —un texto Elementary puntúa 0,93, en la
+banda intermedia—, y OneStopEnglish **sí se usó para desarrollar los modelos
+anteriores** (el v2 se afinó con él), así que es externo para los pesos del v4,
+no virgen para el proyecto.
 
 ### 7.6 Cuadro de decisiones metodológicas
 
@@ -1223,10 +1237,6 @@ repetirlo en cada párrafo corregido.
    por nivel de Colab; con las cinco locales sale 0,67x + 0,41), así que los
    niveles bajos se sobreestiman y
    los altos se subestiman. Es la razón de mostrar bandas y no decimales.
-   **Pero se observó en British Council, con 47 textos de una sola fuente.** En
-   los 739 de UniversalCEFR la escala va de 0,08 a 1,90 y la compresión no
-   aparece (Cuadro 13b), aunque esa validación tiene su propia advertencia de
-   posible solapamiento con el anclaje.
 3. **Las etiquetas del catálogo heredado no son fiables** (Cuadro 3). Son
    predicciones de un modelo v1 sobre las primeras ~190 palabras. La remedición
    está en curso y es el trabajo pendiente más importante. Y no es una
@@ -1254,37 +1264,32 @@ repetirlo en cada párrafo corregido.
    palabras alcanza 0,807 donde el modelo alcanza 0,860 (Cuadro 13).
 8. **El modelo solo mide prosa continua en inglés.** Poesía, teatro, diálogo
    muy fragmentado y cualquier lengua distinta del inglés quedan fuera.
-9. **El corpus de anclaje MCER es pequeño** (654 documentos aceptados) y el
-   guion de entrenamiento del v4 vive en Google Drive, no en el repositorio.
-   Las cifras del apartado 7.4 se reportan **tal como salieron de aquella
-   ejecución**, sin ningún archivo en el repositorio que las respalde —el
-   apartado 7.4 lo explica—. **Y su composición no está publicada**: no se dice cuántos
-   documentos vienen de cada fuente ni cuántos por nivel. Eso importa más de lo
-   que parece, porque la validación externa del apartado 7.4 se apoya en que
-   las fuentes usadas para validar sean ajenas a las usadas para entrenar, y
-   sin esa tabla nadie puede comprobarlo desde fuera. Lo señaló una auditoría
-   externa y es una crítica justa: publicar los recuentos no exige redistribuir
-   ni una línea de texto con derechos.
-10. **Dos corpus no se pueden redistribuir**: British Council tiene derechos y
-    el corpus de validación de 144 documentos no acompaña al repositorio, de
-    modo que las cifras de 0,908 y 97,2 % **no son verificables clonando el
-    proyecto**. Lo que sí se reproduce en cualquier máquina es el Cuadro 11: el
-    corpus del British Council no se distribuye, pero se reconstruye desde su
-    manifiesto de URLs y SHA-256 y se verifica archivo por archivo con
+9. **El corpus de anclaje MCER es pequeño y de una sola fuente**: 654
+   documentos aceptados de ELG CEFR English. Hasta el 12 de septiembre de 2026
+   ni su composición ni el guion de entrenamiento estaban en el repositorio, y
+   una auditoría externa lo señaló con razón: sin esa lista nadie podía
+   comprobar que las fuentes de validación fueran ajenas a las de
+   entrenamiento. **Ya están**: guion, tarjeta de métricas y las 144
+   predicciones, en `entrenamiento_v4/`. Y la comprobación resultó necesaria de
+   verdad: la primera validación con UniversalCEFR del apartado 7.5 se hizo
+   sobre este mismo corpus y hubo que retirarla.
+10. **British Council no se puede redistribuir, pero sí reconstruir.** Tiene
+    derechos y no acompaña al repositorio; se reconstruye desde su manifiesto
+    de URLs y SHA-256 y se verifica archivo por archivo con
     `tools/bajar_corpus_bc.py`. Comprobado desde una carpeta vacía el 12 de
-    septiembre de 2026: da las mismas cifras publicadas.
+    septiembre de 2026: da las mismas cifras del Cuadro 11. Las cifras internas
+    del v4 (0,908 y 97,2 %) **también se recalculan** desde el repositorio
+    (limitación 9).
 11. **El cuaderno corre entero en un Colab limpio, pero correr no es
     recalcular.** Los pesos del v4 están publicados en Hugging Face
     (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin
     credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra
-    la inferencia sobre texto real. Lo que **no** recalcula son las métricas del
-    v4 —el 0,908 y el 97,2 %—, porque el corpus de anclaje MCER incluye
-    material con derechos y no se puede redistribuir. **Pero conviene separar
-    tres cosas que aquí se mezclaban en una:** repetir el entrenamiento, volver
-    a ejecutar la inferencia y recalcular la aritmética de las métricas. Lo
-    tercero **sí se podría comprobar sin publicar un solo texto**, publicando
-    las 144 parejas de etiqueta y predicción con un identificador anónimo. No
-    está hecho, y decir que «no se arregla publicando nada» era falso.
+    la inferencia sobre texto real. El cuaderno no reentrena el v4, que pide una
+    GPU, pero **sus métricas sí se recalculan fuera de él**: los datos de
+    entrenamiento son públicos (ELG CEFR English, en Hugging Face), el guion
+    está en `entrenamiento_v4/` y las 144 parejas de nivel y predicción están
+    publicadas. Recalculadas en CPU en menos de un minuto, dan las mismas
+    cifras a cuatro decimales.
 12. **El despliegue está en el escalón más barato, y eso tiene dos
     consecuencias.** La aplicación está publicada en Hugging Face Spaces
     (`MikeMaki1763/literalevel`), con dirección fija que sobrevive a apagar el
@@ -1322,9 +1327,9 @@ repetirlo en cada párrafo corregido.
 
 1. Terminar la remedición del catálogo completo y sustituir las etiquetas
    heredadas por medidas del v4 sobre el libro entero.
-2. Reunir un corpus de anclaje MCER redistribuible, que es lo único que
-   permitiría recalcular las métricas del v4 en lugar de citarlas. Los pesos ya
-   están publicados; el corpus es el que no puede estarlo.
+2. **Hecho el 12 de septiembre de 2026:** publicar el guion de entrenamiento y
+   la composición del corpus de anclaje, que resultó ser público (ELG CEFR
+   English). Las métricas del v4 ya se recalculan en lugar de citarse.
 3. Ampliar el corpus de anclaje MCER, que hoy es el eslabón más delgado de la
    cadena de evidencia.
 4. Calibrar explícitamente la escala comprimida (una transformación afín de dos
