@@ -832,7 +832,12 @@ def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
     # dejar una palabra por linea. El autor y el nivel caben debajo del titulo.
     abribles = sum(str(b.id).upper().startswith("PG") for b in libros)
     cabecera = []
-    if abribles:
+    # Con el catalogo medido TODOS son de Gutenberg: decir "los demas son de
+    # StoryWeaver" de una lista sin demas es mentirle a quien lo lee.
+    if abribles == len(libros):
+        cabecera.append("**▸** Se abren aquí mismo, con el botón de debajo "
+                        "de la tabla.")
+    elif abribles:
         cabecera.append(f"**▸ {abribles} de {len(libros)}** se abren aquí "
                         f"mismo, con el botón de debajo de la tabla. Los "
                         f"demás son de StoryWeaver y no hay de dónde "
@@ -1430,6 +1435,21 @@ def _abrir(archivo, peticion: gr.Request = None):
     # capitulo lo necesitan para leer la curva medida del catalogo.
     m_pg = re.search(r"(?i)\bpg(\d+)\.(?:txt|epub)$", os.path.basename(str(archivo)))
     libro.id_catalogo = f"PG{m_pg.group(1)}" if m_pg else None
+    # El .txt de Gutenberg no trae metadatos: la cabecera decia "pg2554.txt —
+    # autor desconocido" de un libro cuyo titulo y autor estan en el catalogo.
+    # El TITULO solo se cambia en la cabecera: `libro.titulo` entra en la clave
+    # de los analisis guardados y en la sesion, y tocarlo los dejaria huerfanos.
+    titulo_visible = libro.titulo
+    if libro.id_catalogo:
+        try:
+            df = catalogo().df
+            fila = df.loc[df["id"].astype(str) == libro.id_catalogo]
+            if len(fila):
+                if re.fullmatch(r"(?i)pg\d+(\.\w+)?", str(libro.titulo or "")):
+                    titulo_visible = str(fila.iloc[0]["title"]) or libro.titulo
+                libro.autor = libro.autor or str(fila.iloc[0]["author"])
+        except Exception:
+            pass
     # El recuento va en la etiqueta porque muchos epub traen los titulos
     # repetidos ("I", "II"...) en dos partes y ademas portadillas sueltas:
     # sin las palabras no hay forma de distinguir el capitulo del relleno.
@@ -1458,7 +1478,7 @@ def _abrir(archivo, peticion: gr.Request = None):
     # El singular importa: con un .txt de un capitulo la cabecera decia
     # "1 capítulos" y la ficha, tres lineas mas abajo, "1 capítulo".
     n_caps = len(libro.capitulos)
-    resumen = (f"**{libro.titulo}** — {libro.autor or 'autor desconocido'} · "
+    resumen = (f"**{titulo_visible}** — {_recortar(libro.autor, 80) or 'autor desconocido'} · "
                f"{n_caps} {'capítulo' if n_caps == 1 else 'capítulos'} · "
                f"{ficha.miles(palabras)} palabras")
     if inicial:
@@ -3374,9 +3394,10 @@ def construir() -> gr.Blocks:
                 # El aviso va ENCIMA del boton que provoca la espera. Debajo
                 # de los resultados, en un movil, queda fuera de pantalla y se
                 # lee cuando ya no sirve.
-                gr.Markdown("_La primera búsqueda del día indexa los 1.197 "
-                            "libros del catálogo: puede tardar cerca de un "
-                            "minuto. Las siguientes son instantáneas._")
+                gr.Markdown("_La primera búsqueda tras despertar la "
+                            "aplicación carga el buscador del catálogo: "
+                            "puede tardar unos segundos. Las siguientes son "
+                            "instantáneas._")
                 with gr.Row():
                     b_buscar = gr.Button("Buscar", variant="primary")
                     b_recom = gr.Button("Sorpréndeme con algo de mi nivel")

@@ -197,19 +197,17 @@ continua. Sirve para elegir qué leer, no para acreditar nada.»
 
 ## V — VISUALIZACIÓN · 3:35 – 4:15
 
-> **En pantalla:** el catálogo. **61.642** libros en inglés de Project
-> Gutenberg, y debajo: *medición en curso; lo que no está medido, se mide al
-> abrirlo*.
+> **En pantalla:** el catálogo. **53.179** libros de Project Gutenberg y
+> **585.111** capítulos, y debajo: *medidos enteros por el modelo*.
 
 «Ahora imagina esto a escala.
 
-Project Gutenberg tiene **61.642 libros en inglés** en dominio público, y los
-estamos midiendo con el modelo leyendo cada libro completo, capítulo a
-capítulo. No una muestra: el libro entero.
+Hemos medido **53.179 libros** de Project Gutenberg con el modelo leyendo cada
+libro completo, capítulo a capítulo: **585.111 capítulos**. No una muestra: el
+libro entero.
 
-Y seré honesto: la medición está en curso. Lo ya medido se abre al instante; lo
-demás lo mide la aplicación al abrirlo. La diferencia es de espera, no de
-resultado.
+Y eso permite algo que una etiqueta por libro no puede: si un libro te queda
+grande, la aplicación te dice **qué capítulos sí están a tu nivel**.
 
 Para el lector eso significa una cosa muy concreta: **deja de abandonar
 libros**. Empieza el que le toca, entiende lo que lee, y sigue.»

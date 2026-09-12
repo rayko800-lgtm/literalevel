@@ -4123,6 +4123,12 @@ def _un_libro_de_gutenberg_se_puede_abrir_desde_la_tabla():
 
     tabla = ui._tabla_libros(libros)
     assert "▸ 1 de 2" in tabla, f"el recuento de abribles no cuadra: {tabla[:160]}"
+    # Con el catalogo medido todos son de Gutenberg: la cabecera no puede
+    # hablar de "los demas, de StoryWeaver" en una lista que no tiene demas.
+    solo_pg = ui._tabla_libros([L("PG1342", "Pride and Prejudice"), L("PG2554", "Crime")])
+    assert "StoryWeaver" not in solo_pg.split("|")[0], \
+        f"habla de StoryWeaver sin haber ninguno: {solo_pg[:160]}"
+    assert "▸" in solo_pg.split("|")[0], f"sin la leyenda del ▸: {solo_pg[:160]}"
     return "el de Gutenberg se ofrece y el de StoryWeaver no"
 
 
