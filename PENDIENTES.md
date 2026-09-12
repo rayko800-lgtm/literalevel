@@ -168,9 +168,12 @@ un entorno de CPU gratuito mientras no haya unidades.
   (836 ventanas en *Crime and Punishment*) y capítulos sugeridos
 - [ ] **Capítulos a tu nivel, fase 2** — ofrecerlos ya en la lista del buscador y en
   «Sorpréndeme», antes de abrir el libro
-- [ ] **Tarjeta del modelo corregida en Hugging Face** — lista en `modelo_v4/README.md`
-  (cuatro épocas, ELG, OneStopEnglish); falta decidir la licencia: pone Apache 2.0
-  y el corpus de entrenamiento es CC BY-NC-SA 4.0
+- [x] **Tarjeta del modelo corregida en Hugging Face** — publicada el 12 de septiembre
+  de 2026 (commit `daee09d`): cuatro épocas y no seis, validación que eligió el punto
+  de control y no ciega, British Council de desarrollo y no externo, ELG CEFR English
+  como corpus, OneStopEnglish y métricas recalculadas
+- [ ] **Licencia del modelo** — decisión de Miguel: la tarjeta pone Apache 2.0 y el
+  corpus de entrenamiento es CC BY-NC-SA 4.0, que no permite uso comercial
 - [x] **Corpus del British Council reconstruible** — manifiesto con URL y SHA-256
   (`entrega/corpus_bc_manifiesto.csv`) y `tools/bajar_corpus_bc.py`; comprobado
   desde una carpeta vacía: da las cifras publicadas

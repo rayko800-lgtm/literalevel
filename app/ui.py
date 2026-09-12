@@ -1499,7 +1499,7 @@ def _abrir(archivo, peticion: gr.Request = None):
     # El singular importa: con un .txt de un capitulo la cabecera decia
     # "1 capítulos" y la ficha, tres lineas mas abajo, "1 capítulo".
     n_caps = len(libro.capitulos)
-    resumen = (f"**{titulo_visible}** — {_recortar(libro.autor, 80) or 'autor desconocido'} · "
+    resumen = (f"**{titulo_visible}** — {_recortar(_autor_corto(libro.autor), 80) or 'autor desconocido'} · "
                f"{n_caps} {'capítulo' if n_caps == 1 else 'capítulos'} · "
                f"{ficha.miles(palabras)} palabras")
     if inicial:
