@@ -857,11 +857,32 @@ def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
         gancho = (b.gancho or "").replace("\n", " ").replace("|", "/")
         if len(gancho) > 70:
             gancho = gancho[:67] + "..."
-        ficha = f"**{enlace}**<br><small>{b.autor} · {b.nivel}</small>"
+        ficha = f"**{enlace}**<br><small>{_autor_corto(b.autor)} · {b.nivel}</small>"
         filas.append(f"| {'▸' if aqui else ''} | {ficha} | {gancho} |")
     if nota:
         filas += ["", f"_{nota}_"]
     return "\n".join(filas)
+
+
+def _autor_corto(autor) -> str:
+    """El primer autor, sin fechas ni papel, y «y otros» si hay mas.
+
+    El catalogo medido trae el campo de autor de Gutenberg tal cual, y en una
+    antologia son diecisiete nombres con fechas y «[Contributor]»: en la tabla
+    del buscador ocupaban media pantalla por libro. Los traductores no cuentan
+    como «otros»: «Dostoyevsky, Fyodor» sigue siendo de Dostoyevsky.
+    """
+    partes = [p.strip() for p in str(autor or "").split(";") if p.strip()]
+    if not partes:
+        return ""
+
+    def limpio(p):
+        p = re.sub(r"\[[^\]]*\]", "", p)
+        p = re.sub(r",?\s*\d{3,4}\??\s*-\s*(\d{3,4}\??)?\s*$", "", p.strip())
+        return p.strip(" ,").replace("|", "/")
+
+    otros = [p for p in partes[1:] if "translator" not in p.lower()]
+    return limpio(partes[0]) + (" y otros" if otros else "")
 
 
 def _opciones_libros(libros):
@@ -876,7 +897,7 @@ def _opciones_libros(libros):
     # catalogo, el desplegable se llenaba de opciones inservibles: habia que
     # rebuscar entre ellas el unico libro que si se abria. Un desplegable
     # donde casi nada funciona es peor que uno corto donde todo funciona.
-    opciones = [(f"{b.titulo} — {b.autor} ({b.nivel})", b.id)
+    opciones = [(f"{b.titulo} — {_autor_corto(b.autor)} ({b.nivel})", b.id)
                 for b in libros if str(b.id).upper().startswith("PG")]
     return gr.update(choices=opciones,
                      value=opciones[0][1] if opciones else None)

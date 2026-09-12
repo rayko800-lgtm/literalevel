@@ -4129,6 +4129,23 @@ def _un_libro_de_gutenberg_se_puede_abrir_desde_la_tabla():
     assert "StoryWeaver" not in solo_pg.split("|")[0], \
         f"habla de StoryWeaver sin haber ninguno: {solo_pg[:160]}"
     assert "▸" in solo_pg.split("|")[0], f"sin la leyenda del ▸: {solo_pg[:160]}"
+    # Una antologia de Gutenberg trae diecisiete autores con fechas y papel:
+    # en la tabla sale el primero y «y otros», y el traductor no cuenta.
+    antologia = L("PG9999", "Best Russian Short Stories")
+    antologia.autor = ("Seltzer, Thomas, 1875?-1943 [Editor]; Andreyev, Leonid, "
+                       "1871-1919 [Contributor]; Chekhov, Anton Pavlovich, "
+                       "1860-1904 [Contributor]")
+    garnett = L("PG2554", "Crime and Punishment")
+    garnett.autor = ("Dostoyevsky, Fyodor, 1821-1881; Garnett, Constance, "
+                     "1861-1946 [Translator]")
+    tabla_larga = ui._tabla_libros([antologia, garnett])
+    assert "Seltzer, Thomas y otros" in tabla_larga and "Chekhov" not in tabla_larga, \
+        f"la antologia lista a todos sus autores: {tabla_larga[:300]}"
+    assert "Dostoyevsky, Fyodor ·" in tabla_larga and "Garnett" not in tabla_larga, \
+        f"el traductor cuenta como otro autor o sobran las fechas: {tabla_larga[:300]}"
+    etiquetas = [str(o[0]) for o in ui._opciones_libros([antologia, garnett])["choices"]]
+    assert all("Contributor" not in e and "1821" not in e for e in etiquetas), \
+        f"el desplegable arrastra el autor entero: {etiquetas}"
     return "el de Gutenberg se ofrece y el de StoryWeaver no"
 
 

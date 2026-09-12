@@ -78,7 +78,7 @@ vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
 |---|---|---|
 | ~~Unidades de Colab~~ | **YA NO BLOQUEA** | La **T4 gratuita** hace el trabajo: medido el 10 de septiembre de 2026, 492 ventanas/s, que son **84 libros/min** contra los 61 de la A100 de pago. El cuello de botella era Drive, no la tarjeta, y el prefetch lo tapó. El catálogo entero son ~12 h de T4 gratis y reanudables. Las «15 unidades» ya no hacen falta |
 | **Micrófono** | parte de **25 pts** (demo en vivo) | Sin él no se puede enseñar la corrección de pronunciación, que es lo que el profesor pidió ver. Unos audífonos con micro bastan |
-| **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (578 palabras, 3:51) y compilado en PDF |
+| **Grabar el vídeo** | **20 pts** | El guion está escrito, cronometrado (569 palabras, 3:48) y compilado en PDF |
 | **Cupo de Codex** | la auditoría de cifras | **La ventana es corta, no semanal**: el aviso del 11 anunciaba el martes 15 y el 12 por la mañana ya respondía. Pero se agotó otra vez a mitad del encargo —`auditoria/encargo_12.md`— **sin emitir un solo hallazgo**: murió recopilando con `grep`, que es el modo de fallo que esta casa ya tiene documentado dos veces. Vuelve a la 1:56 p. m. del 12. Si se relanza, hay que partirlo en trozos de un solo archivo |
 | ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada. El token vive en `C:\Users\laura\.hf_token` y **hay que revocarlo** cuando se acabe de subir |
 | ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Cuesta 7 USD/mes (cuenta Pro, ya pagada). Arranque medido: 31 s hasta `RUNNING`, 32 s hasta que responde |
@@ -90,8 +90,14 @@ entero a través de Colab con `drive.mount`.
 
 ---
 
-## El catálogo, que es lo único grande que falta
+## El catálogo — HECHO el 12 de septiembre de 2026
 
+> **Terminado y en la app.** 53.179 libros y 585.111 capítulos medidos, 0
+> errores y ningún libro medido dos veces (sonda 11b). La última tanda midió
+> 9.795 libros en 54,8 minutos. Publicado en el Space junto con la curva por
+> capítulo y los embeddings del buscador; probado en el navegador el mismo día.
+> Lo que sigue es cómo se llegó, y se queda como histórico.
+>
 > **12 de septiembre de 2026: midiendo, y ya sin Drive.** El freno de estos días
 > no era la descarga: era que los resultados iban a Google Drive, que pide un
 > permiso interactivo en cada sesión nueva. Ahora van a un repositorio privado
@@ -156,7 +162,15 @@ un entorno de CPU gratuito mientras no haya unidades.
 - [x] **Apartado de competencia** — §8.5 del documento y §5 de la estrategia
 - [x] **Manifiesto del corpus externo** (`entrega/manifiesto_corpus_externo.md`)
 - [ ] **Vídeo grabado** — bloqueado en el micrófono
-- [ ] **Catálogo remedido** — midiendo en Colab desde el 12 de septiembre de 2026
+- [x] **Catálogo remedido** — terminado el 12 de septiembre de 2026: 53.179 libros y
+  585.111 capítulos medidos por el v4, sin Drive y sin un libro medido dos veces.
+  Está en la app publicada y probado en el navegador: buscador, ficha, curva entera
+  (836 ventanas en *Crime and Punishment*) y capítulos sugeridos
+- [ ] **Capítulos a tu nivel, fase 2** — ofrecerlos ya en la lista del buscador y en
+  «Sorpréndeme», antes de abrir el libro
+- [ ] **Tarjeta del modelo corregida en Hugging Face** — lista en `modelo_v4/README.md`
+  (cuatro épocas, ELG, OneStopEnglish); falta decidir la licencia: pone Apache 2.0
+  y el corpus de entrenamiento es CC BY-NC-SA 4.0
 - [x] **Corpus del British Council reconstruible** — manifiesto con URL y SHA-256
   (`entrega/corpus_bc_manifiesto.csv`) y `tools/bajar_corpus_bc.py`; comprobado
   desde una carpeta vacía: da las cifras publicadas
@@ -172,7 +186,8 @@ un entorno de CPU gratuito mientras no haya unidades.
   orden dentro del artículo 183/185, con la longitud sola en 179
   ([`auditoria/validacion_onestop_2026-09-12.md`](auditoria/validacion_onestop_2026-09-12.md))
 - [x] **Capítulos a tu nivel, fase 1** (dentro del lector) — 302 pruebas extremas y
-  8 mutantes nuevos, los 8 cazados por su prueba
+  8 mutantes nuevos, los 8 cazados por su prueba. Con el catálogo medido, 303
+  pruebas y 7 mutantes más para la alineación con el catálogo
 
 ---
 
@@ -188,6 +203,9 @@ todas reproducibles con un guion del repo.
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
 | Pruebas de estrés | **303** | `pruebas_extremas.py` |
+| Catálogo medido (12 sep 2026) | **53.179** libros · **585.111** capítulos · A1 1 · A2 40 · B1 558 · B2 3.127 · C1 23.454 · C2 25.999 | `catalogo_medido.csv`, `capitulos_medidos.parquet` |
+| Capítulos a nivel ≤ 0,95 | **3.644** en 1.499 libros | `capitulos_medidos.parquet` |
+| *Crime and Punishment* en la app (txt) | 203.415 palabras · 40 capítulos · **836** ventanas · media 1,70 | app publicada, 12 sep 2026 |
 | Pasos de integración | **27** | `pruebas_integracion.py` |
 | Parejas de contraste | **85** (17 por paleta) | `pruebas_extremas.py` |
 | Peor contraste | 4,53 (texto) · 3,11 (título) | `pruebas_extremas.py` |
@@ -195,7 +213,7 @@ todas reproducibles con un guion del repo.
 | Arranque en frío del Space | **31 s** hasta `RUNNING`, **32 s** hasta que responde | `medir_arranque.py` |
 | Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab); 0,67x + 0,41 con las 5 locales | recalculable |
 | Textos que pasan el filtro COMPLETO | **36** (el de la app; aquí se puntúan 47) | `validar_local.py` |
-| Palabras habladas del guion | **578** = 3:51 | `tools/contar_guion.py` |
+| Palabras habladas del guion | **569** = 3:48 | `tools/contar_guion.py` |
 | Coste del despliegue | **7 USD/mes** (cuenta Pro; tarifa 9, con descuento) | API `whoami-v2` |
 | Carpeta + diccionario | 575 MB (332,1 + 243,3) | `os.path.getsize`, remedido el 10 de septiembre de 2026 |
 
@@ -204,7 +222,8 @@ todas reproducibles con un guion del repo.
 ## Decisiones que quedan abiertas
 
 - **Recalibrar la escala.** Un texto A2 puntúa cerca de B1. Es el accionable
-  A7. No se toca sin validar contra el catálogo, y el catálogo aún no está.
+  A7. No se toca sin validar contra el catálogo, que ya está medido: el
+  siguiente paso es comparar su reparto con el ancla externa.
 - **Publicar el diccionario Kaikki** (243 MB). El guion de subida existe; es la
   mitad que falta del accionable A1.
 - ~~**Disco persistente en el Space** (A4)~~ **HECHO** el 10 de septiembre de

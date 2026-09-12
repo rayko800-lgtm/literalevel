@@ -7,7 +7,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 578 palabras y son 3:51 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta —y la regla de las notas se le añadió al contador el 11 de septiembre, cuando una nota que citaba «la fonética británica y americana» se le coló en el parlamento. El minuto que
+**El texto hablado son 569 palabras y son 3:48 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta —y la regla de las notas se le añadió al contador el 11 de septiembre, cuando una nota que citaba «la fonética británica y americana» se le coló en el parlamento. El minuto que
 sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
