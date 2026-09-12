@@ -229,9 +229,8 @@ auditorías a la basura.
 
 ### Hoy, sábado 12 — las cuatro cosas que desbloquean todo lo demás
 
-- [ ] **Rotar las nueve contraseñas**: `python -X utf8 tools/rotar_cuentas.py`.
-      Sigue pendiente desde que se me escaparon al chat. Cinco minutos, y no
-      hay nada más urgente en este archivo.
+- [x] ~~Rotar las nueve contraseñas~~ — **decidido por Miguel el 12 de
+      septiembre: no hace falta.** La única que importaba era la de invitado.
 - [ ] **Comprar un micrófono.** Unos audífonos con micro valen. **Bloquea los
       20 puntos del vídeo y parte de los 25 de la demo**, y es lo único de la
       lista que no depende de programar.
@@ -319,7 +318,6 @@ cuesta una tarde subir.
 | **El Space duerme y la demo arranca en frío delante del profesor** | El front avisa mientras despierta; y la aplicación se enciende y se usa **antes** de la demo. Ya está en las notas del guion: primera consulta léxica 55 s, curva 134 s si no está en caché |
 | **Rehacer `ui.py` rompe algo que diecisiete auditorías dejaron sano** | Cada cambio con su mutante, y la pasada estrecha del 17 sobre el diff completo de la semana |
 | **El catálogo entero dice que no hay nada para un B1** | Ya está previsto: recomendar capítulos (§4.2). Y si sale así, es un hallazgo del proyecto, no un fallo |
-| **Las contraseñas siguen sin rotar** | Cinco minutos. Hoy |
 
 ---
 
