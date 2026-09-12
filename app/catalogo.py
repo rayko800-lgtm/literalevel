@@ -51,9 +51,12 @@ class Libro:
     descargas: int
     similitud: float = 0.0
     afinidad: float = 0.0
+    dificultad: float | None = None     # medida por el v4; None si es heredada
 
     @property
     def puntuacion_nivel(self) -> float:
+        if self.dificultad is not None:
+            return self.dificultad
         return NIVEL_A_PUNTUACION.get(self.nivel, 1.0)
 
     @property
@@ -161,6 +164,15 @@ def _similitud_nombres(consulta: str, fichas: list[set[str]]) -> np.ndarray:
     return fuera
 
 
+def _dificultad_de(fila) -> float | None:
+    """La dificultad medida de una fila del catalogo, o None si no la hay."""
+    try:
+        v = float(fila.get("dificultad"))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return None if np.isnan(v) else v
+
+
 class Catalogo:
     def __init__(self, ruta_csv: str | os.PathLike = CSV_POR_DEFECTO):
         self.ruta = Path(ruta_csv)
@@ -168,6 +180,20 @@ class Catalogo:
             raise FileNotFoundError(f"No encuentro el catálogo en {self.ruta}")
         self.df = pd.read_csv(self.ruta).fillna({"hook": "", "huella_texto": "",
                                                  "author": "", "nivel_cefr": ""})
+        # El catalogo MEDIDO trae `dificultad`: la escala publica 0..2 del v4
+        # sobre el libro entero. El heredado solo trae `nivel_cefr`, una letra
+        # que predijo un modelo v1 sobre ~190 palabras. Si hay medida, manda la
+        # medida, y la letra se deriva de ella con la MISMA regla que el resto
+        # de la app (`scoring.anchor_cefr`): un libro no puede salir con dos
+        # letras segun quien pregunte. Y la letra hace falta aunque haya
+        # numero, porque la interfaz ordena por `ANCHORS.index(libro.nivel)`
+        # y una cadena vacia ahi revienta.
+        if self.medido:
+            import scoring
+            self.df["dificultad"] = pd.to_numeric(self.df["dificultad"], errors="coerce")
+            con = self.df["dificultad"].notna()
+            self.df.loc[con, "nivel_cefr"] = self.df.loc[con, "dificultad"].map(
+                lambda d: scoring.anchor_cefr(float(d) * 2.5))
         self._emb: np.ndarray | None = None
         self._modelo = None
         self._fichas: list[set[str]] | None = None
@@ -221,6 +247,31 @@ class Catalogo:
             self._modelo = SentenceTransformer(_ruta_local(MODELO_EMB))
         return self._modelo
 
+    @property
+    def medido(self) -> bool:
+        """¿Trae este catalogo dificultad medida por el v4?
+
+        Propiedad y no atributo fijado en `__init__`, a proposito: hay pruebas y
+        caminos que montan un `Catalogo` sin pasar por el constructor, y un
+        atributo que solo existe si se paso por ahi revienta con AttributeError.
+        Lo encontro `pruebas_extremas.py` la primera vez que se cableo esto."""
+        d = getattr(self, "df", None)
+        return (d is not None and "dificultad" in d.columns
+                and bool(pd.to_numeric(d["dificultad"], errors="coerce").notna().any()))
+
+    def _puntuaciones(self) -> np.ndarray:
+        """El nivel de cada libro en la escala publica 0..2: la medida si la
+        hay, y si no, la letra heredada traducida con NIVEL_A_PUNTUACION.
+
+        Un solo sitio para las dos rutas -`buscar` y `por_nivel`-, que antes
+        repetian la misma traduccion cada una por su lado."""
+        heredada = np.array([NIVEL_A_PUNTUACION.get(x, 1.0)
+                             for x in self.df["nivel_cefr"]], dtype=np.float32)
+        if not self.medido:
+            return heredada
+        d = pd.to_numeric(self.df["dificultad"], errors="coerce").to_numpy(dtype=np.float32)
+        return np.where(np.isnan(d), heredada, d).astype(np.float32)
+
     # --- busqueda -----------------------------------------------------
     def buscar(self, consulta: str, nivel_lector: float | None = None,
                peso_nivel: float = 0.3, n: int = 10,
@@ -251,8 +302,7 @@ class Catalogo:
             total = sim
             afin = np.zeros_like(sim)
         else:
-            objetivo = np.array([NIVEL_A_PUNTUACION.get(x, 1.0)
-                                 for x in self.df["nivel_cefr"]], dtype=np.float32)
+            objetivo = self._puntuaciones()
             # Afinidad 1 = mismo nivel, 0 = en el extremo opuesto de la escala.
             afin = 1.0 - np.abs(objetivo - nivel_lector) / 2.0
             total = (1 - peso_nivel) * sim + peso_nivel * afin
@@ -269,6 +319,7 @@ class Catalogo:
             libros.append(Libro(id=str(f["id"]), titulo=str(f["title"]),
                                 autor=str(f["author"]), nivel=str(f["nivel_cefr"]),
                                 gancho=str(f["hook"]), descargas=int(f.get("downloads", 0) or 0),
+                                dificultad=_dificultad_de(f),
                                 similitud=round(float(sim[i]), 3),
                                 afinidad=round(float(afin[i]), 3)))
 
@@ -286,13 +337,13 @@ class Catalogo:
     def por_nivel(self, nivel_lector: float, holgura: float = 0.25,
                   n: int = 10) -> list[Libro]:
         """Libros cercanos al nivel del lector, ordenados por popularidad."""
-        obj = np.array([NIVEL_A_PUNTUACION.get(x, 1.0)
-                        for x in self.df["nivel_cefr"]], dtype=np.float32)
+        obj = self._puntuaciones()
         d = self.df[np.abs(obj - nivel_lector) <= holgura]
         d = d.sort_values("downloads", ascending=False).head(n)
         return [Libro(id=str(f["id"]), titulo=str(f["title"]), autor=str(f["author"]),
                       nivel=str(f["nivel_cefr"]), gancho=str(f["hook"]),
-                      descargas=int(f.get("downloads", 0) or 0))
+                      descargas=int(f.get("downloads", 0) or 0),
+                      dificultad=_dificultad_de(f))
                 for _, f in d.iterrows()]
 
     def resumen(self) -> str:

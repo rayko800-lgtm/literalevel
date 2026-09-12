@@ -799,6 +799,23 @@ NOTA_NIVEL_HEREDADO = (
     "mide el texto de verdad; cuando no coinciden, manda el número del modelo."
 )
 
+# Y cuando el catalogo YA esta medido, decir "heredada y sin medir" seria
+# mentir en la otra direccion. La letra de un libro medido sale del numero del
+# v4 sobre el libro entero (`catalogo.Catalogo`, con `scoring.anchor_cefr`).
+NOTA_NIVEL_MEDIDO = (
+    "La letra de cada libro sale de **medirlo entero con el modelo**, capítulo "
+    "a capítulo. Es orientativa: el modelo ordena bien los niveles, pero no "
+    "certifica ninguno. Al abrirlo, la curva dice dónde se pone cuesta arriba."
+)
+
+
+def _nota_nivel() -> str:
+    """La nota al pie de las letras del catalogo, segun de donde salgan."""
+    try:
+        return NOTA_NIVEL_MEDIDO if getattr(catalogo(), "medido", False) else NOTA_NIVEL_HEREDADO
+    except Exception:
+        return NOTA_NIVEL_HEREDADO
+
 
 def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
     """`vacio` SUSTITUYE a la tabla cuando no hay libros; `nota` va al pie
@@ -881,7 +898,8 @@ def _buscar(p, consulta, ajustar, n):
     # Aqui el mismo texto vale en los dos huecos: `catalogo.buscar` devuelve
     # "ningun libro supera el umbral" cuando la lista sale vacia y "se
     # descartaron N por parecido bajo" cuando trae resultados, nunca las dos.
-    pie = f"{aviso} {NOTA_NIVEL_HEREDADO}" if aviso else NOTA_NIVEL_HEREDADO
+    nota = _nota_nivel()
+    pie = f"{aviso} {nota}" if aviso else nota
     return (cabecera + _tabla_libros(libros, vacio=aviso, nota=pie),
             _opciones_libros(libros))
 
@@ -1100,10 +1118,10 @@ def _recomendar(p, n):
                  f"coincidencia exacta.")
     if rescate:
         return (rescate + _tabla_libros(libros, vacio=si_no_hay,
-                                        nota=NOTA_NIVEL_HEREDADO),
+                                        nota=_nota_nivel()),
                 _opciones_libros(libros))
     return (f"Lo más leído entre **{lo:.2f}** y **{hi:.2f}**:\n\n"
-            + _tabla_libros(libros, vacio=si_no_hay, nota=NOTA_NIVEL_HEREDADO),
+            + _tabla_libros(libros, vacio=si_no_hay, nota=_nota_nivel()),
             _opciones_libros(libros))
 
 
