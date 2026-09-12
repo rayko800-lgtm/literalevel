@@ -57,11 +57,10 @@ aplicación expida. Sirven para elegir qué leer, no para acreditar nada.
 
 El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio
 6.26, probada por una lectora de quince años, prima del autor y ajena al
-proyecto— y con un
-catálogo en curso de remedición: los 61.642 libros en inglés de dominio
-público de Project Gutenberg, leídos enteros por el modelo. A la velocidad
-medida en una GPU A100 eso son unas tres horas de tarjeta y unas diecisiete
-de reloj: el cuello de botella no es el modelo, es leer los archivos.
+proyecto— y con el catálogo entero medido: **53.179 libros** en inglés de
+dominio público de Project Gutenberg, leídos enteros por el modelo, capítulo a
+capítulo. La última tanda, en una GPU gratuita, tardó 55 minutos: el cuello de
+botella nunca fue el modelo, sino leer y guardar los archivos.
 
 **Palabras clave:** legibilidad automática, MCER, adquisición de segundas
 lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
@@ -205,7 +204,8 @@ seguido:
   de color, objetivos táctiles de 44 px y esquinas redondeadas.
 - **Accionables.** Diez, con coste y criterio de terminado; los
   tres primeros son publicar modelo y diccionario, desplegar en enlace
-  permanente y terminar la remedición del catálogo.
+  permanente y terminar la remedición del catálogo, que se completó el 12 de
+  septiembre de 2026.
 
 ---
 
@@ -227,7 +227,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
 | **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 (§6.4) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
-| **StoryWeaver / Global Digital Library** | Lecturas graduadas del catálogo heredado | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
+| **StoryWeaver / Global Digital Library** | Lecturas graduadas del catálogo heredado, retirado el 12 de septiembre de 2026 | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
 
 *Cuadro 2. Fuentes de datos, con volumen y procedencia.*
 
@@ -294,8 +294,9 @@ entre sí en el 89,8 % de los casos, es lo que impide que sea un filtro hecho a
 medida de las notas. Pero no es un criterio *a priori*, y llamarlo así sería
 regalarse una garantía que no se tiene.
 
-**(b) Las etiquetas del catálogo heredado no son fiables, y hay que decirlo.**
-El catálogo con el que la aplicación funciona hoy tiene **1.197 libros** —no
+**(b) Las etiquetas del catálogo heredado no eran fiables, y por eso se
+sustituyó.** El catálogo con el que la aplicación funcionó hasta el 12 de
+septiembre de 2026 tenía **1.197 libros** —no
 12.752, como sugiere un `wc -l` ingenuo: el campo `hook` contiene saltos de
 línea entrecomillados y hay que contar con un lector de CSV real—. Su columna
 `nivel_cefr` **no es anotación humana ni metadato del editor**: son
@@ -318,19 +319,48 @@ modelo v1 sobre las primeras ~190 palabras, no anotación fiable.*
 
 Hay cuentos infantiles etiquetados C1 y clásicos muy distintos entre sí todos
 en C2. Y el tramo B1–B2, donde está la mayoría de los lectores reales, son
-121 libros de 1.197. Estas etiquetas sirven para ordenar y filtrar de forma
-aproximada, **no son una medida fiable libro a libro**, y así se declara tanto
-en el repositorio como en la aplicación. Es la razón de ser del precálculo
-descrito en 8.3: remedir todo el catálogo, libro entero, con el modelo final.
+121 libros de 1.197. Esas etiquetas servían para ordenar y filtrar de forma
+aproximada, **no eran una medida fiable libro a libro**. Es la razón de ser del
+precálculo descrito en 8.3: remedir todo el catálogo, libro entero, con el
+modelo final.
 
-**(c) De esos 1.197 libros, solo 148 se pueden abrir.** Son los de Project
-Gutenberg. Los otros 1.049 provienen de StoryWeaver y no tienen fichero
+**Y se remidió.** El 12 de septiembre de 2026 terminó: **53.179 libros de
+Project Gutenberg y 585.111 capítulos**, medidos enteros por el v4, sin un solo
+libro medido dos veces. Es lo que usa hoy la aplicación, y su reparto dice lo
+contrario que el heredado:
+
+| Nivel | Libros medidos | Libros literarios* |
+|---|---|---|
+| A1 | 1 | 290 entre A1 y B1 |
+| A2 | 40 | |
+| B1 | 558 | |
+| B2 | 3.127 | 1.676 |
+| C1 | 23.454 | |
+| C2 | 25.999 | |
+| **Total** | **53.179** | |
+
+*Cuadro 3b. Reparto del catálogo medido por el v4 (media 1,742 sobre 2).
+\*Los que la aplicación ofrece al recomendar por nivel: ficción, cuentos,
+lecturas escolares, poesía y teatro. Entre los libros «fáciles» había índices,
+anuarios, mapas y tablas de números, que puntúan bajo precisamente porque son
+listas.*
+
+La literatura del XIX es, sobre todo, C1–C2, y un lector B1 apenas tiene libros
+enteros a su medida. Lo que sí tiene son **capítulos**: 3.644 en 1.499 libros
+quedan a su alcance, y la aplicación se los ofrece (8.1). Dos cautelas: la letra
+es orientativa, porque la escala del modelo sale comprimida y desplazada hacia
+arriba (7.5), y el reparto describe el catálogo de Gutenberg, no la dificultad
+de la lectura en inglés en general.
+
+**(c) De aquellos 1.197 libros, solo 148 se podían abrir.** Eran los de Project
+Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero
 descargable, de modo que aparecían en el desplegable de lectura como opciones
 muertas. Peor aún: su identificador se había usado para construir enlaces a
 Gutenberg extrayendo sus dígitos, con lo que `SWgdlgdl201` apuntaba al libro
 201 de Gutenberg, que es otra obra. Un enlace al libro equivocado es peor que
-ningún enlace. Hoy el desplegable lista solo lo que se puede abrir, la tabla
-marca los descargables y una línea dice cuántos de cuántos son.
+ningún enlace. **En el catálogo medido los 53.179 libros se pueden abrir**, y la
+aplicación los descarga en `.txt`, el mismo texto con el que se midieron, para
+que los capítulos del lector sean los de la curva.
 
 **(d) La licencia de Project Gutenberg se estaba puntuando como si fuera
 novela.** El texto legal viene pegado al último capítulo: en *Alice's
@@ -1237,19 +1267,18 @@ repetirlo en cada párrafo corregido.
    por nivel de Colab; con las cinco locales sale 0,67x + 0,41), así que los
    niveles bajos se sobreestiman y
    los altos se subestiman. Es la razón de mostrar bandas y no decimales.
-3. **Las etiquetas del catálogo heredado no son fiables** (Cuadro 3). Son
-   predicciones de un modelo v1 sobre las primeras ~190 palabras. La remedición
-   está en curso y es el trabajo pendiente más importante. Y no es una
-   limitación que se quede en el papel: con perfil 1,20, «Sorpréndeme»
-   propone *The Secret Adversary* con etiqueta **B2**, y el botón de al lado
-   —el modelo v4 leyendo el texto— devuelve **1,50** en el prólogo y **1,77**
-   de media en el vistazo, o sea **C1**. La aplicación desmentida por la
-   aplicación cuatro clics después. Mientras dura la remedición, las dos
-   tablas que enseñan la letra llevan escrito al pie que es heredada y que
-   **manda el número del modelo**; decirlo en el PDF y no en la pantalla
-   habría sido decirlo donde no se ve.
-4. **De los 1.197 libros del catálogo actual, solo 148 son descargables.** Los
-   1.049 de StoryWeaver no tienen fichero que abrir.
+3. **Las letras del catálogo son orientativas.** Ya no son heredadas: los
+   53.179 libros están medidos enteros por el v4 (Cuadro 3b). Pero la escala
+   del modelo sale comprimida y desplazada hacia arriba —un texto Elementary de
+   OneStopEnglish puntúa 0,93—, así que la letra de un libro fácil tiende a
+   subir. La aplicación lo dice al pie de cada tabla, en la pantalla y no solo
+   en el PDF. Hasta el 12 de septiembre de 2026 esta limitación era peor: con
+   perfil 1,20, «Sorpréndeme» proponía *The Secret Adversary* con etiqueta
+   heredada **B2**, y el v4 leyendo el texto devolvía **C1**.
+4. **La literatura del catálogo es, en su inmensa mayoría, C1–C2**: 1 libro A1,
+   40 A2 y 558 B1 de 53.179. Para un lector B1 la respuesta no son libros
+   enteros sino capítulos (3.644 en 1.499 libros), y por nivel solo se ofrecen
+   lecturas literarias: 290 entre A1 y B1.
 5. **Los tamaños muestrales de la validación externa son pequeños**: 38 textos
    en Colab, 47 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
    niveles adyacentes con esas *n* no es significativa; lo que se afirma es el
@@ -1325,8 +1354,9 @@ repetirlo en cada párrafo corregido.
 
 ## 10. Trabajo futuro
 
-1. Terminar la remedición del catálogo completo y sustituir las etiquetas
-   heredadas por medidas del v4 sobre el libro entero.
+1. **Hecho el 12 de septiembre de 2026:** remedir el catálogo completo y
+   sustituir las etiquetas heredadas por medidas del v4 sobre el libro entero
+   (53.179 libros, 585.111 capítulos).
 2. **Hecho el 12 de septiembre de 2026:** publicar el guion de entrenamiento y
    la composición del corpus de anclaje, que resultó ser público (ELG CEFR
    English). Las métricas del v4 ya se recalculan en lugar de citarse.
@@ -1438,11 +1468,10 @@ criterio de contraste WCAG AA y una interfaz que se puede usar con el pulgar.
 **Y queda pendiente lo que más pesa.** La aplicación funciona y ya tiene
 dirección fija, pero sobre el hardware más barato: se suspende por
 inactividad, y el primer visitante tras la siesta paga el arranque en frío.
-El catálogo se está remidiendo.
-Y el cuaderno, aunque ya corre entero desde los pesos publicados, cita las
-métricas del v4 en vez de recalcularlas, porque su corpus de anclaje no es
-redistribuible. Las tres cosas están
-planificadas con coste y criterio de terminado en el documento de estrategia.
+El catálogo ya está medido entero —53.179 libros— y las métricas del v4, que
+el documento citaba sin poder recalcular, ya se recalculan desde el
+repositorio. Lo que queda está planificado con coste y criterio de terminado
+en el documento de estrategia.
 
 **Y para qué sirve esto, dicho como decisión y no como métrica.** Un lector que
 hoy elige libro por la portada puede, con esta herramienta, hacer tres cosas
@@ -1457,8 +1486,8 @@ por título.
 
 **Lo que este proyecto recomienda hacer a continuación, en orden de valor por
 hora de trabajo**, está en el documento de estrategia con coste y criterio de
-terminado: terminar la remedición del catálogo, que es lo que separa un
-prototipo de un producto; y calibrar la escala, que es la
+terminado. La remedición del catálogo, que era lo que separaba un prototipo de
+un producto, ya está hecha; lo siguiente es calibrar la escala, que es la
 diferencia entre decirle a alguien que un libro es A2 y que lo sea.
 
 ---

@@ -23,7 +23,39 @@ import config
 import ficha
 
 RAIZ = Path(__file__).resolve().parent.parent
-CSV_POR_DEFECTO = RAIZ / "catalogo_recomendaciones.csv"
+# El catalogo MEDIDO -53.179 libros de Project Gutenberg, el v4 sobre el libro
+# entero- si esta; si no, el heredado. Asi un clon sin los archivos del catalogo
+# medido sigue arrancando igual que antes.
+CSV_MEDIDO = RAIZ / "catalogo_medido.csv"
+CSV_HEREDADO = RAIZ / "catalogo_recomendaciones.csv"
+CSV_POR_DEFECTO = CSV_MEDIDO if CSV_MEDIDO.exists() else CSV_HEREDADO
+# La curva por capitulo del catalogo medido, junto a su CSV.
+NOMBRE_CAPITULOS = "capitulos_medidos.parquet"
+
+# Lo que no es un libro para leer, aunque venga de Gutenberg: indices,
+# catalogos, bibliografias, directorios. Medido el 12 de septiembre de 2026: 79
+# de los 599 libros A1-B1 del catalogo medido eran esto -los *CIA World
+# Factbook*, listas de oficinas de correos, tablas de constantes- y puntuan
+# "facil" precisamente porque son listas. NO se borran del CSV: los embeddings
+# van alineados fila a fila y borrar una obligaria a recodificar el catalogo.
+# Se excluyen al recomendar y al buscar.
+_NO_ES_LECTURA_TEMAS = re.compile(
+    r"(?i)\bindexes\b|\bcatalogs\b|bibliograph|\bdirectories\b|gazetteers|almanacs")
+_NO_ES_LECTURA_TITULO = re.compile(
+    r"(?i)index of the project gutenberg|project gutenberg (?:works|index|catalog)"
+    r"|world factbook|^list of |\bdirectory\b|\bconstants\b")
+
+# Y para RECOMENDAR por nivel, ademas, que sea literatura segun sus temas de
+# Gutenberg. Medido el 12 de septiembre de 2026: tras quitar indices y
+# catalogos, entre los libros "mas faciles" seguian un mapa de tarifas de taxi
+# de Londres, problemas de ajedrez y una tabla de numeros de Bernoulli. Es una
+# app de lectura literaria: por nivel se ofrecen ficcion, cuentos, lecturas
+# escolares, poesia y teatro (290 libros A1-B1 y 1.676 B2 en el catalogo
+# medido). El BUSCADOR no filtra por esto: quien escribe un titulo sabe lo que
+# busca.
+_LITERARIO = re.compile(
+    r"(?i)fiction|\btales?\b|stories|\breaders\b|juvenile|poetry|poems|drama|\bplays\b"
+    r"|fables|legends|folklore|fairy|nursery rhymes|literature|novels?\b|romance")
 # La cache de embeddings del catalogo. Sale de `config.dir_datos()` como las
 # demas rutas de escritura: clavada a `~/.literalevel` se quedaba en el disco
 # EFIMERO del Space, y cada reinicio recodificaba los 1.197 libros con el
@@ -259,6 +291,55 @@ class Catalogo:
         return (d is not None and "dificultad" in d.columns
                 and bool(pd.to_numeric(d["dificultad"], errors="coerce").notna().any()))
 
+    @property
+    def _excluidos(self) -> np.ndarray:
+        """Marca las filas que no son libros para leer (ver _NO_ES_LECTURA_*).
+
+        Solo el catalogo medido trae `temas`; el heredado no se toca."""
+        if getattr(self, "_excl", None) is None:
+            d = self.df
+            if "temas" in d.columns:
+                t = d["title"].fillna("").astype(str)
+                s = d["temas"].fillna("").astype(str)
+                self._excl = (t.str.contains(_NO_ES_LECTURA_TITULO)
+                              | s.str.contains(_NO_ES_LECTURA_TEMAS)).to_numpy()
+            else:
+                self._excl = np.zeros(len(d), dtype=bool)
+        return self._excl
+
+    @property
+    def _literarios(self) -> np.ndarray:
+        """Marca los libros cuyo tema es literatura (ver _LITERARIO).
+
+        Sin `temas` -el catalogo heredado- todo cuenta como literario."""
+        if getattr(self, "_lit", None) is None:
+            d = self.df
+            if "temas" in d.columns:
+                self._lit = d["temas"].fillna("").astype(str).str.contains(_LITERARIO).to_numpy()
+            else:
+                self._lit = np.ones(len(d), dtype=bool)
+        return self._lit
+
+    def capitulos_de(self, id_libro) -> list[dict]:
+        """La curva por capitulo que midio el catalogo para este libro, o [].
+
+        Se carga una vez y se indexa por id: son 585.111 filas, y convertirlas
+        todas a diccionarios al arrancar costaria segundos que nadie ha pedido.
+        """
+        if getattr(self, "_caps", None) is None:
+            self._caps = pd.DataFrame()
+            ruta = Path(self.ruta).with_name(NOMBRE_CAPITULOS)
+            if self.medido and ruta.exists():
+                try:
+                    self._caps = pd.read_parquet(ruta).set_index("id").sort_index()
+                except Exception:
+                    self._caps = pd.DataFrame()       # sin curva, sin sugerencias
+        pid = str(id_libro or "").upper()
+        if self._caps.empty or pid not in self._caps.index:
+            return []
+        filas = self._caps.loc[[pid]].reset_index()
+        return filas.sort_values("capitulo").to_dict("records")
+
     def _puntuaciones(self) -> np.ndarray:
         """El nivel de cada libro en la escala publica 0..2: la medida si la
         hay, y si no, la letra heredada traducida con NIVEL_A_PUNTUACION.
@@ -312,6 +393,8 @@ class Catalogo:
         for i in orden[:n * 3]:
             if len(libros) >= n:
                 break
+            if self._excluidos[i]:
+                continue                      # un indice o un catalogo, no un libro
             if sim[i] < minimo_similitud:
                 flojos += 1
                 continue
@@ -338,7 +421,8 @@ class Catalogo:
                   n: int = 10) -> list[Libro]:
         """Libros cercanos al nivel del lector, ordenados por popularidad."""
         obj = self._puntuaciones()
-        d = self.df[np.abs(obj - nivel_lector) <= holgura]
+        d = self.df[(np.abs(obj - nivel_lector) <= holgura) & ~self._excluidos
+                    & self._literarios]
         d = d.sort_values("downloads", ascending=False).head(n)
         return [Libro(id=str(f["id"]), titulo=str(f["title"]), autor=str(f["author"]),
                       nivel=str(f["nivel_cefr"]), gancho=str(f["hook"]),

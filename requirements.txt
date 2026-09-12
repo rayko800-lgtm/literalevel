@@ -16,6 +16,8 @@ numpy>=1.26,<3
 
 # Catalogo: el CSV se lee con pandas y se indexa con embeddings.
 pandas>=2.2,<4
+# La curva por capitulo del catalogo medido va en parquet (capitulos_medidos.parquet).
+pyarrow>=15,<30
 sentence-transformers>=3.0,<7
 
 # lexicon.py: lema y categoria gramatical dentro de la oracion.

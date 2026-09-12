@@ -200,7 +200,7 @@ diagnosticó qué producía cada queja y se corrigió.
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono
 real —y no en el navegador del escritorio— había descubierto antes fallos que
-**ninguna de las 302 pruebas automáticas podía encontrar, porque todos
+**ninguna de las 303 pruebas automáticas podía encontrar, porque todos
 necesitaban un dedo y una pantalla pequeña**:
 
 - El doble toque para consultar una palabra **no funcionaba en el móvil**: el
@@ -281,7 +281,7 @@ palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
 
-La regla que verifican las 302 pruebas de robustez es una sola: **ningún
+La regla que verifican las 303 pruebas de robustez es una sola: **ningún
 manejador puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve
 como texto legible.
 
@@ -441,7 +441,7 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 |---|---|---|---|---|
 | **A1** | **Publicar el modelo y el diccionario** como repositorios abiertos | Desbloquea la reproducibilidad del cuaderno, que antes no corría en un Colab ajeno | ~30 min; gratuito. Requiere un token que solo el autor puede crear | **HECHO a medias**: el modelo (328 MB) está en `MikeMaki1763/literalevel-v4`, público y con la descarga sin credenciales verificada. El diccionario (243 MB) sigue sin publicar |
 | **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware `cpu-basic` no añade coste | **HECHO**: `huggingface.co/spaces/MikeMaki1763/literalevel`, público y en marcha. Queda el disco persistente, que es A4 |
-| **A3** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales. Es la deuda técnica más visible | ~3 h de tarjeta y ~17 h de reloj —el 80 % del tiempo la tarjeta espera a Drive—, dentro del crédito disponible; la descarga va por `common-pile/project_gutenberg` (10,5 GB a 8,0 MB/s, veintidós minutos) y no por el archivo único de 11,3 GB, que se midió a 0,29 MB/s y se descartó | El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira |
+| ~~**A3**~~ **HECHO** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales | T4 gratuita; la descarga por `common-pile/project_gutenberg` (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión | **Cumplido el 12 de septiembre de 2026**: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa |
 | ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí |
 | **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
 | **A6** | **Retirar del catálogo los 1.049 registros no descargables** o marcarlos como fichas informativas sin botón de lectura | Hoy son el 87,6 % del catálogo y no se pueden abrir. Ya no aparecen en el desplegable, pero siguen ocupando el índice | Media jornada | El catálogo lista solo lo que se puede leer, o distingue visualmente ambas cosas sin ambigüedad |
@@ -467,9 +467,9 @@ publicación y un micrófono.
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas— |
 | Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Cumplido**: 302 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
+| Producto | Robustez | **Cumplido**: 303 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
 | Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en `/data` |
-| Operación | Catálogo medido, no heredado | **En curso** (A3) |
+| Operación | Catálogo medido, no heredado | **Cumplido** el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |
 
 *Cuadro 3. Métricas por nivel, con su estado real.*
@@ -483,7 +483,7 @@ publicación y un micrófono.
 | El enlace de la demostración muere durante la evaluación | Alto | A2: despliegue permanente, probado desde un dispositivo ajeno antes de la fecha |
 | El servicio externo de lenguaje agota su presupuesto en mitad de una demostración | Medio | Ya mitigado: la aplicación degrada con un mensaje legible y conserva diccionario, fonética, audio, buscador y puntuación |
 | Que la letra MCER se lea como una certificación | Alto, reputacional | Declaración de alcance en el documento y aviso permanente en pantalla |
-| Que la remedición del catálogo no termine a tiempo | Medio | El proceso es reanudable por bloques y los resultados se guardan por lotes; lo medido ya es utilizable aunque falte el resto |
+| Que la remedición del catálogo no termine a tiempo | ~~Medio~~ **Resuelto** | Terminada el 12 de septiembre de 2026: sin Drive, con los resultados en Hugging Face tras cada lote, 0 errores y ningún libro medido dos veces |
 | Sobrecarga del espejo de descarga de Project Gutenberg | Medio, ético | Seis hilos y no treinta, cada uno con su pausa entre peticiones; y el vocabulario se obtuvo del SPGC, no rascando el sitio |
 | Contenido inapropiado para una lectora menor de edad | Medio | Decisión razonada de **no filtrar por contenido** y avisar en la ficha; se argumenta en el apartado 8.4 del documento principal |
 

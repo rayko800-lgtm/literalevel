@@ -20,15 +20,15 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
 
 1. **Sitúa al lector.** Un cuestionario breve —seis preguntas y tres fragmentos
    en escalera—, o midiendo un texto que ya lee cómodo.
-2. **Busca qué leer.** 1.197 libros indexados por significado: se describe la
-   trama en español y el buscador la entiende. Se ajusta al nivel del lector.
-   **Aviso sobre las etiquetas del catálogo:** la columna `nivel_cefr` de los
-   1.197 libros **no es anotación humana ni metadato del editor**. Son
-   predicciones automáticas de un modelo anterior (v1) sobre las primeras
-   ~190 palabras de cada obra, con cortes CEFR obtenidos por cuantiles. Por
-   eso hay cuentos infantiles etiquetados C1 y clásicos muy distintos entre sí
-   todos en C2. Sirven para ordenar y filtrar de forma aproximada; **no son
-   una medida de nivel fiable libro a libro**, y no deben presentarse como tal.
+2. **Busca qué leer.** 53.179 libros de Project Gutenberg indexados por
+   significado: se describe la trama en español y el buscador la entiende. Se
+   ajusta al nivel del lector. **Cada libro está medido entero por el modelo
+   v4**, capítulo a capítulo (585.111 capítulos), y cuando un libro te queda
+   grande la aplicación te propone los capítulos que sí están a tu alcance. La
+   letra es orientativa: el modelo ordena bien los niveles, pero no certifica
+   ninguno. (Hasta el 12 de septiembre de 2026 el catálogo eran 1.197 libros
+   con etiquetas heredadas de un modelo v1 que leía solo las primeras ~190
+   palabras de cada obra.)
 3. **Lee.** Lector integrado de epub, pdf y txt. Los libros de Project
    Gutenberg se descargan y se abren dentro de la app, sin salir a por ellos.
    Al abrir un libro sale su **ficha**: cuánto se tarda en leerlo al ritmo de
@@ -151,7 +151,7 @@ torch.
 
 ```bash
 python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # 302 pruebas que intentan romper la interfaz
+python -X utf8 pruebas_extremas.py     # 303 pruebas que intentan romper la interfaz
 python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
 python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
 python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel

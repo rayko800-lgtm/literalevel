@@ -205,6 +205,29 @@ comprobar("capitulos a tu nivel: un nivel que no es numero da lista vacia",
           ficha.capitulos_a_tu_nivel(CURVA, None, 0.15) == [])
 
 
+print("Ficha: alinear con el catalogo")
+
+CUERPO = "The rain fell on the quiet moor and the train ran west. " * 30
+con_portada = Lib("Libro", "A", [Cap("Title", "Project Gutenberg title page " * 3),
+                                  Cap("CHAPTER I", CUERPO), Cap("CHAPTER II", CUERPO),
+                                  Cap("CHAPTER III", CUERPO)])
+filas_cat = [{"capitulo": 1, "indice": 0, "titulo": "Chapter I"},
+             {"capitulo": 2, "indice": 1, "titulo": "Chapter II"},
+             {"capitulo": 3, "indice": 2, "titulo": "Chapter III"}]
+mapa = ficha.alinear_con_catalogo(con_portada, filas_cat)
+comprobar("alinear: traduce al indice de ESTE libro, no al del catalogo",
+          mapa == {1: 1, 2: 2, 3: 3}, str(mapa))
+comprobar("alinear: con distinto numero de capitulos no alinea",
+          ficha.alinear_con_catalogo(con_portada, filas_cat[:2]) == {})
+otro = [dict(f) for f in filas_cat]
+otro[1]["titulo"] = "Chapter XX"
+comprobar("alinear: un titulo distinto en su posicion no alinea",
+          ficha.alinear_con_catalogo(con_portada, otro) == {})
+comprobar("alinear: sin filas o con filas rotas no revienta",
+          ficha.alinear_con_catalogo(con_portada, []) == {}
+          and ficha.alinear_con_catalogo(con_portada, [{"titulo": "x"}]) == {})
+
+
 print()
 if fallos:
     print(f"FALLAN {len(fallos)}: " + ", ".join(fallos))

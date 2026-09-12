@@ -513,3 +513,38 @@ def capitulos_a_tu_nivel(filas, nivel, margen, minimo_palabras=1500, tope=5):
             buenas.append(f)
     buenas.sort(key=lambda f: (abs(float(f["dificultad"]) - nivel), int(f["indice"])))
     return buenas[:max(int(tope), 0)]
+
+
+def _titulo_normalizado(t) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(t).lower()).strip()[:40]
+
+
+def alinear_con_catalogo(libro, filas) -> dict:
+    """{capitulo del catalogo -> indice en ESTE libro}, o {} si no cuadran.
+
+    La curva por capitulo del catalogo se midio en Colab sobre el `.txt` de cada
+    libro. Si la app abre otro formato, sus capitulos pueden NO ser los mismos.
+    Medido el 12 de septiembre de 2026 sobre tres libros: el EPUB de *Pride and
+    Prejudice* trae 15 secciones donde el `.txt` trae 61 capitulos; el `.txt`
+    de *Frankenstein* coincide en titulos con el indice desplazado uno. Saltar
+    con el indice del catalogo llevaria al lector a otro capitulo.
+
+    Asi que solo se alinea cuando TODO cuadra: el mismo numero de capitulos de
+    cuerpo y el mismo titulo en cada posicion. Se empareja por POSICION entre
+    los capitulos de cuerpo -que es lo que el catalogo llama `capitulo`- y se
+    devuelve el indice real de este libro, no el del catalogo. Si algo no
+    cuadra, diccionario vacio: mejor no sugerir que sugerir mal.
+    """
+    try:
+        cuerpo = capitulos_de_cuerpo(libro)
+        filas = sorted(filas or [], key=lambda f: int(f["capitulo"]))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return {}
+    if not cuerpo or len(cuerpo) != len(filas):
+        return {}
+    mapa = {}
+    for (i, c), f in zip(cuerpo, filas):
+        if _titulo_normalizado(c.titulo) != _titulo_normalizado(f.get("titulo", "")):
+            return {}
+        mapa[int(f["capitulo"])] = i
+    return mapa

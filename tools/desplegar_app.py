@@ -59,6 +59,13 @@ LISTA_BLANCA = [
     "app/ui.py",
     "app/voz.py",
     "requirements.txt",
+    # El catalogo medido por el v4 (12 de septiembre de 2026): el CSV por libro
+    # y la curva por capitulo. Sus embeddings (catalogo_emb_165a842a755c1b33.npy,
+    # 82 MB) NO van en esta lista: en el Space viajan por LFS, su hash de git no
+    # coincide con el local y se volverian a subir en cada despliegue. Se suben
+    # una vez, a mano, con upload_file.
+    "catalogo_medido.csv",
+    "capitulos_medidos.parquet",
 ]
 
 # Formas de credencial que no deben viajar a un repositorio publico.

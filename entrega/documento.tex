@@ -257,10 +257,10 @@ expida. Sirven para elegir qué leer, no para acreditar nada.
 
 El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio 6.26
 \parencite{abid2019gradio}, probada por una lectora de quince años, prima del autor y ajena al
-proyecto— y con un catálogo en curso de remedición: los 61.642 libros en inglés de
-dominio público de Project Gutenberg, leídos enteros por el modelo. A la velocidad
-medida en una GPU A100 eso son unas tres horas de tarjeta y unas diecisiete de
-reloj: el cuello de botella no es el modelo, es leer los archivos.
+proyecto— y con el catálogo entero medido: \textbf{53.179 libros} en inglés de dominio
+público de Project Gutenberg, leídos enteros por el modelo, capítulo a capítulo. La última
+tanda, en una GPU gratuita, tardó 55 minutos: el cuello de botella nunca fue el modelo,
+sino leer y guardar los archivos.
 
 \vspace{0.4cm}
 \noindent\textbf{Palabras clave:} legibilidad automática, MCER, adquisición de
@@ -742,7 +742,7 @@ Creyó que «Recomiéndame por nivel» tendría en cuenta sus gustos & La etique
 
 El ciclo de Esmeralda no fue el primero. Probar la aplicación en un teléfono real —y no
 en el navegador del escritorio— había descubierto antes fallos que \textbf{ninguna de
-las 302 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
+las 303 pruebas automáticas podía encontrar, porque todos necesitaban un dedo y una
 pantalla pequeña}:
 
 \begin{itemize}[leftmargin=*, itemsep=3pt]
@@ -819,7 +819,7 @@ ficha—, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
-La regla que verifican las 302 pruebas de robustez es una sola: \textbf{ningún manejador
+La regla que verifican las 303 pruebas de robustez es una sola: \textbf{ningún manejador
 puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
 
 \subsubsection{Cada número dice de dónde viene}
@@ -871,7 +871,7 @@ terminado. No son «se podría»: son «se hace».
 \addlinespace
 \textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware \cod{cpu-basic} no añade coste & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel}, público y en marcha; queda el disco persistente, que es A4 \\
 \addlinespace
-\textbf{A3} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales. Es la deuda técnica más visible & $\sim$3 h de tarjeta y $\sim$17 h de reloj —el 80\pct{} del tiempo la tarjeta espera a Drive—, dentro del crédito. La descarga va por el volcado de Common Pile: 10,5 GB a 8,0 MB/s, veintidós minutos. El archivo único de 11,3 GB se midió a 0,29 MB/s y se descartó (\S\ref{sec:escalado}) & El catálogo publica niveles medidos y el aviso sobre las etiquetas heredadas se retira \\
+\textbf{A3 · HECHO} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales & T4 gratuita; la descarga por el volcado de Common Pile (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión (\S\ref{sec:escalado}) & \textbf{Cumplido el 12 de septiembre de 2026}: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa \\
 \addlinespace
 \textbf{A4 · HECHO} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» & 18 USD por TB y mes en repositorio privado; los datos del lector ocupan 10,9 MB medidos, así que el coste es despreciable & \textbf{Cumplido y verificado}: bucket montado en \cod{/data}; se fijó un perfil, se reinició el Space y el perfil seguía ahí \\
 \addlinespace
@@ -907,9 +907,9 @@ Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textb
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas--- \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Cumplido}: 302 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Producto & Robustez & \textbf{Cumplido}: 303 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
-Operación & Catálogo medido, no heredado & \textbf{En curso} (A3) \\
+Operación & Catálogo medido, no heredado & \textbf{Cumplido} el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
 \bottomrule
 \end{tabularx}
@@ -929,7 +929,7 @@ Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
 El enlace de la demostración muere durante la evaluación & Alto & A2: despliegue permanente, probado desde un dispositivo ajeno antes de la fecha \\
 El servicio externo de lenguaje agota su presupuesto en mitad de una demostración & Medio & Ya mitigado: la aplicación degrada con un mensaje legible y conserva diccionario, fonética, audio, buscador y puntuación \\
 Que la letra MCER se lea como una certificación & Alto, reputacional & Declaración de alcance en el documento y aviso permanente en pantalla \\
-Que la remedición del catálogo no termine a tiempo & Medio & El proceso es reanudable por bloques y los resultados se guardan por lotes; lo medido ya es utilizable aunque falte el resto \\
+Que la remedición del catálogo no termine a tiempo & \textbf{Resuelto} & Terminada el 12 de septiembre de 2026: sin Drive, con los resultados en Hugging Face tras cada lote, 0 errores y ningún libro medido dos veces \\
 Sobrecarga del espejo de descarga de Project Gutenberg & Medio, ético & Seis hilos y no treinta, cada uno con su pausa entre peticiones; y el vocabulario se obtuvo del SPGC, no rascando el sitio \\
 Contenido inapropiado para una lectora menor de edad & Medio & Decisión razonada de \textbf{no filtrar por contenido} y avisar en la ficha; se argumenta en el apartado~\ref{sec:producto} \\
 \bottomrule
@@ -970,7 +970,7 @@ entorno de cómputo: solo estadísticas agregadas.
 \addlinespace
 \textbf{Kaikki / Wiktio\-nary} & Diccionario, IPA británica y americana, audio & 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 & Volcado de kaikki.org \parencite{ylonen2022wiktextract} & Libre \\
 \addlinespace
-\textbf{Story\-Weaver / Global Digital Library} & Lecturas graduadas del catálogo heredado & 1.049 registros & API pública de contenidos & Abierta, pero sin descarga de texto \\
+\textbf{Story\-Weaver / Global Digital Library} & Lecturas graduadas del catálogo heredado, retirado el 12 de septiembre de 2026 & 1.049 registros & API pública de contenidos & Abierta, pero sin descarga de texto \\
 \bottomrule
 \end{tabularx}
 \caption{Fuentes de datos, con volumen y procedencia.}
@@ -1037,8 +1037,9 @@ mirar las puntuaciones, y que coincidan entre sí en el 89,8\pct{} de los casos,
 impide que sea un filtro hecho a medida de las notas. Pero no es un criterio \emph{a
 priori}, y llamarlo así sería regalarse una garantía que no se tiene.
 
-\paragraph{(b) Las etiquetas del catálogo heredado no son fiables, y hay que decirlo.}
-El catálogo con el que la aplicación funciona hoy tiene \textbf{1.197 libros} —no
+\paragraph{(b) Las etiquetas del catálogo heredado no eran fiables, y por eso se sustituyó.}
+El catálogo con el que la aplicación funcionó hasta el 12 de septiembre de 2026 tenía
+\textbf{1.197 libros} —no
 12.752, como sugiere un \cod{wc -l} ingenuo: el campo \cod{hook} contiene saltos de
 línea entrecomillados y hay que contar con un lector de CSV real—. Su columna
 \cod{nivel\_cefr} \textbf{no es anotación humana ni metadato del editor}: son
@@ -1104,20 +1105,54 @@ que la produjo. Datos del cuadro~\ref{cuad:catalogo}.}
 \end{figure}
 
 Hay cuentos infantiles etiquetados C1 y clásicos muy distintos entre sí todos en C2. Y
-el tramo B1--B2, donde está la mayoría de los lectores reales, son 121 libros de 1.197.
-Estas etiquetas sirven para ordenar y filtrar de forma aproximada, \textbf{no son una
-medida fiable libro a libro}, y así se declara tanto en el repositorio como en la
-aplicación. Es la razón de ser del precálculo descrito en~\ref{sec:escalado}: remedir
-todo el catálogo, libro entero, con el modelo final.
+el tramo B1--B2, donde está la mayoría de los lectores reales, eran 121 libros de 1.197.
+Esas etiquetas servían para ordenar y filtrar de forma aproximada, \textbf{no eran una
+medida fiable libro a libro}. Es la razón de ser del precálculo descrito
+en~\ref{sec:escalado}: remedir todo el catálogo, libro entero, con el modelo final.
 
-\paragraph{(c) De esos 1.197 libros, solo 148 se pueden abrir.} Son los de Project
-Gutenberg. Los otros 1.049 provienen de StoryWeaver y no tienen fichero descargable, de
+\textbf{Y se remidió.} El 12 de septiembre de 2026 terminó: \textbf{53.179 libros de
+Project Gutenberg y 585.111 capítulos}, medidos enteros por el v4, sin un solo libro medido
+dos veces. Es lo que usa hoy la aplicación, y su reparto dice lo contrario que el heredado
+(cuadro~\ref{cuad:catalogomedido}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}l R{2.4cm} R{3.2cm}@{}}
+\toprule
+\textbf{Nivel} & \textbf{Libros medidos} & \textbf{Libros literarios} \\
+\midrule
+A1 & 1 & \\
+A2 & 40 & \\
+B1 & 558 & 290 entre A1 y B1 \\
+B2 & 3.127 & 1.676 \\
+C1 & 23.454 & \\
+C2 & 25.999 & \\
+\midrule
+\textbf{Total} & \textbf{53.179} & \\
+\bottomrule
+\end{tabular}
+\caption{Reparto del catálogo medido por el v4 (media 1,742 sobre 2). «Literarios» son los
+que la aplicación ofrece al recomendar por nivel: ficción, cuentos, lecturas escolares,
+poesía y teatro. Entre los libros «fáciles» había índices, anuarios, mapas y tablas de
+números, que puntúan bajo precisamente porque son listas.}
+\label{cuad:catalogomedido}
+\end{table}
+
+La literatura del XIX es, sobre todo, C1--C2, y un lector B1 apenas tiene libros enteros a
+su medida. Lo que sí tiene son \textbf{capítulos}: 3.644 en 1.499 libros quedan a su
+alcance, y la aplicación se los ofrece. Dos cautelas: la letra es orientativa, porque la
+escala del modelo sale comprimida y desplazada hacia arriba, y el reparto describe el
+catálogo de Gutenberg, no la dificultad de la lectura en inglés en general.
+
+\paragraph{(c) De aquellos 1.197 libros, solo 148 se podían abrir.} Eran los de Project
+Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero descargable, de
 modo que aparecían en el desplegable de lectura como opciones muertas. Peor aún: su
 identificador se había usado para construir enlaces a Gutenberg extrayendo sus dígitos,
 con lo que \cod{SWgdlgdl201} apuntaba al libro 201 de Gutenberg, que es otra obra. Un
-enlace al libro equivocado es peor que ningún enlace. Hoy el desplegable lista solo lo
-que se puede abrir, la tabla marca los descargables y una línea dice cuántos de cuántos
-son.
+enlace al libro equivocado es peor que ningún enlace. \textbf{En el catálogo medido los
+53.179 libros se pueden abrir}, y la aplicación los descarga en \cod{.txt}, el mismo texto
+con el que se midieron, para que los capítulos del lector sean los de la curva.
 
 \paragraph{(d) La licencia de Project Gutenberg se estaba puntuando como si fuera
 novela.} El texto legal viene pegado al último capítulo: en \emph{Alice's Adventures in
@@ -1168,7 +1203,9 @@ práctica que se documenta en~\ref{sec:bivariado}.
 \textbf{El catálogo.} El cuadro~\ref{cuad:catalogo} y la figura~\ref{fig:catalogo}
 muestran el reparto de niveles del catálogo heredado. Su forma —60\pct{} en A1— es en sí
 misma un hallazgo del análisis exploratorio: una distribución así no describe la
-literatura en dominio público, describe el sesgo del clasificador que la produjo.
+literatura en dominio público, describe el sesgo del clasificador que la produjo. El
+catálogo medido por el v4 (cuadro~\ref{cuad:catalogomedido}) lo confirma por el lado
+contrario: 53.179 libros, y solo 599 por debajo de B2.
 
 \textbf{La dificultad dentro de un libro.} La unidad de análisis del producto no es el
 libro sino el capítulo, y la figura~\ref{fig:curva_wp} muestra por qué: los 362
@@ -1653,9 +1690,9 @@ documento} repartidas a lo largo del texto: es lo que mantiene el análisis en \
 en una CPU —0,96 a 1,04 s medidos sobre ocho ventanas en el equipo del autor, un
 Ryzen 5 2600—, y por eso un vistazo mide una muestra del texto y no el texto
 entero. El precálculo del catálogo, en cambio, recorre el libro completo sin
-muestrear y publica una dificultad por capítulo; esa remedición está \textbf{en curso}
-(accionable A3), así que las etiquetas que hoy lleva el catálogo siguen siendo las
-heredadas del v1. Su escala
+muestrear y publica una dificultad por capítulo; esa remedición \textbf{terminó el 12 de
+septiembre de 2026} (accionable A3), y las letras del catálogo son ya las medidas por el
+v4. Su escala
 interna es 0--5 —un valor por nivel
 MCER, con posiciones intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala
 multiplicada por 0,4. \textbf{El modelo es final y no se reentrena.}
@@ -2704,19 +2741,18 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         (figura~\ref{fig:compresion}; mínimos cuadrados sobre las cuatro medias por nivel
         de Colab, y $0{,}67x + 0{,}41$ con las cinco locales), así que los niveles bajos se
         sobreestiman y los altos se subestiman. Es la razón de mostrar bandas y no decimales.
-  \item \textbf{Las etiquetas del catálogo heredado no son fiables}
-        (cuadro~\ref{cuad:catalogo}). Son predicciones de un modelo v1 sobre las primeras
-        $\sim$190 palabras. La remedición está en curso y es el trabajo pendiente más
-        importante. Y no es una limitación que se quede en el papel: con perfil 1,20,
-        «Sorpréndeme» propone \emph{The Secret Adversary} con etiqueta \textbf{B2}, y el
-        botón de al lado ---el modelo v4 leyendo el texto--- devuelve \textbf{1,50} en el
-        prólogo y \textbf{1,77} de media en el vistazo, o sea \textbf{C1}. La aplicación
-        desmentida por la aplicación cuatro clics después. Mientras dura la remedición,
-        las dos tablas que enseñan la letra llevan escrito al pie que es heredada y que
-        \textbf{manda el número del modelo}; decirlo en el PDF y no en la pantalla habría
-        sido decirlo donde no se ve.
-  \item \textbf{De los 1.197 libros del catálogo actual, solo 148 son descargables.} Los
-        1.049 de StoryWeaver no tienen fichero que abrir.
+  \item \textbf{Las letras del catálogo son orientativas.} Ya no son heredadas: los 53.179
+        libros están medidos enteros por el v4 (cuadro~\ref{cuad:catalogomedido}). Pero la
+        escala del modelo sale comprimida y desplazada hacia arriba ---un texto Elementary
+        de OneStopEnglish puntúa 0,93---, así que la letra de un libro fácil tiende a subir.
+        La aplicación lo dice al pie de cada tabla, en la pantalla y no solo en el PDF.
+        Hasta el 12 de septiembre de 2026 esta limitación era peor: con perfil 1,20,
+        «Sorpréndeme» proponía \emph{The Secret Adversary} con etiqueta heredada
+        \textbf{B2}, y el v4 leyendo el texto devolvía \textbf{C1}.
+  \item \textbf{La literatura del catálogo es, en su inmensa mayoría, C1--C2}: 1 libro A1,
+        40 A2 y 558 B1 de 53.179. Para un lector B1 la respuesta no son libros enteros sino
+        capítulos (3.644 en 1.499 libros), y por nivel solo se ofrecen lecturas literarias:
+        290 entre A1 y B1.
   \item \textbf{Los tamaños muestrales de la validación externa son pequeños}: 38 textos
         en Colab, 47 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
         niveles adyacentes con esas $n$ no es significativa; lo que se afirma es el orden
@@ -2789,8 +2825,9 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
 % ===========================================================================
 
 \begin{enumerate}[leftmargin=*, itemsep=3pt]
-  \item Terminar la remedición del catálogo completo y sustituir las etiquetas heredadas
-        por medidas del v4 sobre el libro entero.
+  \item \textbf{Hecho el 12 de septiembre de 2026:} remedir el catálogo completo y sustituir
+        las etiquetas heredadas por medidas del v4 sobre el libro entero (53.179 libros,
+        585.111 capítulos).
   \item \textbf{Hecho el 12 de septiembre de 2026:} publicar el guion de entrenamiento y la
         composición del corpus de anclaje, que resultó ser público (ELG CEFR English). Las
         métricas del v4 ya se recalculan en lugar de citarse.
@@ -2900,11 +2937,10 @@ reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y 
 interfaz que se puede usar con el pulgar.
 
 \textbf{Y queda pendiente lo que más pesa.} La aplicación funciona y ya tiene dirección
-fija, pero sobre el hardware más barato: se suspende por inactividad y no guarda nada entre
-reinicios. El catálogo se está remidiendo. Y las métricas del v4, que el documento citaba
-sin poder recalcular, ya se recalculan desde el repositorio. Lo que queda está planificado
-con coste y
-criterio de terminado en el cuadro~\ref{cuad:accionables}.
+fija, pero sobre el hardware más barato: se suspende por inactividad. El catálogo ya está
+medido entero ---53.179 libros--- y las métricas del v4, que el documento citaba sin poder
+recalcular, ya se recalculan desde el repositorio. Lo que queda está planificado con coste
+y criterio de terminado en el cuadro~\ref{cuad:accionables}.
 
 \textbf{Y para qué sirve esto, dicho como decisión y no como métrica.} Un lector que hoy
 elige libro por la portada puede, con esta herramienta, hacer tres cosas que antes no
@@ -2917,11 +2953,10 @@ lista concreta, y el coste marginal de añadir un libro es de segundos de cómpu
 una tarifa por título.
 
 \textbf{Lo que este proyecto recomienda hacer a continuación, en orden de valor por hora
-de trabajo}, está en el cuadro~\ref{cuad:accionables} con coste y criterio de terminado:
-terminar la remedición del catálogo, que es lo que separa un prototipo de un producto;
-montar almacenamiento persistente, sin el cual el lector pierde su estantería en cada
-reinicio; y calibrar la escala, que es la diferencia entre decirle a alguien que un libro
-es A2 y que lo sea.
+de trabajo}, está en el cuadro~\ref{cuad:accionables} con coste y criterio de terminado.
+La remedición del catálogo, que era lo que separaba un prototipo de un producto, ya está
+hecha, y el almacenamiento persistente también; lo siguiente es calibrar la escala, que es
+la diferencia entre decirle a alguien que un libro es A2 y que lo sea.
 
 
 % ===========================================================================

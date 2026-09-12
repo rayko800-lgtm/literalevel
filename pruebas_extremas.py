@@ -5779,6 +5779,165 @@ prueba("las sugerencias de capitulos salen cuando tocan",
        _las_sugerencias_de_capitulos_salen_cuando_tocan)
 
 
+def _el_catalogo_medido_recomienda_capitulos_sin_saltar_mal():
+    """Fase 2: la curva por capitulo del catalogo, sin mandar a otro capitulo.
+
+    a) si los capitulos del libro abierto cuadran con los del catalogo, las
+       sugerencias usan esa curva y apuntan al indice de ESTE libro;
+    b) si no cuadran -un EPUB que parte el libro de otra manera-, no se sugiere;
+    c) `_abrir` apunta de que libro del catalogo es, por el nombre del archivo;
+    d) la descarga pide el `.txt` antes que el EPUB, y un EPUB ya guardado vale
+       si el `.txt` no llega;
+    e) por nivel no se recomiendan indices ni libros que no son literatura, y la
+       curva por capitulo se lee del parquet que va junto al CSV, en orden.
+    """
+    import tempfile
+    import urllib.request
+    import pandas as pd
+    import catalogo as cat_mod
+
+    cuerpo = "The rain fell on the quiet moor and the train ran west. " * 200
+
+    class _Cap:
+        def __init__(self, t, texto=cuerpo):
+            self.titulo, self.texto = t, texto
+            self.palabras = len(texto.split())
+
+    caps = [_Cap("Title", "Project Gutenberg title page"), _Cap("CHAPTER I"),
+            _Cap("CHAPTER II"), _Cap("CHAPTER III")]
+
+    class _Libro:
+        titulo, autor = "Libro medido", "Autor"
+        capitulos = caps
+        palabras = sum(c.palabras for c in caps)
+        id_catalogo = "PG42"
+
+    filas_cat = [
+        {"id": "PG42", "capitulo": 1, "indice": 0, "titulo": "Chapter I",
+         "dificultad": 1.80, "ventanas": 10, "palabras": 2400},
+        {"id": "PG42", "capitulo": 2, "indice": 1, "titulo": "Chapter II",
+         "dificultad": 0.90, "ventanas": 10, "palabras": 2400},
+        {"id": "PG42", "capitulo": 3, "indice": 2, "titulo": "Chapter III",
+         "dificultad": 1.85, "ventanas": 10, "palabras": 2400},
+    ]
+
+    class _Cat:
+        medido = True
+
+        def __init__(self, filas):
+            self.filas = filas
+
+        def capitulos_de(self, pid):
+            return [dict(f) for f in self.filas] if pid == "PG42" else []
+
+    p = perfil_mod.Perfil(nivel=0.9, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+
+    # a) y b)
+    viejo_cat, viejo_an = ui.catalogo, ui._analisis_guardado
+    try:
+        ui._analisis_guardado = lambda *a, **k: None
+        ui.catalogo = lambda: _Cat(filas_cat)
+        con = ui._capitulos_sugeridos(_Libro(), p)
+        valores = [v for _, v in (con.get("choices") or [])]
+        assert con.get("visible") is True, f"con los capitulos alineados no sugiere nada: {con}"
+        assert valores == [2], (
+            f"sugiere {valores}: tenia que ser el indice 2 de ESTE libro -el capitulo 2 "
+            f"del catalogo, desplazado por la portadilla-, no el indice del catalogo")
+        desalineadas = [dict(f) for f in filas_cat]
+        desalineadas[1]["titulo"] = "Chapter XX"
+        ui.catalogo = lambda: _Cat(desalineadas)
+        assert ui._capitulos_sugeridos(_Libro(), p).get("visible") is False, \
+            "sugiere con capitulos que no cuadran: mandaria al lector a otro capitulo"
+    finally:
+        ui.catalogo, ui._analisis_guardado = viejo_cat, viejo_an
+
+    # c)
+    carpeta = pathlib.Path(tempfile.mkdtemp())
+    del_catalogo = carpeta / "pg4242.txt"
+    del_catalogo.write_text("CHAPTER I\n\n" + cuerpo + "\n\nCHAPTER II\n\n" + cuerpo,
+                            encoding="utf-8")
+    subido = carpeta / "mi_libro.txt"
+    subido.write_text(del_catalogo.read_text(encoding="utf-8"), encoding="utf-8")
+    assert ui._abrir(str(del_catalogo))[0].id_catalogo == "PG4242", \
+        "abrir pg4242.txt no apunta que es el PG4242 del catalogo"
+    assert ui._abrir(str(subido))[0].id_catalogo is None, \
+        "un libro subido a mano se hace pasar por uno del catalogo"
+
+    # d)
+    libros = pathlib.Path(ui.RUTA_LIBROS)
+    libros.mkdir(parents=True, exist_ok=True)
+    epub = libros / "pg98765.epub"
+    epub.write_bytes(b"x" * 3000)
+    pedidas = []
+
+    class _Resp:
+        def __init__(self, datos):
+            self.datos = datos
+
+        def read(self):
+            return self.datos
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def red_con_txt(pedido, *a, **k):
+        pedidas.append(getattr(pedido, "full_url", str(pedido)))
+        return _Resp(b"CHAPTER I\n\n" + b"word " * 1000)
+
+    def sin_red(*a, **k):
+        raise OSError("sin red")
+
+    real = urllib.request.urlopen
+    try:
+        urllib.request.urlopen = red_con_txt
+        devuelto = ui._descargar_gutenberg("PG98765")
+        assert pedidas and pedidas[0].endswith(".txt"), \
+            f"lo primero que pide a Gutenberg no es el .txt: {pedidas[:1]}"
+        assert devuelto.endswith(".txt"), \
+            f"con un EPUB guardado no baja el .txt, que es el formato medido: {devuelto}"
+        pathlib.Path(devuelto).unlink(missing_ok=True)
+        urllib.request.urlopen = sin_red
+        devuelto = ui._descargar_gutenberg("PG98765")
+        assert devuelto.endswith(".epub"), f"sin red no usa el EPUB que ya tenia: {devuelto}"
+    finally:
+        urllib.request.urlopen = real
+        epub.unlink(missing_ok=True)
+        (libros / "pg98765.txt").unlink(missing_ok=True)
+
+    # e)
+    csv = carpeta / "catalogo_medido.csv"
+    pd.DataFrame({
+        "id": ["PG1", "PG2", "PG3"],
+        "title": ["Index of the Project Gutenberg Works", "A Primer", "Chess Problems"],
+        "author": ["a", "b", "c"], "hook": ["", "", ""], "huella_texto": ["", "", ""],
+        "nivel_cefr": ["", "", ""], "downloads": [30, 20, 10],
+        "dificultad": [0.5, 0.5, 0.5],
+        "temas": ["Indexes; Fiction", "Readers (Primary)", "Chess problems"],
+    }).to_csv(csv, index=False)
+    pd.DataFrame({
+        "id": ["PG2", "PG2"], "capitulo": [2, 1], "indice": [3, 1], "titulo": ["II", "I"],
+        "dificultad": [0.5, 0.4], "min": [0.3, 0.3], "max": [0.6, 0.6],
+        "ventanas": [2, 2], "palabras": [600, 600],
+    }).to_parquet(carpeta / "capitulos_medidos.parquet", index=False)
+    cat = cat_mod.Catalogo(csv)
+    ids = [b.id for b in cat.por_nivel(0.5, holgura=0.2, n=10)]
+    assert ids == ["PG2"], (
+        f"por nivel recomienda {ids}: ni un indice de Gutenberg ni unos problemas de "
+        f"ajedrez son lecturas")
+    assert [c["capitulo"] for c in cat.capitulos_de("PG2")] == [1, 2], \
+        f"la curva por capitulo no sale en orden: {cat.capitulos_de('PG2')}"
+    assert cat.capitulos_de("PG9") == [], "se inventa la curva de un libro sin medir"
+    return "alinea o calla, apunta el id, .txt primero, y solo recomienda lecturas"
+
+
+prueba("el catalogo medido recomienda capitulos sin saltar mal",
+       _el_catalogo_medido_recomienda_capitulos_sin_saltar_mal)
+
+
 def _el_buscador_encuentra_un_nombre_mal_escrito():
     """El paso 2 de la demo, que no probaba nadie.
 

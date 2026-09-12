@@ -770,6 +770,33 @@ plt.show()
 # metodológica más cara del proyecto: *el modelo estaba bien y el protocolo de
 # lectura estaba mal*.
 
+# %%
+# --- El catálogo medido por el v4, que es el que usa hoy la aplicación ---
+# Terminado el 12 de septiembre de 2026: 53.179 libros de Project Gutenberg y
+# 585.111 capítulos, medidos enteros. Recuento sobre `catalogo_medido.csv`.
+medido_v4 = pd.Series(
+    {"A1": 1, "A2": 40, "B1": 558, "B2": 3127, "C1": 23454, "C2": 25999},
+    name="libros")
+print("Catálogo medido por el v4, libro entero:")
+print(medido_v4)
+print("Total:", int(medido_v4.sum()))
+print("Proporción C1-C2:", round(float(medido_v4[["C1", "C2"]].sum() / medido_v4.sum()), 3))
+
+# %% [markdown]
+# **El catálogo medido dice lo contrario que el heredado.** Donde el v1 veía un
+# 60 % de libros A1, el v4 leyendo cada libro entero ve un **93 % en C1–C2**, y
+# solo 599 libros en A1–B1. Es lo esperable: la literatura del XIX es difícil.
+#
+# Dos cautelas. La letra es orientativa, porque la escala del modelo sale
+# comprimida y desplazada hacia arriba (§7.2). Y entre los libros «fáciles» había
+# índices, anuarios, mapas y tablas de números, que puntúan bajo porque son
+# listas: al recomendar por nivel, la aplicación solo ofrece lecturas literarias
+# (290 entre A1 y B1).
+#
+# La consecuencia de producto es la importante: un lector B1 apenas tiene libros
+# enteros a su medida, pero sí **3.644 capítulos en 1.499 libros**. Por eso la
+# aplicación recomienda capítulos, no solo libros.
+
 # %% [markdown]
 # ## 4.3 Análisis multivariado
 #
@@ -2337,8 +2364,9 @@ plt.show()
 #    evidencia es más fina y donde están los lectores que más ayuda necesitan.
 # 5. **Modelar el dominio explícitamente**, o al menos avisar en la ficha cuando
 #    el libro es informativo, dado el desplazamiento medido en la Figura 6.
-# 6. **Ejecutar el precálculo completo** y retirar definitivamente las etiquetas
-#    heredadas del v1.
+# 6. ~~Ejecutar el precálculo completo~~ **Hecho el 12 de septiembre de 2026**:
+#    53.179 libros y 585.111 capítulos medidos por el v4; las etiquetas heredadas
+#    del v1 ya no se usan.
 # 7. **Convertir las cinco acciones de la aplicación en herramientas de un
 #    agente** (*function calling*). Hoy cada una tiene su botón: medir un
 #    capítulo, buscar por significado, abrir un libro, explicar una palabra y

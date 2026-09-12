@@ -954,18 +954,28 @@ def _descargar_gutenberg(id_libro: str) -> str:
     # esta comprobacion solo miraba el `.epub`: un libro ya descargado como
     # texto no acertaba nunca en la cache y se volvia a pedir a Gutenberg las
     # tres veces, cada vez que el lector lo abria.
-    for ext_cache in (".epub", ".txt"):
-        cacheado = destino.with_suffix(ext_cache)
-        if cacheado.exists() and cacheado.stat().st_size > 2000:
-            return str(cacheado)
+    #
+    # Y el `.txt` va PRIMERO, que no es por gusto: es el texto con el que se
+    # midio el catalogo en Colab, y solo con el mismo formato los capitulos del
+    # lector son los de la curva medida. Medido el 12 de septiembre de 2026: el
+    # EPUB de *Pride and Prejudice* trae 15 secciones donde el `.txt` trae 61
+    # capitulos, y con el EPUB no se le puede sugerir un capitulo concreto. El
+    # lector pinta bien el `.txt`: une las lineas cortadas y parte por parrafos.
+    # Un EPUB que ya estuviera guardado se sigue usando si el `.txt` no llega.
+    txt = destino.with_suffix(".txt")
+    if txt.exists() and txt.stat().st_size > 2000:
+        return str(txt)
+    epub = destino.with_suffix(".epub")
 
     fuentes = [
-        (f"https://www.gutenberg.org/ebooks/{num}.epub.noimages", ".epub"),
         (f"https://www.gutenberg.org/cache/epub/{num}/pg{num}.txt", ".txt"),
         (f"https://www.gutenberg.org/ebooks/{num}.txt.utf-8", ".txt"),
+        (f"https://www.gutenberg.org/ebooks/{num}.epub.noimages", ".epub"),
     ]
     ultimo = None
     for url, ext in fuentes:
+        if ext == ".epub" and epub.exists() and epub.stat().st_size > 2000:
+            return str(epub)          # sin `.txt`, el EPUB que ya habia vale
         try:
             pedido = urllib.request.Request(
                 url, headers={"User-Agent": "LiteraLevel/1.0 (proyecto educativo)"})
@@ -1414,6 +1424,12 @@ def _abrir(archivo, peticion: gr.Request = None):
     if not libro.capitulos:
         return None, vacio, _html_lectura(""), _aviso(
             "El archivo no tiene texto legible.")
+    # De que libro del catalogo es, si lo es: `pg1342.txt` -> PG1342. Se apunta
+    # aqui porque es el punto por el que pasan los tres caminos que abren un
+    # libro -el buscador, «retomar» y «Mis libros»-, y las sugerencias por
+    # capitulo lo necesitan para leer la curva medida del catalogo.
+    m_pg = re.search(r"(?i)\bpg(\d+)\.(?:txt|epub)$", os.path.basename(str(archivo)))
+    libro.id_catalogo = f"PG{m_pg.group(1)}" if m_pg else None
     # El recuento va en la etiqueta porque muchos epub traen los titulos
     # repetidos ("I", "II"...) en dos partes y ademas portadillas sueltas:
     # sin las palabras no hay forma de distinguir el capitulo del relleno.
@@ -1846,6 +1862,26 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
     yield _resumen_analisis(datos, como), _grafica_analisis(datos, paleta)
 
 
+def _filas_del_catalogo(libro) -> list:
+    """La curva del catalogo medido, con los indices traducidos a ESTE libro.
+
+    Solo si los capitulos cuadran uno a uno (`ficha.alinear_con_catalogo`):
+    la curva se midio sobre el `.txt`, y un EPUB puede partir el libro de otra
+    manera. Si no cuadran, lista vacia, y la sugerencia espera a que el lector
+    mida el libro aqui."""
+    pid = getattr(libro, "id_catalogo", None)
+    if not pid:
+        return []
+    try:
+        filas = catalogo().capitulos_de(pid)
+    except Exception:
+        return []
+    mapa = ficha.alinear_con_catalogo(libro, filas)
+    if not mapa:
+        return []
+    return [dict(f, indice=mapa[int(f["capitulo"])]) for f in filas]
+
+
 def _capitulos_sugeridos(libro, p=None):
     """«Este libro te queda grande, pero estos capitulos no.»
 
@@ -1866,10 +1902,12 @@ def _capitulos_sugeridos(libro, p=None):
     if libro is None or p is None or not getattr(libro, "capitulos", None):
         return oculto
     try:
+        # La curva medida aqui manda; si no la hay, la del catalogo, pero solo
+        # con los capitulos alineados (`_filas_del_catalogo`).
         guardado = _analisis_guardado(libro)
-        if not guardado:
+        filas = guardado["filas"] if guardado else _filas_del_catalogo(libro)
+        if not filas:
             return oculto
-        filas = guardado["filas"]
         if ficha.dificultad_global(filas) <= p.nivel + perfil_mod.RETO:
             return oculto          # el libro entero ya esta a su alcance
         sel = [f for f in ficha.capitulos_a_tu_nivel(filas, p.nivel, perfil_mod.RETO)
