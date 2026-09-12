@@ -471,3 +471,45 @@ def dificultad_global(filas) -> float:
     if not n:
         return 0.0
     return sum(f["dificultad"] * f.get("ventanas", 1) for f in filas) / n
+
+
+def capitulos_a_tu_nivel(filas, nivel, margen, minimo_palabras=1500, tope=5):
+    """Los capitulos de un libro que SI estan al alcance de este lector.
+
+    Un libro entero puede quedar por encima de tu nivel y tener, aun asi,
+    capitulos que puedes leer. La curva por capitulo ya lo sabe; esto lo dice.
+
+    Criterio: `dificultad <= nivel + margen`, con el MISMO margen con el que la
+    ficha decide que un libro "va por encima de tu nivel" (`perfil.RETO`). Si
+    fueran dos numeros distintos, la misma pantalla podria decir que un
+    capitulo te queda grande y a la vez recomendartelo.
+
+    Se ordenan por CERCANIA a tu nivel, no por facilidad: el objetivo es que
+    sea legible, no que sea trivial. Se descartan los capitulos cortos -uno de
+    200 palabras no es una lectura que recomendar- y se corta en `tope`.
+
+    Vive aqui y no en `ui.py` por lo mismo que `dificultad_global`: el lector y
+    el buscador del catalogo tienen que usar la misma seleccion, y si hubiera
+    dos acabarian recomendando capitulos distintos del mismo libro.
+
+    Nunca revienta: una fila sin `indice` o sin `dificultad` -un analisis viejo,
+    un shard antiguo- se salta, y un nivel que no es un numero da lista vacia.
+    """
+    try:
+        nivel = float(nivel)
+        margen = float(margen)
+    except (TypeError, ValueError):
+        return []
+    buenas = []
+    for f in filas or []:
+        try:
+            dif = float(f["dificultad"])
+            int(f["indice"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if (f.get("palabras") or 0) < minimo_palabras:
+            continue
+        if dif <= nivel + margen:
+            buenas.append(f)
+    buenas.sort(key=lambda f: (abs(float(f["dificultad"]) - nivel), int(f["indice"])))
+    return buenas[:max(int(tope), 0)]

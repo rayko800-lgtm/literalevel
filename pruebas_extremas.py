@@ -5682,6 +5682,103 @@ prueba("la ficha no promete un ritmo que no sabe",
        _la_ficha_no_promete_un_ritmo_que_no_sabe)
 
 
+def _las_sugerencias_de_capitulos_salen_cuando_tocan():
+    """«Este libro te queda grande, pero estos capitulos no.»
+
+    Lo que se exige, y por que:
+    a) sin perfil, sin curva, o con el libro ya a tu alcance, NO sale nada;
+    b) con el libro por encima, salen los capitulos a tu alcance y ninguno de
+       los que no lo estan, con indices de ESTE libro y sin seleccion puesta;
+    c) un indice que no existe en el libro -un analisis viejo- no se ofrece;
+    d) un analisis roto esconde, no revienta;
+    e) y esta CABLEADO leyendo solo estados del servidor, con el salto por
+       `_indice_de`. Sin (e) todo lo anterior pasa aunque nadie lo llame, y
+       leer el desplegable es la puerta del recuadro rojo de la auditoria 17.
+    """
+    import gradio as gr
+
+    class _Cap:
+        def __init__(self, t):
+            self.titulo = t
+            self.texto = "The rain fell on the quiet moor and the train ran west. " * 400
+            self.palabras = len(self.texto.split())
+
+    caps = [_Cap(f"CHAPTER {i}") for i in range(6)]
+
+    class _Libro:
+        titulo, autor = "Por encima", "Autor"
+        capitulos = caps
+        palabras = sum(c.palabras for c in caps)
+
+    p = perfil_mod.Perfil(nivel=1.00, banda="intermedio",
+                          origen="cuestionario", creado="", nombre="Ana")
+    # Media ponderada por ventanas: 1,436. Por encima de 1,00 + RETO.
+    filas = [
+        {"capitulo": 1, "indice": 1, "dificultad": 1.70, "ventanas": 10, "palabras": 4000},
+        {"capitulo": 2, "indice": 2, "dificultad": 1.05, "ventanas": 10, "palabras": 4000},
+        {"capitulo": 3, "indice": 3, "dificultad": 1.80, "ventanas": 30, "palabras": 4000},
+        {"capitulo": 4, "indice": 4, "dificultad": 0.90, "ventanas": 10, "palabras": 4000},
+        {"capitulo": 5, "indice": 99, "dificultad": 1.00, "ventanas": 10, "palabras": 4000},
+    ]
+
+    def valores(u):
+        return [v for _, v in (u.get("choices") or [])]
+
+    viejo = ui._analisis_guardado
+    try:
+        ui._analisis_guardado = lambda *a, **k: {"filas": filas}
+        con = ui._capitulos_sugeridos(_Libro(), p)
+        assert con.get("visible") is True, (
+            f"el libro va por encima (1,44 contra 1,00) y no sugiere nada: {con}")
+        assert 99 not in valores(con), "ofrece un capitulo que no existe en este libro"
+        assert valores(con) == [2, 4], (
+            f"sugiere {valores(con)}; se esperaban [2, 4], por cercania y sin "
+            f"los que van por encima del margen")
+        assert con.get("value") is None, "marca una sugerencia sin que nadie la elija"
+
+        sin_perfil = ui._capitulos_sugeridos(_Libro(), None)
+        assert sin_perfil.get("visible") is False and not sin_perfil.get("choices"), \
+            "sugiere capitulos sin saber el nivel del lector"
+
+        ui._analisis_guardado = lambda *a, **k: None
+        assert ui._capitulos_sugeridos(_Libro(), p).get("visible") is False, \
+            "sugiere capitulos sin haber medido el libro"
+
+        ui._analisis_guardado = lambda *a, **k: {
+            "filas": [dict(f, dificultad=0.90) for f in filas[:4]]}
+        assert ui._capitulos_sugeridos(_Libro(), p).get("visible") is False, \
+            "sugiere capitulos de un libro que ya esta entero a su alcance"
+
+        ui._analisis_guardado = lambda *a, **k: {"filas": "basura"}
+        assert ui._capitulos_sugeridos(_Libro(), p).get("visible") is False, \
+            "un analisis roto tiene que esconder las sugerencias, no reventar"
+    finally:
+        ui._analisis_guardado = viejo
+
+    demo = ui.construir()
+    fns = demo.fns
+    lista = list(fns.values() if isinstance(fns, dict) else fns)
+    sug = [f for f in lista
+           if getattr(getattr(f, "fn", None), "__name__", "") == "_capitulos_sugeridos"]
+    assert sug, ("`_capitulos_sugeridos` no esta cableada a ningun evento: la "
+                 "funcion existe y funciona, y al abrir un libro no la llama nadie")
+    for f in sug:
+        ajenos = [type(c).__name__ for c in f.inputs if not isinstance(c, gr.State)]
+        assert not ajenos, (
+            f"las sugerencias leen un componente del navegador ({ajenos}). Solo "
+            f"pueden leer estados del servidor: un desplegable llega con el valor "
+            f"del libro anterior y Gradio pinta el recuadro rojo")
+    fuente = (pathlib.Path(__file__).parent / "app" / "ui.py").read_text(encoding="utf-8")
+    assert "sugeridos.select(_indice_de, [est_libro, sugeridos], cap)" in fuente, (
+        "elegir una sugerencia ya no salta por `_indice_de`, que es lo que valida "
+        "el capitulo contra este libro")
+    return "solo con perfil, curva y libro por encima; indices validos; cableado limpio"
+
+
+prueba("las sugerencias de capitulos salen cuando tocan",
+       _las_sugerencias_de_capitulos_salen_cuando_tocan)
+
+
 def _el_buscador_encuentra_un_nombre_mal_escrito():
     """El paso 2 de la demo, que no probaba nadie.
 

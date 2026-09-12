@@ -168,6 +168,43 @@ comprobar("el tope de la muestra es el que se documenta",
           str(ficha._muestra.__defaults__[0]))
 
 
+print("Ficha: los capitulos a tu nivel")
+
+# Una curva de juguete con lo que trae un analisis de verdad: indice real,
+# dificultad en escala 0..2 y palabras. El libro entero va por encima de un
+# lector de 1,0, pero tiene capitulos que puede leer.
+CURVA = [
+    {"capitulo": 1, "indice": 2, "dificultad": 1.60, "palabras": 4000},
+    {"capitulo": 2, "indice": 3, "dificultad": 1.10, "palabras": 4000},
+    {"capitulo": 3, "indice": 4, "dificultad": 0.40, "palabras": 4000},
+    {"capitulo": 4, "indice": 5, "dificultad": 0.95, "palabras": 4000},
+    {"capitulo": 5, "indice": 6, "dificultad": 1.15, "palabras": 4000},
+    {"capitulo": 6, "indice": 7, "dificultad": 1.00, "palabras": 300},
+]
+sel = ficha.capitulos_a_tu_nivel(CURVA, 1.0, 0.15)
+comprobar("capitulos a tu nivel: sin filas no hay nada",
+          ficha.capitulos_a_tu_nivel([], 1.0, 0.15) == []
+          and ficha.capitulos_a_tu_nivel(None, 1.0, 0.15) == [])
+comprobar("capitulos a tu nivel: todos por encima no devuelve nada",
+          ficha.capitulos_a_tu_nivel(CURVA, 0.0, 0.15) == [],
+          str(ficha.capitulos_a_tu_nivel(CURVA, 0.0, 0.15)))
+comprobar("capitulos a tu nivel: no recomienda uno por encima del margen",
+          all(f["dificultad"] <= 1.15 for f in sel) and 2 not in {f["indice"] for f in sel},
+          str([f["indice"] for f in sel]))
+comprobar("capitulos a tu nivel: el borde del margen entra",
+          6 in {f["indice"] for f in sel}, str([f["indice"] for f in sel]))
+comprobar("capitulos a tu nivel: un capitulo corto no se recomienda",
+          7 not in {f["indice"] for f in sel}, str([f["indice"] for f in sel]))
+comprobar("capitulos a tu nivel: el orden es por cercania, no por facilidad",
+          [f["indice"] for f in sel] == [5, 3, 6, 4], str([f["indice"] for f in sel]))
+comprobar("capitulos a tu nivel: el tope corta",
+          len(ficha.capitulos_a_tu_nivel(CURVA, 1.0, 0.15, tope=2)) == 2)
+comprobar("capitulos a tu nivel: una fila sin indice se salta sin reventar",
+          ficha.capitulos_a_tu_nivel([{"dificultad": 0.5, "palabras": 5000}], 1.0, 0.15) == [])
+comprobar("capitulos a tu nivel: un nivel que no es numero da lista vacia",
+          ficha.capitulos_a_tu_nivel(CURVA, None, 0.15) == [])
+
+
 print()
 if fallos:
     print(f"FALLAN {len(fallos)}: " + ", ".join(fallos))

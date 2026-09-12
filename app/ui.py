@@ -1828,6 +1828,46 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
     yield _resumen_analisis(datos, como), _grafica_analisis(datos, paleta)
 
 
+def _capitulos_sugeridos(libro, p=None):
+    """«Este libro te queda grande, pero estos capitulos no.»
+
+    Solo aparece cuando se juntan tres cosas: hay perfil, la curva del libro ya
+    esta medida, y el libro entero va por encima de ese perfil. Sin curva no se
+    sugiere nada, igual que la ficha no afirma un ritmo que todavia no sabe.
+
+    La seleccion es `ficha.capitulos_a_tu_nivel`, con `perfil.RETO` como margen:
+    la misma funcion que usara el buscador del catalogo y el mismo margen con el
+    que la ficha dice "va por encima de tu nivel", para que ninguna pantalla
+    pueda contradecir a otra.
+
+    Las opciones son indices REALES de `libro.capitulos`. Al elegir una se salta
+    con `_indice_de`, que valida contra este libro: el mismo camino que el
+    indice de abajo, para no abrir otra puerta al recuadro rojo.
+    """
+    oculto = gr.update(choices=[], value=None, visible=False)
+    if libro is None or p is None or not getattr(libro, "capitulos", None):
+        return oculto
+    try:
+        guardado = _analisis_guardado(libro)
+        if not guardado:
+            return oculto
+        filas = guardado["filas"]
+        if ficha.dificultad_global(filas) <= p.nivel + perfil_mod.RETO:
+            return oculto          # el libro entero ya esta a su alcance
+        sel = [f for f in ficha.capitulos_a_tu_nivel(filas, p.nivel, perfil_mod.RETO)
+               if 0 <= int(f["indice"]) < len(libro.capitulos)]
+    except Exception:
+        return oculto              # una sugerencia es un adorno; jamas tapa el libro
+    if not sel:
+        return oculto
+    opciones = [(f"{libro.capitulos[int(f['indice'])].titulo[:50]} · "
+                 f"{ficha.miles(f['palabras'])} palabras", int(f["indice"]))
+                for f in sel]
+    return gr.update(choices=opciones, value=None, visible=True,
+                     label="Este libro va por encima de tu nivel, pero estos "
+                           "capítulos están a tu alcance")
+
+
 def _ficha_libro(libro, p=None) -> str:
     """Como es de leer este libro. Se calcula contando, asi que es instantaneo.
 
@@ -1865,7 +1905,11 @@ def _ficha_libro(libro, p=None) -> str:
                       f"{ficha.reloj(c.minutos(True))} de lectura, según lo "
                       f"que te cueste")
         else:
-            exigente = nivel_libro > p.nivel + 0.15
+            # `perfil.RETO` y no un 0.15 a mano: es el mismo margen con el que
+            # `_capitulos_sugeridos` decide que un capitulo SI esta a tu
+            # alcance. Con dos numeros, la ficha podria decir "va por encima"
+            # y a la vez no sugerir nada, o al reves.
+            exigente = nivel_libro > p.nivel + perfil_mod.RETO
             tiempo = ficha.reloj(c.minutos(exigente))
             tiempo += (" (va por encima de tu nivel)" if exigente
                        else " a tu ritmo de lectura")
@@ -3323,6 +3367,9 @@ def construir() -> gr.Blocks:
                 # el resumen a OpenAI- y por eso hay que pedirlos.
                 with gr.Accordion("Ficha del libro", open=True):
                     ficha_md = gr.Markdown()
+                    sugeridos = gr.Radio(label="Capítulos a tu nivel",
+                                         choices=[], visible=False,
+                                         elem_id="ll-sugeridos")
                     b_trata = gr.Button("¿De qué trata? (resumen)")
                     sinopsis_md = gr.Markdown()
                 escala = gr.Radio(
@@ -3430,7 +3477,11 @@ def construir() -> gr.Blocks:
                                  [est_libro, gr.State("completo"), escala,
                                   est_paleta],
                                  [analisis_md, grafica],
-                                 concurrency_id="modelo", concurrency_limit=1)
+                                 concurrency_id="modelo", concurrency_limit=1
+                                 # Al acabar la curva ya se sabe que capitulos
+                                 # estan a tu alcance: se ofrecen en el acto.
+                                 ).then(_capitulos_sugeridos,
+                                        [est_libro, est_perfil], sugeridos)
                 b_rapido.click(_analizar_libro,
                                [est_libro, gr.State("rapido"), escala,
                                 est_paleta],
@@ -3440,6 +3491,16 @@ def construir() -> gr.Blocks:
                 # salga tambien cuando el libro llega del buscador y no de una
                 # subida. Lo unico que los dos caminos comparten es este State.
                 est_libro.change(_ficha_libro, [est_libro, est_perfil], ficha_md)
+                # Las sugerencias leen SOLO estados del servidor -el libro y el
+                # perfil-, nunca el desplegable: la leccion de la auditoria 17.
+                # Y se eligen con `.select`, que solo dispara cuando lo toca
+                # una persona, para que repintar las opciones no salte de
+                # capitulo solo. El salto va por `_indice_de`, como el indice.
+                est_libro.change(_capitulos_sugeridos, [est_libro, est_perfil],
+                                 sugeridos)
+                est_perfil.change(_capitulos_sugeridos, [est_libro, est_perfil],
+                                  sugeridos)
+                sugeridos.select(_indice_de, [est_libro, sugeridos], cap)
                 est_libro.change(lambda: "", None, sinopsis_md)
                 b_trata.click(_de_que_trata, est_libro, sinopsis_md)
 
