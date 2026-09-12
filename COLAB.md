@@ -1,135 +1,76 @@
-# Correr la tanda de Colab — guion para Miguel
+# Medir el catálogo en Colab — guion para Miguel
 
-Escrito el **jueves 10 de septiembre de 2026** por la noche. Diez minutos de tu
-tiempo, y luego se queda trabajando solo.
+Reescrito el **sábado 12 de septiembre de 2026**. Sustituye al del 10 de
+septiembre, que dependía de Google Drive.
 
-> **Qué hice yo y qué te toca a ti.** El conector *de Colab* (`colab-mcp`) sigue
-> roto en esta máquina: liga dos puertos distintos —IPv4 e IPv6— y anuncia solo
-> el de IPv6, así que el navegador falla. Eso no se arregló. Lo que sí resultó
-> ser **falso** es que yo no pudiera tocar tu navegador: `chrome-devtools` sí
-> controla tu Chrome de verdad, con tu sesión de Google dentro. Así que el
-> montaje entero lo hice yo. Lo único tuyo es **el permiso de Drive**, que es
-> tuyo por definición y no pienso dártelo yo.
+## Lo que cambió, en una frase
 
----
+**Drive ya no está en el circuito.** Pedía un permiso en cada sesión nueva, y
+Colab gratuito corta la sesión cada pocas horas: cada corte dejaba la tanda
+parada hasta que alguien diera un clic. Ahora los resultados van a un
+repositorio privado de Hugging Face (`MikeMaki1763/literalevel-catalogo`) con un
+token guardado en los Secretos de Colab, y la tanda se reanuda sin pedir nada.
 
-## Lo que cambia con la T4 gratis
+## Lo que ya está hecho y no hay que repetir
 
-**La T4 no gasta unidades.** El freno deja de ser el cupo y pasa a ser el
-tiempo de sesión, y eso lo cambia todo: ya no hay que elegir entre 21 minutos de
-A100 o nada.
+- **El token `HF_TOKEN` está en los Secretos de Colab** de `rayko800@gmail.com`.
+  Los Secretos van por cuenta: vale para cualquier cuaderno de esa cuenta.
+- **El rescate de Drive**: la celda 2c subió a Hugging Face los libros que ya
+  estaban medidos. Se decide sola: si el repositorio ya tiene shards, no toca
+  Drive. Ese fue el último permiso de Drive del proyecto.
 
-Y hay un motivo para pensar que la T4 no va a ir tanto peor: en la A100 se midió
-que **la tarjeta estaba parada el 80 % del tiempo** esperando a que Google Drive
-entregase el siguiente `.txt`. Si el cuello de botella es el disco, una tarjeta
-más lenta cuesta menos de lo que parece. **Pero eso hay que medirlo, no
-suponerlo**, y la celda 9 lo mide.
+## Dónde mirar cómo va, sin abrir Colab
 
----
-
-## Ya está montado: lo hice yo
-
-El **jueves 10 a las 19:00** quedó así, y lo puedes comprobar en pantalla:
-
-- Cuaderno subido a tu Drive y abierto:
-  <https://colab.research.google.com/drive/15P43BFhYBlmZCnbJcxIYj_H_Y6Ps9CkX>
-- Cuenta: **rayko800@gmail.com** (la que tiene Colab Pro y `literalevel_bigdata`).
-  Tu Chrome estaba dentro con `miguel.reyes.carrillo19@gmail.com`, que **no**
-  tiene el Drive del proyecto: con esa cuenta el cuaderno no habría encontrado
-  ni un texto.
-- GPU: **Tesla T4, 14,6 GB**, CUDA activo, torch 2.11.0+cu128. Confirmado
-  ejecutando la celda 1.
-- La T4 va escrita en el propio `.ipynb` (`gpuType: "T4"`, sin `machine_shape`),
-  así que cualquiera que lo abra la hereda. Antes decía A100 con memoria alta,
-  que es de pago.
-
-### Lo único que tienes que tocar
-
-La celda 2 monta tu Drive y eso **exige tu permiso**: sale un diálogo
-«¿Permitir que este cuaderno acceda a tus archivos de Google Drive?».
-
-1. **Conectar con Google Drive**
-2. En la ventana de Google, elige **rayko800@gmail.com**
-3. **Permitir**
-
-Es el único permiso de toda la sesión. Cuando lo des, avísame y sigo con el
-resto de las celdas.
-
----
-
-## Qué celdas van, con la numeración del cuaderno
-
-| Celda | Qué hace | |
-|---|---|---|
-| **1** | Qué GPU tocó | ✅ hecha: Tesla T4 |
-| **2** | Monta Drive | ⏳ **espera tu permiso** |
-| **3** | Dependencias | un par de minutos |
-| **4** | El código de LiteraLevel | |
-| **5** | El catálogo oficial de Gutenberg | |
-| ~~6, 6b, 6c~~ | Descargar textos | **se saltan**: medimos sobre lo ya descargado |
-| **7** | Baja el modelo v4 y lo pone en la GPU | |
-| ~~8~~ | Desviación de media precisión | se salta, no hace falta |
-| **9** | **Mide la velocidad real** | **la importante** |
-| **10** | Prepara la lista de pendientes | dirá cuántos quedan |
-| **10b** | Lanza la tanda | la que tarda |
-| ~~11, 11b~~ | El catálogo final y una sonda | al final, otro día |
-
-*(Ojo: es la numeración que lleva el cuaderno en sus propios títulos, no la
-posición en la lista. La celda «7» es la novena de arriba abajo.)*
-
-### Los dos valores, ya puestos
-
-En la celda **10b** ya está puesto:
-
-```python
-HORAS_TOPE_ANALISIS = 3.5     # sesion gratuita: se corta antes que una de Pro
+```
+python -X utf8 tools/ver_progreso.py
 ```
 
-Estaba en 8.0, que era para Colab Pro. Las sesiones gratuitas se cortan antes, y
-**no pasa nada si se corta**: los resultados se guardan en Drive cada 500 libros
-y la celda 10b es reanudable — al volver, se salta lo ya hecho. Si la dejas en
-8.0 tampoco rompe nada, solo que el aviso ordenado de «guardo lo que llevo» no
-llegará a tiempo.
+Dice cuántos libros van medidos, a qué velocidad, cuánto falta y hace cuánto
+se guardó el último shard. **Si dice que lleva más de 30 minutos sin shard
+nuevo, Colab cortó la sesión**: sigue abajo.
 
-Y en la celda **10**:
+## Si Colab corta la sesión (va a pasar, y no se pierde nada)
 
-```python
-MUESTRA_ALEATORIA = True      # no lo cambies
-```
+1. Abre el cuaderno `colab_precalculo.ipynb` en Colab **con la cuenta
+   rayko800@gmail.com** (arriba a la derecha tiene que salir esa cuenta).
+2. Pulsa **Conectar** (arriba a la derecha). Sale una T4, que es gratis.
+3. Panel izquierdo → icono de la llave (**Secretos**) → comprueba que el
+   interruptor de **HF_TOKEN** está **encendido** para este cuaderno. El
+   secreto es de la cuenta, pero el permiso de usarlo es de cada cuaderno.
+4. Ejecuta las celdas **una a una y en este orden**, esperando a que acabe cada
+   una (el título de cada celda empieza por su número):
 
-**Esto importa más de lo que parece.** Los ids de Gutenberg van por orden de
-digitalización, que es cronológico: los primeros miles son sistemáticamente más
-viejos —inglés del XIX, otra tipografía, otra longitud de frase—. Una tanda que
-no llega a todo el catálogo y coge los primeros por id **no mide el catálogo,
-mide el siglo XIX**. Con la muestra aleatoria, los mismos minutos dan algo que se
-puede escribir en el documento con su margen.
+   **1 → 3 → 2 → 2b → 2c → 4 → 5 → 6c → 7 → 10 → 10b**
 
----
+   Sí, la 3 antes que la 2: en la copia de Colab las dependencias están en la 3,
+   y la 2b importa una librería que la 3 actualiza. En la versión nueva del
+   repositorio ya están en la 1, y este orden funciona igual en las dos.
 
-## Qué me pegas cuando acabe
+5. **No ejecutes nunca la 6, la 6b, la 8 ni la 9.** Son registros de lo que se
+   probó y no sirvió. La 6 descarga libro a libro de un espejo de Gutenberg, que
+   es lento y va contra su política.
+6. La **10b** es la que tarda horas. Guarda cada 500 libros y sube el shard, así
+   que puedes cerrar el navegador.
 
-Tres cosas, y con eso hago las cuentas de verdad:
+Lo ya medido no se repite: la celda 2b se baja los shards del repositorio y la
+10 se salta esos libros.
 
-1. ~~Qué GPU~~ ya lo tengo: Tesla T4, 14,6 GB.
-2. Lo que imprime la **celda 9**: `N ventanas/s` y las horas proyectadas.
-3. Lo que imprime la **celda 10b** al terminar o al cortarse: cuántos libros
-   lleva y en cuánto tiempo.
+## Cuando termine todo
 
-Con el número de la celda 9 se sabe **por fin** lo que cuesta el catálogo
-entero. Hasta ahora lo que hay escrito son 61 libros/min medidos con la tarjeta
-esperando al disco, y una proyección de «unas 15 unidades» que **nadie ha
-confirmado**. Esa proyección es la que decide si vale la pena comprar unidades o
-si la T4 gratis llega sola.
-
----
+Celdas **11** (construye el catálogo final y lo sube) y **11b** (comprueba que
+no hay libros repetidos ni shards perdidos). Luego me avisas y meto el catálogo
+en la aplicación.
 
 ## Si algo se pone feo
 
-- **«No hay GPU disponible»**: la T4 gratis se reparte. Espera y reintenta, o
-  prueba en un rato. No hay nada que arreglar del lado del cuaderno.
-- **Se desconecta a media tanda**: normal en la capa gratuita. Vuelve a
-  ejecutar la celda 10b y sigue donde iba.
-- **La celda 2 no te pide permiso y falla**: cierra la sesión de Colab entera
-  (Entorno de ejecución → Desconectar y eliminar) y vuelve a empezar. Montar
-  Drive dos veces en la misma sesión da problemas.
-- **Cualquier traza roja**: pégamela tal cual. No la interpretes ni la resumas.
+- **«Falta el token»** en la celda 2 → el interruptor de HF_TOKEN está apagado
+  para este cuaderno (paso 3).
+- **«No hay GPU disponible»** → la T4 gratis se reparte. Espera un rato y
+  reintenta.
+- **Cualquier traza roja** → pégamela tal cual, sin interpretarla. **Nunca pegues
+  el token** en el chat: si una salida lo mostrara, tápalo antes.
+
+## Al final del proyecto
+
+El token de Hugging Face hay que **revocarlo** en huggingface.co → Settings →
+Access Tokens, y borrar el secreto de Colab. Hasta entonces, no se comparte.

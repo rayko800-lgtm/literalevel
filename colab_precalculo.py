@@ -2,32 +2,38 @@
 # # LiteraLevel — precálculo masivo del catálogo
 #
 # Mide con el modelo v4 **todos** los libros en inglés de Project Gutenberg y
-# guarda el perfil de dificultad de cada uno en Drive. Cuando esto termine, la
-# app no tiene que medir nada en vivo: busca el libro y el análisis ya está.
+# guarda el perfil de dificultad de cada uno en un repositorio privado de
+# Hugging Face. Cuando esto termine, la app no tiene que medir nada en vivo:
+# busca el libro y el análisis ya está.
 #
-# **Qué hace, en orden:** comprueba la GPU, monta Drive, trae el código de
-# LiteraLevel, baja el catálogo oficial de Gutenberg, descarga los textos,
-# carga el modelo v4 en la GPU, **mide su velocidad real** y solo entonces
-# lanza el precálculo.
+# **Qué hace, en orden:** comprueba la GPU, trae de Hugging Face el código de
+# LiteraLevel y lo ya medido, baja el catálogo oficial de Gutenberg, descarga
+# los textos del volcado `common-pile/project_gutenberg`, carga el modelo v4 en
+# la GPU y lanza el precálculo.
 #
-# **Se puede interrumpir en cualquier momento.** Todo va por lotes y todo es
-# reanudable: si Colab corta la sesión, se vuelve a ejecutar y sigue donde
-# estaba. Con 61.000 libros eso no es una comodidad, es un requisito.
+# **Se puede interrumpir en cualquier momento, y nadie tiene que estar
+# delante.** Hasta el 12 de septiembre de 2026 los resultados iban a Google
+# Drive, que pide un permiso interactivo en cada sesión nueva: cada corte de
+# Colab dejaba la tanda parada hasta que alguien diera un clic. Ahora todo va
+# con un token guardado en los Secretos de Colab. Si la sesión muere, se vuelve
+# a ejecutar y sigue donde estaba. Y el avance se consulta desde fuera en
+# `progreso.json`, sin abrir el cuaderno.
 #
-# **Los textos NO se guardan en Drive, y es a propósito.** Project Gutenberg
-# publica todos sus `.txt` en un solo archivo de 11,3 GB que se regenera cada
-# semana; se baja de una vez al disco del entorno y se extrae ahí. Escribir
-# sesenta mil archivos sueltos en Drive es lentísimo —solo *listar* 28.535
-# tardaba 98 segundos— y además no hace falta: lo que tiene que sobrevivir a la
-# sesión son los resultados, no los textos, que se vuelven a bajar en minutos.
-#
-# Por eso los resultados van a Drive en *shards* de 500 libros: seis archivos,
-# no sesenta mil.
+# **Los textos no se guardan en ninguna parte, y es a propósito.** Se bajan al
+# disco del entorno, que es rápido, y se tiran con la sesión: se vuelven a bajar
+# en minutos. Lo que tiene que sobrevivir son los resultados, en *shards* de 500
+# libros.
 
 # %%
 # --- 1. ¿Qué GPU nos tocó? ------------------------------------------------
 # Con Colab Pro y A100 esto vuela; con una T4 tarda bastante más. Conviene
 # saber en cuál estamos ANTES de lanzar nada, porque cambia el plan.
+#
+# Y las dependencias van AQUÍ, no en una celda posterior. La celda 2b importa
+# `huggingface_hub`; si pip lo actualizaba después, la versión vieja se quedaba
+# en memoria y el `transformers` nuevo de la celda 7 podía no importar. Se vio
+# venir el 12 de septiembre de 2026 y hubo que ejecutar la 3 antes que la 2.
+!pip -q install transformers sentence-transformers huggingface_hub --upgrade 2>/dev/null | tail -1
 import subprocess
 print(subprocess.run(["nvidia-smi"], capture_output=True, text=True).stdout)
 
@@ -41,72 +47,154 @@ else:
           "En CPU esto tardaría meses y no merece la pena empezar.")
 
 # %%
-# --- 2. Drive y carpetas --------------------------------------------------
+# --- 2. Dónde vive cada cosa. Ya NO hace falta Drive ----------------------
+# Cambiado el 12 de septiembre de 2026, y esto arregla el cuello de botella de
+# verdad, que nunca fue la descarga.
+#
+# ANTES: los resultados se guardaban en Google Drive. Drive pide un permiso
+# INTERACTIVO en cada sesión nueva, y Colab gratuito corta la sesión cada pocas
+# horas. O sea: cada corte exigía que una persona estuviera delante para dar un
+# clic. Con un trabajo de seis horas, eso convierte un cálculo desatendido en
+# varios días de espera. Y encima el progreso solo se podía consultar desde
+# dentro del cuaderno, así que nadie sabía nunca por dónde iba.
+#
+# AHORA: todo vive en Hugging Face, que se habla con un token y no con un
+# diálogo. Los textos van al disco local del entorno -que además es rápido-,
+# los resultados SUBEN tras cada shard, y al arrancar se bajan los que ya
+# había. Se puede cerrar el navegador, se puede perder la sesión, se puede
+# reanudar desde otra máquina, y el progreso se consulta desde fuera sin
+# preguntarle a nadie.
+#
+# El precio: unos minutos de descarga en cada sesión nueva. Se paga encantado.
 import os, time
 from pathlib import Path
 
-from google.colab import drive
-
-# Se reintenta a proposito. La primera llamada falla con `ValueError: mount
-# failed` cuando el dialogo de permiso se contesta despues de que el montaje ya
-# arranco -que es lo normal la primera vez-, y al reintentar funciona. Sin esto,
-# "Ejecutar todas" se para en la segunda celda cada vez que Colab da una VM
-# nueva, y con un trabajo de horas que hay que reanudar eso pasa a menudo.
-for intento in range(1, 4):
-    try:
-        drive.mount("/content/drive", force_remount=(intento == 1),
-                    timeout_ms=180000)
-        break
-    except Exception as e:
-        print(f"  intento {intento} de montar Drive: {type(e).__name__}: {e}")
-        if intento == 3:
-            raise
-        time.sleep(5)
-
-RAIZ = Path("/content/drive/MyDrive/literalevel_bigdata")
-TEXTOS = RAIZ / "gutenberg_txt"        # los libros descargados
+RAIZ = Path("/content/trabajo")
+TEXTOS = RAIZ / "gutenberg_txt"        # los libros, efímeros: se rebajan
 PERFILES = RAIZ / "perfiles"           # los resultados, en shards
-MODELO = RAIZ / "modelo_literalevel_v4_transformer"
-for d in (RAIZ, TEXTOS, PERFILES):
+CODIGO = RAIZ / "codigo"               # scoring.py, reader.py, ficha.py
+for d in (RAIZ, TEXTOS, PERFILES, CODIGO):
     d.mkdir(parents=True, exist_ok=True)
 
-print("modelo v4 en Drive:", MODELO.exists())
-if not MODELO.exists():
-    print("  Ajusta MODELO a la carpeta real. Contenido de", RAIZ, ":")
-    for n in sorted(os.listdir(RAIZ))[:40]:
-        print("   ", n)
+REPO_RESULTADOS = "MikeMaki1763/literalevel-catalogo"   # privado
+REPO_MODELO = "MikeMaki1763/literalevel-v4"             # público
+
+# El token NO se escribe aquí, que este archivo va al repositorio. Va en los
+# Secretos de Colab -el candado de la barra izquierda- con el nombre HF_TOKEN
+# y el interruptor de este cuaderno encendido. Así no queda en el .ipynb.
+try:
+    from google.colab import userdata
+    HF_TOKEN = userdata.get("HF_TOKEN")
+except Exception:
+    HF_TOKEN = os.environ.get("HF_TOKEN", "")
+if not HF_TOKEN:
+    raise SystemExit(
+        "Falta el token. Panel izquierdo -> el candado (Secretos) -> "
+        "'Añadir secreto nuevo', nombre HF_TOKEN, pega el token, y enciende "
+        "el interruptor 'Acceso al cuaderno'. Se hace una vez y vale para "
+        "todas las sesiones.")
+os.environ["HF_TOKEN"] = HF_TOKEN
+print("token cargado · resultados en", REPO_RESULTADOS)
+
+# %%
+# --- 2b. Traer lo que ya hay: resultados y código -------------------------
+# Reanudar es exactamente esto: bajarse los shards que ya existen para que
+# `hechos_ya()` los lea y se salte esos libros. Una sesión cortada no cuesta
+# más que el rato de volver a bajar los textos.
+from huggingface_hub import HfApi, hf_hub_download
+
+api = HfApi(token=HF_TOKEN)
+
+
+def traer_de_hf(prefijo: str) -> int:
+    """Baja a RAIZ todo lo que cuelgue de `prefijo` y no esté ya en disco."""
+    n = 0
+    for f in api.list_repo_files(REPO_RESULTADOS, repo_type="dataset"):
+        if not f.startswith(prefijo) or (RAIZ / f).exists():
+            continue
+        hf_hub_download(REPO_RESULTADOS, f, repo_type="dataset",
+                        token=HF_TOKEN, local_dir=str(RAIZ))
+        n += 1
+    return n
+
+
+print("código:", traer_de_hf("codigo/"), "archivos nuevos")
+print("shards previos:", traer_de_hf("perfiles/"), "nuevos")
+print("datos auxiliares:", traer_de_hf("datos/"), "nuevos")
+_sh = list(PERFILES.glob("perfiles_*.jsonl"))
+_lineas = sum(1 for p in _sh for l in p.read_text(encoding="utf-8").splitlines()
+              if l.strip())
+print(f"shards en disco: {len(_sh)} · libros ya medidos: {_lineas:,}")
+
+# %%
+# --- 2c. RESCATE de Drive: se ejecuta UNA VEZ y nunca más -----------------
+# En Drive quedaron ~29.875 libros ya medidos de las sesiones anteriores. Son
+# unas seis horas de T4 y no se tiran. Esta celda los sube al repositorio, y a
+# partir de ahí Drive no vuelve a hacer falta jamás.
+#
+# Es el ÚLTIMO permiso de Drive del proyecto, y se decide SOLO: si la celda 2b no
+# trajo ni un shard del repositorio, es la primera vez y hay que rescatar. En
+# cuanto el rescate los sube, la siguiente sesión los encuentra y esta celda no
+# hace nada. Antes era una bandera a mano, y cambiarla obligaba a editar el
+# cuaderno dentro de Colab justo en el momento en que nadie debería tocarlo.
+RESCATAR_DE_DRIVE = not any(PERFILES.glob("perfiles_*.jsonl"))
+print("rescate de Drive:", "SÍ, es la primera vez" if RESCATAR_DE_DRIVE
+      else "no hace falta, los shards ya están en Hugging Face")
+
+if RESCATAR_DE_DRIVE:
+    from google.colab import drive
+    from huggingface_hub import CommitOperationAdd
+    drive.mount("/content/drive", timeout_ms=180000)
+    VIEJA = Path("/content/drive/MyDrive/literalevel_bigdata")
+    sueltos = sorted((VIEJA / "perfiles").glob("perfiles_*.jsonl"))
+    print(f"encontrados {len(sueltos)} shards en Drive")
+    # UNA sola confirmación con todos los archivos, nombrados uno a uno. Sesenta
+    # confirmaciones seguidas chocan con el límite de Hugging Face, y
+    # `upload_folder` sin lista explícita sube lo que pille.
+    ops = []
+    for p in sueltos:
+        (PERFILES / p.name).write_bytes(p.read_bytes())
+        ops.append(CommitOperationAdd(f"perfiles/{p.name}", str(PERFILES / p.name)))
+    # Y la metadata del SPGC, que es la que trae las DESCARGAS de cada libro:
+    # el catálogo oficial de Gutenberg no las publica, y la app ordena por ellas.
+    SPGC = VIEJA / "SPGC-metadata-2018-07-18.csv"
+    if SPGC.exists():
+        (RAIZ / "datos").mkdir(exist_ok=True)
+        (RAIZ / "datos" / SPGC.name).write_bytes(SPGC.read_bytes())
+        ops.append(CommitOperationAdd(f"datos/{SPGC.name}", str(RAIZ / "datos" / SPGC.name)))
+    else:
+        print("  OJO: no está la metadata del SPGC; el catálogo saldrá sin descargas")
+    if ops:
+        api.create_commit(REPO_RESULTADOS, operations=ops, repo_type="dataset",
+                          commit_message=f"rescate de Drive: {len(sueltos)} shards")
+    print(f"rescatados {len(ops)} archivos. Drive ya no hace falta nunca más.")
 
 # %%
 # --- 3. Dependencias ------------------------------------------------------
-# Colab ya trae torch y transformers. El resto es ligero.
-!pip -q install transformers --upgrade 2>/dev/null | tail -1
-print("listo")
+# Se instalan ya en la celda 1 (allí está el porqué). Esta celda se queda para
+# no cambiar la numeración de las demás, y solo confirma las versiones.
+import importlib.metadata as _md
+for _p in ("transformers", "sentence-transformers", "huggingface_hub"):
+    print(f"{_p}: {_md.version(_p)}")
 
 # %%
 # --- 4. El código de LiteraLevel -----------------------------------------
 # Se usan los módulos REALES del repositorio, no una copia reescrita aquí.
 # Si se reimplementara el troceado en el notebook, tarde o temprano divergiría
-# del de la app y los números dejarían de significar lo mismo. Copia la
-# carpeta `app/` del repo a Drive (dentro de literalevel_bigdata) antes de
-# ejecutar esto.
+# del de la app y los números dejarían de significar lo mismo. Llegan del
+# repositorio de Hugging Face en la celda 2b; se suben ahí desde `app/` del
+# repo, uno a uno y nunca con `upload_folder`.
 import sys
-# Se admiten las dos formas de haberlos subido: dentro de una carpeta `app/` o
-# sueltos en la raiz de literalevel_bigdata. Subir una carpeta a Drive desde el
-# navegador no siempre conserva la carpeta, y no merece la pena que el notebook
-# falle por eso.
-APP = next((d for d in (RAIZ / "app", RAIZ) if (d / "scoring.py").exists()), None)
-if APP is None:
-    raise SystemExit(
-        f"No encuentro scoring.py ni en {RAIZ / 'app'} ni en {RAIZ}. "
-        "Sube scoring.py, reader.py y ficha.py del repositorio a Drive.")
+
 faltan = [n for n in ("scoring.py", "reader.py", "ficha.py")
-          if not (APP / n).exists()]
+          if not (CODIGO / n).exists()]
 if faltan:
-    raise SystemExit(f"Faltan en {APP}: {', '.join(faltan)}")
-sys.path.insert(0, str(APP))
+    raise SystemExit(f"Faltan en {CODIGO}: {', '.join(faltan)}. "
+                     "Vuelve a ejecutar la celda 2b.")
+sys.path.insert(0, str(CODIGO))
 
 import scoring, reader, ficha
-print("scoring, reader y ficha importados desde", APP)
+print("scoring, reader y ficha importados desde", CODIGO)
 print("BLOCK_WORDS:", scoring.BLOCK_WORDS, "| MAX_LENGTH:", scoring.MAX_LENGTH)
 
 # %%
@@ -579,8 +667,9 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 DISPOSITIVO = "cuda" if torch.cuda.is_available() else "cpu"
 MEDIA_PRECISION = DISPOSITIVO == "cuda"
 
-tok = AutoTokenizer.from_pretrained(str(MODELO))
-mod = AutoModelForSequenceClassification.from_pretrained(str(MODELO))
+# Del Hub, no de Drive: son los mismos pesos que publica la app.
+tok = AutoTokenizer.from_pretrained(REPO_MODELO, token=HF_TOKEN)
+mod = AutoModelForSequenceClassification.from_pretrained(REPO_MODELO, token=HF_TOKEN)
 mod.eval().to(DISPOSITIVO)
 if MEDIA_PRECISION:
     mod = mod.half()
@@ -840,8 +929,55 @@ POR_DELANTE = 32
 # El contador cuenta SOLO los shards de este lado. `hechos_ya()` y la celda
 # de fusion siguen usando `perfiles_*.jsonl`, que los captura todos -los
 # 117 antiguos incluidos-, asi que la union se hace sola.
+def guardar_shard(filas, k):
+    """Escribe el shard en local y lo SUBE a Hugging Face.
+
+    Subir es lo que hace que una sesión cortada no pierda nada: el .jsonl local
+    muere con la máquina. Si la subida falla cuatro veces, se dice en voz alta;
+    un shard que solo existe en local es un shard que se va a perder.
+    """
+    destino = PERFILES / f"perfiles_{LADO}_{k:04d}.jsonl"
+    destino.write_text("\n".join(json.dumps(x, ensure_ascii=False)
+                                 for x in filas), encoding="utf-8")
+    for intento in range(1, 5):
+        try:
+            api.upload_file(path_or_fileobj=str(destino),
+                            path_in_repo=f"perfiles/{destino.name}",
+                            repo_id=REPO_RESULTADOS, repo_type="dataset",
+                            commit_message=f"{destino.name}: {len(filas)} libros")
+            break
+        except Exception as e:
+            print(f"  subiendo {destino.name}: {type(e).__name__} {e} "
+                  f"· reintento {intento}/4")
+            time.sleep(15 * intento)
+    else:
+        print(f"  OJO: {destino.name} NO SE SUBIÓ. Está solo en local y se "
+              f"pierde si muere la sesión.")
+    # El progreso, para poder mirarlo desde fuera sin preguntarle a nadie.
+    try:
+        medidos = sum(1 for p in PERFILES.glob("perfiles_*.jsonl")
+                      for l in p.read_text(encoding="utf-8").splitlines()
+                      if l.strip())
+        v = k_global / max(time.time() - inicio, 1)
+        estado = {"medidos": medidos,
+                  "objetivo": len(QUIERO) if "QUIERO" in globals() else None,
+                  "en_esta_sesion": k_global,
+                  "libros_por_minuto": round(v * 60, 1),
+                  "ultimo_shard": destino.name,
+                  "cuando_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())}
+        (RAIZ / "progreso.json").write_text(json.dumps(estado, indent=2),
+                                            encoding="utf-8")
+        api.upload_file(path_or_fileobj=str(RAIZ / "progreso.json"),
+                        path_in_repo="progreso.json",
+                        repo_id=REPO_RESULTADOS, repo_type="dataset",
+                        commit_message=f"progreso: {medidos} libros")
+    except Exception as e:
+        print("  (progreso.json no se subió:", type(e).__name__, e, ")")
+    print(f"  guardado y subido {destino.name} ({len(filas)} libros)")
+
+
 buffer, n_shard = [], len(list(PERFILES.glob(f"perfiles_{LADO}_*.jsonl")))
-inicio, errores = time.time(), 0
+inicio, errores, k_global = time.time(), 0, 0
 
 
 def _leer(ruta):
@@ -904,11 +1040,9 @@ for k, fut in enumerate(_en_orden(disponibles[:TANDA]), 1):
         if errores <= 5:
             print("  fallo en", ruta.name if ruta else "(al leer)",
                   type(e).__name__, e)
+    k_global = k
     if len(buffer) >= POR_SHARD:
-        destino = PERFILES / f"perfiles_{LADO}_{n_shard:04d}.jsonl"
-        destino.write_text("\n".join(json.dumps(x, ensure_ascii=False)
-                                     for x in buffer), encoding="utf-8")
-        print(f"  guardado {destino.name} ({len(buffer)} libros)")
+        guardar_shard(buffer, n_shard)
         buffer, n_shard = [], n_shard + 1
     if k % 100 == 0:
         v = k / (time.time() - inicio)
@@ -917,42 +1051,125 @@ for k, fut in enumerate(_en_orden(disponibles[:TANDA]), 1):
               f"faltarían {queda:.1f} h")
 
 if buffer:
-    destino = PERFILES / f"perfiles_{LADO}_{n_shard:04d}.jsonl"
-    destino.write_text("\n".join(json.dumps(x, ensure_ascii=False)
-                                 for x in buffer), encoding="utf-8")
-    print(f"  guardado {destino.name} ({len(buffer)} libros)")
+    guardar_shard(buffer, n_shard)
 
 print(f"\ntanda terminada en {(time.time() - inicio) / 60:.1f} min, "
       f"{errores} errores")
 
 # %%
 # --- 11. El catálogo final para la app -----------------------------------
-# Junta los shards con los metadatos de Gutenberg y deja un CSV que la app
-# pueda leer directamente: título, autor, temas, dificultad ya medida.
-filas = []
+# Tres artefactos, y los tres suben al repositorio de resultados:
+#
+#  1. `catalogo_medido.csv`: una fila por libro, CON LAS COLUMNAS QUE LEE
+#     `app/catalogo.py` (id, title, author, hook, huella_texto, nivel_cefr,
+#     downloads) más la dificultad medida.
+#  2. `capitulos_medidos.parquet`: una fila por capítulo, con su índice real
+#     dentro del libro. Hasta el 12 de septiembre de 2026 esta celda las TIRABA,
+#     y son justo lo que hace falta para recomendar capítulos en vez de libros.
+#  3. `catalogo_emb_<huella>.npy`: los embeddings del buscador, con el MISMO
+#     modelo, el MISMO texto y el MISMO nombre que calcula la app. Si cualquiera
+#     de los tres difiere, la app no lo reconoce y recodifica 61.000 libros en
+#     cada arranque del Space.
+import hashlib
+import numpy as np
+
+libros, caps, sin_indice = [], [], 0
 for s in sorted(PERFILES.glob("perfiles_*.jsonl")):
     for linea in s.read_text(encoding="utf-8").splitlines():
         try:
             d = json.loads(linea)
         except ValueError:
             continue
-        filas.append({"id": f"PG{d['id']}", "titulo": d["titulo"],
-                      "autor": d["autor"], "palabras": d["palabras"],
-                      "dificultad": d["dificultad"], "ventanas": d["ventanas"],
-                      "capitulos": len(d["filas"])})
+        pid = f"PG{d['id']}"
+        libros.append({"id": pid, "palabras": d["palabras"],
+                       "dificultad": d["dificultad"], "ventanas": d["ventanas"],
+                       "capitulos": len(d.get("filas", []))})
+        # `.get` y no `[]`: los 117 shards antiguos son de antes de que existiera
+        # el campo `indice`. Un KeyError aquí, al final de horas de tanda, tiraría
+        # el catálogo entero por unos pocos capítulos. Se cuentan y se dice.
+        for f in d.get("filas", []):
+            if f.get("indice") is None:
+                sin_indice += 1
+                continue
+            caps.append({"id": pid, "indice": f["indice"],
+                         "capitulo": f.get("capitulo"), "titulo": f.get("titulo", ""),
+                         "dificultad": f.get("dificultad"), "min": f.get("min"),
+                         "max": f.get("max"), "ventanas": f.get("ventanas"),
+                         "palabras": f.get("palabras")})
+if sin_indice:
+    print(f"OJO: {sin_indice:,} capítulos de shards antiguos sin `indice`; "
+          f"cuentan para el libro pero no se pueden recomendar sueltos")
 
-perf = pd.DataFrame(filas)
-meta = en.rename(columns={"Text#": "num", "Title": "titulo_pg",
-                          "Authors": "autor_pg", "Subjects": "temas"})
-meta["id"] = "PG" + meta["num"].astype(str)
-final = perf.merge(meta[["id", "temas", "titulo_pg", "autor_pg"]],
-                   on="id", how="left")
+# El perfil es determinista: un libro medido dos veces da filas idénticas.
+perf = pd.DataFrame(libros).drop_duplicates("id")
+capitulos = pd.DataFrame(caps).drop_duplicates(["id", "indice"])
 
+meta = en.rename(columns={"Title": "title", "Authors": "author",
+                          "Subjects": "temas"})
+meta["id"] = "PG" + meta["Text#"].astype(str)
+final = perf.merge(meta[["id", "title", "author", "temas"]], on="id", how="left")
+final["title"] = final["title"].fillna("").astype(str).map(lambda t: " ".join(t.split()))
+final["author"] = final["author"].fillna("").astype(str).map(lambda t: " ".join(t.split()))
+final["hook"] = ""
+final["huella_texto"] = final["temas"].fillna("").astype(str)
+final["nivel_cefr"] = ""          # ya no es heredado: la app lee `dificultad`
+
+# Las descargas vienen del SPGC; el catálogo oficial de Gutenberg no las trae.
+RUTA_SPGC_HF = RAIZ / "datos" / "SPGC-metadata-2018-07-18.csv"
+final["downloads"] = 0
+if RUTA_SPGC_HF.exists():
+    _s = pd.read_csv(RUTA_SPGC_HF)
+    _col = next((c for c in _s.columns if "download" in c.lower()), None)
+    if _col:
+        _s["id"] = "PG" + _s["id"].astype(str).str.extract(r"(\d+)")[0]
+        final["downloads"] = (final["id"].map(dict(zip(_s["id"], _s[_col])))
+                              .fillna(0).astype(int))
+        print(f"descargas conocidas para {int((final['downloads'] > 0).sum()):,} libros")
+else:
+    print("OJO: sin metadata del SPGC, todos los libros salen con 0 descargas")
+
+COLUMNAS = ["id", "title", "author", "hook", "huella_texto", "nivel_cefr",
+            "downloads", "dificultad", "palabras", "ventanas", "capitulos", "temas"]
 salida = RAIZ / "catalogo_medido.csv"
-final.to_csv(salida, index=False)
-print(f"{len(final):,} libros medidos -> {salida}")
+final[COLUMNAS].to_csv(salida, index=False)
+salida_caps = RAIZ / "capitulos_medidos.parquet"
+capitulos.to_parquet(salida_caps, index=False)
+print(f"{len(final):,} libros y {len(capitulos):,} capítulos medidos")
 print(final["dificultad"].describe())
-final.head(10)
+
+
+def _huella(ruta):
+    """COPIA LITERAL de `app/catalogo.py:_huella`. Si una cambia, la otra también."""
+    h = hashlib.sha256(str(ruta.stat().st_size).encode())
+    with open(ruta, "rb") as fh:
+        for trozo in iter(lambda: fh.read(1 << 20), b""):
+            h.update(trozo)
+    return h.hexdigest()[:16]
+
+
+# Se relee el CSV con el mismo `fillna` que la app, para que el texto indexado
+# sea carácter por carácter el que ella construiría.
+from sentence_transformers import SentenceTransformer
+_r = pd.read_csv(salida).fillna({"hook": "", "huella_texto": "",
+                                 "author": "", "nivel_cefr": ""})
+textos = (_r["title"].astype(str) + ". " + _r["author"].astype(str) + ". "
+          + _r["hook"].astype(str) + " " + _r["huella_texto"].astype(str)).tolist()
+_st = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+                          device=DISPOSITIVO)
+emb = np.asarray(_st.encode(textos, normalize_embeddings=True, batch_size=256,
+                            show_progress_bar=True), dtype=np.float32)
+salida_emb = RAIZ / f"catalogo_emb_{_huella(salida)}.npy"
+np.save(salida_emb, emb)
+print(f"embeddings {emb.shape} -> {salida_emb.name}")
+
+from huggingface_hub import CommitOperationAdd
+api.create_commit(
+    REPO_RESULTADOS, repo_type="dataset",
+    operations=[CommitOperationAdd(f"catalogo/{p.name}", str(p))
+                for p in (salida, salida_caps, salida_emb)],
+    commit_message=f"catálogo medido: {len(final):,} libros")
+print("subidos a", REPO_RESULTADOS, "/catalogo/")
+final[COLUMNAS].head(10)
 
 
 # %%
