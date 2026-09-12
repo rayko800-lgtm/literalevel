@@ -112,6 +112,15 @@ def sha_git(ruta):
     return h.hexdigest()
 
 
+def sha256_de(ruta):
+    """El sha256 del contenido: es lo que el Hub guarda de un archivo LFS."""
+    h = hashlib.sha256()
+    with open(ruta, "rb") as f:
+        for trozo in iter(lambda: f.read(1 << 20), b""):
+            h.update(trozo)
+    return h.hexdigest()
+
+
 def revisar(ruta, rel):
     texto = open(ruta, encoding="utf-8", errors="replace").read()
     for patron in CREDENCIALES:
@@ -148,7 +157,12 @@ def main():
                                  expand=True):
         if getattr(it, "size", None) is None:
             continue
-        remoto[it.path] = it.blob_id
+        # En un archivo LFS el `blob_id` es el del PUNTERO, no el del
+        # contenido: comparado con el sha1 local nunca coincide, y el CSV y el
+        # parquet del catalogo (22 MB) se resubian en cada despliegue aunque
+        # fueran identicos byte a byte. Para esos manda el sha256 del LFS.
+        lfs = getattr(it, "lfs", None)
+        remoto[it.path] = ("lfs", lfs.sha256) if lfs else ("git", it.blob_id)
 
     faltan, cambian, iguales = [], [], []
     for rel in LISTA_BLANCA:
@@ -159,7 +173,9 @@ def main():
         revisar(local, rel)
         if rel not in remoto:
             cambian.append(rel)
-        elif sha_git(local) != remoto[rel]:
+        elif remoto[rel][0] == "lfs" and sha256_de(local) != remoto[rel][1]:
+            cambian.append(rel)
+        elif remoto[rel][0] == "git" and sha_git(local) != remoto[rel][1]:
             cambian.append(rel)
         else:
             iguales.append(rel)
