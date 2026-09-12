@@ -121,11 +121,18 @@ capítulo a capítulo.»
 >   que no está calculada, la ficha no sabe si el libro te queda por
 >   encima y te da el rango en vez del dato.
 > - **Con tu perfil puesto, *Crime and Punishment* no sale el primero.**
->   «dostoyevski» devuelve *The Idiot*, *Karamázov*, *Notes from the
->   Underground* y luego el nuestro: la casilla «acercar a mi nivel»
->   sube los B2 porque tu perfil es 1,20. Está en la lista y se abre
->   bien; **elígelo sin dudar**, que dudar delante de la cámara parece
->   que la app no lo encuentra.
+>   Probado en la app publicada el 12 de septiembre de 2026 con un perfil
+>   de 1,34: «dostoyevski» devuelve primero *Best Russian Short Stories* y
+>   **el nuestro, segundo**; sin perfil sale tercero, tras *The Idiot* y
+>   *The House of the Dead*. Con otro perfil puede moverse un puesto. Está
+>   en la lista y se abre bien; **elígelo sin dudar**, que dudar delante de
+>   la cámara parece que la app no lo encuentra.
+> - **Con perfil 1,20 no esperes capítulos sugeridos para este libro.** Su
+>   capítulo más llevadero mide 1,52, por encima de lo que la app ofrece a
+>   ese nivel, así que la sugerencia —bien hecha— no sale. Si quieres
+>   enseñarla, abre *Alice's Adventures in Wonderland* o *Adventures of
+>   Huckleberry Finn*: los dos quedan por encima y tienen capítulos a tu
+>   nivel.
 >
 > **«Sorpréndeme» ya se puede pulsar.** Desde el 12 de septiembre de 2026
 > la letra de cada libro es la que midió el modelo sobre el libro entero,
