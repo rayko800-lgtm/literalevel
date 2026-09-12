@@ -2098,6 +2098,18 @@ plt.show()
 #    el libro es informativo, dado el desplazamiento medido en la Figura 6.
 # 6. **Ejecutar el precálculo completo** y retirar definitivamente las etiquetas
 #    heredadas del v1.
+# 7. **Convertir las cinco acciones de la aplicación en herramientas de un
+#    agente** (*function calling*). Hoy cada una tiene su botón: medir un
+#    capítulo, buscar por significado, abrir un libro, explicar una palabra y
+#    corregir la pronunciación. Las cinco ya son funciones con argumentos y
+#    salida tipada —que es justo lo que un esquema de herramienta necesita—, así
+#    que el trabajo no sería reescribirlas sino declararlas y dejar que el
+#    modelo encadene los pasos. La pieza que ya está puesta es la otra mitad:
+#    la explicación en contexto, la corrección de pronunciación y el resumen de
+#    la ficha se piden con **salidas estructuradas** (esquemas Pydantic con un
+#    campo por cada cosa que se va a pintar), y eso es lo que impide que el
+#    modelo redefina la palabra: recibe la acepción que eligió el desambiguador
+#    local y tiene prohibido inventar otra.
 #
 # ---
 #

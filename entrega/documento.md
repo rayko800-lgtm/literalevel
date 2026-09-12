@@ -973,9 +973,22 @@ intermedia, ancla B2).
    La segunda vez tarda 0,02 s porque queda guardada.
 5. Toca una palabra que no conoce. El trabajo local —lema, categoría
    gramatical, consulta al diccionario, desambiguación por similitud, IPA— son
-   **40 milisegundos**. La explicación contextual, que sale a la red, es lo
-   único lento, y por eso la ficha se pinta en dos etapas: lo local aparece al
-   instante y la explicación se añade cuando llega.
+   **40 milisegundos** *en caliente*; la primera consulta de la sesión carga el
+   diccionario, spaCy y el modelo de similitud, y eso tarda. La explicación
+   contextual, que sale a la red, es lo único lento siempre, y por eso la ficha
+   se pinta en dos etapas: lo local aparece al instante y la explicación se
+   añade cuando llega.
+
+   Esa explicación se pide con **salidas estructuradas** (*structured
+   outputs*): un esquema Pydantic con un campo por cada cosa que se va a
+   pintar —definición en contexto, explicación gramatical, versión adaptada al
+   nivel y ejemplo simplificado— en lugar de texto libre que luego haya que
+   trocear. **No es un adorno de ingeniería: es lo que hace que el modelo no
+   pueda redefinir la palabra.** Al esquema se le pasa la acepción que ya
+   eligió el desambiguador local y el prompt le prohíbe inventar otra, así que
+   el servicio externo aporta el contexto y **nunca** el significado. La misma
+   técnica se usa en la corrección de pronunciación y en el resumen de «¿de
+   qué trata?».
 6. Lee una frase en voz alta y recibe la corrección palabra por palabra.
 
 Ese recorrido es la unidad de valor del producto: **no es un modelo con una
@@ -1277,6 +1290,19 @@ repetirlo en cada párrafo corregido.
 6. Medir el efecto real sobre el abandono: comparar la tasa de libros
    terminados entre lectores que eligen con recomendación y sin ella. Es la
    única métrica que verdaderamente valida la propuesta.
+7. **Convertir las cinco acciones en herramientas de un agente**
+   (*function calling*). Hoy cada una tiene su botón: medir un capítulo,
+   buscar por significado, abrir un libro, explicar una palabra y corregir la
+   pronunciación. Las cinco ya son funciones con argumentos y salida
+   tipada —que es justo lo que un esquema de herramienta necesita—, así que
+   el trabajo no sería reescribirlas sino declararlas y dejar que el modelo
+   elija: «quiero algo de misterio victoriano que pueda leer» debería
+   encadenar la búsqueda, el filtro por nivel y la ficha sin que el lector
+   sepa que hay tres pasos. **No se hizo por una razón de calendario, no de
+   diseño**: la aplicación llevaba dos días congelada y auditada cuando esto
+   se planteó, y meter un bucle de herramientas en el camino que ya funciona
+   habría cambiado el riesgo de la entrega por una mejora que no estaba
+   medida.
 
 ---
 
