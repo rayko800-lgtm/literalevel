@@ -373,6 +373,27 @@ prueba("html incrustado en la frase",
                                         "hello"), True)
                and "ni una etiqueta viva en la salida")
 
+# Feedback de Laura (12 sep): «don’t» con apostrofo tipografico salia como dos
+# palabras falladas, «don» y «t».
+prueba("el apostrofo tipografico no parte la contraccion",
+       lambda: ui.voz.normalizar_palabras("You don’t warn; I won‘t call") ==
+               ["you", "don't", "warn", "i", "won't", "call"]
+               and "don’t sigue siendo una palabra")
+prueba("contraccion tipografica dicha igual no cuenta como fallo",
+       lambda: ui.voz.evaluar_pronunciacion("I don’t know", "I don't know"
+                                            ).palabras_falladas == []
+               and "cero falladas")
+
+# Feedback de Laura (12 sep): la cabecera del lector decia «Tolstoy, Leo, graf».
+prueba("el autor corto quita el titulo nobiliario",
+       lambda: (ui._autor_corto("Tolstoy, Leo, graf, 1828-1910") == "Tolstoy, Leo"
+                and ui._autor_corto("Doyle, Arthur Conan, Sir, 1859-1930") == "Doyle, Arthur Conan"
+                and ui._autor_corto("Dostoyevsky, Fyodor, 1821-1881; "
+                                    "Garnett, Constance, 1861-1946 [Translator]")
+                    == "Dostoyevsky, Fyodor"
+                and ui._autor_corto("Homer") == "Homer")
+               and "sin graf ni Sir")
+
 titulo("Avisos legibles cuando algo falla")
 
 prueba("el 429 de OpenAI se cuenta en cristiano",

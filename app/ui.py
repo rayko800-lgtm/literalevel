@@ -879,6 +879,10 @@ def _autor_corto(autor) -> str:
     def limpio(p):
         p = re.sub(r"\[[^\]]*\]", "", p)
         p = re.sub(r",?\s*\d{3,4}\??\s*-\s*(\d{3,4}\??)?\s*$", "", p.strip())
+        # Gutenberg escribe «Apellido, Nombre, titulo»: «Tolstoy, Leo, graf»,
+        # «Doyle, Arthur Conan, Sir». Lo que va tras la segunda coma es el
+        # titulo nobiliario y en la cabecera del lector parecia parte del nombre.
+        p = ",".join(p.split(",")[:2])
         return p.strip(" ,").replace("|", "/")
 
     otros = [p for p in partes[1:] if "translator" not in p.lower()]
@@ -2994,8 +2998,10 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     if s.correccion:
         L.append(f"**Cómo corregirlo:** {s.correccion.resumen}")
         for d in s.correccion.detalles:
-            L.append(f"- **{d.palabra}** — {d.sonido_que_falla}. "
-                     f"{d.como_colocar_la_boca}")
+            # El modelo suele cerrar la frase con su punto; poner otro detras
+            # dejaba «..» en cada linea.
+            L.append(f"- **{d.palabra}** — {d.sonido_que_falla.strip().rstrip('.')}. "
+                     f"{d.como_colocar_la_boca.strip()}")
     # El reproductor nace oculto, asi que devolver la ruta pelada asignaria el
     # valor y lo dejaria invisible: se generaba el audio, se pagaba y no se
     # veia nunca. Hay que encenderlo explicitamente.
@@ -3447,11 +3453,15 @@ def construir() -> gr.Blocks:
                                          [resultados, elegido])
 
             with gr.Tab("Leer", id="leer"):
+                # Con el min_width por defecto (160 px) la fila no se partia en
+                # el movil y la cabecera del libro quedaba en una columna de
+                # tres palabras por linea junto a la caja de subida. Con 300 px
+                # cada una, a 390 px se apilan y en escritorio siguen juntas.
                 with gr.Row():
                     archivo = gr.File(label="Tu libro (.epub, .pdf, .txt)",
                                       file_types=[".epub", ".pdf", ".txt"],
-                                      type="filepath", scale=2)
-                    libro_md = gr.Markdown()
+                                      type="filepath", scale=2, min_width=300)
+                    libro_md = gr.Markdown(min_width=300)
                 # Cuatro controles en una fila no caben en un movil: a 390 px
                 # "Medir dificultad" se queda con unos 80 px. Se parte.
                 with gr.Row():

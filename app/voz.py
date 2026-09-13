@@ -42,6 +42,7 @@ VERSION_AUDIO_TTS = "v2-pausa-atomico"
 
 _PUNTUACION_RE = re.compile(r"[^\w\s'-]", re.UNICODE)
 _GUION_SOLO_RE = re.compile(r"(^[-']+|[-']+$)")
+_APOSTROFOS_RE = re.compile("[‘’ʼ´`]")
 
 
 def _ahora() -> str:
@@ -70,7 +71,10 @@ def normalizar_palabras(texto: str) -> list[str]:
     per contracciones, pero quita comas, puntos y demas signos: una coma de
     mas no debe contar como un fallo de pronunciacion.
     """
-    limpio = _PUNTUACION_RE.sub(" ", str(texto).lower())
+    # Los libros escriben el apostrofo tipografico (’). Sin unificarlo, la
+    # regex de abajo lo trataba como puntuacion y «don’t» salia como «don» y
+    # «t»: dos palabras falladas que el lector no habia dicho mal.
+    limpio = _PUNTUACION_RE.sub(" ", _APOSTROFOS_RE.sub("'", str(texto).lower()))
     return [_GUION_SOLO_RE.sub("", p) for p in limpio.split() if _GUION_SOLO_RE.sub("", p)]
 
 
