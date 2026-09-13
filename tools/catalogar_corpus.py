@@ -189,6 +189,8 @@ def puntuar(df):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tope", type=int, default=None)
+    ap.add_argument("--sin-embeddings", action="store_true",
+                    help="no calcular el .npy del externo (para probar rapido)")
     args = ap.parse_args()
 
     df = cargar(args.tope)
@@ -210,6 +212,27 @@ def main():
     textos.to_parquet(TEXTOS_SALIDA, index=False)
     print("letras:", df["nivel_cefr"].value_counts().sort_index().to_dict())
     print("->", CSV_SALIDA, "|", TEXTOS_SALIDA)
+
+    # Los embeddings del externo, calculados AQUI y dejados en la raiz, que es
+    # donde los recoge el despliegue. Sin este paso se calculaban en el primer
+    # arranque del Space (2 vCPU) o en la primera busqueda, y en la cache, no
+    # en la raiz. Los de Gutenberg ya estan y no se tocan.
+    if not args.sin_embeddings:
+        import shutil
+        import catalogo as cat_mod
+        cat = cat_mod.Catalogo(cat_mod.CSV_MEDIDO)
+        emb = cat.embeddings
+        nuevos = sorted(cat_mod.DIR_CACHE.glob("catalogo_emb_ext_*.npy"),
+                        key=lambda p: p.stat().st_mtime)
+        if not nuevos:
+            sys.exit("No se genero el .npy del externo")
+        ultimo = nuevos[-1]
+        for viejo in RAIZ.glob("catalogo_emb_ext_*.npy"):
+            if viejo.name != ultimo.name:
+                viejo.unlink()
+        shutil.copy2(ultimo, RAIZ / ultimo.name)
+        print(f"embeddings: {emb.shape[0]} filas ({cat._n_propio} de Gutenberg + "
+              f"{emb.shape[0] - cat._n_propio} externas) -> {ultimo.name}")
 
 
 if __name__ == "__main__":
