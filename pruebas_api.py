@@ -268,6 +268,9 @@ def con_perfiles_sin_entrar_no_paga():
         assert e["puerta"] and not e["dentro"], e
         r = cliente.post(f"/api/libros/{LIBRE}/sinopsis", headers=B)
         assert r.status_code == 403, (r.status_code, r.text)
+        # El motivo no puede mandar al lector a donde estaba la puerta en Gradio.
+        assert "entres con tu perfil" in r.json()["detail"], r.text
+        assert "arriba del todo" not in r.json()["detail"], r.text
         mal = _ok(cliente.post("/api/entrar", headers=B,
                                json={"usuario": "profe", "clave": "otra"}))
         assert not mal["dentro"] and mal["mensaje"]

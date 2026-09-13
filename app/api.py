@@ -108,6 +108,10 @@ def _llano(texto: str | None) -> str:
     t = str(texto or "")
     t = t.replace("[!] ", "").replace("**", "")
     t = re.sub(r"(?<!\w)_(.+?)_(?!\w)", r"\1", t)
+    # `cuentas` dice DÓNDE está la puerta en Gradio («arriba del todo, en
+    # «Entrar»»). En el cliente Angular no está ahí: el botón Entrar va junto
+    # al propio mensaje y en Ajustes. Se quita la ubicación, no el aviso.
+    t = re.sub(r"\s*\(arriba del todo, en «Entrar»\)", "", t)
     return t.replace("`", "").strip()
 
 
