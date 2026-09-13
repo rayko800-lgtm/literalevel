@@ -95,6 +95,10 @@ LISTA_BLANCA = [
     # sin fonema. La licencia de CMUdict viaja con los datos.
     "app/pronunciacion_cmu.tsv",
     "app/pronunciacion_cmu_LICENCIA.txt",
+    # Animaciones 2D de la boca (4e, 87f1435 y 05783c0). Si falta, la app no se
+    # cae pero no hay animaciones. Los SVG no viajan: se escriben la primera vez
+    # en config.dir_datos()/articulacion_svg, que ya esta en allowed_paths.
+    "app/animacion_articulatoria.py",
 ]
 
 
