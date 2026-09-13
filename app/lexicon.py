@@ -51,6 +51,7 @@ import json
 import os
 import sqlite3
 import tempfile
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -279,6 +280,41 @@ def _resolver_lema_y_categoria(
     return (lema_frasal or lema), lema, categoria, ancla.pos_
 
 
+def _sin_marginales(candidatos):
+    """Los candidatos sin las acepciones marginales (obsolete, archaic...), o
+    todos si no queda ninguno. Una sola regla para elegir la acepcion Y para
+    las alternativas que ve OpenAI: antes las alternativas salian de la lista
+    sin filtrar y la acepcion descartada volvia por la puerta de atras
+    (Codex, auditoria de 5033e69: «awful» mandaba 4 marginales de 7)."""
+    normales = [(e, s) for e, s in candidatos
+                if not {t.lower() for t in s.etiquetas} & _ETIQUETAS_MARGINALES]
+    return normales or candidatos
+
+
+def _mas_afines(oracion: str, glosas: list[str], n: int = 8,
+                obligada: str | None = None) -> list[str]:
+    """Las `n` glosas mas cercanas a la oracion, con `obligada` siempre dentro.
+
+    Antes eran las `n` primeras del volcado: «set» tiene 49 acepciones
+    verbales y «To arrange with dishes and cutlery, to set the table» es la
+    novena, asi que con la oracion «She set the table» nunca llegaba a OpenAI
+    (Codex). Sin modelo de embeddings, se degrada al orden del volcado.
+    """
+    unicas = list(dict.fromkeys(g for g in glosas if g))
+    if len(unicas) > n:
+        try:
+            modelo = _cargar_embebedor()
+            vectores = modelo.encode([oracion or "", *unicas], normalize_embeddings=True)
+            afinidad = vectores[1:] @ vectores[0]
+            unicas = [unicas[i] for i in np.argsort(-afinidad, kind="stable")]
+        except Exception:
+            pass
+    elegidas = unicas[:n]
+    if obligada and obligada not in elegidas:
+        elegidas = [obligada] + elegidas[:max(0, n - 1)]
+    return elegidas
+
+
 def _elegir_sentido(
     oracion: str, candidatos: list[tuple[EntradaDiccionario, Sentido]],
 ) -> tuple[Sentido | None, float | None, list[str]]:
@@ -306,10 +342,7 @@ def _elegir_sentido(
     # hay otras. Con «mostly» ganaba «To the greatest extent; most» (obsolete)
     # frente a «for the most part»: Miguel lo vio en la app el 13 sep 2026. Si
     # TODAS son marginales, se queda con ellas.
-    normales = [(e, s) for e, s in candidatos
-                if not {t.lower() for t in s.etiquetas} & _ETIQUETAS_MARGINALES]
-    if normales:
-        candidatos = normales
+    candidatos = _sin_marginales(candidatos)
     if len(candidatos) == 1:
         return candidatos[0][1], None, []
     try:
@@ -709,6 +742,10 @@ class ConsultorLexico:
         r = consultor.consultar("brook", "A small brook ran through the valley.", nivel=0.9)
     """
 
+    # De la CLASE y no de la instancia: dos consultores sobre la misma cache
+    # tambien se esperan, y quien construye con __new__ (las pruebas) los tiene.
+    _CANDADOS = [threading.Lock() for _ in range(64)]
+
     def __init__(
         self,
         ruta_diccionario: str | os.PathLike = RUTA_DICCIONARIO,
@@ -790,10 +827,12 @@ class ConsultorLexico:
         # app de literatura: el registro estandar va primero.
         registro_elegido = ({t.lower() for t in sentido.etiquetas} & _ETIQUETAS_REGISTRO
                             if sentido is not None else set())
-        alternativas = (list(dict.fromkeys(
-            s.glosa for _, s in pares
-            if registro_elegido or not ({t.lower() for t in s.etiquetas} & _ETIQUETAS_REGISTRO)
-        ))[:8] if dudoso else None)
+        alternativas = (_mas_afines(
+            oracion,
+            [s.glosa for _, s in _sin_marginales(pares)
+             if registro_elegido or not ({t.lower() for t in s.etiquetas} & _ETIQUETAS_REGISTRO)],
+            n=8, obligada=sentido.glosa if sentido is not None else None,
+        ) if dudoso else None)
         # Sin acepcion utilizable -la palabra no esta, o no trae glosas-, la
         # define OpenAI y se marca como generado por IA.
         modo_ia = sentido is None
@@ -869,70 +908,91 @@ class ConsultorLexico:
             if extra is not None:
                 desde_cache = True
 
-        pedir_audio = falta_audio and cliente is not None and not ruta_audio_cacheada
-        pedir_explicacion = partes_clave is not None and extra is None
-        ruta_audio_nueva = None
-        audio_pagado = False
-        if pedir_audio or pedir_explicacion:
-            from concurrent.futures import ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=2) as grupo:
-                f_audio = grupo.submit(
-                    _generar_audio_tts, cliente, texto_audio, RUTA_AUDIO_GENERADO
-                ) if pedir_audio else None
-                if not pedir_explicacion:
-                    f_expl = None
-                elif modo_ia:
-                    f_expl = grupo.submit(
-                        _pedir_definicion_ia, cliente,
-                        palabra=palabra_superficie, oracion=oracion,
-                        categoria=categoria, banda=banda,
-                        modelo=self.modelo_openai, idioma=idioma)
-                else:
-                    # `alternativas` solo si las hay: un doble de la funcion
-                    # sin ese parametro sigue valiendo en el caso normal.
-                    extra_kw = {"alternativas": alternativas} if alternativas else {}
-                    f_expl = grupo.submit(
-                        _pedir_explicacion_openai, cliente,
-                        palabra=palabra_superficie, oracion=oracion,
-                        glosa=sentido.glosa, categoria=categoria,
-                        banda=banda, modelo=self.modelo_openai, idioma=idioma,
-                        **extra_kw)
+        # Una sola consulta de pago por clave a la vez (Codex, auditoria de
+        # 5033e69). La API ya serializaba con su _CANDADO_LEXICO, pero Gradio
+        # atiende hasta 8 eventos a la vez: dos lectores con la misma palabra en
+        # la misma frase pagaban dos veces. Candados por franjas segun el hash de
+        # la clave, sin diccionario que crezca; dos claves distintas en la misma
+        # franja solo se esperan. Dentro se RELEE la cache: el que espero se
+        # encuentra lo que pago el primero y no vuelve a pagar.
+        candado = None
+        if (partes_clave is not None and extra is None) or (
+                falta_audio and cliente is not None and not ruta_audio_cacheada):
+            candado = self._CANDADOS[hash((partes_clave, texto_audio)) % len(self._CANDADOS)]
+            candado.acquire()
+            if partes_clave is not None and extra is None:
+                extra = self.cache.obtener_respuesta(*partes_clave)
+                desde_cache = extra is not None
+            if falta_audio and cliente is not None and not ruta_audio_cacheada:
+                ruta_audio_cacheada = self.cache.obtener_audio(*partes_cache_audio)
+        try:
+            pedir_audio = falta_audio and cliente is not None and not ruta_audio_cacheada
+            pedir_explicacion = partes_clave is not None and extra is None
+            ruta_audio_nueva = None
+            audio_pagado = False
+            if pedir_audio or pedir_explicacion:
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=2) as grupo:
+                    f_audio = grupo.submit(
+                        _generar_audio_tts, cliente, texto_audio, RUTA_AUDIO_GENERADO
+                    ) if pedir_audio else None
+                    if not pedir_explicacion:
+                        f_expl = None
+                    elif modo_ia:
+                        f_expl = grupo.submit(
+                            _pedir_definicion_ia, cliente,
+                            palabra=palabra_superficie, oracion=oracion,
+                            categoria=categoria, banda=banda,
+                            modelo=self.modelo_openai, idioma=idioma)
+                    else:
+                        # `alternativas` solo si las hay: un doble de la funcion
+                        # sin ese parametro sigue valiendo en el caso normal.
+                        extra_kw = {"alternativas": alternativas} if alternativas else {}
+                        f_expl = grupo.submit(
+                            _pedir_explicacion_openai, cliente,
+                            palabra=palabra_superficie, oracion=oracion,
+                            glosa=sentido.glosa, categoria=categoria,
+                            banda=banda, modelo=self.modelo_openai, idioma=idioma,
+                            **extra_kw)
 
-                if f_audio is not None:
-                    try:
-                        ruta_audio_nueva, audio_pagado = f_audio.result()
-                    except Exception as e:
-                        avisos.append(f"no se pudo generar audio: {type(e).__name__}")
-                if f_expl is not None:
-                    try:
-                        extra = f_expl.result()
-                    except Exception as e:
-                        avisos.append(f"OpenAI no disponible: {type(e).__name__}: {e}")
-                        extra = None
+                    if f_audio is not None:
+                        try:
+                            ruta_audio_nueva, audio_pagado = f_audio.result()
+                        except Exception as e:
+                            avisos.append(f"no se pudo generar audio: {type(e).__name__}")
+                    if f_expl is not None:
+                        try:
+                            extra = f_expl.result()
+                        except Exception as e:
+                            avisos.append(f"OpenAI no disponible: {type(e).__name__}: {e}")
+                            extra = None
 
-        # Lo que se ha pagado DE VERDAD, contado DESPUES de pedirlo. Antes se
-        # contaba la intencion -"voy a pedir dos"- y `ui` cobraba el cupo
-        # aunque la llamada muriera en un timeout o en un 401, que no cuestan
-        # un centimo. `ficha.sinopsis` ya devolvia el uso cuando no habia red:
-        # eran dos criterios distintos para lo mismo y gana el de `ficha`.
-        #
-        # Queda un caso que desde aqui no se distingue: que OpenAI cobre la
-        # peticion y reviente al escribir el archivo. Eso cuenta como no
-        # cobrada. Es el lado en el que conviene equivocarse: el cupo existe
-        # para que nadie se coma la cuenta del mes, y un fallo del servidor no
-        # es del visitante.
-        llamadas_de_pago = (int(audio_pagado)
-                            + int(pedir_explicacion and extra is not None))
+            # Lo que se ha pagado DE VERDAD, contado DESPUES de pedirlo. Antes se
+            # contaba la intencion -"voy a pedir dos"- y `ui` cobraba el cupo
+            # aunque la llamada muriera en un timeout o en un 401, que no cuestan
+            # un centimo. `ficha.sinopsis` ya devolvia el uso cuando no habia red:
+            # eran dos criterios distintos para lo mismo y gana el de `ficha`.
+            #
+            # Queda un caso que desde aqui no se distingue: que OpenAI cobre la
+            # peticion y reviente al escribir el archivo. Eso cuenta como no
+            # cobrada. Es el lado en el que conviene equivocarse: el cupo existe
+            # para que nadie se coma la cuenta del mes, y un fallo del servidor no
+            # es del visitante.
+            llamadas_de_pago = (int(audio_pagado)
+                                + int(pedir_explicacion and extra is not None))
 
-        # Ya fuera de los hilos: guardar en la cache y componer el resultado.
-        if ruta_audio_nueva:
-            self.cache.guardar_audio(ruta_audio_nueva, *partes_cache_audio)
-        ruta_audio = ruta_audio_nueva or ruta_audio_cacheada
-        if ruta_audio:
-            audio_uk = audio_us = ruta_audio
-            audio_generado = True
-        if extra and pedir_explicacion:
-            self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
+            # Ya fuera de los hilos: guardar en la cache y componer el resultado.
+            if ruta_audio_nueva:
+                self.cache.guardar_audio(ruta_audio_nueva, *partes_cache_audio)
+            ruta_audio = ruta_audio_nueva or ruta_audio_cacheada
+            if ruta_audio:
+                audio_uk = audio_us = ruta_audio
+                audio_generado = True
+            if extra and pedir_explicacion:
+                self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
+        finally:
+            if candado is not None:
+                candado.release()
         traduccion = definicion_ia = None
         generado_por_ia = acepcion_elegida_por_ia = ipa_generada_por_ia = False
         if extra:
@@ -942,8 +1002,14 @@ class ConsultorLexico:
             ejemplo_simplificado = extra.get("ejemplo_simplificado")
             traduccion = (extra.get("traduccion") or "").strip() or None
             if modo_ia:
-                definicion_ia = (extra.get("definicion_ia") or "").strip() or None
-                generado_por_ia = definicion_ia is not None
+                # Todo lo de esta respuesta lo escribio OpenAI: la marca va con
+                # la respuesta, no con que `definicion_ia` traiga texto. Con una
+                # definicion de solo espacios, la ficha decia «No hay entrada» y
+                # enseñaba explicaciones de IA sin marcar (Codex). Si llega vacia
+                # se usa la contextual, que tambien es suya.
+                definicion_ia = ((extra.get("definicion_ia") or "").strip()
+                                 or (extra.get("definicion_contextual") or "").strip() or None)
+                generado_por_ia = True
                 # La IPA de la IA solo rellena lo que el diccionario no trae, y
                 # se marca. Miguel: «si ya lo esta generando OpenAI, que tambien
                 # de la transcripcion en IPA con la correcta acentuacion».

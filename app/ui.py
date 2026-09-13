@@ -2935,36 +2935,60 @@ def _humanizar(aviso: str, idioma: str) -> str:
     return aviso
 
 
+_META_MARKDOWN = re.compile(r"([\\`*_{}\[\]()#+!|>~<])")
+
+
+def _md(valor) -> str:
+    """Texto literal dentro del Markdown de la ficha: sin HTML y sin sintaxis.
+
+    Lo que escribe OpenAI -y lo que viene del volcado de Wiktionary- entraba
+    tal cual en un gr.Markdown. `sanitize_html` quita el HTML peligroso, pero un
+    `![x](https://...)` o un `[enlace](...)` devuelto por el modelo -o metido
+    en la frase de un libro para que lo repita- se pintaba como imagen remota o
+    como enlace (Codex, auditoria de 5033e69). Se escapa el HTML y cada
+    metacaracter de Markdown. Los saltos de linea se aplanan: un campo no
+    puede abrir secciones nuevas.
+    """
+    texto = " ".join(str(valor or "").split())
+    return _META_MARKDOWN.sub(r"\\\1", _html.escape(texto, quote=False))
+
+
 def _ficha(r, idioma: str = "es") -> str:
-    """La consulta lexica en markdown, diciendo de donde sale cada cosa."""
+    """La consulta lexica en markdown, diciendo de donde sale cada cosa.
+
+    Todo dato dinamico pasa por `_md`. Las secciones que escribe OpenAI llevan
+    «· IA» en el rotulo (Codex): la traduccion y la explicacion de contexto
+    tambien son de la IA, aunque la acepcion sea del diccionario.
+    """
     t = _ROTULOS.get(idioma, _ROTULOS["es"])
+    ia = " · IA"
     # Cinturon y tirantes: `_consultar` ya rechaza lo larguisimo, pero esta
     # funcion se llama tambien desde otros sitios y un encabezado es lo unico
     # de la ficha que puede llenar una pantalla de movil sin que nada lo pare.
-    cab = f"## {str(r.palabra_superficie)[:LIMITE_PALABRA]}"
+    cab = f"## {_md(str(r.palabra_superficie)[:LIMITE_PALABRA])}"
     if r.lema_buscado and r.lema_buscado.lower() != r.palabra_superficie.lower():
-        cab += f"  ·  _{r.lema_buscado}_"
+        cab += f"  ·  _{_md(r.lema_buscado)}_"
     if r.categoria:
-        cab += f"  ·  {r.categoria}"
+        cab += f"  ·  {_md(r.categoria)}"
     L = [cab]
 
     fon = []
     if r.ipa_uk:
-        fon.append(f"UK {r.ipa_uk}")
+        fon.append(f"UK {_md(r.ipa_uk)}")
     if r.ipa_us:
-        fon.append(f"US {r.ipa_us}")
+        fon.append(f"US {_md(r.ipa_us)}")
     if fon:
         marca_ia = " _(IPA generada por IA)_" if getattr(r, "ipa_generada_por_ia", False) else ""
         L.append(f"**{t['pron']}:** " + "  ·  ".join(fon) + marca_ia)
     # La traduccion, lo primero que busca quien lee (Miguel, con «mostly»).
     # `getattr`: las pruebas construyen fichas con objetos sin estos campos.
     if getattr(r, "traduccion", None):
-        L.append(f"**{t['trad']}:** {r.traduccion}")
+        L.append(f"**{t['trad']}{ia}:** {_md(r.traduccion)}")
 
     if r.sentido:
-        L.append(f"**{t['dicc']}** (Wiktionary): {r.sentido}")
+        L.append(f"**{t['dicc']}** (Wiktionary): {_md(r.sentido)}")
         if r.etiquetas_sentido:
-            L.append(f"_{', '.join(r.etiquetas_sentido)}_")
+            L.append(f"_{_md(', '.join(r.etiquetas_sentido))}_")
         if getattr(r, "acepcion_elegida_por_ia", False):
             L.append(f"_{t['acepcion_ia']}_")
         if r.n_sentidos_candidatos > 1:
@@ -2981,20 +3005,21 @@ def _ficha(r, idioma: str = "es") -> str:
             # mandar al lector a una seccion que no existe es peor que callar.
             clave = "dudoso" if r.definicion_contextual else "dudoso_solo"
             L.append("[!] " + t[clave].format(v=r.similitud))
-    elif getattr(r, "generado_por_ia", False) and getattr(r, "definicion_ia", None):
-        L.append(f"**{t['def_ia']}:** {r.definicion_ia}")
+    elif getattr(r, "generado_por_ia", False):
+        if getattr(r, "definicion_ia", None):
+            L.append(f"**{t['def_ia']}:** {_md(r.definicion_ia)}")
         L.append(f"[IA] _{t['ia_aviso']}_")
     else:
         L.append(f"_{t['sin_entrada']}_")
 
     if r.definicion_contextual:
-        L.append(f"**{t['aqui']}:** {r.definicion_contextual}")
+        L.append(f"**{t['aqui']}{ia}:** {_md(r.definicion_contextual)}")
     if r.explicacion_gramatical:
-        L.append(f"**{t['gram']}:** {r.explicacion_gramatical}")
+        L.append(f"**{t['gram']}{ia}:** {_md(r.explicacion_gramatical)}")
     if r.explicacion_adaptada:
-        L.append(f"**{t['nivel']} ({r.banda_lector}):** {r.explicacion_adaptada}")
+        L.append(f"**{t['nivel']} ({_md(r.banda_lector)}){ia}:** {_md(r.explicacion_adaptada)}")
     if r.ejemplo_simplificado:
-        L.append(f"**{t['ej']}:** _{r.ejemplo_simplificado}_")
+        L.append(f"**{t['ej']}{ia}:** _{_md(r.ejemplo_simplificado)}_")
 
     pie = []
     if r.frecuencia_zipf is not None:

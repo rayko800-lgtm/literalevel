@@ -6551,7 +6551,7 @@ def _la_ficha_marca_lo_que_es_ia():
     r = lexicon_mod.ResultadoLexico(**base, traduccion="resplandeciente",
                                     definicion_ia="Que destella débilmente.", generado_por_ia=True)
     ficha = ui._ficha(r, "es")
-    assert "**Traducción:** resplandeciente" in ficha, ficha
+    assert "**Traducción · IA:** resplandeciente" in ficha, ficha
     assert "Definición (generada por IA)" in ficha and "inteligencia artificial" in ficha, ficha
     assert "no esta en el diccionario" not in ficha, "aviso repetido con la marca de IA"
     # Sin IA ni diccionario: el mensaje de siempre, sin fallar.
@@ -6654,6 +6654,145 @@ def _la_ipa_de_la_ia_se_marca():
 
 
 prueba("lexico: la ipa de la ia se marca", _la_ipa_de_la_ia_se_marca)
+
+
+# --- Auditoria de Codex sobre 5033e69 (13 sep 2026) --------------------------
+
+def _las_alternativas_sin_marginales_y_por_afinidad():
+    """Hallazgo 3: las alternativas que ve OpenAI salian de la lista SIN filtrar
+    («awful» mandaba 4 marginales de 7) y cortadas por orden del volcado («set
+    the table» es la novena acepcion de «set» y nunca llegaba)."""
+    E, S = lexicon_mod.EntradaDiccionario, lexicon_mod.Sentido
+    e = E("set", "verb", [], None, None, None, None)
+    pares = [(e, S(f"Relleno {i}.", "verb", [])) for i in range(8)]
+    pares.insert(3, (e, S("To sit; to be seated.", "verb", ["obsolete"])))
+    pares.append((e, S("To arrange with dishes and cutlery, to set the table.", "verb", [])))
+    limpias = [s.glosa for _, s in lexicon_mod._sin_marginales(pares)]
+    assert "To sit; to be seated." not in limpias and len(limpias) == 9, limpias
+    todas_raras = pares[3:4]
+    assert lexicon_mod._sin_marginales(todas_raras) == todas_raras
+
+    class _Embebedor:
+        def encode(self, textos, normalize_embeddings=True):
+            return lexicon_mod.np.array([[1.0, 0.0] if ("table" in t or t.startswith("She")) else [0.0, 1.0]
+                             for t in textos])
+
+    viejo = lexicon_mod._cargar_embebedor
+    try:
+        lexicon_mod._cargar_embebedor = lambda: _Embebedor()
+        elegidas = lexicon_mod._mas_afines("She set the table.", limpias, n=8, obligada="Relleno 7.")
+    finally:
+        lexicon_mod._cargar_embebedor = viejo
+    assert len(elegidas) == 8, elegidas
+    mesa = next((g for g in elegidas if g.endswith("set the table.")), None)
+    assert mesa and elegidas.index(mesa) < elegidas.index("Relleno 0."), elegidas
+    assert elegidas[0] == "Relleno 7.", "la acepcion elegida va siempre, y delante si no cabia"
+
+    def _roto():
+        raise RuntimeError("sin modelo")
+
+    try:
+        lexicon_mod._cargar_embebedor = _roto
+        sin_modelo = lexicon_mod._mas_afines("x", limpias, n=8)
+    finally:
+        lexicon_mod._cargar_embebedor = viejo
+    assert sin_modelo == limpias[:8], "sin embeddings se degrada al orden del volcado"
+    fuente = pathlib.Path(lexicon_mod.__file__).read_text(encoding="utf-8")
+    assert "_sin_marginales(pares)" in fuente.split("def consultar")[1]
+    return "marginales fuera, set the table dentro, elegida siempre"
+
+
+prueba("lexico: alternativas sin marginales y por afinidad",
+       _las_alternativas_sin_marginales_y_por_afinidad)
+
+
+def _la_ficha_no_pinta_markdown_del_modelo():
+    """Hallazgo 4: gr.Markdown sanea el HTML, pero un enlace o una imagen
+    remota escritos por el modelo se pintaban."""
+    malicioso = "Mira ![x](https://evil.example/p.png) y [clic](https://evil.example) <b>hola</b>\n# Titulo"
+    r = lexicon_mod.ResultadoLexico(
+        palabra_superficie="[w](https://evil.example)", oracion="", lema="w", lema_buscado="w",
+        pos_spacy=None, categoria="noun", sentido="A *thing* [x](y).", etiquetas_sentido=["_raro_"],
+        similitud=None, n_sentidos_candidatos=1, ipa_uk="/*a*/", ipa_us=None, audio_uk=None,
+        audio_us=None, audio_generado=False, definicion_contextual=malicioso,
+        explicacion_gramatical=malicioso, explicacion_adaptada=malicioso,
+        ejemplo_simplificado=malicioso, banda_lector="intermedio", frecuencia_zipf=None,
+        desde_cache=False, avisos=[], traduccion=malicioso)
+    ficha = ui._ficha(r, "es")
+    for trozo in ("](", "![", "<b>", "\n# Titulo", "*thing*", "_raro_", "/*a*/"):
+        assert trozo not in ficha, (trozo, ficha)
+    assert "evil.example" in ficha, "el texto se ve literal, no se borra"
+    # Lo que es de OpenAI lleva «· IA»; lo del diccionario, no.
+    for rotulo in ("Traducción · IA", "Aquí significa · IA", "Gramática · IA"):
+        assert rotulo in ficha, (rotulo, ficha)
+    assert "Diccionario · IA" not in ficha, ficha
+    return "enlaces, imagenes y html literales; secciones de ia marcadas"
+
+
+prueba("lexico: la ficha no pinta markdown del modelo", _la_ficha_no_pinta_markdown_del_modelo)
+
+
+def _dos_lectores_a_la_vez_pagan_una_y_se_marca_ia():
+    """Hallazgos 2 y 1: sin candado, dos consultas iguales a la vez (Gradio
+    atiende 8) pagaban dos veces; y con `definicion_ia` en blanco la respuesta
+    de la IA salia sin marcar."""
+    import threading
+    import time
+    from unittest.mock import patch
+    llamadas = []
+
+    def _definir(_cliente, **kw):
+        llamadas.append(kw["palabra"])
+        time.sleep(0.3)
+        return {"definicion_ia": "   ", "traduccion": "zorblar", "definicion_contextual": "Hace algo raro.",
+                "explicacion_gramatical": None, "explicacion_adaptada": None,
+                "ejemplo_simplificado": None, "ipa_us": None, "ipa_uk": None}
+
+    class _Dicc:
+        def buscar(self, _p):
+            return []
+
+        def cerrar(self):
+            pass
+
+    ruta = TMP / "lex_candado.db"
+    ruta.unlink(missing_ok=True)
+    c = lexicon_mod.ConsultorLexico.__new__(lexicon_mod.ConsultorLexico)
+    c.diccionario, c.cache = _Dicc(), lexicon_mod.CacheLexico(str(ruta))
+    c.modelo_openai, c._sin_clave, c._cliente_openai = "modelo-prueba", False, object()
+    resultados, errores = [], []
+
+    def _consultar():
+        try:
+            resultados.append(c.consultar("zorble", "They zorble at dawn.", 1.0))
+        except Exception as e:  # noqa: BLE001
+            errores.append(e)
+
+    try:
+        with patch.object(lexicon_mod, "_resolver_lema_y_categoria",
+                          return_value=("zorble", "zorble", "verb", "VERB")), \
+             patch.object(lexicon_mod, "_pedir_definicion_ia", _definir), \
+             patch.object(lexicon_mod, "_generar_audio_tts", lambda *a, **k: (None, False)):
+            hilos = [threading.Thread(target=_consultar) for _ in range(2)]
+            for h in hilos:
+                h.start()
+            for h in hilos:
+                h.join(10)
+    finally:
+        c.cerrar()
+    assert not errores, errores
+    assert len(resultados) == 2 and len(llamadas) == 1, (len(resultados), llamadas)
+    assert sum(r.llamadas_de_pago for r in resultados) == 1, [r.llamadas_de_pago for r in resultados]
+    assert sorted(r.desde_cache for r in resultados) == [False, True]
+    for r in resultados:
+        assert r.generado_por_ia and r.definicion_ia == "Hace algo raro.", r
+    ficha = ui._ficha(resultados[0], "es")
+    assert "No hay entrada de diccionario" not in ficha and "inteligencia artificial" in ficha, ficha
+    return "una sola llamada de pago y la respuesta marcada como ia"
+
+
+prueba("lexico: dos lectores a la vez pagan una y se marca ia",
+       _dos_lectores_a_la_vez_pagan_una_y_se_marca_ia)
 
 
 # --- Resultado ------------------------------------------------------------
