@@ -43,6 +43,7 @@ sys.path.insert(0, "app")
 import numpy as np
 import pandas as pd
 from huggingface_hub import hf_hub_download
+import scoring
 from scoring import Puntuador, words
 
 RAIZ = Path(__file__).resolve().parent
@@ -76,6 +77,15 @@ def _gramas(t):
     return {" ".join(toks[i:i + N_GRAMA]) for i in range(max(0, len(toks) - N_GRAMA + 1))}
 
 
+def _puntuar_sin_filtro(p, texto):
+    """Como Puntuador.puntuar pero sin continuous_prose: ventanas, media, escala 0-2."""
+    bloques = scoring.fixed_blocks(scoring.normalize(texto))
+    if not bloques:
+        return float("nan")
+    interno = float(np.mean(p._puntuar_bloques(bloques)))
+    return round(float(scoring.public_score(interno)), 3)
+
+
 def _rangos(v):
     return pd.Series(list(v)).rank(method="average").to_numpy()
 
@@ -91,16 +101,28 @@ def _spearman(a, b):
     return _pearson(_rangos(a), _rangos(b))
 
 
-# Las primeras 48 lineas de StoryWeaver se bajaron antes de pasar al orden
-# aleatorio: vienen del listado de la API, que pone primero los libros mejor
-# valorados. Con ellas la muestra tendria sesgo de popularidad, asi que se
-# apartan; todo lo que sigue se bajo en orden aleatorio e intercalando niveles.
-SESGADAS_AL_PRINCIPIO = {"storyweaver": 48}
+# Los 48 primeros libros de StoryWeaver se bajaron antes de pasar al orden
+# aleatorio: vienen del listado de la API, que pone primero los mejor valorados
+# (33 de ellos de nivel 1). Con ellos la muestra tendria sesgo de popularidad.
+# Se apartan POR SLUG, no por posicion: cortar las 48 primeras lineas se rompia
+# en cuanto el archivo se reordenara (revision metodologica de Fable).
+SESGADAS = RAIZ / "auditoria" / "storyweaver_sesgadas_48.txt"
+B_BOOTSTRAP = 2000
+SEMILLA = 20260912
 
 
-def cargar(fuente, ruta, tope):
+def _slugs_sesgados():
+    if not SESGADAS.exists():
+        return set()
+    return {l.strip() for l in SESGADAS.read_text(encoding="utf-8").splitlines()
+            if l.strip() and not l.startswith("#")}
+
+
+def cargar(fuente, ruta, tope, con_sesgadas=False):
     filas = [json.loads(l) for l in ruta.open(encoding="utf-8")]
-    filas = filas[SESGADAS_AL_PRINCIPIO.get(fuente, 0):]
+    if fuente == "storyweaver" and not con_sesgadas:
+        fuera = _slugs_sesgados()
+        filas = [f for f in filas if f.get("slug") not in fuera]
     df = pd.DataFrame(filas)
     df["fuente"] = fuente
     for col in ("slug", "archivo", "url"):
@@ -168,31 +190,73 @@ def unidades(df):
     return pd.DataFrame(out)
 
 
-def metricas(df, titulo):
-    d = df[df["puntuacion"].notna() & df["nivel"].notna()].copy()
+def _parcial(mod, lon, niv):
+    s_mod, s_lon, s_ml = _spearman(mod, niv), _spearman(lon, niv), _spearman(mod, lon)
+    den = (1 - s_ml ** 2) * (1 - s_lon ** 2)
+    return s_mod, s_lon, ((s_mod - s_ml * s_lon) / np.sqrt(den) if den > 0 else float("nan"))
+
+
+def metricas(df, titulo, col="puntuacion"):
+    """Orden contra el nivel del editor, con su incertidumbre.
+
+    Tres correcciones de la revision metodologica de Fable (12 sep 2026):
+    - Intervalos bootstrap al 95 % para Spearman y la parcial, y la frecuencia
+      con que las medias salen crecientes al remuestrear: "estrictamente
+      crecientes" sin eso afirmaba un orden 1 < 2 que no aguanta un remuestreo.
+    - La longitud de un BLOQUE no es la de sus cuentos sino cuantos cupieron;
+      como covariable se usa la longitud natural media (palabras / n_textos).
+    - Se da la correlacion modelo-longitud DENTRO de cada nivel: el v4 lee
+      ventanas de 250 palabras y no ve la longitud; si esa correlacion es ~0,
+      la que aparece entre niveles viene de como el editor define sus niveles.
+    """
+    d = df[df[col].notna() & df["nivel"].notna()].copy()
     if d.empty or d["nivel"].nunique() < 2:
         print(f"\n{titulo}: sin datos suficientes ({len(d)} unidades)")
         return None
     d["ordinal"] = d["nivel"].astype(int)
-    print(f"\n{titulo} — {len(d)} unidades")
-    print(f"  {'nivel':<6}{'n':>6}{'media 0-2':>11}{'desv':>8}{'palabras':>10}")
-    medias = []
+    d["longitud"] = np.where(d["tipo"] == "bloque", d["palabras"] / d["n_textos"].clip(lower=1),
+                             d["palabras"])
+    print(f"\n{titulo} [{col}] — {len(d)} unidades")
+    print(f"  {'nivel':<6}{'n':>6}{'media 0-2':>11}{'IC 95 %':>18}{'desv':>8}{'longitud':>10}{'rho v4-long.':>13}")
+    rng = np.random.default_rng(SEMILLA)
+    medias, intra = [], {}
     for nivel, g in d.groupby("ordinal"):
-        medias.append(g["puntuacion"].mean())
-        print(f"  {nivel:<6}{len(g):>6}{g['puntuacion'].mean():>11.3f}"
-              f"{g['puntuacion'].std(ddof=0):>8.3f}{g['palabras'].mean():>10.0f}")
-    s_mod = _spearman(d["puntuacion"], d["ordinal"])
-    s_pal = _spearman(d["palabras"], d["ordinal"])
-    s_mp = _spearman(d["puntuacion"], d["palabras"])
-    den = (1 - s_mp ** 2) * (1 - s_pal ** 2)
-    parcial = (s_mod - s_mp * s_pal) / np.sqrt(den) if den > 0 else float("nan")
+        v = g[col].to_numpy()
+        boots = [rng.choice(v, len(v)).mean() for _ in range(1000)]
+        lo, hi = np.percentile(boots, [2.5, 97.5])
+        rho = _spearman(g[col], g["longitud"]) if len(g) >= 5 else float("nan")
+        intra[int(nivel)] = round(float(rho), 3)
+        medias.append(v.mean())
+        print(f"  {nivel:<6}{len(g):>6}{v.mean():>11.3f}{f'[{lo:.3f}; {hi:.3f}]':>18}"
+              f"{g[col].std(ddof=0):>8.3f}{g['longitud'].mean():>10.0f}{rho:>13.2f}")
+    s_mod, s_lon, parcial = _parcial(d[col], d["longitud"], d["ordinal"])
     creciente = all(a < b for a, b in zip(medias, medias[1:]))
-    print(f"  Spearman modelo vs nivel: {s_mod:.3f} | contar palabras: {s_pal:.3f} | "
-          f"modelo descontando longitud: {parcial:.3f}")
-    print(f"  medias {'ESTRICTAMENTE CRECIENTES' if creciente else 'NO crecientes'}")
-    return {"titulo": titulo, "n": len(d), "spearman": s_mod, "palabras": s_pal,
-            "parcial": parcial, "creciente": creciente,
-            "medias": [round(float(m), 3) for m in medias]}
+    niveles = sorted(d["ordinal"].unique())
+    boot_s, boot_p, boot_c = [], [], 0
+    idx = np.arange(len(d))
+    for _ in range(B_BOOTSTRAP):
+        m = d.iloc[rng.choice(idx, len(idx))]
+        if m["ordinal"].nunique() < len(niveles):
+            continue
+        s, _, pa = _parcial(m[col], m["longitud"], m["ordinal"])
+        boot_s.append(s)
+        boot_p.append(pa)
+        mm = m.groupby("ordinal")[col].mean().to_numpy()
+        boot_c += all(a < b for a, b in zip(mm, mm[1:]))
+    ic_s = np.nanpercentile(boot_s, [2.5, 97.5]) if boot_s else [float("nan")] * 2
+    ic_p = np.nanpercentile(boot_p, [2.5, 97.5]) if boot_p else [float("nan")] * 2
+    p_crec = boot_c / max(1, len(boot_s))
+    print(f"  Spearman v4 vs nivel: {s_mod:.3f} [{ic_s[0]:.3f}; {ic_s[1]:.3f}] | "
+          f"longitud vs nivel: {s_lon:.3f} | v4 descontando longitud: {parcial:.3f} "
+          f"[{ic_p[0]:.3f}; {ic_p[1]:.3f}]")
+    print(f"  medias {'crecientes' if creciente else 'NO crecientes'} en la muestra; "
+          f"crecientes en el {100 * p_crec:.1f} % de {len(boot_s)} remuestreos")
+    return {"titulo": titulo, "columna": col, "n": len(d),
+            "spearman": round(s_mod, 3), "ic95_spearman": [round(float(x), 3) for x in ic_s],
+            "longitud": round(s_lon, 3), "parcial": round(float(parcial), 3),
+            "ic95_parcial": [round(float(x), 3) for x in ic_p],
+            "creciente_en_muestra": creciente, "p_creciente_bootstrap": round(p_crec, 3),
+            "medias": [round(float(m), 3) for m in medias], "rho_v4_longitud_por_nivel": intra}
 
 
 def main():
@@ -242,12 +306,13 @@ def main():
     # --- Puntuar ------------------------------------------------------------
     p = Puntuador(RUTA_MODELO)
     t0 = time.time()
-    puntos, motivos = [], []
+    puntos, motivos, sin_filtro = [], [], []
     medibles = u["tipo"] != "cola_corta"
     for k, (texto, medir) in enumerate(zip(u["texto"], medibles), 1):
         if not medir:
             puntos.append(float("nan"))
             motivos.append("cola corta, fuera")
+            sin_filtro.append(float("nan"))
             continue
         try:
             puntos.append(float(p.puntuar(texto).puntuacion))
@@ -255,9 +320,16 @@ def main():
         except ValueError as e:
             puntos.append(float("nan"))
             motivos.append(str(e)[:60])
+        # Sensibilidad: la misma puntuacion SIN el filtro estructural de prosa.
+        # En African Storybook el filtro rechazaba 42 de los 65 cuentos de nivel
+        # 1 (una frase corta por pagina parece una lista) y sobrevivian justo los
+        # de frases mas largas: sesgo de supervivencia hacia arriba (Fable). La
+        # app mantiene el filtro; esto solo mide cuanto cambia la validacion.
+        sin_filtro.append(_puntuar_sin_filtro(p, texto))
         if k % 200 == 0:
             print(f"  {k}/{len(u)} · {(time.time() - t0) / k:.2f} s por unidad", flush=True)
     u["puntuacion"] = puntos
+    u["puntuacion_sin_filtro"] = sin_filtro
     u["motivo_rechazo"] = motivos
     u["palabras"] = u["texto"].map(lambda t: len(words(t)))
     print(f"\npuntuadas {int(u['puntuacion'].notna().sum())} de {len(u)} unidades en "
@@ -274,6 +346,8 @@ def main():
         resumen.append(metricas(g, f"{fuente} · todas las unidades"))
         resumen.append(metricas(g[g["tipo"] == "solo"], f"{fuente} · solo textos de >=250 palabras"))
         resumen.append(metricas(g[g["tipo"] == "bloque"], f"{fuente} · solo bloques de cuentos cortos"))
+        resumen.append(metricas(g, f"{fuente} · todas, SIN filtro de prosa (sensibilidad)",
+                                col="puntuacion_sin_filtro"))
     sn = u[u["nivel"].isna() & u["puntuacion"].notna()]
     for fuente, g in sn.groupby("fuente"):
         print(f"\nSin nivel del editor · {fuente}: {len(g)} unidades · media {g['puntuacion'].mean():.3f} · "

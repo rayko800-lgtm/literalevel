@@ -1,46 +1,128 @@
 [
  {
   "titulo": "african_storybook · todas las unidades",
+  "columna": "puntuacion",
   "n": 174,
-  "spearman": 0.41628377957595986,
-  "palabras": 0.7055543713881454,
-  "parcial": 0.23709982741183674,
-  "creciente": true,
+  "spearman": 0.416,
+  "ic95_spearman": [
+   0.279,
+   0.537
+  ],
+  "longitud": 0.81,
+  "parcial": 0.133,
+  "ic95_parcial": [
+   -0.029,
+   0.289
+  ],
+  "creciente_en_muestra": true,
+  "p_creciente_bootstrap": 0.542,
   "medias": [
    0.315,
    0.323,
    0.405,
    0.493,
    0.598
-  ]
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.833,
+   "2": -0.118,
+   "3": 0.186,
+   "4": 0.097,
+   "5": 0.137
+  }
  },
  {
   "titulo": "african_storybook · solo textos de >=250 palabras",
+  "columna": "puntuacion",
   "n": 123,
-  "spearman": 0.306885089160208,
-  "palabras": 0.6370622702583674,
-  "parcial": 0.1360047149401409,
-  "creciente": false,
+  "spearman": 0.307,
+  "ic95_spearman": [
+   0.13,
+   0.464
+  ],
+  "longitud": 0.637,
+  "parcial": 0.136,
+  "ic95_parcial": [
+   -0.04,
+   0.319
+  ],
+  "creciente_en_muestra": false,
+  "p_creciente_bootstrap": 0.065,
   "medias": [
    0.475,
    0.268,
    0.425,
    0.494,
    0.598
-  ]
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": NaN,
+   "2": 0.1,
+   "3": 0.072,
+   "4": 0.098,
+   "5": 0.137
+  }
  },
  {
   "titulo": "african_storybook · solo bloques de cuentos cortos",
+  "columna": "puntuacion",
   "n": 51,
-  "spearman": 0.2052681753698527,
-  "palabras": 0.37463137514831985,
-  "parcial": 0.22141868097462825,
-  "creciente": true,
+  "spearman": 0.205,
+  "ic95_spearman": [
+   -0.071,
+   0.442
+  ],
+  "longitud": 0.453,
+  "parcial": 0.183,
+  "ic95_parcial": [
+   -0.089,
+   0.448
+  ],
+  "creciente_en_muestra": true,
+  "p_creciente_bootstrap": 0.493,
   "medias": [
    0.219,
    0.332,
    0.371,
    0.467
-  ]
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.5,
+   "2": -0.075,
+   "3": -0.035,
+   "4": NaN
+  }
+ },
+ {
+  "titulo": "african_storybook · todas, SIN filtro de prosa (sensibilidad)",
+  "columna": "puntuacion_sin_filtro",
+  "n": 181,
+  "spearman": 0.445,
+  "ic95_spearman": [
+   0.31,
+   0.561
+  ],
+  "longitud": 0.829,
+  "parcial": 0.135,
+  "ic95_parcial": [
+   -0.024,
+   0.297
+  ],
+  "creciente_en_muestra": true,
+  "p_creciente_bootstrap": 0.701,
+  "medias": [
+   0.291,
+   0.323,
+   0.405,
+   0.493,
+   0.598
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.236,
+   "2": -0.118,
+   "3": 0.186,
+   "4": 0.097,
+   "5": 0.137
+  }
  }
 ]
