@@ -234,11 +234,16 @@ Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás prepara
 | `5765c0d` | `app/api.py` | e6, `3c09934` | frases sin los `_` de cursiva de Gutenberg |
 | `ec68aa2` | `app/api.py` + `app/ui.py`, `app/voz.py`, `app/lexicon.py` | e6 `295f3a0` + 4e `3a3d546`, un solo reinicio | 20 frases de PG56711 sin índices; prueba de pago con invitado8 (entrar, medir en frío 5,3 s, palabra por IA 11 s, sinopsis 8,8 s, voz 3,6 s) |
 | `dbd997e` | `app/api.py` | e6, `536ee10` | `/api/voz/falladas` guarda la palabra con su frase; audio de la palabra fallada 200 |
+| `f5bdd46` | `app/ui.py`, `app/lexicon.py`, `app/voz.py`, `app/fonemas.py`, `app/pronunciacion_cmu.tsv` y su licencia | 4e, `519b802` (hallazgos de Codex) + `5029a40` (fonema determinista) | dos voces con el mismo audio dan el mismo fonema /t/ con IPA /ˈtɹædʒɪk/ y consejo de `articulacion.FICHAS` |
 
-Queda abierto tras la prueba de pago: el consejo de fonema de `/api/voz` sale del texto
-libre del modelo y cambia entre llamadas con el mismo audio (/dʒ/ y luego /tʃ/ para un
-error /tr/→/m/). Lo corrige 4e sacándolo de la comparación de IPA y de
-`articulacion.FICHAS`.
+Tras `dbd997e` el consejo de fonema salía del texto libre del modelo y cambiaba entre
+llamadas con el mismo audio (/dʒ/ y luego /tʃ/ para un error /tr/→/m/). `5029a40` lo
+saca de comparar la IPA esperada con la entendida, con CMUdict donde Kaikki no trae IPA.
+
+Archivos de datos nuevos que viajan con el código: `app/pronunciacion_cmu.tsv` (2,9 MB,
+texto, sin LFS) está en la lista blanca desde `4a833f7`. **Un guion de despliegue que
+compila lo que sube no puede compilar un `.tsv`**, y la vuelta atrás de un archivo nuevo
+no es «la versión anterior»: se queda, porque la versión anterior del código no lo lee.
 
 Lo que conviene repetir:
 
