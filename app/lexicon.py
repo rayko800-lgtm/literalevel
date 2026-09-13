@@ -184,6 +184,8 @@ class ResultadoLexico:
     # True si OpenAI cambio la acepcion por OTRA DEL DICCIONARIO que encaja
     # mejor con la oracion (solo cuando la eleccion por embeddings era dudosa).
     acepcion_elegida_por_ia: bool = False
+    # True si ipa_us o ipa_uk los escribio OpenAI (el diccionario no los traia).
+    ipa_generada_por_ia: bool = False
 
     @property
     def completo(self) -> bool:
@@ -506,6 +508,8 @@ def _modelo_respuesta_ia():
     class RespuestaSinDiccionario(BaseModel):
         definicion_ia: str
         traduccion: str
+        ipa_us: str
+        ipa_uk: str
         definicion_contextual: str
         explicacion_gramatical: str
         explicacion_adaptada: str
@@ -549,6 +553,11 @@ def _pedir_definicion_ia(
         "tiene en esta oracion.\n"
         "- traduccion: la traduccion al espanol mas natural en esta oracion (de una "
         "a cuatro palabras).\n"
+        "- ipa_us: transcripcion fonemica en AFI (IPA) del ingles americano (General "
+        "American), entre barras, con la marca de acento primario ˈ y, si la hay, la "
+        "secundaria ˌ delante de la silaba: por ejemplo /ˈmoʊstli/. Usa ɹ para la r.\n"
+        "- ipa_uk: lo mismo en britanico (RP), por ejemplo /ˈməʊstli/. Si la palabra no "
+        "es inglesa o no puedes transcribirla con seguridad, deja los dos vacios.\n"
         "- definicion_contextual: como funciona en esta oracion concreta.\n"
         "- explicacion_gramatical: forma y funcion gramatical en esta oracion.\n"
         "- explicacion_adaptada: la definicion reformulada para el nivel del lector.\n"
@@ -851,8 +860,9 @@ class ConsultorLexico:
         elif cliente is None:
             avisos.append("sin OPENAI_API_KEY: no hay definicion por IA")
         else:
+            # v2: la respuesta trae ademas la IPA generada.
             partes_clave = (
-                "definicion-ia-v1", lema_buscado, categoria or "", oracion, banda,
+                "definicion-ia-v2", lema_buscado, categoria or "", oracion, banda,
                 self.modelo_openai, idioma,
             )
             extra = self.cache.obtener_respuesta(*partes_clave)
@@ -924,7 +934,7 @@ class ConsultorLexico:
         if extra and pedir_explicacion:
             self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
         traduccion = definicion_ia = None
-        generado_por_ia = acepcion_elegida_por_ia = False
+        generado_por_ia = acepcion_elegida_por_ia = ipa_generada_por_ia = False
         if extra:
             definicion_contextual = extra.get("definicion_contextual")
             explicacion_gramatical = extra.get("explicacion_gramatical")
@@ -934,6 +944,19 @@ class ConsultorLexico:
             if modo_ia:
                 definicion_ia = (extra.get("definicion_ia") or "").strip() or None
                 generado_por_ia = definicion_ia is not None
+                # La IPA de la IA solo rellena lo que el diccionario no trae, y
+                # se marca. Miguel: «si ya lo esta generando OpenAI, que tambien
+                # de la transcripcion en IPA con la correcta acentuacion».
+                def _ipa(t):
+                    t = str(t or "").strip()
+                    if not t or len(t) > 60:
+                        return None
+                    return t if t.startswith(("/", "[")) else f"/{t.strip('/')}/"
+                ia_us, ia_uk = _ipa(extra.get("ipa_us")), _ipa(extra.get("ipa_uk"))
+                if not ipa_us and ia_us:
+                    ipa_us, ipa_generada_por_ia = ia_us, True
+                if not ipa_uk and ia_uk:
+                    ipa_uk, ipa_generada_por_ia = ia_uk, True
             else:
                 def _norm(t):
                     return " ".join(str(t or "").casefold().split())
@@ -968,6 +991,7 @@ class ConsultorLexico:
             traduccion=traduccion, definicion_ia=definicion_ia,
             generado_por_ia=generado_por_ia,
             acepcion_elegida_por_ia=acepcion_elegida_por_ia,
+            ipa_generada_por_ia=ipa_generada_por_ia,
         )
 
     def cerrar(self) -> None:

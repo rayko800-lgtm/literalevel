@@ -351,17 +351,26 @@ def _conectar(ruta: str = RUTA_DB_POR_DEFECTO) -> sqlite3.Connection:
             ultima_vez TEXT NOT NULL
         )
     """)
+    # La frase en la que se fallo (13 sep 2026): Miguel quiere las palabras
+    # mal pronunciadas en «Mis palabras» para practicarlas, y una palabra suelta
+    # sin su frase se practica peor. Las bases viejas no tienen la columna.
+    columnas = {fila[1] for fila in con.execute("PRAGMA table_info(palabras_debiles)")}
+    if "frase" not in columnas:
+        con.execute("ALTER TABLE palabras_debiles ADD COLUMN frase TEXT")
     return con
 
 
-def registrar_fallos(palabras: list[str], ruta: str = RUTA_DB_POR_DEFECTO) -> None:
-    """Suma un fallo a cada palabra (ya normalizada) de la lista.
+def registrar_fallos(palabras: list[str], ruta: str = RUTA_DB_POR_DEFECTO,
+                     frase: str | None = None) -> None:
+    """Suma un fallo a cada palabra (ya normalizada) de la lista y, si se da,
+    guarda la frase en la que se fallo (la ultima).
 
     Nunca lanza excepcion hacia la interfaz: un fallo de disco al guardar el
     historial no debe tumbar la sesion de practica.
     """
     if not palabras:
         return
+    frase = (str(frase).strip()[:400] or None) if frase else None
     try:
         ahora = _ahora()
         con = _conectar(ruta)
@@ -369,16 +378,39 @@ def registrar_fallos(palabras: list[str], ruta: str = RUTA_DB_POR_DEFECTO) -> No
             with con:
                 for p in palabras:
                     con.execute("""
-                        INSERT INTO palabras_debiles (palabra, fallos, ultima_vez)
-                        VALUES (?, 1, ?)
+                        INSERT INTO palabras_debiles (palabra, fallos, ultima_vez, frase)
+                        VALUES (?, 1, ?, ?)
                         ON CONFLICT(palabra) DO UPDATE SET
                             fallos = fallos + 1,
-                            ultima_vez = excluded.ultima_vez
-                    """, (p, ahora))
+                            ultima_vez = excluded.ultima_vez,
+                            frase = COALESCE(excluded.frase, palabras_debiles.frase)
+                    """, (p, ahora, frase))
         finally:
             con.close()
     except Exception:
         pass
+
+
+def palabras_para_practicar(n: int = 15, ruta: str = RUTA_DB_POR_DEFECTO) -> list[dict]:
+    """Las palabras que peor se han pronunciado, con la frase donde se fallaron.
+
+    Cada elemento: {"palabra", "fallos", "ultima_vez", "frase"} (`frase` puede
+    ser None en fallos registrados antes de guardarla). Orden: mas fallos
+    primero y, a igualdad, la mas reciente. Lista vacia si no hay historial o
+    si algo falla al leer. La base es la del lector: pasale su `ruta`.
+    """
+    try:
+        con = _conectar(ruta)
+        try:
+            cur = con.execute(
+                "SELECT palabra, fallos, ultima_vez, frase FROM palabras_debiles "
+                "ORDER BY fallos DESC, ultima_vez DESC LIMIT ?", (max(0, int(n)),))
+            return [{"palabra": p, "fallos": f, "ultima_vez": u, "frase": fr}
+                    for p, f, u, fr in cur.fetchall()]
+        finally:
+            con.close()
+    except Exception:
+        return []
 
 
 def puntos_debiles(n: int = 10, ruta: str = RUTA_DB_POR_DEFECTO) -> list[tuple[str, int]]:
@@ -408,6 +440,27 @@ class SesionVoz:
     correccion: Correccion | None = None
     audio_correcto: str | None = None
     transcripcion_ok: bool = True   # False si no se pudo transcribir (sin red/clave)
+    # Audio de CADA palabra fallada, sola: {palabra normalizada: ruta del mp3}.
+    # Miguel (13 sep): «me dices el error en la vocal, pero no como se escucha
+    # la palabra sola; tengo que escuchar todo el texto». Solo las que tienen
+    # audio; sin clave y sin cache, vacio.
+    audios_palabras: dict[str, str] = field(default_factory=dict)
+
+
+MAX_AUDIOS_PALABRA = 6
+
+
+def audios_de_palabras(palabras: list[str]) -> dict[str, str]:
+    """El mp3 de cada palabra (hasta MAX_AUDIOS_PALABRA, sin repetir), pedido a
+    la vez. Reutiliza la cache por contenido de `generar_audio_correcto`: una
+    palabra ya generada no se vuelve a pagar y se sirve aunque no haya clave."""
+    unicas = list(dict.fromkeys(p for p in palabras if p))[:MAX_AUDIOS_PALABRA]
+    if not unicas:
+        return {}
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(4, len(unicas))) as grupo:
+        rutas = list(grupo.map(generar_audio_correcto, unicas))
+    return {p: r for p, r in zip(unicas, rutas) if r}
 
 
 def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
@@ -425,7 +478,7 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     evaluacion = evaluar_pronunciacion(frase_objetivo, transcripcion or "")
 
     if guardar_fallos and evaluacion.palabras_falladas:
-        registrar_fallos(evaluacion.palabras_falladas)
+        registrar_fallos(evaluacion.palabras_falladas, frase=frase_objetivo)
 
     correccion = None
     if evaluacion.palabras_falladas:
@@ -439,6 +492,11 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     # frase ya generada no cuesta nada: `generar_audio_correcto` cachea por
     # contenido.
     audio_correcto = generar_audio_correcto(frase_objetivo)
+    # Y cada palabra fallada, sola. Solo si hubo transcripcion: sin ella todas
+    # cuentan como falladas y serian audios de pago para nada.
+    audios = (audios_de_palabras(evaluacion.palabras_falladas)
+              if transcripcion is not None else {})
 
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
-                     audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None)
+                     audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None,
+                     audios_palabras=audios)

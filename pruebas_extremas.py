@@ -6571,6 +6571,91 @@ def _la_ficha_marca_lo_que_es_ia():
 prueba("lexico: la ficha marca lo que es ia", _la_ficha_marca_lo_que_es_ia)
 
 
+# --- Segunda tanda de Miguel en el front (13 sep 2026) -----------------------
+
+def _la_frase_del_libro_no_es_un_indice():
+    """«Una frase de mi libro» devolvia «VIRGIL 67 V. INVOCATION TO THE LYRE 68 VI.»."""
+    indices = ["VIRGIL 67 V. INVOCATION TO THE LYRE 68 VI.",
+               "VOICE FROM THE PALACE 102 XXI. THE RETURN 108 XXIII.",
+               "Chapter I 3 Chapter II 17 Chapter III 29 and so",
+               "CONTENTS", "The End"]
+    buenas = ["Such a record lays bare what lies inmostly at the heart of a people.",
+              "It was 2 p.m. on the afternoon of May 7, 1915, and the ship was sinking.",
+              "I went to the market with my sister and we bought bread."]
+    malas = [f for f in indices if not ui._parece_indice(f)]
+    falsas = [f for f in buenas if ui._parece_indice(f)]
+    assert not malas and not falsas, {"indices que pasan": malas, "frases que se tiran": falsas}
+    return "indices fuera, frases de verdad dentro"
+
+
+prueba("voz: la frase del libro no es un indice", _la_frase_del_libro_no_es_un_indice)
+
+
+def _las_mal_pronunciadas_se_guardan_con_su_frase():
+    """Se guardan con la frase, se listan para practicar y una base VIEJA (sin
+    la columna `frase`) se migra sola."""
+    import sqlite3
+    ruta = str(TMP / "voz_malpron.db")
+    con = sqlite3.connect(ruta)
+    con.execute("CREATE TABLE palabras_debiles (palabra TEXT PRIMARY KEY, "
+                "fallos INTEGER NOT NULL DEFAULT 0, ultima_vez TEXT NOT NULL)")
+    con.execute("INSERT INTO palabras_debiles VALUES ('though', 2, '2026-09-01T00:00:00+00:00')")
+    con.commit()
+    con.close()
+    ui.voz.registrar_fallos(["thought", "though"], ruta=ruta, frase="I thought so, though.")
+    ui.voz.registrar_fallos(["thought"], ruta=ruta)          # sin frase: conserva la anterior
+    filas = ui.voz.palabras_para_practicar(n=5, ruta=ruta)
+    assert [f["palabra"] for f in filas] == ["though", "thought"], filas
+    assert filas[0]["fallos"] == 3 and filas[1]["fallos"] == 2, filas
+    assert all(f["frase"] == "I thought so, though." for f in filas), filas
+    assert set(filas[0]) == {"palabra", "fallos", "ultima_vez", "frase"}
+    assert ui.voz.palabras_para_practicar(ruta=str(TMP / "no" / "existe" / "x.db")) == []
+    return "migra la base vieja y guarda la frase"
+
+
+prueba("voz: las mal pronunciadas se guardan con su frase",
+       _las_mal_pronunciadas_se_guardan_con_su_frase)
+
+
+def _cada_palabra_fallada_suena_sola():
+    """audios_de_palabras pide cada palabra una vez, con tope, y el detalle de la
+    correccion pinta su reproductor."""
+    pedidas = []
+    viejo = ui.voz.generar_audio_correcto
+    try:
+        # «sin» se pide pero no tiene audio (sin clave ni cache): no entra.
+        ui.voz.generar_audio_correcto = lambda t, *a, **k: (pedidas.append(t) or (None if t == "sin" else f"/tmp/{t}.mp3"))
+        audios = ui.voz.audios_de_palabras(["warn", "warn", "sin"] + [f"p{i}" for i in range(10)])
+    finally:
+        ui.voz.generar_audio_correcto = viejo
+    assert pedidas.count("warn") == 1, pedidas
+    assert len(pedidas) == ui.voz.MAX_AUDIOS_PALABRA, pedidas
+    assert "sin" not in audios and audios["warn"] == "/tmp/warn.mp3", audios
+    html = ui._detalle_de_voz(_detalle(palabra="warn", fonema="w"), str(TMP / "warn.mp3"))
+    assert "Escuchar la palabra" in html and "warn.mp3" in html, html
+    assert "Escuchar la palabra" not in ui._detalle_de_voz(_detalle(palabra="warn", fonema="w"))
+    return "una vez por palabra, con tope, y con reproductor"
+
+
+prueba("voz: cada palabra fallada suena sola", _cada_palabra_fallada_suena_sola)
+
+
+def _la_ipa_de_la_ia_se_marca():
+    base = dict(palabra_superficie="zorble", oracion="", lema="zorble", lema_buscado="zorble",
+                pos_spacy=None, categoria=None, sentido=None, etiquetas_sentido=[], similitud=None,
+                n_sentidos_candidatos=0, ipa_uk="/ˈzɔːbəl/", ipa_us="/ˈzɔɹbəl/", audio_uk=None,
+                audio_us=None, audio_generado=False, definicion_contextual=None,
+                explicacion_gramatical=None, explicacion_adaptada=None, ejemplo_simplificado=None,
+                banda_lector="intermedio", frecuencia_zipf=None, desde_cache=False, avisos=[])
+    con = ui._ficha(lexicon_mod.ResultadoLexico(**base, ipa_generada_por_ia=True), "es")
+    sin = ui._ficha(lexicon_mod.ResultadoLexico(**base), "es")
+    assert "IPA generada por IA" in con and "IPA generada por IA" not in sin, con
+    return "marcada solo cuando la escribio la IA"
+
+
+prueba("lexico: la ipa de la ia se marca", _la_ipa_de_la_ia_se_marca)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)

@@ -2729,6 +2729,40 @@ def _sin_encabezado(parrafo: str) -> str:
     return " ".join(tokens[i:]) if i else parrafo
 
 
+_ROMANO_RE = re.compile(r"^[IVXLCDM]+\.?$")
+
+
+def _parece_indice(frase: str) -> bool:
+    """True si la «frase» es un trozo de indice o un titulo, no texto corrido.
+
+    Miguel pulso «Una frase de mi libro» y le salio «VIRGIL 67 V. INVOCATION
+    TO THE LYRE 68 VI.»: un indice con numeros de pagina, que el filtro de
+    longitud y el de mayuscula inicial dejaban pasar. Se descarta si:
+    - casi todas las letras son mayusculas (titulos y versales);
+    - lleva dos o mas numeros sueltos o numerales romanos (paginas, capitulos);
+    - tiene menos de tres palabras en minuscula (no hay frase).
+    Pura y sin dependencias: la usa tambien la API del front.
+    """
+    tokens = [t.strip(".,;:!?'\"()[]«»“”‘’—–-") for t in str(frase or "").split()]
+    tokens = [t for t in tokens if t]
+    if not tokens:
+        return True
+    letras = [c for c in "".join(tokens) if c.isalpha()]
+    if letras and sum(c.isupper() for c in letras) / len(letras) > 0.6:
+        return True
+    # Palabras que EMPIEZAN en minuscula: las de una frase corrida. «Chapter»
+    # no cuenta, y es lo que separa un indice en caja de titulo de un texto.
+    minusculas = sum(1 for t in tokens if t[0].islower())
+    if minusculas < 3:
+        return True
+    # Numeros sueltos o romanos (el «I» pronombre no, que es texto). Una fecha
+    # con cifras («It was 2 p.m. on May 7, 1915») tambien tiene numeros: solo es
+    # indice si ademas apenas hay palabras en minuscula.
+    numericos = sum(1 for t in tokens
+                    if t.isdigit() or (_ROMANO_RE.match(t) and (len(t) > 1 or t in ("V", "X"))))
+    return numericos >= 2 and minusculas / len(tokens) < 0.5
+
+
 def _empieza_entera(frase: str) -> bool:
     """True si la frase empieza donde empieza una frase.
 
@@ -2920,7 +2954,8 @@ def _ficha(r, idioma: str = "es") -> str:
     if r.ipa_us:
         fon.append(f"US {r.ipa_us}")
     if fon:
-        L.append(f"**{t['pron']}:** " + "  ·  ".join(fon))
+        marca_ia = " _(IPA generada por IA)_" if getattr(r, "ipa_generada_por_ia", False) else ""
+        L.append(f"**{t['pron']}:** " + "  ·  ".join(fon) + marca_ia)
     # La traduccion, lo primero que busca quien lee (Miguel, con «mostly»).
     # `getattr`: las pruebas construyen fichas con objetos sin estos campos.
     if getattr(r, "traduccion", None):
@@ -3232,7 +3267,8 @@ def _frase_del_capitulo(libro, idx):
             # Y que EMPIECE donde empieza una frase: la primera candidata de
             # *Alicia* era `” thought Alice to herself, ...`, que es el
             # final de otra.
-            if 6 <= len(f.split()) <= 25 and _empieza_entera(f):
+            # Y que no sea un indice ni un titulo (ver `_parece_indice`).
+            if 6 <= len(f.split()) <= 25 and _empieza_entera(f) and not _parece_indice(f):
                 candidatas.append(f)
     if not candidatas:
         return gr.update()
@@ -3322,7 +3358,7 @@ def _reproductor_fonema(ruta: str, fonema) -> str:
             'style="height:2.2rem;max-width:100%;vertical-align:middle"></audio>')
 
 
-def _detalle_de_voz(d) -> str:
+def _detalle_de_voz(d, audio_palabra: str | None = None) -> str:
     """Una palabra de la correccion: su IPA, su fonema con audio y la explicacion.
 
     La IPA de la palabra sale de Kaikki y SOLO de ahi (`fonemas.ipa_de_palabra`):
@@ -3344,6 +3380,14 @@ def _detalle_de_voz(d) -> str:
     else:
         cabeza = f"- **{palabra}** (sin transcripción fonética en el diccionario)"
     trozos = [cabeza]
+    # La palabra SOLA. Miguel: «me dices el error en la vocal, pero no como se
+    # escucha la palabra sola; tengo que escuchar todo el texto».
+    if audio_palabra:
+        etiqueta = _html.escape(f"Escuchar «{cruda}» sola", quote=True)
+        trozos.append(
+            f'Escuchar la palabra: <audio controls preload="none" aria-label="{etiqueta}" '
+            f'title="{etiqueta}" src="{_html.escape(_src_audio(Path(audio_palabra)), quote=True)}" '
+            'style="height:2.2rem;max-width:100%;vertical-align:middle"></audio>')
     fonema = fonemas.buscar(getattr(d, "fonema", None))
     if fonema is not None:
         linea = (f"Sonido **/{fonema.simbolo}/**, como en "
@@ -3410,7 +3454,7 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         s = voz.practicar(ruta_audio, frase, guardar_fallos=False)
         if s.evaluacion.palabras_falladas and s.transcripcion_ok:
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
-                                 ruta=_archivo_lector("voz.db", peticion))
+                                 ruta=_archivo_lector("voz.db", peticion), frase=frase)
     except Exception as e:
         # Tampoco se devuelve aqui, y por lo mismo: `voz.practicar` puede haber
         # reventado DESPUES de llamar a gpt o a tts-1, y desde fuera no hay
@@ -3442,12 +3486,41 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         L.append(f"**Cómo corregirlo:** {_html.escape(str(s.correccion.resumen or ''), quote=False)}")
         # Cada detalle en su propia linea de la lista, con su IPA y el audio
         # del fonema: ver `_detalle_de_voz`.
-        L.append("\n".join(_detalle_de_voz(d) for d in s.correccion.detalles))
+        audios = getattr(s, "audios_palabras", None) or {}
+
+        def _audio_de(d):
+            normal = voz.normalizar_palabras(str(getattr(d, "palabra", "") or ""))
+            return audios.get(normal[0]) if normal else None
+
+        L.append("\n".join(_detalle_de_voz(d, _audio_de(d)) for d in s.correccion.detalles))
     # El reproductor nace oculto, asi que devolver la ruta pelada asignaria el
     # valor y lo dejaria invisible: se generaba el audio, se pagaba y no se
     # veia nunca. Hay que encenderlo explicitamente.
     return (_palabras_html(ev, s.transcripcion_ok), "\n\n".join(L),
             gr.update(value=s.audio_correcto, visible=bool(s.audio_correcto)))
+
+
+def _mal_pronunciadas(peticion: gr.Request = None) -> str:
+    """Las palabras que el lector pronuncio mal, con la frase donde fallo.
+
+    Miguel (13 sep): que se queden en «Mis palabras», no solo las buscadas,
+    para practicarlas. Lee la base de ESTE lector.
+    """
+    try:
+        filas = voz.palabras_para_practicar(n=30, ruta=_archivo_lector("voz.db", peticion))
+    except Exception as e:
+        return f"<p>{_html.escape(_aviso(e))}</p>"
+    if not filas:
+        return ("<p>Todavía no hay palabras mal pronunciadas. Cuando practiques en "
+                "«Pronunciar», las que fallen aparecerán aquí con su frase.</p>")
+    trozos = ['<div id="ll-malpron"><p><b>Para practicar en voz alta</b> · copia la '
+              'frase en «Pronunciar» y vuelve a intentarlo.</p><ul>']
+    for f in filas:
+        frase = (f" — <i>{_html.escape(str(f['frase']))}</i>" if f.get("frase") else "")
+        vez = "vez" if f["fallos"] == 1 else "veces"
+        trozos.append(f"<li><b>{_html.escape(str(f['palabra']))}</b> · {int(f['fallos'])} {vez}{frase}</li>")
+    trozos.append("</ul></div>")
+    return "".join(trozos)
 
 
 def _debiles(peticion: gr.Request = None):
@@ -4203,6 +4276,10 @@ def construir() -> gr.Blocks:
 
                 b_cuaderno.click(_mis_palabras, None, cuaderno_md)
                 b_repasar.click(_repasar, None, cuaderno_md)
+                # Y las que pronunciaste mal, con su frase (Miguel, 13 sep).
+                b_malpron = gr.Button("Palabras que pronuncié mal")
+                malpron_html = gr.HTML()
+                b_malpron.click(_mal_pronunciadas, None, malpron_html)
 
             # «IPA» y no «AFI»: es la sigla que el lector ve en diccionarios y
             # apps (International Phonetic Alphabet). Miguel, 13 sep.
