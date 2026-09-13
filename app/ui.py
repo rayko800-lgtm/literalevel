@@ -2835,6 +2835,9 @@ _ROTULOS = {
                      "Suele acertar, pero puede equivocarse."),
         "acepcion_ia": ("La IA eligió esta acepción del diccionario porque encaja "
                         "mejor con tu frase."),
+        "parte": ("La entrada del diccionario es de «{parte}», una parte de «{todo}»: "
+                  "el diccionario no trae el compuesto entero. La pronunciación es la de "
+                  "«{todo}»."),
     },
     "en": {
         "pron": "Pronunciation", "dicc": "Dictionary", "aqui": "Here it means",
@@ -2857,6 +2860,9 @@ _ROTULOS = {
                      "written by an AI (OpenAI). It is usually right, but it can be wrong."),
         "acepcion_ia": ("The AI picked this dictionary sense because it fits your "
                         "sentence better."),
+        "parte": ("The dictionary entry is for «{parte}», part of «{todo}»: the "
+                  "dictionary does not have the whole compound. The pronunciation is "
+                  "for «{todo}»."),
     },
 }
 
@@ -2971,6 +2977,11 @@ def _ficha(r, idioma: str = "es") -> str:
     if r.categoria:
         cab += f"  ·  {_md(r.categoria)}"
     L = [cab]
+    # Compuesto que el diccionario no trae entero: la entrada es de una parte, y
+    # se dice antes que nada (Miguel, con «war-chant»).
+    if getattr(r, "parte_del_diccionario", None) and getattr(r, "compuesto", None):
+        rotulo = t.get("parte") or _ROTULOS["es"]["parte"]
+        L.append("_" + rotulo.format(parte=_md(r.parte_del_diccionario), todo=_md(r.compuesto)) + "_")
 
     fon = []
     if r.ipa_uk:

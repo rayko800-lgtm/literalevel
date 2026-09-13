@@ -6924,6 +6924,107 @@ prueba("voz: los compuestos se corrigen y suenan por pieza",
        _los_compuestos_se_corrigen_y_suenan_por_pieza)
 
 
+def _la_ficha_de_un_compuesto_no_es_la_de_su_parte():
+    """Miguel consulto «war-chant» y la ficha salio como «war» con /wɔɹ/: la
+    entrada tiene que decir que es de la parte, y la IPA y el audio tienen que
+    ser del compuesto (la IPA, de la IA y marcada)."""
+    from unittest.mock import patch
+    E, S = lexicon_mod.EntradaDiccionario, lexicon_mod.Sentido
+    guerra = E("war", "noun", [S("Organised, large-scale, armed conflict.", "noun", [])],
+               "/wɔː/", "/wɔɹ/", None, "https://upload.wikimedia.org/war.ogg")
+    pedidas = []
+
+    class _Dicc:
+        def buscar(self, p):
+            return [guerra] if p == "war" else []
+
+        def cerrar(self):
+            pass
+
+    def _explicar(_cliente, **kw):
+        pedidas.append(kw)
+        base = {"traduccion": "canto de guerra", "acepcion_usada": "",
+                "definicion_contextual": "Un canto de guerra.", "explicacion_gramatical": "Sustantivo compuesto.",
+                "explicacion_adaptada": "Canción para la guerra.", "ejemplo_simplificado": "They sang a war-chant."}
+        return {**base, "ipa_us": "/ˈwɔɹˌtʃænt/", "ipa_uk": "/ˈwɔːˌtʃɑːnt/"} if kw.get("compuesto_de") else base
+
+    def _consultor():
+        c = lexicon_mod.ConsultorLexico.__new__(lexicon_mod.ConsultorLexico)
+        c.diccionario, c.cache = _Dicc(), lexicon_mod.CacheLexico(":memory:")
+        c.modelo_openai, c._sin_clave, c._cliente_openai = "modelo-prueba", False, object()
+        return c
+
+    oracion = "The warriors raised a war-chant."
+    with patch.object(lexicon_mod, "_resolver_lema_y_categoria", return_value=("war", "war", "noun", "NOUN")), \
+         patch.object(lexicon_mod, "_pedir_explicacion_openai", _explicar), \
+         patch.object(lexicon_mod, "_generar_audio_tts", lambda *a, **k: (None, False)):
+        c = _consultor()
+        try:
+            r = c.consultar("war-chant", oracion, 1.0)
+            normal = c.consultar("war", oracion, 1.0)
+        finally:
+            c.cerrar()
+    assert r.compuesto == "war-chant" and r.parte_del_diccionario == "war", r
+    assert pedidas[0].get("compuesto_de") == "war" and "compuesto_de" not in pedidas[1], pedidas
+    assert r.ipa_us == "/ˈwɔɹˌtʃænt/" and r.ipa_generada_por_ia, r
+    assert r.audio_us is None, "el audio de «war» no es el de «war-chant»"
+    assert r.sentido.startswith("Organised"), "la acepcion sigue siendo de la parte"
+    assert normal.compuesto is None and normal.ipa_us == "/wɔɹ/" and not normal.ipa_generada_por_ia, normal
+    ficha = ui._ficha(r, "es")
+    assert "una parte de «war-chant»" in ficha and "IPA generada por IA" in ficha, ficha
+    assert "/wɔɹ/" not in ficha, ficha
+    assert lexicon_mod._es_compuesto("well-known") and not lexicon_mod._es_compuesto("-war")
+    return "entrada de la parte dicha, ipa del compuesto marcada, palabra normal igual"
+
+
+prueba("lexico: la ficha de un compuesto no es la de su parte",
+       _la_ficha_de_un_compuesto_no_es_la_de_su_parte)
+
+
+def _el_aviso_de_acepcion_dudosa_se_va_cuando_openai_la_revisa():
+    """f4: «house» traia «La acepción elegida es dudosa» con dudoso=false. Con
+    OpenAI revisando las alternativas, el aviso ya no aplica; sin OpenAI, si."""
+    from unittest.mock import patch
+    E, S = lexicon_mod.EntradaDiccionario, lexicon_mod.Sentido
+    casa = E("house", "noun", [S("A structure serving as an abode.", "noun", []),
+                               S("A building used for a purpose.", "noun", [])],
+             None, "/haʊs/", None, "https://upload.wikimedia.org/house.ogg")
+    aviso = "acepcion provisional: margen bajo (0.010) frente a otra acepcion: A building used for a purpose."
+
+    class _Dicc:
+        def buscar(self, p):
+            return [casa] if p == "house" else []
+
+        def cerrar(self):
+            pass
+
+    def _explicar(_cliente, **kw):
+        assert kw.get("alternativas"), "la eleccion dudosa no mando alternativas"
+        return {"traduccion": "casa", "acepcion_usada": "", "definicion_contextual": "Una casa.",
+                "explicacion_gramatical": "Sustantivo.", "explicacion_adaptada": "Donde vives.",
+                "ejemplo_simplificado": "The house is big."}
+
+    c = lexicon_mod.ConsultorLexico.__new__(lexicon_mod.ConsultorLexico)
+    c.diccionario, c.cache = _Dicc(), lexicon_mod.CacheLexico(":memory:")
+    c.modelo_openai, c._sin_clave, c._cliente_openai = "modelo-prueba", False, object()
+    with patch.object(lexicon_mod, "_resolver_lema_y_categoria", return_value=("house", "house", "noun", "NOUN")), \
+         patch.object(lexicon_mod, "_elegir_sentido", lambda o, pares: (pares[0][1], 0.31, [aviso])), \
+         patch.object(lexicon_mod, "_mas_afines", lambda o, g, n=8, obligada=None: list(dict.fromkeys(g))[:n]), \
+         patch.object(lexicon_mod, "_pedir_explicacion_openai", _explicar):
+        try:
+            previa = c.consultar("house", "The house stood alone.", 1.0, usar_openai=False)
+            completa = c.consultar("house", "The house stood alone.", 1.0)
+        finally:
+            c.cerrar()
+    assert any("provisional" in a for a in previa.avisos), previa.avisos
+    assert not any("provisional" in a for a in completa.avisos), completa.avisos
+    return "el aviso sale en la vista previa y se va con la revision de openai"
+
+
+prueba("lexico: el aviso de acepcion dudosa se va cuando openai la revisa",
+       _el_aviso_de_acepcion_dudosa_se_va_cuando_openai_la_revisa)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)

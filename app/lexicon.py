@@ -187,6 +187,14 @@ class ResultadoLexico:
     acepcion_elegida_por_ia: bool = False
     # True si ipa_us o ipa_uk los escribio OpenAI (el diccionario no los traia).
     ipa_generada_por_ia: bool = False
+    # Compuesto que el diccionario no trae entero («war-chant»). La entrada, la
+    # acepcion y la categoria son de `parte_del_diccionario` («war»), no del todo;
+    # `ipa_us`/`ipa_uk` y el audio SI son del compuesto entero: la IPA la escribe
+    # OpenAI (marcada con `ipa_generada_por_ia`) y el audio, tts-1. Miguel (13 sep
+    # 2026): la ficha salia como «war» con /wɔɹ/, «lo que hacen los diccionarios
+    # tradicionales, y no lo quiero».
+    compuesto: str | None = None
+    parte_del_diccionario: str | None = None
 
     @property
     def completo(self) -> bool:
@@ -519,9 +527,13 @@ class CacheLexico:
 # trae la palabra -o ninguna acepcion utilizable- la define OpenAI, y el
 # resultado va marcado como generado por IA. «Mostly» no le dio al lector ni
 # traduccion ni audio, y era justo el caso en que queria toda la ayuda.
-def _modelo_respuesta_contextual():
+def _modelo_respuesta_contextual(compuesto: bool = False):
     """Construye el modelo Pydantic de Structured Outputs de forma perezosa,
-    para no exigir `pydantic` a quien solo use diccionario + IPA."""
+    para no exigir `pydantic` a quien solo use diccionario + IPA.
+
+    Con `compuesto`, pide ademas la IPA del compuesto ENTERO: el diccionario
+    solo trae una de sus partes («war» de «war-chant») y su IPA no es la de
+    la palabra que se esta leyendo."""
     from pydantic import BaseModel
 
     class RespuestaContextual(BaseModel):
@@ -532,7 +544,14 @@ def _modelo_respuesta_contextual():
         explicacion_adaptada: str
         ejemplo_simplificado: str
 
-    return RespuestaContextual
+    if not compuesto:
+        return RespuestaContextual
+
+    class RespuestaContextualCompuesto(RespuestaContextual):
+        ipa_us: str
+        ipa_uk: str
+
+    return RespuestaContextualCompuesto
 
 
 def _modelo_respuesta_ia():
@@ -549,6 +568,21 @@ def _modelo_respuesta_ia():
         ejemplo_simplificado: str
 
     return RespuestaSinDiccionario
+
+
+def _es_compuesto(texto: str) -> bool:
+    """«war-chant», «well-known»: dos o mas piezas de letras unidas por guion."""
+    piezas = str(texto or "").split("-")
+    return len(piezas) >= 2 and all(p and p.replace("'", "").isalpha() for p in piezas)
+
+
+def _ipa_de_modelo(texto) -> str | None:
+    """La IPA que devuelve OpenAI, entre barras, o None si viene vacia o
+    desmedida."""
+    texto = str(texto or "").strip()
+    if not texto or len(texto) > 60:
+        return None
+    return texto if texto.startswith(("/", "[")) else f"/{texto.strip('/')}/"
 
 
 def _lengua(idioma: str) -> str:
@@ -616,6 +650,7 @@ def _pedir_explicacion_openai(
     cliente, *, palabra: str, oracion: str, glosa: str,
     categoria: str | None, banda: str, modelo: str, idioma: str = "es",
     alternativas: list[str] | None = None,
+    compuesto_de: str | None = None,
 ) -> dict:
     """Pide a OpenAI lo contextual/gramatical. Prohibe explicitamente
     inventar la definicion: debe usar la glosa que se le pasa, tal cual, o,
@@ -624,9 +659,26 @@ def _pedir_explicacion_openai(
     `idioma` decide en que lengua se explica: 'es' para lectores que aun
     necesitan el andamiaje en su lengua materna, 'en' para quien ya lee
     comodo y prefiere no salir del ingles mientras lee.
+
+    `compuesto_de`: `palabra` es un compuesto que el diccionario no trae entero
+    («war-chant») y la glosa es solo de esa parte («war»). Se explica el
+    compuesto sin presentar la glosa como suya, y se pide su IPA entera.
     """
-    RespuestaContextual = _modelo_respuesta_contextual()
+    RespuestaContextual = _modelo_respuesta_contextual(compuesto=bool(compuesto_de))
     lengua = _lengua(idioma)
+    regla_compuesto = (
+        f"La palabra del texto es el compuesto «{palabra}», que el diccionario no trae "
+        f"entero: la definicion de diccionario que recibes es SOLO de su parte "
+        f"«{compuesto_de}». No la presentes como la definicion del compuesto. En "
+        "'definicion_contextual' y 'explicacion_adaptada' explica que significa el "
+        "compuesto entero en esta oracion, apoyandote en esa parte; la 'traduccion' es "
+        "la del compuesto entero.\n\n") if compuesto_de else ""
+    campos_compuesto = (
+        "\n- ipa_us: transcripcion fonemica en AFI (IPA) del compuesto ENTERO en ingles "
+        "americano (General American), entre barras, con la marca de acento primario ˈ "
+        "y la secundaria ˌ delante de la silaba: por ejemplo /ˈwɔɹˌtʃænt/. Usa ɹ para la r.\n"
+        "- ipa_uk: lo mismo en britanico (RP). Si no puedes transcribirlo con seguridad, "
+        "deja los dos vacios.") if compuesto_de else ""
     otras = [a for a in (alternativas or []) if a and a != glosa]
     regla_alternativas = (
         "La eleccion de la acepcion fue DUDOSA. Si la definicion dada no encaja con "
@@ -647,7 +699,7 @@ def _pedir_explicacion_openai(
         "básico/intermedio/avanzado). Adapta el vocabulario y la longitud de "
         "tus explicaciones a ese nivel: mas sencillas y breves para "
         "'básico', mas ricas y precisas para 'avanzado'.\n\n"
-        + regla_alternativas + lengua +
+        + regla_compuesto + regla_alternativas + lengua +
         "Campos a devolver:\n"
         "- traduccion: la traduccion al espanol mas natural de la palabra en esta "
         "oracion (de una a cuatro palabras), coherente con la definicion.\n"
@@ -661,10 +713,12 @@ def _pedir_explicacion_openai(
         "con palabras acordes al nivel del lector.\n"
         "- ejemplo_simplificado: una frase nueva en ingles, breve y sencilla, "
         "que use la palabra con el mismo sentido que en la oracion original."
+        + campos_compuesto
     )
     entrada = (
         f"Palabra o expresion: {palabra}\n"
-        f"Categoria gramatical detectada: {categoria or 'no determinada'}\n"
+        + (f"Parte del compuesto que trae el diccionario: {compuesto_de}\n" if compuesto_de else "")
+        + f"Categoria gramatical detectada: {categoria or 'no determinada'}\n"
         f"Oracion original: {oracion}\n"
         f"Definicion de diccionario (usar tal cual, no inventar otra): {glosa}"
         + ("\nOtras acepciones del diccionario:\n" + "\n".join(f"- {a}" for a in otras)
@@ -801,12 +855,26 @@ class ConsultorLexico:
         lema_buscado, lema_simple, categoria, pos_spacy = _resolver_lema_y_categoria(
             oracion, palabra_superficie)
 
+        # Compuestos con guion («war-chant»): spaCy los parte y el lema sale de
+        # una pieza («war»). Si el diccionario trae el compuesto entero, se usa
+        # entero; si no, la entrada es de la pieza y la ficha lo tiene que decir:
+        # la IPA y el audio de «war» no son los de «war-chant» (Miguel, 13 sep).
+        compuesto = parte_del_diccionario = None
+        superficie = palabra_superficie.strip().strip(".,;:!?¿¡\"'()[]«»…“”‘’").lower()
+        if _es_compuesto(superficie) and lema_buscado != superficie:
+            if self.diccionario.buscar(superficie):
+                lema_buscado = lema_simple = superficie
+            else:
+                compuesto = superficie
+
         entradas = self.diccionario.buscar(lema_buscado)
         if not entradas and lema_buscado != lema_simple:
             entradas = self.diccionario.buscar(lema_simple)
             lema_buscado = lema_simple
         if not entradas:
             avisos.append(f"'{lema_buscado}' no esta en el diccionario Kaikki")
+        elif compuesto:
+            parte_del_diccionario = lema_buscado
 
         candidatas = entradas
         if categoria:
@@ -844,6 +912,8 @@ class ConsultorLexico:
         # tres segundos regalados. Las escrituras a SQLite se quedan en el
         # hilo principal: la cache es un fichero, no un servicio.
         ipa_uk, ipa_us, audio_uk, audio_us = _mejor_fonetica(entradas, categoria)
+        if parte_del_diccionario:
+            ipa_uk = ipa_us = audio_uk = audio_us = None
         audio_generado = False
         # `usar_openai=False` reutiliza el camino de "no hay clave", que ya
         # estaba escrito y probado: el diccionario, la IPA, la desambiguacion y
@@ -892,7 +962,7 @@ class ConsultorLexico:
                     "contextual-v2", lema_buscado, categoria or "", sentido.glosa,
                     oracion, banda, self.modelo_openai, idioma,
                     "alt" if alternativas else "",
-                )
+                ) + (("compuesto",) if parte_del_diccionario else ())
                 extra = self.cache.obtener_respuesta(*partes_clave)
                 if extra is not None:
                     desde_cache = True
@@ -948,6 +1018,8 @@ class ConsultorLexico:
                         # `alternativas` solo si las hay: un doble de la funcion
                         # sin ese parametro sigue valiendo en el caso normal.
                         extra_kw = {"alternativas": alternativas} if alternativas else {}
+                        if parte_del_diccionario:
+                            extra_kw["compuesto_de"] = parte_del_diccionario
                         f_expl = grupo.submit(
                             _pedir_explicacion_openai, cliente,
                             palabra=palabra_superficie, oracion=oracion,
@@ -1013,12 +1085,8 @@ class ConsultorLexico:
                 # La IPA de la IA solo rellena lo que el diccionario no trae, y
                 # se marca. Miguel: «si ya lo esta generando OpenAI, que tambien
                 # de la transcripcion en IPA con la correcta acentuacion».
-                def _ipa(t):
-                    t = str(t or "").strip()
-                    if not t or len(t) > 60:
-                        return None
-                    return t if t.startswith(("/", "[")) else f"/{t.strip('/')}/"
-                ia_us, ia_uk = _ipa(extra.get("ipa_us")), _ipa(extra.get("ipa_uk"))
+                ia_us = _ipa_de_modelo(extra.get("ipa_us"))
+                ia_uk = _ipa_de_modelo(extra.get("ipa_uk"))
                 if not ipa_us and ia_us:
                     ipa_us, ipa_generada_por_ia = ia_us, True
                 if not ipa_uk and ia_uk:
@@ -1034,7 +1102,19 @@ class ConsultorLexico:
                     otra = next((s for _, s in pares if _norm(s.glosa) == usada), None)
                     if otra is not None:
                         sentido, similitud, acepcion_elegida_por_ia = otra, None, True
-                        avisos = [a for a in avisos if "acepcion provisional" not in a]
+                # OpenAI ya reviso la eleccion con las otras acepciones delante,
+                # la conservara o la cambiara: el aviso de «acepcion dudosa» ya
+                # no aplica. f4 lo vio en «house», con dudoso=false al lado.
+                # Solo si la respuesta trae `acepcion_usada`, que es la prueba de
+                # que contesto a las alternativas (una respuesta vieja, sin el
+                # campo, no reviso nada). Sin OpenAI (etapa diccionario) se queda.
+                if alternativas and "acepcion_usada" in extra:
+                    avisos = [a for a in avisos if "acepcion provisional" not in a]
+
+        if parte_del_diccionario and extra:
+            ipa_us = _ipa_de_modelo(extra.get("ipa_us"))
+            ipa_uk = _ipa_de_modelo(extra.get("ipa_uk"))
+            ipa_generada_por_ia = bool(ipa_us or ipa_uk)
 
         return ResultadoLexico(
             palabra_superficie=palabra_superficie, oracion=oracion,
@@ -1058,6 +1138,7 @@ class ConsultorLexico:
             generado_por_ia=generado_por_ia,
             acepcion_elegida_por_ia=acepcion_elegida_por_ia,
             ipa_generada_por_ia=ipa_generada_por_ia,
+            compuesto=compuesto, parte_del_diccionario=parte_del_diccionario,
         )
 
     def cerrar(self) -> None:
