@@ -197,6 +197,9 @@
       }
 
       @if (palabra(); as w) {
+        @if (w.compuesto && w.parte_del_diccionario) {
+          <p class="nota-compuesto">La entrada del diccionario es de «<span lang="en">{{ w.parte_del_diccionario }}</span>», una parte de «<span lang="en">{{ w.compuesto }}</span>».</p>
+        }
         <!-- Siempre hay forma de oírla: el audio del diccionario o el generado, y si
              no hay ninguno, la voz del navegador en americano o británico. -->
         @if (w.ipa_us || w.ipa_uk || w.audio_us || w.audio_uk || vozDelNavegador) {

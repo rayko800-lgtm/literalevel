@@ -184,6 +184,10 @@ export interface Palabra {
   ipa_us: string | null;
   /** La palabra no está en el diccionario y la IPA la escribió la IA. */
   ipa_generada_por_ia: boolean;
+  /** «war-chant» cuando el diccionario no la trae y la entrada es de una parte. */
+  compuesto: string | null;
+  /** Esa parte («war»): de ella son el sentido y la categoría. */
+  parte_del_diccionario: string | null;
   audio_uk: string | null;
   audio_us: string | null;
   audio_generado: boolean;
