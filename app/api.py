@@ -1334,11 +1334,34 @@ def inicio(pet: Lector) -> dict:
 
 # --- Montaje junto a Gradio -------------------------------------------------------
 
-def con_gradio(demo=None):
-    """La API en `/api` y Gradio en `/`, en un solo proceso y un solo puerto.
+def para_gradio() -> dict:
+    """Lo que se pasa a `demo.launch(ssr_mode=False, app_kwargs=api.para_gradio())`.
 
+    **Así es como se monta en un Space de Gradio, y no con `con_gradio`.** El
+    primer intento (13 de septiembre de 2026) arrancó un uvicorn propio con
+    `con_gradio` y el Space dio 502/503: allí Hugging Face arranca Gradio con
+    SSR, que pone un proxy de Node en el puerto público y Python detrás. Y ese
+    proxy solo pasa a Python una lista fija de prefijos
+    (`templates/node/build/proxy_routes.js`: `/gradio_api`, `/config`,
+    `/login`...). `/api` no está en la lista, así que aunque las rutas existan,
+    con SSR cada `/api/*` devuelve la página de Gradio con un 200.
+
+    Con `ssr_mode=False`, Python atiende el puerto directamente, que es como
+    corre la app en local desde siempre. Las rutas van en el CONSTRUCTOR de la
+    app FastAPI que crea el propio Gradio (`App(**app_kwargs)`), así que se
+    registran antes que las suyas y ganan. El CORS lo pone el middleware de
+    Gradio, que acepta cualquier origen fuera de localhost y devuelve las
+    cabeceras pedidas, `X-Lector` incluida.
+    """
+    rutas = [r for r in app.router.routes if str(getattr(r, "path", "")).startswith("/api/")]
+    return {"routes": rutas, "exception_handlers": {Exception: _error_inesperado}}
+
+
+def con_gradio(demo=None):
+    """La API en `/api` y Gradio en `/`, en un solo proceso, con uvicorn propio.
+
+    **Solo para local.** En un Space de Gradio no vale: ver `para_gradio`.
     Las rutas de la API se registran antes que el montaje de `/`, asi que ganan.
-    `allowed_paths` y el tope de subida son los que pasa `app.py` del Space.
     """
     import gradio as gr
     demo = demo if demo is not None else ui.construir()
