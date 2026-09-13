@@ -111,6 +111,49 @@ lecturas equivocadas de cifras correctas; se corrigieron midiendo, y el validado
 calcula ahora intervalos, la correlación dentro de cada nivel y la sensibilidad sin
 filtro.*
 
+## StoryWeaver
+
+Muestra **aleatoria e intercalada por niveles** de 649 libros (sin los 48 bajados
+antes por popularidad): 157 / 165 / 161 / 166. Fuga contra ELG: 0 textos
+(máximo compartido 0,003). **467 de 479 unidades puntuadas**; 12 fuera (8 por forma
+de lista, 2 por forma de frase, 1 por pocas frases, 1 cola corta).
+
+| Nivel del editor | Unidades | Media del v4 (0–2) | IC 95 % | Longitud natural | ρ v4–longitud dentro del nivel |
+|---|---|---|---|---|---|
+| 1 | 59 | 0,547 | [0,475; 0,627] | 190 | 0,14 |
+| 2 | 121 | 0,688 | [0,636; 0,747] | 458 | 0,25 |
+| 3 | 143 | 0,892 | [0,836; 0,943] | 730 | 0,40 |
+| 4 | 144 | 1,010 | [0,953; 1,072] | 1.329 | 0,43 |
+
+| Métrica (467 unidades) | Valor | IC 95 % |
+|---|---|---|
+| Spearman v4 contra nivel | **0,426** | [0,348; 0,502] |
+| Spearman longitud natural contra nivel | 0,542 | — |
+| v4 descontando la longitud natural (parcial) | **0,206** | **[0,111; 0,295]** |
+| Medias crecientes en los remuestreos | **99,6 %** | — |
+
+Por separado: los de 250 palabras o más (367) dan 0,363 [0,274; 0,452], parcial 0,164
+[0,066; 0,265], con el orden 1 < 2 menos firme (67 % de remuestreos); los bloques
+(100) dan 0,377 [0,204; 0,536] con los niveles 3 y 4 empatados. Sin el filtro de
+prosa apenas cambia: 0,423 [0,348; 0,495], 99,4 %.
+
+### Hallazgos
+
+1. **Es la validación externa más sólida de la noche.** Los cuatro niveles salen
+   separados y en orden, con intervalos que apenas se tocan, y **el v4 aporta orden
+   además de la longitud**: la parcial (0,206) excluye el cero. En African Storybook
+   no lo hacía.
+2. **La longitud pesa menos que en African Storybook** (0,54 contra 0,81): los
+   niveles de StoryWeaver no son solo cuentos más largos, y ahí se ve lo que el
+   modelo mide por contenido.
+3. **Dentro de cada nivel el v4 sí sube con la longitud** (0,25–0,43 en los niveles
+   2–4), a diferencia de African Storybook. Lectura prudente: dentro de un mismo
+   nivel, los libros largos de StoryWeaver tratan temas más complejos; el v4 no ve
+   la longitud, ve lo que cabe en cada ventana de 250 palabras.
+4. **Escala:** de 0,55 (A2) a 1,01 (frontera B1–B2). Cuatro niveles de un editor
+   infantil repartidos por una franja de medio punto: la compresión de escala del
+   v4 ya documentada.
+
 ## VOA Learning English (sin nivel por artículo)
 
 Muestra de hasta 60 artículos por sección (477 bajados, 472 con texto). **468 de

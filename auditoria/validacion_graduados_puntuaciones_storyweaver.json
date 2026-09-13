@@ -1,0 +1,122 @@
+[
+ {
+  "titulo": "storyweaver · todas las unidades",
+  "columna": "puntuacion",
+  "n": 467,
+  "spearman": 0.426,
+  "ic95_spearman": [
+   0.348,
+   0.502
+  ],
+  "longitud": 0.542,
+  "parcial": 0.206,
+  "ic95_parcial": [
+   0.111,
+   0.295
+  ],
+  "creciente_en_muestra": true,
+  "p_creciente_bootstrap": 0.996,
+  "medias": [
+   0.547,
+   0.688,
+   0.892,
+   1.01
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.142,
+   "2": 0.25,
+   "3": 0.396,
+   "4": 0.428
+  }
+ },
+ {
+  "titulo": "storyweaver · solo textos de >=250 palabras",
+  "columna": "puntuacion",
+  "n": 367,
+  "spearman": 0.363,
+  "ic95_spearman": [
+   0.274,
+   0.452
+  ],
+  "longitud": 0.453,
+  "parcial": 0.164,
+  "ic95_parcial": [
+   0.066,
+   0.265
+  ],
+  "creciente_en_muestra": true,
+  "p_creciente_bootstrap": 0.671,
+  "medias": [
+   0.655,
+   0.695,
+   0.897,
+   1.032
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": -0.403,
+   "2": 0.417,
+   "3": 0.454,
+   "4": 0.403
+  }
+ },
+ {
+  "titulo": "storyweaver · solo bloques de cuentos cortos",
+  "columna": "puntuacion",
+  "n": 100,
+  "spearman": 0.377,
+  "ic95_spearman": [
+   0.204,
+   0.536
+  ],
+  "longitud": 0.4,
+  "parcial": 0.404,
+  "ic95_parcial": [
+   0.23,
+   0.567
+  ],
+  "creciente_en_muestra": false,
+  "p_creciente_bootstrap": 0.325,
+  "medias": [
+   0.507,
+   0.662,
+   0.849,
+   0.807
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": -0.066,
+   "2": -0.38,
+   "3": -0.161,
+   "4": -0.354
+  }
+ },
+ {
+  "titulo": "storyweaver · todas, SIN filtro de prosa (sensibilidad)",
+  "columna": "puntuacion_sin_filtro",
+  "n": 478,
+  "spearman": 0.423,
+  "ic95_spearman": [
+   0.348,
+   0.495
+  ],
+  "longitud": 0.554,
+  "parcial": 0.197,
+  "ic95_parcial": [
+   0.111,
+   0.284
+  ],
+  "creciente_en_muestra": true,
+  "p_creciente_bootstrap": 0.994,
+  "medias": [
+   0.557,
+   0.688,
+   0.892,
+   1.006
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.112,
+   "2": 0.254,
+   "3": 0.396,
+   "4": 0.436
+  }
+ }
+]
