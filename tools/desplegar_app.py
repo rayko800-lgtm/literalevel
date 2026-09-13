@@ -24,8 +24,21 @@ QUE NO SE TOCA, Y POR QUE
   declara `sdk_version` y `app_file`. Sobrescribirlo rompe el arranque.
 - `app.py`: es el punto de entrada del Space y no existe en local (aqui es
   `main.py`). Son equivalentes; el que corre es el del Space.
-- `kaikki_diccionario.db`, `catalogo_emb_*.npy`, `.gitattributes`: datos y
-  configuracion de LFS que ya estan colocados. 243 MB que no cambian.
+- `kaikki_diccionario.db`, `catalogo_emb_*.npy`: datos que ya estan
+  colocados. 243 MB que no cambian.
+- `.gitattributes` no se REEMPLAZA nunca: solo se le anade una regla de LFS
+  cuando falta (ver `LFS_NECESARIO`), y en un commit aparte y previo.
+
+LOS AUDIOS DE LOS FONEMAS (fusionado a mano del commit e53d8ca de la otra sesion)
+
+Los 41 mp3 de `app/audio_fonemas/` son binarios, y Hugging Face rechaza un
+binario que no vaya por LFS/Xet. Cuando se miro el Space (12 sep 2026) su
+`.gitattributes` tenia reglas para `*.parquet` o `*.npy`, pero **no para
+`*.mp3`**. Si falta, el guion la anade ANTES de subir los audios y en su propio
+commit: el modo de subida (LFS o normal) lo decide el Hub con el
+`.gitattributes` que ya esta en el repositorio, no con el que viaja en el mismo
+commit. La lista de audios sale del inventario de `app/fonemas.py`, asi que un
+fonema sin su mp3 para el despliegue en vez de subir una tabla a medias.
 
 Cada subida reconstruye el Space sobre la misma URL. Si cambia
 `requirements.txt` la reconstruccion es larga (rehace la imagen); si solo
@@ -73,7 +86,27 @@ LISTA_BLANCA = [
     # version del externo y se suben a mano, como los de Gutenberg.
     "catalogo_externo.csv",
     "corpus_abierto.parquet",
+    "app/fonemas.py",
 ]
+
+
+def _audios_de_fonemas():
+    """Los mp3 que la app espera, uno por fonema del inventario.
+
+    Se leen de `fonemas.INVENTARIO` y no con un glob: un glob subiria lo que
+    haya y callaria el que falte. `fonemas` no importa nada pesado (ni el SDK
+    de OpenAI, ni el diccionario: ese solo se abre al pedir una IPA)."""
+    sys.path.insert(0, os.path.join(RAIZ, "app"))
+    import fonemas
+    return [f"app/audio_fonemas/{f.archivo}" for f in fonemas.INVENTARIO]
+
+
+LISTA_BLANCA += _audios_de_fonemas()
+
+# Reglas de LFS que el Space tiene que tener ANTES de recibir estos binarios.
+LFS_NECESARIO = {
+    ".mp3": "*.mp3 filter=lfs diff=lfs merge=lfs -text",
+}
 
 # Formas de credencial que no deben viajar a un repositorio publico.
 # Sin letra ni cifra DELANTE: una clave empieza en su propio token. Sin esa
@@ -131,7 +164,30 @@ def sha256_de(ruta):
     return h.hexdigest()
 
 
+def reglas_lfs_que_faltan(api, cambian):
+    """Las lineas de `LFS_NECESARIO` que hacen falta y el Space no tiene."""
+    extensiones = {os.path.splitext(rel)[1] for rel in cambian}
+    necesarias = [linea for ext, linea in LFS_NECESARIO.items()
+                  if ext in extensiones]
+    if not necesarias:
+        return [], ""
+    from huggingface_hub import hf_hub_download
+    try:
+        actual = open(hf_hub_download(REPO, ".gitattributes", repo_type="space",
+                                      token=api.token),
+                      encoding="utf-8").read()
+    except Exception:
+        actual = ""
+    patrones = {l.split()[0] for l in actual.splitlines() if l.strip()}
+    return [l for l in necesarias if l.split()[0] not in patrones], actual
+
+
 def revisar(ruta, rel):
+    # Un binario no lleva credenciales en texto, y leido como texto puede dar un
+    # falso positivo que bloquee el despliegue. El parquet del corpus abierto SI
+    # se escanea: lleva texto plano dentro.
+    if rel.endswith(".mp3"):
+        return
     texto = open(ruta, encoding="utf-8", errors="replace").read()
     for patron in CREDENCIALES:
         m = patron.search(texto)
@@ -205,10 +261,28 @@ def main():
         n = os.path.getsize(os.path.join(RAIZ, rel.replace("/", os.sep)))
         print("   " + rel + "   " + str(n) + " bytes")
 
+    faltan_lfs, gitattributes = reglas_lfs_que_faltan(api, cambian)
+    if faltan_lfs:
+        print()
+        print("Al .gitattributes del Space le faltan reglas de LFS para estos "
+              "binarios; se anadiran antes, en un commit aparte:")
+        for linea in faltan_lfs:
+            print("   " + linea)
+
     if args.seco:
         print()
         print("--seco: no subo nada.")
         return
+
+    if faltan_lfs:
+        nuevo = gitattributes.rstrip("\n") + "\n" + "\n".join(faltan_lfs) + "\n"
+        api.create_commit(
+            repo_id=REPO, repo_type="space",
+            operations=[CommitOperationAdd(path_in_repo=".gitattributes",
+                                           path_or_fileobj=nuevo.lstrip("\n").encode("utf-8"))],
+            commit_message="lfs para los audios de los fonemas: "
+                           + ", ".join(l.split()[0] for l in faltan_lfs))
+        print("reglas de LFS anadidas al .gitattributes del Space")
 
     ops = [CommitOperationAdd(path_in_repo=rel,
                               path_or_fileobj=os.path.join(
