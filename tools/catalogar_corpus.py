@@ -145,6 +145,20 @@ def cargar(tope):
             if tope and n >= tope:
                 break
     df = pd.DataFrame(filas).drop_duplicates("id")
+    # El mismo libro vive en varias bibliotecas: «The Red Raincoat» de Kiran
+    # Kasturia esta en StoryWeaver (nivel 1) y en Let's Read (nivel 2), con el
+    # mismo texto. En el catalogo del 12 de septiembre salia dos veces en el
+    # buscador (61 filas de 1.812 repetian titulo y autor). Se queda uno por
+    # titulo y autor normalizados, con la fuente de mas prioridad.
+    prioridad = {f: i for i, f in enumerate(["storyweaver", "african_storybook", "letsread", "voa"])}
+    df["_orden"] = df["fuente"].map(prioridad).fillna(9)
+    df["_obra"] = (df["title"].astype(str).str.lower().str.replace(r"[^a-z0-9]+", " ", regex=True).str.strip()
+                   + "|" + df["author"].astype(str).str.lower().str.replace(r"[^a-z0-9]+", " ", regex=True).str.strip())
+    antes = len(df)
+    df = (df.sort_values(["_orden", "id"]).drop_duplicates("_obra", keep="first")
+            .drop(columns=["_orden", "_obra"]))
+    if antes != len(df):
+        print(f"obras repetidas entre fuentes, fuera: {antes - len(df)}")
     malas = df[~df["_libre"].astype(bool)]
     if len(malas):
         sys.exit(f"NO CATALOGO NADA: {len(malas)} textos con licencia no libre llegaron "

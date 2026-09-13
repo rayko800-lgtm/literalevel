@@ -415,6 +415,31 @@ def _dominio_publico_con_excepcion():
 prueba("dominio publico con excepcion no entra", _dominio_publico_con_excepcion)
 
 
+def _una_obra_una_fila():
+    """«The Red Raincoat» estaba en StoryWeaver y en Let's Read con el mismo texto
+    y salia dos veces en el buscador. Se queda uno, el de la fuente preferida."""
+    cc = _cargar_catalogador()
+    carpeta = _nuevo()
+    sw = carpeta / "sw.jsonl"
+    lr = carpeta / "lr.jsonl"
+    texto = "On Sunday, Manu's parents got him a red raincoat. " * 30
+    sw.write_text(json.dumps({"id": 369, "slug": "369-the-red-raincoat", "titulo": "The Red Raincoat",
+                              "autores": ["Kiran Kasturia"], "licencia": "CC BY 4.0", "al_catalogo": True,
+                              "nivel_editor": "1", "url": "https://storyweaver.org.in/x", "texto": texto}),
+                  encoding="utf-8")
+    lr.write_text(json.dumps({"master": "92e0606f-a5a4", "titulo": "The Red Raincoat ", "autores": ["Kiran Kasturia"],
+                              "licencia": "CC-BY-4.0", "al_catalogo": True, "nivel_editor": "2",
+                              "url": "https://www.letsreadasia.org/book/the-red-raincoat", "texto": texto}),
+                  encoding="utf-8")
+    cc.FUENTES = {"letsread": lr, "storyweaver": sw}
+    df = cc.cargar(None)
+    assert df["id"].tolist() == ["SWV369"], f"la misma obra entra dos veces o gana la fuente equivocada: {df['id'].tolist()}"
+    return "una fila por titulo y autor, con StoryWeaver por delante de Let's Read"
+
+
+prueba("la misma obra en dos bibliotecas entra una sola vez", _una_obra_una_fila)
+
+
 def _credenciales_sin_falsos_positivos():
     spec = importlib.util.spec_from_file_location("desplegar_app", "tools/desplegar_app.py")
     mod = importlib.util.module_from_spec(spec)
