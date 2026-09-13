@@ -177,6 +177,35 @@ genera `tools/catalogar_corpus.py` y viajan en tres archivos:
   claves de OpenAI, así que el guion se negaba a desplegar. Los patrones exigen
   ahora que `sk-` y `hf_` empiecen su propio token.
 
+## Montar la API de Angular en el Space: el primer intento falló (13 sep 2026)
+
+Se intentó servir `app/api.py` (FastAPI) en `/api` y Gradio en `/` desde el mismo
+proceso, cambiando en el `app.py` del Space `demo.launch(...)` por
+`uvicorn.run(api.con_gradio(demo), host="0.0.0.0", port=7860)`.
+
+- **En local funcionaba entero** (`PORT=7901 python app.py`): `/api/salud`, `/api/perfil`
+  con y sin `X-Lector`, Gradio en `/` y el audio de los fonemas.
+- **En el Space no.** Llegó a RUNNING, pero `/api/salud` devolvía la página de carga de
+  Hugging Face y después todo dio 502/503. El guion de despliegue lo deshizo solo,
+  restaurando el `app.py` anterior (commit del Space `bf9f0be`), y Gradio volvió a 200 en
+  menos de un minuto.
+- **La causa probable** está en el arranque bueno: `Running on local URL:
+  http://0.0.0.0:7860, with SSR ⚡ (Node proxy -> Python :7861)`. Un Space `sdk: gradio`
+  corre Gradio con renderizado en servidor: `launch()` pone un proxy Node en el 7860 y
+  Python en el 7861. Un uvicorn propio en el 7860 no levanta ese proxy. La imagen además
+  usa **Python 3.13**, no el 3.11 local.
+- **Los registros del intento fallido no se conservan**: `/logs/run` y `/logs/build`
+  solo devuelven el último arranque. Si falla, hay que leerlos *antes* de deshacer.
+
+Tres reglas para el siguiente intento:
+
+1. Que siga arrancando `demo.launch()` y las rutas de `/api` se registren sobre la app
+   de Gradio; probarlo en local con `GRADIO_SSR_MODE=true` y Python 3.13.
+2. **Comprobar el JSON, no el código HTTP**: con Gradio montado, cualquier ruta
+   desconocida (`/api/salud` incluida) responde 200 con su HTML.
+3. Desplegar solo `app.py` y `app/api.py`, en un commit propio, con la vuelta atrás
+   automática preparada y el `app.py` actual guardado antes.
+
 ## Persistencia: ahora importa más que antes
 
 `~/.literalevel/` es disco **efímero** en un Space y se borra en cada reinicio.
