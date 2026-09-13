@@ -28,6 +28,10 @@ wordfreq>=3.1,<4
 openai>=1.40,<4
 pydantic>=2.7,<3
 
+# API HTTP para el nuevo cliente Angular. La interfaz Gradio sigue disponible.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+
 # El modelo de spaCy no esta en PyPI. En local basta con:
 #   python -m spacy download en_core_web_sm
 # En un despliegue no hay quien ejecute ese comando, asi que se instala por
