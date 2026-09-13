@@ -31,7 +31,8 @@
   display: flex; align-items: center; gap: .6rem; max-width: var(--medida); margin: 0 auto 1.5rem;
   padding: .5rem .5rem .5rem 1rem; border-radius: var(--radio); background: var(--acento-suave); color: var(--acento-texto);
 }
-.pista p { margin: 0; flex: 1; font-size: .95rem; }
+/* Va dentro de #texto: sin `.texto` delante le ganaría la letra del libro. */
+.texto .pista p { margin: 0; flex: 1; font-family: var(--fuente-ui); font-size: .95rem; line-height: 1.45; color: inherit; }
 .pista .boton-icono { color: inherit; }
 
 .pasar { display: flex; justify-content: space-between; max-width: var(--medida); margin: 0 auto 1.25rem; gap: .5rem; }
@@ -148,19 +149,40 @@
 .hoja.paginado .final { break-before: column; break-inside: avoid; margin-top: 0; border-top: 0; padding-top: 1.5rem; }
 
 .paginador {
-  max-width: 860px; margin: .75rem auto 0; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .75rem;
-  padding: .35rem .5rem; border-radius: 999px; background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
+  max-width: 860px; margin: .75rem auto 0; display: flex; align-items: center; gap: .4rem;
+  padding: .35rem .45rem; border-radius: 999px; background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
 }
+/* En modo seguido la barra se queda abajo mientras se lee, encima de la
+   navegación del móvil y de la zona segura del iPhone. */
+.paginador.fijo { position: sticky; z-index: 45; bottom: calc(1rem + env(safe-area-inset-bottom)); }
 .paginador .boton-icono { background: var(--acento-suave); color: var(--acento-texto); }
+.paginador .boton-icono.cap { background: transparent; color: var(--texto-suave); }
 .paginador .boton-icono[disabled] { opacity: .35; cursor: default; }
-.pag-info { display: grid; gap: .3rem; justify-items: center; font-size: .88rem; color: var(--texto-suave);
-  font-variant-numeric: tabular-nums; }
+.pag-info { flex: 1; min-width: 0; min-height: 48px; display: grid; gap: .3rem; align-content: center; justify-items: center;
+  font: inherit; font-size: .88rem; color: var(--texto-suave); font-variant-numeric: tabular-nums;
+  background: transparent; border: 0; border-radius: 999px; cursor: pointer; padding: 0 .4rem; }
+.pag-info:hover { background: var(--superficie-2); }
+.pag-info > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .pag-info .avance { width: 100%; height: 5px; }
 .pista-paginas { max-width: 860px; margin: .6rem auto 0; display: flex; align-items: center; justify-content: center;
   gap: .5rem; flex-wrap: wrap; font-size: .9rem; color: var(--texto-suave); text-align: center; }
 
 @media (max-width: 760px) {
   .hoja.paginado .texto { height: max(16rem, calc(100dvh - var(--barra-sup) - var(--barra-inf) - 12rem)); }
+  .paginador.fijo { bottom: calc(var(--barra-inf) + .5rem + env(safe-area-inset-bottom)); transition: bottom .25s ease; }
+  /* Al bajar leyendo se esconde la navegación: la barra baja con ella y no deja un hueco. */
+  :host-context(body:has(.nav-movil.oculta)) .paginador.fijo { bottom: calc(.5rem + env(safe-area-inset-bottom)); }
+  /* Arriba no llega el pulgar: capítulo anterior y siguiente van en la barra de abajo. */
+  .pasar.arriba { display: none; }
+  .paginador { gap: .15rem; }
+  .paginador .boton-icono { width: 44px; height: 44px; }
+  /* Debajo de la barra la tapa la navegación: flota justo encima, como un aviso. */
+  .pista-paginas {
+    position: fixed; z-index: 46; left: .75rem; right: .75rem; margin: 0;
+    bottom: calc(var(--barra-inf) + 5.25rem + env(safe-area-inset-bottom));
+    padding: .5rem .5rem .5rem 1rem; border-radius: var(--radio); background: var(--superficie);
+    border: 1px solid var(--borde); box-shadow: var(--sombra-alta); flex-wrap: nowrap; justify-content: space-between; text-align: left;
+  }
 }
 
 @keyframes subir { from { transform: translateY(40px); opacity: 0; } }

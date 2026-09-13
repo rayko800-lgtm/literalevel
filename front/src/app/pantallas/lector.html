@@ -46,7 +46,7 @@
         <!-- Todo lo del capítulo va DENTRO de #texto: en modo páginas es la caja de
              columnas, y la cabecera y el cierre tienen que caer en sus páginas. -->
         <div class="texto" #texto lang="en" (pointerdown)="alTocar($event)" (pointerup)="alSoltarToque($event)"
-             (wheel)="alRueda($event)">
+             (wheel)="alRueda($event)" (scroll)="alMoverColumnas()">
         <header class="cabecera-cap" lang="es">
           <span class="antetitulo">Capítulo {{ c.indice + 1 }} de {{ c.total }}</span>
           <h1 class="en-libro">{{ c.titulo }}</h1>
@@ -124,23 +124,43 @@
         </div>
       </article>
 
-      @if (paginado()) {
-        <nav class="paginador" aria-label="Páginas">
+      <!-- Una sola mano (Miguel): TODO lo que mueve por el libro va abajo, al alcance
+           del pulgar y encima de la navegación. Capítulos en los extremos, páginas
+           junto al centro, y el centro abre el índice. -->
+      <nav class="paginador" [class.fijo]="!paginado()" aria-label="Moverse por el libro">
+        <button type="button" class="boton-icono cap" (click)="ir(anterior())" [disabled]="anterior() === null"
+                aria-label="Capítulo anterior" title="Capítulo anterior">
+          <app-icono nombre="primero" />
+        </button>
+        @if (paginado()) {
           <button type="button" class="boton-icono" (click)="irPagina(-1)"
                   [disabled]="pagina() === 0 && anterior() === null"
                   [attr.aria-label]="pagina() === 0 ? 'Capítulo anterior' : 'Página anterior'">
             <app-icono nombre="izq" />
           </button>
-          <div class="pag-info" aria-live="polite">
-            <span>Página {{ pagina() + 1 }} de {{ paginas() }}</span>
-            <span class="avance"><i [style.width.%]="avance() * 100"></i></span>
-          </div>
+        }
+        <button type="button" class="pag-info" (click)="indiceAbierto.set(true)" aria-live="polite"
+                aria-label="Abrir el índice del libro">
+          @if (paginado()) {
+            <span>Página {{ pagina() + 1 }} de {{ paginas() }} <span class="tenue">· cap. {{ indice() + 1 }}/{{ total() }}</span></span>
+          } @else {
+            <span>Capítulo {{ indice() + 1 }} de {{ total() }}</span>
+          }
+          <span class="avance"><i [style.width.%]="avance() * 100"></i></span>
+        </button>
+        @if (paginado()) {
           <button type="button" class="boton-icono" (click)="irPagina(1)"
                   [disabled]="pagina() === paginas() - 1 && siguiente() === null"
                   [attr.aria-label]="pagina() === paginas() - 1 ? 'Capítulo siguiente' : 'Página siguiente'">
             <app-icono nombre="der" />
           </button>
-        </nav>
+        }
+        <button type="button" class="boton-icono cap" (click)="ir(siguiente())" [disabled]="siguiente() === null"
+                aria-label="Capítulo siguiente" title="Capítulo siguiente">
+          <app-icono nombre="ultimo" />
+        </button>
+      </nav>
+      @if (paginado()) {
         @if (pistaPaginas()) {
           <p class="pista-paginas">
             <app-icono nombre="chispa" />Desliza o toca el borde derecho para pasar de página.

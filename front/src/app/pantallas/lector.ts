@@ -234,6 +234,10 @@ export class Lector implements OnDestroy {
       // Casi al final de un capítulo ya leído, se vuelve al principio.
       this.pagina.set(alFinal ? ultima : (f < 0.98 ? Math.round(f * ultima) : 0));
       this.aplicarPagina(false);
+      // En un teléfono la fuente del libro puede terminar de cargar DESPUÉS de
+      // medir: el texto se redistribuye en otro número de páginas y la posición
+      // guardada caía en otro sitio. Se vuelve a medir cuando la fuente está.
+      document.fonts?.ready.then(() => setTimeout(() => this.recolocar(), 0)).catch(() => {});
       return;
     }
     const el = this.texto()?.nativeElement;
@@ -329,6 +333,29 @@ export class Lector implements OnDestroy {
       if (donde > 0.7) this.irPagina(1);
       else if (donde < 0.3) this.irPagina(-1);
     }
+  }
+
+  /** La caja de columnas solo debería moverse cuando la mueve `aplicarPagina`.
+   *  Pero en Android, al mantener pulsada una palabra, el navegador la desplaza
+   *  para enseñar las manijas de la selección, y queda a medio camino entre dos
+   *  páginas: lo que se ve, lo que se guarda y a dónde lleva «siguiente» dejaban
+   *  de coincidir. Si pasa, se asienta en la página más cercana. */
+  private relojAsentar: ReturnType<typeof setTimeout> | undefined;
+
+  protected alMoverColumnas(): void {
+    if (!this.paginado()) return;
+    clearTimeout(this.relojAsentar);
+    this.relojAsentar = setTimeout(() => {
+      const el = this.texto()?.nativeElement;
+      if (!el) return;
+      const paso = el.clientWidth + HUECO;
+      const cercana = Math.max(0, Math.min(this.paginas() - 1, Math.round(el.scrollLeft / paso)));
+      if (Math.abs(el.scrollLeft - cercana * paso) < 2 && cercana === this.pagina()) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;       // se asienta al terminar de seleccionar
+      this.pagina.set(cercana);
+      this.aplicarPagina(false);
+    }, 250);
   }
 
   protected alRueda(ev: WheelEvent): void {
@@ -451,6 +478,9 @@ export class Lector implements OnDestroy {
     this.panelAbierto.set(false);
     this.palabra.set(null);
     this.consultada.set('');
+    // Al cerrar la ficha la selección desaparece: si el navegador movió las
+    // columnas para enseñarla, ahora es cuando se puede asentar la página.
+    if (this.paginado()) setTimeout(() => this.alMoverColumnas(), 50);
   }
 
   /** El audio del diccionario o el generado; si no hay ninguno, la voz del
