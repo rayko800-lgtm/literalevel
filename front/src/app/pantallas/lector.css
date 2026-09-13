@@ -169,13 +169,17 @@
 
 @media (max-width: 760px) {
   .hoja.paginado .texto { height: max(16rem, calc(100dvh - var(--barra-sup) - var(--barra-inf) - 12rem)); }
-  .paginador.fijo { bottom: calc(var(--barra-inf) + .5rem + env(safe-area-inset-bottom)); transition: bottom .25s ease; }
+  .paginador.fijo { bottom: calc(var(--barra-inf) + max(8px, env(safe-area-inset-bottom))); transition: bottom .25s ease; }
   /* Al bajar leyendo se esconde la navegación: la barra baja con ella y no deja un hueco. */
-  :host-context(body:has(.nav-movil.oculta)) .paginador.fijo { bottom: calc(.5rem + env(safe-area-inset-bottom)); }
+  :host-context(body:has(.nav-movil.oculta)) .paginador.fijo { bottom: max(8px, env(safe-area-inset-bottom)); }
   /* Arriba no llega el pulgar: capítulo anterior y siguiente van en la barra de abajo. */
   .pasar.arriba { display: none; }
-  .paginador { gap: .15rem; }
-  .paginador .boton-icono { width: 44px; height: 44px; }
+  /* 8 px entre objetivos (una_mano.md §3): con 2 px se tocaba el vecino. */
+  .paginador { gap: 8px; }
+  /* Página anterior y siguiente se tocan en serie: 56 px y sin moverse. Los de
+     capítulo, 48. Con cinco botones la información aún cabe en 390 px. */
+  .paginador .boton-icono { width: 56px; height: 56px; }
+  .paginador .boton-icono.cap { width: 48px; height: 48px; }
   /* Debajo de la barra la tapa la navegación: flota justo encima, como un aviso. */
   .pista-paginas {
     position: fixed; z-index: 46; left: .75rem; right: .75rem; margin: 0;
@@ -183,6 +187,13 @@
     padding: .5rem .5rem .5rem 1rem; border-radius: var(--radio); background: var(--superficie);
     border: 1px solid var(--borde); box-shadow: var(--sombra-alta); flex-wrap: nowrap; justify-content: space-between; text-align: left;
   }
+}
+
+/* Con los botones a 56 px, a 360-390 px de ancho no cabe «Página 2 de 25 · cap.
+   2/13» y se cortaba: queda «2 de 25» a la vista y el resto solo para lectores
+   de pantalla. */
+@media (max-width: 420px) {
+  .pag-info .largo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 
 @keyframes subir { from { transform: translateY(40px); opacity: 0; } }

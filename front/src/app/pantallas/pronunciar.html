@@ -39,31 +39,56 @@
 
   <section class="tarjeta pila paso">
     <div class="cab-paso"><span class="numero">2</span><span class="etiqueta-paso">Tu voz</span></div>
+    @if (estado() === 'grabada') {
+      @if (audioUrl(); as u) { <audio class="mi-voz" [src]="u" controls></audio> }
+    }
+    <p class="estado-voz" aria-live="polite">
+      @switch (estado()) {
+        @case ('lista') { <span class="suave">{{ frase.trim() ? 'Pulsa el micrófono y lee la frase con calma.' : 'Primero escribe la frase.' }}</span> }
+        @case ('grabando') { <strong>Grabando… {{ segundos() }} s</strong> <span class="suave">· pulsa para terminar</span> }
+        @case ('grabada') {
+          <span class="suave">{{ corrigiendo() ? 'Transcribo tu voz y preparo la explicación: unos segundos.' : 'Escúchate y pide la corrección.' }}</span>
+        }
+      }
+    </p>
+    <!-- La barra de acción: en el móvil va fija abajo, al alcance del pulgar
+         (investigacion/una_mano.md §3.4). El botón del centro no se mueve entre
+         estados: grabar, parar y corregir caen en el mismo sitio. -->
     <div class="grabadora">
+      <div class="lado">
+        @if (estado() === 'grabada') {
+          <button type="button" class="accion" (click)="descartar(); grabar()">
+            <app-icono nombre="recargar" /><span>Otra vez</span>
+          </button>
+        } @else if (resultado()?.audio_correcto; as bien) {
+          <button type="button" class="accion" (click)="sonar(bien)" [disabled]="estado() === 'grabando'">
+            <app-icono nombre="play" /><span>Bien leída</span>
+          </button>
+        }
+      </div>
       @switch (estado()) {
         @case ('lista') {
           <button type="button" class="microfono" (click)="grabar()" [disabled]="!frase.trim()" aria-label="Empezar a grabar">
             <app-icono nombre="micro" />
           </button>
-          <p class="suave">{{ frase.trim() ? 'Pulsa y lee la frase con calma.' : 'Primero escribe la frase.' }}</p>
         }
         @case ('grabando') {
           <button type="button" class="microfono grabando" (click)="pararGrabacion()" aria-label="Terminar la grabación">
             <app-icono nombre="stop" />
           </button>
-          <p><strong>Grabando… {{ segundos() }} s</strong> <span class="suave">· pulsa para terminar</span></p>
         }
         @case ('grabada') {
-          @if (audioUrl(); as u) { <audio [src]="u" controls></audio> }
-          <div class="fila centrada">
-            <button type="button" class="boton" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()">
-              <app-icono nombre="check" />{{ corrigiendo() ? 'Escuchando…' : 'Corrígeme' }}
-            </button>
-            <button type="button" class="boton secundario" (click)="descartar(); grabar()"><app-icono nombre="recargar" />Grabar otra vez</button>
-          </div>
-          @if (corrigiendo()) { <p class="tenue pequeno">Transcribo tu voz y preparo la explicación: unos segundos.</p> }
+          <button type="button" class="microfono corregir" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()"
+                  [attr.aria-label]="corrigiendo() ? 'Escuchando' : 'Corrígeme'">
+            @if (corrigiendo()) { <span class="giro"></span> } @else { <app-icono nombre="check" /> }
+          </button>
         }
       }
+      <div class="lado">
+        @if (resultado() && estado() !== 'grabando') {
+          <button type="button" class="accion" (click)="otraFrase()"><app-icono nombre="flecha" /><span>Otra frase</span></button>
+        }
+      </div>
     </div>
   </section>
 

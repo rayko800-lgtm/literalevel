@@ -311,7 +311,12 @@ export class Lector implements OnDestroy {
   }
 
   protected alTocar(ev: PointerEvent): void {
-    this.toque = { x: ev.clientX, y: ev.clientY, t: Date.now(), tipo: ev.pointerType };
+    // Lo que nace en el borde es del sistema: «volver» en Android y en Safari
+    // desde los lados, «inicio» y el acceso fácil desde abajo
+    // (investigacion/una_mano.md §2.4). Pasar página ahí sacaba del capítulo.
+    const enElBorde = ev.clientX <= 24 || ev.clientX >= window.innerWidth - 24
+      || ev.clientY >= window.innerHeight - 32;
+    this.toque = enElBorde ? null : { x: ev.clientX, y: ev.clientY, t: Date.now(), tipo: ev.pointerType };
   }
 
   protected alSoltarToque(ev: PointerEvent): void {

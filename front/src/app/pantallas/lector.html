@@ -142,7 +142,7 @@
         <button type="button" class="pag-info" (click)="indiceAbierto.set(true)" aria-live="polite"
                 aria-label="Abrir el índice del libro">
           @if (paginado()) {
-            <span>Página {{ pagina() + 1 }} de {{ paginas() }} <span class="tenue">· cap. {{ indice() + 1 }}/{{ total() }}</span></span>
+            <span><span class="largo">Página </span>{{ pagina() + 1 }} de {{ paginas() }}<span class="tenue largo"> · cap. {{ indice() + 1 }}/{{ total() }}</span></span>
           } @else {
             <span>Capítulo {{ indice() + 1 }} de {{ total() }}</span>
           }
@@ -248,7 +248,9 @@
                 (afinidad {{ num(w.similitud) }}). {{ w.definicion_contextual ? 'Fíate más de «Aquí significa».' : 'Lee la frase entera antes de fiarte.' }}</p>
             }
           </div>
-        } @else if (w.generado_por_ia && w.definicion_ia) {
+        } @else if (w.generado_por_ia && w.definicion_ia && w.definicion_ia !== w.definicion_contextual) {
+          <!-- Desde 519b802 (4e) `definicion_ia` cae en la contextual si llega vacía:
+               sin la comparación saldría el mismo texto dos veces. -->
           <div class="bloque definicion-ia">
             <span class="etiqueta">Definición <span class="chip ia">escrita por IA</span></span>
             <p>{{ w.definicion_ia }}</p>
