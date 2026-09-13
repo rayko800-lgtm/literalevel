@@ -37,6 +37,7 @@ FUENTES = {
     "storyweaver": CORPUS / "storyweaver" / "textos" / "libros.jsonl",
     "african_storybook": CORPUS / "african_storybook" / "textos" / "cuentos.jsonl",
     "voa": CORPUS / "voa" / "textos" / "articulos.jsonl",
+    "letsread": CORPUS / "letsread" / "textos" / "libros.jsonl",
 }
 CSV_SALIDA = RAIZ / "catalogo_externo.csv"
 TEXTOS_SALIDA = RAIZ / "corpus_abierto.parquet"
@@ -64,6 +65,10 @@ def identificador(fuente, f):
         return f"SWV{f['id']}"
     if fuente == "african_storybook":
         return "ASB" + re.match(r"(\d+)", f["archivo"]).group(1)
+    if fuente == "letsread":
+        # masterBookId es un UUID: sin guiones y en mayusculas, para que el id
+        # sea solo letras y cifras como los demas y quepa en un nombre de archivo.
+        return "LRD" + re.sub(r"[^0-9A-Za-z]", "", str(f["master"])).upper()
     return "VOA" + re.search(r"/(\d+)\.html$", f["url"]).group(1)
 
 
@@ -75,6 +80,11 @@ def atribucion(fuente, f):
     if fuente == "african_storybook":
         return (f"«{f['titulo']}», African Storybook Project, licencia CC BY "
                 f"(texto de global-asp/asp-source): https://www.africanstorybook.org/")
+    if fuente == "letsread":
+        ilustra = ", ".join(f.get("ilustradores") or [])
+        return (f"«{f['titulo']}»{' de ' + autores if autores else ''}"
+                f"{', ilustrado por ' + ilustra if ilustra else ''}, Let's Read "
+                f"(The Asia Foundation), licencia {f.get('licencia')}: {f['url']}")
     return (f"«{f['titulo']}», VOA Learning English, dominio publico. "
             f"Credito: voanews.com / Voice of America. {f['url']}")
 
@@ -85,6 +95,8 @@ def temas(fuente, f):
     if fuente == "african_storybook":
         nivel = f.get("nivel_editor")
         return "Children's stories; African Storybook" + (f" reading level {nivel}" if nivel else "")
+    if fuente == "letsread":
+        return f"Children's stories; Let's Read reading level {f.get('nivel_editor')}"
     return f"VOA Learning English; {f.get('seccion')}"
 
 

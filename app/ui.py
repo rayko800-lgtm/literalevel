@@ -817,6 +817,19 @@ def _nota_nivel() -> str:
         return NOTA_NIVEL_HEREDADO
 
 
+def _abrible(id_libro) -> bool:
+    """¿Se abre en el lector? Gutenberg se descarga; los corpus libres
+    (StoryWeaver, African Storybook, VOA...) traen su texto en el catalogo.
+
+    Antes era `startswith("PG")` repetido en cinco sitios: bien mientras solo
+    Gutenberg tenia texto, y falso en cuanto el catalogo trajo cuentos libres."""
+    try:
+        return bool(catalogo().es_abrible(id_libro))
+    except Exception:
+        pid = str(id_libro or "").upper()
+        return pid.startswith("PG") and any(c.isdigit() for c in pid)
+
+
 def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
     """`vacio` SUSTITUYE a la tabla cuando no hay libros; `nota` va al pie
     cuando si los hay.
@@ -830,27 +843,25 @@ def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
         return _aviso(vacio or "Sin resultados.")
     # Tres columnas, no cinco: a 390 px una tabla de cinco se aplasta hasta
     # dejar una palabra por linea. El autor y el nivel caben debajo del titulo.
-    abribles = sum(str(b.id).upper().startswith("PG") for b in libros)
+    abiertos = [_abrible(b.id) for b in libros]
+    abribles = sum(abiertos)
     cabecera = []
-    # Con el catalogo medido TODOS son de Gutenberg: decir "los demas son de
-    # StoryWeaver" de una lista sin demas es mentirle a quien lo lee.
+    # Con el catalogo medido TODOS se abren: decir "los demas no tienen texto"
+    # de una lista sin demas es mentirle a quien lo lee.
     if abribles == len(libros):
         cabecera.append("**▸** Se abren aquí mismo, con el botón de debajo "
                         "de la tabla.")
     elif abribles:
         cabecera.append(f"**▸ {abribles} de {len(libros)}** se abren aquí "
-                        f"mismo, con el botón de debajo de la tabla. Los "
-                        f"demás son de StoryWeaver y no hay de dónde "
-                        f"descargarlos.")
+                        f"mismo, con el botón de debajo de la tabla. De los "
+                        f"demás no hay texto disponible para abrirlos.")
     else:
-        cabecera.append("Ninguno de estos se puede abrir aquí: son de "
-                        "StoryWeaver. Prueba a describirlo de otra manera "
-                        "para que salgan clásicos de Project Gutenberg.")
+        cabecera.append("Ninguno de estos se puede abrir aquí: no hay texto "
+                        "disponible. Prueba a describirlo de otra manera.")
     # La leyenda va ARRIBA: si va debajo, en un movil el simbolo ▸ queda a una
     # pantalla de distancia de lo que lo explica.
     filas = cabecera + ["", "| | Libro | De qué va |", "|---|---|---|"]
-    for b in libros:
-        aqui = str(b.id).upper().startswith("PG")
+    for b, aqui in zip(libros, abiertos):
         # Sin enlace: tocar el titulo en un movil sacaba de la app a
         # gutenberg.org, cuando lo que se quiere es abrirlo AQUI.
         enlace = b.titulo
@@ -902,7 +913,7 @@ def _opciones_libros(libros):
     # rebuscar entre ellas el unico libro que si se abria. Un desplegable
     # donde casi nada funciona es peor que uno corto donde todo funciona.
     opciones = [(f"{b.titulo} — {_autor_corto(b.autor)} ({b.nivel})", b.id)
-                for b in libros if str(b.id).upper().startswith("PG")]
+                for b in libros if _abrible(b.id)]
     return gr.update(choices=opciones,
                      value=opciones[0][1] if opciones else None)
 
@@ -947,7 +958,13 @@ def _esta_cacheado(id_libro: str) -> bool:
     abrir un libro que ya tiene. La comprobacion es la misma que hace
     `_descargar_gutenberg` antes de pedir nada.
     """
-    num = "".join(c for c in str(id_libro or "") if c.isdigit())
+    pid = str(id_libro or "").strip()
+    # Un libro de un corpus libre trae el texto en el propio catalogo: abrirlo
+    # no sale a la red, asi que no gasta ficha del tope. Y sin este desvio,
+    # "SWV369" sacaba sus digitos y preguntaba por el pg369 de Gutenberg.
+    if pid and not pid.upper().startswith("PG"):
+        return _abrible(pid)
+    num = "".join(c for c in pid if c.isdigit())
     if not num:
         return False
     for ext in (".epub", ".txt"):
@@ -972,11 +989,26 @@ def _descargar_gutenberg(id_libro: str) -> str:
 
     texto_id = str(id_libro).strip()
     num = "".join(c for c in texto_id if c.isdigit())
+    # Los corpus libres (StoryWeaver, African Storybook, VOA, Let's Read) no se
+    # descargan: su texto, con la atribucion que exige la licencia, viene en
+    # corpus_abierto.parquet. Se escribe una vez como .txt para que el lector lo
+    # abra por el mismo camino que un libro de Gutenberg.
+    if not texto_id.upper().startswith("PG"):
+        try:
+            abierto = catalogo().texto_abierto(texto_id)
+        except Exception:
+            abierto = None
+        if abierto and abierto.get("texto"):
+            RUTA_LIBROS.mkdir(parents=True, exist_ok=True)
+            destino = RUTA_LIBROS / f"{re.sub(r'[^0-9A-Za-z]', '', texto_id).lower()}.txt"
+            if not (destino.exists() and destino.stat().st_size > 0):
+                destino.write_text(abierto["texto"], encoding="utf-8")
+            return str(destino)
     if not texto_id.upper().startswith("PG") or not num:
         raise ValueError(
-            "Este libro no viene de Project Gutenberg (es de StoryWeaver / "
-            "Global Digital Library), así que no puedo descargarlo. Consíguelo "
-            "y súbelo con el selector de archivo.")
+            "De este libro no hay texto disponible para abrirlo aquí (no es de "
+            "Project Gutenberg ni de un corpus libre). Consíguelo y súbelo con "
+            "el selector de archivo.")
 
     RUTA_LIBROS.mkdir(parents=True, exist_ok=True)
     destino = RUTA_LIBROS / f"pg{num}.epub"
@@ -1127,10 +1159,10 @@ def _recomendar(p, n):
     # Mientras la remedicion del catalogo no termine, esto al menos ofrece lo
     # mas facil que SI se puede abrir, y lo dice en vez de disimularlo.
     rescate = ""
-    if libros and not any(str(b.id).upper().startswith("PG") for b in libros):
+    if libros and not any(_abrible(b.id) for b in libros):
         try:
             faciles = [b for b in catalogo().por_nivel(p.nivel, holgura=3.0, n=200)
-                       if str(b.id).upper().startswith("PG")]
+                       if _abrible(b.id)]
         except Exception:
             faciles = []
         if faciles:
@@ -1460,6 +1492,12 @@ def _abrir(archivo, peticion: gr.Request = None):
     # capitulo lo necesitan para leer la curva medida del catalogo.
     m_pg = re.search(r"(?i)\bpg(\d+)\.(?:txt|epub)$", os.path.basename(str(archivo)))
     libro.id_catalogo = f"PG{m_pg.group(1)}" if m_pg else None
+    # Los corpus libres se abren como `swv369.txt`, `asb0141.txt`, `voa7997203.txt`
+    # o `lrd<uuid>.txt` (ver _descargar_gutenberg): tambien son del catalogo.
+    if not m_pg:
+        m_ext = re.search(r"(?i)\b((?:swv|asb|voa|lrd)[0-9a-z]+)\.txt$",
+                          os.path.basename(str(archivo)))
+        libro.id_catalogo = m_ext.group(1).upper() if m_ext else None
     # El .txt de Gutenberg no trae metadatos: la cabecera decia "pg2554.txt —
     # autor desconocido" de un libro cuyo titulo y autor estan en el catalogo.
     # El TITULO solo se cambia en la cabecera: `libro.titulo` entra en la clave
@@ -1470,7 +1508,8 @@ def _abrir(archivo, peticion: gr.Request = None):
             df = catalogo().df
             fila = df.loc[df["id"].astype(str) == libro.id_catalogo]
             if len(fila):
-                if re.fullmatch(r"(?i)pg\d+(\.\w+)?", str(libro.titulo or "")):
+                if re.fullmatch(r"(?i)(?:pg\d+|(?:swv|asb|voa|lrd)[0-9a-z]+)(\.\w+)?",
+                                str(libro.titulo or "")):
                     titulo_visible = str(fila.iloc[0]["title"]) or libro.titulo
                 libro.autor = libro.autor or str(fila.iloc[0]["author"])
         except Exception:

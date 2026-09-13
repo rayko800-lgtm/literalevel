@@ -31,6 +31,13 @@ CSV_HEREDADO = RAIZ / "catalogo_recomendaciones.csv"
 CSV_POR_DEFECTO = CSV_MEDIDO if CSV_MEDIDO.exists() else CSV_HEREDADO
 # La curva por capitulo del catalogo medido, junto a su CSV.
 NOMBRE_CAPITULOS = "capitulos_medidos.parquet"
+# Los corpus externos de licencia libre (StoryWeaver, African Storybook, VOA...),
+# medidos por el v4 con tools/catalogar_corpus.py. Van en archivos APARTE, junto
+# al CSV principal, por dos razones: los embeddings de los 53.179 libros de
+# Gutenberg ya estan calculados y publicados (82 MB) y no hay que recodificarlos
+# por anadir filas; y un clon sin estos archivos sigue arrancando como antes.
+NOMBRE_EXTERNO = "catalogo_externo.csv"
+NOMBRE_TEXTOS_ABIERTOS = "corpus_abierto.parquet"
 
 # Lo que no es un libro para leer, aunque venga de Gutenberg: indices,
 # catalogos, bibliografias, directorios. Medido el 12 de septiembre de 2026: 79
@@ -212,6 +219,22 @@ class Catalogo:
             raise FileNotFoundError(f"No encuentro el catálogo en {self.ruta}")
         self.df = pd.read_csv(self.ruta).fillna({"hook": "", "huella_texto": "",
                                                  "author": "", "nivel_cefr": ""})
+        self._n_propio = len(self.df)
+        # Las filas de los corpus externos se ANADEN AL FINAL: asi los
+        # embeddings del CSV principal siguen alineados fila a fila con sus
+        # libros, y los de las filas externas van en su propio .npy.
+        self.ruta_externo = self.ruta.with_name(NOMBRE_EXTERNO)
+        if self.ruta_externo.exists():
+            try:
+                ext = pd.read_csv(self.ruta_externo, dtype={"nivel_editor": str}).fillna(
+                    {"hook": "", "huella_texto": "", "author": "", "nivel_cefr": ""})
+                ext = ext[~ext["id"].astype(str).isin(set(self.df["id"].astype(str)))]
+                if len(ext):
+                    self.df = pd.concat([self.df, ext], ignore_index=True, sort=False)
+            except Exception:
+                self.ruta_externo = None        # un externo roto no tumba el catalogo
+        else:
+            self.ruta_externo = None
         # El catalogo MEDIDO trae `dificultad`: la escala publica 0..2 del v4
         # sobre el libro entero. El heredado solo trae `nivel_cefr`, una letra
         # que predijo un modelo v1 sobre ~190 palabras. Si hay medida, manda la
@@ -243,8 +266,21 @@ class Catalogo:
     def embeddings(self) -> np.ndarray:
         if self._emb is not None:
             return self._emb
+        textos = self._texto_indexable()
+        n = getattr(self, "_n_propio", len(self.df))
+        emb = self._embeddings_de("catalogo_emb_", _huella(self.ruta), textos[:n])
+        externo = getattr(self, "ruta_externo", None)
+        if externo is not None and len(textos) > n:
+            # El externo en su propio archivo: anadir o cambiar un corpus
+            # recodifica sus filas (segundos), no las 53.179 de Gutenberg.
+            ext = self._embeddings_de("catalogo_emb_ext_", _huella(externo), textos[n:])
+            emb = np.vstack([emb, ext])
+        self._emb = emb
+        return emb
+
+    def _embeddings_de(self, prefijo: str, huella: str, textos: list[str]) -> np.ndarray:
         DIR_CACHE.mkdir(parents=True, exist_ok=True)
-        nombre = f"catalogo_emb_{_huella(self.ruta)}.npy"
+        nombre = f"{prefijo}{huella}.npy"
         cache = DIR_CACHE / nombre
         # Y TAMBIEN en la raiz del repositorio. Ahi es donde viaja el `.npy`
         # que se sube al Space, y hasta hoy no lo leia nadie: `embeddings`
@@ -254,23 +290,22 @@ class Catalogo:
         for candidata in (cache, RAIZ / nombre):
             if candidata.exists():
                 emb = np.load(candidata)
-                if len(emb) == len(self.df):      # cinturon y tirantes
+                if len(emb) == len(textos):       # cinturon y tirantes
                     if candidata != cache:
                         try:
                             np.save(cache, emb)
                         except OSError:
                             pass          # sin sitio donde copiarla, da igual
-                    self._emb = emb
                     return emb
-        emb = self._modelo_emb().encode(self._texto_indexable(),
-                                        normalize_embeddings=True,
+        emb = self._modelo_emb().encode(textos, normalize_embeddings=True,
                                         batch_size=64, show_progress_bar=False)
         emb = np.asarray(emb, dtype=np.float32)
         np.save(cache, emb)
-        for viejo in DIR_CACHE.glob("catalogo_emb_*.npy"):
-            if viejo != cache:
+        # Solo se borran las versiones viejas DEL MISMO archivo: con el prefijo
+        # generico, guardar los embeddings del externo borraba los de Gutenberg.
+        for viejo in DIR_CACHE.glob(f"{prefijo}*.npy"):
+            if viejo != cache and (prefijo != "catalogo_emb_" or not viejo.name.startswith("catalogo_emb_ext_")):
                 viejo.unlink()             # el catalogo cambio: sobra
-        self._emb = emb
         return emb
 
     def _modelo_emb(self):
@@ -339,6 +374,38 @@ class Catalogo:
             return []
         filas = self._caps.loc[[pid]].reset_index()
         return filas.sort_values("capitulo").to_dict("records")
+
+    def _textos_abiertos(self) -> pd.DataFrame:
+        if getattr(self, "_abiertos", None) is None:
+            self._abiertos = pd.DataFrame()
+            ruta = Path(self.ruta).with_name(NOMBRE_TEXTOS_ABIERTOS)
+            if ruta.exists():
+                try:
+                    self._abiertos = pd.read_parquet(ruta).set_index("id")
+                except Exception:
+                    self._abiertos = pd.DataFrame()
+        return self._abiertos
+
+    def es_abrible(self, id_libro) -> bool:
+        """¿Se puede abrir en el lector? Gutenberg se descarga; los corpus
+        libres traen su texto en `corpus_abierto.parquet`. Lo que no esta en
+        ninguno de los dos -StoryWeaver del catalogo heredado- no se ofrece."""
+        pid = str(id_libro or "").strip().upper()
+        if pid.startswith("PG") and any(c.isdigit() for c in pid):
+            return True
+        t = self._textos_abiertos()
+        return (not t.empty) and pid in t.index
+
+    def texto_abierto(self, id_libro) -> dict | None:
+        """Titulo, autor, licencia, atribucion y texto de un libro libre, o None."""
+        pid = str(id_libro or "").strip().upper()
+        t = self._textos_abiertos()
+        if t.empty or pid not in t.index:
+            return None
+        f = t.loc[pid]
+        return {"id": pid, "titulo": str(f.get("title", "")), "autor": str(f.get("author", "")),
+                "licencia": str(f.get("licencia", "")), "atribucion": str(f.get("atribucion", "")),
+                "url": str(f.get("url", "")), "texto": str(f.get("texto", ""))}
 
     def _puntuaciones(self) -> np.ndarray:
         """El nivel de cada libro en la escala publica 0..2: la medida si la

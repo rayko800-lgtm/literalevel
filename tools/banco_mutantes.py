@@ -496,6 +496,35 @@ MUTANTES = [
      '    libro.id_catalogo = f"PG{m_pg.group(1)}" if m_pg else None',
      "    libro.id_catalogo = None",
      "el catalogo medido recomienda capitulos sin saltar mal"),
+    # --- C3: los corpus libres en el catalogo y en el lector (12 sep 2026) ---
+    ("C3-externo-no-entra", "app/catalogo.py",
+     "                if len(ext):",
+     "                if False:",
+     "los externos van al final y no duplican ids", "pruebas_corpus.py"),
+    ("C3-externo-duplica", "app/catalogo.py",
+     '                ext = ext[~ext["id"].astype(str).isin(set(self.df["id"].astype(str)))]',
+     "                pass",
+     "los externos van al final y no duplican ids", "pruebas_corpus.py"),
+    ("C3-desplegable-solo-pg", "app/ui.py",
+     "                for b in libros if _abrible(b.id)]",
+     '                for b in libros if str(b.id).upper().startswith("PG")]',
+     "el buscador ofrece y deja abrir los cuentos libres", "pruebas_corpus.py"),
+    ("C3-cache-por-digitos", "app/ui.py",
+     '    if pid and not pid.upper().startswith("PG"):' + NL + "        return _abrible(pid)",
+     "    if False:" + NL + "        return _abrible(pid)",
+     "la cache no confunde un id externo con uno de Gutenberg", "pruebas_corpus.py"),
+    ("C3-libre-no-se-escribe", "app/ui.py",
+     '        if abierto and abierto.get("texto"):',
+     "        if False:",
+     "un libro libre se abre sin descargar nada", "pruebas_corpus.py"),
+    ("C3-sin-id-externo", "app/ui.py",
+     "        libro.id_catalogo = m_ext.group(1).upper() if m_ext else None",
+     "        libro.id_catalogo = None",
+     "la cabecera de un libro libre lleva su titulo", "pruebas_corpus.py"),
+    ("C3-cuela-derechos", "tools/catalogar_corpus.py",
+     "    if len(malas):",
+     "    if False:",
+     "el catalogador aborta si llega un texto con derechos", "pruebas_corpus.py"),
     ("F16-ficha-ritmo", "app/ui.py",
      "        if nivel_libro is None:",
      "        if False:",
@@ -572,7 +601,8 @@ def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
         salida = e.stdout or ""
         if isinstance(salida, bytes):
             salida = salida.decode("utf-8", "replace")
-        verde = "pruebas extremas pasan" in salida or "pruebas de la ficha pasan" in salida
+        verde = ("pruebas extremas pasan" in salida or "pruebas de la ficha pasan" in salida
+                 or "pruebas de corpus pasan" in salida)
         r = subprocess.CompletedProcess(e.cmd, 0 if verde else 1, salida, "")
     # Cada suite dice sus fallos a su manera, y el banco tiene que entender
     # las dos. `pruebas_extremas` y `pruebas_lexicon` los listan con "- ";
