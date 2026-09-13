@@ -104,6 +104,14 @@ VERSION_AUDIO_TTS = "v2-superficie-pausa-atomico"
 # Se aplica al ranking interno, no a ResultadoLexico.similitud.
 _MARGEN_SENTIDO_DUDOSO = 0.05
 
+# Etiquetas de Kaikki que apartan una acepcion si hay otra sin ellas (ver
+# `_elegir_sentido`).
+_ETIQUETAS_MARGINALES = {"obsolete", "archaic", "dated", "rare", "historical",
+                         "nonstandard", "obsolete-form"}
+# Registro que no se ofrece a OpenAI como acepcion alternativa si la elegida no
+# lo tiene (ver `consultar`).
+_ETIQUETAS_REGISTRO = {"slang", "vulgar", "derogatory", "offensive"}
+
 # Mapa POS de spaCy -> categoria de Kaikki. Si el POS de spaCy no esta aqui
 # (preposiciones, conjunciones, determinantes...) no se filtra por categoria.
 POS_SPACY_A_CATEGORIA = {
@@ -166,6 +174,16 @@ class ResultadoLexico:
     # distintas, asi que `desde_cache` no valia para saber si se gasto o no.
     # `ui` descuenta el cupo antes de consultar y lo devuelve si esto es 0.
     llamadas_de_pago: int = 0
+    # Traduccion al espanol de la palabra EN ESA ORACION (OpenAI).
+    traduccion: str | None = None
+    # Definicion escrita por OpenAI cuando el diccionario no trae la palabra o
+    # no trae ninguna acepcion utilizable. `generado_por_ia` lo marca para que
+    # la interfaz lo diga: no es una definicion de diccionario.
+    definicion_ia: str | None = None
+    generado_por_ia: bool = False
+    # True si OpenAI cambio la acepcion por OTRA DEL DICCIONARIO que encaja
+    # mejor con la oracion (solo cuando la eleccion por embeddings era dudosa).
+    acepcion_elegida_por_ia: bool = False
 
     @property
     def completo(self) -> bool:
@@ -282,6 +300,14 @@ def _elegir_sentido(
     """
     if not candidatos:
         return None, None, []
+    # Las acepciones marcadas como obsoletas, arcaicas o raras no compiten si
+    # hay otras. Con «mostly» ganaba «To the greatest extent; most» (obsolete)
+    # frente a «for the most part»: Miguel lo vio en la app el 13 sep 2026. Si
+    # TODAS son marginales, se queda con ellas.
+    normales = [(e, s) for e, s in candidatos
+                if not {t.lower() for t in s.etiquetas} & _ETIQUETAS_MARGINALES]
+    if normales:
+        candidatos = normales
     if len(candidatos) == 1:
         return candidatos[0][1], None, []
     try:
@@ -451,13 +477,21 @@ class CacheLexico:
         self._con.close()
 
 
-# --- OpenAI: solo lo contextual/gramatical, nunca la definicion ------------
+# --- OpenAI -------------------------------------------------------------------
+# REGLA (cambiada por Miguel el 13 sep 2026): OpenAI no redefine una palabra que
+# el diccionario trae; la contextualiza y, si la acepcion elegida era dudosa,
+# puede escoger OTRA acepcion DEL DICCIONARIO. Solo cuando el diccionario no
+# trae la palabra -o ninguna acepcion utilizable- la define OpenAI, y el
+# resultado va marcado como generado por IA. «Mostly» no le dio al lector ni
+# traduccion ni audio, y era justo el caso en que queria toda la ayuda.
 def _modelo_respuesta_contextual():
     """Construye el modelo Pydantic de Structured Outputs de forma perezosa,
     para no exigir `pydantic` a quien solo use diccionario + IPA."""
     from pydantic import BaseModel
 
     class RespuestaContextual(BaseModel):
+        traduccion: str
+        acepcion_usada: str
         definicion_contextual: str
         explicacion_gramatical: str
         explicacion_adaptada: str
@@ -466,34 +500,99 @@ def _modelo_respuesta_contextual():
     return RespuestaContextual
 
 
+def _modelo_respuesta_ia():
+    from pydantic import BaseModel
+
+    class RespuestaSinDiccionario(BaseModel):
+        definicion_ia: str
+        traduccion: str
+        definicion_contextual: str
+        explicacion_gramatical: str
+        explicacion_adaptada: str
+        ejemplo_simplificado: str
+
+    return RespuestaSinDiccionario
+
+
+def _lengua(idioma: str) -> str:
+    if idioma == "en":
+        return ("Answer in ENGLISH in every field except 'traduccion', which is the "
+                "Spanish translation. The reader is a Spanish speaker who reads English "
+                "literature and prefers to stay in English while reading, so keep the "
+                "explanations in plain, clear English suited to their level.\n\n")
+    return ("Responde en espanol en todos los campos EXCEPTO "
+            "'ejemplo_simplificado', que debe ser una frase en ingles (es "
+            "material de lectura, no un andamiaje en la lengua materna).\n\n")
+
+
+def _pedir_definicion_ia(
+    cliente, *, palabra: str, oracion: str, categoria: str | None, banda: str,
+    modelo: str, idioma: str = "es",
+) -> dict:
+    """La palabra NO esta en el diccionario local (o no trae ninguna acepcion
+    utilizable): OpenAI la define en su oracion. Lo que devuelve se marca como
+    generado por IA en `ResultadoLexico`."""
+    Respuesta = _modelo_respuesta_ia()
+    instrucciones = (
+        "Eres el asistente lexico de LiteraLevel, una app para lectores "
+        "hispanohablantes que leen literatura en ingles. La palabra que recibes NO "
+        "esta en el diccionario local de la app, asi que la defines tu. Puede ser "
+        "rara, arcaica, dialectal, literaria, un nombre propio, una forma flexionada "
+        "poco comun o una errata del texto: si es alguna de esas cosas, dilo al "
+        "principio de 'definicion_ia'. Si no tienes certeza del significado, dilo "
+        "claramente en vez de inventar.\n\n"
+        f"El lector tiene un nivel '{banda}' (escala LiteraLevel 0-2, "
+        "básico/intermedio/avanzado). Adapta el vocabulario y la longitud.\n\n"
+        + _lengua(idioma) +
+        "Campos a devolver:\n"
+        "- definicion_ia: definicion breve, de estilo diccionario, del sentido que "
+        "tiene en esta oracion.\n"
+        "- traduccion: la traduccion al espanol mas natural en esta oracion (de una "
+        "a cuatro palabras).\n"
+        "- definicion_contextual: como funciona en esta oracion concreta.\n"
+        "- explicacion_gramatical: forma y funcion gramatical en esta oracion.\n"
+        "- explicacion_adaptada: la definicion reformulada para el nivel del lector.\n"
+        "- ejemplo_simplificado: una frase nueva en ingles, breve y sencilla, con el "
+        "mismo sentido."
+    )
+    entrada = (
+        f"Palabra o expresion: {palabra}\n"
+        f"Categoria gramatical detectada: {categoria or 'no determinada'}\n"
+        f"Oracion original: {oracion or '(sin oracion)'}"
+    )
+    respuesta = cliente.responses.parse(
+        model=modelo, instructions=instrucciones, input=entrada,
+        text_format=Respuesta, reasoning={"effort": ESFUERZO_RAZONAMIENTO},
+    )
+    return respuesta.output_parsed.model_dump()
+
+
 IDIOMAS = ("es", "en")
 
 
 def _pedir_explicacion_openai(
     cliente, *, palabra: str, oracion: str, glosa: str,
     categoria: str | None, banda: str, modelo: str, idioma: str = "es",
+    alternativas: list[str] | None = None,
 ) -> dict:
     """Pide a OpenAI lo contextual/gramatical. Prohibe explicitamente
-    inventar la definicion: debe usar la glosa que se le pasa, tal cual.
+    inventar la definicion: debe usar la glosa que se le pasa, tal cual, o,
+    si la eleccion era dudosa, OTRA de las `alternativas` del diccionario.
 
     `idioma` decide en que lengua se explica: 'es' para lectores que aun
     necesitan el andamiaje en su lengua materna, 'en' para quien ya lee
     comodo y prefiere no salir del ingles mientras lee.
     """
     RespuestaContextual = _modelo_respuesta_contextual()
-    if idioma == "en":
-        lengua = (
-            "Answer in ENGLISH in every field. The reader is a Spanish "
-            "speaker who reads English literature and prefers to stay in "
-            "English while reading, so keep the explanations in plain, clear "
-            "English suited to their level.\n\n"
-        )
-    else:
-        lengua = (
-            "Responde en espanol en todos los campos EXCEPTO "
-            "'ejemplo_simplificado', que debe ser una frase en ingles (es "
-            "material de lectura, no un andamiaje en la lengua materna).\n\n"
-        )
+    lengua = _lengua(idioma)
+    otras = [a for a in (alternativas or []) if a and a != glosa]
+    regla_alternativas = (
+        "La eleccion de la acepcion fue DUDOSA. Si la definicion dada no encaja con "
+        "la oracion y alguna de las OTRAS ACEPCIONES DEL DICCIONARIO de la lista si, "
+        "usa esa como base y copia su texto EXACTO en 'acepcion_usada'. Si la dada "
+        "encaja, deja 'acepcion_usada' vacio. Nunca escribas en 'acepcion_usada' algo "
+        "que no este en la lista.\n\n") if otras else (
+        "Deja 'acepcion_usada' vacio.\n\n")
     instrucciones = (
         "Eres el asistente lexico de LiteraLevel, una app para lectores "
         "hispanohablantes que leen literatura en ingles. Recibes una palabra "
@@ -506,8 +605,11 @@ def _pedir_explicacion_openai(
         "básico/intermedio/avanzado). Adapta el vocabulario y la longitud de "
         "tus explicaciones a ese nivel: mas sencillas y breves para "
         "'básico', mas ricas y precisas para 'avanzado'.\n\n"
-        + lengua +
+        + regla_alternativas + lengua +
         "Campos a devolver:\n"
+        "- traduccion: la traduccion al espanol mas natural de la palabra en esta "
+        "oracion (de una a cuatro palabras), coherente con la definicion.\n"
+        "- acepcion_usada: ver arriba.\n"
         "- definicion_contextual: como funciona ESTA palabra en ESTA oracion "
         "concreta, apoyandote en la definicion de diccionario dada.\n"
         "- explicacion_gramatical: forma o funcion gramatical en esta "
@@ -523,6 +625,8 @@ def _pedir_explicacion_openai(
         f"Categoria gramatical detectada: {categoria or 'no determinada'}\n"
         f"Oracion original: {oracion}\n"
         f"Definicion de diccionario (usar tal cual, no inventar otra): {glosa}"
+        + ("\nOtras acepciones del diccionario:\n" + "\n".join(f"- {a}" for a in otras)
+           if otras else "")
     )
     respuesta = cliente.responses.parse(
         model=modelo, instructions=instrucciones, input=entrada,
@@ -668,6 +772,22 @@ class ConsultorLexico:
         avisos.extend(avisos_sentido)
         if entradas and sentido is None:
             avisos.append("la entrada no trae sentidos con glosa utilizable")
+        # Si los embeddings no separaron bien dos acepciones, OpenAI recibe las
+        # del diccionario y puede quedarse con otra de ELLAS (nunca inventarla).
+        dudoso = any("acepcion provisional" in a for a in avisos_sentido)
+        # Sin las de argot o vulgares, salvo que la elegida ya lo sea: en
+        # «she had peeped into the book» OpenAI cambio «To look forth from
+        # concealment» por «To take a look at; check out» (slang). Esto es una
+        # app de literatura: el registro estandar va primero.
+        registro_elegido = ({t.lower() for t in sentido.etiquetas} & _ETIQUETAS_REGISTRO
+                            if sentido is not None else set())
+        alternativas = (list(dict.fromkeys(
+            s.glosa for _, s in pares
+            if registro_elegido or not ({t.lower() for t in s.etiquetas} & _ETIQUETAS_REGISTRO)
+        ))[:8] if dudoso else None)
+        # Sin acepcion utilizable -la palabra no esta, o no trae glosas-, la
+        # define OpenAI y se marca como generado por IA.
+        modo_ia = sentido is None
 
         # Las dos llamadas de red -el audio de respaldo y la explicacion- se
         # lanzan A LA VEZ, no una detras de otra. Solo 7.003 de las 1.487.639
@@ -718,15 +838,26 @@ class ConsultorLexico:
             else:
                 # El idioma va en la clave: si no, la version en espanol y la
                 # inglesa se pisarian en la cache y saldria la que llego antes.
+                # v2: la respuesta trae ademas `traduccion` y `acepcion_usada`.
+                # Las de v1 no las tienen y se volverian a mostrar sin traduccion.
                 partes_clave = (
-                    "contextual", lema_buscado, categoria or "", sentido.glosa,
+                    "contextual-v2", lema_buscado, categoria or "", sentido.glosa,
                     oracion, banda, self.modelo_openai, idioma,
+                    "alt" if alternativas else "",
                 )
                 extra = self.cache.obtener_respuesta(*partes_clave)
                 if extra is not None:
                     desde_cache = True
-        elif entradas:
-            avisos.append("sin sentido elegido: no se pidio explicacion contextual")
+        elif cliente is None:
+            avisos.append("sin OPENAI_API_KEY: no hay definicion por IA")
+        else:
+            partes_clave = (
+                "definicion-ia-v1", lema_buscado, categoria or "", oracion, banda,
+                self.modelo_openai, idioma,
+            )
+            extra = self.cache.obtener_respuesta(*partes_clave)
+            if extra is not None:
+                desde_cache = True
 
         pedir_audio = falta_audio and cliente is not None and not ruta_audio_cacheada
         pedir_explicacion = partes_clave is not None and extra is None
@@ -738,12 +869,24 @@ class ConsultorLexico:
                 f_audio = grupo.submit(
                     _generar_audio_tts, cliente, texto_audio, RUTA_AUDIO_GENERADO
                 ) if pedir_audio else None
-                f_expl = grupo.submit(
-                    _pedir_explicacion_openai, cliente,
-                    palabra=palabra_superficie, oracion=oracion,
-                    glosa=sentido.glosa if sentido else "", categoria=categoria,
-                    banda=banda, modelo=self.modelo_openai, idioma=idioma,
-                ) if pedir_explicacion else None
+                if not pedir_explicacion:
+                    f_expl = None
+                elif modo_ia:
+                    f_expl = grupo.submit(
+                        _pedir_definicion_ia, cliente,
+                        palabra=palabra_superficie, oracion=oracion,
+                        categoria=categoria, banda=banda,
+                        modelo=self.modelo_openai, idioma=idioma)
+                else:
+                    # `alternativas` solo si las hay: un doble de la funcion
+                    # sin ese parametro sigue valiendo en el caso normal.
+                    extra_kw = {"alternativas": alternativas} if alternativas else {}
+                    f_expl = grupo.submit(
+                        _pedir_explicacion_openai, cliente,
+                        palabra=palabra_superficie, oracion=oracion,
+                        glosa=sentido.glosa, categoria=categoria,
+                        banda=banda, modelo=self.modelo_openai, idioma=idioma,
+                        **extra_kw)
 
                 if f_audio is not None:
                     try:
@@ -780,11 +923,29 @@ class ConsultorLexico:
             audio_generado = True
         if extra and pedir_explicacion:
             self.cache.guardar_respuesta(extra, self.modelo_openai, *partes_clave)
+        traduccion = definicion_ia = None
+        generado_por_ia = acepcion_elegida_por_ia = False
         if extra:
-            definicion_contextual = extra["definicion_contextual"]
-            explicacion_gramatical = extra["explicacion_gramatical"]
-            explicacion_adaptada = extra["explicacion_adaptada"]
-            ejemplo_simplificado = extra["ejemplo_simplificado"]
+            definicion_contextual = extra.get("definicion_contextual")
+            explicacion_gramatical = extra.get("explicacion_gramatical")
+            explicacion_adaptada = extra.get("explicacion_adaptada")
+            ejemplo_simplificado = extra.get("ejemplo_simplificado")
+            traduccion = (extra.get("traduccion") or "").strip() or None
+            if modo_ia:
+                definicion_ia = (extra.get("definicion_ia") or "").strip() or None
+                generado_por_ia = definicion_ia is not None
+            else:
+                def _norm(t):
+                    return " ".join(str(t or "").casefold().split())
+                usada = _norm(extra.get("acepcion_usada"))
+                # Solo se acepta una acepcion de la lista que se ofrecio: una
+                # respuesta vieja de la cache no puede colar otra (p. ej. slang).
+                permitidas = {_norm(a) for a in (alternativas or [])}
+                if usada and usada in permitidas and usada != _norm(sentido.glosa):
+                    otra = next((s for _, s in pares if _norm(s.glosa) == usada), None)
+                    if otra is not None:
+                        sentido, similitud, acepcion_elegida_por_ia = otra, None, True
+                        avisos = [a for a in avisos if "acepcion provisional" not in a]
 
         return ResultadoLexico(
             palabra_superficie=palabra_superficie, oracion=oracion,
@@ -804,6 +965,9 @@ class ConsultorLexico:
             frecuencia_zipf=_frecuencia_zipf(lema_simple),
             desde_cache=desde_cache, avisos=avisos,
             llamadas_de_pago=llamadas_de_pago,
+            traduccion=traduccion, definicion_ia=definicion_ia,
+            generado_por_ia=generado_por_ia,
+            acepcion_elegida_por_ia=acepcion_elegida_por_ia,
         )
 
     def cerrar(self) -> None:

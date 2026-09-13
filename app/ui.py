@@ -209,6 +209,26 @@ JS_AFI = r"""
 }
 """
 
+# La voz del navegador para las palabras sin audio (ver `_reproductores`).
+JS_VOZ_NAVEGADOR = r"""
+() => {
+  if (window.__llVozNav) return;
+  window.__llVozNav = true;
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.ll-voz-navegador');
+    if (!b || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(b.dataset.texto || '');
+    u.lang = b.dataset.lang || 'en-US';
+    const voces = window.speechSynthesis.getVoices();
+    const voz = voces.find(v => v.lang === u.lang) || voces.find(v => v.lang && v.lang.startsWith('en'));
+    if (voz) u.voice = voz;
+    u.rate = 0.85;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  });
+}
+"""
+
 # --- Datos personales: uno por lector, no uno para todos ------------------
 # En local hay un solo lector y todo vive en ~/.literalevel. En un despliegue
 # el proceso es UNO para todos los visitantes, asi que un unico cuaderno.db,
@@ -2774,6 +2794,13 @@ _ROTULOS = {
                         "frase: léela entera antes de fiarte."),
         "cache": "desde caché", "tts": "audio generado con tts-1",
         "rareza": ("muy común", "frecuente", "poco frecuente", "rara"),
+        "trad": "Traducción",
+        "def_ia": "Definición (generada por IA)",
+        "ia_aviso": ("Esta palabra no está en el diccionario de la app, así que la "
+                     "definición la ha escrito una inteligencia artificial (OpenAI). "
+                     "Suele acertar, pero puede equivocarse."),
+        "acepcion_ia": ("La IA eligió esta acepción del diccionario porque encaja "
+                        "mejor con tu frase."),
     },
     "en": {
         "pron": "Pronunciation", "dicc": "Dictionary", "aqui": "Here it means",
@@ -2790,6 +2817,12 @@ _ROTULOS = {
                         "read the whole sentence before trusting it."),
         "cache": "from cache", "tts": "audio generated with tts-1",
         "rareza": ("very common", "common", "uncommon", "rare"),
+        "trad": "Spanish",
+        "def_ia": "Definition (AI-generated)",
+        "ia_aviso": ("This word is not in the app's dictionary, so the definition was "
+                     "written by an AI (OpenAI). It is usually right, but it can be wrong."),
+        "acepcion_ia": ("The AI picked this dictionary sense because it fits your "
+                        "sentence better."),
     },
 }
 
@@ -2888,11 +2921,17 @@ def _ficha(r, idioma: str = "es") -> str:
         fon.append(f"US {r.ipa_us}")
     if fon:
         L.append(f"**{t['pron']}:** " + "  ·  ".join(fon))
+    # La traduccion, lo primero que busca quien lee (Miguel, con «mostly»).
+    # `getattr`: las pruebas construyen fichas con objetos sin estos campos.
+    if getattr(r, "traduccion", None):
+        L.append(f"**{t['trad']}:** {r.traduccion}")
 
     if r.sentido:
         L.append(f"**{t['dicc']}** (Wiktionary): {r.sentido}")
         if r.etiquetas_sentido:
             L.append(f"_{', '.join(r.etiquetas_sentido)}_")
+        if getattr(r, "acepcion_elegida_por_ia", False):
+            L.append(f"_{t['acepcion_ia']}_")
         if r.n_sentidos_candidatos > 1:
             sim = (t["afinidad"].format(v=r.similitud)
                    if r.similitud is not None else "")
@@ -2907,6 +2946,9 @@ def _ficha(r, idioma: str = "es") -> str:
             # mandar al lector a una seccion que no existe es peor que callar.
             clave = "dudoso" if r.definicion_contextual else "dudoso_solo"
             L.append("[!] " + t[clave].format(v=r.similitud))
+    elif getattr(r, "generado_por_ia", False) and getattr(r, "definicion_ia", None):
+        L.append(f"**{t['def_ia']}:** {r.definicion_ia}")
+        L.append(f"[IA] _{t['ia_aviso']}_")
     else:
         L.append(f"_{t['sin_entrada']}_")
 
@@ -2938,6 +2980,10 @@ def _ficha(r, idioma: str = "es") -> str:
     # palabra no trae IPA -el diccionario solo la tiene para el 2,3 %- la ficha
     # hablaba de una pronunciacion que no estaba en ninguna parte.
     avisos = list(r.avisos)
+    if getattr(r, "generado_por_ia", False):
+        # Ya lo dice el aviso de IA, con mas contexto.
+        avisos = [a for a in avisos if "no esta en el diccionario" not in a
+                  and "no trae sentidos" not in a]
     if not r.audio_generado:
         sin_nada = not (r.ipa_uk or r.ipa_us or r.audio_uk or r.audio_us)
         avisos = [a for a in avisos if "sin audio en el diccionario" not in a]
@@ -2969,6 +3015,24 @@ def _reproductores(r) -> str:
             trozos.append(
                 f'<p style="margin:.2rem 0"><b>{etiqueta}</b><br>'
                 f'<audio controls preload="none" src="{seguro}"></audio></p>')
+    # Sin ningun audio -ni de Wiktionary ni generado-, la voz del propio
+    # navegador (Web Speech API): gratis, sin clave y sin entrar. Con «mostly»
+    # el lector se quedaba sin nada que escuchar.
+    if not (r.audio_uk or r.audio_us):
+        palabra = str(getattr(r, "palabra_superficie", "") or "").strip()[:LIMITE_PALABRA]
+        if palabra:
+            texto = _html.escape(palabra, quote=True)
+            botones = "".join(
+                f'<button type="button" class="ll-voz-navegador" data-texto="{texto}" '
+                f'data-lang="{lang}" style="min-height:44px;margin:.2rem .4rem .2rem 0;'
+                f'padding:.3rem .8rem;border-radius:999px;cursor:pointer">'
+                f'🔊 {nombre}</button>'
+                for lang, nombre in (("en-US", "Voz del navegador (US)"),
+                                     ("en-GB", "Voz del navegador (UK)")))
+            trozos.append(
+                f'<p style="margin:.3rem 0">{botones}<br><small>Voz sintética de tu '
+                'navegador: sirve de orientación, pero no es un audio de diccionario.'
+                '</small></p>')
     return "".join(trozos)
 
 
@@ -4140,10 +4204,13 @@ def construir() -> gr.Blocks:
                 b_cuaderno.click(_mis_palabras, None, cuaderno_md)
                 b_repasar.click(_repasar, None, cuaderno_md)
 
-            with gr.Tab("Sonidos AFI", id="afi"):
+            # «IPA» y no «AFI»: es la sigla que el lector ve en diccionarios y
+            # apps (International Phonetic Alphabet). Miguel, 13 sep.
+            with gr.Tab("Sonidos IPA", id="afi"):
                 gr.Markdown(
                     "## Los sonidos del inglés\n"
-                    "Los símbolos del **Alfabeto Fonético Internacional (AFI)**. Toca uno "
+                    "Los símbolos del **IPA** (International Phonetic Alphabet; en español, "
+                    "Alfabeto Fonético Internacional o AFI). Toca uno "
                     "y lo oirás tres veces: **sostenido**, **rápido** y **en una palabra**. "
                     "En «Cómo se articula» tienes la posición de labios, lengua y boca. "
                     "Los audios están grabados de antemano: escucharlos no gasta nada y "
@@ -4191,6 +4258,8 @@ def construir() -> gr.Blocks:
         demo.load(None, None, None, js=JS_SELECCION)
         # Y los clics de la tabla del AFI (sonar y cambiar de acento).
         demo.load(None, None, None, js=JS_AFI)
+        # Y la voz del navegador para las palabras sin audio.
+        demo.load(None, None, None, js=JS_VOZ_NAVEGADOR)
 
     # La cola: 8 a la vez, y el modelo de uno en uno.
     #

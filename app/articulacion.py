@@ -1,6 +1,7 @@
 """La tabla del AFI de LiteraLevel: cada sonido del ingles con su articulacion.
 
-Sirve a la pestaña «Sonidos (AFI)». Para cada sonido, en General American y en
+Sirve a la pestaña «Sonidos IPA» (International Phonetic Alphabet; en español,
+Alfabeto Fonético Internacional o AFI). Para cada sonido, en General American y en
 britanico (RP), dice como se produce con el detalle de un manual de fonetica
 -rasgos, labios, lengua, apertura de la boca, cuerdas vocales, salida del
 aire-, que cambia de un acento a otro y la trampa tipica de un hispanohablante.

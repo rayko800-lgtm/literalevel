@@ -6462,6 +6462,115 @@ def _el_afi_se_oye_y_se_engancha():
 prueba("afi: se sirve el audio y se engancha el js", _el_afi_se_oye_y_se_engancha)
 
 
+def _la_pestana_se_llama_ipa():
+    """Miguel (13 sep): «¿no seria IPA?». Es la sigla que ve en diccionarios."""
+    fuente = pathlib.Path(ui.__file__).read_text(encoding="utf-8")
+    assert 'gr.Tab("Sonidos IPA", id="afi")' in fuente
+    assert 'gr.Tab("Sonidos AFI"' not in fuente
+    return "«Sonidos IPA»"
+
+
+prueba("afi: la pestana se llama sonidos ipa", _la_pestana_se_llama_ipa)
+
+
+# --- Palabras que el diccionario no resuelve (13 sep 2026) -------------------
+# Con «mostly» el lector no tuvo traduccion ni audio, y la acepcion elegida era
+# una obsoleta. Miguel: en esas palabras, toda la ayuda de OpenAI, marcada.
+
+import lexicon as lexicon_mod  # noqa: E402
+
+
+def _acepciones_marginales_no_ganan():
+    E, S = lexicon_mod.EntradaDiccionario, lexicon_mod.Sentido
+    e = E("mostly", "adv", [], None, None, None, None)
+    candidatos = [(e, S("To the greatest extent; most.", "adv", ["obsolete"])),
+                  (e, S("Synonym of probably, likely.", "adv", ["archaic"])),
+                  (e, S("For the most part; mainly.", "adv", []))]
+    elegida, _, _ = lexicon_mod._elegir_sentido("The house was mostly empty.", candidatos)
+    assert elegida.glosa == "For the most part; mainly.", elegida.glosa
+    # Si todas son marginales, se queda con ellas (no se queda sin nada).
+    solo_raras = candidatos[:1]
+    assert lexicon_mod._elegir_sentido("x", solo_raras)[0].glosa.startswith("To the greatest")
+    return "la obsoleta ya no gana a «for the most part»"
+
+
+prueba("lexico: acepciones obsoletas o arcaicas no ganan", _acepciones_marginales_no_ganan)
+
+
+def _la_definicion_por_ia_se_pide_bien():
+    """El prompt de la definicion por IA dice que la palabra NO esta en el
+    diccionario, pide admitir la duda y devuelve los campos del resultado."""
+    capturado = {}
+
+    class _Parseado:
+        def model_dump(self):
+            return {"definicion_ia": "Brillante, que destella débilmente.", "traduccion": "resplandeciente",
+                    "definicion_contextual": "Describe el lago.", "explicacion_gramatical": "Adjetivo.",
+                    "explicacion_adaptada": "Que brilla.", "ejemplo_simplificado": "The glimmerous water shone."}
+
+    class _Responses:
+        def parse(self, **kw):
+            capturado.update(kw)
+            return SimpleNamespace(output_parsed=_Parseado())
+
+    datos = lexicon_mod._pedir_definicion_ia(
+        SimpleNamespace(responses=_Responses()), palabra="glimmerous",
+        oracion="The glimmerous lake shone.", categoria="adj", banda="intermedio",
+        modelo="modelo-falso", idioma="es")
+    assert "NO" in capturado["instructions"] and "no tienes certeza" in capturado["instructions"]
+    assert "glimmerous" in capturado["input"]
+    campos = set(capturado["text_format"].model_fields)
+    assert {"definicion_ia", "traduccion", "definicion_contextual"} <= campos, campos
+    assert datos["traduccion"] == "resplandeciente"
+    # Y la explicacion normal pide traduccion y, si la eleccion es dudosa, recibe
+    # las otras acepciones del diccionario y la regla de no inventar.
+    capturado.clear()
+    lexicon_mod._pedir_explicacion_openai(
+        SimpleNamespace(responses=_Responses()), palabra="mostly", oracion="It was mostly empty.",
+        glosa="To the greatest extent; most.", categoria="adv", banda="intermedio",
+        modelo="modelo-falso", alternativas=["To the greatest extent; most.", "For the most part; mainly."])
+    assert "For the most part; mainly." in capturado["input"]
+    assert "Nunca escribas en 'acepcion_usada'" in capturado["instructions"]
+    assert {"traduccion", "acepcion_usada"} <= set(capturado["text_format"].model_fields)
+    return "prompts de IA y de acepcion alternativa con sus campos"
+
+
+prueba("lexico: la definicion por ia se pide bien", _la_definicion_por_ia_se_pide_bien)
+
+
+def _la_ficha_marca_lo_que_es_ia():
+    """Traduccion arriba, definicion por IA con su aviso, y escapado de lo que
+    viene de OpenAI (la ficha es Markdown saneado; el audio es gr.HTML)."""
+    base = dict(palabra_superficie="glimmerous", oracion="", lema="glimmerous", lema_buscado="glimmerous",
+                pos_spacy="ADJ", categoria=None, sentido=None, etiquetas_sentido=[], similitud=None,
+                n_sentidos_candidatos=0, ipa_uk=None, ipa_us=None, audio_uk=None, audio_us=None,
+                audio_generado=False, definicion_contextual="Describe el lago.", explicacion_gramatical=None,
+                explicacion_adaptada=None, ejemplo_simplificado=None, banda_lector="intermedio",
+                frecuencia_zipf=None, desde_cache=False,
+                avisos=["'glimmerous' no esta en el diccionario Kaikki"], llamadas_de_pago=1)
+    r = lexicon_mod.ResultadoLexico(**base, traduccion="resplandeciente",
+                                    definicion_ia="Que destella débilmente.", generado_por_ia=True)
+    ficha = ui._ficha(r, "es")
+    assert "**Traducción:** resplandeciente" in ficha, ficha
+    assert "Definición (generada por IA)" in ficha and "inteligencia artificial" in ficha, ficha
+    assert "no esta en el diccionario" not in ficha, "aviso repetido con la marca de IA"
+    # Sin IA ni diccionario: el mensaje de siempre, sin fallar.
+    sin = lexicon_mod.ResultadoLexico(**{**base, "definicion_contextual": None, "llamadas_de_pago": 0})
+    assert "No hay entrada de diccionario" in ui._ficha(sin, "es")
+    # Voz del navegador: solo sin audio, y con la palabra escapada.
+    malo = lexicon_mod.ResultadoLexico(**{**base, "palabra_superficie": '"><img src=x onerror=alert(1)>'})
+    html = ui._reproductores(malo)
+    assert "ll-voz-navegador" in html and "<img" not in html, html
+    con_audio = lexicon_mod.ResultadoLexico(**{**base, "audio_us": "https://upload.wikimedia.org/x.ogg"})
+    assert "ll-voz-navegador" not in ui._reproductores(con_audio)
+    fuente = pathlib.Path(ui.__file__).read_text(encoding="utf-8")
+    assert "js=JS_VOZ_NAVEGADOR" in fuente.split("def construir")[1]
+    return "traduccion, marca de IA, voz del navegador escapada"
+
+
+prueba("lexico: la ficha marca lo que es ia", _la_ficha_marca_lo_que_es_ia)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)
