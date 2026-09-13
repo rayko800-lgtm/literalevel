@@ -292,14 +292,29 @@ def con_perfiles_sin_entrar_no_paga():
 def audio_y_fonemas_sin_traversal():
     for malo in ("..%2F..%2Fcuaderno.db", "cuaderno.db", "x.mp3"):
         assert cliente.get(f"/api/audio/{malo}").status_code == 404, malo
-    inv = _ok(cliente.get("/api/fonemas"))["fonemas"]
-    assert len(inv) >= 40
-    con_audio = next((f for f in inv if f["audio"]), None)
-    if con_audio:
-        r = cliente.get(con_audio["audio"])
-        assert r.status_code == 200 and r.headers["content-type"] == "audio/mpeg"
+    ga = _ok(cliente.get("/api/fonemas"))
+    inv = ga["fonemas"]
+    assert ga["acento"] == "ga" and len(inv) == 41, (ga["acento"], len(inv))
+    assert all(f["ficha"]["rasgos"] and f["tipo"] in ("vocal", "diptongo", "consonante") for f in inv)
+    con_audio = next(f for f in inv if f["audio"])
+    # Los mp3 se regeneran con el mismo nombre: sin version, el navegador
+    # seguiria sirviendo el viejo durante 30 dias.
+    assert "?v=" in con_audio["audio"], con_audio["audio"]
+    r = cliente.get(con_audio["audio"])
+    assert r.status_code == 200 and r.headers["content-type"] == "audio/mpeg"
     assert cliente.get("/api/fonemas/..%2Fapi.py").status_code == 404
-    return f"{len(inv)} fonemas"
+
+    rp = _ok(cliente.get("/api/fonemas", params={"acento": "rp"}))
+    simbolos = {f["simbolo"] for f in rp["fonemas"]}
+    assert len(rp["fonemas"]) == 44 and {"ɒ", "ɪə", "eə", "ʊə"} <= simbolos, len(rp["fonemas"])
+    assert sum(len(g["sonidos"]) for g in rp["grupos"]) == 44
+    assert all(f["audio"] and f["audio"].startswith("/api/fonemas/rp/") for f in rp["fonemas"])
+    diptongo = next(f for f in rp["fonemas"] if f["simbolo"] == "ɪə")   # dos puntos de codigo
+    r = cliente.get(diptongo["audio"])
+    assert r.status_code == 200 and r.headers["content-type"] == "audio/mpeg", diptongo["audio"]
+    assert cliente.get("/api/fonemas", params={"acento": "xx"}).status_code == 422
+    assert cliente.get("/api/fonemas/rp/..%2F..%2Fapi.py").status_code == 404
+    return f"{len(inv)} americanos y {len(rp['fonemas'])} britanicos"
 
 
 def estado_sin_rutas():
@@ -329,6 +344,45 @@ def cors_del_front():
     return "static.hf.space sí, otro no"
 
 
+def libro_con_licencia_abre_en_la_obra():
+    """Miguel abrio un libro de Gutenberg y leyo la licencia y «Produced by...»,
+    y Pronunciar le propuso leer en alto una frase de los creditos."""
+    cabecera = ("The Project Gutenberg eBook of Pruebas de lectura\n\n"
+                "*** START OF THE PROJECT GUTENBERG EBOOK PRUEBAS DE LECTURA ***\n\n"
+                "Produced by Alguien Inventado and the Online Distributed Proofreading "
+                "Team at https://www.pgdp.net\n\n"
+                "PRUEBAS DE LECTURA\n\nCONTENTS.\n\nThe Garden\n\nThe River\n\n")
+    parrafo = " ".join(["The old gardener walked slowly along the path beside the quiet river."] * 5)
+    prosa = "\n\n".join([parrafo] * 20)
+    pie = ("\n\n*** END OF THE PROJECT GUTENBERG EBOOK PRUEBAS DE LECTURA ***\n\n"
+           + "The Full Project Gutenberg License applies to this work. " * 80)
+    d = _ok(cliente.post("/api/libros", headers=A,
+                         files={"archivo": ("licencia.txt", (cabecera + prosa + pie).encode(), "text/plain")}))
+    c = _ok(cliente.get(f"/api/libros/{d['id']}/capitulos/{d['inicial']}", headers=A))
+    texto = " ".join(c["parrafos"]).lower()
+    assert c["parrafos"][0].startswith("The old gardener"), c["parrafos"][:3]
+    for sucio in ("produced by", "proofreading", "project gutenberg", "start of the", "contents"):
+        assert sucio not in texto, f"el capitulo sigue trayendo «{sucio}»"
+    for _ in range(3):
+        f = _ok(cliente.get(f"/api/libros/{d['id']}/capitulos/{d['inicial']}/frase", headers=A))["frase"]
+        assert f and "produced" not in f.lower() and "gutenberg" not in f.lower(), f
+    return c["parrafos"][0][:40]
+
+
+def cuento_de_parrafos_cortos_no_pierde_el_principio():
+    """El recorte de la portada solo va en el capitulo con la marca de Gutenberg."""
+    import re
+    d = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=A))
+    n = d["inicial"]
+    c = _ok(cliente.get(f"/api/libros/{LIBRE}/capitulos/{n}", headers=A))
+    # El mismo libro por el mismo camino que la API, y su capitulo EN CRUDO.
+    lib = api._cargar_libro(ui._descargar_gutenberg(LIBRE))
+    crudo = [" ".join(t.split()) for t in re.split(r"\n\s*\n", lib.capitulos[n].texto)]
+    crudo = [t for t in crudo if t]
+    assert c["parrafos"] == crudo, (len(c["parrafos"]), len(crudo), c["parrafos"][:2], crudo[:2])
+    return f"{len(crudo)} párrafos intactos"
+
+
 def error_inesperado_sin_traza():
     original = api._perfil_de
     api._perfil_de = lambda pet: (_ for _ in ()).throw(RuntimeError("secreto interno"))
@@ -351,6 +405,7 @@ if __name__ == "__main__":
                cuaderno_aislado, lo_de_pago_sin_clave_no_cobra_ni_gasta_ficha,
                con_perfiles_sin_entrar_no_paga, audio_y_fonemas_sin_traversal,
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
+               libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
                error_inesperado_sin_traza):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")

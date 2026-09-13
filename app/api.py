@@ -57,6 +57,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
+import articulacion  # noqa: E402
 import biblioteca  # noqa: E402
 import config  # noqa: E402
 import cuaderno  # noqa: E402
@@ -336,10 +337,63 @@ def _abrir(ident: str, pet: _Lector, descargar: bool = True) -> tuple[str, reade
     return ruta, _cargar_libro(ruta)
 
 
+# Que parte de un capitulo es licencia, creditos o portada y no la obra.
+_PREAMBULO_RE = re.compile(
+    r"project gutenberg|gutenberg-tm|produced by|proofreading|distributed proofread|"
+    r"transcriber'?s note|^credits?\b|this (?:e-?book|file) was produced|www\.|https?://|"
+    r"^contents\.?$|^table of contents",
+    re.IGNORECASE)
+
+
+def _es_preambulo(parrafo: str) -> bool:
+    return bool(_PREAMBULO_RE.search(parrafo.strip()))
+
+
+def _parrafos(libro: reader.Libro, n: int) -> list[str]:
+    """Los parrafos que se le enseñan al lector: la obra, no su envoltura.
+
+    El texto va sin la licencia de Gutenberg (`ficha.sin_licencia`). Y en el
+    capitulo que trae la marca de inicio -la portada del archivo- se quitan
+    ademas los parrafos de cabeza que no son prosa: creditos, titulo e indice.
+    Miguel abrio un libro y lo primero que leyo fue «Produced by... the Online
+    Distributed Proofreading Team»; y la frase que le propuso Pronunciar salio
+    de ahi.
+    """
+    c = libro.capitulos[n]
+    texto = ficha.sin_licencia(c.texto)
+    parrafos = [" ".join(t.split()) for t in re.split(r"\n\s*\n", texto)]
+    parrafos = [t for t in parrafos if t]
+    # Solo el capitulo con la marca de inicio de Gutenberg. Con cualquier primer
+    # capitulo, un cuento de parrafos cortos -StoryWeaver- perdia su principio.
+    if ficha._INICIO_PG.search(c.texto):
+        i = 0
+        # Solo la CABEZA: desde el primer parrafo de prosa de verdad, todo se queda.
+        while i < len(parrafos) and (_es_preambulo(parrafos[i]) or len(parrafos[i].split()) < 40):
+            i += 1
+        if i < len(parrafos):
+            parrafos = parrafos[i:]
+    return parrafos
+
+
 def _capitulo_inicial(libro: reader.Libro) -> int:
-    """No abrir en la portadilla: la misma regla que `ui._abrir`."""
+    """No abrir en la portadilla, pero tampoco saltarse el libro.
+
+    La regla de `ui._abrir` descarta por titulo lo anterior al capitulo 1
+    («Antes del primer capítulo»). Casi siempre es portada e indice, pero cuando
+    `reader` no encuentra los encabezados de un .txt ahi cae CASI TODO el libro:
+    en *Modern Italian Poets* (PG8171) son 74.858 de 92.389 palabras, y el
+    lector abria en el «capitulo 1», que empieza a mitad de frase. Si ese tramo
+    es al menos el 40 % del libro, se abre ahi (y `_parrafos` le quita la
+    envoltura). En *Orgullo y prejuicio* son 4.957 de 130.000: se sigue saltando.
+    """
+    total = sum(c.palabras for c in libro.capitulos) or 1
+
     def cuerpo(c):
-        return c.palabras >= 500 and not ui._RELLENO_RE.search(c.titulo)
+        if c.palabras < 500:
+            return False
+        if ui._RELLENO_RE.search(c.titulo):
+            return c.palabras >= 0.4 * total
+        return not ficha._es_boilerplate(c)
     return next((i for i, c in enumerate(libro.capitulos) if cuerpo(c)),
                 next((i for i, c in enumerate(libro.capitulos) if c.palabras >= 500), 0))
 
@@ -739,10 +793,9 @@ def capitulo(libro_id: str, n: int, pet: Lector) -> dict:
     ident = _normalizar_id(libro_id)
     _, lib = _abrir(ident, pet)
     c = _cap(lib, n)
-    parrafos = [" ".join(t.split()) for t in re.split(r"\n\s*\n", c.texto)]
     return {"libro_id": ident, "indice": n, "total": len(lib.capitulos),
             "titulo": c.titulo, "palabras": c.palabras,
-            "parrafos": [t for t in parrafos if t]}
+            "parrafos": _parrafos(lib, n)}
 
 
 class ProgresoPeticion(BaseModel):
@@ -784,8 +837,23 @@ def frase_del_capitulo(libro_id: str, n: int, pet: Lector) -> dict:
     ident = _normalizar_id(libro_id)
     _, lib = _abrir(ident, pet, descargar=False)
     _cap(lib, n)
-    f = ui._frase_del_capitulo(lib, n)
-    return {"frase": f if isinstance(f, str) else None}
+    # La seleccion de `ui._frase_del_capitulo` (parrafos de 30+ palabras, frases
+    # de 6 a 25 que empiezan donde empieza una frase, sin titulillo delante),
+    # pero sobre los parrafos LIMPIOS: el original leia el capitulo crudo y
+    # proponia «Credits: Produced by ellinora, Bryan Ness...» para leer en alto.
+    candidatas = []
+    for parrafo in _parrafos(lib, n):
+        if len(parrafo.split()) < 30 or _es_preambulo(parrafo):
+            continue
+        for f in ui._oraciones(ui._sin_encabezado(parrafo)):
+            if 6 <= len(f.split()) <= 25 and ui._empieza_entera(f) and not _es_preambulo(f):
+                candidatas.append(f)
+    if not candidatas:
+        return {"frase": None}
+    clave = (getattr(lib, "titulo", ""), int(n))
+    ronda = ui._RONDA_FRASE.get(clave, -1) + 1
+    ui._RONDA_FRASE[clave] = ronda
+    return {"frase": candidatas[ronda % len(candidatas)]}
 
 
 # --- La curva: trabajo en segundo plano ----------------------------------------
@@ -1000,17 +1068,24 @@ def _url_audio(ruta) -> str | None:
 
 
 def _avisos_palabra(r, idioma: str, quitar_sin_clave: bool) -> list[str]:
-    """Los avisos de `lexicon`, como los pinta `ui._ficha`: traducidos y sin repetir."""
-    avisos = list(r.avisos)
+    """Los avisos de `lexicon`, traducidos y sin repetir.
+
+    **Siempre en español**, aunque la explicacion se pida en ingles: los avisos
+    son de la interfaz, que esta en español. Miguel vio en la misma ficha
+    «Esta palabra no está en el diccionario», «'inmostly' no esta en el
+    diccionario Kaikki» y «The dictionary has no audio for this word». El
+    segundo sobra -la ficha ya dice lo mismo- y el tercero salia en ingles
+    porque se traducia con el idioma de la explicacion.
+    """
+    avisos = [a for a in r.avisos if "no esta en el diccionario" not in a]
     if quitar_sin_clave:
         avisos = [a for a in avisos if "OPENAI_API_KEY" not in a]
     if not r.audio_generado:
         avisos = [a for a in avisos if "sin audio en el diccionario" not in a]
         if not (r.ipa_uk or r.ipa_us or r.audio_uk or r.audio_us):
             avisos.append("De esta palabra no hay pronunciación: ni el diccionario la trae "
-                          "ni se pudo generar." if idioma != "en" else
-                          "There is no pronunciation for this word.")
-    return [_llano(a) for a in dict.fromkeys(ui._humanizar(a, idioma) for a in avisos)]
+                          "ni se pudo generar.")
+    return [_llano(a) for a in dict.fromkeys(ui._humanizar(a, "es") for a in avisos)]
 
 
 @app.post("/api/palabra")
@@ -1117,6 +1192,14 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         "explicacion_gramatical": r.explicacion_gramatical,
         "explicacion_adaptada": r.explicacion_adaptada,
         "ejemplo": r.ejemplo_simplificado, "banda": r.banda_lector,
+        # Campos que `lexicon` gana el 13 sep 2026 (entrega-4e). Con `getattr` y
+        # su valor por defecto, para que esto funcione antes y despues de su
+        # commit. La definicion por IA es la MISMA llamada de pago que la
+        # explicacion: ya la cuenta `llamadas_de_pago`.
+        "traduccion": getattr(r, "traduccion", None),
+        "definicion_ia": getattr(r, "definicion_ia", None),
+        "generado_por_ia": bool(getattr(r, "generado_por_ia", False)),
+        "acepcion_elegida_por_ia": bool(getattr(r, "acepcion_elegida_por_ia", False)),
         "zipf": zipf, "rareza": rareza, "desde_cache": r.desde_cache,
         "oracion": oracion, "origen_oracion": origen,
         "explicacion_pendiente": datos.etapa == "diccionario" and explicable,
@@ -1141,25 +1224,68 @@ def audio(nombre: str):
                         headers={"Cache-Control": "public, max-age=604800"})
 
 
+def _url_audio_fonema(ruta: Path, prefijo: str) -> str | None:
+    """La URL del mp3 de un sonido, o None si no esta en disco o esta vacio.
+
+    Lleva `?v=<tamaño>-<fecha>` porque los mp3 se REGENERAN con el mismo nombre
+    (13 sep 2026: formato sostenido, rapido y palabra) y la respuesta se guarda
+    30 dias en el navegador: sin la version, quien ya los hubiera oido seguiria
+    oyendo los viejos. Es la misma huella que usa la pestaña de Gradio.
+    """
+    try:
+        if not ruta.is_file():
+            return None
+        st = ruta.stat()
+    except OSError:
+        return None
+    if st.st_size <= 0:
+        return None
+    return f"{prefijo}{ruta.name}?v={st.st_size}-{int(st.st_mtime)}"
+
+
 @app.get("/api/fonemas")
-def inventario_fonemas() -> dict:
-    """Los 41 fonemas con su audio pregrabado: la tabla del AFI que pidio Laura."""
-    return {"fonemas": [
-        {"simbolo": f.simbolo, "nombre": f.nombre, "ejemplos": list(f.ejemplos),
-         "tipo": f.tipo,
-         "audio": f"/api/fonemas/{f.archivo}" if fonemas.audio_de(f.simbolo) else None}
-        for f in fonemas.INVENTARIO]}
+def inventario_fonemas(acento: Literal["ga", "rp"] = "ga") -> dict:
+    """La tabla del AFI: cada sonido con su audio y su ficha de articulacion.
+
+    Dos acentos (`articulacion.inventario`): General American, 41 sonidos con los
+    mp3 de `fonemas`, y britanico (RP), 44 con los suyos. `fonemas` es la lista
+    plana de siempre -con `tipo` vocal, diptongo o consonante-, para no romper a
+    quien ya la leia; `grupos` es el orden de la tabla por modo de articulacion.
+    """
+    prefijo = "/api/fonemas/" if acento == "ga" else "/api/fonemas/rp/"
+    lista = [
+        {"simbolo": s.simbolo, "nombre": s.nombre, "ejemplos": list(s.ejemplos),
+         "grupo": s.grupo,
+         "tipo": s.grupo if s.grupo in ("vocal", "diptongo") else "consonante",
+         "audio": _url_audio_fonema(s.ruta, prefijo),
+         "ficha": asdict(s.ficha)}
+        for s in articulacion.inventario(acento)]
+    grupos = [{"clave": clave, "titulo": titulo,
+               "sonidos": [x for x in lista if x["grupo"] == clave]}
+              for clave, titulo in articulacion.GRUPOS]
+    return {"acento": acento, "acentos": articulacion.ACENTOS, "fonemas": lista,
+            "grupos": [g for g in grupos if g["sonidos"]]}
 
 
-@app.get("/api/fonemas/{archivo}")
-def audio_fonema(archivo: str):
+def _servir_fonema(carpeta: Path, archivo: str):
+    # Nombre sacado de los puntos de codigo del simbolo: nunca una ruta.
     if not re.fullmatch(r"[0-9a-f_]{4,64}\.mp3", archivo):
         raise _no(404, "No existe ese sonido.")
-    p = fonemas.DIR_AUDIO / archivo
+    p = carpeta / archivo
     if not p.is_file():
         raise _no(404, "No existe ese sonido.")
     return FileResponse(p, media_type="audio/mpeg",
                         headers={"Cache-Control": "public, max-age=2592000"})
+
+
+@app.get("/api/fonemas/rp/{archivo}")
+def audio_fonema_rp(archivo: str):
+    return _servir_fonema(articulacion.DIR_AUDIO_RP, archivo)
+
+
+@app.get("/api/fonemas/{archivo}")
+def audio_fonema(archivo: str):
+    return _servir_fonema(fonemas.DIR_AUDIO, archivo)
 
 
 # --- Punto 5: pronunciacion ------------------------------------------------------
@@ -1173,7 +1299,7 @@ def _fonema_json(simbolo) -> dict | None:
     if f is None:
         return None
     return {"simbolo": f.simbolo, "nombre": f.nombre, "ejemplos": list(f.ejemplos),
-            "audio": f"/api/fonemas/{f.archivo}" if fonemas.audio_de(f.simbolo) else None}
+            "audio": _url_audio_fonema(f.ruta, "/api/fonemas/")}
 
 
 @app.post("/api/voz")
