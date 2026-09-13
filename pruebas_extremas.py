@@ -6268,6 +6268,9 @@ def _ipa_ausente_no_se_inventa():
 
     viejo = (fonemas_mod._diccionario, fonemas_mod._diccionario_fallo)
     viejo_lexicon = sys.modules.get("lexicon")
+    # CMUdict fuera: esta prueba mide lo que pasa cuando NINGUN diccionario
+    # trae la palabra, y CMUdict si trae «the» y «thought».
+    viejo_cmu, fonemas_mod._cmu = fonemas_mod._cmu, {}
     fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = _Dic(), None
     try:
         for palabra in ("zarzaparrilla", "the"):
@@ -6303,6 +6306,7 @@ def _ipa_ausente_no_se_inventa():
         assert fonemas_mod._diccionario_fallo is None
     finally:
         fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = viejo
+        fonemas_mod._cmu = viejo_cmu
         if viejo_lexicon is not None:
             sys.modules["lexicon"] = viejo_lexicon
         else:
@@ -6359,14 +6363,18 @@ def _la_practica_pinta_ipa_y_audio():
             return [SimpleNamespace(pos="verb", ipa_uk="/wɔːn/", ipa_us="/woɹn/",
                                     audio_uk=None, audio_us=None)]
 
+    # CMUdict fuera: la prueba necesita una palabra sin IPA («ship»).
+    viejo_cmu = fonemas_mod._cmu
     try:
         ui.config.falta = lambda: []
         ui.voz.practicar = lambda *a, **k: sesion
         fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = _Dic(), None
+        fonemas_mod._cmu = {}
         _, veredicto, _ = ui._practicar(str(audio), "I warn the ship")
     finally:
         ui.voz.practicar, ui.config.falta = viejo_practicar, viejo_falta
         fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = viejo_dic
+        fonemas_mod._cmu = viejo_cmu
     veredicto = str(veredicto)
     assert "**warn** /woɹn/ (US)" in veredicto, f"no pinto la IPA americana de warn: {veredicto[:400]}"
     assert "**ship** (sin transcripción" in veredicto, veredicto[:400]
@@ -6793,6 +6801,73 @@ def _dos_lectores_a_la_vez_pagan_una_y_se_marca_ia():
 
 prueba("lexico: dos lectores a la vez pagan una y se marca ia",
        _dos_lectores_a_la_vez_pagan_una_y_se_marca_ia)
+
+
+# --- El fonema de la correccion, determinista (f4, 13 sep 2026) --------------
+# Con la misma grabacion («magic» por «tragic») el modelo dijo /dʒ/ y luego
+# /tʃ/, con un consejo de labios falso; el error real es /tr/ -> /m/.
+
+def _la_ipa_se_trocea_en_fonemas():
+    seg = ui.fonemas.segmentar
+    assert seg("/ˈtɹædʒɪk/") == ["t", "ɹ", "æ", "dʒ", "ɪ", "k"], seg("/ˈtɹædʒɪk/")
+    assert seg("/θɔːt/") == ["θ", "ɔ", "t"], seg("/θɔːt/")
+    assert seg("/ˈmoʊstli/, /ˈmoʊsli/") == ["m", "oʊ", "s", "t", "l", "i"]
+    assert seg(None) == [] and seg("") == []
+    # CMUdict tapa el hueco de Kaikki, que no trae ni «tragic» ni «magic».
+    for palabra in ("tragic", "magic", "Tragic"):
+        ipa, variante = ui.fonemas.ipa_de_palabra(palabra)
+        assert ipa and variante == "US", (palabra, ipa, variante)
+    assert ui.fonemas.ipa_de_palabra("zzqxvj") == (None, None)
+    return "fonemas en orden; tragic y magic con ipa americana"
+
+
+prueba("voz: la ipa se trocea en fonemas", _la_ipa_se_trocea_en_fonemas)
+
+
+def _el_fonema_sale_de_comparar_y_no_del_modelo():
+    voz = ui.voz
+    assert voz.fonema_que_cambia("tragic", "magic") == "t"
+    assert voz.fonema_que_cambia("fox", "fix") == "ɑ"
+    assert voz.fonema_que_cambia("tragic", "") is None
+    assert voz.fonema_que_cambia("zzqxvj", "magic") is None
+    assert voz.fonema_que_cambia("tragic", "tragic") is None
+
+    def _cliente_falso():
+        # El modelo, como en el Space: un fonema que no es y un consejo falso.
+        def parse(**_kw):
+            c = voz.Correccion(resumen="Casi.", detalles=[
+                voz.DetallePalabra(palabra="tragic", fonema="dʒ", sonido_que_falla="como la ch",
+                                   como_colocar_la_boca="Junta los labios y sube la lengua."),
+                voz.DetallePalabra(palabra="zzqxvj", fonema="ʃ", sonido_que_falla="sh",
+                                   como_colocar_la_boca="Redondea los labios.")])
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(parsed=c))])
+        return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(parse=parse)))
+
+    viejo = voz._cliente
+    try:
+        voz._cliente = _cliente_falso
+        pares = [("tragic", "magic"), ("zzqxvj", "magic")]
+        una = voz.explicar_correccion(["tragic", "zzqxvj"], entendidas=pares)
+        otra = voz.explicar_correccion(["tragic", "zzqxvj"], entendidas=pares)
+        sin_pares = voz.explicar_correccion(["tragic"])
+    finally:
+        voz._cliente = viejo
+    t, raro = una.detalles
+    ficha_t = ui.articulacion.FICHAS["t"]
+    assert t.fonema == "t" and ficha_t.lengua in t.como_colocar_la_boca, t
+    assert "Junta los labios" not in t.como_colocar_la_boca and ficha_t.trampa in t.sonido_que_falla, t
+    assert una.detalles[0].model_dump() == otra.detalles[0].model_dump(), "misma grabacion, mismo consejo"
+    assert raro.fonema == voz.SIN_FONEMA and "Redondea" not in raro.como_colocar_la_boca, raro
+    assert "diccionarios de pronunciación" in raro.sonido_que_falla, raro
+    assert sin_pares.detalles[0].fonema == voz.SIN_FONEMA, sin_pares
+    assert una.resumen == "Casi.", "el resumen sigue siendo del modelo"
+    html = ui._detalle_de_voz(t)
+    assert "/t/" in html and "(sin transcripción" not in html, html
+    return "t desde la ipa, consejo de la ficha, igual en dos llamadas"
+
+
+prueba("voz: el fonema sale de comparar y no del modelo",
+       _el_fonema_sale_de_comparar_y_no_del_modelo)
 
 
 # --- Resultado ------------------------------------------------------------

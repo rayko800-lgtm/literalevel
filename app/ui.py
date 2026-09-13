@@ -3386,10 +3386,12 @@ def _reproductor_fonema(ruta: str, fonema) -> str:
 def _detalle_de_voz(d, audio_palabra: str | None = None) -> str:
     """Una palabra de la correccion: su IPA, su fonema con audio y la explicacion.
 
-    La IPA de la palabra sale de Kaikki y SOLO de ahi (`fonemas.ipa_de_palabra`):
-    si el diccionario no la trae, se dice, y no se le pide al modelo, que la
-    inventaria sin avisar. El fonema lo elige el modelo dentro del inventario;
-    si llega algo que no esta -o `ninguno`-, se pinta el texto sin reproductor.
+    La IPA de la palabra sale de los diccionarios locales -Kaikki y, si no la
+    trae, CMUdict- y SOLO de ahi (`fonemas.ipa_de_palabra`): si ninguno la
+    tiene, se dice, y no se le pide al modelo, que la inventaria sin avisar.
+    El fonema y el consejo ya no son del modelo: `voz.fijar_fonemas` los saca
+    de comparar la IPA esperada con la entendida y de `articulacion.FICHAS`;
+    si no hay fonema (`ninguno`), se pinta el texto sin reproductor.
     Nunca lanza: lee los campos con `getattr` para que un detalle a medias no
     tire la correccion entera, que ya se ha pagado.
     """

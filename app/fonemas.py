@@ -260,34 +260,101 @@ def _abrir_diccionario():
     return _diccionario
 
 
+# Texto plano y no .gz: Hugging Face rechaza binarios que no vayan por LFS.
+RUTA_CMU = Path(__file__).resolve().parent / "pronunciacion_cmu.tsv"
+_cmu: dict[str, str] | None = None
+_cerrojo_cmu = threading.Lock()
+
+
+def _ipa_cmu(palabra: str) -> str | None:
+    """IPA americana de CMUdict (ver `tools/generar_ipa_cmu.py`), o `None`.
+
+    Se carga entera la primera vez (unas 134.000 filas, menos de un segundo).
+    Si el archivo falta, queda un diccionario vacio: la app sigue igual que
+    antes, con el hueco de Kaikki."""
+    global _cmu
+    if _cmu is None:
+        with _cerrojo_cmu:
+            if _cmu is None:
+                tabla = {}
+                try:
+                    with open(RUTA_CMU, encoding="utf-8") as f:
+                        for linea in f:
+                            clave, _, ipa = linea.rstrip("\n").partition("\t")
+                            if ipa:
+                                tabla[clave] = ipa
+                except Exception as e:
+                    print(f"fonemas: sin CMUdict ({type(e).__name__}: {e})", file=sys.stderr)
+                _cmu = tabla
+    return _cmu.get(palabra.strip().strip("'’").replace("’", "'").lower())
+
+
 def ipa_de_palabra(palabra: object) -> tuple[str | None, str | None]:
-    """(transcripcion, variante) de la palabra segun Kaikki/Wiktionary.
+    """(transcripcion, variante) de la palabra segun los diccionarios locales.
 
-    La variante es "US" si el volcado trae la de General American -la
-    referencia de este modulo- y "UK" si solo trae la britanica. Si la
-    palabra no esta, o esta sin IPA, devuelve `(None, None)`: **la
-    transcripcion no se le pide nunca al modelo**, que la inventaria con toda
-    seguridad y sin avisar. El volcado tiene IPA para unas 40.000 de sus
-    1,48 M entradas, asi que el hueco es frecuente y la interfaz tiene que
-    decirlo.
+    Orden: la americana de Kaikki/Wiktionary; si no la trae, la de CMUdict,
+    tambien americana; y si ninguna, la britanica de Kaikki ("UK"). El volcado
+    de Kaikki tiene IPA para unas 40.000 de sus 1,48 M entradas y no trae ni
+    «tragic» ni «magic»: sin CMUdict la correccion no podia comparar lo que
+    se debia decir con lo que se entendio (f4, 13 sep 2026). Si nadie la
+    tiene, `(None, None)`: **la transcripcion no se le pide nunca al modelo**,
+    que la inventaria con toda seguridad y sin avisar.
 
-    Tampoco se lematiza («jumps» no esta, «jump» si): hacerlo pediria spaCy,
-    que es uno de los recursos pesados, para una linea de ayuda. Nunca lanza.
+    Kaikki no se lematiza («jumps» no esta, «jump» si): pediria spaCy para una
+    linea de ayuda. CMUdict si trae las formas flexionadas. Nunca lanza.
     """
     if not isinstance(palabra, str) or not palabra.strip():
         return None, None
+    uk = None
     try:
         dic = _abrir_diccionario()
-        if dic is None:
-            return None, None
-        import lexicon
-        with _cerrojo:
-            entradas = dic.buscar(palabra.strip().strip("'’"))
-        _uk, us, _a, _b = lexicon._mejor_fonetica(entradas, None)
-        if us:
-            return us, "US"
-        if _uk:
-            return _uk, "UK"
+        if dic is not None:
+            import lexicon
+            with _cerrojo:
+                entradas = dic.buscar(palabra.strip().strip("'’"))
+            uk, us, _a, _b = lexicon._mejor_fonetica(entradas, None)
+            if us:
+                return us, "US"
+    except Exception:
+        uk = None
+    try:
+        cmu = _ipa_cmu(palabra)
+        if cmu:
+            return cmu, "US"
     except Exception:
         pass
+    if uk:
+        return uk, "UK"
     return None, None
+
+
+def segmentar(ipa: object) -> list[str]:
+    """Los fonemas de una transcripcion, en orden, como simbolos del inventario.
+
+    `/ˈtɹædʒɪk/` -> `['t', 'ɹ', 'æ', 'dʒ', 'ɪ', 'k']`. Se toma la primera
+    transcripcion si vienen varias separadas por comas, se quitan acentos,
+    barras y diacriticos, y se trocea de izquierda a derecha con el trozo mas
+    largo que `normalizar` reconoce (asi `eɪ` es un diptongo y no `e` + `ɪ`).
+    Lo que no es un fonema del inventario (`ɾ`, `ʔ`, `ɒ`) queda como su propio
+    caracter, para que dos transcripciones sigan alineadas al compararlas.
+    Nunca lanza.
+    """
+    if not isinstance(ipa, str):
+        return []
+    texto = unicodedata.normalize("NFD", ipa.split(",")[0])
+    texto = unicodedata.normalize("NFC", "".join(
+        c for c in texto if c not in _DIACRITICOS and c not in _ENVOLTURA))
+    salida, i = [], 0
+    while i < len(texto):
+        for largo in (3, 2, 1):
+            trozo = texto[i:i + largo]
+            simbolo = normalizar(trozo) if len(trozo) == largo else None
+            if simbolo:
+                salida.append(simbolo)
+                i += largo
+                break
+        else:
+            if not texto[i].isspace() and texto[i] != "ː":
+                salida.append(texto[i])
+            i += 1
+    return salida

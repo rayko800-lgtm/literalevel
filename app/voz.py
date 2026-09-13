@@ -256,9 +256,113 @@ def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles",
             ],
             response_format=Correccion,
         )
-        return resp.choices[0].message.parsed
+        correccion = resp.choices[0].message.parsed
     except Exception:
         return None
+    return fijar_fonemas(correccion, entendidas)
+
+
+# --- El fonema y el consejo, deterministas -----------------------------
+#
+# Con la MISMA grabacion («magic» en lugar de «tragic») el modelo eligio /dʒ/ y
+# en la llamada siguiente /tʃ/, con consejos de boca distintos -uno decia
+# «junta los labios», que para /dʒ/ es falso-, cuando el error real es
+# /tr/ -> /m/ (f4, en el Space, 13 sep 2026). Asi que el fonema ya no lo
+# decide el modelo: sale de comparar la IPA de lo que se debia decir con la de
+# lo que se entendio, y el consejo sale de `articulacion.FICHAS`, que esta
+# revisado. Del modelo solo queda el resumen. Si no hay con que comparar, no
+# se señala ningun sonido y se dice por que.
+
+_SIN_COMPARACION = {
+    "no_oida": ("No se oyó esta palabra en tu grabación, así que no hay un sonido concreto que señalar",
+                "Escúchala sola y repítela despacio, sílaba por sílaba."),
+    "sin_ipa": ("Esta palabra, o lo que se entendió, no está en los diccionarios de pronunciación, "
+                "así que no te señalo un sonido concreto para no inventártelo",
+                "Escúchala sola y repítela despacio, sílaba por sílaba."),
+    "igual": ("Lo que se entendió suena igual que la palabra: puede que la transcripción "
+              "automática se equivocara",
+              "Repítela un poco más despacio, marcando cada sonido."),
+    "sin_datos": ("No sé qué se entendió en su lugar, así que no te señalo un sonido concreto",
+                  "Escúchala sola y repítela despacio, sílaba por sílaba."),
+}
+
+
+def _clave_palabra(palabra) -> str:
+    return (str(palabra or "").strip().replace("’", "'")
+            .strip(".,;:!?¿¡\"()[]«»…“”‘").lower())
+
+
+def _segmentos_de(texto: str) -> list[str]:
+    """Los fonemas de una o varias palabras; vacio si alguna no tiene IPA."""
+    salida = []
+    for palabra in texto.split():
+        ipa, _ = fonemas.ipa_de_palabra(_clave_palabra(palabra))
+        if not ipa:
+            return []
+        salida.extend(fonemas.segmentar(ipa))
+    return salida
+
+
+def _comparar(esperada: str, entendida: str | None) -> tuple[str | None, str]:
+    """(simbolo del primer fonema esperado que cambia, motivo si no lo hay)."""
+    import difflib
+    if entendida is None:
+        return None, "sin_datos"
+    if not _clave_palabra(entendida):
+        return None, "no_oida"
+    a, b = _segmentos_de(esperada), _segmentos_de(entendida)
+    if not a or not b:
+        return None, "sin_ipa"
+    for op, i1, i2, _j1, _j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        # Un sonido de mas en lo entendido (insert) no es un sonido esperado
+        # que falle: se sigue buscando.
+        if op == "equal" or i1 == i2:
+            continue
+        simbolo = next((s for s in a[i1:i2] if fonemas.buscar(s)), None)
+        if simbolo:
+            return simbolo, ""
+    return None, "igual"
+
+
+def fonema_que_cambia(esperada: str, entendida: str | None) -> str | None:
+    """El primer fonema de `esperada` que no esta en `entendida`, comparando sus
+    IPA de diccionario: «tragic» / «magic» -> «t». `None` si falta una IPA, no
+    se oyo nada o suenan igual. Determinista y sin red."""
+    return _comparar(esperada, entendida)[0]
+
+
+def _consejo_de_ficha(simbolo: str) -> tuple[str, str] | None:
+    """(sonido_que_falla, como_colocar_la_boca) desde `articulacion.FICHAS`."""
+    import articulacion
+    sonido = articulacion.buscar(simbolo, "ga")
+    if sonido is None:
+        return None
+    f = sonido.ficha
+    return (f"/{sonido.simbolo}/, {sonido.nombre}, como en «{', '.join(sonido.ejemplos)}». "
+            f"Error típico: {f.trampa}",
+            f"Labios: {f.labios}. Lengua: {f.lengua}. Aire: {f.aire}.")
+
+
+def fijar_fonemas(correccion: Correccion | None,
+                  entendidas: list[tuple[str, str]] | None) -> Correccion | None:
+    """Sustituye en cada detalle el fonema y los dos consejos del modelo por los
+    deterministas (ver arriba). Devuelve la misma `Correccion`, cambiada."""
+    if correccion is None:
+        return None
+    oidas = ({_clave_palabra(o): (d or "") for o, d in entendidas if o}
+             if entendidas is not None else None)
+    for d in correccion.detalles:
+        clave = _clave_palabra(d.palabra)
+        oida = oidas.get(clave) if oidas is not None else None
+        simbolo, motivo = _comparar(clave, oida)
+        consejo = _consejo_de_ficha(simbolo) if simbolo else None
+        if consejo:
+            d.fonema = simbolo
+            d.sonido_que_falla, d.como_colocar_la_boca = consejo
+        else:
+            d.fonema = SIN_FONEMA
+            d.sonido_que_falla, d.como_colocar_la_boca = _SIN_COMPARACION[motivo or "igual"]
+    return correccion
 
 
 # --- Respuesta hablada (TTS, necesita red) -----------------------------
