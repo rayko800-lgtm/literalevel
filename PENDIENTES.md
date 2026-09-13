@@ -172,8 +172,8 @@ un entorno de CPU gratuito mientras no haya unidades.
   de 2026 (commit `daee09d`): cuatro épocas y no seis, validación que eligió el punto
   de control y no ciega, British Council de desarrollo y no externo, ELG CEFR English
   como corpus, OneStopEnglish y métricas recalculadas
-- [ ] **Licencia del modelo** — decisión de Miguel: la tarjeta pone Apache 2.0 y el
-  corpus de entrenamiento es CC BY-NC-SA 4.0, que no permite uso comercial
+- [x] **Licencia del modelo** — decidido por Miguel el 12 de septiembre de 2026:
+  **CC BY-NC-SA 4.0**, la misma que el corpus de entrenamiento (antes ponía Apache 2.0)
 - [x] **Corpus del British Council reconstruible** — manifiesto con URL y SHA-256
   (`entrega/corpus_bc_manifiesto.csv`) y `tools/bajar_corpus_bc.py`; comprobado
   desde una carpeta vacía: da las cifras publicadas
