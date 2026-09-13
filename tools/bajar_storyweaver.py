@@ -31,6 +31,7 @@ LIBROS = SALIDA / "libros.jsonl"
 BASE = "https://storyweaver.org.in/api/v1"
 UA = "LiteraLevel/1.0 (proyecto academico FES Acatlan UNAM; lectura graduada)"
 PAUSA = 0.6
+HILOS = 3
 POR_PAGINA = 50
 LICENCIA = "CC BY 4.0"
 
@@ -132,14 +133,24 @@ def main():
             if colas[n]:
                 orden.append((n, colas[n].pop()))
 
-    with LIBROS.open("a", encoding="utf-8") as f:
-        for n_total, (nivel, slug) in enumerate(orden, 1):
+    # Tres trabajadores, cada uno con su pausa: a uno solo, 17.000 libros eran
+    # unas 20 horas. Siguen siendo como mucho tres peticiones a la vez contra
+    # el servidor de una ONG. El orden de escritura no importa (cada linea
+    # lleva su slug) y solo el hilo principal escribe en el archivo.
+    from concurrent.futures import ThreadPoolExecutor
+
+    def bajar(par):
+        nivel, slug = par
+        ficha = pedir(f"{BASE}/stories/{slug}")
+        time.sleep(PAUSA)
+        lect = pedir(f"{BASE}/stories/{slug}/read")
+        time.sleep(PAUSA)
+        return nivel, slug, ficha, lect
+
+    with LIBROS.open("a", encoding="utf-8") as f, ThreadPoolExecutor(max_workers=HILOS) as pool:
+        for n_total, (nivel, slug, ficha, lect) in enumerate(pool.map(bajar, orden), 1):
             n = n_total
             if True:
-                ficha = pedir(f"{BASE}/stories/{slug}")
-                time.sleep(PAUSA)
-                lect = pedir(f"{BASE}/stories/{slug}/read")
-                time.sleep(PAUSA)
                 if not ficha or not lect:
                     continue
                 s, r = ficha["data"], lect["data"]
