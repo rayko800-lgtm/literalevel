@@ -136,6 +136,47 @@ largo de los tres, y el único sin factura.
   con los datos fuera del repositorio.
 - `requirements.txt` instala `en_core_web_sm` por URL directa, porque en un
   despliegue no hay quien ejecute `python -m spacy download`.
+
+## Los audios de los fonemas (12 sep 2026)
+
+La corrección de voz enseña el fonema que falla con un mp3 pregrabado. Son 41
+archivos en `app/audio_fonemas/`, versionados, y **no se generan en el Space**:
+se generaron una vez en local con `tools/generar_fonemas.py` y suben como
+cualquier otro archivo de la lista blanca de `tools/desplegar_app.py`, que los
+enumera desde `app/fonemas.py` y se niega a desplegar si falta uno.
+
+- **Son binarios, y Hugging Face rechaza binarios fuera de LFS/Xet.** El
+  `.gitattributes` del Space se miró el 12 de septiembre y **no tenía regla
+  para `*.mp3`** (sí para `*.parquet` y `*.npy`). `desplegar_app.py` la añade él
+  solo, en un commit aparte y ANTES de subir los audios, porque el Hub decide si
+  un archivo va por LFS con el `.gitattributes` que ya está en el repositorio, no
+  con el que viaja en el mismo commit. `--seco` avisa de que falta sin tocar nada.
+- **Tienen que poder servirse.** `ui.RUTAS_PERMITIDAS` incluye
+  `app/audio_fonemas/`, y el `app.py` del Space ya pasa `ui.RUTAS_PERMITIDAS`
+  a `launch()`. Sin eso, el `<audio>` daría 403.
+- **No usan la clave.** Se oyen sin `OPENAI_API_KEY` y sin gastar crédito.
+
+## Los corpus libres en el catálogo (12 sep 2026)
+
+StoryWeaver, African Storybook, VOA Learning English y Let's Read entran al
+catálogo **solo con licencia libre** (pipeline en `PIPELINE_CORPUS.md`). Los
+genera `tools/catalogar_corpus.py` y viajan en tres archivos:
+
+| Archivo | Qué es | Cómo sube |
+|---|---|---|
+| `catalogo_externo.csv` | filas del catálogo, con licencia y atribución | lista blanca |
+| `corpus_abierto.parquet` | el texto que la app sirve al abrir el libro, con la atribución al final | lista blanca (LFS: el Space tiene `*.parquet`) |
+| `catalogo_emb_ext_<huella>.npy` | embeddings del buscador para esas filas | **a mano**, con `upload_file`: su nombre cambia con cada versión del externo |
+
+- Sin el `.npy` en el Space, la primera búsqueda recalcula esas filas en 2 vCPU.
+  Los de Gutenberg (`catalogo_emb_<huella>.npy`, 82 MB) no se tocan.
+- El CSV se escribe con **LF**: con CRLF su huella, y con ella el nombre del `.npy`,
+  cambiaba según la máquina que lo generara.
+- **Falso positivo de credenciales**, ya resuelto: la URL de VOA de *The Cask of
+  Amontillado* contiene «ca**sk-of-amontillado**…» y casaba con el patrón de las
+  claves de OpenAI, así que el guion se negaba a desplegar. Los patrones exigen
+  ahora que `sk-` y `hf_` empiecen su propio token.
+
 ## Persistencia: ahora importa más que antes
 
 `~/.literalevel/` es disco **efímero** en un Space y se borra en cada reinicio.
