@@ -104,6 +104,9 @@ def extraer(pagina_html):
         if re.search(r"(reported|wrote) (on )?this story|adapted (it|this story) for VOA", p, re.I):
             credito = p
             break
+        # El reproductor de audio deja este aviso al principio de cada articulo.
+        if re.fullmatch(r"No media source currently available\.?", p, re.I):
+            continue
         if len(p.split()) >= 4:
             cuerpo.append(p)
     titulo = re.search(r"<h1[^>]*>(.*?)</h1>", pagina_html, re.S)

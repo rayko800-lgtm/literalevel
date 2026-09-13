@@ -49,6 +49,8 @@ RAIZ = Path(__file__).resolve().parent
 FUENTES = {
     "storyweaver": RAIZ / "corpus_graduado" / "storyweaver" / "textos" / "libros.jsonl",
     "african_storybook": RAIZ / "corpus_graduado" / "african_storybook" / "textos" / "cuentos.jsonl",
+    # Sin nivel por articulo: solo se describe, no entra en las metricas de orden.
+    "voa": RAIZ / "corpus_graduado" / "voa" / "textos" / "articulos.jsonl",
 }
 SOLO_DESDE = 250
 N_GRAMA = 8
@@ -87,7 +89,12 @@ def cargar(fuente, ruta, tope):
     filas = [json.loads(l) for l in ruta.open(encoding="utf-8")]
     df = pd.DataFrame(filas)
     df["fuente"] = fuente
-    df["clave"] = (df["slug"] if "slug" in df else df["archivo"]).astype(str)
+    for col in ("slug", "archivo", "url"):
+        if col in df:
+            df["clave"] = df[col].astype(str)
+            break
+    if "nivel_editor" not in df:
+        df["nivel_editor"] = None
     # El nivel llega como texto ("1"), numero o vacio segun la fuente; sin
     # normalizar, pandas mezcla float(nan) con cadenas y ni se puede contar.
     df["nivel_editor"] = [None if v is None or (isinstance(v, float) and np.isnan(v))
@@ -100,7 +107,10 @@ def cargar(fuente, ruta, tope):
     # "parece una lista, un menu o una tabla". Se une cada pagina en un
     # parrafo y las paginas se separan con una linea en blanco.
     def _parrafos(t):
-        paginas = re.split(r"\n\s*\n", str(t or ""))
+        # VOA: el reproductor de audio deja este aviso delante de cada articulo
+        # bajado antes de que el descargador lo quitara. No es prosa.
+        t = re.sub(r"(?im)^\s*No media source currently available\.?\s*$", "", str(t or ""))
+        paginas = re.split(r"\n\s*\n", t)
         return "\n\n".join(re.sub(r"\s+", " ", p).strip() for p in paginas if p.strip())
 
     df["texto"] = df["texto"].map(_parrafos)
@@ -246,9 +256,10 @@ def main():
         resumen.append(metricas(g[g["tipo"] == "solo"], f"{fuente} · solo textos de >=250 palabras"))
         resumen.append(metricas(g[g["tipo"] == "bloque"], f"{fuente} · solo bloques de cuentos cortos"))
     sn = u[u["nivel"].isna() & u["puntuacion"].notna()]
-    if len(sn):
-        print(f"\nSin nivel del editor: {len(sn)} unidades · media {sn['puntuacion'].mean():.3f} · "
-              f"cuartiles {np.percentile(sn['puntuacion'], [25, 50, 75]).round(3).tolist()}")
+    for fuente, g in sn.groupby("fuente"):
+        print(f"\nSin nivel del editor · {fuente}: {len(g)} unidades · media {g['puntuacion'].mean():.3f} · "
+              f"cuartiles {np.percentile(g['puntuacion'], [25, 50, 75]).round(3).tolist()} · "
+              f"palabras medias {g['palabras'].mean():.0f}")
 
     SALIDA.parent.mkdir(exist_ok=True)
     u.drop(columns=["texto"]).to_csv(SALIDA, index=False)
