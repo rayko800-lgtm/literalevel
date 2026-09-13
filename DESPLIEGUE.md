@@ -237,6 +237,13 @@ Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás prepara
 | `f5bdd46` | `app/ui.py`, `app/lexicon.py`, `app/voz.py`, `app/fonemas.py`, `app/pronunciacion_cmu.tsv` y su licencia | 4e, `519b802` (hallazgos de Codex) + `5029a40` (fonema determinista) | dos voces con el mismo audio dan el mismo fonema /t/ con IPA /ˈtɹædʒɪk/ y consejo de `articulacion.FICHAS` |
 | `e793383` | `app/api.py`, `app/ui.py`, `app/lexicon.py`, `app/voz.py`, `app/fonemas.py` | 4e `5fa2cea` (compuestos) + e6 `66a0427` | «house» con `dudoso` coherente con y sin sesión; `/api/voz` con acento FR da 422; «war-chant» con `parte_del_diccionario` «war» e IPA por IA; voz con «war dance» trae audio de cada pieza |
 
+| `5de9ab4` | `app/ui.py`, `app/voz.py`, `app/articulacion.py` y el módulo nuevo `app/animacion_articulatoria.py` | 4e, `05783c0` (animaciones 2D) | 85 SVG de la tabla en `/config`, servidos desde `/data/articulacion_svg/` como `image/svg+xml`; la voz de un compuesto ya solo detalla la pieza que falla |
+
+`app/animacion_articulatoria.py` llegó en `87f1435`, antes de la base desplegada, y
+**nunca se había subido**: un despliegue que solo compara commits no lo habría visto. Se
+fuerza con `SUBIR_TAMBIEN`. Las animaciones solo existen en `ui.py`: mientras
+`app/api.py` no exponga la URL de cada SVG, el front de Angular no las tiene.
+
 Desde `e793383` el guion de despliegue sube **todo lo que difiere en `app/` entre el
 commit desplegado y el nuevo** (`git diff --name-only`), no solo lo que tocan los commits
 que se nombran: si entre medias hay un commit que nadie menciona, no se queda atrás.
