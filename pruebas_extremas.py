@@ -6072,6 +6072,231 @@ prueba("la pestana publica no dice que usuarios hay",
        _la_pestana_publica_no_dice_que_usuarios_hay)
 
 
+# --- Fonemas: AFI y audio pregrabado en la correccion de voz ---------------
+
+titulo("Fonemas del ingles en la correccion de voz")
+
+import fonemas as fonemas_mod  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+
+def _inventario_completo_y_sin_duplicados():
+    """41 fonemas de General American: 24 consonantes, 12 vocales, 5 diptongos.
+
+    Un simbolo repetido haria que dos fonemas compartieran mp3, y dos
+    archivos iguales que uno pisara al otro al generarlos."""
+    inv = fonemas_mod.INVENTARIO
+    simbolos = [f.simbolo for f in inv]
+    assert len(simbolos) == len(set(simbolos)), "hay simbolos repetidos"
+    archivos = [f.archivo for f in inv]
+    assert len(archivos) == len(set(archivos)), "dos fonemas comparten mp3"
+    por_tipo = {t: sum(1 for f in inv if f.tipo == t)
+                for t in ("consonante", "vocal", "diptongo")}
+    assert por_tipo == {"consonante": 24, "vocal": 12, "diptongo": 5}, por_tipo
+    # Los que un hispanohablante mas falla tienen que estar, con su simbolo AFI.
+    for imprescindible in ("θ", "ð", "ʃ", "ʒ", "ŋ", "ɹ", "w", "v", "æ", "ʌ", "ə",
+                           "ɪ", "ʊ", "ɝ", "ɚ", "tʃ", "dʒ", "oʊ", "eɪ"):
+        assert imprescindible in simbolos, f"falta /{imprescindible}/"
+    for f in inv:
+        assert f.nombre.strip() and len(f.ejemplos) == 2, f
+        # La normalizacion de un simbolo canonico tiene que ser el mismo.
+        assert fonemas_mod.normalizar(f.simbolo) == f.simbolo, f.simbolo
+    return f"{len(inv)} fonemas: {por_tipo}"
+
+
+prueba("fonemas: inventario completo y sin duplicados",
+       _inventario_completo_y_sin_duplicados)
+
+
+def _cada_fonema_tiene_su_audio():
+    """El mp3 de cada fonema esta en disco y la app puede servirlo.
+
+    Si falta uno, la correccion pinta el simbolo sin reproductor y nadie se
+    entera; esto lo convierte en un fallo visible."""
+    faltan = [f.simbolo for f in fonemas_mod.INVENTARIO
+              if fonemas_mod.audio_de(f.simbolo) is None]
+    assert not faltan, (f"sin mp3: {' '.join(faltan)} "
+                        "(python -X utf8 tools/generar_fonemas.py)")
+    pesos = [f.ruta.stat().st_size for f in fonemas_mod.INVENTARIO]
+    assert min(pesos) > 2_000, f"un mp3 de {min(pesos)} bytes no lleva voz"
+    carpeta = os.path.normcase(str(fonemas_mod.DIR_AUDIO))
+    assert any(carpeta.startswith(os.path.normcase(p)) for p in ui.RUTAS_PERMITIDAS), \
+        "la carpeta de los fonemas no esta en allowed_paths: el <audio> daria 403"
+    return f"{len(pesos)} mp3, {sum(pesos) / 1024:.0f} KB en total"
+
+
+prueba("fonemas: cada uno tiene su audio en disco", _cada_fonema_tiene_su_audio)
+
+
+def _normalizacion_de_simbolos():
+    """Lo que devuelve un modelo o un diccionario lleva barras, acentos,
+    ligaduras, marcas de longitud o la notacion de RP. Todo eso tiene que
+    llevar al mismo fonema, y lo que no es un fonema, a `None`."""
+    casos = {
+        "/w/": "w", "w": "w", "[w]": "w", " /w/ ": "w",
+        "r": "ɹ", "/r/": "ɹ", "ɹ": "ɹ",
+        "ɔː": "ɔ", "ɔ": "ɔ", "iː": "i", "uː": "u", "ɑː": "ɑ", "e": "ɛ",
+        "t͡ʃ": "tʃ", "ʧ": "tʃ", "d͡ʒ": "dʒ", "ˈæ": "æ", "eɪ̯": "eɪ",
+        "ɜː": "ɝ", "ər": "ɚ", "əʊ": "oʊ", "g": "ɡ", "/ð/": "ð",
+        # Sin equivalente en General American, o no son fonemas: sin audio
+        # antes que un audio que ensena otro sonido.
+        "ɒ": None, "ɪə": None, "eə": None, "ɾ": None, "ʔ": None,
+        "ninguno": None, "": None, None: None, 42: None, "warn": None,
+        "/wɔːrn/": None,
+    }
+    malos = {k: (fonemas_mod.normalizar(k), v) for k, v in casos.items()
+             if fonemas_mod.normalizar(k) != v}
+    assert not malos, f"normalizacion (obtenido, esperado): {malos}"
+    return f"{len(casos)} variantes bien resueltas"
+
+
+prueba("fonemas: normalizacion de simbolos", _normalizacion_de_simbolos)
+
+
+def _detalle(palabra="warn", fonema="w", sonido="Suena como la «hu» de «huevo».",
+             boca="Redondea los labios."):
+    return ui.voz.DetallePalabra(palabra=palabra, fonema=fonema,
+                                 sonido_que_falla=sonido,
+                                 como_colocar_la_boca=boca)
+
+
+def _fonema_desconocido_no_revienta():
+    """Un fonema fuera del inventario se pinta como texto, sin reproductor.
+
+    Y `DetallePalabra` lo acepta: con un `Literal` en pydantic, un simbolo
+    raro seria un ValidationError y el alumno perderia la correccion entera,
+    ya pagada, por un campo."""
+    for raro in ("zzz", "ninguno", "", "ɒ", "<script>", None):
+        if raro is None:
+            d = SimpleNamespace(palabra="warn", sonido_que_falla="x",
+                                como_colocar_la_boca="y")   # sin el campo
+        else:
+            d = _detalle(fonema=raro)
+        html = ui._detalle_de_voz(d)
+        assert "<audio" not in html, f"pinto reproductor para {raro!r}: {html}"
+        assert "warn" in html and "Redondea" in html or raro is None, html
+        assert "<script" not in html, html
+    # Un detalle vacio del todo tampoco tira nada.
+    assert ui._detalle_de_voz(SimpleNamespace()).startswith("- **")
+    return "texto sin reproductor, y ninguna excepcion"
+
+
+prueba("fonemas: detalle con fonema desconocido no revienta",
+       _fonema_desconocido_no_revienta)
+
+
+def _audio_del_fonema_sin_clave():
+    """El audio del fonema es un archivo del repositorio: sin OPENAI_API_KEY
+    tiene que seguir sonando. Esta suite corre sin clave (ver la cabecera)."""
+    assert not os.environ.get("OPENAI_API_KEY"), "la suite deberia correr sin clave"
+    assert "OPENAI_API_KEY" in ui.config.falta()
+    ruta = fonemas_mod.audio_de("/w/")
+    assert ruta and os.path.isfile(ruta), f"sin clave no hay audio de /w/: {ruta}"
+    html = ui._detalle_de_voz(_detalle(fonema="/w/"))
+    assert "<audio" in html and "gradio_api/file=" in html, html
+    assert "/w/" in html and "we, warn" in html, html
+    return "suena sin clave"
+
+
+prueba("fonemas: sin clave el audio del fonema sigue disponible",
+       _audio_del_fonema_sin_clave)
+
+
+def _ipa_ausente_no_se_inventa():
+    """Si Kaikki no trae la IPA de la palabra, se dice; nunca se inventa.
+
+    Se finge el diccionario para que la prueba no dependa de tener los 243 MB
+    en la carpeta: una palabra sin fila, otra con fila pero sin IPA, y una con
+    IPA britanica solamente."""
+    class _Dic:
+        def buscar(self, lema):
+            filas = {"thought": ("/θɔːt/", None), "the": (None, None)}
+            if lema not in filas:
+                return []
+            uk, us = filas[lema]
+            return [SimpleNamespace(pos="noun", ipa_uk=uk, ipa_us=us,
+                                    audio_uk=None, audio_us=None)]
+
+    viejo = (fonemas_mod._diccionario, fonemas_mod._diccionario_fallo)
+    fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = _Dic(), False
+    try:
+        for palabra in ("zarzaparrilla", "the"):
+            assert fonemas_mod.ipa_de_palabra(palabra) == (None, None), palabra
+            cabeza = ui._detalle_de_voz(_detalle(palabra=palabra)).split("<br>")[0]
+            assert "sin transcripción" in cabeza, cabeza
+            assert "/" not in cabeza and "[" not in cabeza, \
+                f"se invento una transcripcion para {palabra}: {cabeza}"
+        assert fonemas_mod.ipa_de_palabra("thought") == ("/θɔːt/", "UK")
+        cabeza = ui._detalle_de_voz(_detalle(palabra="thought", fonema="θ")).split("<br>")[0]
+        assert "/θɔːt/ (UK)" in cabeza, cabeza
+
+        # Y sin diccionario en disco, lo mismo: nada inventado y nada roto.
+        fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = None, True
+        assert fonemas_mod.ipa_de_palabra("warn") == (None, None)
+        assert "sin transcripción" in ui._detalle_de_voz(_detalle())
+    finally:
+        fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = viejo
+    return "sin fila o sin IPA dice 'sin transcripción'"
+
+
+prueba("fonemas: IPA de palabra ausente en Kaikki no se inventa",
+       _ipa_ausente_no_se_inventa)
+
+
+def _esquema_y_prompt_apuntan_al_inventario():
+    """El `enum` que viaja a Structured Outputs es el inventario mas 'ninguno',
+    y el prompt lista cada simbolo: si divergen, el modelo elige simbolos que
+    no tienen audio."""
+    from openai.lib._pydantic import to_strict_json_schema
+    esquema = to_strict_json_schema(ui.voz.Correccion)
+    campo = esquema["$defs"]["DetallePalabra"]["properties"]["fonema"]
+    assert campo.get("enum") == [*fonemas_mod.SIMBOLOS, ui.voz.SIN_FONEMA], campo
+    assert "fonema" in esquema["$defs"]["DetallePalabra"]["required"]
+    for f in fonemas_mod.INVENTARIO:
+        assert f"   {f.simbolo}  (" in ui.voz._PROMPT_REGLAS, f.simbolo
+    # Lo que pidio la lectora: anclar a una palabra del espanol, sin vaguedades.
+    assert "huevo" in ui.voz._PROMPT_REGLAS and "mas fuerte" in ui.voz._PROMPT_REGLAS
+    return f"enum de {len(campo['enum'])} y prompt con los {len(fonemas_mod.SIMBOLOS)}"
+
+
+prueba("fonemas: esquema y prompt apuntan al inventario",
+       _esquema_y_prompt_apuntan_al_inventario)
+
+
+def _la_practica_pinta_ipa_y_audio():
+    """De punta a punta por `_practicar`, con `voz.practicar` doblado: la
+    correccion lleva la palabra, el simbolo del fonema y su reproductor, y un
+    detalle con fonema raro sale sin reproductor pero con su texto."""
+    ev = ui.voz.evaluar_pronunciacion("I warn the ship", "I born the sip")
+    sesion = ui.voz.SesionVoz(
+        evaluacion=ev, audio_correcto=None,
+        correccion=ui.voz.Correccion(resumen="Casi.", detalles=[
+            _detalle(), _detalle(palabra="ship", fonema="ʃ",
+                                 sonido="Como el «shhh» de pedir silencio"),
+            _detalle(palabra="the", fonema="ninguno", sonido="Es el ritmo")]))
+    viejo_practicar, viejo_falta = ui.voz.practicar, ui.config.falta
+    audio = TMP / "fonemas_practica.wav"
+    audio.write_bytes(b"RIFF")
+    try:
+        ui.config.falta = lambda: []
+        ui.voz.practicar = lambda *a, **k: sesion
+        _, veredicto, _ = ui._practicar(str(audio), "I warn the ship")
+    finally:
+        ui.voz.practicar, ui.config.falta = viejo_practicar, viejo_falta
+    veredicto = str(veredicto)
+    assert "**Cómo corregirlo:** Casi." in veredicto, veredicto[:300]
+    assert veredicto.count("<audio") == 2, f"esperaba 2 reproductores: {veredicto}"
+    assert "/w/" in veredicto and "/ʃ/" in veredicto, veredicto
+    assert "Es el ritmo" in veredicto, "el detalle sin fonema perdio su texto"
+    assert ".." not in veredicto.replace("...", ""), "vuelve el «..»"
+    # Una linea de lista por palabra: tres detalles, tres «- **».
+    assert veredicto.count("\n- **") + veredicto.startswith("- **") == 3, veredicto
+    return "2 reproductores para 3 detalles"
+
+
+prueba("fonemas: la practica pinta ipa y audio", _la_practica_pinta_ipa_y_audio)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)

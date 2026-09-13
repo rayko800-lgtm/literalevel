@@ -22,6 +22,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 import config
+import fonemas
 
 # Bajo la raiz configurable de `config`, por lo mismo que en `lexicon`: el
 # disco de un Space se borra al reiniciar.
@@ -129,19 +130,73 @@ def transcribir_audio(ruta_audio: str | os.PathLike) -> str | None:
 
 # --- Correccion explicada (Structured Outputs, necesita red) ----------
 
+# Lo que el modelo pone en `fonema` cuando el fallo no es de un sonido concreto.
+# No es un simbolo del inventario, asi que `fonemas.buscar` da `None` y la
+# interfaz no pinta reproductor.
+SIN_FONEMA = "ninguno"
+
+
 class DetallePalabra(BaseModel):
     palabra: str = Field(description="La palabra en ingles que el alumno pronuncio mal.")
+    # El fonema va restringido al inventario de `fonemas` EN EL ESQUEMA (el
+    # `enum` que viaja a Structured Outputs), para que cada explicacion apunte
+    # a un audio pregrabado que existe. En pydantic se deja como `str` a
+    # proposito: con un `Literal`, un valor fuera de la lista -una cache
+    # vieja, un cambio de modelo, un inventario que crezca- seria un
+    # ValidationError, `explicar_correccion` devolveria `None` y el alumno
+    # perderia TODA la correccion por un simbolo. Asi llega el texto y la
+    # interfaz, que normaliza con `fonemas.buscar`, pinta sin reproductor.
+    fonema: str = Field(
+        description="Simbolo AFI del fonema que falla, tal cual aparece en la lista "
+                    "(General American). 'ninguno' si el fallo no es de un sonido concreto "
+                    "(acento de la palabra, ritmo) o no esta en la lista.",
+        json_schema_extra={"enum": [*fonemas.SIMBOLOS, SIN_FONEMA]})
     sonido_que_falla: str = Field(
-        description="Que sonido o fonema falla tipicamente, descrito de forma sencilla "
-                    "(por ejemplo comparandolo con un sonido del español).")
+        description="Que sonido falla, anclado a una palabra del español que lo tenga o "
+                    "se le acerque; si no existe en español, en que se diferencia del "
+                    "sonido español mas parecido.")
     como_colocar_la_boca: str = Field(
-        description="Instruccion breve y practica de como colocar lengua, labios o "
-                    "dientes para producir el sonido correcto.")
+        description="Instruccion concreta de que hacer con lengua, labios, dientes o "
+                    "garganta, que un chico de 15 años pueda seguir sin saber fonetica.")
 
 
 class Correccion(BaseModel):
     resumen: str = Field(description="Resumen breve en español, una o dos frases, animando al alumno.")
     detalles: list[DetallePalabra]
+
+
+# El prompt de la correccion. Se reescribio por lo que dijo una lectora real:
+# «el sonido W que es diferente a la letra B en español, no entiendo eso».
+# Comparar con una LETRA no ensena nada; lo que funciona es anclar el sonido a
+# una PALABRA del español que ya sabe decir («la hu de huevo») y, si no existe,
+# decir en que se diferencia del parecido. Y fuera las vaguedades («mas
+# fuerte», «mas suave») que no dicen que mover.
+#
+# La lista de fonemas va entera con su ancla: asi el modelo escribe el simbolo
+# tal cual esta en el esquema (el `enum` de `DetallePalabra.fonema`) y usa las
+# mismas comparaciones que ve el alumno junto al audio.
+_PROMPT_SISTEMA = (
+    "Eres un profesor de pronunciacion de ingles americano (General American) para "
+    "hispanohablantes, sobre todo de Latinoamerica, que tienen unos 15 años. Respondes "
+    "siempre en español, breve, concreto y con palabras de todos los dias.")
+
+_PROMPT_REGLAS = (
+    "Para cada palabra rellena los campos asi:\n"
+    "1. `fonema`: el sonido que mas probablemente fallo, escrito EXACTAMENTE como en esta "
+    f"lista, o '{SIN_FONEMA}' si el fallo no es de un sonido concreto:\n"
+    + "\n".join(f"   {f.simbolo}  ({', '.join(f.ejemplos)}): {f.nombre}"
+                for f in fonemas.INVENTARIO)
+    + "\n2. `sonido_que_falla`: ancla el sonido a una PALABRA del español que lo tenga o se "
+    "le acerque, por ejemplo: «/w/ suena como la \"hu\" de \"huevo\"». Si no existe en "
+    "español (como /θ/ fuera de España, /ʃ/, /æ/, /ʌ/ o /ɚ/), dilo y explica en que se "
+    "diferencia del sonido español mas parecido. Nunca compares con una letra suelta.\n"
+    "3. `como_colocar_la_boca`: di que hacer con labios, lengua, dientes o garganta usando "
+    "verbos concretos (junta, separa, redondea, apoya la punta de la lengua en..., deja "
+    "salir el aire...). Prohibido «mas fuerte», «mas suave», «mas abierto» o «mas claro» "
+    "sin decir que mover y como.\n"
+    "4. Sin tecnicismos (fricativa, alveolar, bilabial, sonora, aspirada...) salvo que "
+    "expliques en la misma frase que significan con palabras normales.\n"
+    "Una o dos frases por campo.")
 
 
 def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles") -> Correccion | None:
@@ -159,14 +214,10 @@ def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles") ->
         resp = cliente.chat.completions.parse(
             model=MODELO_EXPLICACION,
             messages=[
-                {"role": "system", "content":
-                    "Eres un profesor de pronunciacion de ingles para hispanohablantes. "
-                    "Responde siempre en español, de forma breve, concreta y practica."},
+                {"role": "system", "content": _PROMPT_SISTEMA},
                 {"role": "user", "content":
                     f"El alumno ha pronunciado mal estas palabras en {idioma}: "
-                    f"{', '.join(palabras_falladas)}. Para cada una explica que sonido falla "
-                    "tipicamente y como colocar la boca (lengua, labios, dientes) para "
-                    "corregirlo. Se breve: una o dos frases por palabra."},
+                    f"{', '.join(palabras_falladas)}.\n\n{_PROMPT_REGLAS}"},
             ],
             response_format=Correccion,
         )

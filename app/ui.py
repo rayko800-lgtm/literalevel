@@ -49,6 +49,7 @@ import config
 import cuaderno
 import cuentas
 import ficha as ficha
+import fonemas
 import paletas as paletas_mod
 import perfil as perfil_mod
 import reader
@@ -83,7 +84,10 @@ TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
 # autenticacion cuando el Space es publico. Apuntar al directorio padre
 # regalaba `cuaderno.db`, `voz.db`, `perfil.json` y `sesion.json` a cualquiera
 # que escribiera la ruta, y los nombres estan en este mismo repositorio.
-RUTAS_PERMITIDAS = [str(config.dir_datos() / "audio")]
+#
+# Y la carpeta de los fonemas, que es otra cosa: mp3 pregrabados que viven en
+# el repositorio (`fonemas.DIR_AUDIO`), no datos del lector. Solo hay audio.
+RUTAS_PERMITIDAS = [str(config.dir_datos() / "audio"), str(fonemas.DIR_AUDIO)]
 
 # --- Datos personales: uno por lector, no uno para todos ------------------
 # En local hay un solo lector y todo vive en ~/.literalevel. En un despliegue
@@ -3076,6 +3080,63 @@ def _palabras_html(ev, transcripcion_ok: bool) -> str:
               f'entendió como esa palabra ({len(fallo)}).</span></div>')
 
 
+def _reproductor_fonema(ruta: str, fonema) -> str:
+    """Un `<audio>` que apunta al mp3 pregrabado del fonema.
+
+    Va como HTML dentro del Markdown del veredicto, y no como otro `gr.Audio`:
+    una correccion trae tantos fonemas como palabras falladas, y un componente
+    por fonema obligaria a cambiar las salidas de `b_practicar`. Gradio lo
+    sirve por `gradio_api/file=` porque la carpeta esta en `RUTAS_PERMITIDAS`.
+    La ruta es relativa (sin `/` delante) para que valga tambien si la app se
+    monta bajo un prefijo.
+    """
+    from urllib.parse import quote
+    src = "gradio_api/file=" + quote(Path(ruta).as_posix(), safe="/:")
+    etiqueta = _html.escape(f"Escuchar el sonido /{fonema.simbolo}/", quote=True)
+    return (f'<audio controls preload="none" aria-label="{etiqueta}" '
+            f'title="{etiqueta}" src="{_html.escape(src, quote=True)}" '
+            'style="height:2.2rem;max-width:100%;vertical-align:middle"></audio>')
+
+
+def _detalle_de_voz(d) -> str:
+    """Una palabra de la correccion: su IPA, su fonema con audio y la explicacion.
+
+    La IPA de la palabra sale de Kaikki y SOLO de ahi (`fonemas.ipa_de_palabra`):
+    si el diccionario no la trae, se dice, y no se le pide al modelo, que la
+    inventaria sin avisar. El fonema lo elige el modelo dentro del inventario;
+    si llega algo que no esta -o `ninguno`-, se pinta el texto sin reproductor.
+    Nunca lanza: lee los campos con `getattr` para que un detalle a medias no
+    tire la correccion entera, que ya se ha pagado.
+    """
+    cruda = str(getattr(d, "palabra", "") or "").strip()
+    palabra = _html.escape(cruda, quote=False)
+    ipa, variante = fonemas.ipa_de_palabra(cruda)
+    if ipa:
+        cabeza = f"- **{palabra}** {_html.escape(ipa, quote=False)} ({variante})"
+    else:
+        cabeza = f"- **{palabra}** (sin transcripción fonética en el diccionario)"
+    trozos = [cabeza]
+    fonema = fonemas.buscar(getattr(d, "fonema", None))
+    if fonema is not None:
+        linea = (f"Sonido **/{fonema.simbolo}/**, como en "
+                 f"*{', '.join(fonema.ejemplos)}*")
+        audio = fonemas.audio_de(fonema.simbolo)
+        if audio:
+            linea += " " + _reproductor_fonema(audio, fonema)
+        trozos.append(linea)
+    # El modelo suele cerrar la frase con su punto; poner otro detras dejaba
+    # «..» en cada linea.
+    sonido = str(getattr(d, "sonido_que_falla", "") or "").strip().rstrip(".")
+    boca = str(getattr(d, "como_colocar_la_boca", "") or "").strip()
+    explicacion = " ".join(t for t in (f"{sonido}." if sonido else "", boca) if t)
+    if explicacion:
+        trozos.append(explicacion)
+    # `<br>` y no saltos de linea: el Markdown del veredicto no tiene
+    # `line_breaks`, y un salto dentro de un elemento de lista se pinta como
+    # un espacio.
+    return "<br>".join(trozos)
+
+
 def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     # Cada practica genera un audio de referencia de pago y nunca acierta en
     # cache (el nombre lleva marca de tiempo), asi que el tope va aqui.
@@ -3147,11 +3208,9 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
 
     if s.correccion:
         L.append(f"**Cómo corregirlo:** {s.correccion.resumen}")
-        for d in s.correccion.detalles:
-            # El modelo suele cerrar la frase con su punto; poner otro detras
-            # dejaba «..» en cada linea.
-            L.append(f"- **{d.palabra}** — {d.sonido_que_falla.strip().rstrip('.')}. "
-                     f"{d.como_colocar_la_boca.strip()}")
+        # Cada detalle en su propia linea de la lista, con su IPA y el audio
+        # del fonema: ver `_detalle_de_voz`.
+        L.append("\n".join(_detalle_de_voz(d) for d in s.correccion.detalles))
     # El reproductor nace oculto, asi que devolver la ruta pelada asignaria el
     # valor y lo dejaria invisible: se generaba el audio, se pagaba y no se
     # veia nunca. Hay que encenderlo explicitamente.

@@ -1,0 +1,1401 @@
+{
+ "fonemas": {
+  "p": {
+   "simbolo": "p",
+   "archivo": "0070.mp3",
+   "pista": "puh",
+   "intentos": [
+    {
+     "pista": "puh",
+     "segundos": 3.0,
+     "oido": "p ɑ p ɑ p ɑ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": true
+    }
+   ],
+   "ejemplos": [
+    "pen",
+    "top"
+   ],
+   "transcripcion_palabras": "ten, top",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "p ɛ n t ɑ p",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.05,
+   "bytes": 25560,
+   "fecha": "2026-09-13T02:25:41+00:00"
+  },
+  "θ": {
+   "simbolo": "θ",
+   "archivo": "03b8.mp3",
+   "pista": "thhhh",
+   "intentos": [
+    {
+     "pista": "thhhh",
+     "segundos": 2.37,
+     "oido": "f",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "think",
+    "bath"
+   ],
+   "transcripcion_palabras": "Sink, bath",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "s ɪ ŋ k b æ θ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.81,
+   "bytes": 24360,
+   "fecha": "2026-09-13T02:36:50+00:00"
+  },
+  "ð": {
+   "simbolo": "ð",
+   "archivo": "00f0.mp3",
+   "pista": "dhhhh",
+   "intentos": [
+    {
+     "pista": "dhhhh",
+     "segundos": 3.68,
+     "oido": "d a d a d a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ðə",
+     "segundos": 1.37,
+     "oido": "t s ɑ u t s a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ðððð",
+     "segundos": 3.24,
+     "oido": "d ɔ d a d a a d a d a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "this",
+    "mother"
+   ],
+   "transcripcion_palabras": "This mother.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "ð ɪ s m ʌ ð ɚ",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.98,
+   "bytes": 30240,
+   "fecha": "2026-09-13T02:37:09+00:00"
+  },
+  "ʒ": {
+   "simbolo": "ʒ",
+   "archivo": "0292.mp3",
+   "pista": "zhhhh",
+   "intentos": [
+    {
+     "pista": "zhhhh",
+     "segundos": 3.07,
+     "oido": "dʒ i ʒ",
+     "pureza": 0.33,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ʒʒʒ",
+     "segundos": 2.52,
+     "oido": "s s s",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "zhuh",
+     "segundos": 2.86,
+     "oido": "s ə ɝ s s",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "measure",
+    "vision"
+   ],
+   "transcripcion_palabras": "measure, vision",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "m ɛ ɚ v ɪ ʒ ə n",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.47,
+   "bytes": 27600,
+   "fecha": "2026-09-13T02:37:27+00:00"
+  },
+  "ŋ": {
+   "simbolo": "ŋ",
+   "archivo": "014b.mp3",
+   "pista": "nggg",
+   "intentos": [
+    {
+     "pista": "nggg",
+     "segundos": 2.92,
+     "oido": "ɛ m ɛ m ɛ n ɛ m",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ŋŋŋ",
+     "segundos": 3.72,
+     "oido": "j n n n n u n",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "-ng",
+     "segundos": 2.12,
+     "oido": "? ?",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "sing",
+    "long"
+   ],
+   "transcripcion_palabras": "Sing long.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "s ɪ ŋ l ɔ ŋ",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.28,
+   "bytes": 26640,
+   "fecha": "2026-09-13T02:39:24+00:00"
+  },
+  "w": {
+   "simbolo": "w",
+   "archivo": "0077.mp3",
+   "pista": "wuh",
+   "intentos": [
+    {
+     "pista": "woo",
+     "segundos": 1.86,
+     "oido": "n w ? v ?",
+     "pureza": 0.2,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "wuh",
+     "segundos": 1.85,
+     "oido": "w ɑ w ɑ w",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": true
+    }
+   ],
+   "ejemplos": [
+    "we",
+    "warn"
+   ],
+   "transcripcion_palabras": "We warned.",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "i w ɔ ɹ n",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.0,
+   "bytes": 20280,
+   "fecha": "2026-09-13T02:19:20+00:00"
+  },
+  "æ": {
+   "simbolo": "æ",
+   "archivo": "00e6.mp3",
+   "pista": "aa",
+   "intentos": [
+    {
+     "pista": "aa",
+     "segundos": 3.13,
+     "oido": "a a",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "cat",
+    "trap"
+   ],
+   "transcripcion_palabras": "Cat trap.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "k æ t t ɹ æ p",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.47,
+   "bytes": 27600,
+   "fecha": "2026-09-13T02:19:24+00:00"
+  },
+  "ə": {
+   "simbolo": "ə",
+   "archivo": "0259.mp3",
+   "pista": "uh",
+   "intentos": [
+    {
+     "pista": "uh",
+     "segundos": 2.39,
+     "oido": "a a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "uhh",
+     "segundos": 2.02,
+     "oido": "a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "a",
+     "segundos": 1.84,
+     "oido": "eɪ eɪ eɪ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "about",
+    "sofa"
+   ],
+   "transcripcion_palabras": "About sofa",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "ə b aʊ t s oʊ f ə",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 4.82,
+   "bytes": 24360,
+   "fecha": "2026-09-13T02:40:18+00:00"
+  },
+  "b": {
+   "simbolo": "b",
+   "archivo": "0062.mp3",
+   "pista": "buh",
+   "intentos": [
+    {
+     "pista": "buh",
+     "segundos": 2.48,
+     "oido": "b ɑ b b a",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": true
+    }
+   ],
+   "ejemplos": [
+    "bed",
+    "cab"
+   ],
+   "transcripcion_palabras": "Bed, cab",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "b ɛ d k æ b",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.79,
+   "bytes": 24240,
+   "fecha": "2026-09-13T02:25:48+00:00"
+  },
+  "t": {
+   "simbolo": "t",
+   "archivo": "0074.mp3",
+   "pista": "tuh",
+   "intentos": [
+    {
+     "pista": "tuh",
+     "segundos": 3.26,
+     "oido": "t t ɑ u",
+     "pureza": 0.67,
+     "acepta": true,
+     "con_vocal_de_apoyo": true
+    }
+   ],
+   "ejemplos": [
+    "ten",
+    "cat"
+   ],
+   "transcripcion_palabras": "ten cat",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "t ɛ n k æ t",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.52,
+   "bytes": 27840,
+   "fecha": "2026-09-13T02:25:56+00:00"
+  },
+  "d": {
+   "simbolo": "d",
+   "archivo": "0064.mp3",
+   "pista": "duh",
+   "intentos": [
+    {
+     "pista": "duh",
+     "segundos": 2.74,
+     "oido": "t ɑ u t ɑ t ɑ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "də",
+     "segundos": 2.26,
+     "oido": "t s a t a t ɑ u",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "dduh",
+     "segundos": 2.2,
+     "oido": "t ? i ɑ t s a t a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "dog",
+    "bed"
+   ],
+   "transcripcion_palabras": "Dog. Bed.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "d ɑ ɡ b ɛ d",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.34,
+   "bytes": 27000,
+   "fecha": "2026-09-13T02:36:02+00:00"
+  },
+  "k": {
+   "simbolo": "k",
+   "archivo": "006b.mp3",
+   "pista": "kuh",
+   "intentos": [
+    {
+     "pista": "kuh",
+     "segundos": 1.9,
+     "oido": "k ɑ k ɑ k",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": true
+    }
+   ],
+   "ejemplos": [
+    "cat",
+    "back"
+   ],
+   "transcripcion_palabras": "cat back",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "k æ t b æ k",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.44,
+   "bytes": 22440,
+   "fecha": "2026-09-13T02:26:17+00:00"
+  },
+  "ɡ": {
+   "simbolo": "ɡ",
+   "archivo": "0261.mp3",
+   "pista": "guh",
+   "intentos": [
+    {
+     "pista": "guh",
+     "segundos": 2.31,
+     "oido": "ɡ ɑ ɡ ɑ ɡ ɑ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": true
+    }
+   ],
+   "ejemplos": [
+    "go",
+    "bag"
+   ],
+   "transcripcion_palabras": "Go, bag.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "ɡ oʊ b æ ɡ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.62,
+   "bytes": 23400,
+   "fecha": "2026-09-13T02:26:26+00:00"
+  },
+  "f": {
+   "simbolo": "f",
+   "archivo": "0066.mp3",
+   "pista": "ffff",
+   "intentos": [
+    {
+     "pista": "fff",
+     "segundos": 2.3,
+     "oido": "",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ffff",
+     "segundos": 1.21,
+     "oido": "f",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "fish",
+    "leaf"
+   ],
+   "transcripcion_palabras": "Fish. Leaf.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "f ɪ ʃ l i f",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 3.87,
+   "bytes": 19680,
+   "fecha": "2026-09-13T02:36:17+00:00"
+  },
+  "v": {
+   "simbolo": "v",
+   "archivo": "0076.mp3",
+   "pista": "vuh",
+   "intentos": [
+    {
+     "pista": "vvvv",
+     "segundos": 3.16,
+     "oido": "j v z a z z z a",
+     "pureza": 0.12,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "vvv",
+     "segundos": 2.47,
+     "oido": "z ə s z a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "vuh",
+     "segundos": 2.67,
+     "oido": "v a v a v a",
+     "pureza": 0.5,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "van",
+    "love"
+   ],
+   "transcripcion_palabras": "Vand, love.",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "f æ n l ʌ v",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.51,
+   "bytes": 27840,
+   "fecha": "2026-09-13T02:36:38+00:00"
+  },
+  "s": {
+   "simbolo": "s",
+   "archivo": "0073.mp3",
+   "pista": "ssss",
+   "intentos": [
+    {
+     "pista": "ssss",
+     "segundos": 3.54,
+     "oido": "s s",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "see",
+    "bus"
+   ],
+   "transcripcion_palabras": "See, but...",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "s i b ɑ s",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.94,
+   "bytes": 30000,
+   "fecha": "2026-09-13T02:28:35+00:00"
+  },
+  "z": {
+   "simbolo": "z",
+   "archivo": "007a.mp3",
+   "pista": "zzzz",
+   "intentos": [
+    {
+     "pista": "zzzz",
+     "segundos": 2.51,
+     "oido": "",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "zoo",
+    "rose"
+   ],
+   "transcripcion_palabras": "Two, rose.",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "z u ɹ oʊ z",
+   "fonema_en_palabras": true,
+   "veredicto": "no verificable",
+   "segundos": 4.89,
+   "bytes": 24720,
+   "fecha": "2026-09-13T02:28:46+00:00"
+  },
+  "ʃ": {
+   "simbolo": "ʃ",
+   "archivo": "0283.mp3",
+   "pista": "shhhh",
+   "intentos": [
+    {
+     "pista": "shhhh",
+     "segundos": 2.62,
+     "oido": "",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "she",
+    "fish"
+   ],
+   "transcripcion_palabras": "She, fish, to",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "ʃ i f ɪ ʃ t u",
+   "fonema_en_palabras": true,
+   "veredicto": "no verificable",
+   "segundos": 6.72,
+   "bytes": 33840,
+   "fecha": "2026-09-13T02:28:58+00:00"
+  },
+  "h": {
+   "simbolo": "h",
+   "archivo": "0068.mp3",
+   "pista": "hhhh",
+   "intentos": [
+    {
+     "pista": "hhhh",
+     "segundos": 2.14,
+     "oido": "",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "huh",
+     "segundos": 3.01,
+     "oido": "? ? ɑ u ? a",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "hat",
+    "ahead"
+   ],
+   "transcripcion_palabras": "hat, a head",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "h æ t ɔ h ɛ d",
+   "fonema_en_palabras": true,
+   "veredicto": "no verificable",
+   "segundos": 4.68,
+   "bytes": 23640,
+   "fecha": "2026-09-13T02:37:40+00:00"
+  },
+  "tʃ": {
+   "simbolo": "tʃ",
+   "archivo": "0074_0283.mp3",
+   "pista": "tch",
+   "intentos": [
+    {
+     "pista": "chuh",
+     "segundos": 2.38,
+     "oido": "? ɑ u ɑ u s ɑ u",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "tʃə",
+     "segundos": 1.68,
+     "oido": "t ? h i ɑ t ? h i ɑ t ? h i ɑ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "tch",
+     "segundos": 2.0,
+     "oido": "s i j eɪ tʃ s i eɪ tʃ",
+     "pureza": 0.22,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "chair",
+    "watch"
+   ],
+   "transcripcion_palabras": "Share. Watch.",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "tʃ ɛ w ɑ tʃ",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 4.56,
+   "bytes": 23040,
+   "fecha": "2026-09-13T02:37:59+00:00"
+  },
+  "dʒ": {
+   "simbolo": "dʒ",
+   "archivo": "0064_0292.mp3",
+   "pista": "juh",
+   "intentos": [
+    {
+     "pista": "juh",
+     "segundos": 3.12,
+     "oido": "t ? i ɑ t s i ɑ t s i ɑ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "dʒə",
+     "segundos": 1.94,
+     "oido": "t ? t ? i ɑ t ? i ɑ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "djuh",
+     "segundos": 2.5,
+     "oido": "t ? i ɑ t ? i ɑ t ? i ɑ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "jam",
+    "age"
+   ],
+   "transcripcion_palabras": "jam age",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "dʒ eɪ m eɪ dʒ",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.67,
+   "bytes": 28680,
+   "fecha": "2026-09-13T02:38:18+00:00"
+  },
+  "m": {
+   "simbolo": "m",
+   "archivo": "006d.mp3",
+   "pista": "mmmm",
+   "intentos": [
+    {
+     "pista": "mmmm",
+     "segundos": 2.27,
+     "oido": "m ɛ ?",
+     "pureza": 0.33,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "mmm",
+     "segundos": 2.29,
+     "oido": "m i t i",
+     "pureza": 0.25,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "hmmm",
+     "segundos": 2.24,
+     "oido": "? i ? i",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "man",
+    "time"
+   ],
+   "transcripcion_palabras": "man, time",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "m æ n t aɪ m",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 4.74,
+   "bytes": 24000,
+   "fecha": "2026-09-13T02:38:40+00:00"
+  },
+  "n": {
+   "simbolo": "n",
+   "archivo": "006e.mp3",
+   "pista": "nuh",
+   "intentos": [
+    {
+     "pista": "nnnn",
+     "segundos": 7.44,
+     "descartado": "dura 7.44 s",
+     "acepta": false,
+     "pureza": -1.0
+    },
+    {
+     "pista": "nnn",
+     "segundos": 2.56,
+     "oido": "l a u",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "nuh",
+     "segundos": 3.03,
+     "oido": "n ɑ n a n a",
+     "pureza": 0.5,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "no",
+    "ten"
+   ],
+   "transcripcion_palabras": "No. Ten.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "n oʊ t ɛ n",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.52,
+   "bytes": 27840,
+   "fecha": "2026-09-13T02:39:00+00:00"
+  },
+  "l": {
+   "simbolo": "l",
+   "archivo": "006c.mp3",
+   "pista": "llll",
+   "intentos": [
+    {
+     "pista": "llll",
+     "segundos": 2.74,
+     "oido": "l ʌ l ɪ l l ɛ",
+     "pureza": 0.57,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "lll",
+     "segundos": 2.71,
+     "oido": "ɛ ɛ l ɛ ɛ",
+     "pureza": 0.2,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "luh",
+     "segundos": 2.5,
+     "oido": "l a l a l a",
+     "pureza": 0.5,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "leg",
+    "feel"
+   ],
+   "transcripcion_palabras": "Leg, seal.",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "l ɛ ɡ f i l",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 4.81,
+   "bytes": 24360,
+   "fecha": "2026-09-13T02:39:47+00:00"
+  },
+  "ɹ": {
+   "simbolo": "ɹ",
+   "archivo": "0279.mp3",
+   "pista": "rr",
+   "intentos": [
+    {
+     "pista": "rrrr",
+     "segundos": 2.99,
+     "oido": "w ʌ ɹ ʌ",
+     "pureza": 0.25,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "rr",
+     "segundos": 2.47,
+     "oido": "ɹ ɹ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "red",
+    "car"
+   ],
+   "transcripcion_palabras": "red car",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "ɹ ɛ d k ɑ ɹ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.98,
+   "bytes": 25200,
+   "fecha": "2026-09-13T02:30:16+00:00"
+  },
+  "j": {
+   "simbolo": "j",
+   "archivo": "006a.mp3",
+   "pista": "yuh",
+   "intentos": [
+    {
+     "pista": "yuh",
+     "segundos": 2.55,
+     "oido": "t ? i a j a",
+     "pureza": 0.25,
+     "acepta": false,
+     "con_vocal_de_apoyo": true
+    },
+    {
+     "pista": "yee",
+     "segundos": 2.43,
+     "oido": "dʒ i dʒ i",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "yes",
+    "you"
+   ],
+   "transcripcion_palabras": "Yes, you.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "j ɛ s u",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 4.62,
+   "bytes": 23400,
+   "fecha": "2026-09-13T02:40:01+00:00"
+  },
+  "i": {
+   "simbolo": "i",
+   "archivo": "0069.mp3",
+   "pista": "ee",
+   "intentos": [
+    {
+     "pista": "ee",
+     "segundos": 2.46,
+     "oido": "i i",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "see",
+    "tea"
+   ],
+   "transcripcion_palabras": "CT",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "s i t i",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.76,
+   "bytes": 24120,
+   "fecha": "2026-09-13T02:30:41+00:00"
+  },
+  "ɪ": {
+   "simbolo": "ɪ",
+   "archivo": "026a.mp3",
+   "pista": "ih",
+   "intentos": [
+    {
+     "pista": "ih",
+     "segundos": 1.66,
+     "oido": "ɪ ɪ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "sit",
+    "it"
+   ],
+   "transcripcion_palabras": "Sit it.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "s ɪ t ɪ t",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 3.56,
+   "bytes": 18120,
+   "fecha": "2026-09-13T02:30:48+00:00"
+  },
+  "ɛ": {
+   "simbolo": "ɛ",
+   "archivo": "025b.mp3",
+   "pista": "eh",
+   "intentos": [
+    {
+     "pista": "eh",
+     "segundos": 2.76,
+     "oido": "ɛ ɛ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "bed",
+    "red"
+   ],
+   "transcripcion_palabras": "bed, red, dash",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "b ɛ d ɹ ɛ d d æ ʃ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 6.34,
+   "bytes": 32040,
+   "fecha": "2026-09-13T02:30:56+00:00"
+  },
+  "ɑ": {
+   "simbolo": "ɑ",
+   "archivo": "0251.mp3",
+   "pista": "ah",
+   "intentos": [
+    {
+     "pista": "ah",
+     "segundos": 2.59,
+     "oido": "ɑ ɑ ɑ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "father",
+    "hot"
+   ],
+   "transcripcion_palabras": "Father, hot.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "f ɑ ð ɚ h ɑ t",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.97,
+   "bytes": 25200,
+   "fecha": "2026-09-13T02:31:04+00:00"
+  },
+  "ɔ": {
+   "simbolo": "ɔ",
+   "archivo": "0254.mp3",
+   "pista": "aw",
+   "intentos": [
+    {
+     "pista": "aw",
+     "segundos": 2.74,
+     "oido": "ɑ ɑ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "law",
+    "caught"
+   ],
+   "transcripcion_palabras": "la kot",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "l ɑ k ɔ t",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.27,
+   "bytes": 26640,
+   "fecha": "2026-09-13T02:31:14+00:00"
+  },
+  "ʊ": {
+   "simbolo": "ʊ",
+   "archivo": "028a.mp3",
+   "pista": "ooh",
+   "intentos": [
+    {
+     "pista": "ooh",
+     "segundos": 2.98,
+     "oido": "u u",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "uu",
+     "segundos": 2.4,
+     "oido": "p i t i",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "uh",
+     "segundos": 2.14,
+     "oido": "ɑ ɑ ɑ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "book",
+    "put"
+   ],
+   "transcripcion_palabras": "Book, putt.",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "b ɔ k p t",
+   "fonema_en_palabras": false,
+   "veredicto": "dudoso",
+   "segundos": 5.08,
+   "bytes": 25680,
+   "fecha": "2026-09-13T02:31:29+00:00"
+  },
+  "u": {
+   "simbolo": "u",
+   "archivo": "0075.mp3",
+   "pista": "ooo",
+   "intentos": [
+    {
+     "pista": "oo",
+     "segundos": 3.78,
+     "oido": "ʌ ? ?",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ooo",
+     "segundos": 2.64,
+     "oido": "u",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "food",
+    "blue"
+   ],
+   "transcripcion_palabras": "Food, blue.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "f u d b l u",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.16,
+   "bytes": 26040,
+   "fecha": "2026-09-13T02:31:40+00:00"
+  },
+  "ʌ": {
+   "simbolo": "ʌ",
+   "archivo": "028c.mp3",
+   "pista": "uh",
+   "intentos": [
+    {
+     "pista": "uh",
+     "segundos": 2.72,
+     "oido": "ɑ a ɑ",
+     "pureza": 0.67,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "uhh",
+     "segundos": 1.95,
+     "oido": "ɑ u",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "cup",
+    "strut"
+   ],
+   "transcripcion_palabras": "Cup, strut.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "k ʌ p s t ɹ ɑ t",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.86,
+   "bytes": 24600,
+   "fecha": "2026-09-13T02:31:49+00:00"
+  },
+  "ɝ": {
+   "simbolo": "ɝ",
+   "archivo": "025d.mp3",
+   "pista": "er",
+   "intentos": [
+    {
+     "pista": "er",
+     "segundos": 2.14,
+     "oido": "ɚ ʌ p ɚ",
+     "pureza": 0.5,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "err",
+     "segundos": 2.62,
+     "oido": "p i i",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "bird",
+    "her"
+   ],
+   "transcripcion_palabras": "bird, fur",
+   "palabras_transcritas_ok": false,
+   "oido_en_palabras": "b ɝ d h ɚ",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 4.44,
+   "bytes": 22440,
+   "fecha": "2026-09-13T02:31:59+00:00"
+  },
+  "ɚ": {
+   "simbolo": "ɚ",
+   "archivo": "025a.mp3",
+   "pista": "err",
+   "intentos": [
+    {
+     "pista": "er",
+     "segundos": 1.9,
+     "oido": "ʌ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "err",
+     "segundos": 2.38,
+     "oido": "ɚ ɚ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "butter",
+    "letter"
+   ],
+   "transcripcion_palabras": "Butter, letter",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "b ʌ ? ɚ l ɛ ? ɚ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.81,
+   "bytes": 24360,
+   "fecha": "2026-09-13T02:32:07+00:00"
+  },
+  "eɪ": {
+   "simbolo": "eɪ",
+   "archivo": "0065_026a.mp3",
+   "pista": "ay",
+   "intentos": [
+    {
+     "pista": "ay",
+     "segundos": 2.25,
+     "oido": "eɪ eɪ eɪ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "say",
+    "day"
+   ],
+   "transcripcion_palabras": "Say day.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "s d eɪ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.65,
+   "bytes": 23520,
+   "fecha": "2026-09-13T02:32:14+00:00"
+  },
+  "aɪ": {
+   "simbolo": "aɪ",
+   "archivo": "0061_026a.mp3",
+   "pista": "eye",
+   "intentos": [
+    {
+     "pista": "eye",
+     "segundos": 2.06,
+     "oido": "aɪ aɪ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "my",
+    "price"
+   ],
+   "transcripcion_palabras": "My price.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "m aɪ p ɹ aɪ s",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.33,
+   "bytes": 21960,
+   "fecha": "2026-09-13T02:32:20+00:00"
+  },
+  "ɔɪ": {
+   "simbolo": "ɔɪ",
+   "archivo": "0254_026a.mp3",
+   "pista": "oy",
+   "intentos": [
+    {
+     "pista": "oy",
+     "segundos": 2.62,
+     "oido": "oʊ ɪ oʊ ɪ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "oi",
+     "segundos": 2.62,
+     "oido": "oʊ ɪ oʊ ɪ oʊ ɪ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "boy",
+    "choice"
+   ],
+   "transcripcion_palabras": "Boy, choice.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "b oʊ ɪ tʃ oʊ ɪ s",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 5.22,
+   "bytes": 26400,
+   "fecha": "2026-09-13T02:32:30+00:00"
+  },
+  "oʊ": {
+   "simbolo": "oʊ",
+   "archivo": "006f_028a.mp3",
+   "pista": "oh",
+   "intentos": [
+    {
+     "pista": "oh",
+     "segundos": 3.52,
+     "oido": "aʊ aʊ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    },
+    {
+     "pista": "ohh",
+     "segundos": 2.66,
+     "oido": "aʊ aʊ",
+     "pureza": 0.0,
+     "acepta": false,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "go",
+    "no"
+   ],
+   "transcripcion_palabras": "Go. No.",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "ɡ oʊ n oʊ",
+   "fonema_en_palabras": true,
+   "veredicto": "dudoso",
+   "segundos": 5.82,
+   "bytes": 29400,
+   "fecha": "2026-09-13T02:32:44+00:00"
+  },
+  "aʊ": {
+   "simbolo": "aʊ",
+   "archivo": "0061_028a.mp3",
+   "pista": "ow",
+   "intentos": [
+    {
+     "pista": "ow",
+     "segundos": 2.08,
+     "oido": "aʊ aʊ aʊ",
+     "pureza": 1.0,
+     "acepta": true,
+     "con_vocal_de_apoyo": false
+    }
+   ],
+   "ejemplos": [
+    "now",
+    "how"
+   ],
+   "transcripcion_palabras": "Now, how?",
+   "palabras_transcritas_ok": true,
+   "oido_en_palabras": "n aʊ h aʊ",
+   "fonema_en_palabras": true,
+   "veredicto": "verificado",
+   "segundos": 4.31,
+   "bytes": 21840,
+   "fecha": "2026-09-13T02:32:50+00:00"
+  }
+ },
+ "gasto_total": {
+  "tts_llamadas": 168,
+  "tts_segundos": 560.7,
+  "stt_llamadas": 57,
+  "stt_segundos": 103.82,
+  "usd_estimado": 0.1454
+ },
+ "modelo_tts": "gpt-4o-mini-tts",
+ "voz": "coral",
+ "modelo_stt": "gpt-4o-mini-transcribe",
+ "verificador": "facebook/wav2vec2-lv-60-espeak-cv-ft"
+}
