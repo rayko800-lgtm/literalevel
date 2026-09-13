@@ -45,7 +45,7 @@ BLOQUE = 250
 # Licencias que dejan entrar al catalogo, EXACTAS una vez normalizadas. Antes era
 # una regex con "dominio publico.*", y "dominio publico salvo material adaptado
 # de Reuters" pasaba (auditoria de Codex, 12 de septiembre de 2026).
-LIBRES = {"cc by", "cc by 4.0", "dominio publico (voa)"}
+LIBRES = {"cc by", "cc by 4.0", "cc by 3.0", "dominio publico (voa)"}
 AGENCIAS = re.compile(r"(?i)associated press|reuters|\bafp\b|agence france")
 
 

@@ -38,7 +38,9 @@ BASE = "https://letsreadasia.org/api"
 INGLES = "4846240843956224"
 UA = "LiteraLevel/1.0 (proyecto academico FES Acatlan UNAM; lectura graduada)"
 PAUSA = 1.0
-LIBRES = {"CC-BY-4.0", "CC-BY 4.0", "CC BY 4.0"}
+# CC BY 3.0 tambien es libre con atribucion: 13 libros quedaron internos la
+# primera vez por aceptar solo la 4.0; Miguel pidio anadirlos (13 sep 2026).
+LIBRES = {"CC-BY-4.0", "CC-BY 4.0", "CC BY 4.0", "CC-BY-3.0", "CC-BY 3.0", "CC BY 3.0"}
 
 
 def pedir(url, intentos=4):

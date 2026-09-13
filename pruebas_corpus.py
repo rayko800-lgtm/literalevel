@@ -406,6 +406,8 @@ def _dominio_publico_con_excepcion():
     else:
         raise AssertionError("una licencia 'dominio publico salvo Reuters' entro al catalogo")
     assert cc.licencia_libre("CC-BY") and cc.licencia_libre("CC BY 4.0")
+    assert cc.licencia_libre("CC-BY-3.0"), "CC BY 3.0 es libre y se quedaba fuera"
+    assert not cc.licencia_libre("CC-BY-NC-3.0"), "la NC 3.0 no puede colarse junto a la 3.0"
     assert cc.licencia_libre("dominio publico (VOA)")
     assert not cc.licencia_libre("dominio publico (VOA)", {"agencia": "Reuters"})
     assert not cc.licencia_libre("CC-BY-NC-4.0") and not cc.licencia_libre("")
