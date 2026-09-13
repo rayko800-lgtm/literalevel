@@ -227,6 +227,8 @@ def palabra_sin_clave_no_sale_a_la_red():
     assert d1["explicacion_pendiente"] is False and d1["motivo_sin_explicacion"]
     assert d2["definicion_contextual"] is None
     assert all("OPENAI_API_KEY" not in a for a in d1["avisos"] + d2["avisos"])
+    # Palabra del diccionario: la IPA no la escribio la IA, y el campo viaja.
+    assert d1["ipa_generada_por_ia"] is False and d2["ipa_generada_por_ia"] is False
     return f"{d1['lema']} · {d1['sentido'] and d1['sentido'][:30]}"
 
 
@@ -401,6 +403,46 @@ def error_inesperado_sin_traza():
     return r.json()["detail"][:40]
 
 
+def voz_audio_por_palabra_y_falladas_con_su_frase():
+    """La correccion trae el mp3 de cada palabra fallada, y «Mis palabras» la
+    devuelve con la frase donde se fallo, solo a ese lector."""
+    from types import SimpleNamespace as NS
+    import config
+    import voz
+    lector = nuevo_lector()
+    mp3 = api._DIR_AUDIO / f"prueba_{uuid.uuid4().hex[:8]}.mp3"
+    mp3.parent.mkdir(parents=True, exist_ok=True)
+    mp3.write_bytes(b"ID3" + b"\x00" * 64)
+    vistas = {}
+
+    def practicar_doble(ruta, frase, guardar_fallos=True):
+        vistas["frase"] = frase
+        ev = NS(puntuacion=60, transcripcion="the red rain coat", palabras_falladas=["raincoat"],
+                palabras_objetivo=["the", "red", "raincoat"], entendidas=[])
+        corr = NS(resumen="Casi.", detalles=[NS(palabra="Raincoat,", fonema=None,
+                                                 sonido_que_falla="la ei", como_colocar_la_boca="abre")])
+        return NS(evaluacion=ev, transcripcion_ok=True, correccion=corr, audio_correcto=None,
+                  audios_palabras={"raincoat": str(mp3)})
+
+    originales = (voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar)
+    voz.practicar = practicar_doble
+    config.falta = lambda: False
+    ui._puede_pagar = lambda pet: (True, "")
+    api._va_a_costar = lambda pet: False
+    try:
+        r = _ok(cliente.post("/api/voz", headers=lector, data={"frase": "The red raincoat."},
+                             files={"audio": ("voz.webm", b"\x1a" * 2000, "audio/webm")}))
+    finally:
+        voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar = originales
+        mp3.unlink(missing_ok=True)
+    assert vistas.get("frase") == "The red raincoat.", "no llego a corregir"
+    assert r["detalles"][0]["audio"] == f"/api/audio/{mp3.name}", r["detalles"]
+    f = _ok(cliente.get("/api/voz/falladas", headers=lector))["palabras"]
+    assert [(x["palabra"], x["fallos"], x["frase"]) for x in f] == [("raincoat", 1, "The red raincoat.")], f
+    assert _ok(cliente.get("/api/voz/falladas", headers=B))["palabras"] == []
+    return f"audio {r['detalles'][0]['audio'][:24]}… · falladas 1 con frase"
+
+
 if __name__ == "__main__":
     print("API de LiteraLevel\n")
     for fn in (sin_lector_no_hay_datos, lector_corto_no_vale, perfiles_aislados,
@@ -413,7 +455,7 @@ if __name__ == "__main__":
                con_perfiles_sin_entrar_no_paga, audio_y_fonemas_sin_traversal,
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
-               error_inesperado_sin_traza):
+               error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:

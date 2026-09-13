@@ -52,7 +52,7 @@ RAIZ = APP_DIR.parent
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile  # noqa: E402
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
@@ -871,8 +871,10 @@ def frase_del_capitulo(libro_id: str, n: int, pet: Lector) -> dict:
         if len(parrafo.split()) < 30 or _es_preambulo(parrafo) or _parece_indice(parrafo):
             continue
         for f in ui._oraciones(ui._sin_encabezado(parrafo)):
+            # A nivel de frase manda el criterio de `ui` (entrega-4e, 3a3d546):
+            # el propio mira parrafos enteros y no ve «VIRGIL 67 V. INVOCATION».
             if (6 <= len(f.split()) <= 25 and ui._empieza_entera(f) and not _es_preambulo(f)
-                    and not _parece_indice(f)):
+                    and not ui._parece_indice(f)):
                 # Gutenberg marca la cursiva con `_guiones bajos_`: para leer en
                 # alto sobran («something _to do_» salio asi en el Space).
                 candidatas.append(_sin_cursiva(f))
@@ -1214,6 +1216,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         "etapa": datos.etapa, "palabra": r.palabra_superficie[:ui.LIMITE_PALABRA],
         "lema": r.lema_buscado or r.lema, "categoria": r.categoria,
         "ipa_uk": r.ipa_uk, "ipa_us": r.ipa_us,
+        "ipa_generada_por_ia": bool(getattr(r, "ipa_generada_por_ia", False)),
         "audio_uk": _url_audio(r.audio_uk), "audio_us": _url_audio(r.audio_us),
         "audio_generado": r.audio_generado,
         "sentido": r.sentido, "etiquetas": r.etiquetas_sentido,
@@ -1365,7 +1368,7 @@ async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
         s = voz.practicar(tmp, frase, guardar_fallos=False)
         if s.evaluacion.palabras_falladas and s.transcripcion_ok:
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
-                                 ruta=ui._archivo_lector("voz.db", pet))
+                                 ruta=ui._archivo_lector("voz.db", pet), frase=frase)
     except Exception as e:
         raise _no(502, f"No he podido corregir la grabación ({type(e).__name__}).") from e
     finally:
@@ -1376,12 +1379,17 @@ async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
     ev = s.evaluacion
     falladas = set(ev.palabras_falladas)
     detalles = []
+    # El mp3 de cada palabra fallada, sola (`voz` lo genera dentro del mismo uso
+    # de pago y lo cachea por contenido). `getattr`: sesiones sin ese campo.
+    audios = getattr(s, "audios_palabras", None) or {}
     if s.correccion:
         for d in s.correccion.detalles:
             cruda = str(getattr(d, "palabra", "") or "").strip()
             ipa, variante = fonemas.ipa_de_palabra(cruda)
+            normal = voz.normalizar_palabras(cruda)
             detalles.append({
                 "palabra": cruda, "ipa": ipa, "variante": variante,
+                "audio": _url_audio(audios.get(normal[0])) if normal else None,
                 "fonema": _fonema_json(getattr(d, "fonema", None)),
                 "sonido_que_falla": str(getattr(d, "sonido_que_falla", "") or "").strip(),
                 "como_colocar_la_boca": str(getattr(d, "como_colocar_la_boca", "") or "").strip(),
@@ -1401,6 +1409,16 @@ async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
 def debiles(pet: Lector) -> dict:
     filas = voz.puntos_debiles(n=15, ruta=ui._archivo_lector("voz.db", pet))
     return {"palabras": [{"palabra": w, "fallos": n} for w, n in filas]}
+
+
+@app.get("/api/voz/falladas")
+def falladas(pet: Lector, n: int = Query(15, ge=1, le=50)) -> dict:
+    """Las palabras que peor pronuncia este lector, con la frase donde falló.
+    Sin red y gratis: lee su `voz.db`."""
+    filas = voz.palabras_para_practicar(n=n, ruta=ui._archivo_lector("voz.db", pet))
+    return {"palabras": [{"palabra": f["palabra"], "fallos": f["fallos"],
+                          "ultima_vez": f.get("ultima_vez"), "frase": f.get("frase")}
+                         for f in filas]}
 
 
 # --- Lo tuyo: cuaderno, repaso, biblioteca e inicio -----------------------------
