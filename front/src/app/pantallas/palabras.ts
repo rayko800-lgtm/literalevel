@@ -12,7 +12,7 @@ import { miles } from '../nucleo/formato';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icono],
   template: `
-    <div class="pagina">
+    <div class="pagina" data-seccion="nivel">
       <header class="cabecera-pagina">
         <span class="antetitulo">Tu nivel · Mis palabras</span>
         <h1>Mis palabras</h1>

@@ -21,10 +21,10 @@ export class App {
   private readonly router = inject(Router);
 
   protected readonly navegacion = [
-    { ruta: '/leer', etiqueta: 'Leer', icono: 'libro' },
-    { ruta: '/encontrar', etiqueta: 'Encontrar', icono: 'lupa' },
-    { ruta: '/pronunciar', etiqueta: 'Pronunciar', icono: 'micro' },
-    { ruta: '/nivel', etiqueta: 'Tu nivel', icono: 'nivel' },
+    { ruta: '/leer', etiqueta: 'Leer', icono: 'libro', seccion: 'leer' },
+    { ruta: '/encontrar', etiqueta: 'Encontrar', icono: 'lupa', seccion: 'encontrar' },
+    { ruta: '/pronunciar', etiqueta: 'Pronunciar', icono: 'micro', seccion: 'voz' },
+    { ruta: '/nivel', etiqueta: 'Tu nivel', icono: 'nivel', seccion: 'nivel' },
   ];
 
   /** La barra de abajo se esconde al bajar leyendo y vuelve al subir. */

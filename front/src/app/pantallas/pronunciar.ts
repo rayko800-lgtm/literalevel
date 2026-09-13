@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { Api, CorreccionVoz, Fonema, mensajeError, urlMotor } from '../nucleo/api';
+import { Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlMotor } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
 
 type Grabacion = 'lista' | 'grabando' | 'grabada';
@@ -37,7 +37,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly error = signal('');
   protected readonly necesitaEntrar = signal(false);
   protected readonly trayendo = signal(false);
-  protected readonly fonemas = signal<Fonema[] | null>(null);
+  /** La tabla del AFI: dos acentos, cargados cuando se piden y una sola vez. */
+  protected readonly acento = signal<Acento>('ga');
+  private readonly inventarios = signal<Partial<Record<Acento, InventarioSonidos>>>({});
+  protected readonly elegido = signal<Fonema | null>(null);
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
 
   private grabador: MediaRecorder | null = null;
@@ -66,13 +69,16 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (r.puntuacion >= 70) return 'Bien, con algún detalle';
     return 'Vamos a por ello';
   });
-  protected readonly grupos = computed(() => {
-    const f = this.fonemas() ?? [];
-    return [
-      { nombre: 'Vocales', lista: f.filter(x => x.tipo === 'vocal') },
-      { nombre: 'Diptongos', lista: f.filter(x => x.tipo === 'diptongo') },
-      { nombre: 'Consonantes', lista: f.filter(x => x.tipo === 'consonante') },
-    ].filter(g => g.lista.length);
+  /** Solo lo que es una palabra: un signo suelto dejaba un subrayado verde
+   *  sin nada encima en una línea propia. */
+  protected readonly palabrasVisibles = computed(() =>
+    (this.resultado()?.palabras ?? []).filter(w => /\p{L}/u.test(w.palabra)));
+  protected readonly grupos = computed(() => this.inventarios()[this.acento()]?.grupos ?? null);
+  /** La nota propia del acento elegido, si la ficha la trae. */
+  protected readonly notaAcento = computed(() => {
+    const f = this.elegido()?.ficha;
+    if (!f) return '';
+    return this.acento() === 'ga' ? f.ga : f.rp;
   });
 
   ngOnInit(): void {
@@ -192,9 +198,27 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   protected verFonemas(ev: Event): void {
-    if ((ev.target as HTMLDetailsElement).open && !this.fonemas()) {
-      this.api.fonemas().subscribe({ next: r => this.fonemas.set(r.fonemas), error: e => this.error.set(mensajeError(e)) });
-    }
+    if ((ev.target as HTMLDetailsElement).open) this.cargarSonidos(this.acento());
+  }
+
+  protected cambiarAcento(acento: Acento): void {
+    this.acento.set(acento);
+    this.elegido.set(null);
+    this.cargarSonidos(acento);
+  }
+
+  /** Tocar un símbolo: suena y abre su ficha debajo de su grupo. */
+  protected tocarSonido(sonido: Fonema): void {
+    this.elegido.set(sonido);
+    this.sonar(sonido.audio);
+  }
+
+  private cargarSonidos(acento: Acento): void {
+    if (this.inventarios()[acento]) return;
+    this.api.fonemas(acento).subscribe({
+      next: inv => this.inventarios.update(m => ({ ...m, [acento]: inv })),
+      error: e => this.error.set(mensajeError(e)),
+    });
   }
 
   private cargarDebiles(): void {

@@ -12,15 +12,34 @@ import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 
 const PISTA = 'literalevel.pista-palabra';
+const PISTA_PAGINAS = 'literalevel.pista-paginas';
+/** Hueco entre columnas en modo páginas: cada página avanza su ancho más esto. */
+const HUECO = 48;
+
+function leerBandera(clave: string): boolean {
+  try { return localStorage.getItem(clave) !== 'vista'; } catch { return true; }
+}
+
+function marcarBandera(clave: string): void {
+  try { localStorage.setItem(clave, 'vista'); } catch { /* sin almacenamiento */ }
+}
 
 /** El lector: la pantalla protagonista.
  *
  *  Lo que viene de la investigación y de las lectoras: una sola columna de
- *  ~64 caracteres sin justificar; un solo desplazamiento (nada de caja con su
- *  propio scroll); la palabra se consulta seleccionándola, con `selectionchange`
- *  porque iOS no emite `mouseup`; al cambiar de capítulo se sube arriba; y al
- *  final del capítulo, «Siguiente» y «Parar aquí» del MISMO tamaño: el suspense
- *  lo pone el autor, la decisión de seguir es del lector (retencion_movil.md). */
+ *  ~64 caracteres sin justificar; la palabra se consulta seleccionándola, con
+ *  `selectionchange` porque iOS no emite `mouseup`; y al final del capítulo,
+ *  «Siguiente» y «Parar aquí» del MISMO tamaño.
+ *
+ *  Dos formas de leer (Ajustes o el botón de la barra):
+ *  - **Por páginas**, como un Kindle, que pidió Miguel. Columnas CSS del ancho
+ *    de la pantalla; se pasa deslizando o tocando el borde (táctil), con las
+ *    flechas o la rueda (ratón). Con ratón no se pasa tocando el borde: el
+ *    doble clic es consultar una palabra y pasaría la página dos veces.
+ *  - **Seguido**, desplazando.
+ *
+ *  Y en las dos se guarda dónde ibas dentro del capítulo: Miguel consultó una
+ *  palabra, volvió al libro y aparecía al principio. */
 @Component({
   selector: 'app-lector',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,7 +63,8 @@ export class Lector implements OnDestroy {
   protected readonly error = signal('');
   protected readonly avance = signal(0);
   protected readonly indiceAbierto = signal(false);
-  protected readonly pista = signal(this.leerPista());
+  protected readonly pista = signal(leerBandera(PISTA));
+  protected readonly pistaPaginas = signal(leerBandera(PISTA_PAGINAS));
 
   protected readonly medida = signal<Medida | null>(null);
   protected readonly midiendo = signal(false);
@@ -58,17 +78,27 @@ export class Lector implements OnDestroy {
   protected readonly panelAbierto = signal(false);
   protected otraPalabra = '';
 
+  protected readonly paginado = computed(() => this.prefs.modoLectura() === 'paginas');
+  protected readonly pagina = signal(0);
+  protected readonly paginas = signal(1);
+
   private readonly texto = viewChild<ElementRef<HTMLElement>>('texto');
   private carga = 0;
   private consulta = 0;
   private espera: ReturnType<typeof setTimeout> | undefined;
   private reloj: ReturnType<typeof setTimeout> | undefined;
+  private relojPosicion: ReturnType<typeof setTimeout> | undefined;
   private audio: HTMLAudioElement | null = null;
+  private abrirAlFinal = false;
+  private toque: { x: number; y: number; t: number; tipo: string } | null = null;
+  private ultimaRueda = 0;
+  private readonly observador = typeof ResizeObserver !== 'undefined'
+    ? new ResizeObserver(() => requestAnimationFrame(() => this.recolocar()))
+    : null;
 
   protected readonly perfil = this.sesion.perfil;
   /** Los párrafos listos para pintar. Gutenberg marca la cursiva con
-   *  `_guiones bajos_` y separa escenas con filas de asteriscos: una se pinta
-   *  en cursiva y la otra como un separador, no como texto crudo. */
+   *  `_guiones bajos_` y separa escenas con filas de asteriscos. */
   protected readonly parrafos = computed(() =>
     (this.capitulo()?.parrafos ?? []).map(p => ({
       separador: /^[\s*·•]+$/.test(p),
@@ -92,11 +122,29 @@ export class Lector implements OnDestroy {
       const cap = this.cap();
       untracked(() => void this.cargar(id, cap));
     });
+    // Cambiar de modo o de tamaño de letra redistribuye el texto: se vuelve a
+    // medir conservando por dónde ibas.
+    effect(() => {
+      this.paginado();
+      this.prefs.letra();
+      untracked(() => setTimeout(() => this.recolocar(), 30));
+    });
+    // El elemento del texto aparece cuando llega el capítulo: se observa su tamaño
+    // (girar el móvil, abrir el panel de la palabra en escritorio).
+    effect(() => {
+      const el = this.texto()?.nativeElement;
+      untracked(() => {
+        this.observador?.disconnect();
+        if (el) this.observador?.observe(el);
+      });
+    });
   }
 
   ngOnDestroy(): void {
     clearTimeout(this.espera);
     clearTimeout(this.reloj);
+    clearTimeout(this.relojPosicion);
+    this.observador?.disconnect();
     this.audio?.pause();
   }
 
@@ -127,7 +175,12 @@ export class Lector implements OnDestroy {
       if (token !== this.carga) return;
       this.capitulo.set(c);
       this.avance.set(0);
+      this.pagina.set(0);
       window.scrollTo({ top: 0, behavior: 'auto' });
+      // Tras pintar: medir las páginas y volver a donde se había quedado.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (token === this.carga) this.restaurarPosicion(id, n);
+      }));
       this.api.progreso(id, n).subscribe({ next: () => void this.sesion.refrescar(), error: () => {} });
     } catch (e) {
       if (token === this.carga) this.error.set(mensajeError(e, 'No he podido abrir este libro.'));
@@ -144,16 +197,167 @@ export class Lector implements OnDestroy {
     void this.router.navigate(['/leer', this.id(), n]);
   }
 
-  // --- Avance dentro del capítulo --------------------------------------------------
+  protected alternarModo(): void {
+    this.prefs.modoLectura.set(this.paginado() ? 'rollo' : 'paginas');
+  }
+
+  // --- Dónde ibas ---------------------------------------------------------------
+
+  private clavePosicion(id = this.id(), n = this.indice()): string {
+    return `literalevel.pos.${id}.${n}`;
+  }
+
+  private leerPosicion(id: string, n: number): number {
+    try {
+      const v = Number(localStorage.getItem(this.clavePosicion(id, n)));
+      return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private guardarPosicion(fraccion: number): void {
+    const clave = this.clavePosicion();
+    clearTimeout(this.relojPosicion);
+    this.relojPosicion = setTimeout(() => {
+      try { localStorage.setItem(clave, fraccion.toFixed(4)); } catch { /* sin almacenamiento */ }
+    }, 300);
+  }
+
+  private restaurarPosicion(id: string, n: number): void {
+    const alFinal = this.abrirAlFinal;
+    this.abrirAlFinal = false;
+    const f = alFinal ? 1 : this.leerPosicion(id, n);
+    if (this.paginado()) {
+      this.medirPaginas();
+      const ultima = this.paginas() - 1;
+      // Casi al final de un capítulo ya leído, se vuelve al principio.
+      this.pagina.set(alFinal ? ultima : (f < 0.98 ? Math.round(f * ultima) : 0));
+      this.aplicarPagina(false);
+      return;
+    }
+    const el = this.texto()?.nativeElement;
+    if (el && f > 0.02 && f < 0.98) {
+      const arriba = el.getBoundingClientRect().top + window.scrollY;
+      const recorrido = el.offsetHeight - window.innerHeight * 0.6;
+      window.scrollTo({ top: arriba + f * Math.max(0, recorrido) - window.innerHeight * 0.2, behavior: 'auto' });
+    }
+  }
+
+  /** Tras un cambio de tamaño, de letra o de modo: mismo sitio, otra maqueta. */
+  private recolocar(): void {
+    if (!this.capitulo()) return;
+    const el = this.texto()?.nativeElement;
+    if (!el) return;
+    if (this.paginado()) {
+      const ultimaAntes = Math.max(1, this.paginas() - 1);
+      const fraccion = this.pagina() / ultimaAntes;
+      this.medirPaginas();
+      this.pagina.set(Math.round(fraccion * Math.max(0, this.paginas() - 1)));
+      this.aplicarPagina(false);
+    } else {
+      el.style.columnWidth = '';
+      el.style.columnGap = '';
+      el.scrollLeft = 0;
+      this.alDesplazar();
+    }
+  }
+
+  // --- Modo páginas ------------------------------------------------------------------
+
+  private medirPaginas(): void {
+    const el = this.texto()?.nativeElement;
+    if (!el) return;
+    const ancho = el.clientWidth;
+    if (!ancho) return;
+    el.style.columnWidth = `${ancho}px`;
+    el.style.columnGap = `${HUECO}px`;
+    const total = Math.max(1, Math.round((el.scrollWidth + HUECO) / (ancho + HUECO)));
+    this.paginas.set(total);
+    if (this.pagina() > total - 1) this.pagina.set(total - 1);
+  }
+
+  private aplicarPagina(suave: boolean): void {
+    const el = this.texto()?.nativeElement;
+    if (!el) return;
+    const reducido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({ left: this.pagina() * (el.clientWidth + HUECO), behavior: suave && !reducido ? 'smooth' : 'auto' });
+    const ultima = this.paginas() - 1;
+    const fraccion = ultima > 0 ? this.pagina() / ultima : 1;
+    this.avance.set(fraccion);
+    this.guardarPosicion(fraccion);
+  }
+
+  protected irPagina(delta: number): void {
+    const destino = this.pagina() + delta;
+    if (destino < 0) {
+      if (this.anterior() != null) {
+        this.abrirAlFinal = true;
+        this.ir(this.anterior());
+      }
+      return;
+    }
+    if (destino >= this.paginas()) {
+      if (this.siguiente() != null) this.ir(this.siguiente());
+      return;
+    }
+    this.pagina.set(destino);
+    this.aplicarPagina(true);
+    if (this.pistaPaginas()) this.cerrarPistaPaginas();
+  }
+
+  protected alTocar(ev: PointerEvent): void {
+    this.toque = { x: ev.clientX, y: ev.clientY, t: Date.now(), tipo: ev.pointerType };
+  }
+
+  protected alSoltarToque(ev: PointerEvent): void {
+    const t = this.toque;
+    this.toque = null;
+    if (!t || !this.paginado() || t.tipo === 'mouse') return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;          // estaba seleccionando una palabra
+    if ((ev.target as HTMLElement).closest('button, a, input')) return;
+    const dx = ev.clientX - t.x;
+    const dy = ev.clientY - t.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      this.irPagina(dx < 0 ? 1 : -1);
+      return;
+    }
+    if (Date.now() - t.t < 350 && Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+      const caja = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+      const donde = (ev.clientX - caja.left) / caja.width;
+      if (donde > 0.7) this.irPagina(1);
+      else if (donde < 0.3) this.irPagina(-1);
+    }
+  }
+
+  protected alRueda(ev: WheelEvent): void {
+    if (!this.paginado() || Math.abs(ev.deltaY) < 15) return;
+    ev.preventDefault();
+    const ahora = Date.now();
+    if (ahora - this.ultimaRueda < 450) return;
+    this.ultimaRueda = ahora;
+    this.irPagina(ev.deltaY > 0 ? 1 : -1);
+  }
+
+  protected cerrarPistaPaginas(): void {
+    this.pistaPaginas.set(false);
+    marcarBandera(PISTA_PAGINAS);
+  }
+
+  // --- Avance en modo seguido --------------------------------------------------------
 
   @HostListener('window:scroll')
   protected alDesplazar(): void {
+    if (this.paginado()) return;
     const el = this.texto()?.nativeElement;
-    if (!el) return;
+    if (!el || !this.capitulo()) return;
     const caja = el.getBoundingClientRect();
     const recorrido = caja.height - window.innerHeight * 0.6;
     const hecho = -caja.top + window.innerHeight * 0.2;
-    this.avance.set(Math.max(0, Math.min(1, recorrido > 0 ? hecho / recorrido : 1)));
+    const fraccion = Math.max(0, Math.min(1, recorrido > 0 ? hecho / recorrido : 1));
+    this.avance.set(fraccion);
+    this.guardarPosicion(fraccion);
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -161,7 +365,12 @@ export class Lector implements OnDestroy {
     const t = ev.target as HTMLElement | null;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     if (ev.key === 'Escape') { this.cerrarPalabra(); this.indiceAbierto.set(false); }
-    if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    if (ev.altKey || ev.ctrlKey || ev.metaKey || this.indiceAbierto()) return;
+    if (this.paginado()) {
+      if (ev.key === 'ArrowRight' || ev.key === 'PageDown') { ev.preventDefault(); this.irPagina(1); }
+      if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') { ev.preventDefault(); this.irPagina(-1); }
+      return;
+    }
     if (ev.key === 'ArrowRight' && this.siguiente() != null) this.ir(this.siguiente());
     if (ev.key === 'ArrowLeft' && this.anterior() != null) this.ir(this.anterior());
   }
@@ -222,7 +431,6 @@ export class Lector implements OnDestroy {
       this.palabra.set(completa);
     } catch (e) {
       if (token === this.consulta) {
-        // Si ya hay diccionario, el fallo de la explicación va como aviso.
         if (this.palabra()) {
           const p = this.palabra()!;
           this.palabra.set({ ...p, avisos: [...p.avisos, mensajeError(e)] });
@@ -245,23 +453,38 @@ export class Lector implements OnDestroy {
     this.consultada.set('');
   }
 
-  protected sonar(url: string | null): void {
+  /** El audio del diccionario o el generado; si no hay ninguno, la voz del
+   *  propio navegador (Web Speech API): no sale nada a la red ni cuesta. */
+  protected sonar(url: string | null, palabra = '', acento: 'en-US' | 'en-GB' = 'en-US'): void {
     const src = urlMotor(url);
-    if (!src) return;
-    this.audio?.pause();
-    this.audio = new Audio(src);
-    void this.audio.play().catch(() => {});
+    if (src) {
+      this.audio?.pause();
+      this.audio = new Audio(src);
+      void this.audio.play().catch(() => this.hablar(palabra, acento));
+      return;
+    }
+    this.hablar(palabra, acento);
   }
+
+  private hablar(texto: string, acento: 'en-US' | 'en-GB'): void {
+    if (!texto || typeof speechSynthesis === 'undefined') return;
+    const frase = new SpeechSynthesisUtterance(texto);
+    frase.lang = acento;
+    frase.rate = 0.85;
+    const voz = speechSynthesis.getVoices().find(v => v.lang === acento)
+      ?? speechSynthesis.getVoices().find(v => v.lang.startsWith('en'));
+    if (voz) frase.voice = voz;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(frase);
+  }
+
+  protected readonly vozDelNavegador = typeof speechSynthesis !== 'undefined';
 
   protected abrirAjustes(): void { this.sesion.ajustesAbiertos.set(true); }
 
-  private leerPista(): boolean {
-    try { return localStorage.getItem(PISTA) !== 'vista'; } catch { return true; }
-  }
-
   protected cerrarPista(): void {
     this.pista.set(false);
-    try { localStorage.setItem(PISTA, 'vista'); } catch { /* sin almacenamiento */ }
+    marcarBandera(PISTA);
   }
 
   // --- Medir el capítulo -------------------------------------------------------------
@@ -275,6 +498,7 @@ export class Lector implements OnDestroy {
       this.errorMedida.set(mensajeError(e));
     } finally {
       this.midiendo.set(false);
+      setTimeout(() => this.recolocar(), 30);
     }
   }
 

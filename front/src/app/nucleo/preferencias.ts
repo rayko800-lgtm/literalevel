@@ -3,6 +3,8 @@ import { Injectable, effect, signal } from '@angular/core';
 export type Tema = 'sistema' | 'claro' | 'noche' | 'papel';
 export type TamanoLetra = 'pequena' | 'normal' | 'grande' | 'enorme';
 export type Idioma = 'es' | 'en';
+/** Por páginas, como un Kindle (lo pidió Miguel), o seguido, desplazando. */
+export type ModoLectura = 'paginas' | 'rollo';
 
 /** Al subir la letra se estrecha la columna: si no, con letra grande se vuelve
  *  a pasar de 75 caracteres por línea (diseno_lector.md §8.2). */
@@ -31,6 +33,7 @@ export class Preferencias {
   readonly tema = signal<Tema>(leer('literalevel.tema', ['sistema', 'claro', 'noche', 'papel'], 'sistema'));
   readonly letra = signal<TamanoLetra>(leer('literalevel.letra', ['pequena', 'normal', 'grande', 'enorme'], 'normal'));
   readonly idioma = signal<Idioma>(leer('literalevel.idioma', ['es', 'en'], 'es'));
+  readonly modoLectura = signal<ModoLectura>(leer('literalevel.modo', ['paginas', 'rollo'], 'paginas'));
 
   constructor() {
     effect(() => {
@@ -48,5 +51,6 @@ export class Preferencias {
       document.documentElement.style.setProperty('--medida', medida);
     });
     effect(() => guardar('literalevel.idioma', this.idioma()));
+    effect(() => guardar('literalevel.modo', this.modoLectura()));
   }
 }

@@ -14,7 +14,7 @@ import { Sesion } from '../nucleo/sesion';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icono, GraficaCurva],
   template: `
-    <div class="pagina">
+    <div class="pagina" data-seccion="encontrar">
       <a class="volver" routerLink="/encontrar"><app-icono nombre="izq" />Encontrar</a>
 
       @if (error()) {

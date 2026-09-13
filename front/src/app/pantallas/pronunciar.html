@@ -1,4 +1,4 @@
-<div class="pagina estrecha">
+<div class="pagina estrecha" data-seccion="voz">
   <header class="cabecera-pagina">
     <span class="antetitulo">Pronunciar</span>
     <h1>Lee una frase en voz alta</h1>
@@ -88,11 +88,14 @@
       </div>
 
       @if (r.transcripcion_ok) {
-        <p class="palabras-voz en-libro" lang="en">
-          @for (w of r.palabras; track $index) {
-            <span [class.bien]="w.bien" [class.mal]="!w.bien">{{ w.palabra }}<span class="oculto-visual">{{ w.bien ? ' (bien)' : ' (a revisar)' }}</span></span>
+        <!-- Una lista flexible y no un párrafo de <span>: Angular quita los espacios
+             entre elementos, la frase quedaba como una sola «palabra» sin sitio donde
+             partirse y en el móvil se salía por la derecha arrastrando la página. -->
+        <ul class="palabras-voz en-libro" lang="en">
+          @for (w of palabrasVisibles(); track $index) {
+            <li [class.bien]="w.bien" [class.mal]="!w.bien">{{ w.palabra }}<span class="oculto-visual">{{ w.bien ? ' (bien)' : ' (a revisar)' }}</span></li>
           }
-        </p>
+        </ul>
         <p class="tenue pequeno leyenda"><span class="muestra bien"></span>bien pronunciada · <span class="muestra mal"></span>no se entendió como esa palabra</p>
       }
 
@@ -134,21 +137,60 @@
   }
 
   <details class="tarjeta plana afi" (toggle)="verFonemas($event)">
-    <summary><h2>Los sonidos del inglés (AFI)</h2><span class="tenue pequeno">Toca un símbolo para oírlo</span></summary>
-    @if (fonemas() === null) {
-      <div class="espera"><span class="giro"></span>Cargando…</div>
+    <summary><h2>Los sonidos del inglés (AFI)</h2><span class="tenue pequeno">Toca un símbolo: suena y te dice cómo colocar la boca</span></summary>
+    <div class="acentos" role="radiogroup" aria-label="Acento">
+      <button type="button" role="radio" [attr.aria-checked]="acento() === 'ga'" [class.elegido]="acento() === 'ga'"
+              (click)="cambiarAcento('ga')">Americano (US)</button>
+      <button type="button" role="radio" [attr.aria-checked]="acento() === 'rp'" [class.elegido]="acento() === 'rp'"
+              (click)="cambiarAcento('rp')">Británico (UK)</button>
+    </div>
+    @if (grupos() === null) {
+      <div class="espera"><span class="giro"></span>Cargando los sonidos…</div>
     } @else {
-      @for (g of grupos(); track g.nombre) {
-        <h3>{{ g.nombre }}</h3>
+      @for (g of grupos(); track g.clave) {
+        <h3>{{ g.titulo }}</h3>
         <div class="rejilla-fonemas">
-          @for (f of g.lista; track f.simbolo) {
-            <button type="button" class="celda" (click)="sonar(f.audio)" [disabled]="!f.audio">
+          @for (f of g.sonidos; track f.simbolo) {
+            <button type="button" class="celda" [class.activo]="elegido()?.simbolo === f.simbolo"
+                    [attr.aria-pressed]="elegido()?.simbolo === f.simbolo" (click)="tocarSonido(f)">
               <strong>/{{ f.simbolo }}/</strong>
               <span class="pequeno" lang="en">{{ f.ejemplos[0] }}</span>
               <span class="tenue diminuto">{{ f.nombre }}</span>
             </button>
           }
         </div>
+        <!-- La ficha, debajo de SU grupo: en el móvil aparece donde se tocó. -->
+        @if (elegido(); as s) {
+          @if (s.grupo === g.clave && s.ficha; as f) {
+            <article class="ficha-sonido" aria-live="polite">
+              <header>
+                <button type="button" class="simbolo" (click)="sonar(s.audio)" [disabled]="!s.audio"
+                        [attr.aria-label]="'Escuchar otra vez el sonido ' + s.simbolo">/{{ s.simbolo }}/ <app-icono nombre="altavoz" /></button>
+                <div>
+                  <strong>{{ s.nombre }}</strong>
+                  <span class="tenue pequeno">{{ s.ficha.rasgos }}</span>
+                </div>
+                <button type="button" class="boton-icono" (click)="elegido.set(null)" aria-label="Cerrar la ficha">
+                  <app-icono nombre="cerrar" />
+                </button>
+              </header>
+              <p class="tenue pequeno">Como en <em lang="en">{{ s.ejemplos.join(', ') }}</em></p>
+              <dl>
+                <div><dt>Labios</dt><dd>{{ s.ficha.labios }}</dd></div>
+                <div><dt>Lengua</dt><dd>{{ s.ficha.lengua }}</dd></div>
+                <div><dt>Boca</dt><dd>{{ s.ficha.boca }}</dd></div>
+                <div><dt>Cuerdas vocales</dt><dd>{{ s.ficha.cuerdas }}</dd></div>
+                <div><dt>El aire</dt><dd>{{ s.ficha.aire }}</dd></div>
+              </dl>
+              @if (notaAcento()) {
+                <p class="nota-acento"><strong>{{ acento() === 'ga' ? 'En americano' : 'En británico' }}:</strong> {{ notaAcento() }}</p>
+              }
+              @if (s.ficha.trampa) {
+                <p class="aviso ambar pequeno"><span><strong>Ojo:</strong> {{ s.ficha.trampa }}</span></p>
+              }
+            </article>
+          }
+        }
       }
     }
   </details>

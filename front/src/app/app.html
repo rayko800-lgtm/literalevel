@@ -9,7 +9,7 @@
 
     <nav class="nav-escritorio" aria-label="Principal">
       @for (item of navegacion; track item.ruta) {
-        <a [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
+        <a [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page" [attr.data-seccion]="item.seccion">
           <app-icono [nombre]="item.icono" />{{ item.etiqueta }}
         </a>
       }
@@ -53,7 +53,7 @@
 
 <nav class="nav-movil" [class.oculta]="barraOculta()" aria-label="Principal">
   @for (item of navegacion; track item.ruta) {
-    <a [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
+    <a [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page" [attr.data-seccion]="item.seccion">
       <app-icono [nombre]="item.icono" />
       <span>{{ item.etiqueta }}</span>
     </a>

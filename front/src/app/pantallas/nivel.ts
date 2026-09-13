@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -14,6 +14,7 @@ type Vista = 'resultado' | 'preguntas' | 'listo' | 'muestra';
  *  Seis pasos; tres más para quien quiera afinar. */
 const PASOS = ['frecuencia', 'fragmento_facil', 'libro_completo', 'fragmento_medio', 'comprension', 'fragmento_dificil'];
 const EXTRA = ['diccionario', 'series', 'lecturas'];
+const CLAVE_BORRADOR = 'literalevel.cuestionario';
 
 /** «Mídeme»: una pregunta por pantalla (PLAN_3_OCTUBRE.md §3.2).
  *  Nunca dos a la vez; se puede salir en cualquier momento con lo respondido;
@@ -64,12 +65,63 @@ export class Nivel implements OnInit {
 
   protected readonly respondidas = computed(() => Object.keys(this.respuestas()).length);
 
+  /** Si el lector pulsa «Volver a medirme», que el perfil guardado no le saque. */
+  private quiereMedirse = false;
+
+  constructor() {
+    // Miguel rellenó el cuestionario, recargó y volvió a «1 de 6». Al recargar,
+    // el perfil llega DESPUÉS de montar la pantalla (lo trae `Sesion` por red),
+    // así que en `ngOnInit` aún no había perfil. Cuando llega, se enseña el
+    // resultado, salvo que ya se esté contestando.
+    effect(() => {
+      const p = this.perfil();
+      untracked(() => {
+        if (p && !this.empezar() && !this.quiereMedirse && this.respondidas() === 0
+            && this.vista() === 'preguntas') {
+          this.vista.set('resultado');
+        }
+      });
+    });
+    // Y lo contestado a medias sobrevive a recargar.
+    effect(() => {
+      const estado = { respuestas: this.respuestas(), paso: this.paso(), afinando: this.afinando() };
+      untracked(() => {
+        try {
+          if (Object.keys(estado.respuestas).length) localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(estado));
+          else localStorage.removeItem(CLAVE_BORRADOR);
+        } catch { /* sin almacenamiento */ }
+      });
+    });
+  }
+
   ngOnInit(): void {
-    if (this.perfil() && !this.empezar()) this.vista.set('resultado');
+    this.recuperarBorrador();
+    if (this.perfil() && !this.empezar() && this.respondidas() === 0) this.vista.set('resultado');
     this.api.cuestionario().subscribe({
       next: c => this.cuestionario.set(c),
       error: e => this.error.set(mensajeError(e)),
     });
+  }
+
+  private recuperarBorrador(): void {
+    try {
+      const crudo = localStorage.getItem(CLAVE_BORRADOR);
+      if (!crudo) return;
+      const b = JSON.parse(crudo);
+      const validas = [...PASOS, ...EXTRA];
+      const respuestas: Record<string, number | number[]> = {};
+      for (const [k, v] of Object.entries(b?.respuestas ?? {})) {
+        const ok = (x: unknown) => typeof x === 'number' && x >= 0 && x <= 2;
+        if (validas.includes(k) && (ok(v) || (Array.isArray(v) && v.every(ok)))) respuestas[k] = v as number | number[];
+      }
+      if (!Object.keys(respuestas).length) return;
+      this.respuestas.set(respuestas);
+      this.afinando.set(!!b.afinando);
+      const total = b.afinando ? PASOS.length + EXTRA.length : PASOS.length;
+      this.paso.set(Math.min(Math.max(0, Number(b.paso) || 0), total - 1));
+      this.vista.set('preguntas');
+      void this.estimar();
+    } catch { /* borrador roto: se empieza de cero */ }
   }
 
   protected fragmento(): Fragmento { return this.actual() as Fragmento; }
@@ -118,6 +170,7 @@ export class Nivel implements OnInit {
   }
 
   protected reiniciar(): void {
+    this.quiereMedirse = true;
     this.respuestas.set({});
     this.estimacion.set(null);
     this.paso.set(0);
@@ -141,6 +194,9 @@ export class Nivel implements OnInit {
     try {
       const p = await firstValueFrom(this.api.perfilDesdeCuestionario(this.respuestas(), true));
       this.sesion.fijarPerfil(p);
+      // Guardado: el borrador ya no hace falta.
+      this.quiereMedirse = false;
+      this.respuestas.set({});
       this.vista.set('resultado');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {

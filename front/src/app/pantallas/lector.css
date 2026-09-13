@@ -71,6 +71,10 @@
 .aqui { padding: .8rem .95rem; border-radius: var(--radio-sm); background: var(--verde-suave); }
 .aqui .etiqueta { color: var(--verde); }
 .aqui.cargando { background: var(--superficie-2); }
+.traduccion p { font-size: 1.1rem; font-weight: 600; }
+.chip.ia { min-height: 20px; padding: 0 .5rem; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase;
+  background: var(--ambar-suave); color: var(--ambar); border-color: transparent; vertical-align: middle; }
+.definicion-ia { padding: .8rem .95rem; border-radius: var(--radio-sm); border: 1px dashed var(--borde-fuerte); }
 .contexto { margin: 0; padding: .5rem .9rem; border-left: 3px solid var(--acento); color: var(--lector-texto);
   background: var(--superficie-2); border-radius: 0 10px 10px 0; line-height: 1.55; }
 .acciones-palabra { margin-top: .2rem; }
@@ -127,6 +131,37 @@
 .lista-indice .n { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--superficie-2); font-size: .82rem; font-weight: 650; }
 .lista-indice .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lista-indice .p { font-size: .82rem; }
+
+/* --- Modo páginas ------------------------------------------------------------------ */
+/* Columnas del ancho de la caja y el texto que no cabe, a la derecha: cada
+   página es una columna y se pasa moviendo `scrollLeft` (lo hace `irPagina`).
+   El alto deja sitio a la barra de arriba, a la de páginas y, en el móvil, a la
+   navegación de abajo. */
+.hoja.paginado { padding-top: clamp(1rem, 3vw, 2rem); padding-bottom: 1rem; }
+.hoja.paginado .texto {
+  max-width: none; height: max(18rem, calc(100dvh - var(--barra-sup) - 12.5rem));
+  overflow: hidden; column-fill: auto; touch-action: pan-y;
+}
+.hoja.paginado .texto p { max-width: var(--medida); }
+.hoja.paginado .cabecera-cap, .hoja.paginado .pista { break-inside: avoid; }
+/* El cierre del capítulo, en su propia última página. */
+.hoja.paginado .final { break-before: column; break-inside: avoid; margin-top: 0; border-top: 0; padding-top: 1.5rem; }
+
+.paginador {
+  max-width: 860px; margin: .75rem auto 0; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .75rem;
+  padding: .35rem .5rem; border-radius: 999px; background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
+}
+.paginador .boton-icono { background: var(--acento-suave); color: var(--acento-texto); }
+.paginador .boton-icono[disabled] { opacity: .35; cursor: default; }
+.pag-info { display: grid; gap: .3rem; justify-items: center; font-size: .88rem; color: var(--texto-suave);
+  font-variant-numeric: tabular-nums; }
+.pag-info .avance { width: 100%; height: 5px; }
+.pista-paginas { max-width: 860px; margin: .6rem auto 0; display: flex; align-items: center; justify-content: center;
+  gap: .5rem; flex-wrap: wrap; font-size: .9rem; color: var(--texto-suave); text-align: center; }
+
+@media (max-width: 760px) {
+  .hoja.paginado .texto { height: max(16rem, calc(100dvh - var(--barra-sup) - var(--barra-inf) - 12rem)); }
+}
 
 @keyframes subir { from { transform: translateY(40px); opacity: 0; } }
 @keyframes deslizar-lado { from { transform: translateX(16px); opacity: 0; } }

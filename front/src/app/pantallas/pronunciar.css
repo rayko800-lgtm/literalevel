@@ -31,8 +31,13 @@
 .anillo strong { font-size: 2rem; line-height: 1; }
 .anillo span { font-size: .8rem; color: var(--texto-tenue); }
 
-.palabras-voz { font-size: 1.35rem; line-height: 2.1; margin: 0; }
-.palabras-voz > span { padding: .1em .3em; border-radius: 6px; border-bottom: 3px solid transparent; margin: 0 .04em; }
+/* Nada del resultado puede ensanchar la página: una rejilla toma de ancho
+   mínimo el de su contenido más largo, y eso sacaba todo del móvil. */
+.resultado, .resultado > * { min-width: 0; }
+.resultado { overflow-wrap: anywhere; }
+.palabras-voz { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem .45rem;
+  font-size: 1.3rem; line-height: 1.5; }
+.palabras-voz li { padding: .05em .3em; border-radius: 6px; border-bottom: 3px solid transparent; }
 .palabras-voz .bien { border-bottom-color: var(--verde); }
 .palabras-voz .mal { background: var(--rojo-suave); border-bottom-color: var(--rojo); font-weight: 650; }
 .leyenda { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin: 0; }
@@ -65,6 +70,30 @@
 .celda strong { font-size: 1.15rem; font-family: "Charis SIL", "Doulos SIL", "Segoe UI", system-ui, sans-serif; }
 .diminuto { font-size: .7rem; line-height: 1.2; }
 .volver { margin-top: 1rem; }
+
+.acentos { display: flex; gap: .3rem; padding: .3rem; border-radius: 999px; background: var(--superficie-2);
+  width: fit-content; max-width: 100%; margin: 1rem 0 .25rem; }
+.acentos button { min-height: 42px; padding: 0 1rem; border: 0; border-radius: 999px; background: transparent;
+  color: var(--texto-suave); font-weight: 650; cursor: pointer; white-space: nowrap; }
+.acentos button.elegido { background: var(--superficie); color: var(--texto); box-shadow: var(--sombra); }
+.celda.activo { border-color: var(--acento); background: var(--acento-suave); box-shadow: inset 0 0 0 1px var(--acento); }
+
+.ficha-sonido { margin: .75rem 0 .25rem; padding: 1rem; display: grid; gap: .6rem; border-radius: var(--radio);
+  background: var(--superficie); border: 1.5px solid var(--acento); box-shadow: var(--sombra); }
+.ficha-sonido header { display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap; }
+/* El nombre ocupa la fila de abajo cuando no cabe: entre el símbolo y la X
+   quedaba en una columna de tres palabras por línea en un móvil. */
+.ficha-sonido header div { display: grid; flex: 1 1 14rem; min-width: 0; order: 3; }
+.ficha-sonido header .boton-icono { margin-left: auto; }
+.ficha-sonido p { margin: 0; }
+.ficha-sonido dl { margin: 0; display: grid; gap: .45rem; }
+.ficha-sonido dl div { display: grid; grid-template-columns: 8.5rem 1fr; gap: .6rem; }
+.ficha-sonido dt { font-weight: 650; color: var(--texto-suave); }
+.ficha-sonido dd { margin: 0; }
+.nota-acento { padding: .6rem .8rem; border-radius: var(--radio-sm); background: var(--acento-suave); }
+@media (max-width: 560px) {
+  .ficha-sonido dl div { grid-template-columns: 1fr; gap: 0; }
+}
 
 @media (max-width: 560px) {
   .nota { flex-direction: column; text-align: center; }

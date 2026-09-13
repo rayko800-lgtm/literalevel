@@ -203,9 +203,46 @@ export interface Palabra {
   explicacion_pendiente: boolean;
   motivo_sin_explicacion: string | null;
   avisos: string[];
+  /** Traducción al español en esa oración (con OpenAI). */
+  traduccion: string | null;
+  /** Definición escrita por la IA cuando el diccionario no trae la palabra. */
+  definicion_ia: string | null;
+  generado_por_ia: boolean;
+  /** La IA eligió otra acepción del diccionario porque la primera era dudosa. */
+  acepcion_elegida_por_ia: boolean;
 }
 
-export interface Fonema { simbolo: string; nombre: string; ejemplos: string[]; tipo?: string; audio: string | null; }
+/** Cómo se produce un sonido, en palabras de manual y para un hispanohablante. */
+export interface FichaSonido {
+  rasgos: string;
+  labios: string;
+  lengua: string;
+  boca: string;
+  cuerdas: string;
+  aire: string;
+  trampa: string;
+  ga: string;
+  rp: string;
+}
+
+export interface Fonema {
+  simbolo: string;
+  nombre: string;
+  ejemplos: string[];
+  tipo?: string;
+  grupo?: string;
+  audio: string | null;
+  ficha?: FichaSonido;
+}
+
+export type Acento = 'ga' | 'rp';
+
+export interface InventarioSonidos {
+  acento: Acento;
+  acentos: Record<Acento, string>;
+  fonemas: Fonema[];
+  grupos: { clave: string; titulo: string; sonidos: Fonema[] }[];
+}
 
 export interface CorreccionVoz {
   puntuacion: number;
@@ -339,7 +376,9 @@ export class Api {
     return this.http.post<Palabra>(`${this.base}/palabra`, cuerpo);
   }
 
-  fonemas(): Observable<{ fonemas: Fonema[] }> { return this.http.get<{ fonemas: Fonema[] }>(`${this.base}/fonemas`); }
+  fonemas(acento: Acento = 'ga'): Observable<InventarioSonidos> {
+    return this.http.get<InventarioSonidos>(`${this.base}/fonemas`, { params: { acento } });
+  }
   practicar(frase: string, audio: Blob, nombre: string): Observable<CorreccionVoz> {
     const datos = new FormData();
     datos.append('frase', frase);

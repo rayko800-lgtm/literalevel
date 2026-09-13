@@ -15,7 +15,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, RouterLink, Icono, TarjetaLibro],
   template: `
-    <div class="pagina">
+    <div class="pagina" data-seccion="encontrar">
       <header class="cabecera-pagina">
         <span class="antetitulo">Encontrar</span>
         <h1>¿Qué te apetece leer?</h1>

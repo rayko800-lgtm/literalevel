@@ -9,14 +9,20 @@
 /* --- Barra superior -------------------------------------------------------------- */
 .barra {
   position: sticky; top: 0; z-index: 50;
-  background: color-mix(in srgb, var(--fondo) 88%, transparent);
+  /* Opaca. Translúcida solo tiene sentido con el desenfoque detrás, y el
+     desenfoque va solo con ratón: en el móvil de Miguel el texto del libro se
+     leía por detrás de la cabecera («WASHINGTON, D. C.» asomando bajo el logo). */
+  background: var(--fondo);
   border-bottom: 1px solid var(--borde);
   transition: transform .25s ease;
 }
 /* El desenfoque, solo con ratón: en el móvil de Laura cada panel desenfocado
    repintaba en cada fotograma del desplazamiento («se traba»). */
 @media (hover: hover) and (pointer: fine) {
-  .barra { backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); }
+  .barra {
+    background: color-mix(in srgb, var(--fondo) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  }
 }
 .barra-in {
   width: min(var(--ancho), 100% - 2rem); margin: 0 auto; height: var(--barra-sup);
@@ -38,7 +44,10 @@
   transition: background-color .15s ease, color .15s ease;
 }
 .nav-escritorio a:hover { background: var(--superficie-2); color: var(--texto); }
-.nav-escritorio a.activo { background: var(--acento-suave); color: var(--acento-texto); }
+/* El icono lleva siempre el color de su destino; el activo, también el fondo.
+   La etiqueta no cambia de color hasta estar activa: texto en color, solo corto. */
+.nav-escritorio a app-icono { color: var(--seccion); }
+.nav-escritorio a.activo { background: var(--seccion-suave); color: var(--seccion); }
 
 .acciones { display: flex; align-items: center; gap: .35rem; margin-left: auto; }
 .quien { cursor: pointer; min-height: 36px; }
@@ -78,6 +87,7 @@
     display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 54px;
     border-radius: 14px; color: var(--texto-tenue); text-decoration: none; font-size: .75rem; font-weight: 650;
   }
-  .nav-movil a app-icono { font-size: 1.15rem; }
-  .nav-movil a.activo { color: var(--acento-texto); background: var(--acento-suave); }
+  .nav-movil a app-icono { font-size: 1.15rem; color: var(--seccion); opacity: .8; }
+  .nav-movil a.activo { color: var(--seccion); background: var(--seccion-suave); }
+  .nav-movil a.activo app-icono { opacity: 1; }
 }

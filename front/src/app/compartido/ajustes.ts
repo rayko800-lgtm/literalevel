@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Api, mensajeError } from '../nucleo/api';
-import { Idioma, Preferencias, TamanoLetra, Tema } from '../nucleo/preferencias';
+import { Idioma, ModoLectura, Preferencias, TamanoLetra, Tema } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 import { Icono } from './icono';
 
@@ -42,6 +42,18 @@ import { Icono } from './icono';
             <button type="button" class="opcion" [class.elegida]="prefs.letra() === l.valor"
                     [attr.aria-pressed]="prefs.letra() === l.valor" (click)="prefs.letra.set(l.valor)">
               <span class="en-libro" [style.font-size.px]="l.px">Aa</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section>
+        <h3>Cómo leer</h3>
+        <div class="opciones">
+          @for (m of modos; track m.valor) {
+            <button type="button" class="opcion" [class.elegida]="prefs.modoLectura() === m.valor"
+                    [attr.aria-pressed]="prefs.modoLectura() === m.valor" (click)="prefs.modoLectura.set(m.valor)">
+              <app-icono [nombre]="m.icono" />{{ m.nombre }}
             </button>
           }
         </div>
@@ -140,6 +152,9 @@ export class Ajustes {
   ];
   protected readonly letras: { valor: TamanoLetra; px: number }[] = [
     { valor: 'pequena', px: 15 }, { valor: 'normal', px: 18 }, { valor: 'grande', px: 22 }, { valor: 'enorme', px: 26 },
+  ];
+  protected readonly modos: { valor: ModoLectura; nombre: string; icono: string }[] = [
+    { valor: 'paginas', nombre: 'Por páginas', icono: 'paginas' }, { valor: 'rollo', nombre: 'Seguido', icono: 'rollo' },
   ];
   protected readonly idiomas: { valor: Idioma; nombre: string }[] = [
     { valor: 'es', nombre: 'En español' }, { valor: 'en', nombre: 'In English' },

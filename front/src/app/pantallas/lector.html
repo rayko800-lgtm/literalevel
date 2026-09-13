@@ -1,6 +1,6 @@
 <div class="barra-avance" aria-hidden="true"><i [style.width.%]="avance() * 100"></i></div>
 
-<div class="lectura" [class.con-panel]="panelAbierto()">
+<div class="lectura" [class.con-panel]="panelAbierto()" data-seccion="leer">
   <div class="columna">
     @if (libro(); as l) {
       <nav class="migas">
@@ -8,6 +8,11 @@
         <div class="herramientas">
           <button type="button" class="boton pequeno secundario" (click)="indiceAbierto.set(true)">
             <app-icono nombre="indice" />Índice
+          </button>
+          <button type="button" class="boton-icono" (click)="alternarModo()"
+                  [attr.aria-label]="paginado() ? 'Leer seguido, desplazando' : 'Leer por páginas'"
+                  [attr.title]="paginado() ? 'Leer seguido' : 'Leer por páginas'">
+            <app-icono [nombre]="paginado() ? 'rollo' : 'paginas'" />
           </button>
           <button type="button" class="boton-icono" (click)="abrirAjustes()" aria-label="Tamaño de letra y colores">
             <app-icono nombre="letra" />
@@ -37,8 +42,12 @@
     }
 
     @if (capitulo(); as c) {
-      <article class="hoja" [class.recargando]="cargando()">
-        <header class="cabecera-cap">
+      <article class="hoja" [class.recargando]="cargando()" [class.paginado]="paginado()">
+        <!-- Todo lo del capítulo va DENTRO de #texto: en modo páginas es la caja de
+             columnas, y la cabecera y el cierre tienen que caer en sus páginas. -->
+        <div class="texto" #texto lang="en" (pointerdown)="alTocar($event)" (pointerup)="alSoltarToque($event)"
+             (wheel)="alRueda($event)">
+        <header class="cabecera-cap" lang="es">
           <span class="antetitulo">Capítulo {{ c.indice + 1 }} de {{ c.total }}</span>
           <h1 class="en-libro">{{ c.titulo }}</h1>
           <div class="fila datos-cap">
@@ -65,23 +74,24 @@
         </header>
 
         @if (pista()) {
-          <div class="pista" role="note">
+          <div class="pista" role="note" lang="es">
             <app-icono nombre="chispa" />
             <p><strong>Toca dos veces una palabra</strong> (en el móvil, mantenla pulsada) y verás qué significa en esta frase.</p>
             <button type="button" class="boton-icono" (click)="cerrarPista()" aria-label="Entendido"><app-icono nombre="cerrar" /></button>
           </div>
         }
 
-        <nav class="pasar arriba" aria-label="Capítulos">
-          <button type="button" class="boton secundario pequeno" [disabled]="anterior() === null" (click)="ir(anterior())">
-            <app-icono nombre="izq" />Anterior
-          </button>
-          <button type="button" class="boton secundario pequeno" [disabled]="siguiente() === null" (click)="ir(siguiente())">
-            Siguiente<app-icono nombre="der" />
-          </button>
-        </nav>
+        @if (!paginado()) {
+          <nav class="pasar arriba" aria-label="Capítulos" lang="es">
+            <button type="button" class="boton secundario pequeno" [disabled]="anterior() === null" (click)="ir(anterior())">
+              <app-icono nombre="izq" />Anterior
+            </button>
+            <button type="button" class="boton secundario pequeno" [disabled]="siguiente() === null" (click)="ir(siguiente())">
+              Siguiente<app-icono nombre="der" />
+            </button>
+          </nav>
+        }
 
-        <div class="texto" #texto lang="en">
           @for (p of parrafos(); track $index) {
             @if (p.separador) {
               <p class="separador" aria-hidden="true">* * *</p>
@@ -89,9 +99,8 @@
               <p>@for (t of p.trozos; track $index) {<span [class.cursiva]="t.cursiva">{{ t.t }}</span>}</p>
             }
           }
-        </div>
 
-        <section class="final" aria-label="Final del capítulo">
+        <section class="final" aria-label="Final del capítulo" lang="es">
           <span class="check"><app-icono nombre="check" /></span>
           <h2>Has terminado el capítulo {{ c.indice + 1 }}</h2>
           @if (siguiente() !== null && libro(); as l) {
@@ -112,7 +121,33 @@
             <app-icono nombre="micro" />Practicar una frase de este capítulo en voz alta
           </a>
         </section>
+        </div>
       </article>
+
+      @if (paginado()) {
+        <nav class="paginador" aria-label="Páginas">
+          <button type="button" class="boton-icono" (click)="irPagina(-1)"
+                  [disabled]="pagina() === 0 && anterior() === null"
+                  [attr.aria-label]="pagina() === 0 ? 'Capítulo anterior' : 'Página anterior'">
+            <app-icono nombre="izq" />
+          </button>
+          <div class="pag-info" aria-live="polite">
+            <span>Página {{ pagina() + 1 }} de {{ paginas() }}</span>
+            <span class="avance"><i [style.width.%]="avance() * 100"></i></span>
+          </div>
+          <button type="button" class="boton-icono" (click)="irPagina(1)"
+                  [disabled]="pagina() === paginas() - 1 && siguiente() === null"
+                  [attr.aria-label]="pagina() === paginas() - 1 ? 'Capítulo siguiente' : 'Página siguiente'">
+            <app-icono nombre="der" />
+          </button>
+        </nav>
+        @if (pistaPaginas()) {
+          <p class="pista-paginas">
+            <app-icono nombre="chispa" />Desliza o toca el borde derecho para pasar de página.
+            <button type="button" class="boton pequeno fantasma" (click)="cerrarPistaPaginas()">Entendido</button>
+          </p>
+        }
+      }
     }
   </div>
 
@@ -142,18 +177,29 @@
       }
 
       @if (palabra(); as w) {
-        @if (w.ipa_us || w.ipa_uk || w.audio_us || w.audio_uk) {
+        <!-- Siempre hay forma de oírla: el audio del diccionario o el generado, y si
+             no hay ninguno, la voz del navegador en americano o británico. -->
+        @if (w.ipa_us || w.ipa_uk || w.audio_us || w.audio_uk || vozDelNavegador) {
           <div class="pron">
-            @if (w.ipa_us || w.audio_us) {
-              <button type="button" class="boton secundario pequeno" (click)="sonar(w.audio_us)" [disabled]="!w.audio_us">
-                <app-icono nombre="altavoz" />US {{ w.ipa_us || '' }}
-              </button>
-            }
-            @if (w.ipa_uk || (w.audio_uk && w.audio_uk !== w.audio_us)) {
-              <button type="button" class="boton secundario pequeno" (click)="sonar(w.audio_uk)" [disabled]="!w.audio_uk">
-                <app-icono nombre="altavoz" />UK {{ w.ipa_uk || '' }}
-              </button>
-            }
+            <button type="button" class="boton secundario pequeno" (click)="sonar(w.audio_us, w.palabra, 'en-US')"
+                    [disabled]="!w.audio_us && !vozDelNavegador">
+              <app-icono nombre="altavoz" />US {{ w.ipa_us || '' }}
+            </button>
+            <button type="button" class="boton secundario pequeno"
+                    (click)="sonar(w.audio_uk && w.audio_uk !== w.audio_us ? w.audio_uk : null, w.palabra, 'en-GB')"
+                    [disabled]="!w.audio_uk && !vozDelNavegador">
+              <app-icono nombre="altavoz" />UK {{ w.ipa_uk || '' }}
+            </button>
+          </div>
+          @if (!w.audio_us && !w.audio_uk && vozDelNavegador) {
+            <p class="tenue pequeno">Sin grabación para esta palabra: suena con la voz de tu navegador.</p>
+          }
+        }
+
+        @if (w.traduccion) {
+          <div class="bloque traduccion">
+            <span class="etiqueta">En español</span>
+            <p>{{ w.traduccion }}</p>
           </div>
         }
 
@@ -164,7 +210,7 @@
           </div>
         } @else if (w.definicion_contextual) {
           <div class="bloque aqui">
-            <span class="etiqueta">Aquí significa</span>
+            <span class="etiqueta">Aquí significa @if (w.generado_por_ia) { <span class="chip ia">IA</span> }</span>
             <p>{{ w.definicion_contextual }}</p>
           </div>
         }
@@ -174,12 +220,20 @@
             <span class="etiqueta">En el diccionario</span>
             <p lang="en">{{ w.sentido }}</p>
             @if (w.etiquetas.length) { <p class="tenue pequeno">{{ w.etiquetas.join(', ') }}</p> }
-            @if (w.dudoso) {
+            @if (w.acepcion_elegida_por_ia) {
+              <p class="tenue pequeno">La primera acepción no encajaba con la frase: esta la eligió la IA entre las del diccionario.</p>
+            } @else if (w.dudoso) {
               <p class="aviso ambar pequeno">No estoy seguro de que sea esta acepción
                 (afinidad {{ num(w.similitud) }}). {{ w.definicion_contextual ? 'Fíate más de «Aquí significa».' : 'Lee la frase entera antes de fiarte.' }}</p>
             }
           </div>
-        } @else if (!buscandoPalabra()) {
+        } @else if (w.generado_por_ia && w.definicion_ia) {
+          <div class="bloque definicion-ia">
+            <span class="etiqueta">Definición <span class="chip ia">escrita por IA</span></span>
+            <p>{{ w.definicion_ia }}</p>
+            <p class="tenue pequeno">El diccionario no trae esta palabra, así que la ha definido un modelo de lenguaje: tómalo como orientación.</p>
+          </div>
+        } @else if (!buscandoPalabra() && !explicando()) {
           <p class="suave">Esta palabra no está en el diccionario.</p>
         }
 
