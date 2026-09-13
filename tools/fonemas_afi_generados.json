@@ -1,0 +1,2476 @@
+{
+ "audios": {
+  "ga:p": {
+   "acento": "ga",
+   "simbolo": "p",
+   "archivo": "0070.mp3",
+   "palabra": "pen",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "puh",
+     "segundos": 3.98,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "puh",
+     "segundos": 0.37,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "puh",
+     "segundos": 0.5,
+     "en_rango": true
+    }
+   ],
+   "segundos": 6.25,
+   "bytes": 31560,
+   "fecha": "2026-09-13T21:49:54+00:00"
+  },
+  "ga:b": {
+   "acento": "ga",
+   "simbolo": "b",
+   "archivo": "0062.mp3",
+   "palabra": "bed",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "buh",
+     "segundos": 1.56,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "buh",
+     "segundos": 0.43,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "buh",
+     "segundos": 0.63,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.02,
+   "bytes": 20400,
+   "fecha": "2026-09-13T21:49:57+00:00"
+  },
+  "ga:t": {
+   "acento": "ga",
+   "simbolo": "t",
+   "archivo": "0074.mp3",
+   "palabra": "ten",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "tuh",
+     "segundos": 1.74,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "tuh",
+     "segundos": 0.33,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "tuh",
+     "segundos": 0.53,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.0,
+   "bytes": 20280,
+   "fecha": "2026-09-13T21:50:02+00:00"
+  },
+  "ga:d": {
+   "acento": "ga",
+   "simbolo": "d",
+   "archivo": "0064.mp3",
+   "palabra": "dog",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "duh",
+     "segundos": 2.66,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "duh",
+     "segundos": 0.41,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "duh",
+     "segundos": 0.72,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.19,
+   "bytes": 26280,
+   "fecha": "2026-09-13T21:50:05+00:00"
+  },
+  "ga:k": {
+   "acento": "ga",
+   "simbolo": "k",
+   "archivo": "006b.mp3",
+   "palabra": "cat",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "kuh",
+     "segundos": 2.52,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "kuh",
+     "segundos": 0.45,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "kuh",
+     "segundos": 0.51,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.88,
+   "bytes": 24720,
+   "fecha": "2026-09-13T21:50:08+00:00"
+  },
+  "ga:ɡ": {
+   "acento": "ga",
+   "simbolo": "ɡ",
+   "archivo": "0261.mp3",
+   "palabra": "go",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "guh",
+     "segundos": 2.0,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "guh",
+     "segundos": 0.48,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "guh",
+     "segundos": 0.63,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.51,
+   "bytes": 22800,
+   "fecha": "2026-09-13T21:50:10+00:00"
+  },
+  "ga:f": {
+   "acento": "ga",
+   "simbolo": "f",
+   "archivo": "0066.mp3",
+   "palabra": "fish",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "fff",
+     "segundos": 1.34,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "fff",
+     "segundos": 0.74,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "fff",
+     "segundos": 0.64,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.12,
+   "bytes": 20880,
+   "fecha": "2026-09-13T21:50:12+00:00"
+  },
+  "ga:v": {
+   "acento": "ga",
+   "simbolo": "v",
+   "archivo": "0076.mp3",
+   "palabra": "van",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "vvvv",
+     "segundos": 2.05,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "vvvv",
+     "segundos": 1.05,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "vvvv",
+     "segundos": 0.78,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.28,
+   "bytes": 26640,
+   "fecha": "2026-09-13T21:50:15+00:00"
+  },
+  "ga:θ": {
+   "acento": "ga",
+   "simbolo": "θ",
+   "archivo": "03b8.mp3",
+   "palabra": "think",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "thhhh",
+     "segundos": 3.45,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "thhhh",
+     "segundos": 1.58,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "thhhh",
+     "segundos": 0.62,
+     "en_rango": true
+    }
+   ],
+   "segundos": 7.05,
+   "bytes": 35520,
+   "fecha": "2026-09-13T21:50:18+00:00"
+  },
+  "ga:ð": {
+   "acento": "ga",
+   "simbolo": "ð",
+   "archivo": "00f0.mp3",
+   "palabra": "this",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "dhhhh",
+     "segundos": 2.92,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "dhhhh",
+     "segundos": 1.11,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "dhhhh",
+     "segundos": 0.71,
+     "en_rango": true
+    }
+   ],
+   "segundos": 6.14,
+   "bytes": 30960,
+   "fecha": "2026-09-13T21:50:21+00:00"
+  },
+  "ga:s": {
+   "acento": "ga",
+   "simbolo": "s",
+   "archivo": "0073.mp3",
+   "palabra": "see",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ssss",
+     "segundos": 3.53,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ssss",
+     "segundos": 1.12,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ssss",
+     "segundos": 0.7,
+     "en_rango": true
+    }
+   ],
+   "segundos": 6.75,
+   "bytes": 34080,
+   "fecha": "2026-09-13T21:50:27+00:00"
+  },
+  "ga:z": {
+   "acento": "ga",
+   "simbolo": "z",
+   "archivo": "007a.mp3",
+   "palabra": "zoo",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "zzzz",
+     "segundos": 2.61,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "zzzz",
+     "segundos": 0.54,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "zzzz",
+     "segundos": 0.61,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.16,
+   "bytes": 26040,
+   "fecha": "2026-09-13T21:50:30+00:00"
+  },
+  "ga:ʃ": {
+   "acento": "ga",
+   "simbolo": "ʃ",
+   "archivo": "0283.mp3",
+   "palabra": "she",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "shhhh",
+     "segundos": 2.24,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "shhhh",
+     "segundos": 1.04,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "shhhh",
+     "segundos": 0.56,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.24,
+   "bytes": 26520,
+   "fecha": "2026-09-13T21:50:35+00:00"
+  },
+  "ga:ʒ": {
+   "acento": "ga",
+   "simbolo": "ʒ",
+   "archivo": "0292.mp3",
+   "palabra": "measure",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "zhhhh",
+     "segundos": 2.21,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ʒʒʒ",
+     "segundos": 1.29,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "zhhhh",
+     "segundos": 0.76,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.66,
+   "bytes": 28560,
+   "fecha": "2026-09-13T21:50:40+00:00"
+  },
+  "ga:h": {
+   "acento": "ga",
+   "simbolo": "h",
+   "archivo": "0068.mp3",
+   "palabra": "hat",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "hhhh",
+     "segundos": 1.38,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "hhhh",
+     "segundos": 0.58,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "hhhh",
+     "segundos": 0.58,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.94,
+   "bytes": 20040,
+   "fecha": "2026-09-13T21:50:45+00:00"
+  },
+  "ga:tʃ": {
+   "acento": "ga",
+   "simbolo": "tʃ",
+   "archivo": "0074_0283.mp3",
+   "palabra": "chair",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "chuh",
+     "segundos": 1.18,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "chuh",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "chuh",
+     "segundos": 0.54,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.58,
+   "bytes": 18240,
+   "fecha": "2026-09-13T21:50:48+00:00"
+  },
+  "ga:dʒ": {
+   "acento": "ga",
+   "simbolo": "dʒ",
+   "archivo": "0064_0292.mp3",
+   "palabra": "jam",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "juh",
+     "segundos": 1.42,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "juh",
+     "segundos": 0.44,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "juh",
+     "segundos": 0.81,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.07,
+   "bytes": 20640,
+   "fecha": "2026-09-13T21:50:51+00:00"
+  },
+  "ga:m": {
+   "acento": "ga",
+   "simbolo": "m",
+   "archivo": "006d.mp3",
+   "palabra": "man",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "mmmm",
+     "segundos": 1.53,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "mmmm",
+     "segundos": 0.88,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "mmmm",
+     "segundos": 0.65,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.46,
+   "bytes": 22560,
+   "fecha": "2026-09-13T21:50:53+00:00"
+  },
+  "ga:n": {
+   "acento": "ga",
+   "simbolo": "n",
+   "archivo": "006e.mp3",
+   "palabra": "no",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "nnnn",
+     "segundos": 1.31,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "nnnn",
+     "segundos": 1.7,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "nnnn",
+     "segundos": 0.6,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.01,
+   "bytes": 25320,
+   "fecha": "2026-09-13T21:50:56+00:00"
+  },
+  "ga:ŋ": {
+   "acento": "ga",
+   "simbolo": "ŋ",
+   "archivo": "014b.mp3",
+   "palabra": "sing",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "nggg",
+     "segundos": 4.94,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "nggg",
+     "segundos": 1.22,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "nggg",
+     "segundos": 0.81,
+     "en_rango": true
+    }
+   ],
+   "segundos": 8.37,
+   "bytes": 42120,
+   "fecha": "2026-09-13T21:50:59+00:00"
+  },
+  "ga:l": {
+   "acento": "ga",
+   "simbolo": "l",
+   "archivo": "006c.mp3",
+   "palabra": "leg",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "llll",
+     "segundos": 1.04,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "llll",
+     "segundos": 1.28,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "llll",
+     "segundos": 0.64,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.36,
+   "bytes": 22080,
+   "fecha": "2026-09-13T21:51:01+00:00"
+  },
+  "ga:ɹ": {
+   "acento": "ga",
+   "simbolo": "ɹ",
+   "archivo": "0279.mp3",
+   "palabra": "red",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "rrrr",
+     "segundos": 1.4,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "rrrr",
+     "segundos": 0.74,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "rrrr",
+     "segundos": 0.63,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.17,
+   "bytes": 21120,
+   "fecha": "2026-09-13T21:51:03+00:00"
+  },
+  "ga:w": {
+   "acento": "ga",
+   "simbolo": "w",
+   "archivo": "0077.mp3",
+   "palabra": "we",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "woo",
+     "segundos": 1.97,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "woo",
+     "segundos": 0.68,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "woo",
+     "segundos": 0.57,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.62,
+   "bytes": 23400,
+   "fecha": "2026-09-13T21:51:05+00:00"
+  },
+  "ga:j": {
+   "acento": "ga",
+   "simbolo": "j",
+   "archivo": "006a.mp3",
+   "palabra": "yes",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "yuh",
+     "segundos": 2.35,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "yuh",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "yuh",
+     "segundos": 0.73,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.94,
+   "bytes": 24960,
+   "fecha": "2026-09-13T21:51:10+00:00"
+  },
+  "ga:i": {
+   "acento": "ga",
+   "simbolo": "i",
+   "archivo": "0069.mp3",
+   "palabra": "see",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ee",
+     "segundos": 0.8,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ee",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ee",
+     "segundos": 0.54,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.2,
+   "bytes": 16320,
+   "fecha": "2026-09-13T21:51:12+00:00"
+  },
+  "ga:ɪ": {
+   "acento": "ga",
+   "simbolo": "ɪ",
+   "archivo": "026a.mp3",
+   "palabra": "sit",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ih",
+     "segundos": 1.14,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ih",
+     "segundos": 0.32,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ih",
+     "segundos": 0.64,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.5,
+   "bytes": 17760,
+   "fecha": "2026-09-13T21:51:15+00:00"
+  },
+  "ga:ɛ": {
+   "acento": "ga",
+   "simbolo": "ɛ",
+   "archivo": "025b.mp3",
+   "palabra": "bed",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "eh",
+     "segundos": 1.61,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "eh",
+     "segundos": 0.36,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "eh",
+     "segundos": 0.48,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.85,
+   "bytes": 19560,
+   "fecha": "2026-09-13T21:51:17+00:00"
+  },
+  "ga:æ": {
+   "acento": "ga",
+   "simbolo": "æ",
+   "archivo": "00e6.mp3",
+   "palabra": "cat",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "aa",
+     "segundos": 1.24,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "aa",
+     "segundos": 0.41,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "aa",
+     "segundos": 0.56,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.61,
+   "bytes": 18360,
+   "fecha": "2026-09-13T21:51:19+00:00"
+  },
+  "ga:ɑ": {
+   "acento": "ga",
+   "simbolo": "ɑ",
+   "archivo": "0251.mp3",
+   "palabra": "father",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ah",
+     "segundos": 2.36,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ah",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ah",
+     "segundos": 0.85,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.07,
+   "bytes": 25680,
+   "fecha": "2026-09-13T21:51:21+00:00"
+  },
+  "ga:ɔ": {
+   "acento": "ga",
+   "simbolo": "ɔ",
+   "archivo": "0254.mp3",
+   "palabra": "law",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "aw",
+     "segundos": 0.99,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "aw",
+     "segundos": 0.37,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "aw",
+     "segundos": 0.67,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.43,
+   "bytes": 17400,
+   "fecha": "2026-09-13T21:51:26+00:00"
+  },
+  "ga:ʊ": {
+   "acento": "ga",
+   "simbolo": "ʊ",
+   "archivo": "028a.mp3",
+   "palabra": "book",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ooh",
+     "segundos": 1.24,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ooh",
+     "segundos": 0.58,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ooh",
+     "segundos": 0.56,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.78,
+   "bytes": 19200,
+   "fecha": "2026-09-13T21:51:29+00:00"
+  },
+  "ga:u": {
+   "acento": "ga",
+   "simbolo": "u",
+   "archivo": "0075.mp3",
+   "palabra": "food",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oo",
+     "segundos": 0.82,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oo",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oo",
+     "segundos": 0.7,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.38,
+   "bytes": 17160,
+   "fecha": "2026-09-13T21:51:32+00:00"
+  },
+  "ga:ʌ": {
+   "acento": "ga",
+   "simbolo": "ʌ",
+   "archivo": "028c.mp3",
+   "palabra": "cup",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "uh",
+     "segundos": 3.82,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "uh",
+     "segundos": 0.4,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "uh",
+     "segundos": 0.56,
+     "en_rango": true
+    }
+   ],
+   "segundos": 6.18,
+   "bytes": 31200,
+   "fecha": "2026-09-13T21:51:35+00:00"
+  },
+  "ga:ə": {
+   "acento": "ga",
+   "simbolo": "ə",
+   "archivo": "0259.mp3",
+   "palabra": "about",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "uh",
+     "segundos": 0.94,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "uh",
+     "segundos": 0.52,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "uh",
+     "segundos": 0.76,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.62,
+   "bytes": 18360,
+   "fecha": "2026-09-13T21:51:37+00:00"
+  },
+  "ga:ɝ": {
+   "acento": "ga",
+   "simbolo": "ɝ",
+   "archivo": "025d.mp3",
+   "palabra": "bird",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "er",
+     "segundos": 1.14,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "er",
+     "segundos": 0.48,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "er",
+     "segundos": 0.46,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.48,
+   "bytes": 17640,
+   "fecha": "2026-09-13T21:51:39+00:00"
+  },
+  "ga:ɚ": {
+   "acento": "ga",
+   "simbolo": "ɚ",
+   "archivo": "025a.mp3",
+   "palabra": "butter",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "er",
+     "segundos": 1.18,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "er",
+     "segundos": 0.5,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "er",
+     "segundos": 0.51,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.59,
+   "bytes": 18240,
+   "fecha": "2026-09-13T21:51:42+00:00"
+  },
+  "ga:eɪ": {
+   "acento": "ga",
+   "simbolo": "eɪ",
+   "archivo": "0065_026a.mp3",
+   "palabra": "say",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ay",
+     "segundos": 1.26,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ay",
+     "segundos": 0.5,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ay",
+     "segundos": 0.74,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.9,
+   "bytes": 19800,
+   "fecha": "2026-09-13T21:51:44+00:00"
+  },
+  "ga:aɪ": {
+   "acento": "ga",
+   "simbolo": "aɪ",
+   "archivo": "0061_026a.mp3",
+   "palabra": "my",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "eye",
+     "segundos": 0.84,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "eye",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "eye",
+     "segundos": 0.69,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.39,
+   "bytes": 17280,
+   "fecha": "2026-09-13T21:51:47+00:00"
+  },
+  "ga:ɔɪ": {
+   "acento": "ga",
+   "simbolo": "ɔɪ",
+   "archivo": "0254_026a.mp3",
+   "palabra": "boy",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oy",
+     "segundos": 1.52,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oy",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oy",
+     "segundos": 0.75,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.13,
+   "bytes": 21000,
+   "fecha": "2026-09-13T21:51:49+00:00"
+  },
+  "ga:oʊ": {
+   "acento": "ga",
+   "simbolo": "oʊ",
+   "archivo": "006f_028a.mp3",
+   "palabra": "go",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oh",
+     "segundos": 0.82,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oh",
+     "segundos": 0.58,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oh",
+     "segundos": 0.54,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.34,
+   "bytes": 17040,
+   "fecha": "2026-09-13T21:51:52+00:00"
+  },
+  "ga:aʊ": {
+   "acento": "ga",
+   "simbolo": "aʊ",
+   "archivo": "0061_028a.mp3",
+   "palabra": "now",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ow",
+     "segundos": 0.54,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ow",
+     "segundos": 0.56,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ow",
+     "segundos": 0.53,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.03,
+   "bytes": 15480,
+   "fecha": "2026-09-13T21:51:54+00:00"
+  },
+  "rp:p": {
+   "acento": "rp",
+   "simbolo": "p",
+   "archivo": "0070.mp3",
+   "palabra": "pen",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "puh",
+     "segundos": 1.54,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "puh",
+     "segundos": 1.1,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "puh",
+     "segundos": 0.54,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.58,
+   "bytes": 23160,
+   "fecha": "2026-09-13T21:51:57+00:00"
+  },
+  "rp:b": {
+   "acento": "rp",
+   "simbolo": "b",
+   "archivo": "0062.mp3",
+   "palabra": "bed",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "buh",
+     "segundos": 1.84,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "buh",
+     "segundos": 0.98,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "buh",
+     "segundos": 0.39,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.61,
+   "bytes": 23400,
+   "fecha": "2026-09-13T21:52:00+00:00"
+  },
+  "rp:t": {
+   "acento": "rp",
+   "simbolo": "t",
+   "archivo": "0074.mp3",
+   "palabra": "ten",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "tuh",
+     "segundos": 1.6,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "tuh",
+     "segundos": 0.52,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "tuh",
+     "segundos": 0.56,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.08,
+   "bytes": 20640,
+   "fecha": "2026-09-13T21:52:03+00:00"
+  },
+  "rp:d": {
+   "acento": "rp",
+   "simbolo": "d",
+   "archivo": "0064.mp3",
+   "palabra": "dog",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "duh",
+     "segundos": 1.45,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "duh",
+     "segundos": 0.49,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "duh",
+     "segundos": 0.62,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.96,
+   "bytes": 20040,
+   "fecha": "2026-09-13T21:52:06+00:00"
+  },
+  "rp:k": {
+   "acento": "rp",
+   "simbolo": "k",
+   "archivo": "006b.mp3",
+   "palabra": "cat",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "kuh",
+     "segundos": 1.13,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "kuh",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "kuh",
+     "segundos": 0.62,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.61,
+   "bytes": 18360,
+   "fecha": "2026-09-13T21:52:09+00:00"
+  },
+  "rp:ɡ": {
+   "acento": "rp",
+   "simbolo": "ɡ",
+   "archivo": "0261.mp3",
+   "palabra": "go",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "guh",
+     "segundos": 2.56,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "guh",
+     "segundos": 0.48,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "guh",
+     "segundos": 0.51,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.95,
+   "bytes": 25080,
+   "fecha": "2026-09-13T21:52:11+00:00"
+  },
+  "rp:f": {
+   "acento": "rp",
+   "simbolo": "f",
+   "archivo": "0066.mp3",
+   "palabra": "fish",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "fff",
+     "segundos": 4.85,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "fff",
+     "segundos": 0.5,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "fff",
+     "segundos": 0.69,
+     "en_rango": true
+    }
+   ],
+   "segundos": 7.44,
+   "bytes": 37440,
+   "fecha": "2026-09-13T21:52:15+00:00"
+  },
+  "rp:v": {
+   "acento": "rp",
+   "simbolo": "v",
+   "archivo": "0076.mp3",
+   "palabra": "van",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "vvvv",
+     "segundos": 1.28,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "vvvv",
+     "segundos": 1.08,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "vvvv",
+     "segundos": 0.84,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.6,
+   "bytes": 23280,
+   "fecha": "2026-09-13T21:52:17+00:00"
+  },
+  "rp:θ": {
+   "acento": "rp",
+   "simbolo": "θ",
+   "archivo": "03b8.mp3",
+   "palabra": "think",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "thhhh",
+     "segundos": 1.34,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "thhhh",
+     "segundos": 1.72,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "thhhh",
+     "segundos": 0.68,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.14,
+   "bytes": 26040,
+   "fecha": "2026-09-13T21:52:21+00:00"
+  },
+  "rp:ð": {
+   "acento": "rp",
+   "simbolo": "ð",
+   "archivo": "00f0.mp3",
+   "palabra": "this",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "dhhhh",
+     "segundos": 0.96,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "dhhhh",
+     "segundos": 1.06,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "dhhhh",
+     "segundos": 0.77,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.19,
+   "bytes": 21240,
+   "fecha": "2026-09-13T21:52:23+00:00"
+  },
+  "rp:s": {
+   "acento": "rp",
+   "simbolo": "s",
+   "archivo": "0073.mp3",
+   "palabra": "see",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ssss",
+     "segundos": 3.72,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "sss",
+     "segundos": 1.36,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ssss",
+     "segundos": 0.74,
+     "en_rango": true
+    }
+   ],
+   "segundos": 7.22,
+   "bytes": 36360,
+   "fecha": "2026-09-13T21:52:28+00:00"
+  },
+  "rp:z": {
+   "acento": "rp",
+   "simbolo": "z",
+   "archivo": "007a.mp3",
+   "palabra": "zoo",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "zzzz",
+     "segundos": 0.65,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "zzzz",
+     "segundos": 0.9,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "zzzz",
+     "segundos": 0.75,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.7,
+   "bytes": 18840,
+   "fecha": "2026-09-13T21:52:49+00:00"
+  },
+  "rp:ʃ": {
+   "acento": "rp",
+   "simbolo": "ʃ",
+   "archivo": "0283.mp3",
+   "palabra": "she",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "shhhh",
+     "segundos": 2.01,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "shhhh",
+     "segundos": 0.7,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "shhhh",
+     "segundos": 0.68,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.79,
+   "bytes": 24240,
+   "fecha": "2026-09-13T21:52:52+00:00"
+  },
+  "rp:ʒ": {
+   "acento": "rp",
+   "simbolo": "ʒ",
+   "archivo": "0292.mp3",
+   "palabra": "measure",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "zhhhh",
+     "segundos": 2.39,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "zhhhh",
+     "segundos": 0.92,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "zhhhh",
+     "segundos": 0.83,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.54,
+   "bytes": 27960,
+   "fecha": "2026-09-13T21:52:58+00:00"
+  },
+  "rp:h": {
+   "acento": "rp",
+   "simbolo": "h",
+   "archivo": "0068.mp3",
+   "palabra": "hat",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "hhhh",
+     "segundos": 0.86,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "hhhh",
+     "segundos": 0.7,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "hhhh",
+     "segundos": 0.69,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.65,
+   "bytes": 18600,
+   "fecha": "2026-09-13T21:53:11+00:00"
+  },
+  "rp:tʃ": {
+   "acento": "rp",
+   "simbolo": "tʃ",
+   "archivo": "0074_0283.mp3",
+   "palabra": "chair",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "chuh",
+     "segundos": 1.94,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "chuh",
+     "segundos": 0.42,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "chuh",
+     "segundos": 0.66,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.42,
+   "bytes": 22440,
+   "fecha": "2026-09-13T21:53:14+00:00"
+  },
+  "rp:dʒ": {
+   "acento": "rp",
+   "simbolo": "dʒ",
+   "archivo": "0064_0292.mp3",
+   "palabra": "jam",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "juh",
+     "segundos": 1.76,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "juh",
+     "segundos": 0.66,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "juh",
+     "segundos": 0.67,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.49,
+   "bytes": 22800,
+   "fecha": "2026-09-13T21:53:17+00:00"
+  },
+  "rp:m": {
+   "acento": "rp",
+   "simbolo": "m",
+   "archivo": "006d.mp3",
+   "palabra": "man",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "mmmm",
+     "segundos": 1.32,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "mmmm",
+     "segundos": 0.74,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "mmmm",
+     "segundos": 0.76,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.22,
+   "bytes": 21360,
+   "fecha": "2026-09-13T21:53:19+00:00"
+  },
+  "rp:n": {
+   "acento": "rp",
+   "simbolo": "n",
+   "archivo": "006e.mp3",
+   "palabra": "no",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "nnnn",
+     "segundos": 1.5,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "nnnn",
+     "segundos": 0.66,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "nnnn",
+     "segundos": 0.61,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.17,
+   "bytes": 21120,
+   "fecha": "2026-09-13T21:53:21+00:00"
+  },
+  "rp:ŋ": {
+   "acento": "rp",
+   "simbolo": "ŋ",
+   "archivo": "014b.mp3",
+   "palabra": "sing",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "nggg",
+     "segundos": 1.66,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "nggg",
+     "segundos": 0.92,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "nggg",
+     "segundos": 0.7,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.68,
+   "bytes": 23640,
+   "fecha": "2026-09-13T21:53:24+00:00"
+  },
+  "rp:l": {
+   "acento": "rp",
+   "simbolo": "l",
+   "archivo": "006c.mp3",
+   "palabra": "leg",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "llll",
+     "segundos": 1.25,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "llll",
+     "segundos": 1.66,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "llll",
+     "segundos": 0.48,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.79,
+   "bytes": 24240,
+   "fecha": "2026-09-13T21:53:27+00:00"
+  },
+  "rp:r": {
+   "acento": "rp",
+   "simbolo": "r",
+   "archivo": "0072.mp3",
+   "palabra": "red",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "rrrr",
+     "segundos": 2.27,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "rrrr",
+     "segundos": 1.08,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "rrrr",
+     "segundos": 0.59,
+     "en_rango": true
+    }
+   ],
+   "segundos": 5.34,
+   "bytes": 27000,
+   "fecha": "2026-09-13T21:53:30+00:00"
+  },
+  "rp:w": {
+   "acento": "rp",
+   "simbolo": "w",
+   "archivo": "0077.mp3",
+   "palabra": "we",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "woo",
+     "segundos": 1.97,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "woo",
+     "segundos": 0.74,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "woo",
+     "segundos": 0.44,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.55,
+   "bytes": 23040,
+   "fecha": "2026-09-13T21:53:32+00:00"
+  },
+  "rp:j": {
+   "acento": "rp",
+   "simbolo": "j",
+   "archivo": "006a.mp3",
+   "palabra": "yes",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "yuh",
+     "segundos": 1.86,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "yuh",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "yuh",
+     "segundos": 0.66,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.38,
+   "bytes": 22200,
+   "fecha": "2026-09-13T21:53:34+00:00"
+  },
+  "rp:iː": {
+   "acento": "rp",
+   "simbolo": "iː",
+   "archivo": "0069_02d0.mp3",
+   "palabra": "see",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ee",
+     "segundos": 1.88,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ee",
+     "segundos": 0.42,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ee",
+     "segundos": 0.56,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.26,
+   "bytes": 21600,
+   "fecha": "2026-09-13T21:53:38+00:00"
+  },
+  "rp:ɪ": {
+   "acento": "rp",
+   "simbolo": "ɪ",
+   "archivo": "026a.mp3",
+   "palabra": "sit",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ih",
+     "segundos": 1.17,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ih",
+     "segundos": 0.34,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ih",
+     "segundos": 0.72,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.63,
+   "bytes": 18480,
+   "fecha": "2026-09-13T21:53:41+00:00"
+  },
+  "rp:e": {
+   "acento": "rp",
+   "simbolo": "e",
+   "archivo": "0065.mp3",
+   "palabra": "bed",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "eh",
+     "segundos": 2.48,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "eh",
+     "segundos": 0.44,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "eh",
+     "segundos": 0.52,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.84,
+   "bytes": 24480,
+   "fecha": "2026-09-13T21:54:00+00:00"
+  },
+  "rp:æ": {
+   "acento": "rp",
+   "simbolo": "æ",
+   "archivo": "00e6.mp3",
+   "palabra": "cat",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "aa",
+     "segundos": 1.28,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "aa",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "aa",
+     "segundos": 0.62,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.76,
+   "bytes": 19080,
+   "fecha": "2026-09-13T21:54:03+00:00"
+  },
+  "rp:ʌ": {
+   "acento": "rp",
+   "simbolo": "ʌ",
+   "archivo": "028c.mp3",
+   "palabra": "cup",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "uh",
+     "segundos": 2.7,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "uh",
+     "segundos": 1.34,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "uh",
+     "segundos": 0.58,
+     "en_rango": true
+    }
+   ],
+   "segundos": 6.02,
+   "bytes": 30360,
+   "fecha": "2026-09-13T21:54:05+00:00"
+  },
+  "rp:ɑː": {
+   "acento": "rp",
+   "simbolo": "ɑː",
+   "archivo": "0251_02d0.mp3",
+   "palabra": "father",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ah",
+     "segundos": 1.13,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ah",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ah",
+     "segundos": 0.66,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.65,
+   "bytes": 18600,
+   "fecha": "2026-09-13T21:54:08+00:00"
+  },
+  "rp:ɒ": {
+   "acento": "rp",
+   "simbolo": "ɒ",
+   "archivo": "0252.mp3",
+   "palabra": "hot",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "o",
+     "segundos": 1.28,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "o",
+     "segundos": 0.5,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "o",
+     "segundos": 0.64,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.82,
+   "bytes": 19440,
+   "fecha": "2026-09-13T21:54:11+00:00"
+  },
+  "rp:ɔː": {
+   "acento": "rp",
+   "simbolo": "ɔː",
+   "archivo": "0254_02d0.mp3",
+   "palabra": "law",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "aw",
+     "segundos": 1.28,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "aw",
+     "segundos": 0.5,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "aw",
+     "segundos": 0.59,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.77,
+   "bytes": 19200,
+   "fecha": "2026-09-13T21:54:13+00:00"
+  },
+  "rp:ʊ": {
+   "acento": "rp",
+   "simbolo": "ʊ",
+   "archivo": "028a.mp3",
+   "palabra": "book",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ooh",
+     "segundos": 1.69,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ooh",
+     "segundos": 0.52,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ooh",
+     "segundos": 0.54,
+     "en_rango": true
+    }
+   ],
+   "segundos": 4.15,
+   "bytes": 21000,
+   "fecha": "2026-09-13T21:54:17+00:00"
+  },
+  "rp:uː": {
+   "acento": "rp",
+   "simbolo": "uː",
+   "archivo": "0075_02d0.mp3",
+   "palabra": "food",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oo",
+     "segundos": 1.24,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oo",
+     "segundos": 0.48,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oo",
+     "segundos": 0.71,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.83,
+   "bytes": 19440,
+   "fecha": "2026-09-13T21:54:19+00:00"
+  },
+  "rp:ɜː": {
+   "acento": "rp",
+   "simbolo": "ɜː",
+   "archivo": "025c_02d0.mp3",
+   "palabra": "bird",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "er",
+     "segundos": 0.84,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "er",
+     "segundos": 0.5,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "er",
+     "segundos": 0.6,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.34,
+   "bytes": 17040,
+   "fecha": "2026-09-13T21:54:22+00:00"
+  },
+  "rp:ə": {
+   "acento": "rp",
+   "simbolo": "ə",
+   "archivo": "0259.mp3",
+   "palabra": "about",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "uh",
+     "segundos": 0.68,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "uh",
+     "segundos": 0.34,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "uh",
+     "segundos": 0.66,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.08,
+   "bytes": 15720,
+   "fecha": "2026-09-13T21:54:25+00:00"
+  },
+  "rp:eɪ": {
+   "acento": "rp",
+   "simbolo": "eɪ",
+   "archivo": "0065_026a.mp3",
+   "palabra": "say",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ay",
+     "segundos": 1.26,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ay",
+     "segundos": 0.42,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ay",
+     "segundos": 0.74,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.82,
+   "bytes": 19440,
+   "fecha": "2026-09-13T21:54:27+00:00"
+  },
+  "rp:aɪ": {
+   "acento": "rp",
+   "simbolo": "aɪ",
+   "archivo": "0061_026a.mp3",
+   "palabra": "my",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "eye",
+     "segundos": 0.89,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "eye",
+     "segundos": 0.51,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "eye",
+     "segundos": 0.71,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.51,
+   "bytes": 17880,
+   "fecha": "2026-09-13T21:54:29+00:00"
+  },
+  "rp:ɔɪ": {
+   "acento": "rp",
+   "simbolo": "ɔɪ",
+   "archivo": "0254_026a.mp3",
+   "palabra": "boy",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oy",
+     "segundos": 1.1,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oy",
+     "segundos": 0.48,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oy",
+     "segundos": 0.66,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.64,
+   "bytes": 18480,
+   "fecha": "2026-09-13T21:54:32+00:00"
+  },
+  "rp:əʊ": {
+   "acento": "rp",
+   "simbolo": "əʊ",
+   "archivo": "0259_028a.mp3",
+   "palabra": "go",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oh",
+     "segundos": 1.18,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oh",
+     "segundos": 0.35,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oh",
+     "segundos": 0.6,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.53,
+   "bytes": 18000,
+   "fecha": "2026-09-13T21:54:34+00:00"
+  },
+  "rp:aʊ": {
+   "acento": "rp",
+   "simbolo": "aʊ",
+   "archivo": "0061_028a.mp3",
+   "palabra": "now",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "ow",
+     "segundos": 0.74,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "ow",
+     "segundos": 0.47,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "ow",
+     "segundos": 0.75,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.36,
+   "bytes": 17040,
+   "fecha": "2026-09-13T21:54:36+00:00"
+  },
+  "rp:ɪə": {
+   "acento": "rp",
+   "simbolo": "ɪə",
+   "archivo": "026a_0259.mp3",
+   "palabra": "near",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "eer",
+     "segundos": 0.82,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "eer",
+     "segundos": 0.46,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "eer",
+     "segundos": 0.65,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.33,
+   "bytes": 16920,
+   "fecha": "2026-09-13T21:54:39+00:00"
+  },
+  "rp:eə": {
+   "acento": "rp",
+   "simbolo": "eə",
+   "archivo": "0065_0259.mp3",
+   "palabra": "square",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "air",
+     "segundos": 1.23,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "air",
+     "segundos": 0.54,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "air",
+     "segundos": 0.69,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.86,
+   "bytes": 19560,
+   "fecha": "2026-09-13T21:54:42+00:00"
+  },
+  "rp:ʊə": {
+   "acento": "rp",
+   "simbolo": "ʊə",
+   "archivo": "028a_0259.mp3",
+   "palabra": "tour",
+   "partes": [
+    {
+     "parte": "sostenido",
+     "pista": "oor",
+     "segundos": 1.49,
+     "en_rango": true
+    },
+    {
+     "parte": "rapido",
+     "pista": "oor",
+     "segundos": 0.56,
+     "en_rango": true
+    },
+    {
+     "parte": "palabra",
+     "pista": "oor",
+     "segundos": 0.45,
+     "en_rango": true
+    }
+   ],
+   "segundos": 3.9,
+   "bytes": 19800,
+   "fecha": "2026-09-13T21:54:44+00:00"
+  }
+ },
+ "gasto_ultima_ejecucion": {
+  "tts_llamadas": 271,
+  "tts_segundos": 491.7000000000004,
+  "stt_llamadas": 0,
+  "stt_segundos": 0.0,
+  "usd_aprox": 0.1229
+ }
+}
