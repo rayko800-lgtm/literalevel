@@ -44,6 +44,7 @@ if str(AQUI) not in sys.path:
 
 import gradio as gr
 
+import articulacion
 import biblioteca
 import config
 import cuaderno
@@ -87,7 +88,126 @@ TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
 #
 # Y la carpeta de los fonemas, que es otra cosa: mp3 pregrabados que viven en
 # el repositorio (`fonemas.DIR_AUDIO`), no datos del lector. Solo hay audio.
-RUTAS_PERMITIDAS = [str(config.dir_datos() / "audio"), str(fonemas.DIR_AUDIO)]
+RUTAS_PERMITIDAS = [str(config.dir_datos() / "audio"), str(fonemas.DIR_AUDIO),
+                    str(articulacion.DIR_AUDIO_RP)]
+
+
+# --- La tabla del AFI: cada simbolo suena al tocarlo ------------------------
+# Miguel (13 sep): «un apartado con el International Phonetic Alphabet, que
+# puedan picarle y escuchar; esos sonidos van a estar generados, no generan
+# cobro», y una ficha «supertecnica» de articulacion, en americano y britanico.
+#
+# Todo en el navegador: la tabla se pinta UNA vez al construir la interfaz, y
+# tocar un simbolo solo cambia el `src` de un <audio> -un mp3 del repositorio-,
+# sin pasar por el servidor de Gradio ni por ninguna API. Cambiar de acento es
+# mostrar u ocultar un bloque. Por eso no hay manejadores de Python que cablear.
+
+def _src_audio(ruta: Path) -> str:
+    """URL de un mp3 servido por `gradio_api/file=`, con `?v=` de tamaño y
+    fecha: los mp3 se regeneran con el MISMO nombre, y sin eso el navegador
+    seguia sirviendo el audio viejo de su cache."""
+    from urllib.parse import quote
+    try:
+        st = ruta.stat()
+        version = f"?v={st.st_size}-{int(st.st_mtime)}"
+    except OSError:
+        version = ""
+    return "gradio_api/file=" + quote(ruta.as_posix(), safe="/:") + version
+
+
+_CSS_AFI = """<style>
+#ll-afi{color:var(--ll-texto)}
+#ll-afi .ll-afi-acentos{display:flex;gap:.5rem;flex-wrap:wrap;margin:.2rem 0 .8rem}
+#ll-afi .ll-afi-acento{min-height:44px;padding:.4rem 1rem;border-radius:999px;
+  border:1px solid var(--ll-borde);background:var(--ll-panel);color:var(--ll-texto);cursor:pointer}
+#ll-afi .ll-afi-acento[aria-pressed="true"]{border-color:var(--ll-acento);color:var(--ll-acento);font-weight:700}
+#ll-afi .ll-afi-inv[hidden]{display:none !important}
+#ll-afi h3{margin:1.1rem 0 .5rem;color:var(--ll-acento)}
+#ll-afi .ll-afi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.6rem}
+#ll-afi .ll-afi-s{border:1px solid var(--ll-borde);border-radius:14px;padding:.55rem .6rem;
+  background:var(--ll-lector-fondo)}
+#ll-afi .ll-afi-btn{display:block;width:100%;min-height:3.4rem;border-radius:10px;
+  border:1px solid var(--ll-borde);background:var(--ll-panel);color:var(--ll-texto);cursor:pointer;
+  font:600 1.7rem/1 "Charis SIL","Doulos SIL","Gentium Plus","Noto Sans","Segoe UI",serif}
+#ll-afi .ll-afi-btn.sonando{border-color:var(--ll-acento);color:var(--ll-acento);
+  box-shadow:0 0 0 2px var(--ll-acento) inset}
+#ll-afi .ll-afi-ej{display:block;margin:.35rem 0 .15rem;font-weight:600}
+#ll-afi .ll-afi-nombre{display:block;font-size:.86rem;line-height:1.3}
+#ll-afi details{margin-top:.4rem}
+#ll-afi summary{cursor:pointer;font-size:.9rem;color:var(--ll-acento);min-height:32px;display:flex;align-items:center}
+#ll-afi dl{margin:.4rem 0 0;font-size:.88rem;line-height:1.35}
+#ll-afi dt{font-weight:700;margin-top:.35rem}
+#ll-afi dd{margin:0}
+</style>"""
+
+
+def _tabla_afi_html() -> str:
+    """La tabla entera, con los dos acentos; el britanico nace oculto."""
+    esc = lambda t: _html.escape(str(t), quote=True)  # noqa: E731
+    p = [_CSS_AFI, '<div id="ll-afi">',
+         '<div class="ll-afi-acentos" role="group" aria-label="Acento">']
+    for i, (clave, nombre) in enumerate(articulacion.ACENTOS.items()):
+        p.append(f'<button type="button" class="ll-afi-acento" data-acento="{clave}" '
+                 f'aria-pressed="{"true" if i == 0 else "false"}">{esc(nombre)}</button>')
+    p.append('</div><audio id="ll-afi-audio" preload="none"></audio>')
+    etiquetas = [("rasgos", "Qué sonido es"), ("labios", "Labios"), ("lengua", "Lengua"),
+                 ("boca", "Apertura de la boca"), ("cuerdas", "Cuerdas vocales"),
+                 ("aire", "Salida del aire"), ("ga", "En americano"), ("rp", "En británico"),
+                 ("trampa", "La trampa para hispanohablantes")]
+    for n, acento in enumerate(articulacion.ACENTOS):
+        p.append(f'<div class="ll-afi-inv" data-acento="{acento}"{" hidden" if n else ""}>')
+        sonidos = articulacion.inventario(acento)
+        for grupo, titulo in articulacion.GRUPOS:
+            del_grupo = [s for s in sonidos if s.grupo == grupo]
+            if not del_grupo:
+                continue
+            p.append(f'<h3>{esc(titulo)}</h3><div class="ll-afi-grid">')
+            for s in del_grupo:
+                filas = "".join(f"<dt>{esc(et)}</dt><dd>{esc(getattr(s.ficha, campo))}</dd>"
+                                for campo, et in etiquetas if getattr(s.ficha, campo))
+                p.append(
+                    '<div class="ll-afi-s">'
+                    f'<button type="button" class="ll-afi-btn" data-src="{esc(_src_audio(s.ruta))}" '
+                    f'aria-label="{esc(f"Escuchar /{s.simbolo}/, como en {s.ejemplos[0]}")}">'
+                    f'/{esc(s.simbolo)}/</button>'
+                    f'<span class="ll-afi-ej">{esc(s.ejemplos[0])}</span>'
+                    f'<span class="ll-afi-nombre">{esc(s.nombre)}</span>'
+                    f'<details><summary>Cómo se articula</summary><dl>{filas}</dl></details>'
+                    '</div>')
+            p.append('</div>')
+        p.append('</div>')
+    p.append('</div>')
+    return "".join(p)
+
+
+# Un solo manejador para toda la pagina (delegacion): Gradio no ejecuta los
+# <script> de un gr.HTML, y la tabla puede volver a pintarse.
+JS_AFI = r"""
+() => {
+  if (window.__llAfi) return;
+  window.__llAfi = true;
+  document.addEventListener('click', (ev) => {
+    const acento = ev.target.closest('.ll-afi-acento');
+    if (acento) {
+      const raiz = acento.closest('#ll-afi');
+      raiz.querySelectorAll('.ll-afi-inv').forEach(d => { d.hidden = d.dataset.acento !== acento.dataset.acento; });
+      raiz.querySelectorAll('.ll-afi-acento').forEach(b => b.setAttribute('aria-pressed', String(b === acento)));
+      return;
+    }
+    const boton = ev.target.closest('.ll-afi-btn');
+    if (!boton) return;
+    const raiz = boton.closest('#ll-afi');
+    const audio = raiz.querySelector('#ll-afi-audio');
+    raiz.querySelectorAll('.ll-afi-btn.sonando').forEach(b => b.classList.remove('sonando'));
+    audio.pause();
+    audio.src = boton.dataset.src;
+    boton.classList.add('sonando');
+    audio.onended = () => boton.classList.remove('sonando');
+    const promesa = audio.play();
+    if (promesa && promesa.catch) promesa.catch(() => boton.classList.remove('sonando'));
+  });
+}
+"""
 
 # --- Datos personales: uno por lector, no uno para todos ------------------
 # En local hay un solo lector y todo vive en ~/.literalevel. En un despliegue
@@ -4020,6 +4140,16 @@ def construir() -> gr.Blocks:
                 b_cuaderno.click(_mis_palabras, None, cuaderno_md)
                 b_repasar.click(_repasar, None, cuaderno_md)
 
+            with gr.Tab("Sonidos AFI", id="afi"):
+                gr.Markdown(
+                    "## Los sonidos del inglés\n"
+                    "Los símbolos del **Alfabeto Fonético Internacional (AFI)**. Toca uno "
+                    "y lo oirás tres veces: **sostenido**, **rápido** y **en una palabra**. "
+                    "En «Cómo se articula» tienes la posición de labios, lengua y boca. "
+                    "Los audios están grabados de antemano: escucharlos no gasta nada y "
+                    "no hace falta entrar.")
+                gr.HTML(_tabla_afi_html(), elem_id="ll-afi-tabla")
+
         # El selector de paleta vive en el panel de ajustes, arriba, pero se
         # cablea aqui: la grafica se declara dentro de la pestana de lectura.
         paleta.change(_css_paleta, paleta, paleta_css)
@@ -4059,6 +4189,8 @@ def construir() -> gr.Blocks:
 
         # Engancha el doble clic del lector a la caja de consulta.
         demo.load(None, None, None, js=JS_SELECCION)
+        # Y los clics de la tabla del AFI (sonar y cambiar de acento).
+        demo.load(None, None, None, js=JS_AFI)
 
     # La cola: 8 a la vez, y el modelo de uno en uno.
     #

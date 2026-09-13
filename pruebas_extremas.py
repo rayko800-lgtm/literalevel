@@ -6383,6 +6383,85 @@ def _la_practica_pinta_ipa_y_audio():
 prueba("fonemas: la practica pinta ipa y audio", _la_practica_pinta_ipa_y_audio)
 
 
+# --- La tabla del AFI (13 sep 2026) -----------------------------------------
+# Miguel: un apartado con el AFI donde cada simbolo se toca y suena, con una
+# ficha tecnica de articulacion en americano y britanico, sin coste.
+
+import articulacion as articulacion_mod  # noqa: E402
+
+
+def _inventarios_del_afi_completos():
+    """Cada sonido de los dos acentos tiene ficha, palabra, grupo valido y un
+    archivo que no pisa a otro; el americano es EXACTAMENTE el de `fonemas`."""
+    grupos = dict(articulacion_mod.GRUPOS)
+    assert [s.simbolo for s in articulacion_mod.INVENTARIO_GA] == list(fonemas_mod.SIMBOLOS)
+    for acento, esperados in (("ga", 41), ("rp", 44)):
+        inv = articulacion_mod.inventario(acento)
+        assert len(inv) == esperados, (acento, len(inv))
+        archivos = [s.archivo for s in inv]
+        assert len(set(archivos)) == len(archivos), f"{acento}: dos sonidos con el mismo mp3"
+        for s in inv:
+            assert s.grupo in grupos, (acento, s.simbolo, s.grupo)
+            assert s.ejemplos and s.nombre, (acento, s.simbolo)
+            for campo in ("rasgos", "labios", "lengua", "boca", "cuerdas", "aire", "trampa"):
+                assert getattr(s.ficha, campo).strip(), (acento, s.simbolo, campo)
+    # Lo que distingue a los acentos esta: RP tiene /ɒ/ y los centralizantes; GA no.
+    for simbolo in ("ɒ", "ɪə", "eə", "ʊə", "əʊ", "ɜː"):
+        assert articulacion_mod.buscar(simbolo, "rp") is not None, simbolo
+        assert articulacion_mod.buscar(simbolo, "ga") is None, simbolo
+    assert articulacion_mod.buscar("ɹ", "ga").ficha is articulacion_mod.buscar("r", "rp").ficha
+    return "41 americanos y 44 britanicos, con ficha y mp3 propios"
+
+
+prueba("afi: inventarios completos y con ficha", _inventarios_del_afi_completos)
+
+
+def _la_tabla_del_afi_se_pinta_bien():
+    """85 simbolos que suenan, el britanico oculto al empezar, sin <script>, y
+    el texto de las fichas escapado."""
+    html = ui._tabla_afi_html()
+    assert html.count('class="ll-afi-btn"') == 85, html.count('class="ll-afi-btn"')
+    assert html.count("<details>") == 85
+    assert '<div class="ll-afi-inv" data-acento="ga">' in html
+    assert '<div class="ll-afi-inv" data-acento="rp" hidden>' in html
+    assert "<script" not in html, "Gradio no ejecuta scripts de un gr.HTML: va en JS_AFI"
+    # Cada audio lleva `?v=` si su mp3 esta en disco (cache del navegador).
+    for s in articulacion_mod.INVENTARIO_GA + articulacion_mod.INVENTARIO_RP:
+        if s.audio():
+            assert "?v=" in ui._src_audio(s.ruta), s.simbolo
+    # Escapado: una ficha con HTML no puede salir viva.
+    viejo = articulacion_mod.FICHAS["p"]
+    try:
+        falsa = articulacion_mod.Ficha(*(["<img src=x onerror=alert(1)>"] * 7))
+        articulacion_mod.INVENTARIO_GA = tuple(
+            (articulacion_mod.Sonido(s.acento, s.simbolo, s.nombre, s.ejemplos, s.grupo, falsa, s.clave)
+             if s.simbolo == "p" else s) for s in articulacion_mod.INVENTARIO_GA)
+        html_malo = ui._tabla_afi_html()
+        assert "<img src=x" not in html_malo and "&lt;img src=x" in html_malo
+    finally:
+        articulacion_mod.INVENTARIO_GA = tuple(
+            (articulacion_mod.Sonido(s.acento, s.simbolo, s.nombre, s.ejemplos, s.grupo, viejo, s.clave)
+             if s.simbolo == "p" else s) for s in articulacion_mod.INVENTARIO_GA)
+    assert articulacion_mod.buscar("p").ficha is viejo
+    return "85 simbolos, britanico oculto, sin script y escapado"
+
+
+prueba("afi: la tabla se pinta bien", _la_tabla_del_afi_se_pinta_bien)
+
+
+def _el_afi_se_oye_y_se_engancha():
+    """La carpeta britanica se sirve, y el manejador de clics va en demo.load."""
+    assert str(articulacion_mod.DIR_AUDIO_RP) in ui.RUTAS_PERMITIDAS
+    assert str(fonemas_mod.DIR_AUDIO) in ui.RUTAS_PERMITIDAS
+    fuente = pathlib.Path(ui.__file__).read_text(encoding="utf-8")
+    assert "js=JS_AFI" in fuente.split("def construir")[1], "el JS de la tabla no se engancha"
+    assert "audio.play()" in ui.JS_AFI and "window.__llAfi" in ui.JS_AFI
+    return "carpeta servida y JS enganchado una sola vez"
+
+
+prueba("afi: se sirve el audio y se engancha el js", _el_afi_se_oye_y_se_engancha)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)
