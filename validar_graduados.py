@@ -53,6 +53,10 @@ FUENTES = {
     "voa": RAIZ / "corpus_graduado" / "voa" / "textos" / "articulos.jsonl",
 }
 SOLO_DESDE = 250
+_SIN_JS = re.compile(
+    r"(?m)^[ \t]*(?:\$\(document\)\.ready\(function\(\)\s*\{|var story_editor = .*|"
+    r"var dictionary = new HTMLContent\(\);|if\(story_editor\.is_translate\(\)\)\s*\{|"
+    r"dictionary\.init\(.*\);|\}\);|\}|\d{1,3}/\d{1,3})[ \t]*$\n?")
 N_GRAMA = 8
 SALIDA = RAIZ / "auditoria" / "validacion_graduados_puntuaciones.csv"
 
@@ -118,6 +122,11 @@ def cargar(fuente, ruta, tope):
         # VOA: el reproductor de audio deja este aviso delante de cada articulo
         # bajado antes de que el descargador lo quitara. No es prosa.
         t = re.sub(r"(?im)^\s*No media source currently available\.?\s*$", "", str(t or ""))
+        # StoryWeaver: el bloque de JavaScript del lector web y el contador de
+        # pagina ("2/10") venian dentro del texto de TODOS los libros bajados
+        # antes del arreglo del descargador. Solo lineas enteras, para no tocar
+        # una frase que diga "window".
+        t = _SIN_JS.sub("", t)
         paginas = re.split(r"\n\s*\n", t)
         return "\n\n".join(re.sub(r"\s+", " ", p).strip() for p in paginas if p.strip())
 

@@ -59,7 +59,12 @@ def texto_de_paginas(paginas):
     for p in paginas or []:
         if p.get("pageType") not in ("StoryPage",):
             continue
-        t = re.sub(r"<(br|/p|/div|/h\d)[^>]*>", "\n", p.get("html") or "", flags=re.I)
+        # Cada pagina trae el mismo bloque de JavaScript del lector de la web
+        # ("$(document).ready(function() { var story_editor = ...") y un
+        # contador "2/10". Sin quitarlos, los 189 primeros libros bajados
+        # llevaban codigo dentro del cuento.
+        t = re.sub(r"<(script|style)\b.*?</\1>", " ", p.get("html") or "", flags=re.I | re.S)
+        t = re.sub(r"<(br|/p|/div|/h\d)[^>]*>", "\n", t, flags=re.I)
         t = html.unescape(re.sub(r"<[^>]+>", " ", t))
         t = "\n".join(re.sub(r"[ \t]+", " ", l).strip() for l in t.splitlines())
         t = re.sub(r"\n{2,}", "\n", t).strip()
