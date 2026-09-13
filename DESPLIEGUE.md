@@ -223,7 +223,7 @@ Gradio en `/` y `/config`, y el audio de un fonema. En el log de arranque aparec
 
 ## La tabla del IPA y los arreglos del front, en despliegues pequeños (13 sep 2026)
 
-Cinco despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás preparada:
+Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás preparada:
 
 | Commit del Space | Qué subió | De quién (commit del repo) | Comprobado |
 |---|---|---|---|
@@ -232,6 +232,13 @@ Cinco despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás p
 | `6b71a6d` | `app/api.py` | e6, `dc0efa9` | `/api/fonemas` 41 y 44 con `?v=`; PG8171 abre en la obra, sin licencia; frases limpias |
 | `b8a3b01` | `app/lexicon.py`, `app/ui.py`, `app/articulacion.py` | 4e, `5033e69` | pestaña «Sonidos IPA»; `/api/palabra` con los campos nuevos |
 | `5765c0d` | `app/api.py` | e6, `3c09934` | frases sin los `_` de cursiva de Gutenberg |
+| `ec68aa2` | `app/api.py` + `app/ui.py`, `app/voz.py`, `app/lexicon.py` | e6 `295f3a0` + 4e `3a3d546`, un solo reinicio | 20 frases de PG56711 sin índices; prueba de pago con invitado8 (entrar, medir en frío 5,3 s, palabra por IA 11 s, sinopsis 8,8 s, voz 3,6 s) |
+| `dbd997e` | `app/api.py` | e6, `536ee10` | `/api/voz/falladas` guarda la palabra con su frase; audio de la palabra fallada 200 |
+
+Queda abierto tras la prueba de pago: el consejo de fonema de `/api/voz` sale del texto
+libre del modelo y cambia entre llamadas con el mismo audio (/dʒ/ y luego /tʃ/ para un
+error /tr/→/m/). Lo corrige 4e sacándolo de la comparación de IPA y de
+`articulacion.FICHAS`.
 
 Lo que conviene repetir:
 
