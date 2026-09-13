@@ -65,6 +65,26 @@ medias crecientes), nunca «el modelo acierta A1».
 - Licencias mezcladas; en la muestra, casi todo CC-BY-NC o NC-ND → interno.
 - Sin robots.txt; los términos no hablan de acceso automatizado. 1 petición/s.
 
+### Lo que se aprendió al medirlas (13 sep 2026)
+
+- **StoryWeaver valida** (0,426 [0,348; 0,502]; parcial sin longitud 0,206
+  [0,111; 0,295]). **African Storybook** gradúa sobre todo por longitud (0,81) y
+  la parcial no es distinguible de cero. **Let's Read no valida** (0,178): más de
+  la mitad son traducciones que **heredan el nivel del original** en otro idioma
+  (ρ = 0,023 en traducciones, 0,207 en originales). No promediar las tres.
+- **La misma obra está en varias bibliotecas** con niveles distintos: «The Red
+  Raincoat» es nivel 1 en StoryWeaver y 2 en Let's Read, con el mismo texto. En el
+  catálogo salía dos veces: `catalogar_corpus.py` deduplica por título y autor
+  (StoryWeaver > African Storybook > Let's Read > VOA).
+- **StoryWeaver:** hay slugs con letras no ASCII; sin `urllib.parse.quote` la
+  descarga reventó en el libro 2.584 con `UnicodeEncodeError`.
+- **Let's Read:** 13 libros CC BY 3.0 quedaron internos porque el descargador solo
+  aceptaba 4.0; son libres y podrían entrar.
+- **Documento LaTeX:** al añadir la tabla `cuad:graduados`, `TeX capacity exceeded
+  [input stack size]` en el pie. No se identificó la macro exacta: se resolvió
+  volviendo al texto de cabecera y pie que ya compilaba y cambiando **solo** el
+  ancho con `\resizebox`. Ante un error así, diff mínimo contra la última versión buena.
+
 ### Descartadas
 - Global Digital Library: la API (`api.digitallibrary.io`) no responde.
 - UniversalCEFR `elg_cefr_en` y `cambridge_exams_en`: **son el corpus de
