@@ -221,6 +221,34 @@ Gradio en `/` y `/config`, y el audio de un fonema. En el log de arranque aparec
 `Exception ignored in: BaseEventLoop.__del__ … Invalid file descriptor: -1` (Python
 3.13, dos segundos después de arrancar): Python lo ignora y no rompe nada.
 
+## La tabla del IPA y los arreglos del front, en despliegues pequeños (13 sep 2026)
+
+Cinco despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás preparada:
+
+| Commit del Space | Qué subió | De quién (commit del repo) | Comprobado |
+|---|---|---|---|
+| `405694e` | `app/api.py` | e6, `e39d9f0` | la sinopsis sin perfil da 403 sin «arriba del todo» |
+| `23e434a` | `app/ui.py`, `app/articulacion.py`, 41 + 44 mp3 | 4e, `7e097e0` + `b19b707` | pestaña en `/config`, mp3 americano y británico como `audio/mpeg` |
+| `6b71a6d` | `app/api.py` | e6, `dc0efa9` | `/api/fonemas` 41 y 44 con `?v=`; PG8171 abre en la obra, sin licencia; frases limpias |
+| `b8a3b01` | `app/lexicon.py`, `app/ui.py`, `app/articulacion.py` | 4e, `5033e69` | pestaña «Sonidos IPA»; `/api/palabra` con los campos nuevos |
+| `5765c0d` | `app/api.py` | e6, `3c09934` | frases sin los `_` de cursiva de Gutenberg |
+
+Lo que conviene repetir:
+
+- **Subir lo que hay en el commit, no lo que hay en el disco.** Aquí trabajan varias
+  sesiones sobre el mismo árbol, y siempre hay archivos a medias de alguien. Los guiones
+  leen cada archivo con `git show <commit>:<ruta>`, y la vuelta atrás usa el commit que
+  estaba en el Space.
+- **Una subida de audio que da 403 bajo `/gradio_api/file=`** no significa que el archivo
+  falte: su carpeta no está en `allowed_paths`. Por eso `ui.RUTAS_PERMITIDAS` incluye
+  `articulacion.DIR_AUDIO_RP`.
+- **La lista blanca de los mp3 sale de los inventarios** (`fonemas.INVENTARIO` y
+  `articulacion.INVENTARIO_RP`), no de un glob: si falta un audio, el despliegue se para.
+- **Cada reinicio se avisa antes a las otras sesiones**, y nada se sube mientras Miguel
+  está probando: un reinicio de un minuto le cierra lo que tenga abierto.
+- La prueba «sin `OPENAI_API_KEY`» no se puede hacer en el Space, que tiene la clave; la
+  cubren las pruebas locales (`pruebas_lexicon.py`, `pruebas_extremas.py`).
+
 ## Persistencia: ahora importa más que antes
 
 `~/.literalevel/` es disco **efímero** en un Space y se borra en cada reinicio.
