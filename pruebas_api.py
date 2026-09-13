@@ -229,6 +229,8 @@ def palabra_sin_clave_no_sale_a_la_red():
     assert all("OPENAI_API_KEY" not in a for a in d1["avisos"] + d2["avisos"])
     # Palabra del diccionario: la IPA no la escribio la IA, y el campo viaja.
     assert d1["ipa_generada_por_ia"] is False and d2["ipa_generada_por_ia"] is False
+    # «raincoat» está entera en el diccionario: no es la parte de un compuesto.
+    assert d1["compuesto"] is None and d1["parte_del_diccionario"] is None, d1
     return f"{d1['lema']} · {d1['sentido'] and d1['sentido'][:30]}"
 
 
@@ -430,18 +432,33 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
         return NS(evaluacion=ev, transcripcion_ok=True, correccion=corr, audio_correcto=None,
                   audios_palabras={"raincoat": str(mp3), "war-chant": str(compuesto)})
 
+    import fonemas
+    acentos = []
+    ipa_original = fonemas.ipa_de_palabra
+
+    def ipa_espia(palabra, acento="US"):
+        acentos.append(acento)
+        return ipa_original(palabra, acento=acento)
+
     originales = (voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar)
     voz.practicar = practicar_doble
+    fonemas.ipa_de_palabra = ipa_espia
     config.falta = lambda: False
     ui._puede_pagar = lambda pet: (True, "")
     api._va_a_costar = lambda pet: False
     try:
-        r = _ok(cliente.post("/api/voz", headers=lector, data={"frase": "The red raincoat."},
+        r = _ok(cliente.post("/api/voz", headers=lector, data={"frase": "The red raincoat.", "acento": "UK"},
                              files={"audio": ("voz.webm", b"\x1a" * 2000, "audio/webm")}))
+        malo = cliente.post("/api/voz", headers=lector, data={"frase": "x y z.", "acento": "FR"},
+                            files={"audio": ("voz.webm", b"\x1a" * 2000, "audio/webm")})
     finally:
         voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar = originales
+        fonemas.ipa_de_palabra = ipa_original
         mp3.unlink(missing_ok=True)
         compuesto.unlink(missing_ok=True)
+    # Un solo acento, el pedido, para todas las palabras de la corrección.
+    assert acentos == ["UK", "UK"], acentos
+    assert malo.status_code == 422, malo.status_code
     assert vistas.get("frase") == "The red raincoat.", "no llego a corregir"
     assert r["detalles"][0]["audio"] == f"/api/audio/{mp3.name}", r["detalles"]
     assert r["detalles"][1]["audio"] == f"/api/audio/{compuesto.name}", r["detalles"]
@@ -449,6 +466,29 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     assert [(x["palabra"], x["fallos"], x["frase"]) for x in f] == [("raincoat", 1, "The red raincoat.")], f
     assert _ok(cliente.get("/api/voz/falladas", headers=B))["palabras"] == []
     return f"audio {r['detalles'][0]['audio'][:24]}… · falladas 1 con frase"
+
+
+def dudoso_coherente_con_el_aviso_de_lexicon():
+    """«house»: lexicon marcaba la acepción provisional y `dudoso` salía falso,
+    así que la ficha decía a la vez que era dudosa y que no."""
+    from types import SimpleNamespace as NS
+    base = dict(similitud=0.9, n_sentidos_candidatos=3, audio_generado=True,
+                ipa_uk=None, ipa_us="/haʊs/", audio_uk=None, audio_us=None)
+    # Con otro aviso al lado, que tiene que sobrevivir: sin él, una lista vacía
+    # no distingue «filtró el provisional» de «tiró todos».
+    prov = NS(avisos=["acepcion provisional: margen bajo (0.01)", "sin audio en el diccionario"], **base)
+    limpio = NS(avisos=[], **base)
+    baja = NS(avisos=[], **{**base, "similitud": 0.0})
+    assert api._es_dudoso(prov, "completa", True) is True
+    assert api._es_dudoso(prov, "diccionario", False) is True
+    assert api._es_dudoso(limpio, "completa", True) is False
+    assert api._es_dudoso(baja, "completa", False) is True
+    # En la vista previa, con la explicación en camino, OpenAI revisa la acepción.
+    assert api._es_dudoso(prov, "diccionario", True) is False
+    avisos = api._avisos_palabra(prov, "es", quitar_sin_clave=True)
+    # `ui._humanizar` lo reescribe como «La acepción elegida es dudosa…».
+    assert len(avisos) == 1 and not any("dudosa" in a or "provisional" in a for a in avisos), avisos
+    return "provisional -> dudoso; vista previa con explicación en camino -> no"
 
 
 if __name__ == "__main__":
@@ -463,7 +503,8 @@ if __name__ == "__main__":
                con_perfiles_sin_entrar_no_paga, audio_y_fonemas_sin_traversal,
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
-               error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase):
+               error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
+               dudoso_coherente_con_el_aviso_de_lexicon):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:

@@ -1107,7 +1107,9 @@ def _avisos_palabra(r, idioma: str, quitar_sin_clave: bool, final: bool = True) 
     segundo sobra -la ficha ya dice lo mismo- y el tercero salia en ingles
     porque se traducia con el idioma de la explicacion.
     """
-    avisos = [a for a in r.avisos if "no esta en el diccionario" not in a]
+    # La acepción provisional la dice `dudoso` con su nota en la ficha: el aviso
+    # crudo repetía lo mismo, y cuando `dudoso` salía falso, lo contradecía.
+    avisos = [a for a in r.avisos if "no esta en el diccionario" not in a and not _es_provisional(a)]
     if quitar_sin_clave:
         avisos = [a for a in avisos if "OPENAI_API_KEY" not in a]
     if not r.audio_generado:
@@ -1119,6 +1121,26 @@ def _avisos_palabra(r, idioma: str, quitar_sin_clave: bool, final: bool = True) 
             avisos.append("De esta palabra no hay pronunciación: ni el diccionario la trae "
                           "ni se pudo generar.")
     return [_llano(a) for a in dict.fromkeys(ui._humanizar(a, "es") for a in avisos)]
+
+
+def _es_provisional(aviso: str) -> bool:
+    return "margen bajo" in aviso or "provisional" in aviso
+
+
+def _es_dudoso(r, etapa: str, explicable: bool) -> bool:
+    """¿Se avisa de que la acepción puede no ser la de la frase?
+
+    Sí si lexicon la marcó provisional (margen bajo entre las dos primeras) o si
+    la afinidad es baja habiendo varias. Antes, la marca de lexicon ponía
+    `dudoso` en falso «para no repetir el aviso», y la ficha de «house» decía a
+    la vez que era dudosa y que no. En la vista previa, si va a llegar la
+    explicación, no: OpenAI revisa la acepción con las alternativas."""
+    if etapa == "diccionario" and explicable:
+        return False
+    provisional = any(_es_provisional(a) for a in r.avisos)
+    baja = (r.similitud is not None and r.n_sentidos_candidatos > 1
+            and r.similitud < ui.AFINIDAD_DUDOSA)
+    return bool(provisional or baja)
 
 
 @app.post("/api/palabra")
@@ -1206,9 +1228,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
             banda=r.banda_lector, zipf=r.frecuencia_zipf,
             ruta=ui._archivo_lector("cuaderno.db", pet))
 
-    ya_avisado = any("margen bajo" in a or "provisional" in a for a in r.avisos)
-    dudoso = bool(not ya_avisado and r.similitud is not None
-                  and r.n_sentidos_candidatos > 1 and r.similitud < ui.AFINIDAD_DUDOSA)
+    dudoso = _es_dudoso(r, datos.etapa, explicable)
     zipf = r.frecuencia_zipf
     rareza = (None if zipf is None else "muy_comun" if zipf >= 5 else
               "frecuente" if zipf >= 4 else "poco_frecuente" if zipf >= 3 else "rara")
@@ -1217,6 +1237,10 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         "lema": r.lema_buscado or r.lema, "categoria": r.categoria,
         "ipa_uk": r.ipa_uk, "ipa_us": r.ipa_us,
         "ipa_generada_por_ia": bool(getattr(r, "ipa_generada_por_ia", False)),
+        # «war-chant» no está y la entrada es de «war» (lexicon 5fa2cea): el
+        # sentido es de la parte y la IPA y el audio, del compuesto entero.
+        "compuesto": getattr(r, "compuesto", None),
+        "parte_del_diccionario": getattr(r, "parte_del_diccionario", None),
         "audio_uk": _url_audio(r.audio_uk), "audio_us": _url_audio(r.audio_us),
         "audio_generado": r.audio_generado,
         "sentido": r.sentido, "etiquetas": r.etiquetas_sentido,
@@ -1357,7 +1381,8 @@ def _audio_de_detalle(normal: list[str], audios: dict[str, str]) -> str | None:
 
 @app.post("/api/voz")
 async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
-                    audio: UploadFile = File(...)) -> dict:
+                    audio: UploadFile = File(...),
+                    acento: Literal["US", "UK"] = Form("US")) -> dict:
     """La corrección de pronunciacion, con las guardas de `ui._practicar`."""
     frase = frase.strip()[:ui.LIMITE_FRASE_VOZ]
     if not frase:
@@ -1404,7 +1429,9 @@ async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
     if s.correccion:
         for d in s.correccion.detalles:
             cruda = str(getattr(d, "palabra", "") or "").strip()
-            ipa, variante = fonemas.ipa_de_palabra(cruda)
+            # El mismo acento para toda la corrección, el que el lector eligió
+            # en Pronunciar: «war» salía US y «chant» UK en la misma lista.
+            ipa, variante = fonemas.ipa_de_palabra(cruda, acento=acento)
             normal = voz.normalizar_palabras(cruda)
             detalles.append({
                 "palabra": cruda, "ipa": ipa, "variante": variante,
