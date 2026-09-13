@@ -153,6 +153,19 @@ def _embeddings_alineados_y_separados():
         assert emb2.shape[0] == len(cat2.df)
         siguen = [p.name for p in cache.glob("catalogo_emb_*.npy") if "_ext_" not in p.name]
         assert siguen == propios, f"guardar el externo borro los de Gutenberg: {siguen}"
+        # Y al reves: cambiar el catalogo de Gutenberg lo recodifica, y su
+        # limpieza de versiones viejas no puede llevarse los del externo.
+        ext_antes = sorted(p.name for p in cache.glob("catalogo_emb_ext_*.npy"))
+        medido = pd.read_csv(carpeta / "catalogo_medido.csv")
+        medido.loc[0, "title"] = "Uno, segunda edicion"
+        medido.to_csv(carpeta / "catalogo_medido.csv", index=False)
+        cat3 = cm.Catalogo(carpeta / "catalogo_medido.csv")
+        cod3 = _Codificador()
+        cat3._modelo_emb = lambda: cod3
+        cat3.embeddings
+        assert cod3.llamadas == [3], f"cambiar Gutenberg no recodifico solo Gutenberg: {cod3.llamadas}"
+        ext_despues = sorted(p.name for p in cache.glob("catalogo_emb_ext_*.npy"))
+        assert ext_despues == ext_antes, f"recalcular Gutenberg borro los del externo: {ext_antes} -> {ext_despues}"
     finally:
         cm.DIR_CACHE = viejo
     return "propio y externo en archivos distintos; cambiar el externo no toca Gutenberg"

@@ -301,8 +301,10 @@ class Catalogo:
                                         batch_size=64, show_progress_bar=False)
         emb = np.asarray(emb, dtype=np.float32)
         np.save(cache, emb)
-        # Solo se borran las versiones viejas DEL MISMO archivo: con el prefijo
-        # generico, guardar los embeddings del externo borraba los de Gutenberg.
+        # Solo se borran las versiones viejas DEL MISMO archivo. El glob de los
+        # de Gutenberg ("catalogo_emb_*") tambien casa con los del externo
+        # ("catalogo_emb_ext_*"): sin esta guarda, recalcular Gutenberg borraba
+        # los embeddings del externo y el siguiente arranque los recodificaba.
         for viejo in DIR_CACHE.glob(f"{prefijo}*.npy"):
             if viejo != cache and (prefijo != "catalogo_emb_" or not viejo.name.startswith("catalogo_emb_ext_")):
                 viejo.unlink()             # el catalogo cambio: sobra
