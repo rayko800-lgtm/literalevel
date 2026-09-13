@@ -477,6 +477,17 @@ la longitud el modelo conserva 0,688. Conviene no vender de más la cifra más
 vistosa de ese corpus: dentro de cada artículo el modelo ordena las tres
 versiones en 183 de 185, pero la longitud sola ya acierta 179.
 
+**Y tres bibliotecas infantiles graduadas, que no dicen lo mismo.** En StoryWeaver
+el modelo ordena sus cuatro niveles con 0,426 y conserva 0,206 descontando la
+longitud, con intervalos que no tocan el cero: es la validación externa más
+sólida. En African Storybook la longitud sola predice mejor el nivel (0,81)
+porque ese editor gradúa sobre todo por extensión. Y Let's Read no valida: más de
+la mitad son traducciones que heredan el nivel del libro original en otro idioma.
+Si alguien pregunta «¿y por qué no promediáis las tres?», la respuesta es esa:
+cada una mide una cosa distinta, y promediarlas escondería justo lo que se
+aprendió. Además, 1.812 de esos libros —los de licencia libre— ya están en el
+catálogo de la aplicación, con la dificultad que mide el modelo.
+
 ---
 
 ## 6. Accionables

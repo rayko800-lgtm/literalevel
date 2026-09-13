@@ -921,6 +921,47 @@ banda intermedia—, y OneStopEnglish **sí se usó para desarrollar los modelos
 anteriores** (el v2 se afinó con él), así que es externo para los pesos del v4,
 no virgen para el proyecto.
 
+**Lectura graduada por sus editores.** Tres bibliotecas infantiles abiertas ponen
+a cada libro un nivel propio: StoryWeaver del 1 al 4, African Storybook y Let's
+Read del 1 al 5. **No son niveles del MCER**, así que solo se puede validar el
+orden. Se midieron con `validar_graduados.py`, con la misma comprobación de fuga
+contra ELG CEFR English (0 textos contaminados en las tres) y dos decisiones que
+hay que declarar: los cuentos de menos de 250 palabras se unen en bloques de al
+menos 250 **sin mezclar fuente ni nivel**, y la longitud que se descuenta es la
+natural de los cuentos, no la del bloque. Intervalos bootstrap al 95 % con 2.000
+remuestreos.
+
+| Fuente | Unidades | Spearman v4 [IC 95 %] | Longitud | Parcial sin longitud [IC 95 %] | Medias crecientes |
+|---|---|---|---|---|---|
+| StoryWeaver (1–4) | 467 | **0,426** [0,348; 0,502] | 0,542 | **0,206** [0,111; 0,295] | 99,6 % |
+| African Storybook (1–5) | 174 | 0,416 [0,279; 0,537] | 0,810 | 0,133 [−0,029; 0,289] | 54 % |
+| Let's Read (1–5) | 1.000 | 0,178 [0,118; 0,235] | 0,620 | −0,083 [−0,144; −0,026] | 1,8 % |
+
+*Cuadro 13c. Validación con lectura graduada por sus editores. «Longitud» es el
+Spearman de la longitud natural con el nivel; «Medias crecientes», la proporción
+de remuestreos en que las medias por nivel salen en orden. StoryWeaver es una
+muestra aleatoria de 649 libros intercalada por niveles.*
+
+Las tres dicen cosas distintas, y conviene no promediarlas. **StoryWeaver
+valida**: los cuatro niveles salen separados y en orden, y el modelo aporta orden
+*además* de la longitud (la parcial excluye el cero). **En African Storybook la
+longitud predice el nivel mucho mejor que el modelo**, y eso describe al corpus:
+sus niveles son casi una escala de longitud. El v4 no ve la longitud —puntúa
+ventanas fijas de 250 palabras— y dentro de cada nivel su correlación con ella es
+prácticamente nula; ordena por contenido, pero no se puede afirmar que aporte
+orden más allá de la longitud, y el orden entre los niveles 1 y 2 no está
+establecido. **Let's Read no valida, y no por el modelo**: más de la mitad de sus
+libros son traducciones al inglés que heredan el nivel del original en laosiano,
+jemer o indonesio; en esas 459 traducciones la correlación es 0,023, y en los 360
+originales, 0,207. Su etiqueta describe el libro en su idioma.
+
+Esta sección se corrigió tras una revisión metodológica independiente: la primera
+redacción leía la parcial de African Storybook como «lo explica sobre todo la
+longitud», daba sus medias por «estrictamente crecientes» sin intervalos y no
+advertía que el filtro de prosa rechazaba 42 de sus 65 cuentos de nivel 1,
+sesgando ese nivel hacia arriba. Los detalles están en
+`auditoria/validacion_graduados_2026-09-12.md`.
+
 ### 7.6 Cuadro de decisiones metodológicas
 
 Incluye las hipótesis que se probaron y se rechazaron. Reportarlas es parte del
