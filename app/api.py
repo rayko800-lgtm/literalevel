@@ -349,6 +349,11 @@ def _es_preambulo(parrafo: str) -> bool:
     return bool(_PREAMBULO_RE.search(parrafo.strip()))
 
 
+def _sin_cursiva(texto: str) -> str:
+    """«something _to do_» -> «something to do». La marca de cursiva de Gutenberg."""
+    return re.sub(r"(?<![\w_])_([^_\n]+)_(?![\w_])", r"\1", texto)
+
+
 def _parrafos(libro: reader.Libro, n: int) -> list[str]:
     """Los parrafos que se le enseñan al lector: la obra, no su envoltura.
 
@@ -847,7 +852,9 @@ def frase_del_capitulo(libro_id: str, n: int, pet: Lector) -> dict:
             continue
         for f in ui._oraciones(ui._sin_encabezado(parrafo)):
             if 6 <= len(f.split()) <= 25 and ui._empieza_entera(f) and not _es_preambulo(f):
-                candidatas.append(f)
+                # Gutenberg marca la cursiva con `_guiones bajos_`: para leer en
+                # alto sobran («something _to do_» salio asi en el Space).
+                candidatas.append(_sin_cursiva(f))
     if not candidatas:
         return {"frase": None}
     clave = (getattr(lib, "titulo", ""), int(n))
@@ -1201,7 +1208,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         "generado_por_ia": bool(getattr(r, "generado_por_ia", False)),
         "acepcion_elegida_por_ia": bool(getattr(r, "acepcion_elegida_por_ia", False)),
         "zipf": zipf, "rareza": rareza, "desde_cache": r.desde_cache,
-        "oracion": oracion, "origen_oracion": origen,
+        "oracion": _sin_cursiva(oracion), "origen_oracion": origen,
         "explicacion_pendiente": datos.etapa == "diccionario" and explicable,
         "motivo_sin_explicacion": motivo_sin_explicacion or None,
         "avisos": avisos,
