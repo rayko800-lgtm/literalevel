@@ -22,6 +22,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -146,9 +147,13 @@ def main():
 
     def bajar(par):
         nivel, slug = par
-        ficha = pedir(f"{BASE}/stories/{slug}")
+        # El slug puede traer letras no ASCII (titulos traducidos): sin
+        # codificarlo, urllib reventaba con UnicodeEncodeError y la descarga
+        # entera se paro en el libro 2.584 la noche del 12 de septiembre.
+        slug_url = urllib.parse.quote(slug, safe="-")
+        ficha = pedir(f"{BASE}/stories/{slug_url}")
         time.sleep(PAUSA)
-        lect = pedir(f"{BASE}/stories/{slug}/read")
+        lect = pedir(f"{BASE}/stories/{slug_url}/read")
         time.sleep(PAUSA)
         return nivel, slug, ficha, lect
 

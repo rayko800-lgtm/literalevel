@@ -2060,6 +2060,85 @@ print(pd.DataFrame({
 # externo para los pesos del v4, no virgen para el proyecto.
 
 # %% [markdown]
+# ### Lectura graduada por sus editores: StoryWeaver, African Storybook y Let's Read
+#
+# Tres bibliotecas infantiles abiertas ponen a cada libro un **nivel de lectura
+# propio** (StoryWeaver del 1 al 4; African Storybook y Let's Read del 1 al 5).
+# **No son niveles del MCER**, así que lo único que se puede validar es el
+# **orden**: si el nivel 1 del editor puntúa por debajo del 2, y así sucesivamente.
+#
+# Las puntuaciones las calculó `validar_graduados.py`, con la misma comprobación de
+# fuga contra el entrenamiento que OneStopEnglish (0 textos contaminados en las tres
+# fuentes). Esta celda **no vuelve a medir nada**: lee las puntuaciones guardadas
+# —sin texto, porque parte de ese material tiene derechos— y recalcula Spearman con
+# su intervalo bootstrap al 95 %, además de la misma cifra para contar palabras.
+# Los cuentos de menos de 250 palabras se midieron unidos en bloques de su misma
+# fuente y nivel; para esos bloques la longitud que cuenta es la natural de sus
+# cuentos, no la del bloque.
+
+# %%
+import numpy as np
+
+def _spearman(a, b):
+    ra = pd.Series(list(a)).rank().to_numpy()
+    rb = pd.Series(list(b)).rank().to_numpy()
+    return float(np.corrcoef(ra, rb)[0, 1])
+
+def _ic_bootstrap(d, col, n=2000, semilla=20260912):
+    rng = np.random.default_rng(semilla)
+    idx = np.arange(len(d))
+    vals = []
+    for _ in range(n):
+        m = d.iloc[rng.choice(idx, len(idx))]
+        if m["nivel"].nunique() == d["nivel"].nunique():
+            vals.append(_spearman(m[col], m["nivel"]))
+    return np.percentile(vals, [2.5, 97.5])
+
+filas_graduadas = []
+for fuente in ("storyweaver", "african_storybook", "letsread"):
+    ruta = RAIZ / "auditoria" / f"validacion_graduados_puntuaciones_{fuente}.csv"
+    if not ruta.exists():
+        print(f"(no está {ruta.name}: se genera con validar_graduados.py --fuente {fuente})")
+        continue
+    d = pd.read_csv(ruta)
+    d = d[d["puntuacion"].notna() & d["nivel"].notna()].copy()
+    d["nivel"] = d["nivel"].astype(int)
+    d["longitud"] = np.where(d["tipo"] == "bloque", d["palabras"] / d["n_textos"].clip(lower=1),
+                             d["palabras"])
+    rho = _spearman(d["puntuacion"], d["nivel"])
+    lo, hi = _ic_bootstrap(d, "puntuacion")
+    medias = d.groupby("nivel")["puntuacion"].mean().round(3).tolist()
+    filas_graduadas.append({
+        "Fuente": fuente, "Unidades": len(d),
+        "Spearman v4 [IC 95 %]": f"{rho:.3f} [{lo:.3f}; {hi:.3f}]",
+        "Spearman longitud": f"{_spearman(d['longitud'], d['nivel']):.3f}",
+        "Medias por nivel": " < ".join(f"{m:.2f}" for m in medias),
+    })
+print(pd.DataFrame(filas_graduadas).to_string(index=False))
+
+# %% [markdown]
+# Cómo leerlo, y qué **no** se puede decir:
+#
+# - **StoryWeaver es la validación más sólida**: los cuatro niveles salen separados y
+#   en orden, y el v4 conserva orden además de la longitud (correlación parcial
+#   0,206, con intervalo [0,111; 0,295] que no toca el cero).
+# - **En African Storybook la longitud predice el nivel mucho mejor que el v4**, y eso
+#   describe al corpus: sus niveles son casi una escala de longitud. El v4 no ve la
+#   longitud (puntúa ventanas fijas de 250 palabras) y dentro de cada nivel su
+#   correlación con ella es prácticamente nula. Lo que no se puede afirmar ahí es
+#   que aporte orden *además* de la longitud, y el orden entre los niveles 1 y 2 no
+#   está establecido.
+# - **Let's Read no valida, y no por culpa del modelo**: más de la mitad de sus
+#   libros son traducciones al inglés que heredan el nivel del original en laosiano,
+#   jemer o indonesio. En esas traducciones la correlación con el v4 es 0,02; en los
+#   originales, 0,21. Su etiqueta describe el libro en su idioma, no la versión
+#   inglesa. Sus libros con licencia libre entran al catálogo con la dificultad que
+#   mide el v4, no con la etiqueta del editor.
+# - Los detalles, con la revisión metodológica independiente que corrigió cuatro
+#   lecturas equivocadas de la primera versión, están en
+#   `auditoria/validacion_graduados_2026-09-12.md`.
+
+# %% [markdown]
 # ## 7.3 Decisiones de despliegue que también son evaluación
 #
 # Dos mediciones más, hechas sobre el modelo ya entrenado, que cambiaron el

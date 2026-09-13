@@ -154,6 +154,60 @@ prosa apenas cambia: 0,423 [0,348; 0,495], 99,4 %.
    infantil repartidos por una franja de medio punto: la compresión de escala del
    v4 ya documentada.
 
+## Let's Read (The Asia Foundation)
+
+**1.287 libros en inglés** con nivel del editor 1–5 (305 / 415 / 283 / 155 / 129).
+Licencias: 504 CC BY 4.0 (al catálogo), 549 CC BY-NC, 95 CC BY-NC-SA, 54 CC BY-NC-ND,
+67 «Copyright», 13 CC BY 3.0 (libre, pero quedó fuera por prudencia del descargador),
+4 desconocida y 1 CC BY-NC 3.0. Fuga contra ELG: 0 (máximo compartido 0,002).
+**1.000 de 1.033 unidades puntuadas.**
+
+| Nivel del editor | Unidades | Media del v4 (0–2) | IC 95 % | Longitud natural |
+|---|---|---|---|---|
+| 1 | 151 | 0,634 | [0,596; 0,674] | 254 |
+| 2 | 311 | 0,579 | [0,549; 0,609] | 382 |
+| 3 | 264 | 0,659 | [0,628; 0,692] | 548 |
+| 4 | 150 | 0,718 | [0,683; 0,751] | 728 |
+| 5 | 124 | 0,753 | [0,717; 0,794] | 892 |
+
+| Métrica (1.000 unidades) | Valor | IC 95 % |
+|---|---|---|
+| Spearman v4 contra nivel | **0,178** | [0,118; 0,235] |
+| Spearman longitud natural contra nivel | 0,620 | — |
+| v4 descontando la longitud natural (parcial) | **−0,083** | [−0,144; −0,026] |
+| Medias crecientes en los remuestreos | **1,8 %** | — |
+
+Sin el filtro de prosa no cambia (0,154; 0,7 %).
+
+### Por qué no valida: el nivel de una traducción no es el del inglés
+
+Separando los 819 libros medidos solos (≥250 palabras) sin los 19 libros fonéticos
+«Growing Reader», que están todos en el nivel 1 y empiezan con listas de sonidos y
+palabras objetivo:
+
+| Subconjunto | Libros | ρ v4–nivel | ρ longitud–nivel | Medias por nivel |
+|---|---|---|---|---|
+| **Traducciones al inglés** (id ≠ libro original) | 459 | **0,023** | 0,652 | 0,73 / 0,61 / 0,65 / 0,69 / 0,68 |
+| **Originales** | 360 | 0,207 | 0,422 | 0,67 / 0,65 / 0,67 / 0,81 / 0,79 |
+
+### Hallazgos
+
+1. **Let's Read no sirve para validar la dificultad del inglés, y no por el modelo.**
+   Más de la mitad son traducciones al inglés de libros escritos en laosiano, jemer,
+   indonesio o bengalí, y **heredan el nivel del libro original**: ese nivel describe
+   el texto en su idioma, no la versión inglesa. En las traducciones la correlación
+   con el v4 es cero (0,023) y la longitud sigue ordenando (0,65), porque el editor
+   mantiene la extensión.
+2. **En los originales el v4 sí ordena, pero débil** (0,207): los niveles 1–3 no se
+   distinguen y el salto está entre el 3 y el 4.
+3. **La parcial negativa** (−0,083) no significa que el modelo ordene al revés:
+   dentro de este corpus, a igual longitud, los niveles altos no son más difíciles
+   según el v4, que es lo que cabe esperar si el nivel no mide el inglés.
+4. **Qué se hace con él:** se documenta como corpus que no valida, sus 504 libros
+   CC BY entran al catálogo **con la dificultad que mide el v4, no con la etiqueta
+   del editor** (regla de Miguel: los libres sin nivel fiable los gradúa el modelo),
+   y el resto se queda interno.
+
 ## VOA Learning English (sin nivel por artículo)
 
 Muestra de hasta 60 artículos por sección (477 bajados, 472 con texto). **468 de

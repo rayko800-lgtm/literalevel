@@ -1,0 +1,130 @@
+[
+ {
+  "titulo": "letsread · todas las unidades",
+  "columna": "puntuacion",
+  "n": 1000,
+  "spearman": 0.178,
+  "ic95_spearman": [
+   0.118,
+   0.235
+  ],
+  "longitud": 0.62,
+  "parcial": -0.083,
+  "ic95_parcial": [
+   -0.144,
+   -0.026
+  ],
+  "creciente_en_muestra": false,
+  "p_creciente_bootstrap": 0.018,
+  "medias": [
+   0.634,
+   0.579,
+   0.659,
+   0.718,
+   0.753
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.439,
+   "2": 0.451,
+   "3": 0.283,
+   "4": 0.301,
+   "5": 0.226
+  }
+ },
+ {
+  "titulo": "letsread · solo textos de >=250 palabras",
+  "columna": "puntuacion",
+  "n": 838,
+  "spearman": 0.094,
+  "ic95_spearman": [
+   0.028,
+   0.159
+  ],
+  "longitud": 0.558,
+  "parcial": -0.083,
+  "ic95_parcial": [
+   -0.148,
+   -0.018
+  ],
+  "creciente_en_muestra": false,
+  "p_creciente_bootstrap": 0.0,
+  "medias": [
+   0.725,
+   0.626,
+   0.66,
+   0.723,
+   0.758
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": -0.046,
+   "2": 0.393,
+   "3": 0.314,
+   "4": 0.269,
+   "5": 0.203
+  }
+ },
+ {
+  "titulo": "letsread · solo bloques de cuentos cortos",
+  "columna": "puntuacion",
+  "n": 162,
+  "spearman": 0.048,
+  "ic95_spearman": [
+   -0.111,
+   0.194
+  ],
+  "longitud": 0.265,
+  "parcial": -0.031,
+  "ic95_parcial": [
+   -0.198,
+   0.126
+  ],
+  "creciente_en_muestra": false,
+  "p_creciente_bootstrap": 0.001,
+  "medias": [
+   0.496,
+   0.442,
+   0.641,
+   0.484,
+   0.49
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.419,
+   "2": 0.237,
+   "3": -0.047,
+   "4": NaN,
+   "5": NaN
+  }
+ },
+ {
+  "titulo": "letsread · todas, SIN filtro de prosa (sensibilidad)",
+  "columna": "puntuacion_sin_filtro",
+  "n": 1029,
+  "spearman": 0.154,
+  "ic95_spearman": [
+   0.095,
+   0.215
+  ],
+  "longitud": 0.633,
+  "parcial": -0.105,
+  "ic95_parcial": [
+   -0.163,
+   -0.043
+  ],
+  "creciente_en_muestra": false,
+  "p_creciente_bootstrap": 0.006,
+  "medias": [
+   0.644,
+   0.582,
+   0.659,
+   0.718,
+   0.755
+  ],
+  "rho_v4_longitud_por_nivel": {
+   "1": 0.412,
+   "2": 0.44,
+   "3": 0.283,
+   "4": 0.296,
+   "5": 0.221
+  }
+ }
+]
