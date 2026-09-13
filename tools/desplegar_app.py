@@ -66,6 +66,13 @@ LISTA_BLANCA = [
     # una vez, a mano, con upload_file.
     "catalogo_medido.csv",
     "capitulos_medidos.parquet",
+    # Los corpus libres (StoryWeaver, African Storybook, VOA, Let's Read) que
+    # genera tools/catalogar_corpus.py: filas del catalogo y el texto que la app
+    # sirve con su atribucion. Solo licencias libres: el catalogador aborta si no.
+    # Sus embeddings (catalogo_emb_ext_<huella>.npy) cambian de nombre con cada
+    # version del externo y se suben a mano, como los de Gutenberg.
+    "catalogo_externo.csv",
+    "corpus_abierto.parquet",
 ]
 
 # Formas de credencial que no deben viajar a un repositorio publico.
