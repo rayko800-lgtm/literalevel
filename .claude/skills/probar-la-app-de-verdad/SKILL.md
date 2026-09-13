@@ -147,6 +147,38 @@ const t = document.body.innerText;
 ['Consultar una palabra', 'Índice'].map(m => [t.indexOf(m), m]).sort()
 ```
 
+### Pulsar como un dedo, no como un script
+
+El 13 de septiembre, la primera pasada sobre el Space a 390 px dio **dos
+resultados falsos**. Decía que ⚙ Ajustes abría, y estaba tapado. Decía que el
+menú «…» no llevaba a Pronunciación, y sí llevaba.
+
+- **`element.click()` desde JavaScript atraviesa lo que tapa al elemento.** En
+  el Space, la cabecera fija de Hugging Face (`#huggingface-space-header`, la
+  insignia con el nombre del Space) ocupa la franja superior de la página. En
+  local no existe. Un botón debajo de ella «funciona» por script y no se
+  puede pulsar con el dedo. Antes de dar un botón por bueno, mira qué hay de
+  verdad en su centro:
+
+  ```js
+  const r = boton.getBoundingClientRect();
+  document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+  ```
+
+  Y pulsa con toques reales por el protocolo de depuración:
+  `Input.dispatchTouchEvent` (`touchStart` y luego `touchEnd`) en esas
+  coordenadas.
+- **Gradio guarda una copia invisible de las pestañas para medir cuáles
+  caben.** Un `querySelectorAll('button')` filtrado por texto puede devolver
+  esa copia, a la altura de la barra, en vez de la opción del desplegable «…».
+  Filtra por posición (debajo del botón «…») y por tamaño.
+- **Sin `Emulation.setTouchEmulationEnabled` no hay móvil.** Con solo cambiar
+  el ancho de la ventana, Chrome sigue diciendo `hover:hover` y
+  `pointer:fine`, y las reglas `@media` táctiles no se aplican.
+- **Un `Textbox` de Gradio 6 de una línea puede ser un `<textarea>`.** Busca
+  por `[placeholder=...]`, sin la etiqueta delante, o la escritura cae en el
+  vacío y el «No he podido entrar» parece un fallo del Space.
+
 ---
 
 ## 5. Lo que hay que comprobar después de cada despliegue

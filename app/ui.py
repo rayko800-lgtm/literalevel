@@ -592,10 +592,17 @@ button.primary,.primary button{{
    una pestana entera. */
 @media (min-width:641px){{.tab-container{{justify-content:center}}}}
 /* El boton de ajustes en la esquina de la cabecera, fuera del flujo: como
-   elemento de la fila, en el movil dejaba la cabecera a media anchura. */
+   elemento de la fila, en el movil dejaba la cabecera a media anchura.
+   ABAJO a la derecha, no arriba: en el Space la cabecera fija de Hugging Face
+   (#huggingface-space-header, la insignia con el nombre del Space) queda
+   encima de la esquina superior derecha y el boton no se podia pulsar, ni en
+   el telefono ni en la laptop. Medido con document.elementFromPoint; un
+   clic desde JavaScript lo atravesaba y la prueba decia que funcionaba. El
+   relleno inferior reserva su sitio para que no pise la ultima linea. */
 #ll-cabecera{{position:relative}}
-#ll-b-ajustes{{position:absolute !important;top:.7rem;right:.7rem;z-index:5;
-  width:auto !important;min-width:0 !important}}
+#ll-cabecera .block.hide-container{{padding-bottom:3.1rem !important}}
+#ll-b-ajustes{{position:absolute !important;top:auto !important;bottom:.7rem;
+  right:.7rem;z-index:5;width:auto !important;min-width:0 !important}}
 #ll-ajustes{{
   background:var(--ll-panel);border:1px solid var(--ll-borde);
   border-radius:{_RADIO};padding:.8rem}}

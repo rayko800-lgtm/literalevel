@@ -149,6 +149,7 @@ del dispositivo (fila 4) queda pendiente de que Laura lo pruebe otra vez.
 | 12 | «No entiendo… el sonido W que es diferente a la letra B» | La explicación compara con una letra, no con un sonido que el lector conozca. **Y además no sabía qué se había oído**: con «fix» por «fox» culpaba a la /f/, que estaba bien | Prompt reescrito: anclar el sonido a una palabra del español, decir en qué se diferencia si no existe y prohibir «más fuerte» sin decir qué mover. La evaluación guarda qué se entendió en lugar de cada palabra (`Evaluacion.entendidas`) y el prompt lo recibe | Prueba de punta a punta con un audio que dice «fix» y «dock»: antes culpaba a /f/ y /d/; ahora culpa a **/ɪ/** en *fox*, que es lo correcto. En *dog* elige /ɔ/ en vez de la /ɡ/ final, y a veces ancla con una palabra inglesa («la i de sit»): **límite del modelo, no resuelto** |
 | 13 | «Me gustaría que estuvieran los símbolos del alfabeto… la de los símbolos» | La corrección no muestra el AFI | Símbolo AFI del fonema, transcripción de la palabra **sacada solo del diccionario local** (Kaikki; si no la trae, se dice) y un **mp3 pregrabado por fonema**: 41 sonidos de General American generados una vez con `gpt-4o-mini-tts`, con un coste aproximado de 0,19 USD y 1,04 MB en total, que se reproducen sin gastar créditos y sin clave | En la app local: «fox /fɑks/ (US) · Sonido /ɪ/» con su reproductor, y el mp3 responde `200 audio/mpeg`. **Nadie ha escuchado aún los audios**: un reconocedor de fonemas automático marca 15 de 41 como dudosos. Los primeros que hay que escuchar son /ð/, /ŋ/, /ə/ y /ʒ/ |
 | 14 | «Tengo que borrar todo… podrías poner un botón abajo de corrígeme… siguiente palabra» | No había forma de empezar otra frase sin borrar a mano | Botón **«Otra frase ↺»** debajo de la corrección: vacía la frase, la grabación y el resultado, y sube a la caja | Probado: la caja pasa de «It is a truth universally acknowledged…» a vacía |
+| 15 | *(Encontrado al probar el Space el 13 de septiembre, no lo dijo Laura)* El botón ⚙ Ajustes de la fila 10 **no se podía pulsar en el Space** | La cabecera fija de Hugging Face (`#huggingface-space-header`, la insignia con el nombre del Space) queda encima de la esquina superior derecha de la página, justo donde estaba el botón. En local no existe, y la prueba en el Space lo daba por bueno porque pulsaba con `element.click()` desde JavaScript, que atraviesa lo que haya encima | El botón pasa a la esquina **inferior** derecha de la cabecera, con relleno reservado para que no pise el texto | `document.elementFromPoint` en el centro del botón devuelve la cabecera de HF antes del arreglo y el propio botón después, a 390 y a 1440 px en local; *pendiente de repetir en el Space tras el despliegue* |
 
 ## Lo que se confirmó que sí funciona
 
@@ -169,3 +170,10 @@ del dispositivo (fila 4) queda pendiente de que Laura lo pruebe otra vez.
 3. **Con Esmeralda son dos lectoras, *n* = 2.** Sigue siendo diagnóstico y no
    estadística, pero ya hay una coincidencia: a las dos les costó el móvil y a
    ninguna le gustó la paleta por defecto.
+4. **Una prueba en el navegador también puede mentir.** La primera pasada sobre
+   el Space dio por buenos el botón de Ajustes y descartó que el menú «…»
+   abriera Pronunciación, y se equivocó en las dos: pulsaba con
+   `element.click()`, que atraviesa lo que tape el botón, y buscaba las
+   pestañas por su texto, que encontraba la copia invisible que Gradio usa para
+   medirlas. Con toques reales (`Input.dispatchTouchEvent`) y
+   `document.elementFromPoint`, Ajustes resultó tapado y el menú funcionaba.
