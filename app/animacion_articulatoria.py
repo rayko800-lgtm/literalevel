@@ -17,7 +17,7 @@ API PUBLICA
 - `parametros(simbolo, acento="ga") -> Articulacion | None`
 - `svg_articulacion(simbolo, acento="ga") -> str | None`: animado.
 - `svg_articulacion_quieto(simbolo, acento="ga") -> str | None`: en la posicion.
-- `trocear(ipa, acento="ga") -> list[Segmento]`: la transcripcion en fonemas.
+- `trocear(ipa, acento="ga") -> tuple[str, list[Segmento]]`: el texto a mostrar y sus fonemas.
 - `svg_palabra(ipa, acento="ga") -> str | None`: la palabra entera, animada.
 
 COLORES. Nada de fondo: los trazos usan `var(--ll-trazo, #6b7683)`, un gris que
