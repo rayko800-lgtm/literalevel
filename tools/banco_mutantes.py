@@ -29,8 +29,11 @@ RAIZ = pathlib.Path(__file__).resolve().parent.parent
 BASE = pathlib.Path(os.environ.get("TEMP", "/tmp")) / "literalevel_banco"
 NL = chr(10)
 
-COPIAR = ["app", "pruebas_extremas.py", "pruebas_integracion.py", "tests_smoke.py",
-          "pruebas_ficha.py", "pruebas_perfil.py", "pruebas_lexicon.py",
+# `pruebas_corpus.py` y `tools` hacen falta para los mutantes C3: sin ellos, la
+# primera pasada del 12 de septiembre de 2026 dio los ocho "cazado por OTRA: []"
+# porque la suite no existia en la copia, no porque cazara nada.
+COPIAR = ["app", "tools", "pruebas_extremas.py", "pruebas_integracion.py", "tests_smoke.py",
+          "pruebas_ficha.py", "pruebas_perfil.py", "pruebas_lexicon.py", "pruebas_corpus.py",
           "main.py", "validar_local.py", "catalogo_recomendaciones.csv"]
 
 # (id, archivo, viejo, nuevo, prueba que debe cazarlo)
@@ -525,6 +528,19 @@ MUTANTES = [
      '            if viejo != cache and (prefijo != "catalogo_emb_" or not viejo.name.startswith("catalogo_emb_ext_")):',
      "            if viejo != cache:",
      "embeddings alineados, y el externo no borra los de Gutenberg", "pruebas_corpus.py"),
+    # Los tres arreglos de la auditoria de Codex de esa misma noche.
+    ("C3-cache-ext-por-archivo", "app/catalogo.py",
+     '            ext = self._embeddings_de("catalogo_emb_ext_", h.hexdigest()[:16], textos[n:])',
+     '            ext = self._embeddings_de("catalogo_emb_ext_", _huella(externo), textos[n:])',
+     "la cache del externo depende de sus filas efectivas", "pruebas_corpus.py"),
+    ("C3-licencia-por-prefijo", "tools/catalogar_corpus.py",
+     "    if norma not in LIBRES:",
+     '    if not norma.startswith(("cc by", "dominio publico")):',
+     "dominio publico con excepcion no entra", "pruebas_corpus.py"),
+    ("C3-copia-vieja", "app/ui.py",
+     '            if vigente != abierto["texto"]:',
+     "            if vigente is None:",
+     "una copia vieja de un libro libre se renueva", "pruebas_corpus.py"),
     ("C3-cuela-derechos", "tools/catalogar_corpus.py",
      "    if len(malas):",
      "    if False:",

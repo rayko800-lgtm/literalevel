@@ -174,6 +174,51 @@ def _embeddings_alineados_y_separados():
 prueba("embeddings alineados, y el externo no borra los de Gutenberg", _embeddings_alineados_y_separados)
 
 
+def _cache_externa_por_filas_efectivas():
+    """El caso de la auditoria de Codex: el MISMO externo [X1, X2, X3] con dos
+    principales distintos deja filas distintas de la MISMA longitud. La cache
+    no puede darle a X1 el vector de X2."""
+    carpeta = _nuevo()
+    viejo = cm.DIR_CACHE
+    cm.DIR_CACHE = carpeta / "cache"
+    try:
+        def principal(id_repetido):
+            pd.DataFrame({
+                "id": ["PG1", id_repetido], "title": ["Uno", "Repetido"], "author": ["a", "b"],
+                "hook": ["", ""], "huella_texto": ["", ""], "nivel_cefr": ["", ""],
+                "downloads": [1, 1], "dificultad": [1.5, 1.5], "temas": ["Fiction", "Fiction"],
+            }).to_csv(carpeta / "catalogo_medido.csv", index=False)
+
+        pd.DataFrame({
+            "id": ["X1", "X2", "X3"],
+            "title": ["Uno corto", "Dos con un titulo bastante mas largo", "Tres medio largo"],
+            "author": ["", "", ""], "hook": ["", "", ""], "huella_texto": ["", "", ""],
+            "nivel_cefr": ["A2", "A2", "A2"], "downloads": [0, 0, 0], "dificultad": [0.4, 0.4, 0.4],
+            "temas": ["Children's stories"] * 3, "licencia": ["CC BY 4.0"] * 3,
+        }).to_csv(carpeta / "catalogo_externo.csv", index=False)
+
+        principal("X1")
+        cat1 = cm.Catalogo(carpeta / "catalogo_medido.csv")
+        cat1._modelo_emb = lambda: _Codificador()
+        cat1.embeddings
+        principal("X2")
+        cat2 = cm.Catalogo(carpeta / "catalogo_medido.csv")
+        cod = _Codificador()
+        cat2._modelo_emb = lambda: cod
+        emb = cat2.embeddings
+        ids = cat2.df["id"].astype(str).tolist()
+        assert ids[2:] == ["X1", "X3"], ids
+        esperado = _Codificador().encode(cat2._texto_indexable()[2:])
+        assert np.allclose(emb[2:], esperado), (
+            f"el externo reutilizo vectores de otras filas: {emb[2:, 0]} vs {esperado[:, 0]}")
+    finally:
+        cm.DIR_CACHE = viejo
+    return "otro principal con la misma longitud de externo recodifica, no reutiliza"
+
+
+prueba("la cache del externo depende de sus filas efectivas", _cache_externa_por_filas_efectivas)
+
+
 def _abribles():
     cat = _montar(_nuevo())
     assert cat.es_abrible("PG1342") and cat.es_abrible("swv369")
@@ -242,6 +287,20 @@ def _abre_sin_red(carpeta):
 
 
 prueba("un libro libre se abre sin descargar nada", lambda: _con_catalogo(_abre_sin_red))
+
+
+def _copia_vieja_se_renueva(carpeta):
+    """Tercer caso de Codex: si el texto del catalogo cambia (una correccion, una
+    atribucion nueva), la copia local no puede quedarse con la version vieja."""
+    ruta = Path(ui._descargar_gutenberg("SWV369"))
+    ruta.write_text("version vieja del cuento", encoding="utf-8")
+    ruta2 = Path(ui._descargar_gutenberg("SWV369"))
+    texto = ruta2.read_text(encoding="utf-8")
+    assert ruta2 == ruta and texto.startswith("On Sunday"), texto[:60]
+    return "la copia local se reescribe cuando no coincide con el catalogo"
+
+
+prueba("una copia vieja de un libro libre se renueva", lambda: _con_catalogo(_copia_vieja_se_renueva))
 
 
 def _cabecera_con_titulo(carpeta):
@@ -327,6 +386,33 @@ def _respeta_al_catalogo_falso():
 
 
 prueba("lo interno no entra al catalogo", _respeta_al_catalogo_falso)
+
+
+def _dominio_publico_con_excepcion():
+    """El otro caso de Codex: una etiqueta que empieza por "dominio publico" pero
+    declara material de agencia no puede colarse aunque venga al_catalogo."""
+    cc = _cargar_catalogador()
+    carpeta = _nuevo()
+    ruta = carpeta / "articulos.jsonl"
+    fila = {"url": "https://learningenglish.voanews.com/a/z/3.html", "titulo": "Mixto",
+            "seccion": "As It Is", "licencia": "dominio publico salvo material adaptado de Reuters",
+            "al_catalogo": True, "texto": "Mixed text. " * 60}
+    ruta.write_text(json.dumps(fila), encoding="utf-8")
+    cc.FUENTES = {"voa": ruta}
+    try:
+        cc.cargar(None)
+    except SystemExit as e:
+        assert "licencia no libre" in str(e), e
+    else:
+        raise AssertionError("una licencia 'dominio publico salvo Reuters' entro al catalogo")
+    assert cc.licencia_libre("CC-BY") and cc.licencia_libre("CC BY 4.0")
+    assert cc.licencia_libre("dominio publico (VOA)")
+    assert not cc.licencia_libre("dominio publico (VOA)", {"agencia": "Reuters"})
+    assert not cc.licencia_libre("CC-BY-NC-4.0") and not cc.licencia_libre("")
+    return "solo etiquetas exactas, y nunca con agencia"
+
+
+prueba("dominio publico con excepcion no entra", _dominio_publico_con_excepcion)
 
 
 print()

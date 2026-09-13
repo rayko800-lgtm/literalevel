@@ -273,7 +273,14 @@ class Catalogo:
         if externo is not None and len(textos) > n:
             # El externo en su propio archivo: anadir o cambiar un corpus
             # recodifica sus filas (segundos), no las 53.179 de Gutenberg.
-            ext = self._embeddings_de("catalogo_emb_ext_", _huella(externo), textos[n:])
+            # La huella sale de las filas que DE VERDAD quedan tras filtrar las
+            # que ya estaban en el principal, no del archivo externo: con el
+            # mismo externo y otro principal pueden quedar otras filas con la
+            # misma longitud, y la cache devolvia los vectores de otros libros.
+            # Lo encontro la auditoria de Codex del 12 de septiembre de 2026.
+            ids_ext = self.df["id"].astype(str).tolist()[n:]
+            h = hashlib.sha256("\x1f".join(ids_ext + textos[n:]).encode("utf-8"))
+            ext = self._embeddings_de("catalogo_emb_ext_", h.hexdigest()[:16], textos[n:])
             emb = np.vstack([emb, ext])
         self._emb = emb
         return emb

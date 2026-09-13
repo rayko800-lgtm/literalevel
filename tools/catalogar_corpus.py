@@ -42,7 +42,21 @@ FUENTES = {
 CSV_SALIDA = RAIZ / "catalogo_externo.csv"
 TEXTOS_SALIDA = RAIZ / "corpus_abierto.parquet"
 BLOQUE = 250
-LIBRES = re.compile(r"(?i)^(cc[ -]?by( 4\.0)?|dominio publico.*)$")
+# Licencias que dejan entrar al catalogo, EXACTAS una vez normalizadas. Antes era
+# una regex con "dominio publico.*", y "dominio publico salvo material adaptado
+# de Reuters" pasaba (auditoria de Codex, 12 de septiembre de 2026).
+LIBRES = {"cc by", "cc by 4.0", "dominio publico (voa)"}
+AGENCIAS = re.compile(r"(?i)associated press|reuters|\bafp\b|agence france")
+
+
+def licencia_libre(licencia, fila=None) -> bool:
+    norma = re.sub(r"[\s\-_]+", " ", str(licencia or "")).strip().lower()
+    if norma not in LIBRES:
+        return False
+    # Y aunque la etiqueta sea libre, nada que venga de una agencia.
+    if fila is not None and (fila.get("agencia") or AGENCIAS.search(str(fila.get("credito") or ""))):
+        return False
+    return True
 
 
 _SIN_JS = re.compile(
@@ -124,12 +138,14 @@ def cargar(tope):
                 "nivel_editor": None if nivel in (None, "", "None") else str(int(float(nivel))),
                 "temas": temas(fuente, f), "texto": texto,
                 "palabras": len(words(texto)),
+                "_libre": licencia_libre(
+                    f.get("licencia") or ("CC BY 4.0" if fuente == "storyweaver" else ""), f),
             })
             n += 1
             if tope and n >= tope:
                 break
     df = pd.DataFrame(filas).drop_duplicates("id")
-    malas = df[~df["licencia"].astype(str).str.strip().str.match(LIBRES)]
+    malas = df[~df["_libre"].astype(bool)]
     if len(malas):
         sys.exit(f"NO CATALOGO NADA: {len(malas)} textos con licencia no libre llegaron "
                  f"hasta aqui, p. ej. {malas[['id', 'licencia']].head(3).to_dict('records')}")

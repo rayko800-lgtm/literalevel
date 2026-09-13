@@ -1001,7 +1001,15 @@ def _descargar_gutenberg(id_libro: str) -> str:
         if abierto and abierto.get("texto"):
             RUTA_LIBROS.mkdir(parents=True, exist_ok=True)
             destino = RUTA_LIBROS / f"{re.sub(r'[^0-9A-Za-z]', '', texto_id).lower()}.txt"
-            if not (destino.exists() and destino.stat().st_size > 0):
+            # Se reescribe si el texto del catalogo cambio (una correccion o una
+            # atribucion nueva); antes cualquier copia no vacia valia para
+            # siempre y el lector seguia ensenando la version vieja (auditoria de
+            # Codex, 12 de septiembre de 2026). Son cuentos cortos: comparar es barato.
+            try:
+                vigente = destino.read_text(encoding="utf-8") if destino.exists() else None
+            except OSError:
+                vigente = None
+            if vigente != abierto["texto"]:
                 destino.write_text(abierto["texto"], encoding="utf-8")
             return str(destino)
     if not texto_id.upper().startswith("PG") or not num:
