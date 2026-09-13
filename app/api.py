@@ -354,6 +354,25 @@ def _sin_cursiva(texto: str) -> str:
     return re.sub(r"(?<![\w_])_([^_\n]+)_(?![\w_])", r"\1", texto)
 
 
+def _parece_indice(texto: str) -> bool:
+    """Un indice o un titulillo, no prosa: casi todo mayusculas, o sembrado de
+    numeros de pagina y numerales romanos.
+
+    En *Poems of Giosuè Carducci* (PG56711) el indice es UN parrafo largo, asi
+    que pasaba el filtro de longitud, y Pronunciar proponia leer en alto «VOICE
+    FROM THE PALACE 102 VOICE FROM THE HOVEL 103 ... XXIII.» (15 de 60 frases).
+    Un año suelto en una frase de prosa -1 de 17 palabras- no lo dispara.
+    """
+    palabras = re.findall(r"[^\W\d_]+|\d+", texto)
+    if not palabras:
+        return True
+    letras = [ch for ch in texto if ch.isalpha()]
+    mayusculas = sum(ch.isupper() for ch in letras) / max(1, len(letras))
+    numeros = sum(1 for p in palabras if p.isdigit() and len(p) >= 2)
+    romanos = sum(1 for p in palabras if re.fullmatch(r"[IVXLCDM]{2,}", p))
+    return mayusculas > 0.6 or (numeros + romanos) / len(palabras) > 0.12
+
+
 def _parrafos(libro: reader.Libro, n: int) -> list[str]:
     """Los parrafos que se le enseñan al lector: la obra, no su envoltura.
 
@@ -373,7 +392,8 @@ def _parrafos(libro: reader.Libro, n: int) -> list[str]:
     if ficha._INICIO_PG.search(c.texto):
         i = 0
         # Solo la CABEZA: desde el primer parrafo de prosa de verdad, todo se queda.
-        while i < len(parrafos) and (_es_preambulo(parrafos[i]) or len(parrafos[i].split()) < 40):
+        while i < len(parrafos) and (_es_preambulo(parrafos[i]) or _parece_indice(parrafos[i])
+                                     or len(parrafos[i].split()) < 40):
             i += 1
         if i < len(parrafos):
             parrafos = parrafos[i:]
@@ -848,10 +868,11 @@ def frase_del_capitulo(libro_id: str, n: int, pet: Lector) -> dict:
     # proponia «Credits: Produced by ellinora, Bryan Ness...» para leer en alto.
     candidatas = []
     for parrafo in _parrafos(lib, n):
-        if len(parrafo.split()) < 30 or _es_preambulo(parrafo):
+        if len(parrafo.split()) < 30 or _es_preambulo(parrafo) or _parece_indice(parrafo):
             continue
         for f in ui._oraciones(ui._sin_encabezado(parrafo)):
-            if 6 <= len(f.split()) <= 25 and ui._empieza_entera(f) and not _es_preambulo(f):
+            if (6 <= len(f.split()) <= 25 and ui._empieza_entera(f) and not _es_preambulo(f)
+                    and not _parece_indice(f)):
                 # Gutenberg marca la cursiva con `_guiones bajos_`: para leer en
                 # alto sobran («something _to do_» salio asi en el Space).
                 candidatas.append(_sin_cursiva(f))
@@ -1074,7 +1095,7 @@ def _url_audio(ruta) -> str | None:
     return None
 
 
-def _avisos_palabra(r, idioma: str, quitar_sin_clave: bool) -> list[str]:
+def _avisos_palabra(r, idioma: str, quitar_sin_clave: bool, final: bool = True) -> list[str]:
     """Los avisos de `lexicon`, traducidos y sin repetir.
 
     **Siempre en español**, aunque la explicacion se pida en ingles: los avisos
@@ -1089,7 +1110,10 @@ def _avisos_palabra(r, idioma: str, quitar_sin_clave: bool) -> list[str]:
         avisos = [a for a in avisos if "OPENAI_API_KEY" not in a]
     if not r.audio_generado:
         avisos = [a for a in avisos if "sin audio en el diccionario" not in a]
-        if not (r.ipa_uk or r.ipa_us or r.audio_uk or r.audio_us):
+        # Solo cuando ya no va a llegar nada: en la vista previa, el audio de
+        # tts-1 todavia puede llegar con la etapa completa, y la ficha decia
+        # «no hay pronunciacion» un momento antes de enseñarla.
+        if final and not (r.ipa_uk or r.ipa_us or r.audio_uk or r.audio_us):
             avisos.append("De esta palabra no hay pronunciación: ni el diccionario la trae "
                           "ni se pudo generar.")
     return [_llano(a) for a in dict.fromkeys(ui._humanizar(a, "es") for a in avisos)]
@@ -1148,7 +1172,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         # que el cliente pide siempre (sin clave o sin perfil es igual de local
         # y tarda lo mismo). Una sola regla y una sola entrada por consulta.
         registrar = False
-        avisos = _avisos_palabra(r, idioma, quitar_sin_clave=True)
+        avisos = _avisos_palabra(r, idioma, quitar_sin_clave=True, final=not explicable)
     else:
         if explicable and not ui._dentro_del_limite(pet, "lexico", ui.LIMITE_CONSULTAS_HORA):
             raise _no(429, ui._mensaje_limite(idioma,

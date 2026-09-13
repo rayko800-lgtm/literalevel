@@ -347,13 +347,19 @@ def cors_del_front():
 def libro_con_licencia_abre_en_la_obra():
     """Miguel abrio un libro de Gutenberg y leyo la licencia y «Produced by...»,
     y Pronunciar le propuso leer en alto una frase de los creditos."""
+    import re
     cabecera = ("The Project Gutenberg eBook of Pruebas de lectura\n\n"
                 "*** START OF THE PROJECT GUTENBERG EBOOK PRUEBAS DE LECTURA ***\n\n"
                 "Produced by Alguien Inventado and the Online Distributed Proofreading "
                 "Team at https://www.pgdp.net\n\n"
                 "PRUEBAS DE LECTURA\n\nCONTENTS.\n\nThe Garden\n\nThe River\n\n")
     parrafo = " ".join(["The old gardener walked slowly along the path beside the quiet river."] * 5)
-    prosa = "\n\n".join([parrafo] * 20)
+    # Un indice de UN parrafo largo en mitad del libro, como el de PG56711: pasa
+    # el filtro de longitud y no puede acabar propuesto para leer en alto.
+    indice = ("VOICE FROM THE PALACE 102 VOICE FROM THE HOVEL 103 VOICE FROM THE BANQUET 105 "
+              "VOICE FROM THE GARRET 106 VOICE FROM BENEATH 107 XXIII. ON MY DAUGHTER'S MARRIAGE 117 "
+              "XXXII. A DREAM IN SUMMER 94 XIX. ON THE SIXTH CENTENARY OF DANTE 126 XXXV.")
+    prosa = "\n\n".join([parrafo] * 10 + [indice] + [parrafo] * 10)
     pie = ("\n\n*** END OF THE PROJECT GUTENBERG EBOOK PRUEBAS DE LECTURA ***\n\n"
            + "The Full Project Gutenberg License applies to this work. " * 80)
     d = _ok(cliente.post("/api/libros", headers=A,
@@ -363,9 +369,10 @@ def libro_con_licencia_abre_en_la_obra():
     assert c["parrafos"][0].startswith("The old gardener"), c["parrafos"][:3]
     for sucio in ("produced by", "proofreading", "project gutenberg", "start of the", "contents"):
         assert sucio not in texto, f"el capitulo sigue trayendo «{sucio}»"
-    for _ in range(3):
+    for _ in range(15):
         f = _ok(cliente.get(f"/api/libros/{d['id']}/capitulos/{d['inicial']}/frase", headers=A))["frase"]
         assert f and "produced" not in f.lower() and "gutenberg" not in f.lower(), f
+        assert not re.search(r"\d", f), f"frase sacada del indice: {f}"
     return c["parrafos"][0][:40]
 
 
