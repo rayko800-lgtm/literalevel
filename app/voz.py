@@ -292,33 +292,58 @@ def _clave_palabra(palabra) -> str:
             .strip(".,;:!?¿¡\"()[]«»…“”‘").lower())
 
 
-def _segmentos_de(texto: str) -> list[str]:
-    """Los fonemas de una o varias palabras; vacio si alguna no tiene IPA."""
+def piezas(texto: str) -> list[str]:
+    """Las palabras de `texto` con los compuestos partidos por el guion:
+    «war-chant» -> ['war', 'chant']. Ni el diccionario ni CMUdict traen casi
+    ningun compuesto, pero si sus piezas."""
+    return [p for trozo in str(texto or "").split() for p in trozo.split("-") if _clave_palabra(p)]
+
+
+def _segmentos_por_pieza(texto: str) -> list[list[str]]:
+    """Los fonemas de cada pieza, en orden; vacio si alguna no tiene IPA."""
     salida = []
-    for palabra in texto.split():
-        ipa, _ = fonemas.ipa_de_palabra(_clave_palabra(palabra))
+    for pieza in piezas(texto):
+        ipa, _ = fonemas.ipa_de_palabra(_clave_palabra(pieza))
         if not ipa:
             return []
-        salida.extend(fonemas.segmentar(ipa))
+        salida.append(fonemas.segmentar(ipa))
     return salida
 
 
-def _comparar(esperada: str, entendida: str | None) -> tuple[str | None, str]:
-    """(simbolo del primer fonema esperado que cambia, motivo si no lo hay)."""
+def _comparar(esperada: str, entendida: str | None,
+              pieza: str | None = None) -> tuple[str | None, str]:
+    """(simbolo del primer fonema esperado que cambia, motivo si no lo hay).
+
+    `pieza`: la correccion del modelo parte los compuestos («war-chant» en
+    «war» y «chant»), pero lo entendido esta emparejado con el compuesto
+    entero. Se compara el compuesto y solo cuentan los cambios que caen
+    dentro de los fonemas de esa pieza.
+    """
     import difflib
     if entendida is None:
         return None, "sin_datos"
     if not _clave_palabra(entendida):
         return None, "no_oida"
-    a, b = _segmentos_de(esperada), _segmentos_de(entendida)
-    if not a or not b:
+    por_pieza, oido = _segmentos_por_pieza(esperada), _segmentos_por_pieza(entendida)
+    if not por_pieza or not oido:
         return None, "sin_ipa"
+    a = [s for p in por_pieza for s in p]
+    b = [s for p in oido for s in p]
+    desde, hasta = 0, len(a)
+    if pieza is not None:
+        claves = [_clave_palabra(p) for p in piezas(esperada)]
+        if pieza not in claves:
+            return None, "sin_datos"
+        i = claves.index(pieza)
+        desde = sum(len(p) for p in por_pieza[:i])
+        hasta = desde + len(por_pieza[i])
     for op, i1, i2, _j1, _j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
         # Un sonido de mas en lo entendido (insert) no es un sonido esperado
         # que falle: se sigue buscando.
         if op == "equal" or i1 == i2:
             continue
-        simbolo = next((s for s in a[i1:i2] if fonemas.buscar(s)), None)
+        simbolo = next((a[k] for k in range(max(i1, desde), min(i2, hasta))
+                        if fonemas.buscar(a[k])), None)
         if simbolo:
             return simbolo, ""
     return None, "igual"
@@ -353,8 +378,15 @@ def fijar_fonemas(correccion: Correccion | None,
              if entendidas is not None else None)
     for d in correccion.detalles:
         clave = _clave_palabra(d.palabra)
-        oida = oidas.get(clave) if oidas is not None else None
-        simbolo, motivo = _comparar(clave, oida)
+        if oidas is None:
+            simbolo, motivo = None, "sin_datos"
+        elif clave in oidas:
+            simbolo, motivo = _comparar(clave, oidas[clave])
+        else:
+            # El modelo partio un compuesto: «war» y «chant» de «war-chant».
+            padre = next((k for k in oidas if "-" in k and clave in piezas(k)), None)
+            simbolo, motivo = (_comparar(padre, oidas[padre], pieza=clave) if padre
+                               else (None, "sin_datos"))
         consejo = _consejo_de_ficha(simbolo) if simbolo else None
         if consejo:
             d.fonema = simbolo
@@ -551,7 +583,8 @@ class SesionVoz:
     audios_palabras: dict[str, str] = field(default_factory=dict)
 
 
-MAX_AUDIOS_PALABRA = 6
+# 8 y no 6: un compuesto fallado pide tres (el compuesto y sus dos piezas).
+MAX_AUDIOS_PALABRA = 8
 
 
 def audios_de_palabras(palabras: list[str]) -> dict[str, str]:
@@ -598,8 +631,20 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     audio_correcto = generar_audio_correcto(frase_objetivo)
     # Y cada palabra fallada, sola. Solo si hubo transcripcion: sin ella todas
     # cuentan como falladas y serian audios de pago para nada.
-    audios = (audios_de_palabras(evaluacion.palabras_falladas)
-              if transcripcion is not None else {})
+    # Tambien las piezas de cada compuesto y las palabras que nombra la
+    # correccion: «war-chant» se evalua entero, pero el modelo lo explica en
+    # «war» y «chant», y Miguel no pudo oir ninguna de las dos (e6, 13 sep).
+    # Cada pieza se paga una vez: la cache es por contenido.
+    audios = {}
+    if transcripcion is not None:
+        pedidas = []
+        for palabra in evaluacion.palabras_falladas:
+            pedidas.append(palabra)
+            if "-" in palabra:
+                pedidas.extend(_clave_palabra(p) for p in piezas(palabra))
+        if correccion is not None:
+            pedidas.extend(_clave_palabra(d.palabra) for d in correccion.detalles)
+        audios = audios_de_palabras(pedidas)
 
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
                      audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None,

@@ -3517,7 +3517,12 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
 
         def _audio_de(d):
             normal = voz.normalizar_palabras(str(getattr(d, "palabra", "") or ""))
-            return audios.get(normal[0]) if normal else None
+            if not normal:
+                return None
+            # La pieza de un compuesto («war» de «war-chant») usa su propio
+            # audio y, si no lo hay, el del compuesto que la contiene.
+            return audios.get(normal[0]) or next(
+                (r for k, r in audios.items() if "-" in k and normal[0] in voz.piezas(k)), None)
 
         L.append("\n".join(_detalle_de_voz(d, _audio_de(d)) for d in s.correccion.detalles))
     # El reproductor nace oculto, asi que devolver la ruta pelada asignaria el

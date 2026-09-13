@@ -289,10 +289,15 @@ def _ipa_cmu(palabra: str) -> str | None:
     return _cmu.get(palabra.strip().strip("'’").replace("’", "'").lower())
 
 
-def ipa_de_palabra(palabra: object) -> tuple[str | None, str | None]:
+def ipa_de_palabra(palabra: object, acento: str = "US") -> tuple[str | None, str | None]:
     """(transcripcion, variante) de la palabra segun los diccionarios locales.
 
-    Orden: la americana de Kaikki/Wiktionary; si no la trae, la de CMUdict,
+    `acento` es el preferido ("US" por defecto; "UK" o "RP" para el britanico):
+    toda una correccion debe salir en el mismo, y el otro solo se usa si ningun
+    diccionario trae el preferido, con su variante dicha para marcarlo. Antes
+    «war» salia US y «chant» UK en la misma correccion (Miguel, 13 sep 2026).
+
+    Orden en americano: la de Kaikki/Wiktionary; si no la trae, la de CMUdict,
     tambien americana; y si ninguna, la britanica de Kaikki ("UK"). El volcado
     de Kaikki tiene IPA para unas 40.000 de sus 1,48 M entradas y no trae ni
     «tragic» ni «magic»: sin CMUdict la correccion no podia comparar lo que
@@ -305,7 +310,8 @@ def ipa_de_palabra(palabra: object) -> tuple[str | None, str | None]:
     """
     if not isinstance(palabra, str) or not palabra.strip():
         return None, None
-    uk = None
+    britanico = str(acento or "").upper() in ("UK", "RP")
+    uk = us = None
     try:
         dic = _abrir_diccionario()
         if dic is not None:
@@ -313,10 +319,12 @@ def ipa_de_palabra(palabra: object) -> tuple[str | None, str | None]:
             with _cerrojo:
                 entradas = dic.buscar(palabra.strip().strip("'’"))
             uk, us, _a, _b = lexicon._mejor_fonetica(entradas, None)
-            if us:
-                return us, "US"
     except Exception:
-        uk = None
+        uk = us = None
+    if britanico and uk:
+        return uk, "UK"
+    if us:
+        return us, "US"
     try:
         cmu = _ipa_cmu(palabra)
         if cmu:

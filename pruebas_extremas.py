@@ -6870,6 +6870,60 @@ prueba("voz: el fonema sale de comparar y no del modelo",
        _el_fonema_sale_de_comparar_y_no_del_modelo)
 
 
+def _los_compuestos_se_corrigen_y_suenan_por_pieza():
+    """«war-chant» se evalua entero, pero el modelo lo explica en «war» y
+    «chant»: no habia fonema ni audio para ninguna de las dos (Miguel, e6)."""
+    voz = ui.voz
+    assert voz.piezas("war-chant") == ["war", "chant"] and voz.piezas("well-known man") == ["well", "known", "man"]
+    # Se entendio «war chart»: el cambio cae en «chant» (/æ/ -> /ɑ/), no en «war».
+    assert voz._comparar("war-chant", "war chart", pieza="chant") == ("æ", "")
+    assert voz._comparar("war-chant", "war chart", pieza="war") == (None, "igual")
+    c = voz.Correccion(resumen="Casi.", detalles=[
+        voz.DetallePalabra(palabra="war", fonema="w", sonido_que_falla="x", como_colocar_la_boca="y"),
+        voz.DetallePalabra(palabra="chant", fonema="tʃ", sonido_que_falla="x", como_colocar_la_boca="y")])
+    guerra, canto = voz.fijar_fonemas(c, [("war-chant", "war chart")]).detalles
+    assert guerra.fonema == voz.SIN_FONEMA and canto.fonema == "æ", (guerra, canto)
+
+    # practicar pide el audio del compuesto, de sus piezas y de lo que nombra la correccion.
+    pedidas = []
+    viejos = (voz.transcribir_audio, voz.explicar_correccion, voz.generar_audio_correcto)
+    try:
+        voz.transcribir_audio = lambda _r: "the war chart"
+        voz.explicar_correccion = lambda *a, **k: voz.Correccion(resumen="Casi.", detalles=[
+            voz.DetallePalabra(palabra="War", fonema="w", sonido_que_falla="x", como_colocar_la_boca="y")])
+        voz.generar_audio_correcto = lambda t, *a, **k: (pedidas.append(t) or f"/tmp/{t}.mp3")
+        sesion = voz.practicar(str(TMP / "nada.wav"), "The war-chant", guardar_fallos=False)
+    finally:
+        voz.transcribir_audio, voz.explicar_correccion, voz.generar_audio_correcto = viejos
+    assert {"war-chant", "war", "chant"} <= set(sesion.audios_palabras), sesion.audios_palabras
+    assert pedidas.count("war") == 1, pedidas
+
+    # La ficha de la correccion: la pieza sin audio propio usa el del compuesto.
+    sesion2 = voz.SesionVoz(evaluacion=voz.evaluar_pronunciacion("The war-chant", "the war chart"),
+                            correccion=voz.Correccion(resumen="Casi.", detalles=[
+                                _detalle(palabra="chant", fonema="æ")]),
+                            audio_correcto=None, audios_palabras={"war-chant": str(TMP / "war_chant.mp3")})
+    viejo_practicar, viejo_falta = ui.voz.practicar, ui.config.falta
+    audio = TMP / "compuesto.wav"
+    audio.write_bytes(b"RIFF")
+    try:
+        ui.config.falta = lambda: []
+        ui.voz.practicar = lambda *a, **k: sesion2
+        _, veredicto, _ = ui._practicar(str(audio), "The war-chant")
+    finally:
+        ui.voz.practicar, ui.config.falta = viejo_practicar, viejo_falta
+    assert "Escuchar la palabra" in str(veredicto) and "war_chant.mp3" in str(veredicto), veredicto
+
+    # Un solo acento: el preferido si algun diccionario lo trae; si no, el otro, dicho.
+    assert ui.fonemas.ipa_de_palabra("tragic", "UK") == ("/ˈtɹædʒɪk/", "US")
+    assert ui.fonemas.ipa_de_palabra("tragic") == ui.fonemas.ipa_de_palabra("tragic", "US")
+    return "fonema en su pieza, audio de cada pieza y un acento"
+
+
+prueba("voz: los compuestos se corrigen y suenan por pieza",
+       _los_compuestos_se_corrigen_y_suenan_por_pieza)
+
+
 # --- Resultado ------------------------------------------------------------
 
 print("\n" + "=" * 70)
