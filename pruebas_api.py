@@ -413,6 +413,10 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     mp3 = api._DIR_AUDIO / f"prueba_{uuid.uuid4().hex[:8]}.mp3"
     mp3.parent.mkdir(parents=True, exist_ok=True)
     mp3.write_bytes(b"ID3" + b"\x00" * 64)
+    # «war-chant» se normaliza como una palabra y GPT la parte en «war»: el
+    # detalle «war» tiene que llevar el audio del compuesto.
+    compuesto = api._DIR_AUDIO / f"prueba_{uuid.uuid4().hex[:8]}.mp3"
+    compuesto.write_bytes(b"ID3" + b"\x00" * 64)
     vistas = {}
 
     def practicar_doble(ruta, frase, guardar_fallos=True):
@@ -420,9 +424,11 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
         ev = NS(puntuacion=60, transcripcion="the red rain coat", palabras_falladas=["raincoat"],
                 palabras_objetivo=["the", "red", "raincoat"], entendidas=[])
         corr = NS(resumen="Casi.", detalles=[NS(palabra="Raincoat,", fonema=None,
-                                                 sonido_que_falla="la ei", como_colocar_la_boca="abre")])
+                                                 sonido_que_falla="la ei", como_colocar_la_boca="abre"),
+                                              NS(palabra="war", fonema=None,
+                                                 sonido_que_falla="la w", como_colocar_la_boca="redondea")])
         return NS(evaluacion=ev, transcripcion_ok=True, correccion=corr, audio_correcto=None,
-                  audios_palabras={"raincoat": str(mp3)})
+                  audios_palabras={"raincoat": str(mp3), "war-chant": str(compuesto)})
 
     originales = (voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar)
     voz.practicar = practicar_doble
@@ -435,8 +441,10 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     finally:
         voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar = originales
         mp3.unlink(missing_ok=True)
+        compuesto.unlink(missing_ok=True)
     assert vistas.get("frase") == "The red raincoat.", "no llego a corregir"
     assert r["detalles"][0]["audio"] == f"/api/audio/{mp3.name}", r["detalles"]
+    assert r["detalles"][1]["audio"] == f"/api/audio/{compuesto.name}", r["detalles"]
     f = _ok(cliente.get("/api/voz/falladas", headers=lector))["palabras"]
     assert [(x["palabra"], x["fallos"], x["frase"]) for x in f] == [("raincoat", 1, "The red raincoat.")], f
     assert _ok(cliente.get("/api/voz/falladas", headers=B))["palabras"] == []

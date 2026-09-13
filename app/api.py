@@ -1336,6 +1336,25 @@ def _fonema_json(simbolo) -> dict | None:
             "audio": _url_audio_fonema(f.ruta, "/api/fonemas/")}
 
 
+def _audio_de_detalle(normal: list[str], audios: dict[str, str]) -> str | None:
+    """El mp3 de la palabra de un detalle de la corrección.
+
+    `voz` guarda el audio con la clave de la palabra fallada tal cual se
+    normalizó, y conserva los guiones: «war-chant» es UNA palabra. Pero la
+    corrección de GPT la parte en «war» y «chant», y ninguna casaba (Miguel, 13
+    sep: «no me dejas escuchar la palabra sola»). Sin audio propio, vale el del
+    compuesto que la contiene."""
+    if not normal:
+        return None
+    propio = audios.get(normal[0])
+    if propio:
+        return propio
+    for clave, ruta in audios.items():
+        if normal[0] in clave.split("-"):
+            return ruta
+    return None
+
+
 @app.post("/api/voz")
 async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
                     audio: UploadFile = File(...)) -> dict:
@@ -1389,7 +1408,7 @@ async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
             normal = voz.normalizar_palabras(cruda)
             detalles.append({
                 "palabra": cruda, "ipa": ipa, "variante": variante,
-                "audio": _url_audio(audios.get(normal[0])) if normal else None,
+                "audio": _url_audio(_audio_de_detalle(normal, audios)),
                 "fonema": _fonema_json(getattr(d, "fonema", None)),
                 "sonido_que_falla": str(getattr(d, "sonido_que_falla", "") or "").strip(),
                 "como_colocar_la_boca": str(getattr(d, "como_colocar_la_boca", "") or "").strip(),
