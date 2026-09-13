@@ -34,6 +34,13 @@ El nivel de un editor infantil **no es MCER**: se valida el orden, no la letra.
 | Fuente | Nivel | Licencia | Paso alcanzado |
 |---|---|---|---|
 | African Storybook | 1–5 (300 de 367) | 316 CC BY al catálogo · 52 internos | 6a hecho |
-| StoryWeaver | 1–4 | CC BY 4.0 (toda la plataforma) | 1 en curso (orden aleatorio) |
-| VOA Learning English | sin nivel por artículo | dominio público; lo adaptado de agencias, interno | 1 casi terminado |
-| Let's Read | sí | CC | 0: buscando modo de descarga |
+| StoryWeaver | 1–4 | CC BY 4.0 (toda la plataforma) | 1 en curso (orden aleatorio, tres hilos); 6a sobre la muestra |
+| VOA Learning English | sin nivel por artículo | dominio público; lo adaptado de agencias, interno | 6b hecho (muestra de 477) |
+| Let's Read | 1–5 | por libro: casi todo CC BY-NC y NC-ND → interno; CC BY al catálogo | 1 en curso (API localizada por Fable) |
+
+Pasos 7 y 8 **hechos en el código** (12 de septiembre de 2026, noche): el
+catálogo externo va aparte con sus propios embeddings, la app abre los textos
+libres sin red y con su atribución (`pruebas_corpus.py`, 13 pruebas; mutantes
+`C3-*`). Auditado a ciegas por Codex: 3 hallazgos reales, los 3 arreglados y
+con prueba. Falta la corrida final de `tools/catalogar_corpus.py` cuando
+terminen las descargas, subir los archivos al Space y probarlo en el navegador.

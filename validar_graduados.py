@@ -51,6 +51,8 @@ FUENTES = {
     "african_storybook": RAIZ / "corpus_graduado" / "african_storybook" / "textos" / "cuentos.jsonl",
     # Sin nivel por articulo: solo se describe, no entra en las metricas de orden.
     "voa": RAIZ / "corpus_graduado" / "voa" / "textos" / "articulos.jsonl",
+    # Niveles 1-5 del editor; casi todo con licencia NC: se valida, pero interno.
+    "letsread": RAIZ / "corpus_graduado" / "letsread" / "textos" / "libros.jsonl",
 }
 SOLO_DESDE = 250
 _SIN_JS = re.compile(
