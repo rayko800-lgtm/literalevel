@@ -559,9 +559,21 @@ def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
     env["PYTHONIOENCODING"] = "utf-8"
     env["LITERALEVEL_MODELO"] = str(RAIZ / "modelo_v4")
     env["LITERALEVEL_DICCIONARIO"] = str(RAIZ / "kaikki_diccionario.db")
-    r = subprocess.run([sys.executable, "-X", "utf8"] + suite.split(),
-                       cwd=destino, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", env=env, timeout=1800)
+    # `pruebas_extremas.py` a veces imprime su veredicto y luego no termina de
+    # salir. Con `capture_output` eso colgaba el banco hasta el timeout, y el
+    # TimeoutExpired lo tumbaba entero: C2-sin-excluir se llevo por delante los
+    # dos mutantes que le seguian. Ahora el timeout se come lo ya impreso y
+    # sigue; si el veredicto no llego a salir, cuenta como fallo sin nombre.
+    try:
+        r = subprocess.run([sys.executable, "-X", "utf8"] + suite.split(),
+                           cwd=destino, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env, timeout=900)
+    except subprocess.TimeoutExpired as e:
+        salida = e.stdout or ""
+        if isinstance(salida, bytes):
+            salida = salida.decode("utf-8", "replace")
+        verde = "pruebas extremas pasan" in salida or "pruebas de la ficha pasan" in salida
+        r = subprocess.CompletedProcess(e.cmd, 0 if verde else 1, salida, "")
     # Cada suite dice sus fallos a su manera, y el banco tiene que entender
     # las dos. `pruebas_extremas` y `pruebas_lexicon` los listan con "- ";
     # `pruebas_ficha` y `pruebas_perfil` escriben "  FALLA <nombre>". Sin la
