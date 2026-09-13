@@ -32,3 +32,8 @@ entrega/*.toc
 entrega/*.blg
 literalevel_codigos.txt
 entrega/*.log
+
+# Corpus graduados: los textos descargados no van a git (unos tienen derechos
+# y los libres pesan); se versionan los guiones, los manifiestos y los resultados.
+corpus_graduado/**/textos/
+corpus_graduado/**/crudo/
