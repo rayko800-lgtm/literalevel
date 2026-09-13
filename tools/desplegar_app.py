@@ -90,6 +90,11 @@ LISTA_BLANCA = [
     # La tabla del AFI (entrega-4e). ui.py lo importa en la cabecera: sin el,
     # se cae la app entera, no solo la pestana.
     "app/articulacion.py",
+    # IPA americana de CMUdict donde Kaikki no la trae (4e, 5029a40). Texto de
+    # 2,9 MB, sin LFS. Sin el, «tragic» se queda sin IPA y la correccion de voz
+    # sin fonema. La licencia de CMUdict viaja con los datos.
+    "app/pronunciacion_cmu.tsv",
+    "app/pronunciacion_cmu_LICENCIA.txt",
 ]
 
 
