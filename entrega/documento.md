@@ -1338,10 +1338,10 @@ repetirlo en cada párrafo corregido.
     megas). Verificado de punta a punta: se fijó un perfil, se reinició el
     Space y el perfil seguía ahí. Era la acción A4 de la estrategia y está
     cerrada.
-13. **La prueba de usuario tiene n = 1.** Esmeralda es una sola lectora. Su
-    valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar
-    fallos de usabilidad graves —y encontró varios—, no para estimar
-    satisfacción media.
+13. **La prueba de usuario tiene n = 2.** Esmeralda y Laura son dos lectoras.
+    Su valor es cualitativo y de diagnóstico, no estadístico: sirve para
+    encontrar fallos de usabilidad graves —y encontraron varios—, no para
+    estimar satisfacción media.
 14. **La explicación contextual depende de un servicio externo de pago.** Sin
     clave, la aplicación sigue funcionando en todo lo que no sale a la red
     desde el servidor: diccionario, fonética, buscador y puntuación. Los

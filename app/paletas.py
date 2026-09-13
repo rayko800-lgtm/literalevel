@@ -30,8 +30,12 @@ PALETAS: dict[str, dict] = {
             "--ll-fondo": "#05070d",
             "--ll-fondo-alto": "#070c17",
             "--ll-fondo-bajo": "#0a1522",
-            "--ll-panel": "rgba(12,22,38,.72)",
-            "--ll-borde": "rgba(143,211,232,.16)",
+            # Paneles y bordes mas claros que al principio (.72 y .16). Laura
+            # (12 sep): «en el modo oscuro no encuentro esa division entre las
+            # secciones, tengo que irme a un modo claro». El panel casi no se
+            # separaba del negro y el borde era invisible.
+            "--ll-panel": "rgba(26,44,70,.86)",
+            "--ll-borde": "rgba(143,211,232,.34)",
             "--ll-acento": "#8fd3e8",
             "--ll-acento-hondo": "#1d6285",
             "--ll-acento-claro": "#a8e2f4",
@@ -150,8 +154,9 @@ PALETAS: dict[str, dict] = {
             "--ll-fondo": "#16151a",
             "--ll-fondo-alto": "#1b1a20",
             "--ll-fondo-bajo": "#201e26",
-            "--ll-panel": "rgba(38,36,45,.80)",
-            "--ll-borde": "rgba(200,180,220,.16)",
+            # Mas claros por lo mismo que en hielo (antes .80 y .16).
+            "--ll-panel": "rgba(54,50,64,.90)",
+            "--ll-borde": "rgba(200,180,220,.32)",
             "--ll-acento": "#c9b6e4",
             "--ll-acento-hondo": "#6d5a8c",
             "--ll-acento-claro": "#dcccf0",
@@ -197,9 +202,15 @@ def css(clave: str, estrellas_css: str = "") -> str:
         "radial-gradient(120% 62% at 50% 118%,var(--ll-halo) 0%,transparent 72%),"
         "linear-gradient(180deg,var(--ll-fondo) 0%,var(--ll-fondo-alto) 55%,"
         "var(--ll-fondo-bajo) 100%) !important;"
-        "background-attachment:fixed !important;"
         "background-repeat:no-repeat !important;"
         "color:var(--ll-texto) !important}"
+        # Fondo fijo solo con raton. En un telefono `background-attachment:
+        # fixed` repinta la pantalla entera en cada fotograma del
+        # desplazamiento: Laura (12 sep) notaba dos o tres segundos de retraso
+        # al deslizar y tirones al llegar al final de la pagina.
+        "@media (hover:hover) and (pointer:fine){"
+        "body,gradio-app,.gradio-container{"
+        "background-attachment:fixed !important}}"
         # --- La paleta tiene que ganarle al modo del navegador -----------
         # Esto NO es un adorno. Gradio pinta el texto de Markdown con
         # `.prose *{color:var(--body-text-color)}`, y esa variable la resuelve

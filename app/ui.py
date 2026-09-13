@@ -534,8 +534,21 @@ h1{{
 .block,.form,.panel,.gr-box{{
   background-color:var(--ll-panel) !important;
   border-color:var(--ll-borde) !important;
-  border-radius:{_RADIO} !important;
-  backdrop-filter:blur(7px)}}
+  border-radius:{_RADIO} !important}}
+/* El desenfoque, solo con raton. Laura (12 sep), en el movil: «deslizo con el
+   dedo y dos, tres segundos y la pagina se empieza a mover». Un
+   `backdrop-filter` en CADA bloque -son mas de cien- obliga al telefono a
+   recomponer todo lo que hay detras de cada panel en cada fotograma del
+   desplazamiento. Con paneles al 86-90 % de opacidad casi no se ve. */
+@media (hover:hover) and (pointer:fine){{
+  .block,.form,.panel,.gr-box{{backdrop-filter:blur(7px)}}}}
+/* El texto ya no toca el borde redondeado. Laura: «no dejas un espacio entre
+   el cuadro y lo que escribes… se come el palito de la P». Un Markdown de
+   Gradio es un bloque SIN relleno (`hide-container`), pero aqui todo bloque
+   lleva fondo de panel, asi que el texto quedaba pegado al canto y la curva
+   de la esquina se comia las letras. Solo cuando tiene contenido: uno vacio
+   con relleno seria una franja sin nada. */
+.block.hide-container:has(.prose *){{padding:.6rem .95rem !important}}
 /* Nada de aristas: botones, cajas de texto, desplegables y pestanas. */
 button,.gr-button,input,textarea,select,
 .wrap-inner,.secondary-wrap,.gr-input,.gr-text-input{{
@@ -550,9 +563,44 @@ button.primary,.primary button{{
   border-color:var(--ll-borde) !important;
   color:var(--ll-boton-texto) !important;
   box-shadow:0 2px 14px var(--ll-sombra-titulo)}}
-.tab-nav button.selected{{
+/* Gradio 6 ya no tiene `.tab-nav`: la barra es `.tab-wrapper > .tab-container`
+   y con el selector viejo esta regla no se aplicaba a nada. */
+.tab-container button.selected{{
   color:var(--ll-acento) !important;
   border-bottom-color:var(--ll-acento) !important}}
+/* La barra de pestanas hace de barra de navegacion: se queda arriba al bajar
+   por la pagina y va centrada. Laura (12 sep) queria «un navbar arriba» con
+   las funciones, y en la laptop todo se veia cargado a un lado. */
+/* `!important` porque Gradio le pone `position:relative` con su clase de
+   Svelte, que es mas especifica: sin el, la barra se iba con el resto. */
+/* Y `clip` en vez del `overflow:hidden` que trae el contenedor de Gradio: un
+   `hidden` convierte al contenedor en caja de desplazamiento y ningun
+   `sticky` de dentro llega a pegarse. `clip` recorta igual y no lo impide. */
+.gradio-container{{overflow:clip !important}}
+.tab-wrapper{{
+  position:sticky !important;top:0;z-index:30;
+  background:var(--ll-fondo);border-radius:0 0 {_RADIO} {_RADIO}}}
+/* Centrada solo donde sobra sitio. En el movil Gradio manda al menu «...» lo
+   que no cabe, y centrar dejaba 130 px vacios a la izquierda que se comian
+   una pestana entera. */
+@media (min-width:641px){{.tab-container{{justify-content:center}}}}
+/* El boton de ajustes en la esquina de la cabecera, fuera del flujo: como
+   elemento de la fila, en el movil dejaba la cabecera a media anchura. */
+#ll-cabecera{{position:relative}}
+#ll-b-ajustes{{position:absolute !important;top:.7rem;right:.7rem;z-index:5;
+  width:auto !important;min-width:0 !important}}
+#ll-ajustes{{
+  background:var(--ll-panel);border:1px solid var(--ll-borde);
+  border-radius:{_RADIO};padding:.8rem}}
+/* En el movil caben mas funciones a la vista si cada pestana no gasta 32 px
+   de relleno: con 16 por lado solo cabian «Mi nivel» y «Buscar lectura». */
+@media (max-width:640px){{
+  .tab-container button[role="tab"]{{padding:0 6px !important}}
+  /* Gradio deja 32 px de margen a cada lado en cualquier ancho. En 390 px eso
+     es la sexta parte de la pantalla, y con el relleno del panel y del lector
+     encima la columna de lectura se quedaba en cinco o seis palabras por
+     linea. Con 12 px caben las cuatro funciones en la barra. */
+  .main.fillable{{padding-left:12px !important;padding-right:12px !important}}}}
 /* Las opciones de una lista, como fichas que se pueden tocar. En un movil un
    circulito de radio es un blanco de 12 px; la ficha entera es de 44. */
 label:has(input[type="radio"]),label:has(input[type="checkbox"]){{
@@ -1304,6 +1352,61 @@ JS_IDENTIDAD = r"""
   } catch (e) {
     return '';
   }
+}
+"""
+
+# Al cambiar de capitulo, arriba del texto. Se descuenta la barra de pestanas,
+# que va fija arriba y taparia las primeras lineas.
+#
+# Subir UNA vez no basta, medido en el navegador: el boton solo cambia el
+# numero de capitulo y el texto nuevo llega despues, por `cap.change`. Al
+# sustituirse, el navegador recoloca la pagina para no mover lo que se estaba
+# viendo (scroll anchoring) y deshacia el salto: se quedaba a media altura del
+# capitulo nuevo. Asi que sube, espera a que el texto del lector cambie -como
+# mucho 6 s- y vuelve a subir, sin animacion para que nada la interrumpa.
+JS_AL_TEXTO = r"""
+() => {
+  // Hay mas de un #ll-lector en la pagina (el de otras pestanas, oculto) y
+  // `getElementById` devolvia el primero, invisible: se tomaba su posicion,
+  // que es 0, y no se movia nada. Vale el que se ve.
+  const lector = () => [...document.querySelectorAll('#ll-lector')]
+    .find(e => e.offsetParent !== null) || null;
+  const ir = () => {
+    const el = lector();
+    if (!el) return;
+    el.scrollTop = 0;
+    const barra = document.querySelector('.tab-wrapper');
+    const alto = barra ? barra.getBoundingClientRect().height : 0;
+    const y = el.getBoundingClientRect().top + window.scrollY - alto - 12;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'auto' });
+  };
+  const inicio = () => {
+    const el = lector();
+    return el ? el.textContent.slice(0, 300) : '';
+  };
+  const antes = inicio();
+  ir();
+  let vueltas = 0;
+  const reloj = setInterval(() => {
+    if (inicio() !== antes || ++vueltas > 40) {
+      clearInterval(reloj);
+      ir();
+      setTimeout(ir, 250);
+    }
+  }, 150);
+}
+"""
+
+# «Otra frase» deja la caja vacia; esto la pone a la vista. Sin `focus()`: en el
+# movil abriria el teclado encima de la frase que se quiere traer.
+JS_A_LA_FRASE = r"""
+() => {
+  const el = document.getElementById('ll-frase');
+  if (!el) return;
+  const barra = document.querySelector('.tab-wrapper');
+  const alto = barra ? barra.getBoundingClientRect().height : 0;
+  const y = el.getBoundingClientRect().top + window.scrollY - alto - 12;
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
 """
 
@@ -3191,7 +3294,7 @@ def _mis_libros(peticion: gr.Request = None):
     ausentes = len(todos) - len(libros)
     if not libros:
         return ("<p>Todavía no has abierto ningún libro. Búscalo en "
-                "<b>Buscar lectura</b> o sube el tuyo en <b>Leer</b>, y "
+                "<b>Buscar</b> o sube el tuyo en <b>Leer</b>, y "
                 "aparecerá aquí con el punto donde lo dejaste.</p>",
                 gr.update(choices=[], value=None))
 
@@ -3326,11 +3429,35 @@ def construir() -> gr.Blocks:
         # hoja de estilo ni puede descolocar nada.
         paleta_css = gr.HTML(_css_paleta(paletas_mod.POR_DEFECTO),
                              elem_id="ll-paleta-css")
-        gr.Markdown(
-            "# LiteraLevel\nLee en inglés al nivel que te toca.\n\n"
-            "**1)** Fija tu nivel · **2)** busca algo que te apetezca leer · "
-            "**3)** léelo aquí y consulta las palabras que se te atraganten. "
-            "Las pestañas están en ese orden.")
+        # Cabecera con el boton de ajustes a la derecha. Laura (12 sep): «lo
+        # que pones en los tres circulitos son configuraciones, no son
+        # funcionalidades». Los colores y el estado del servicio eran dos
+        # pestanas mas, al mismo nivel que leer o pronunciar, y en el movil
+        # empujaban las funciones al menu «...». El profesor dijo lo mismo
+        # con otras palabras: Colores tomaba demasiada presencia.
+        with gr.Row(elem_id="ll-cabecera", equal_height=True):
+            gr.Markdown(
+                "# LiteraLevel\nLee en inglés al nivel que te toca.\n\n"
+                "**1)** Fija tu nivel · **2)** busca algo que te apetezca leer · "
+                "**3)** léelo aquí y consulta las palabras que se te atraganten. "
+                "Las pestañas están en ese orden.")
+            b_ajustes = gr.Button("⚙ Ajustes", size="sm", scale=0, min_width=110,
+                                  elem_id="ll-b-ajustes")
+        est_ajustes = gr.State(False)
+        with gr.Column(visible=False, elem_id="ll-ajustes") as panel_ajustes:
+            gr.Markdown(
+                "## Ponlo como te guste\n"
+                "Se cambia al momento y no se pierde nada de lo que "
+                "estés leyendo.")
+            paleta = gr.Radio(choices=paletas_mod.opciones(),
+                              value=paletas_mod.POR_DEFECTO,
+                              label="Paleta de colores")
+            with gr.Accordion("Estado del servicio", open=False):
+                diag = gr.Markdown()
+                gr.Button("Comprobar").click(_diagnostico, None, diag)
+                demo.load(_diagnostico, None, diag)
+        b_ajustes.click(lambda v: (not v, gr.Column(visible=not v)),
+                        est_ajustes, [est_ajustes, panel_ajustes])
         # Vacio a proposito: lo rellena _perfil_inicial en demo.load, que
         # si sabe de que lector se trata. Construir la interfaz ocurre una
         # vez por proceso, no una vez por visitante.
@@ -3447,7 +3574,10 @@ def construir() -> gr.Blocks:
                 est_perfil.change(lambda p: gr.update(visible=p is not None),
                                   est_perfil, b_ir_buscar)
 
-            with gr.Tab("Buscar lectura", id="buscar"):
+            # Rotulos cortos a proposito: en un movil de 390 px, con «Buscar
+            # lectura» y «Pronunciación», solo cabian dos pestanas y las demas
+            # funciones acababan escondidas en el menu «...».
+            with gr.Tab("Buscar", id="buscar"):
                 with gr.Row():
                     consulta = gr.Textbox(label="¿De qué te apetece leer?", scale=4,
                                           placeholder="una novela de detectives victoriana")
@@ -3500,20 +3630,26 @@ def construir() -> gr.Blocks:
                                          [resultados, elegido])
 
             with gr.Tab("Leer", id="leer"):
-                # Con el min_width por defecto (160 px) la fila no se partia en
-                # el movil y la cabecera del libro quedaba en una columna de
-                # tres palabras por linea junto a la caja de subida. Con 300 px
-                # cada una, a 390 px se apilan y en escritorio siguen juntas.
+                # En el movil la cabecera del libro quedaba en una columna de
+                # tres palabras por linea junto a la caja de subida. Poner
+                # `min_width` a los dos componentes lo EMPEORO -la caja se
+                # quedaba sus 300 px y la cabecera salia letra a letra-: una
+                # fila de Gradio solo se parte entre COLUMNAS. Con dos columnas
+                # de 300 px, a 390 se apilan y en escritorio siguen juntas.
                 with gr.Row():
-                    archivo = gr.File(label="Tu libro (.epub, .pdf, .txt)",
-                                      file_types=[".epub", ".pdf", ".txt"],
-                                      type="filepath", scale=2, min_width=300)
-                    libro_md = gr.Markdown(min_width=300)
+                    with gr.Column(scale=2, min_width=300):
+                        archivo = gr.File(label="Tu libro (.epub, .pdf, .txt)",
+                                          file_types=[".epub", ".pdf", ".txt"],
+                                          type="filepath", height=150)
+                    with gr.Column(scale=3, min_width=300):
+                        libro_md = gr.Markdown()
                 # Cuatro controles en una fila no caben en un movil: a 390 px
                 # "Medir dificultad" se queda con unos 80 px. Se parte.
                 with gr.Row():
                     b_prev = gr.Button("‹ Anterior", scale=1)
-                    cap = gr.Dropdown(label="Capítulo", choices=[], scale=4)
+                    # 260 px: en el movil la fila se apila entera. Con el
+                    # minimo por defecto se partia en dos y uno.
+                    cap = gr.Dropdown(label="Capítulo", choices=[], scale=4, min_width=260)
                     b_next = gr.Button("Siguiente ›", scale=1)
                 cap_md = gr.Markdown()
                 # La ficha aparece sola al abrir: esta contada, es instantanea
@@ -3620,8 +3756,13 @@ def construir() -> gr.Blocks:
                 archivo.change(_limpiar_consulta, None,
                                [ficha, palabra, oracion, audio_web, audio_local])
                 cap.change(_capitulo, [est_libro, cap], [texto, cap_md])
-                b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
-                b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
+                # Y vuelve arriba del texto. Laura (12 sep): «doy a siguiente
+                # capitulo y me deja ahi mismo abajo, tengo que hacer todo el
+                # scroll para irme arriba».
+                b_prev.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap
+                             ).then(None, None, None, js=JS_AL_TEXTO)
+                b_next.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap
+                             ).then(None, None, None, js=JS_AL_TEXTO)
                 # `concurrency_id` compartido: los cuatro manejadores que
                 # cargan el v4 hacen cola ENTRE ELLOS y con nadie mas. Son 2
                 # vCPU: dos puntuaciones a la vez no van al doble de rapido,
@@ -3661,8 +3802,13 @@ def construir() -> gr.Blocks:
 
                 # Los mandos de abajo mueven el MISMO desplegable de arriba,
                 # asi que no hay dos estados que puedan discrepar.
-                b_prev2.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap)
-                b_next2.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap)
+                # Y estos son los que pulso Laura: estan DEBAJO del texto, que
+                # es donde se acaba el capitulo. Sin el salto la dejaban al
+                # final del capitulo nuevo.
+                b_prev2.click(lambda l, i: _mover(l, i, -1), [est_libro, cap], cap).then(
+                    None, None, None, js=JS_AL_TEXTO)
+                b_next2.click(lambda l, i: _mover(l, i, 1), [est_libro, cap], cap).then(
+                    None, None, None, js=JS_AL_TEXTO)
                 # **`cap` NO entra aqui, y esa es la linea del recuadro rojo.**
                 #
                 # Cuando cambia el libro, este manejador leia tambien el
@@ -3690,7 +3836,8 @@ def construir() -> gr.Blocks:
                 # Y manda opciones Y valor, no el valor pelado: con el value
                 # suelto, meter un numero en un desplegable cuyas opciones
                 # estan vacias un instante es otra forma del mismo Error.
-                indice.select(_indice_de, [est_libro, indice], cap)
+                indice.select(_indice_de, [est_libro, indice], cap).then(
+                    None, None, None, js=JS_AL_TEXTO)
                 cap.change(_indice_de, [est_libro, cap], indice)
                 entradas_lex = [est_perfil, est_libro, cap, palabra, oracion, idioma]
                 b_palabra.click(_consultar, entradas_lex,
@@ -3698,13 +3845,14 @@ def construir() -> gr.Blocks:
                 palabra.submit(_consultar, entradas_lex,
                                [ficha, audio_web, audio_local])
 
-            with gr.Tab("Pronunciación", id="voz"):
+            with gr.Tab("Pronunciar", id="voz"):
                 # La entrada al perfil ya NO vive aqui: esta arriba del todo,
                 # antes de las pestanas. Estaba en un acordeon cerrado dentro
                 # de esta pestana y no la encontraba nadie.
 
                 frase = gr.Textbox(label="Frase que vas a leer en voz alta",
-                                   placeholder="It is a truth universally acknowledged...")
+                                   placeholder="It is a truth universally acknowledged...",
+                                   elem_id="ll-frase")
                 b_traer = gr.Button("Traer una frase del capítulo que estoy leyendo")
                 mi_audio = gr.Audio(sources=["microphone", "upload"], type="filepath",
                                     label="Léela en voz alta")
@@ -3715,6 +3863,10 @@ def construir() -> gr.Blocks:
                 veredicto = gr.Markdown()
                 audio_ref = gr.Audio(label="Cómo debería sonar", type="filepath",
                                  elem_id="ll-audio-ref", visible=False)
+                # Laura (12 sep): para probar otra frase habia que volver a la
+                # caja, borrarla tecla a tecla y quitar la grabacion. Debajo
+                # de la correccion, que es donde se esta al terminar.
+                b_otra = gr.Button("Otra frase ↺")
                 # Su propia caja, y no la del veredicto. Los dos botones
                 # escribian en `veredicto`: pulsar "Mis puntos debiles" borraba
                 # la correccion que acababa de costar una llamada de pago, y no
@@ -3725,6 +3877,10 @@ def construir() -> gr.Blocks:
                 b_practicar.click(_practicar, [mi_audio, frase],
                                   [palabras_html, veredicto, audio_ref])
                 b_debiles.click(_debiles, None, debiles_md)
+                b_otra.click(lambda: ("", None, "", "",
+                                      gr.update(value=None, visible=False)),
+                             None, [frase, mi_audio, palabras_html, veredicto, audio_ref]
+                             ).then(None, None, None, js=JS_A_LA_FRASE)
 
             with gr.Tab("Mis libros", id="biblioteca"):
                 gr.Markdown("Los libros que has abierto, por dónde vas en cada "
@@ -3752,26 +3908,15 @@ def construir() -> gr.Blocks:
                 b_cuaderno.click(_mis_palabras, None, cuaderno_md)
                 b_repasar.click(_repasar, None, cuaderno_md)
 
-            with gr.Tab("Colores", id="colores"):
-                gr.Markdown(
-                    "## Ponlo como te guste\n"
-                    "Se cambia al momento y no se pierde nada de lo que "
-                    "estés leyendo.")
-                paleta = gr.Radio(choices=paletas_mod.opciones(),
-                                  value=paletas_mod.POR_DEFECTO,
-                                  label="Paleta de colores")
-                paleta.change(_css_paleta, paleta, paleta_css)
-                # Y la paleta tiene que llegar tambien a lo que NO es CSS: la
-                # grafica es una imagen de Plotly con los colores dentro. Si ya
-                # hay una curva pintada se repinta; si no, se deja como esta
-                # -devolver None la borraria-.
-                paleta.change(lambda c: c, paleta, est_paleta)
-                paleta.change(_repintar_grafica, [est_libro, paleta], grafica)
-
-            with gr.Tab("Estado", id="estado"):
-                diag = gr.Markdown()
-                gr.Button("Comprobar").click(_diagnostico, None, diag)
-                demo.load(_diagnostico, None, diag)
+        # El selector de paleta vive en el panel de ajustes, arriba, pero se
+        # cablea aqui: la grafica se declara dentro de la pestana de lectura.
+        paleta.change(_css_paleta, paleta, paleta_css)
+        # Y la paleta tiene que llegar tambien a lo que NO es CSS: la
+        # grafica es una imagen de Plotly con los colores dentro. Si ya
+        # hay una curva pintada se repinta; si no, se deja como esta
+        # -devolver None la borraria-.
+        paleta.change(lambda c: c, paleta, est_paleta)
+        paleta.change(_repintar_grafica, [est_libro, paleta], grafica)
 
         # Cierra el bucle buscar -> leer. Va aqui abajo y no en la pestana del
         # buscador porque necesita componentes de la pestana de lectura, que

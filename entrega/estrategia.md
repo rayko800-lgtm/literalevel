@@ -218,13 +218,58 @@ necesitaban un dedo y una pantalla pequeña**:
   biblioteca **real** de quien las ejecutara. Los datos personales del usuario
   eran el banco de pruebas.
 
-### 3.3 La lección, en una línea
+### 3.3 El segundo ciclo: Laura
+
+El 12 de septiembre de 2026 la probó **Laura**, hermana del autor y
+desarrolladora web, sobre la aplicación **desplegada**: primero en la laptop y
+después en su teléfono Android. Mandó tres capturas y dos notas de voz, que se
+transcribieron y se conservan íntegras en `auditoria/feedback_laura_2026-09-12.md`.
+Su crítica es de usuaria y de diseñadora a la vez:
+
+> *«Hago el movimiento de deslizar con el dedo y dos, tres segundos y la página
+> se empieza a mover.»*
+>
+> *«No dejas un espacio entre el cuadro y lo que escribes… se come el palito de
+> la P.»*
+>
+> *«Doy a siguiente capítulo y me deja ahí mismo abajo.»*
+>
+> *«Lo que pones en los tres circulitos son configuraciones, no son
+> funcionalidades.»*
+>
+> *«No entiendo el sonido W que es diferente a la letra B.»*
+
+| Lo que dijo | Diagnóstico | Corrección | Verificación |
+|---|---|---|---|
+| Retraso de 2-3 s al deslizar en el teléfono | `backdrop-filter` en más de cien bloques y fondo con `background-attachment: fixed`: repintado completo en cada fotograma | Los dos efectos, solo en dispositivos con ratón | Con emulación táctil quedan desactivados; **falta confirmarlo en un teléfono real** |
+| El texto toca el borde redondeado | Los bloques de Markdown de Gradio no tienen relleno, pero aquí todos llevan fondo de panel | Relleno interior a los bloques con contenido | Medido y capturado a 390 y 1440 px |
+| En modo oscuro no distingue las secciones | Panel al 72 % sobre casi negro y borde al 16 % en *hielo*, la paleta por defecto | Panel y borde más claros en las dos paletas oscuras | Las 85 parejas de contraste WCAG siguen pasando |
+| Quiere una barra de navegación con las funciones y los ajustes aparte | *Colores* y *Estado* eran pestañas como leer o pronunciar. **El profesor había dicho lo mismo**: «Colores toma demasiada presencia» | Botón **⚙ Ajustes** en la cabecera; barra de pestañas fija arriba al bajar y centrada en escritorio | Probado en el navegador; a 390 px «Pronunciar» sigue en el menú «…» |
+| «Siguiente capítulo» la deja al final | Los botones no movían la página | Al cambiar de capítulo sube al principio del texto | Teléfono: el lector queda justo bajo la barra con el capítulo nuevo |
+| Borrar a mano la frase para practicar otra | No había forma de empezar de nuevo | Botón **«Otra frase ↺»** bajo la corrección | Probado en el navegador |
+| No entiende «/w/ diferente a la b» y pide «los símbolos» | La explicación compara con una letra y no enseña el AFI | Símbolo AFI y transcripción de cada palabra, con un audio pregrabado por fonema que no gasta créditos | *En curso* |
+| Captura: «don’t» marcado como «don» y «t» | El apóstrofo tipográfico de los libros partía la contracción | Se normaliza antes de comparar | Dos pruebas nuevas |
+| Captura: «Tolstoy, Leo, graf» | El título nobiliario de Gutenberg se tomaba por parte del nombre | El autor corto se queda con apellido y nombre | Prueba nueva |
+
+*Cuadro 1b. El segundo ciclo, de la crítica a la verificación.*
+
+**Dos de las correcciones fallaron la primera vez, y las 306 pruebas
+automáticas no lo vieron.** La primera versión del arreglo del lector sacaba la
+cabecera del libro letra a letra. La del botón de siguiente capítulo no movía
+nada, porque el texto nuevo llega después y los botones que pulsó Laura eran
+los de debajo del texto. Las dos se descubrieron midiendo la página en un
+navegador controlado a ancho de teléfono. Es la misma lección del apartado 3.2,
+repetida.
+
+### 3.4 La lección, en una línea
 
 **El valor de una prueba de usuario no está en el promedio de satisfacción, sino
-en la frase que duele.** Con n = 1 no se puede estimar nada, pero se pueden
-encontrar los fallos que hacen que una persona se culpe a sí misma. Nielsen
-(2000) sitúa en cinco usuarios el punto donde se detecta la mayor parte de los
-problemas de usabilidad; el accionable A8 lleva la prueba hasta ahí.
+en la frase que duele.** Con n = 2 no se puede estimar nada, pero se pueden
+encontrar los fallos que hacen que una persona se culpe a sí misma, y ya hay
+una coincidencia: a las dos lectoras les costó el móvil y a ninguna le gustó la
+paleta por defecto. Nielsen (2000) sitúa en cinco usuarios el punto donde se
+detecta la mayor parte de los problemas de usabilidad; el accionable A8 lleva la
+prueba hasta ahí.
 
 ---
 

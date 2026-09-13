@@ -761,11 +761,75 @@ pantalla pequeña}:
         banco de pruebas.
 \end{itemize}
 
+\subsubsection{El segundo ciclo: Laura}
+\label{sec:laura}
+
+El 12 de septiembre de 2026 la probó \textbf{Laura}, hermana del autor y desarrolladora
+web, sobre la aplicación \textbf{desplegada}: primero en la laptop y después en su
+teléfono Android. Mandó tres capturas y dos notas de voz, que se transcribieron y se
+conservan íntegras en el repositorio (\cod{auditoria/\allowbreak feedback\_laura\_2026-09-12.md}).
+Su crítica es de usuaria y de diseñadora a la vez:
+
+\begin{quote}\itshape
+«Hago el movimiento de deslizar con el dedo y dos, tres segundos y la página se empieza
+a mover.»\par\medskip
+«No dejas un espacio entre el cuadro y lo que escribes\dots{} se come el palito de la
+P.»\par\medskip
+«Doy a siguiente capítulo y me deja ahí mismo abajo.»\par\medskip
+«Lo que pones en los tres circulitos son configuraciones, no son funcionalidades.»\par\medskip
+«No entiendo el sonido W que es diferente a la letra B.»
+\end{quote}
+
+\begin{small}
+\begin{longtable}{@{}L{3.1cm} L{3.8cm} L{4.2cm} L{2.8cm}@{}}
+\toprule
+\textbf{Lo que dijo} & \textbf{Diagnóstico} & \textbf{Corrección} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Lo que dijo} & \textbf{Diagnóstico} & \textbf{Corrección} & \textbf{Verificación} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{El segundo ciclo, de la crítica a la verificación.}
+\label{cuad:laura}
+\endlastfoot
+Retraso de 2--3~s al deslizar en el teléfono & \cod{backdrop-filter} en más de cien bloques y fondo con \cod{background-attachment:\allowbreak fixed}: repintado completo en cada fotograma & Los dos efectos, solo en dispositivos con ratón & Con emulación táctil quedan desactivados; \textbf{falta confirmarlo en un teléfono real} \\
+\addlinespace
+El texto toca el borde redondeado & Los bloques de Markdown de Gradio no tienen relleno, pero aquí todos llevan fondo de panel & Relleno interior a los bloques con contenido & Medido y capturado a 390 y 1440~px \\
+\addlinespace
+En modo oscuro no distingue las secciones & Panel al 72\,\% sobre casi negro y borde al 16\,\% en \emph{hielo}, la paleta por defecto & Panel y borde más claros en las dos paletas oscuras & Las 85 parejas de contraste WCAG siguen pasando \\
+\addlinespace
+Quiere una barra de navegación con las funciones y los ajustes aparte & \emph{Colores} y \emph{Estado} eran pestañas como leer o pronunciar. \textbf{El profesor había dicho lo mismo}: «Colores toma demasiada presencia» & Botón \textbf{Ajustes} en la cabecera; barra de pestañas fija arriba al bajar y centrada en escritorio & Probado en el navegador; a 390~px «Pronunciar» sigue en el menú «\dots» \\
+\addlinespace
+«Siguiente capítulo» la deja al final & Los botones no movían la página & Al cambiar de capítulo sube al principio del texto & Teléfono: el lector queda justo bajo la barra con el capítulo nuevo \\
+\addlinespace
+Borrar a mano la frase para practicar otra & No había forma de empezar de nuevo & Botón \textbf{«Otra frase»} bajo la corrección & Probado en el navegador \\
+\addlinespace
+No entiende «/w/ diferente a la b» y pide «los símbolos» & La explicación compara con una letra y no enseña el AFI & Símbolo AFI y transcripción de cada palabra, con un audio pregrabado por fonema que no gasta créditos & \emph{En curso} \\
+\addlinespace
+Captura: «don’t» marcado como «don» y «t» & El apóstrofo tipográfico de los libros partía la contracción & Se normaliza antes de comparar & Dos pruebas nuevas \\
+\addlinespace
+Captura: «Tolstoy, Leo, graf» & El título nobiliario de Gutenberg se tomaba por parte del nombre & El autor corto se queda con apellido y nombre & Prueba nueva \\
+\end{longtable}
+\end{small}
+
+\textbf{Dos de las correcciones fallaron la primera vez, y las 306 pruebas automáticas no
+lo vieron.} La primera versión del arreglo del lector sacaba la cabecera del libro letra a
+letra. La del botón de siguiente capítulo no movía nada, porque el texto nuevo llega
+después y los botones que pulsó Laura eran los de debajo del texto. Las dos se
+descubrieron midiendo la página en un navegador controlado a ancho de teléfono: es la
+misma lección del apartado anterior, repetida.
+
 \subsubsection{La lección, en una línea}
 
 \textbf{El valor de una prueba de usuario no está en el promedio de satisfacción, sino
-en la frase que duele.} Con $n = 1$ no se puede estimar nada, pero se pueden encontrar
-los fallos que hacen que una persona se culpe a sí misma. \textcite{nielsen2000five}
+en la frase que duele.} Con $n = 2$ no se puede estimar nada, pero se pueden encontrar
+los fallos que hacen que una persona se culpe a sí misma, y ya hay una coincidencia: a
+las dos lectoras les costó el móvil y a ninguna le gustó la paleta por defecto
+(cuadros~\ref{cuad:esmeralda} y~\ref{cuad:laura}). \textcite{nielsen2000five}
 sitúa en cinco usuarios el punto donde se detecta la mayor parte de los problemas de
 usabilidad; el accionable A8 lleva la prueba hasta ahí.
 
@@ -2808,9 +2872,10 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         privado, y esto ocupa megas). Verificado de punta a punta: se fijó un perfil,
         se reinició el Space y el perfil seguía ahí. Era la acción A4 de la estrategia
         y está cerrada.
-  \item \textbf{La prueba de usuario tiene $n = 1$.} Esmeralda es una sola lectora. Su
-        valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar fallos
-        de usabilidad graves —y encontró varios—, no para estimar satisfacción media.
+  \item \textbf{La prueba de usuario tiene $n = 2$.} Esmeralda y Laura son dos lectoras.
+        Su valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar
+        fallos de usabilidad graves —y encontraron varios—, no para estimar satisfacción
+        media.
   \item \textbf{La explicación contextual depende de un servicio externo de pago.} Sin
         clave, la aplicación sigue funcionando en todo lo que no sale a la red desde el
         servidor: diccionario, fonética, buscador y puntuación. Los enlaces de audio de
