@@ -206,6 +206,21 @@ Tres reglas para el siguiente intento:
 3. Desplegar solo `app.py` y `app/api.py`, en un commit propio, con la vuelta atrás
    automática preparada y el `app.py` actual guardado antes.
 
+**El segundo intento funcionó** (commit del Space `c80356f`). La causa exacta estaba en
+el código de Gradio 6.26 (`templates/node/build/proxy_routes.js`): con SSR, el proxy de
+Node solo pasa a Python `/gradio_api`, `/config`, `/login`, `/logout`, `/theme.css`,
+`/robots.txt`, `/pwa_icon`, `/manifest.json` y `/monitoring`; cualquier `/api/*` va a la
+página de Gradio. El `app.py` del Space sigue llamando a `demo.launch(...)` y añade:
+
+- `ssr_mode=False`: Python atiende el 7860 directamente, como en local;
+- `app_kwargs=api.para_gradio()`: las rutas entran en la app FastAPI que crea Gradio.
+
+Comprobado contra el Space: `/api/salud` con su JSON, `/api/perfil` 400/200, preflight
+CORS desde `https://mikemaki1763-literalevel-front.static.hf.space` con `x-lector`,
+Gradio en `/` y `/config`, y el audio de un fonema. En el log de arranque aparece
+`Exception ignored in: BaseEventLoop.__del__ … Invalid file descriptor: -1` (Python
+3.13, dos segundos después de arrancar): Python lo ignora y no rompe nada.
+
 ## Persistencia: ahora importa más que antes
 
 `~/.literalevel/` es disco **efímero** en un Space y se borra en cada reinicio.
