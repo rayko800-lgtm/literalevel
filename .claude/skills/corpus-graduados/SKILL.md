@@ -92,6 +92,23 @@ medias crecientes), nunca «el modelo acierta A1».
 y `corpus_abierto.parquet` (texto + atribución al final). **Aborta** si llega un
 texto con licencia no libre. Ids: `SWV<id>`, `ASB<nnnn>`, `VOA<num>`.
 
+## 4 bis. Cómo se abren en la app (commit c3932ac)
+
+- `app/catalogo.py` añade `catalogo_externo.csv` **al final** del medido (sin
+  duplicar ids) y lleva **dos archivos de embeddings**: `catalogo_emb_<huella>.npy`
+  (Gutenberg, 82 MB, ya publicado) y `catalogo_emb_ext_<huella>.npy` (externo).
+  Cambiar el externo recodifica solo sus filas. **Trampa:** el glob de limpieza de
+  Gutenberg (`catalogo_emb_*`) también casa con los del externo; hay una guarda.
+- `es_abrible(id)`: `PG…` o presente en `corpus_abierto.parquet`. `texto_abierto(id)`.
+- `app/ui.py`: `_abrible()` sustituye a los `startswith("PG")`; `_descargar_gutenberg`
+  escribe el texto libre como `<id>.txt` local sin red; `_esta_cacheado` ya no busca
+  los dígitos de `SWV369` entre los `pg369` de Gutenberg; `_abrir` reconoce
+  `swv|asb|voa|lrd` como ids del catálogo y pone el título en la cabecera.
+- Pruebas: `pruebas_corpus.py` (10). Mutantes: `C3-*` en `tools/banco_mutantes.py`,
+  suite `pruebas_corpus.py`.
+- Despliegue: `catalogo_externo.csv` y `corpus_abierto.parquet` están en la lista
+  blanca; el `.npy` del externo se sube a mano con `upload_file`.
+
 ## 5. Trabajar con otras sesiones a la vez
 
 Varias sesiones de Claude Code comparten **la misma carpeta**: `git pull --rebase`
@@ -102,3 +119,20 @@ no protege nada. Reglas que funcionaron:
   editando `pruebas_extremas.py`.
 - Al matar un proceso por su línea de comandos desde bash, el patrón coincide con
   el propio shell y lo mata también (exit 255): filtra por `Name -like 'python*'`.
+- **Commitear solo tu parte de un archivo compartido** (sin `git add -p`, que no
+  hay modo interactivo): `git diff -U3 archivo`, filtrar los hunks por la función
+  del encabezado `@@`, `git apply --cached --check` y `git apply --cached`, y
+  **compilar `git show :archivo` antes del commit**. Con `-U0` y
+  `--unidiff-zero` una inserción cayó en otra línea y el índice no compilaba.
+- La herramienta Edit falla con «modified since read» si otra sesión tocó el
+  archivo: relee la zona y edita en la misma respuesta.
+
+## 6. Auditores externos esta noche
+
+- **Codex**: antes del encargo, una llamada mínima
+  (`codex exec --skip-git-repo-check --sandbox read-only "Responde solo: ok"`)
+  para ver si hay cupo; ya gasta ~13 mil tokens por el contexto. Encargo estrecho,
+  a ciegas, solo lectura, `-c model_reasoning_effort="medium"`, y el informe por
+  la salida estándar (no darle escritura: hay otras sesiones en la carpeta).
+- **Fable** (subagente `model: fable`): para lo que Codex no mira —método y
+  estadística—, también a ciegas y de solo lectura.
