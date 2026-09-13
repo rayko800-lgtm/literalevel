@@ -88,6 +88,44 @@ Los 67 cuentos que no se pudieron cruzar con un nivel (36 unidades) dan media
    renglón parece una lista. Cualquier uso de la app con este material necesita la
    misma unión de páginas.
 
+## VOA Learning English (sin nivel por artículo)
+
+Muestra de hasta 60 artículos por sección (477 bajados, 472 con texto). **468 de
+470 unidades puntuadas.** Fuga contra ELG: 0.
+
+| Sección | Artículos | Media del v4 (0–2) | Palabras medias |
+|---|---|---|---|
+| Ask a Teacher | 60 | 0,864 | 428 |
+| Education Tips | 58 | 0,905 | 771 |
+| Arts & Culture | 60 | 0,961 | 547 |
+| Words & Their Stories | 60 | 0,969 | 528 |
+| As It Is | 60 | 0,970 | 528 |
+| Health & Lifestyle | 59 | 0,986 | 643 |
+| American Stories | 60 | 0,987 | 1.395 |
+| Science & Technology | 60 | 1,143 | 541 |
+
+| Grupo | Artículos | Media del v4 | ¿Al catálogo? |
+|---|---|---|---|
+| Escritos por VOA (dominio público) | 261 | 0,930 | Sí |
+| Adaptados de AP, Reuters o AFP | 216 | 1,024 | No, internos |
+
+Media global **0,973**, cuartiles 0,82 / 0,97 / 1,11. Letras del v4: B1 250 · B2 184
+· A2 18 · C1 14.
+
+### Hallazgos
+
+1. **Tiene sentido empíricamente.** VOA Learning English escribe para estudiantes
+   intermedios, y el v4 lo pone casi todo en B1–B2: por encima de los cuentos
+   infantiles de African Storybook (0,3–0,6) y muy por debajo de la literatura de
+   Gutenberg (media del catálogo 1,74). El orden entre fuentes es el que un profesor
+   esperaría.
+2. **La sección más fácil es la de respuestas a alumnos** (Ask a Teacher, 0,864) y la
+   más difícil **Ciencia y Tecnología** (1,143), que es la que más vocabulario técnico
+   arrastra. La longitud no lo explica: *American Stories* son los textos más largos
+   (1.395 palabras) y quedan en la media.
+3. **Lo adaptado de agencias puntúa algo más alto** (1,024) que lo escrito por VOA
+   (0,930): la adaptación conserva parte del registro periodístico del original.
+
 ## Pendiente
 
 - StoryWeaver: validar sobre la muestra aleatoria e intercalada por niveles que va

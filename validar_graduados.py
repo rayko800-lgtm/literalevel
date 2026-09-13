@@ -278,10 +278,15 @@ def main():
               f"cuartiles {np.percentile(g['puntuacion'], [25, 50, 75]).round(3).tolist()} · "
               f"palabras medias {g['palabras'].mean():.0f}")
 
-    SALIDA.parent.mkdir(exist_ok=True)
-    u.drop(columns=["texto"]).to_csv(SALIDA, index=False)
-    print(f"\npuntuaciones (sin texto) en {SALIDA}")
-    with open(SALIDA.with_suffix(".json"), "w", encoding="utf-8") as f:
+    # Un archivo por fuente cuando se pide una sola. Antes cada corrida
+    # sobrescribia el mismo CSV, y medir VOA borro las puntuaciones de African
+    # Storybook que ya estaban commiteadas.
+    salida = SALIDA if not args.fuente else SALIDA.with_name(
+        f"{SALIDA.stem}_{args.fuente}{SALIDA.suffix}")
+    salida.parent.mkdir(exist_ok=True)
+    u.drop(columns=["texto"]).to_csv(salida, index=False)
+    print(f"\npuntuaciones (sin texto) en {salida}")
+    with open(salida.with_suffix(".json"), "w", encoding="utf-8") as f:
         json.dump([r for r in resumen if r], f, ensure_ascii=False, indent=1)
 
 
