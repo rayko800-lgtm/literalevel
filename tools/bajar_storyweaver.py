@@ -105,13 +105,37 @@ def main():
                 pass
     print(f"ya bajados: {len(ya)}", flush=True)
 
+    # El indice se guarda: listar los ~17.000 libros son ~340 peticiones y no
+    # hay por que repetirlas en cada reanudacion.
+    indice_ruta = SALIDA / "indice.json"
+    if indice_ruta.exists() and not args.muestra:
+        indice = json.loads(indice_ruta.read_text(encoding="utf-8"))
+    else:
+        indice = {str(n): ids_del_nivel(n, args.muestra) for n in (1, 2, 3, 4)}
+        if not args.muestra:
+            indice_ruta.write_text(json.dumps(indice), encoding="utf-8")
+    # Orden ALEATORIO e intercalando niveles. Bajar entero son muchas horas, y
+    # asi cualquier trozo ya descargado es una muestra equilibrada y sin sesgo
+    # de popularidad (la API lista primero los mas valorados): se puede validar
+    # mientras el resto sigue bajando.
+    import random
+    rng = random.Random(20260912)
+    colas = {}
+    for n, slugs in indice.items():
+        pend = [s for s in slugs if s not in ya]
+        rng.shuffle(pend)
+        colas[n] = pend
+        print(f"nivel {n}: {len(slugs)} en la API, {len(pend)} por bajar", flush=True)
+    orden = []
+    while any(colas.values()):
+        for n in sorted(colas):
+            if colas[n]:
+                orden.append((n, colas[n].pop()))
+
     with LIBROS.open("a", encoding="utf-8") as f:
-        for nivel in (1, 2, 3, 4):
-            slugs = ids_del_nivel(nivel, args.muestra)
-            pendientes = [s for s in slugs if s not in ya]
-            print(f"nivel {nivel}: {len(slugs)} en la API, {len(pendientes)} por bajar",
-                  flush=True)
-            for n, slug in enumerate(pendientes, 1):
+        for n_total, (nivel, slug) in enumerate(orden, 1):
+            n = n_total
+            if True:
                 ficha = pedir(f"{BASE}/stories/{slug}")
                 time.sleep(PAUSA)
                 lect = pedir(f"{BASE}/stories/{slug}/read")
@@ -139,7 +163,7 @@ def main():
                 f.flush()
                 ya.add(slug)
                 if n % 100 == 0:
-                    print(f"  nivel {nivel}: {n}/{len(pendientes)}", flush=True)
+                    print(f"  {n}/{len(orden)} ({len(ya)} en total)", flush=True)
     print(f"listo: {len(ya)} libros en {LIBROS}", flush=True)
 
 

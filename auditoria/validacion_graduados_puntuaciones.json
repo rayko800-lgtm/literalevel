@@ -1,0 +1,46 @@
+[
+ {
+  "titulo": "african_storybook · todas las unidades",
+  "n": 174,
+  "spearman": 0.41628377957595986,
+  "palabras": 0.7055543713881454,
+  "parcial": 0.23709982741183674,
+  "creciente": true,
+  "medias": [
+   0.315,
+   0.323,
+   0.405,
+   0.493,
+   0.598
+  ]
+ },
+ {
+  "titulo": "african_storybook · solo textos de >=250 palabras",
+  "n": 123,
+  "spearman": 0.306885089160208,
+  "palabras": 0.6370622702583674,
+  "parcial": 0.1360047149401409,
+  "creciente": false,
+  "medias": [
+   0.475,
+   0.268,
+   0.425,
+   0.494,
+   0.598
+  ]
+ },
+ {
+  "titulo": "african_storybook · solo bloques de cuentos cortos",
+  "n": 51,
+  "spearman": 0.2052681753698527,
+  "palabras": 0.37463137514831985,
+  "parcial": 0.22141868097462825,
+  "creciente": true,
+  "medias": [
+   0.219,
+   0.332,
+   0.371,
+   0.467
+  ]
+ }
+]
