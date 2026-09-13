@@ -87,18 +87,25 @@ LISTA_BLANCA = [
     "catalogo_externo.csv",
     "corpus_abierto.parquet",
     "app/fonemas.py",
+    # La tabla del AFI (entrega-4e). ui.py lo importa en la cabecera: sin el,
+    # se cae la app entera, no solo la pestana.
+    "app/articulacion.py",
 ]
 
 
 def _audios_de_fonemas():
-    """Los mp3 que la app espera, uno por fonema del inventario.
+    """Los mp3 que la app espera, uno por sonido de cada inventario.
 
-    Se leen de `fonemas.INVENTARIO` y no con un glob: un glob subiria lo que
-    haya y callaria el que falte. `fonemas` no importa nada pesado (ni el SDK
-    de OpenAI, ni el diccionario: ese solo se abre al pedir una IPA)."""
+    Se leen de `fonemas.INVENTARIO` (americano, app/audio_fonemas/) y de
+    `articulacion.INVENTARIO_RP` (britanico, app/audio_fonemas_rp/), no con un
+    glob: un glob subiria lo que haya y callaria el que falte. Ninguno de los
+    dos modulos importa nada pesado (ni gradio, ni el SDK de OpenAI)."""
     sys.path.insert(0, os.path.join(RAIZ, "app"))
+    import articulacion
     import fonemas
-    return [f"app/audio_fonemas/{f.archivo}" for f in fonemas.INVENTARIO]
+    rp = os.path.relpath(articulacion.DIR_AUDIO_RP, RAIZ).replace(os.sep, "/")
+    return ([f"app/audio_fonemas/{f.archivo}" for f in fonemas.INVENTARIO]
+            + [f"{rp}/{s.archivo}" for s in articulacion.INVENTARIO_RP])
 
 
 LISTA_BLANCA += _audios_de_fonemas()
