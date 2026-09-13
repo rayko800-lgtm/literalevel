@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>LiteraLevel · Lee en inglés a tu medida</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="LiteraLevel mide cómo de difícil es un libro en inglés y te acompaña mientras lo lees.">
+  <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1422" media="(prefers-color-scheme: dark)">
+  <!-- Dónde vive el motor. Vacío = el mismo origen (ng serve con proxy, o un
+       servidor que sirva API y front juntos). En un Space estático se pone la
+       URL del Space de Gradio al publicar. -->
+  <meta name="literalevel-api" content="">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script>
+    // El tema ANTES de pintar: sin esto la página parpadea en claro y luego se
+    // oscurece, que en un móvil de noche es un fogonazo.
+    try {
+      var t = localStorage.getItem('literalevel.tema');
+      if (t && t !== 'sistema') document.documentElement.setAttribute('data-tema', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <app-root>
+    <div style="font-family:system-ui,sans-serif;padding:3rem 1.5rem;text-align:center;opacity:.7">
+      Abriendo LiteraLevel…
+    </div>
+  </app-root>
+  <noscript>LiteraLevel necesita JavaScript para funcionar.</noscript>
+</body>
+</html>

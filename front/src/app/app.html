@@ -1,0 +1,65 @@
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="barra" [class.oculta]="barraOculta()">
+  <div class="barra-in">
+    <a class="marca" routerLink="/" aria-label="LiteraLevel, inicio">
+      <span class="logo" aria-hidden="true">L</span>
+      <span class="nombre">LiteraLevel</span>
+    </a>
+
+    <nav class="nav-escritorio" aria-label="Principal">
+      @for (item of navegacion; track item.ruta) {
+        <a [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
+          <app-icono [nombre]="item.icono" />{{ item.etiqueta }}
+        </a>
+      }
+    </nav>
+
+    <div class="acciones">
+      @if (sesion.entrada(); as e) {
+        @if (e.puerta && e.dentro && e.nombre) {
+          <button type="button" class="chip acento quien" (click)="sesion.ajustesAbiertos.set(true)">
+            <app-icono nombre="persona" />{{ e.nombre }}
+          </button>
+        }
+      }
+      <button class="boton-icono" type="button" (click)="sesion.ajustesAbiertos.set(true)" aria-label="Ajustes: colores, letra y perfil">
+        <app-icono nombre="ajustes" />
+      </button>
+    </div>
+  </div>
+
+  @if (sesion.motor() === 'despertando') {
+    <div class="motor" role="status">
+      <span class="giro"></span>
+      <span>Despertando el motor de LiteraLevel. Si llevaba rato sin usarse tarda unos 30 segundos; puedes ir mirando mientras.</span>
+    </div>
+  } @else if (sesion.motor() === 'caido') {
+    <div class="motor error" role="alert">
+      <span>No consigo hablar con el motor de LiteraLevel.</span>
+      <button class="boton pequeno secundario" type="button" (click)="sesion.comprobar()">Reintentar</button>
+    </div>
+  }
+</header>
+
+<main id="contenido" class="contenido">
+  <router-outlet />
+</main>
+
+<footer class="pie">
+  <span><strong>LiteraLevel</strong> · la dificultad la mide un modelo propio sobre el texto; orienta, no certifica.</span>
+  <span>Libros de Project Gutenberg y corpus libres · diccionario de Wiktionary</span>
+</footer>
+
+<nav class="nav-movil" [class.oculta]="barraOculta()" aria-label="Principal">
+  @for (item of navegacion; track item.ruta) {
+    <a [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
+      <app-icono [nombre]="item.icono" />
+      <span>{{ item.etiqueta }}</span>
+    </a>
+  }
+</nav>
+
+@if (sesion.ajustesAbiertos()) {
+  <app-ajustes (cerrar)="sesion.ajustesAbiertos.set(false)" />
+}

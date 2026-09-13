@@ -1,0 +1,253 @@
+<div class="barra-avance" aria-hidden="true"><i [style.width.%]="avance() * 100"></i></div>
+
+<div class="lectura" [class.con-panel]="panelAbierto()">
+  <div class="columna">
+    @if (libro(); as l) {
+      <nav class="migas">
+        <a [routerLink]="['/libro', l.id]" class="volver"><app-icono nombre="izq" />{{ l.titulo }}</a>
+        <div class="herramientas">
+          <button type="button" class="boton pequeno secundario" (click)="indiceAbierto.set(true)">
+            <app-icono nombre="indice" />Índice
+          </button>
+          <button type="button" class="boton-icono" (click)="abrirAjustes()" aria-label="Tamaño de letra y colores">
+            <app-icono nombre="letra" />
+          </button>
+        </div>
+      </nav>
+    }
+
+    @if (error()) {
+      <div class="aviso error" role="alert">
+        <p>{{ error() }}</p>
+      </div>
+      <p class="fila"><a class="boton secundario" routerLink="/encontrar">Elegir otro libro</a></p>
+    } @else if (cargando() && !capitulo()) {
+      <div class="hoja">
+        @if (descargando()) {
+          <div class="espera"><span class="giro"></span>
+            <span>Abriendo el libro. Si es la primera vez que alguien lo lee aquí, se descarga de Project Gutenberg
+              y puede tardar unos segundos; después queda guardado.</span></div>
+        } @else {
+          <div class="esqueleto" style="height:2.2rem;width:60%;margin:0 auto 2rem"></div>
+          @for (i of [1, 2, 3, 4, 5]; track i) {
+            <div class="esqueleto" style="height:1rem;margin:0 auto .8rem;max-width:var(--medida)"></div>
+          }
+        }
+      </div>
+    }
+
+    @if (capitulo(); as c) {
+      <article class="hoja" [class.recargando]="cargando()">
+        <header class="cabecera-cap">
+          <span class="antetitulo">Capítulo {{ c.indice + 1 }} de {{ c.total }}</span>
+          <h1 class="en-libro">{{ c.titulo }}</h1>
+          <div class="fila datos-cap">
+            <span class="chip"><app-icono nombre="reloj" />{{ minutosDe(c.palabras) }} min · {{ miles(c.palabras) }} palabras</span>
+            @if (sugeridos().has(c.indice)) {
+              <span class="chip verde"><app-icono nombre="check" />A tu alcance</span>
+            }
+            @if (medida(); as m) {
+              <span class="chip acento">Este capítulo: {{ num(m.puntuacion) }} · {{ m.cefr }}</span>
+            } @else {
+              <button type="button" class="boton pequeno fantasma" (click)="medir()" [disabled]="midiendo()">
+                <app-icono nombre="medir" />{{ midiendo() ? 'Midiendo…' : '¿Cómo de difícil es?' }}
+              </button>
+            }
+          </div>
+          @if (midiendo()) {
+            <p class="tenue pequeno">Si es la primera medición desde que despertó el servidor, carga el modelo: hasta un minuto.</p>
+          }
+          @if (medida(); as m) {
+            <p class="tenue pequeno">Medido ahora con el modelo sobre {{ m.bloques }} bloques de texto · confianza {{ m.confianza }}.
+              @if (perfil(); as p) { Tu nivel: {{ num(p.nivel) }}. }</p>
+          }
+          @if (errorMedida()) { <p class="aviso error pequeno">{{ errorMedida() }}</p> }
+        </header>
+
+        @if (pista()) {
+          <div class="pista" role="note">
+            <app-icono nombre="chispa" />
+            <p><strong>Toca dos veces una palabra</strong> (en el móvil, mantenla pulsada) y verás qué significa en esta frase.</p>
+            <button type="button" class="boton-icono" (click)="cerrarPista()" aria-label="Entendido"><app-icono nombre="cerrar" /></button>
+          </div>
+        }
+
+        <nav class="pasar arriba" aria-label="Capítulos">
+          <button type="button" class="boton secundario pequeno" [disabled]="anterior() === null" (click)="ir(anterior())">
+            <app-icono nombre="izq" />Anterior
+          </button>
+          <button type="button" class="boton secundario pequeno" [disabled]="siguiente() === null" (click)="ir(siguiente())">
+            Siguiente<app-icono nombre="der" />
+          </button>
+        </nav>
+
+        <div class="texto" #texto lang="en">
+          @for (p of parrafos(); track $index) {
+            @if (p.separador) {
+              <p class="separador" aria-hidden="true">* * *</p>
+            } @else {
+              <p>@for (t of p.trozos; track $index) {<span [class.cursiva]="t.cursiva">{{ t.t }}</span>}</p>
+            }
+          }
+        </div>
+
+        <section class="final" aria-label="Final del capítulo">
+          <span class="check"><app-icono nombre="check" /></span>
+          <h2>Has terminado el capítulo {{ c.indice + 1 }}</h2>
+          @if (siguiente() !== null && libro(); as l) {
+            <p class="suave">Lo siguiente: <strong>{{ l.capitulos[siguiente()!].titulo }}</strong>
+              · {{ minutosDe(l.capitulos[siguiente()!].palabras) }} min</p>
+          } @else {
+            <p class="suave">Era el último capítulo. ¡Libro terminado!</p>
+          }
+          <div class="dos-botones">
+            @if (siguiente() !== null) {
+              <button type="button" class="boton" (click)="ir(siguiente())">Siguiente capítulo<app-icono nombre="der" /></button>
+            } @else {
+              <a class="boton" routerLink="/encontrar">Buscar otro libro</a>
+            }
+            <a class="boton secundario" routerLink="/">Parar aquí</a>
+          </div>
+          <a class="practicar" [routerLink]="['/pronunciar']" [queryParams]="{ libro: id(), cap: c.indice }">
+            <app-icono nombre="micro" />Practicar una frase de este capítulo en voz alta
+          </a>
+        </section>
+      </article>
+    }
+  </div>
+
+  @if (panelAbierto()) {
+    <div class="velo-palabra" (click)="cerrarPalabra()"></div>
+    <aside class="panel-palabra" role="dialog" aria-label="Significado de la palabra">
+      <div class="asa" aria-hidden="true"></div>
+      <header class="cab-palabra">
+        <div>
+          <h2 lang="en">{{ palabra()?.palabra || consultada() }}</h2>
+          @if (palabra(); as w) {
+            <p class="tenue pequeno">
+              @if (w.lema && w.lema.toLowerCase() !== w.palabra.toLowerCase()) { <span lang="en">{{ w.lema }}</span> · }
+              {{ w.categoria || '' }}
+              @if (w.rareza) { · {{ rarezas[w.rareza] }} }
+            </p>
+          }
+        </div>
+        <button type="button" class="boton-icono" (click)="cerrarPalabra()" aria-label="Cerrar"><app-icono nombre="cerrar" /></button>
+      </header>
+
+      @if (buscandoPalabra()) {
+        <div class="espera"><span class="giro"></span>Buscando en el diccionario…</div>
+      }
+      @if (errorPalabra()) {
+        <p class="aviso error">{{ errorPalabra() }}</p>
+      }
+
+      @if (palabra(); as w) {
+        @if (w.ipa_us || w.ipa_uk || w.audio_us || w.audio_uk) {
+          <div class="pron">
+            @if (w.ipa_us || w.audio_us) {
+              <button type="button" class="boton secundario pequeno" (click)="sonar(w.audio_us)" [disabled]="!w.audio_us">
+                <app-icono nombre="altavoz" />US {{ w.ipa_us || '' }}
+              </button>
+            }
+            @if (w.ipa_uk || (w.audio_uk && w.audio_uk !== w.audio_us)) {
+              <button type="button" class="boton secundario pequeno" (click)="sonar(w.audio_uk)" [disabled]="!w.audio_uk">
+                <app-icono nombre="altavoz" />UK {{ w.ipa_uk || '' }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (explicando()) {
+          <div class="bloque aqui cargando">
+            <span class="etiqueta">Aquí significa</span>
+            <div class="espera pequeno"><span class="giro"></span>Preparando la explicación de esta frase: unos 15 segundos.</div>
+          </div>
+        } @else if (w.definicion_contextual) {
+          <div class="bloque aqui">
+            <span class="etiqueta">Aquí significa</span>
+            <p>{{ w.definicion_contextual }}</p>
+          </div>
+        }
+
+        @if (w.sentido) {
+          <div class="bloque">
+            <span class="etiqueta">En el diccionario</span>
+            <p lang="en">{{ w.sentido }}</p>
+            @if (w.etiquetas.length) { <p class="tenue pequeno">{{ w.etiquetas.join(', ') }}</p> }
+            @if (w.dudoso) {
+              <p class="aviso ambar pequeno">No estoy seguro de que sea esta acepción
+                (afinidad {{ num(w.similitud) }}). {{ w.definicion_contextual ? 'Fíate más de «Aquí significa».' : 'Lee la frase entera antes de fiarte.' }}</p>
+            }
+          </div>
+        } @else if (!buscandoPalabra()) {
+          <p class="suave">Esta palabra no está en el diccionario.</p>
+        }
+
+        @if (w.explicacion_gramatical) {
+          <div class="bloque"><span class="etiqueta">Gramática</span><p>{{ w.explicacion_gramatical }}</p></div>
+        }
+        @if (w.explicacion_adaptada) {
+          <div class="bloque"><span class="etiqueta">Para tu nivel</span><p>{{ w.explicacion_adaptada }}</p></div>
+        }
+        @if (w.ejemplo) {
+          <div class="bloque"><span class="etiqueta">Ejemplo</span><p lang="en"><em>{{ w.ejemplo }}</em></p></div>
+        }
+
+        @if (w.origen_oracion !== 'sin_contexto') {
+          <blockquote class="contexto en-libro" lang="en">{{ w.oracion }}</blockquote>
+        }
+
+        @if (w.motivo_sin_explicacion && !w.definicion_contextual && !explicando()) {
+          <div class="aviso">
+            <p>{{ w.motivo_sin_explicacion }}
+              @if (entrada()?.puerta && !entrada()?.dentro) {
+                <button type="button" class="boton pequeno fantasma" (click)="abrirAjustes()">Entrar</button>
+              }
+            </p>
+          </div>
+        }
+        @for (a of w.avisos; track a) {
+          @if (a !== w.motivo_sin_explicacion) { <p class="aviso pequeno">{{ a }}</p> }
+        }
+
+        <div class="fila acciones-palabra">
+          <a class="boton pequeno secundario" routerLink="/pronunciar" [queryParams]="{ frase: w.oracion }">
+            <app-icono nombre="micro" />Leer esta frase en voz alta
+          </a>
+        </div>
+      }
+
+      <form class="otra" (ngSubmit)="consultarEscrita()">
+        <label class="oculto-visual" for="otra-palabra">Consultar otra palabra</label>
+        <input id="otra-palabra" name="otra" class="entrada" [(ngModel)]="otraPalabra" placeholder="Escribe otra palabra"
+               autocapitalize="none" autocomplete="off" maxlength="40" lang="en">
+        <button class="boton pequeno" type="submit">Consultar</button>
+      </form>
+    </aside>
+  }
+</div>
+
+@if (indiceAbierto() && libro(); as l) {
+  <div class="velo-indice" (click)="indiceAbierto.set(false)"></div>
+  <aside class="indice" role="dialog" aria-label="Índice del libro">
+    <header class="cab-palabra">
+      <div>
+        <h2>Índice</h2>
+        <p class="tenue pequeno">{{ l.capitulos.length }} capítulos
+          @if (l.sugeridos.length) { · <span class="verde-texto">en verde, los que están a tu alcance</span> }</p>
+      </div>
+      <button type="button" class="boton-icono" (click)="indiceAbierto.set(false)" aria-label="Cerrar índice"><app-icono nombre="cerrar" /></button>
+    </header>
+    <ol class="lista-indice">
+      @for (cap of l.capitulos; track cap.indice) {
+        <li>
+          <a [routerLink]="['/leer', l.id, cap.indice]" [class.actual]="cap.indice === indice()" [class.alcance]="sugeridos().has(cap.indice)">
+            <span class="n">{{ cap.indice + 1 }}</span>
+            <span class="t">{{ cap.titulo }}</span>
+            <span class="p tenue">{{ minutosDe(cap.palabras) }} min</span>
+          </a>
+        </li>
+      }
+    </ol>
+  </aside>
+}

@@ -1,0 +1,168 @@
+<div class="pagina estrecha">
+  <header class="cabecera-pagina">
+    <span class="antetitulo">Pronunciar</span>
+    <h1>Lee una frase en voz alta</h1>
+    <p>Graba la frase y te digo qué palabras se entendieron, qué sonido se escapa y cómo colocar la boca.</p>
+  </header>
+
+  @if (bloqueada()) {
+    <div class="aviso ambar">
+      <p>
+        @if (!entrada()?.openai) {
+          La corrección usa OpenAI y este servidor no tiene la clave puesta. Puedes grabarte y escucharte igualmente.
+        } @else {
+          La corrección usa OpenAI, así que necesita que entres con tu perfil.
+          <button type="button" class="boton pequeno fantasma" (click)="abrirAjustes()">Entrar</button>
+        }
+      </p>
+    </div>
+  }
+
+  <section class="tarjeta pila paso">
+    <div class="cab-paso">
+      <span class="numero">1</span>
+      <label for="frase" class="etiqueta-paso">La frase</label>
+      @if (contexto()) {
+        <button type="button" class="boton pequeno fantasma" (click)="traerFrase()" [disabled]="trayendo()">
+          <app-icono nombre="libro" />{{ trayendo() ? 'Buscando…' : 'Una frase de mi libro' }}
+        </button>
+      }
+    </div>
+    <textarea id="frase" class="entrada frase en-libro" rows="3" maxlength="300" [(ngModel)]="frase" lang="en"
+              placeholder="Escribe o pega la frase en inglés que vas a leer"></textarea>
+    @if (frase) {
+      <button type="button" class="boton pequeno fantasma limpiar" (click)="frase = ''; descartar()">
+        <app-icono nombre="cerrar" />Borrar la frase
+      </button>
+    }
+  </section>
+
+  <section class="tarjeta pila paso">
+    <div class="cab-paso"><span class="numero">2</span><span class="etiqueta-paso">Tu voz</span></div>
+    <div class="grabadora">
+      @switch (estado()) {
+        @case ('lista') {
+          <button type="button" class="microfono" (click)="grabar()" [disabled]="!frase.trim()" aria-label="Empezar a grabar">
+            <app-icono nombre="micro" />
+          </button>
+          <p class="suave">{{ frase.trim() ? 'Pulsa y lee la frase con calma.' : 'Primero escribe la frase.' }}</p>
+        }
+        @case ('grabando') {
+          <button type="button" class="microfono grabando" (click)="pararGrabacion()" aria-label="Terminar la grabación">
+            <app-icono nombre="stop" />
+          </button>
+          <p><strong>Grabando… {{ segundos() }} s</strong> <span class="suave">· pulsa para terminar</span></p>
+        }
+        @case ('grabada') {
+          @if (audioUrl(); as u) { <audio [src]="u" controls></audio> }
+          <div class="fila centrada">
+            <button type="button" class="boton" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()">
+              <app-icono nombre="check" />{{ corrigiendo() ? 'Escuchando…' : 'Corrígeme' }}
+            </button>
+            <button type="button" class="boton secundario" (click)="descartar(); grabar()"><app-icono nombre="recargar" />Grabar otra vez</button>
+          </div>
+          @if (corrigiendo()) { <p class="tenue pequeno">Transcribo tu voz y preparo la explicación: unos segundos.</p> }
+        }
+      }
+    </div>
+  </section>
+
+  @if (error()) {
+    <div class="aviso error" role="alert"><p>{{ error() }}
+      @if (necesitaEntrar()) { <button type="button" class="boton pequeno fantasma" (click)="abrirAjustes()">Entrar</button> }
+    </p></div>
+  }
+
+  @if (resultado(); as r) {
+    <section class="tarjeta resultado" aria-live="polite">
+      <div class="nota">
+        <div class="anillo" [style.--p]="r.puntuacion"><strong>{{ r.puntuacion }}</strong><span>/100</span></div>
+        <div>
+          <h2>{{ nota() }}</h2>
+          @if (!r.transcripcion_ok) {
+            <p class="aviso error pequeno">No se pudo transcribir el audio: la puntuación no es válida.</p>
+          } @else {
+            <p class="suave">Se te entendió: <em lang="en">«{{ r.transcripcion || '(nada)' }}»</em></p>
+          }
+        </div>
+      </div>
+
+      @if (r.transcripcion_ok) {
+        <p class="palabras-voz en-libro" lang="en">
+          @for (w of r.palabras; track $index) {
+            <span [class.bien]="w.bien" [class.mal]="!w.bien">{{ w.palabra }}<span class="oculto-visual">{{ w.bien ? ' (bien)' : ' (a revisar)' }}</span></span>
+          }
+        </p>
+        <p class="tenue pequeno leyenda"><span class="muestra bien"></span>bien pronunciada · <span class="muestra mal"></span>no se entendió como esa palabra</p>
+      }
+
+      @if (r.resumen) { <p class="resumen">{{ r.resumen }}</p> }
+
+      @if (r.detalles.length) {
+        <div class="detalles">
+          @for (d of r.detalles; track $index) {
+            <article class="detalle">
+              <header>
+                <strong lang="en">{{ d.palabra }}</strong>
+                @if (d.ipa) { <span class="ipa">{{ d.ipa }}</span><span class="tenue pequeno">{{ d.variante }}</span> }
+                @else { <span class="tenue pequeno">sin transcripción en el diccionario</span> }
+              </header>
+              @if (d.fonema; as f) {
+                <div class="fonema">
+                  <button type="button" class="simbolo" (click)="sonar(f.audio)" [disabled]="!f.audio" [attr.aria-label]="'Escuchar el sonido ' + f.simbolo">
+                    /{{ f.simbolo }}/ <app-icono nombre="altavoz" />
+                  </button>
+                  <span class="suave pequeno">como en <em lang="en">{{ f.ejemplos.join(', ') }}</em></span>
+                </div>
+              }
+              @if (d.sonido_que_falla) { <p><strong>Qué falla:</strong> {{ d.sonido_que_falla }}</p> }
+              @if (d.como_colocar_la_boca) { <p><strong>Cómo colocar la boca:</strong> {{ d.como_colocar_la_boca }}</p> }
+            </article>
+          }
+        </div>
+      }
+
+      @if (r.audio_correcto) {
+        <div class="referencia">
+          <span class="etiqueta">Cómo debería sonar</span>
+          <button type="button" class="boton secundario" (click)="sonar(r.audio_correcto)"><app-icono nombre="play" />Escuchar la frase bien leída</button>
+        </div>
+      }
+
+      <button type="button" class="boton bloque otra" (click)="otraFrase()"><app-icono nombre="recargar" />Otra frase</button>
+    </section>
+  }
+
+  <details class="tarjeta plana afi" (toggle)="verFonemas($event)">
+    <summary><h2>Los sonidos del inglés (AFI)</h2><span class="tenue pequeno">Toca un símbolo para oírlo</span></summary>
+    @if (fonemas() === null) {
+      <div class="espera"><span class="giro"></span>Cargando…</div>
+    } @else {
+      @for (g of grupos(); track g.nombre) {
+        <h3>{{ g.nombre }}</h3>
+        <div class="rejilla-fonemas">
+          @for (f of g.lista; track f.simbolo) {
+            <button type="button" class="celda" (click)="sonar(f.audio)" [disabled]="!f.audio">
+              <strong>/{{ f.simbolo }}/</strong>
+              <span class="pequeno" lang="en">{{ f.ejemplos[0] }}</span>
+              <span class="tenue diminuto">{{ f.nombre }}</span>
+            </button>
+          }
+        </div>
+      }
+    }
+  </details>
+
+  @if (debiles().length) {
+    <section class="tarjeta plana">
+      <h2>Tus palabras difíciles</h2>
+      <div class="fila" lang="en">
+        @for (d of debiles(); track d.palabra) {
+          <span class="chip ambar">{{ d.palabra }} · {{ d.fallos }}</span>
+        }
+      </div>
+    </section>
+  }
+
+  <p class="tenue pequeno volver"><a routerLink="/leer">Volver al libro</a></p>
+</div>

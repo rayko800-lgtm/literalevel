@@ -1,0 +1,164 @@
+<div class="pagina estrecha">
+  @if (error()) {
+    <div class="aviso error" role="alert"><p>{{ error() }}</p></div>
+  }
+
+  @switch (vista()) {
+    @case ('resultado') {
+      @if (perfil(); as p) {
+        <header class="cabecera-pagina">
+          <span class="antetitulo">Tu nivel de lectura</span>
+          <h1>Lees en inglés a nivel <span class="letra">{{ cefr(p.nivel) }}</span></h1>
+          <p>Estimado con {{ p.origen === 'muestra' ? 'un texto que nos diste' : 'el cuestionario' }}.
+            Es una orientación para elegir qué leer, no un certificado.</p>
+        </header>
+
+        <section class="tarjeta medidor">
+          <div class="cifra">
+            <strong>{{ num(p.nivel) }}</strong><span>de 2</span>
+            <span class="chip acento">{{ bandas[p.banda] || p.banda }}</span>
+          </div>
+          <div class="escala" role="img" [attr.aria-label]="'Nivel ' + num(p.nivel) + ' en una escala de 0 a 2'">
+            <div class="pista-escala">
+              <span class="rango" [style.left.%]="pos(p.rango_recomendado[0])"
+                    [style.width.%]="pos(p.rango_recomendado[1]) - pos(p.rango_recomendado[0])"></span>
+              <span class="marca" [style.left.%]="pos(p.nivel)"></span>
+            </div>
+            <div class="anclas">
+              @for (a of anclas; track a; let i = $index) {
+                <span [style.left.%]="i * 20" [class.suya]="a === cefr(p.nivel)">{{ a }}</span>
+              }
+            </div>
+          </div>
+          <p class="suave">Te buscaré lecturas entre <strong>{{ num(p.rango_recomendado[0]) }}</strong> y
+            <strong>{{ num(p.rango_recomendado[1]) }}</strong> (la franja clara): cómodas pero con algo de reto.</p>
+          <div class="fila">
+            <a class="boton" routerLink="/encontrar" [queryParams]="{ vista: 'nivel' }"><app-icono nombre="libro" />Ver libros de mi nivel</a>
+            <button type="button" class="boton secundario" (click)="reiniciar()"><app-icono nombre="recargar" />Volver a medirme</button>
+          </div>
+        </section>
+
+        <div class="enlaces">
+          <a class="tarjeta enlace" routerLink="/palabras">
+            <app-icono nombre="palabras" />
+            <span><strong>Mis palabras</strong>
+              <span class="suave pequeno">
+                @if (inicio()?.cuaderno?.palabras) { {{ inicio()!.cuaderno.palabras }} consultadas mientras lees · repásalas }
+                @else { Las que consultes al leer se guardan aquí }
+              </span></span>
+          </a>
+          <button type="button" class="tarjeta enlace" (click)="vista.set('muestra')">
+            <app-icono nombre="diana" />
+            <span><strong>Afinar con un texto</strong>
+              <span class="suave pequeno">Pega algo que leas cómodo y el modelo lo mide</span></span>
+          </button>
+        </div>
+      }
+    }
+
+    @case ('preguntas') {
+      @if (actual(); as a) {
+        <div class="cuestionario">
+          <div class="progreso">
+            <button type="button" class="boton-icono" (click)="atras()" [disabled]="paso() === 0" aria-label="Pregunta anterior">
+              <app-icono nombre="izq" />
+            </button>
+            <div class="avance" role="progressbar" [attr.aria-valuenow]="paso() + 1" aria-valuemin="1" [attr.aria-valuemax]="orden().length">
+              <i [style.width.%]="((paso() + 1) / orden().length) * 100"></i>
+            </div>
+            <span class="tenue pequeno">{{ paso() + 1 }} de {{ orden().length }}</span>
+          </div>
+
+          @if (esFragmento()) {
+            <p class="antetitulo">Lee este fragmento</p>
+            <figure class="fragmento">
+              <blockquote class="en-libro" lang="en">{{ fragmento().texto }}</blockquote>
+              <figcaption class="tenue pequeno">{{ fragmento().obra }} · {{ fragmento().autor }}</figcaption>
+            </figure>
+            <h1 class="pregunta">¿Cuánto entiendes?</h1>
+          } @else {
+            @if (paso() === 0 && !afinando()) {
+              <p class="antetitulo">Un minuto para saber qué libros te van</p>
+            }
+            <h1 class="pregunta">{{ a.pregunta }}</h1>
+            @if (a.multiple) { <p class="suave">Marca todas las que encajen.</p> }
+          }
+
+          <div class="opciones" [attr.role]="a.multiple ? 'group' : 'radiogroup'">
+            @for (o of a.opciones; track o.valor + o.etiqueta) {
+              <button type="button" class="opcion" [class.elegida]="elegida(o.valor)"
+                      [attr.role]="a.multiple ? 'checkbox' : 'radio'" [attr.aria-checked]="elegida(o.valor)"
+                      (click)="elegir(o.valor)">
+                <span class="punto" [class.cuadrado]="a.multiple"><app-icono nombre="check" /></span>
+                <span>{{ o.etiqueta }}</span>
+              </button>
+            }
+          </div>
+
+          @if (a.multiple) {
+            <button type="button" class="boton bloque" (click)="avanzar()">Siguiente</button>
+          }
+
+          <div class="pie-cuestionario">
+            @if (estimacion(); as e) {
+              <div class="provisional" aria-live="polite">
+                <span class="tenue pequeno">Estimación provisional</span>
+                <strong>{{ num(e.nivel) }} · {{ cefr(e.nivel) }}</strong>
+                <div class="mini-escala"><i [style.left.%]="pos(e.nivel)"></i></div>
+              </div>
+              <button type="button" class="boton fantasma" (click)="guardar()" [disabled]="guardando()">
+                Me vale así, guardar
+              </button>
+            } @else {
+              <p class="tenue pequeno">Con la primera respuesta ya verás una estimación. Puedes parar cuando quieras.</p>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="espera"><span class="giro"></span>Preparando las preguntas…</div>
+      }
+    }
+
+    @case ('listo') {
+      @if (estimacion(); as e) {
+        <section class="tarjeta listo">
+          <span class="antetitulo">Ya está</span>
+          <h1>Tu nivel: <span class="letra">{{ cefr(e.nivel) }}</span></h1>
+          <p class="cifra-grande"><strong>{{ num(e.nivel) }}</strong> <span class="suave">de 2 · {{ bandas[e.banda] || e.banda }}</span></p>
+          <p class="suave">Buscaré libros entre {{ num(e.rango_recomendado[0]) }} y {{ num(e.rango_recomendado[1]) }}.</p>
+          <div class="fila">
+            <button type="button" class="boton" (click)="guardar()" [disabled]="guardando()">
+              <app-icono nombre="check" />{{ guardando() ? 'Guardando…' : 'Guardar mi nivel' }}
+            </button>
+            @if (!afinando()) {
+              <button type="button" class="boton secundario" (click)="afinar()">Afinar con 3 preguntas más</button>
+            }
+            <button type="button" class="boton fantasma" (click)="atras()">Cambiar una respuesta</button>
+          </div>
+        </section>
+      }
+    }
+
+    @case ('muestra') {
+      <header class="cabecera-pagina">
+        <span class="antetitulo">Afinar tu nivel</span>
+        <h1>Mídeme con un texto</h1>
+        <p>Pega unos párrafos en inglés que leas sin esfuerzo: un capítulo de una novela, un artículo. El modelo mide su dificultad y
+          esa es tu referencia.</p>
+      </header>
+      <div class="tarjeta pila">
+        <label class="campo"><span>Tu texto (al menos 150 palabras de prosa seguida)</span>
+          <textarea class="entrada" rows="10" maxlength="25000" [(ngModel)]="muestra" lang="en"
+                    placeholder="Pega aquí varios párrafos…"></textarea>
+        </label>
+        <p class="tenue pequeno">{{ palabrasMuestra() }} palabras. La primera medición desde que despertó el servidor carga el modelo: hasta un minuto.</p>
+        <div class="fila">
+          <button type="button" class="boton" (click)="medirMuestra()" [disabled]="guardando() || palabrasMuestra() < 150">
+            {{ guardando() ? 'Midiendo…' : 'Medir este texto' }}
+          </button>
+          <button type="button" class="boton fantasma" (click)="vista.set(perfil() ? 'resultado' : 'preguntas')">Cancelar</button>
+        </div>
+      </div>
+    }
+  }
+</div>

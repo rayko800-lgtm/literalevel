@@ -1,0 +1,83 @@
+:host { display: flex; flex-direction: column; min-height: 100dvh; }
+
+.saltar {
+  position: absolute; left: 1rem; top: -60px; z-index: 100; padding: .6rem 1rem;
+  background: var(--acento); color: var(--sobre-acento); border-radius: 10px; font-weight: 650;
+}
+.saltar:focus { top: .6rem; }
+
+/* --- Barra superior -------------------------------------------------------------- */
+.barra {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--fondo) 88%, transparent);
+  border-bottom: 1px solid var(--borde);
+  transition: transform .25s ease;
+}
+/* El desenfoque, solo con ratón: en el móvil de Laura cada panel desenfocado
+   repintaba en cada fotograma del desplazamiento («se traba»). */
+@media (hover: hover) and (pointer: fine) {
+  .barra { backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); }
+}
+.barra-in {
+  width: min(var(--ancho), 100% - 2rem); margin: 0 auto; height: var(--barra-sup);
+  display: flex; align-items: center; gap: 1rem;
+}
+.marca { display: inline-flex; align-items: center; gap: .6rem; color: var(--texto); text-decoration: none; font-weight: 750; }
+.logo {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px;
+  font-family: var(--fuente-libro); font-size: 1.35rem; font-weight: 700; color: #fff;
+  background: linear-gradient(145deg, var(--acento), var(--acento-hondo));
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--acento) 70%, transparent);
+}
+.nombre { font-size: 1.12rem; letter-spacing: -.01em; }
+
+.nav-escritorio { display: flex; gap: .25rem; margin: 0 auto; }
+.nav-escritorio a {
+  display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: 0 1rem;
+  border-radius: 999px; color: var(--texto-suave); text-decoration: none; font-weight: 600;
+  transition: background-color .15s ease, color .15s ease;
+}
+.nav-escritorio a:hover { background: var(--superficie-2); color: var(--texto); }
+.nav-escritorio a.activo { background: var(--acento-suave); color: var(--acento-texto); }
+
+.acciones { display: flex; align-items: center; gap: .35rem; margin-left: auto; }
+.quien { cursor: pointer; min-height: 36px; }
+
+.motor {
+  display: flex; align-items: center; justify-content: center; gap: .7rem; flex-wrap: wrap;
+  padding: .55rem 1rem; font-size: .92rem; color: var(--ambar); background: var(--ambar-suave);
+  border-top: 1px solid var(--borde); text-align: center;
+}
+.motor.error { color: var(--rojo); background: var(--rojo-suave); }
+
+.contenido { flex: 1; width: 100%; }
+
+.pie {
+  width: min(var(--ancho), 100% - 2rem); margin: 0 auto; padding: 1.5rem 0 2rem;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1.5rem;
+  border-top: 1px solid var(--borde); color: var(--texto-tenue); font-size: .85rem;
+}
+
+/* --- Navegación inferior del móvil ---------------------------------------------- */
+.nav-movil { display: none; }
+
+@media (max-width: 760px) {
+  .nav-escritorio { display: none; }
+  .nombre { font-size: 1.05rem; }
+  .pie { padding-bottom: calc(var(--barra-inf) + 1.5rem + env(safe-area-inset-bottom)); }
+  .nav-movil {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: var(--superficie); border-top: 1px solid var(--borde);
+    box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, .35);
+    transition: transform .25s ease;
+  }
+  .nav-movil.oculta { transform: translateY(110%); }
+  .nav-movil a {
+    display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 54px;
+    border-radius: 14px; color: var(--texto-tenue); text-decoration: none; font-size: .75rem; font-weight: 650;
+  }
+  .nav-movil a app-icono { font-size: 1.15rem; }
+  .nav-movil a.activo { color: var(--acento-texto); background: var(--acento-suave); }
+}

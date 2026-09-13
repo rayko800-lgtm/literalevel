@@ -1,0 +1,320 @@
+/* LiteraLevel — sistema visual.
+ *
+ * Tres decisiones que no son de gusto y vienen de la investigación del proyecto
+ * (investigacion/diseno_lector.md, enganche.md, retencion_movil.md) y de las
+ * dos lectoras reales (Esmeralda y Laura):
+ *
+ * 1. CLARO por defecto, con oscuro y sepia a un toque. La evidencia favorece el
+ *    claro para leer mucho rato; Laura no distinguía las secciones en el oscuro
+ *    de antes. El oscuro de aquí separa superficies por luminancia, no por un
+ *    borde al 16 %.
+ * 2. Letra del SISTEMA en la interfaz y serif en el libro. Sin fuentes web: una
+ *    petición de red más en el arranque y, si falla, Times.
+ * 3. Todo lo pulsable mide 48 px y los campos 16 px (o iOS hace zoom solo).
+ */
+
+:root {
+  --radio: 16px;
+  --radio-sm: 11px;
+  --radio-lg: 24px;
+  --ancho: 1120px;
+  --medida: 64ch;
+  --cuerpo-libro: 20px;
+  --interlineado: 1.75;
+  --barra-sup: 64px;
+  --barra-inf: 68px;
+
+  --fuente-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fuente-libro: "Iowan Old Style", "Charter", "Bitstream Charter", "Source Serif 4",
+                  Georgia, "Times New Roman", serif;
+
+  /* Claro: azul profundo sobre un gris azulado muy suave. */
+  --fondo: #f4f6fb;
+  --fondo-degradado: radial-gradient(1200px 520px at 12% -10%, #e3ecff 0%, transparent 60%),
+                     radial-gradient(900px 480px at 100% 0%, #e6f5ef 0%, transparent 55%);
+  --superficie: #ffffff;
+  --superficie-2: #eef2f9;
+  --superficie-3: #e1e8f3;
+  --borde: #d6deeb;
+  --borde-fuerte: #b6c2d7;
+  --texto: #18223a;
+  --texto-suave: #48566f;
+  --texto-tenue: #647189;
+  --acento: #2f5bea;
+  --acento-hondo: #1f44c2;
+  --acento-texto: #2449c9;
+  --acento-suave: #e6ecff;
+  --sobre-acento: #ffffff;
+  --verde: #17805b;
+  --verde-suave: #e0f4ea;
+  --ambar: #9a5905;
+  --ambar-suave: #fcefd8;
+  --rojo: #bf2940;
+  --rojo-suave: #fde7ea;
+  --lector-fondo: #ffffff;
+  --lector-texto: #1f2638;
+  --seleccion: rgba(47, 91, 234, .22);
+  --sombra: 0 1px 2px rgba(20, 30, 60, .06), 0 8px 28px -12px rgba(20, 30, 60, .18);
+  --sombra-alta: 0 2px 6px rgba(20, 30, 60, .08), 0 24px 60px -24px rgba(20, 30, 60, .35);
+  --velo: rgba(15, 20, 34, .38);
+  color-scheme: light;
+}
+
+/* Oscuro: capas de azul noche que se distinguen entre sí (Material: nada de
+   negro puro; cuanto más arriba, más clara la superficie). Se define dos
+   veces a propósito: una para quien tiene el sistema en oscuro y otra para
+   quien lo elige a mano. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema]) {
+    --fondo: #0f1422;
+    --fondo-degradado: radial-gradient(1100px 520px at 10% -10%, #1b2a55 0%, transparent 60%),
+                       radial-gradient(900px 480px at 100% 0%, #12313a 0%, transparent 55%);
+    --superficie: #182033;
+    --superficie-2: #1f2940;
+    --superficie-3: #29354f;
+    --borde: #2f3b58;
+    --borde-fuerte: #465577;
+    --texto: #e8edf8;
+    --texto-suave: #b8c2d7;
+    --texto-tenue: #939fb8;
+    --acento: #7c9bff;
+    --acento-hondo: #5b7cf0;
+    --acento-texto: #a3b8ff;
+    --acento-suave: #24325a;
+    --sobre-acento: #0b1020;
+    --verde: #52d3a3;
+    --verde-suave: #173a31;
+    --ambar: #f2b458;
+    --ambar-suave: #3a2c14;
+    --rojo: #ff8294;
+    --rojo-suave: #43202a;
+    --lector-fondo: #151c2d;
+    --lector-texto: #e4e9f3;
+    --seleccion: rgba(124, 155, 255, .34);
+    --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .6);
+    --sombra-alta: 0 2px 8px rgba(0, 0, 0, .35), 0 28px 60px -24px rgba(0, 0, 0, .7);
+    --velo: rgba(3, 6, 14, .6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-tema="noche"] {
+  --fondo: #0f1422;
+  --fondo-degradado: radial-gradient(1100px 520px at 10% -10%, #1b2a55 0%, transparent 60%),
+                     radial-gradient(900px 480px at 100% 0%, #12313a 0%, transparent 55%);
+  --superficie: #182033;
+  --superficie-2: #1f2940;
+  --superficie-3: #29354f;
+  --borde: #2f3b58;
+  --borde-fuerte: #465577;
+  --texto: #e8edf8;
+  --texto-suave: #b8c2d7;
+  --texto-tenue: #939fb8;
+  --acento: #7c9bff;
+  --acento-hondo: #5b7cf0;
+  --acento-texto: #a3b8ff;
+  --acento-suave: #24325a;
+  --sobre-acento: #0b1020;
+  --verde: #52d3a3;
+  --verde-suave: #173a31;
+  --ambar: #f2b458;
+  --ambar-suave: #3a2c14;
+  --rojo: #ff8294;
+  --rojo-suave: #43202a;
+  --lector-fondo: #151c2d;
+  --lector-texto: #e4e9f3;
+  --seleccion: rgba(124, 155, 255, .34);
+  --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .6);
+  --sombra-alta: 0 2px 8px rgba(0, 0, 0, .35), 0 28px 60px -24px rgba(0, 0, 0, .7);
+  --velo: rgba(3, 6, 14, .6);
+  color-scheme: dark;
+}
+
+:root[data-tema="claro"] { color-scheme: light; }
+
+/* Sepia: para leer horas con luz cálida. */
+:root[data-tema="papel"] {
+  --fondo: #f3ede1;
+  --fondo-degradado: radial-gradient(1100px 520px at 10% -10%, #efe1c4 0%, transparent 60%);
+  --superficie: #fbf7ee;
+  --superficie-2: #efe7d6;
+  --superficie-3: #e5d9c1;
+  --borde: #dccfb5;
+  --borde-fuerte: #c3b18c;
+  --texto: #372d21;
+  --texto-suave: #5e503c;
+  --texto-tenue: #75654e;
+  --acento: #8a5a1f;
+  --acento-hondo: #6e4614;
+  --acento-texto: #774a15;
+  --acento-suave: #f0e1c6;
+  --sobre-acento: #fffaf1;
+  --verde: #2b7555;
+  --verde-suave: #e2eedc;
+  --ambar: #8f5509;
+  --ambar-suave: #f6e6c7;
+  --rojo: #ab2f3c;
+  --rojo-suave: #f6dfdc;
+  --lector-fondo: #fcf8ef;
+  --lector-texto: #32291e;
+  --seleccion: rgba(185, 130, 50, .28);
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--barra-sup) + 12px);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--fuente-ui);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--texto);
+  background: var(--fondo);
+  background-image: var(--fondo-degradado);
+  background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Laura: al llegar al tope «se traba». En un libro no hay nada que refrescar. */
+  overscroll-behavior-y: none;
+}
+
+::selection { background: var(--seleccion); }
+
+a { color: var(--acento-texto); text-underline-offset: .18em; }
+
+h1, h2, h3, h4 { line-height: 1.2; margin: 0 0 .5em; letter-spacing: -.012em; color: var(--texto); }
+h1 { font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem); font-weight: 750; letter-spacing: -.022em; }
+h2 { font-size: clamp(1.3rem, 1.05rem + 1vw, 1.7rem); font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 680; }
+p { margin: 0 0 1em; }
+
+button, input, textarea, select { font: inherit; color: inherit; }
+
+/* --- Botones ---------------------------------------------------------------- */
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: 48px; padding: 0 1.25rem;
+  border: 1px solid transparent; border-radius: 999px;
+  background: var(--acento); color: var(--sobre-acento);
+  font-weight: 650; font-size: 1rem; line-height: 1.15; text-align: center; text-decoration: none;
+  cursor: pointer; user-select: none;
+  transition: background-color .15s ease, box-shadow .15s ease, transform .08s ease;
+  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--acento) 70%, transparent);
+}
+.boton:hover { background: var(--acento-hondo); }
+.boton:active { transform: translateY(1px); }
+.boton[disabled] { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.boton.secundario {
+  background: var(--superficie); color: var(--texto); border-color: var(--borde-fuerte);
+  box-shadow: none;
+}
+.boton.secundario:hover { background: var(--superficie-2); }
+.boton.fantasma { background: transparent; color: var(--acento-texto); box-shadow: none; }
+.boton.fantasma:hover { background: var(--acento-suave); }
+.boton.pequeno { min-height: 40px; padding: 0 .95rem; font-size: .92rem; }
+.boton.bloque { width: 100%; }
+.boton-icono {
+  display: inline-grid; place-items: center; width: 48px; height: 48px; flex: none;
+  border: 1px solid transparent; border-radius: 999px; background: transparent;
+  color: var(--texto-suave); cursor: pointer; padding: 0;
+}
+.boton-icono:hover { background: var(--superficie-2); color: var(--texto); }
+.boton-icono svg, .boton svg { width: 22px; height: 22px; flex: none; }
+
+:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
+
+/* --- Campos ------------------------------------------------------------------- */
+.campo { display: grid; gap: .4rem; }
+.campo > span, .etiqueta { font-size: .9rem; font-weight: 650; color: var(--texto-suave); }
+.entrada {
+  width: 100%; min-height: 50px; padding: .75rem 1rem;
+  font-size: 16px; /* iOS: por debajo de 16 px hace zoom al enfocar */
+  background: var(--superficie); color: var(--texto);
+  border: 1px solid var(--borde-fuerte); border-radius: var(--radio-sm);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+textarea.entrada { line-height: 1.55; resize: vertical; }
+.entrada::placeholder { color: var(--texto-tenue); }
+.entrada:focus { outline: none; border-color: var(--acento);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acento) 22%, transparent); }
+
+/* --- Superficies -------------------------------------------------------------- */
+.tarjeta {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: clamp(1.05rem, .75rem + 1.2vw, 1.6rem);
+  box-shadow: var(--sombra);
+}
+.tarjeta.plana { box-shadow: none; }
+.pagina { width: min(var(--ancho), 100% - 2rem); margin: 0 auto;
+  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem) 0 3rem; }
+.pagina.estrecha { --ancho: 760px; }
+.cabecera-pagina { margin-bottom: 1.5rem; }
+.cabecera-pagina p { color: var(--texto-suave); max-width: 62ch; margin: 0; font-size: 1.05rem; }
+.antetitulo { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--acento-texto); margin-bottom: .45rem; }
+.tenue { color: var(--texto-tenue); }
+.suave { color: var(--texto-suave); }
+.pequeno { font-size: .9rem; }
+.en-libro { font-family: var(--fuente-libro); }
+
+/* --- Chips y avisos ------------------------------------------------------------ */
+.chip {
+  display: inline-flex; align-items: center; gap: .35rem; min-height: 28px; padding: 0 .7rem;
+  border-radius: 999px; font-size: .82rem; font-weight: 650; white-space: nowrap;
+  background: var(--superficie-2); color: var(--texto-suave); border: 1px solid var(--borde);
+}
+.chip.acento { background: var(--acento-suave); color: var(--acento-texto); border-color: transparent; }
+.chip.verde { background: var(--verde-suave); color: var(--verde); border-color: transparent; }
+.chip.ambar { background: var(--ambar-suave); color: var(--ambar); border-color: transparent; }
+
+.aviso {
+  display: flex; gap: .7rem; align-items: flex-start; padding: .85rem 1rem;
+  border-radius: var(--radio-sm); background: var(--superficie-2); color: var(--texto-suave);
+  border: 1px solid var(--borde); line-height: 1.45;
+}
+.aviso.error { background: var(--rojo-suave); color: var(--rojo); border-color: transparent; }
+.aviso.ambar { background: var(--ambar-suave); color: var(--ambar); border-color: transparent; }
+.aviso.verde { background: var(--verde-suave); color: var(--verde); border-color: transparent; }
+.aviso p { margin: 0; }
+
+/* Espera explicada: nunca una rueda sola (enganche.md §6.3). */
+.espera { display: flex; align-items: center; gap: .75rem; color: var(--texto-suave); }
+.giro {
+  width: 22px; height: 22px; flex: none; border-radius: 50%;
+  border: 3px solid var(--superficie-3); border-top-color: var(--acento);
+  animation: girar .8s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.esqueleto {
+  background: linear-gradient(90deg, var(--superficie-2) 0%, var(--superficie-3) 50%, var(--superficie-2) 100%);
+  background-size: 200% 100%; animation: brillo 1.4s ease-in-out infinite; border-radius: 8px;
+}
+@keyframes brillo { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+.rejilla-auto { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
+.fila { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.pila { display: grid; gap: 1rem; }
+.oculto-visual { position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Barra de avance fina. */
+.avance { height: 6px; border-radius: 999px; background: var(--superficie-3); overflow: hidden; }
+.avance > i { display: block; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--acento-hondo), var(--acento)); transition: width .3s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+@media (forced-colors: active) {
+  .boton, .tarjeta, .chip { border: 1px solid CanvasText; }
+}

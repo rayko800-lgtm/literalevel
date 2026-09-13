@@ -1,0 +1,174 @@
+import { ChangeDetectionStrategy, Component, HostListener, inject, output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { Api, mensajeError } from '../nucleo/api';
+import { Idioma, Preferencias, TamanoLetra, Tema } from '../nucleo/preferencias';
+import { Sesion } from '../nucleo/sesion';
+import { Icono } from './icono';
+
+/** Los ajustes, en un panel lateral y no en la navegación: Laura y el profesor
+ *  dijeron lo mismo sin saberlo, «los colores son configuración, no una función». */
+@Component({
+  selector: 'app-ajustes',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule, RouterLink, Icono],
+  template: `
+    <div class="velo" (click)="cerrar.emit()"></div>
+    <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="titulo-ajustes">
+      <header>
+        <h2 id="titulo-ajustes">Ajustes</h2>
+        <button class="boton-icono" type="button" (click)="cerrar.emit()" aria-label="Cerrar ajustes">
+          <app-icono nombre="cerrar" />
+        </button>
+      </header>
+
+      <section>
+        <h3>Colores</h3>
+        <div class="opciones temas">
+          @for (t of temas; track t.valor) {
+            <button type="button" class="opcion tema" [class.elegida]="prefs.tema() === t.valor"
+                    [attr.aria-pressed]="prefs.tema() === t.valor" (click)="prefs.tema.set(t.valor)">
+              <span class="muestra" [attr.data-muestra]="t.valor"></span>{{ t.nombre }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <section>
+        <h3>Tamaño de la letra del libro</h3>
+        <div class="opciones">
+          @for (l of letras; track l.valor) {
+            <button type="button" class="opcion" [class.elegida]="prefs.letra() === l.valor"
+                    [attr.aria-pressed]="prefs.letra() === l.valor" (click)="prefs.letra.set(l.valor)">
+              <span class="en-libro" [style.font-size.px]="l.px">Aa</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section>
+        <h3>Explicaciones de las palabras</h3>
+        <div class="opciones">
+          @for (i of idiomas; track i.valor) {
+            <button type="button" class="opcion" [class.elegida]="prefs.idioma() === i.valor"
+                    [attr.aria-pressed]="prefs.idioma() === i.valor" (click)="prefs.idioma.set(i.valor)">{{ i.nombre }}</button>
+          }
+        </div>
+      </section>
+
+      <section>
+        <h3>Tu perfil</h3>
+        @if (sesion.entrada(); as e) {
+          @if (!e.puerta) {
+            <p class="suave">Esta copia no tiene perfiles: todo está disponible sin entrar.</p>
+          } @else if (e.dentro) {
+            <p>Has entrado como <strong>{{ e.nombre }}</strong>.
+              @if (e.restantes !== null) { Te quedan <strong>{{ e.restantes }}</strong> usos. } @else { Sin límite de usos. }
+            </p>
+            <button class="boton secundario" type="button" (click)="salir()">Salir</button>
+          } @else {
+            <p class="suave pequeno">Leer, buscar, medir y el diccionario son libres. La explicación en contexto,
+              «¿de qué trata?» y la corrección de pronunciación usan OpenAI y necesitan entrar.</p>
+            <form class="pila entrar" (ngSubmit)="entrar()">
+              <label class="campo"><span>Usuario</span>
+                <input class="entrada" name="usuario" autocomplete="username" autocapitalize="none" [(ngModel)]="usuario" required>
+              </label>
+              <label class="campo"><span>Contraseña</span>
+                <input class="entrada" name="clave" type="password" autocomplete="current-password" [(ngModel)]="clave" required>
+              </label>
+              @if (mensaje()) { <p class="aviso" [class.error]="!sesion.entrada()?.dentro" role="status">{{ mensaje() }}</p> }
+              <button class="boton" type="submit" [disabled]="entrando()">{{ entrando() ? 'Comprobando…' : 'Entrar' }}</button>
+            </form>
+          }
+        } @else {
+          <p class="suave">Conectando con el motor…</p>
+        }
+      </section>
+
+      <footer>
+        <a routerLink="/estado" (click)="cerrar.emit()">Estado del sistema</a>
+        <span class="tenue pequeno">LiteraLevel no certifica niveles del MCER: orienta para elegir qué leer.</span>
+      </footer>
+    </aside>
+  `,
+  styles: `
+    :host { position: fixed; inset: 0; z-index: 80; }
+    .velo { position: absolute; inset: 0; background: var(--velo); animation: aparecer .2s ease; }
+    .panel {
+      position: absolute; top: 0; right: 0; bottom: 0; width: min(400px, 100%);
+      background: var(--superficie); border-left: 1px solid var(--borde); box-shadow: var(--sombra-alta);
+      padding: 1rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain;
+      animation: entrar .25s cubic-bezier(.2,.8,.2,1);
+    }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    h2 { margin: 0; font-size: 1.35rem; }
+    section { padding: 1rem 0; border-top: 1px solid var(--borde); }
+    h3 { font-size: .95rem; color: var(--texto-suave); margin-bottom: .7rem; }
+    .opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: .5rem; }
+    .temas { grid-template-columns: repeat(2, 1fr); }
+    .opcion {
+      min-height: 52px; border-radius: 12px; border: 1.5px solid var(--borde); background: var(--superficie-2);
+      color: var(--texto); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    .opcion.elegida { border-color: var(--acento); background: var(--acento-suave); color: var(--acento-texto); }
+    .muestra { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }
+    .muestra[data-muestra="sistema"] { background: linear-gradient(135deg, #f4f6fb 50%, #0f1422 50%); }
+    .muestra[data-muestra="claro"] { background: #f4f6fb; }
+    .muestra[data-muestra="noche"] { background: #182033; }
+    .muestra[data-muestra="papel"] { background: #efe7d6; }
+    .entrar { margin-top: .75rem; }
+    footer { display: grid; gap: .4rem; padding-top: 1rem; border-top: 1px solid var(--borde); }
+    @keyframes aparecer { from { opacity: 0; } }
+    @keyframes entrar { from { transform: translateX(24px); opacity: 0; } }
+  `,
+})
+export class Ajustes {
+  protected readonly prefs = inject(Preferencias);
+  protected readonly sesion = inject(Sesion);
+  private readonly api = inject(Api);
+  readonly cerrar = output<void>();
+
+  protected usuario = '';
+  protected clave = '';
+  protected readonly entrando = signal(false);
+  protected readonly mensaje = signal('');
+
+  protected readonly temas: { valor: Tema; nombre: string }[] = [
+    { valor: 'sistema', nombre: 'Automático' }, { valor: 'claro', nombre: 'Claro' },
+    { valor: 'noche', nombre: 'Noche' }, { valor: 'papel', nombre: 'Papel' },
+  ];
+  protected readonly letras: { valor: TamanoLetra; px: number }[] = [
+    { valor: 'pequena', px: 15 }, { valor: 'normal', px: 18 }, { valor: 'grande', px: 22 }, { valor: 'enorme', px: 26 },
+  ];
+  protected readonly idiomas: { valor: Idioma; nombre: string }[] = [
+    { valor: 'es', nombre: 'En español' }, { valor: 'en', nombre: 'In English' },
+  ];
+
+  @HostListener('document:keydown.escape')
+  protected alEscape(): void { this.cerrar.emit(); }
+
+  protected async entrar(): Promise<void> {
+    this.entrando.set(true);
+    this.mensaje.set('');
+    try {
+      const e = await firstValueFrom(this.api.entrar(this.usuario, this.clave));
+      this.sesion.entrada.set(e);
+      this.mensaje.set(e.mensaje);
+      if (e.dentro) this.clave = '';
+    } catch (err) {
+      this.mensaje.set(mensajeError(err));
+    } finally {
+      this.entrando.set(false);
+    }
+  }
+
+  protected async salir(): Promise<void> {
+    try {
+      this.sesion.entrada.set(await firstValueFrom(this.api.salir()));
+      this.mensaje.set('');
+    } catch (err) {
+      this.mensaje.set(mensajeError(err));
+    }
+  }
+}

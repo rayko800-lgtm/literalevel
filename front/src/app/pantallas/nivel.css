@@ -1,0 +1,66 @@
+.letra { color: var(--acento-texto); }
+
+.medidor { display: grid; gap: 1.25rem; margin-bottom: 1.25rem; }
+.cifra { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+.cifra strong { font-size: clamp(3rem, 2rem + 4vw, 4.5rem); line-height: 1; font-weight: 750; letter-spacing: -.03em; }
+.cifra > span:not(.chip) { color: var(--texto-suave); font-size: 1.2rem; }
+
+.escala { padding: .5rem .5rem 1.6rem; }
+.pista-escala { position: relative; height: 12px; border-radius: 999px; background: var(--superficie-3); }
+.rango { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: color-mix(in srgb, var(--acento) 30%, transparent); }
+.marca { position: absolute; top: 50%; width: 26px; height: 26px; border-radius: 50%; transform: translate(-50%, -50%);
+  background: var(--acento); border: 4px solid var(--superficie); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.anclas { position: relative; height: 1rem; margin-top: .6rem; }
+.anclas span { position: absolute; transform: translateX(-50%); font-size: .8rem; font-weight: 650; color: var(--texto-tenue); }
+.anclas span:first-child { transform: none; }
+.anclas span:last-child { transform: translateX(-100%); }
+.anclas span.suya { color: var(--acento-texto); }
+
+.enlaces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.enlace { display: flex; align-items: center; gap: .9rem; color: inherit; text-decoration: none; text-align: left; cursor: pointer; font: inherit; }
+.enlace:hover { border-color: var(--borde-fuerte); }
+.enlace > app-icono { font-size: 1.5rem; color: var(--acento-texto); }
+.enlace span { display: grid; gap: .1rem; }
+
+/* --- Una pregunta por pantalla ------------------------------------------------------ */
+.cuestionario { display: grid; gap: 1.1rem; }
+.progreso { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .75rem; }
+.progreso .avance { height: 8px; }
+.pregunta { font-size: clamp(1.45rem, 1.1rem + 1.6vw, 2.1rem); margin: 0; }
+.fragmento { margin: 0; }
+.fragmento blockquote {
+  margin: 0 0 .4rem; padding: 1.1rem 1.3rem; font-size: 1.15rem; line-height: 1.7; color: var(--lector-texto);
+  background: var(--lector-fondo); border: 1px solid var(--borde); border-left: 4px solid var(--acento); border-radius: 0 var(--radio) var(--radio) 0;
+}
+.opciones { display: grid; gap: .6rem; }
+.opcion {
+  display: flex; align-items: center; gap: .85rem; min-height: 58px; padding: .7rem 1rem; text-align: left;
+  border-radius: var(--radio); border: 1.5px solid var(--borde); background: var(--superficie); color: var(--texto);
+  font-size: 1.02rem; font-weight: 550; cursor: pointer; box-shadow: var(--sombra);
+  transition: border-color .12s ease, background-color .12s ease, transform .08s ease;
+}
+.opcion:hover { border-color: var(--borde-fuerte); }
+.opcion:active { transform: scale(.995); }
+.opcion.elegida { border-color: var(--acento); background: var(--acento-suave); }
+.punto { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--borde-fuerte); color: transparent; font-size: .9rem; }
+.punto.cuadrado { border-radius: 7px; }
+.opcion.elegida .punto { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); }
+
+.pie-cuestionario { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding-top: 1rem; border-top: 1px solid var(--borde); min-height: 72px; }
+.provisional { display: grid; gap: .15rem; min-width: 180px; }
+.provisional strong { font-size: 1.3rem; }
+.mini-escala { position: relative; height: 6px; border-radius: 99px; background: var(--superficie-3); width: 180px; margin-top: .3rem; }
+.mini-escala i { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--acento);
+  transform: translate(-50%, -50%); transition: left .35s cubic-bezier(.2,.8,.2,1); border: 2px solid var(--superficie); }
+
+.listo { text-align: center; display: grid; gap: .5rem; justify-items: center; padding: 2.5rem 1.5rem; }
+.listo .fila { justify-content: center; margin-top: .75rem; }
+.cifra-grande strong { font-size: 3rem; font-weight: 750; }
+
+@media (max-width: 640px) {
+  .enlaces { grid-template-columns: 1fr; }
+  .fila .boton { flex: 1 1 100%; }
+  .fragmento blockquote { font-size: 1.05rem; padding: .9rem 1rem; }
+}
