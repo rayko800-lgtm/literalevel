@@ -125,10 +125,17 @@ def cargar(fuente, ruta, tope, con_sesgadas=False):
         filas = [f for f in filas if f.get("slug") not in fuera]
     df = pd.DataFrame(filas)
     df["fuente"] = fuente
-    for col in ("slug", "archivo", "url"):
-        if col in df:
-            df["clave"] = df[col].astype(str)
-            break
+    # El primer identificador NO VACIO de cada fila, no la primera columna que
+    # exista: en Let's Read algunos libros vienen sin `slug`, y la columna
+    # entera se tomaba igual; su NaN rompia la union de claves de un bloque.
+    def _clave(f):
+        for col in ("slug", "master", "archivo", "url"):
+            v = f.get(col)
+            if v is not None and not (isinstance(v, float) and np.isnan(v)) and str(v).strip():
+                return str(v)
+        return f"fila{f.name}"
+
+    df["clave"] = df.apply(_clave, axis=1)
     if "nivel_editor" not in df:
         df["nivel_editor"] = None
     # El nivel llega como texto ("1"), numero o vacio segun la fuente; sin
