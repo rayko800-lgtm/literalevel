@@ -76,9 +76,12 @@ LISTA_BLANCA = [
 ]
 
 # Formas de credencial que no deben viajar a un repositorio publico.
+# Sin letra ni cifra DELANTE: una clave empieza en su propio token. Sin esa
+# condicion, la URL de VOA ".../cask-of-amontillado-edgar-allan-poe..." casaba
+# con "sk-of-amontillado-..." y bloqueaba el despliegue (12 sep 2026).
 CREDENCIALES = [
-    re.compile("sk-[A-Za-z0-9_-]{20,}"),
-    re.compile("hf_[A-Za-z0-9]{20,}"),
+    re.compile(r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}"),
+    re.compile(r"(?<![A-Za-z0-9])hf_[A-Za-z0-9]{20,}"),
     re.compile("(?i)api[_-]?key[\"']?\\s*[:=]\\s*[\"'][A-Za-z0-9_-]{20,}"),
 ]
 

@@ -415,6 +415,25 @@ def _dominio_publico_con_excepcion():
 prueba("dominio publico con excepcion no entra", _dominio_publico_con_excepcion)
 
 
+def _credenciales_sin_falsos_positivos():
+    spec = importlib.util.spec_from_file_location("desplegar_app", "tools/desplegar_app.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    def salta(texto):
+        return any(p.search(texto) for p in mod.CREDENCIALES)
+
+    url = "https://learningenglish.voanews.com/a/cask-of-amontillado-edgar-allan-poe/1234.html"
+    assert not salta(url), "la URL de VOA de The Cask of Amontillado parece una clave"
+    assert not salta("mask-of-the-red-death-edgar-allan-poe-story-part-one"), "otra URL parece clave"
+    assert salta('OPENAI_API_KEY="sk-proj-' + "A1b2C3d4" * 4 + '"'), "una clave sk-proj- no salta"
+    assert salta("token = hf_" + "Q" * 30), "un token hf_ no salta"
+    return "las URLs con 'sk-' dentro de una palabra no bloquean; las claves si"
+
+
+prueba("el detector de credenciales no confunde URLs con claves", _credenciales_sin_falsos_positivos)
+
+
 print()
 if FALLOS:
     print(f"{len(FALLOS)} fallo(s) de {HECHAS} pruebas de corpus:")
