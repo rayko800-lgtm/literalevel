@@ -121,14 +121,25 @@ def main():
                     continue
                 texto = texto_de(d.get("pages"))
                 licencia = str(b.get("license") or d.get("license") or "desconocida")
-                roles = b.get("collaboratorsByRole") or {}
-                autores = [c.get("name") for c in (roles.get("author") or roles.get("AUTHOR") or [])
-                           if isinstance(c, dict) and c.get("name")]
+                # Los autores NO vienen en el listado (alli collaboratorsByRole
+                # llega vacio): solo en la respuesta del texto, con la clave en
+                # mayusculas. Los 15 libros de la primera prueba salieron sin
+                # autor por leerlos del listado. La atribucion CC BY los necesita.
+                roles = d.get("collaboratorsByRole") or b.get("collaboratorsByRole") or {}
+
+                def nombres(rol):
+                    return [c["name"].strip() for c in roles.get(rol) or []
+                            if isinstance(c, dict) and (c.get("name") or "").strip()]
+
+                autores = nombres("AUTHOR")
+                ilustradores = nombres("ILLUSTRATOR")
                 fila = {
                     "fuente": "letsread", "master": master, "id": b.get("id"), "slug": b.get("slug"),
                     "titulo": b.get("name"), "nivel_editor": str(b.get("readingLevel")),
                     "decodable": bool(b.get("decodable")), "pais": b.get("countryOfOrigin"),
-                    "autores": autores, "licencia": licencia,
+                    "autores": autores, "ilustradores": ilustradores,
+                    "editorial": nombres("PUBLISHER") or nombres("ORGANIZATION"),
+                    "licencia": licencia,
                     "al_catalogo": licencia in LIBRES,
                     "url": f"https://www.letsreadasia.org/book/{b.get('slug') or master}",
                     "palabras": len(re.findall(r"[A-Za-z']+", texto)), "texto": texto,
