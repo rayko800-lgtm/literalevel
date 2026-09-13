@@ -385,9 +385,10 @@ export class Api {
   fonemas(acento: Acento = 'ga'): Observable<InventarioSonidos> {
     return this.http.get<InventarioSonidos>(`${this.base}/fonemas`, { params: { acento } });
   }
-  practicar(frase: string, audio: Blob, nombre: string): Observable<CorreccionVoz> {
+  practicar(frase: string, audio: Blob, nombre: string, acento: Acento = 'ga'): Observable<CorreccionVoz> {
     const datos = new FormData();
     datos.append('frase', frase);
+    datos.append('acento', acento === 'rp' ? 'UK' : 'US');
     datos.append('audio', audio, nombre);
     return this.http.post<CorreccionVoz>(`${this.base}/voz`, datos);
   }

@@ -34,6 +34,8 @@ export class Preferencias {
   readonly letra = signal<TamanoLetra>(leer('literalevel.letra', ['pequena', 'normal', 'grande', 'enorme'], 'normal'));
   readonly idioma = signal<Idioma>(leer('literalevel.idioma', ['es', 'en'], 'es'));
   readonly modoLectura = signal<ModoLectura>(leer('literalevel.modo', ['paginas', 'rollo'], 'paginas'));
+  /** Acento de Pronunciar: la tabla del AFI y la IPA de toda la corrección. */
+  readonly acento = signal<'ga' | 'rp'>(leer('literalevel.acento', ['ga', 'rp'], 'ga'));
 
   constructor() {
     effect(() => {
@@ -52,5 +54,6 @@ export class Preferencias {
     });
     effect(() => guardar('literalevel.idioma', this.idioma()));
     effect(() => guardar('literalevel.modo', this.modoLectura()));
+    effect(() => guardar('literalevel.acento', this.acento()));
   }
 }

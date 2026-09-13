@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
 import { Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlMotor } from '../nucleo/api';
+import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 
 type Grabacion = 'lista' | 'grabando' | 'grabada';
@@ -37,8 +38,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly error = signal('');
   protected readonly necesitaEntrar = signal(false);
   protected readonly trayendo = signal(false);
-  /** La tabla del AFI: dos acentos, cargados cuando se piden y una sola vez. */
-  protected readonly acento = signal<Acento>('ga');
+  /** La tabla del AFI: dos acentos, cargados cuando se piden y una sola vez.
+   *  El elegido se guarda y es también el de la IPA de la corrección. */
+  private readonly preferencias = inject(Preferencias);
+  protected readonly acento = this.preferencias.acento;
   private readonly inventarios = signal<Partial<Record<Acento, InventarioSonidos>>>({});
   protected readonly elegido = signal<Fonema | null>(null);
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
@@ -167,7 +170,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.necesitaEntrar.set(false);
     const ext = (this.blob.type.includes('mp4') ? 'm4a' : this.blob.type.includes('ogg') ? 'ogg' : 'webm');
     try {
-      const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`));
+      const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`, this.acento()));
       this.resultado.set(r);
       const e = this.entrada();
       if (e && r.restantes !== null) this.sesion.entrada.set({ ...e, restantes: r.restantes });
