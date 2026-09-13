@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { Api, Cuaderno, Repaso, mensajeError } from '../nucleo/api';
+import { Api, Cuaderno, PalabraFallada, Repaso, mensajeError } from '../nucleo/api';
 import { miles } from '../nucleo/formato';
 
 /** Mis palabras: lo que consultaste leyendo, con su frase. Sin nota y sin
@@ -20,6 +20,27 @@ import { miles } from '../nucleo/formato';
       </header>
 
       @if (error()) { <div class="aviso error"><p>{{ error() }}</p></div> }
+
+      <!-- Las que se te escaparon en Pronunciar: cada una lleva a practicar su frase. -->
+      @if (falladas().length) {
+        <section class="voz-practicar" data-seccion="voz">
+          <h2>Para practicar en voz alta</h2>
+          <p class="suave">Las palabras que peor te salieron al leer en alto. Toca una para volver a grabarte con su frase.</p>
+          <!-- Pastillas y no tarjetas: son muchas y cortas. 48 px de alto y 8 de
+               hueco, para el pulgar (investigacion/una_mano.md). -->
+          <ul class="falladas">
+            @for (f of falladas(); track f.palabra) {
+              <li>
+                <a class="fallada" routerLink="/pronunciar" [queryParams]="{ frase: f.frase || f.palabra }"
+                   [attr.aria-label]="'Practicar ' + f.palabra + ', ' + f.fallos + (f.fallos === 1 ? ' fallo' : ' fallos')"
+                   [attr.title]="f.frase || null">
+                  <app-icono nombre="micro" /><strong lang="en">{{ f.palabra }}</strong><span class="veces">×{{ f.fallos }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
 
       @if (cuaderno(); as c) {
         @if (c.consultas === 0) {
@@ -98,6 +119,15 @@ import { miles } from '../nucleo/formato';
     .cab strong { font-size: 1.15rem; }
     blockquote { margin: .5rem 0; padding-left: .8rem; border-left: 3px solid var(--acento); color: var(--lector-texto); line-height: 1.55; }
     li p { margin: 0; }
+    .voz-practicar { margin-bottom: 2rem; }
+    .falladas { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+    .fallada { display: inline-flex; align-items: center; gap: .4rem; min-height: 48px; padding: 0 1rem 0 .8rem;
+      border-radius: 999px; background: var(--seccion-suave); color: var(--texto); text-decoration: none;
+      border: 1px solid transparent; }
+    .fallada:hover, .fallada:focus-visible { border-color: var(--seccion); }
+    .fallada app-icono { color: var(--seccion); }
+    .fallada strong { font-size: 1.05rem; }
+    .veces { color: var(--texto-suave); font-size: .85rem; font-variant-numeric: tabular-nums; }
     @media (max-width: 520px) { .cifras { grid-template-columns: 1fr 1fr; } .cifras div:last-child { grid-column: span 2; } }
   `,
 })
@@ -107,9 +137,12 @@ export class Palabras implements OnInit {
   protected readonly repaso = signal<Repaso | null>(null);
   protected readonly error = signal('');
   protected readonly vistas = signal(new Set<string>());
+  protected readonly falladas = signal<PalabraFallada[]>([]);
   protected readonly miles = miles;
 
   async ngOnInit(): Promise<void> {
+    // Aparte: si falla, el cuaderno se enseña igual.
+    this.api.falladas().subscribe({ next: r => this.falladas.set(r.palabras), error: () => {} });
     try {
       const [c, r] = await Promise.all([firstValueFrom(this.api.cuaderno()), firstValueFrom(this.api.repaso())]);
       this.cuaderno.set(c);

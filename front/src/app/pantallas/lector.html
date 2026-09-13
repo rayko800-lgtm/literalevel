@@ -210,6 +210,7 @@
                     [disabled]="!w.audio_uk && !vozDelNavegador">
               <app-icono nombre="altavoz" />UK {{ w.ipa_uk || '' }}
             </button>
+            @if (w.ipa_generada_por_ia) { <span class="chip ia" title="El diccionario no trae esta palabra">IPA por IA</span> }
           </div>
           @if (!w.audio_us && !w.audio_uk && vozDelNavegador) {
             <p class="tenue pequeno">Sin grabación para esta palabra: suena con la voz de tu navegador.</p>

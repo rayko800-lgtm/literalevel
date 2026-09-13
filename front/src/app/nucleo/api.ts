@@ -182,6 +182,8 @@ export interface Palabra {
   categoria: string | null;
   ipa_uk: string | null;
   ipa_us: string | null;
+  /** La palabra no está en el diccionario y la IPA la escribió la IA. */
+  ipa_generada_por_ia: boolean;
   audio_uk: string | null;
   audio_us: string | null;
   audio_generado: boolean;
@@ -256,12 +258,16 @@ export interface CorreccionVoz {
     ipa: string | null;
     variante: string | null;
     fonema: Fonema | null;
+    /** La palabra sola, bien dicha (mp3). */
+    audio: string | null;
     sonido_que_falla: string;
     como_colocar_la_boca: string;
   }[];
   audio_correcto: string | null;
   restantes: number | null;
 }
+
+export interface PalabraFallada { palabra: string; fallos: number; ultima_vez: string | null; frase: string | null; }
 
 export interface Anotacion {
   palabra: string;
@@ -387,6 +393,10 @@ export class Api {
   }
   debiles(): Observable<{ palabras: { palabra: string; fallos: number }[] }> {
     return this.http.get<{ palabras: { palabra: string; fallos: number }[] }>(`${this.base}/voz/debiles`);
+  }
+  /** Las que peor pronuncias, con la frase donde fallaste. */
+  falladas(n = 15): Observable<{ palabras: PalabraFallada[] }> {
+    return this.http.get<{ palabras: PalabraFallada[] }>(`${this.base}/voz/falladas`, { params: { n } });
   }
 
   cuaderno(n = 60): Observable<Cuaderno> { return this.http.get<Cuaderno>(`${this.base}/cuaderno`, { params: { n } }); }

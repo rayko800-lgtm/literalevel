@@ -107,6 +107,11 @@
             <article class="detalle">
               <header>
                 <strong lang="en">{{ d.palabra }}</strong>
+                @if (d.audio) {
+                  <button type="button" class="boton secundario pequeno" (click)="sonar(d.audio)" [attr.aria-label]="'Oír ' + d.palabra + ' bien dicha'">
+                    <app-icono nombre="altavoz" />Oírla
+                  </button>
+                }
                 @if (d.ipa) { <span class="ipa">{{ d.ipa }}</span><span class="tenue pequeno">{{ d.variante }}</span> }
                 @else { <span class="tenue pequeno">sin transcripción en el diccionario</span> }
               </header>

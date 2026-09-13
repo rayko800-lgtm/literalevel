@@ -284,8 +284,10 @@ textarea.entrada { line-height: 1.55; resize: vertical; }
 [data-seccion="encontrar"] { --seccion: var(--c-encontrar); --seccion-suave: var(--c-encontrar-suave); }
 [data-seccion="voz"] { --seccion: var(--c-voz); --seccion-suave: var(--c-voz-suave); }
 [data-seccion="nivel"] { --seccion: var(--c-nivel); --seccion-suave: var(--c-nivel-suave); }
+/* En bloque: el h1 es `inline` (por el subrayado de rotulador) y, si no, se
+   subía a la línea de la pastilla («TU NIVEL · MIS PALABRAS Mis»). */
 [data-seccion] .cabecera-pagina .antetitulo {
-  padding: .25rem .7rem; border-radius: 999px; background: var(--seccion-suave); }
+  display: block; width: fit-content; padding: .25rem .7rem; border-radius: 999px; background: var(--seccion-suave); }
 [data-seccion] .cabecera-pagina h1 {
   background: linear-gradient(transparent 72%, color-mix(in srgb, var(--seccion) 22%, transparent) 72%);
   display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
