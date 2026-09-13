@@ -206,7 +206,9 @@ def main():
     columnas = ["id", "title", "author", "hook", "huella_texto", "nivel_cefr", "downloads",
                 "dificultad", "palabras", "ventanas", "capitulos", "temas",
                 "fuente", "licencia", "atribucion", "url", "nivel_editor", "medida"]
-    df[columnas].to_csv(CSV_SALIDA, index=False)
+    # LF siempre: en Windows pandas escribia CRLF, y la huella del archivo (y con
+    # ella el nombre del .npy de embeddings) cambiaba segun la maquina.
+    df[columnas].to_csv(CSV_SALIDA, index=False, lineterminator="\n")
     textos = df[["id", "title", "author", "licencia", "atribucion", "url", "texto"]].copy()
     textos["texto"] = textos["texto"] + "\n\n" + textos["atribucion"]
     textos.to_parquet(TEXTOS_SALIDA, index=False)
