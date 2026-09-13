@@ -376,8 +376,10 @@ def fijar_fonemas(correccion: Correccion | None,
         return None
     oidas = ({_clave_palabra(o): (d or "") for o, d in entendidas if o}
              if entendidas is not None else None)
+    resultados = []
     for d in correccion.detalles:
         clave = _clave_palabra(d.palabra)
+        padre = None
         if oidas is None:
             simbolo, motivo = None, "sin_datos"
         elif clave in oidas:
@@ -387,6 +389,18 @@ def fijar_fonemas(correccion: Correccion | None,
             padre = next((k for k in oidas if "-" in k and clave in piezas(k)), None)
             simbolo, motivo = (_comparar(padre, oidas[padre], pieza=clave) if padre
                                else (None, "sin_datos"))
+        resultados.append((d, simbolo, motivo, padre))
+
+    # La pieza de un compuesto que se dijo bien no lleva detalle si otra pieza
+    # del mismo compuesto si falla: con «war dance» por «war-chant», «war» salia
+    # con «suena igual… repitela mas despacio» (f4, en el Space). Si todas suenan
+    # igual se quedan, para no dejar la correccion sin nada.
+    con_fallo = {padre for _d, _s, motivo, padre in resultados if padre and motivo != "igual"}
+    quedan = []
+    for d, simbolo, motivo, padre in resultados:
+        if padre and motivo == "igual" and padre in con_fallo:
+            continue
+        quedan.append(d)
         consejo = _consejo_de_ficha(simbolo) if simbolo else None
         if consejo:
             d.fonema = simbolo
@@ -394,6 +408,7 @@ def fijar_fonemas(correccion: Correccion | None,
         else:
             d.fonema = SIN_FONEMA
             d.sonido_que_falla, d.como_colocar_la_boca = _SIN_COMPARACION[motivo or "igual"]
+    correccion.detalles = quedan
     return correccion
 
 

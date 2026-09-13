@@ -88,8 +88,14 @@ TAMANO_MAXIMO_SUBIDA = "20mb"   # un epub es un zip: sin tope, cabe una bomba
 #
 # Y la carpeta de los fonemas, que es otra cosa: mp3 pregrabados que viven en
 # el repositorio (`fonemas.DIR_AUDIO`), no datos del lector. Solo hay audio.
+# Los SVG animados del corte de la boca (`animacion_articulatoria`) se escriben
+# aqui la primera vez que se piden. Generarlos cuesta milisegundos (85 en 0,11 s),
+# pero en linea serian 800 KB dentro de la pestaña del IPA; como archivo, un
+# <img loading="lazy"> dentro de un <details> no se descarga hasta abrirlo, y
+# ningun saneador puede quitarles el <style> que los anima.
+DIR_SVG_ARTICULACION = config.dir_datos() / "articulacion_svg"
 RUTAS_PERMITIDAS = [str(config.dir_datos() / "audio"), str(fonemas.DIR_AUDIO),
-                    str(articulacion.DIR_AUDIO_RP)]
+                    str(articulacion.DIR_AUDIO_RP), str(DIR_SVG_ARTICULACION)]
 
 
 # --- La tabla del AFI: cada simbolo suena al tocarlo ------------------------
@@ -115,6 +121,51 @@ def _src_audio(ruta: Path) -> str:
     return "gradio_api/file=" + quote(ruta.as_posix(), safe="/:") + version
 
 
+def _svg_en_disco(nombre: str, svg: str | None) -> str | None:
+    """Escribe el SVG en `DIR_SVG_ARTICULACION` si falta o ha cambiado, y
+    devuelve su URL para un <img>. `None` si no hay SVG o no se puede escribir."""
+    if not svg:
+        return None
+    import os
+    import threading
+    ruta = DIR_SVG_ARTICULACION / nombre
+    try:
+        datos = svg.encode("utf-8")
+        if not (ruta.is_file() and ruta.read_bytes() == datos):
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            temporal = ruta.with_name(f".{ruta.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+            temporal.write_bytes(datos)
+            os.replace(temporal, ruta)
+    except OSError:
+        return None
+    return _src_audio(ruta)
+
+
+def _svg_sonido_src(simbolo: str, acento: str = "ga") -> str | None:
+    """El corte de la boca animado de un sonido de la tabla, o `None`."""
+    try:
+        import animacion_articulatoria
+        svg = animacion_articulatoria.svg_articulacion(simbolo, acento)
+    except Exception:
+        return None
+    nombre = f"{acento}_" + "_".join(f"{ord(c):04x}" for c in simbolo) + ".svg"
+    return _svg_en_disco(nombre, svg)
+
+
+def _svg_palabra_src(ipa: str | None, acento: str = "ga") -> str | None:
+    """La palabra entera, sonido a sonido, a partir de su IPA, o `None`."""
+    if not ipa:
+        return None
+    import hashlib
+    try:
+        import animacion_articulatoria
+        svg = animacion_articulatoria.svg_palabra(ipa, acento)
+    except Exception:
+        return None
+    huella = hashlib.sha256(f"{acento}\x1f{ipa}".encode("utf-8")).hexdigest()[:20]
+    return _svg_en_disco(f"palabra_{huella}.svg", svg)
+
+
 _CSS_AFI = """<style>
 #ll-afi{color:var(--ll-texto)}
 #ll-afi .ll-afi-acentos{display:flex;gap:.5rem;flex-wrap:wrap;margin:.2rem 0 .8rem}
@@ -138,6 +189,7 @@ _CSS_AFI = """<style>
 #ll-afi dl{margin:.4rem 0 0;font-size:.88rem;line-height:1.35}
 #ll-afi dt{font-weight:700;margin-top:.35rem}
 #ll-afi dd{margin:0}
+#ll-afi .ll-afi-anim{display:block;width:100%;max-width:15rem;height:auto;margin:.4rem auto .2rem}
 </style>"""
 
 
@@ -165,6 +217,11 @@ def _tabla_afi_html() -> str:
             for s in del_grupo:
                 filas = "".join(f"<dt>{esc(et)}</dt><dd>{esc(getattr(s.ficha, campo))}</dd>"
                                 for campo, et in etiquetas if getattr(s.ficha, campo))
+                src_anim = _svg_sonido_src(s.simbolo, acento)
+                animacion = (
+                    f'<img class="ll-afi-anim" loading="lazy" width="240" height="274" '
+                    f'src="{esc(src_anim)}" alt="{esc(f"Corte de la boca: cómo se articula /{s.simbolo}/")}">'
+                    if src_anim else "")
                 p.append(
                     '<div class="ll-afi-s">'
                     f'<button type="button" class="ll-afi-btn" data-src="{esc(_src_audio(s.ruta))}" '
@@ -172,7 +229,7 @@ def _tabla_afi_html() -> str:
                     f'/{esc(s.simbolo)}/</button>'
                     f'<span class="ll-afi-ej">{esc(s.ejemplos[0])}</span>'
                     f'<span class="ll-afi-nombre">{esc(s.nombre)}</span>'
-                    f'<details><summary>Cómo se articula</summary><dl>{filas}</dl></details>'
+                    f'<details><summary>Cómo se articula</summary>{animacion}<dl>{filas}</dl></details>'
                     '</div>')
             p.append('</div>')
         p.append('</div>')
@@ -3434,6 +3491,21 @@ def _detalle_de_voz(d, audio_palabra: str | None = None) -> str:
         if audio:
             linea += " " + _reproductor_fonema(audio, fonema)
         trozos.append(linea)
+    # Como se mueve la boca: primero el sonido solo y luego la palabra entera
+    # (Miguel: «primero por sonido y despues en una palabra»). La palabra sale
+    # aunque no haya fonema que señalar: con «tragic» entendido como «Mahic» no
+    # hay IPA de lo entendido, pero la de «tragic» si. Dentro de un <details>:
+    # las imagenes no se descargan hasta abrirlo.
+    anim_sonido = _svg_sonido_src(fonema.simbolo, "ga") if fonema is not None else None
+    anim_palabra = _svg_palabra_src(ipa, "rp" if variante == "UK" else "ga")
+    imagenes = "".join(
+        f'<img loading="lazy" src="{_html.escape(src, quote=True)}" '
+        f'alt="{_html.escape(alt, quote=True)}" '
+        'style="display:block;max-width:100%;height:auto;margin:.3rem 0">'
+        for src, alt in ((anim_sonido, f"Corte de la boca: el sonido /{fonema.simbolo if fonema else ''}/"),
+                         (anim_palabra, f"Corte de la boca: la palabra «{cruda}»")) if src)
+    if imagenes:
+        trozos.append(f"<details><summary>Ver cómo se mueve la boca</summary>{imagenes}</details>")
     # El modelo suele cerrar la frase con su punto; poner otro detras dejaba
     # «..» en cada linea.
     # Escapado, como la palabra: es texto del modelo. En pantalla lo limpiaba

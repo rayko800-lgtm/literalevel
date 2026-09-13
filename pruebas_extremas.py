@@ -6225,7 +6225,10 @@ def _fonema_desconocido_no_revienta():
     # no esta en el inventario no se pinta. Fable (auditoria 18).
     html = ui._detalle_de_voz(_detalle(sonido='<img src=x onerror=alert(1)>',
                                        boca="<script>alert(2)</script>"))
-    assert "<script" not in html and "<img" not in html, html
+    # Las unicas <img> son las animaciones de la boca, servidas desde disco; la
+    # del modelo tiene que llegar escapada.
+    assert "<script" not in html and "<img src=x" not in html, html
+    assert all(t.startswith(' loading="lazy" src="gradio_api/file=') for t in html.split("<img")[1:]), html
     assert "&lt;script&gt;" in html and "&lt;img" in html, html
     return "texto sin reproductor, sin excepcion y con el texto del modelo escapado"
 
@@ -6881,8 +6884,14 @@ def _los_compuestos_se_corrigen_y_suenan_por_pieza():
     c = voz.Correccion(resumen="Casi.", detalles=[
         voz.DetallePalabra(palabra="war", fonema="w", sonido_que_falla="x", como_colocar_la_boca="y"),
         voz.DetallePalabra(palabra="chant", fonema="tʃ", sonido_que_falla="x", como_colocar_la_boca="y")])
-    guerra, canto = voz.fijar_fonemas(c, [("war-chant", "war chart")]).detalles
-    assert guerra.fonema == voz.SIN_FONEMA and canto.fonema == "æ", (guerra, canto)
+    # «war» se dijo bien: sin detalle, porque «chant» si falla (f4).
+    detalles = voz.fijar_fonemas(c, [("war-chant", "war chart")]).detalles
+    assert [d.palabra for d in detalles] == ["chant"] and detalles[0].fonema == "æ", detalles
+    # Si todas las piezas suenan igual, se quedan: la correccion no se vacia.
+    iguales = voz.Correccion(resumen="Casi.", detalles=[
+        voz.DetallePalabra(palabra="war", fonema="w", sonido_que_falla="x", como_colocar_la_boca="y"),
+        voz.DetallePalabra(palabra="chant", fonema="tʃ", sonido_que_falla="x", como_colocar_la_boca="y")])
+    assert len(voz.fijar_fonemas(iguales, [("war-chant", "war chant")]).detalles) == 2
 
     # practicar pide el audio del compuesto, de sus piezas y de lo que nombra la correccion.
     pedidas = []
@@ -7023,6 +7032,48 @@ def _el_aviso_de_acepcion_dudosa_se_va_cuando_openai_la_revisa():
 
 prueba("lexico: el aviso de acepcion dudosa se va cuando openai la revisa",
        _el_aviso_de_acepcion_dudosa_se_va_cuando_openai_la_revisa)
+
+
+def _las_animaciones_de_la_boca_se_sirven_como_archivo():
+    """Miguel: animacion de como se mueven boca y lengua, primero por sonido y
+    luego en una palabra. En la tabla, una por sonido y acento; en la
+    correccion, el sonido y la palabra. Como archivos servidos, no en linea."""
+    viejo = ui.DIR_SVG_ARTICULACION
+    carpeta = TMP / "svg_articulacion"
+    try:
+        ui.DIR_SVG_ARTICULACION = carpeta
+        tabla = ui._tabla_afi_html()
+        n_img = tabla.count('class="ll-afi-anim"')
+        esperadas = len(ui.articulacion.inventario("ga")) + len(ui.articulacion.inventario("rp"))
+        assert n_img == esperadas, (n_img, esperadas)
+        assert "<svg" not in tabla, "los svg no van en linea"
+        archivos = sorted(carpeta.glob("*.svg"))
+        assert len(archivos) == esperadas, len(archivos)
+        assert all(a.read_text(encoding="utf-8").lstrip().startswith("<svg") for a in archivos)
+        marcas = {a: a.stat().st_mtime_ns for a in archivos}
+        ui._tabla_afi_html()
+        assert all(a.stat().st_mtime_ns == marcas[a] for a in archivos), "reescribio svg iguales"
+
+        voz = ui.voz
+        html = ui._detalle_de_voz(voz.DetallePalabra(palabra="tragic", fonema="t",
+                                                     sonido_que_falla="x", como_colocar_la_boca="y"))
+        assert "Ver cómo se mueve la boca" in html and html.count("<img") == 2, html
+        assert "palabra_" in html and "ga_0074.svg" in html, html
+        sin = ui._detalle_de_voz(voz.DetallePalabra(palabra="zzqxvj", fonema="ninguno",
+                                                    sonido_que_falla="x", como_colocar_la_boca="y"))
+        assert "<img" not in sin, sin
+        # Sin fonema que señalar («tragic» entendido como «Mahic»), la palabra si.
+        solo_palabra = ui._detalle_de_voz(voz.DetallePalabra(palabra="tragic", fonema="ninguno",
+                                                             sonido_que_falla="x", como_colocar_la_boca="y"))
+        assert solo_palabra.count("<img") == 1 and "palabra_" in solo_palabra, solo_palabra
+    finally:
+        ui.DIR_SVG_ARTICULACION = viejo
+    assert str(viejo) in ui.RUTAS_PERMITIDAS, "la carpeta de los svg no se sirve"
+    return f"{n_img} animaciones en la tabla, sonido y palabra en la correccion"
+
+
+prueba("afi: las animaciones de la boca se sirven como archivo",
+       _las_animaciones_de_la_boca_se_sirven_como_archivo)
 
 
 # --- Resultado ------------------------------------------------------------
