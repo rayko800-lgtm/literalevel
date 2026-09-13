@@ -551,8 +551,11 @@ h1{{
    Gradio es un bloque SIN relleno (`hide-container`), pero aqui todo bloque
    lleva fondo de panel, asi que el texto quedaba pegado al canto y la curva
    de la esquina se comia las letras. Solo cuando tiene contenido: uno vacio
-   con relleno seria una franja sin nada. */
-.block.hide-container:has(.prose *){{padding:.6rem .95rem !important}}
+   con relleno seria una franja sin nada. Y solo Markdown: un gr.HTML tambien
+   lleva `.prose` (dentro de `.html-container`) y el lector, que ya trae su
+   relleno, perdia otros 30 px de ancho en el movil. Lo encontro Codex. */
+.block.hide-container:not(:has(.html-container)):has(.prose *){{
+  padding:.6rem .95rem !important}}
 /* Nada de aristas: botones, cajas de texto, desplegables y pestanas. */
 button,.gr-button,input,textarea,select,
 .wrap-inner,.secondary-wrap,.gr-input,.gr-text-input{{
@@ -927,6 +930,13 @@ def _tabla_libros(libros, vacio: str = "", nota: str = "") -> str:
     return "\n".join(filas)
 
 
+_TITULOS_NOBILIARIOS = {
+    "graf", "grafin", "gräfin", "count", "countess", "comte", "comtesse", "conde",
+    "condesa", "baron", "baroness", "baronne", "freiherr", "sir", "dame", "lord",
+    "lady", "earl", "viscount", "marquis", "marquise", "marqués", "duke", "duchess",
+    "prince", "princess", "knyaz", "principe", "príncipe"}
+
+
 def _autor_corto(autor) -> str:
     """El primer autor, sin fechas ni papel, y «y otros» si hay mas.
 
@@ -943,9 +953,15 @@ def _autor_corto(autor) -> str:
         p = re.sub(r"\[[^\]]*\]", "", p)
         p = re.sub(r",?\s*\d{3,4}\??\s*-\s*(\d{3,4}\??)?\s*$", "", p.strip())
         # Gutenberg escribe «Apellido, Nombre, titulo»: «Tolstoy, Leo, graf»,
-        # «Doyle, Arthur Conan, Sir». Lo que va tras la segunda coma es el
-        # titulo nobiliario y en la cabecera del lector parecia parte del nombre.
-        p = ",".join(p.split(",")[:2])
+        # «Doyle, Arthur Conan, Sir», y en la cabecera del lector el titulo
+        # parecia parte del nombre. Se quitan SOLO titulos reconocidos: quedarse
+        # con las dos primeras partes, que era el primer arreglo, se comia
+        # «Alger, Horatio, Jr.», «Appleton, Victor, II» y partia un parentesis
+        # («Allen, George (Vicar of St. Thomas's, Islington)»). Lo encontro Codex.
+        trozos = [t.strip() for t in p.split(",")]
+        while len(trozos) > 2 and trozos[-1].lower().rstrip(".") in _TITULOS_NOBILIARIOS:
+            trozos.pop()
+        p = ", ".join(trozos)
         return p.strip(" ,").replace("|", "/")
 
     otros = [p for p in partes[1:] if "translator" not in p.lower()]
@@ -1388,14 +1404,31 @@ JS_AL_TEXTO = r"""
     const el = lector();
     return el ? el.textContent.slice(0, 300) : '';
   };
+  // Tres cosas que encontro Codex. (1) Al vencer el plazo SIN que cambie el
+  // texto -«Siguiente» en el ultimo capitulo- ya no se desplaza: antes subia
+  // 6 s despues y sacaba de su sitio a quien ya estaba leyendo. (2) Una
+  // pulsacion nueva cancela la espera de la anterior. (3) Si el lector toca,
+  // rueda o teclea mientras se espera, manda el: se deja de esperar.
+  if (window.__llAlTexto) window.__llAlTexto();
   const antes = inicio();
   ir();
   let vueltas = 0;
-  const reloj = setInterval(() => {
-    if (inicio() !== antes || ++vueltas > 40) {
-      clearInterval(reloj);
+  let reloj = null;
+  const gestos = ['wheel', 'touchstart', 'keydown'];
+  const parar = () => {
+    clearInterval(reloj);
+    gestos.forEach(t => window.removeEventListener(t, parar));
+    if (window.__llAlTexto === parar) window.__llAlTexto = null;
+  };
+  gestos.forEach(t => window.addEventListener(t, parar, { passive: true }));
+  window.__llAlTexto = parar;
+  reloj = setInterval(() => {
+    if (inicio() !== antes) {
+      parar();
       ir();
       setTimeout(ir, 250);
+    } else if (++vueltas > 40) {
+      parar();
     }
   }, 150);
 }
@@ -3933,12 +3966,17 @@ def construir() -> gr.Blocks:
                 debiles_md = gr.Markdown()
 
                 b_traer.click(_frase_del_capitulo, [est_libro, cap], frase)
-                b_practicar.click(_practicar, [mi_audio, frase],
-                                  [palabras_html, veredicto, audio_ref])
+                ev_practicar = b_practicar.click(_practicar, [mi_audio, frase],
+                                                 [palabras_html, veredicto, audio_ref])
                 b_debiles.click(_debiles, None, debiles_md)
+                # `cancels`: sin el, pulsar «Otra frase» mientras llegaba una
+                # correccion vaciaba la pantalla y, al terminar, la correccion
+                # vieja volvia a aparecer junto a la frase nueva. Lo encontro
+                # Codex, reproducido con la voz simulada.
                 b_otra.click(lambda: ("", None, "", "",
                                       gr.update(value=None, visible=False)),
-                             None, [frase, mi_audio, palabras_html, veredicto, audio_ref]
+                             None, [frase, mi_audio, palabras_html, veredicto, audio_ref],
+                             cancels=[ev_practicar]
                              ).then(None, None, None, js=JS_A_LA_FRASE)
 
             with gr.Tab("Mis libros", id="biblioteca"):

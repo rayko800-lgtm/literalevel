@@ -393,6 +393,45 @@ prueba("el autor corto quita el titulo nobiliario",
                     == "Dostoyevsky, Fyodor"
                 and ui._autor_corto("Homer") == "Homer")
                and "sin graf ni Sir")
+# Codex (auditoria 18): el primer arreglo se quedaba con las dos primeras partes
+# y rompia autores reales del catalogo.
+prueba("el autor corto conserva Jr., II y las comas de un parentesis",
+       lambda: (ui._autor_corto("Alger, Horatio, Jr., 1832-1899") == "Alger, Horatio, Jr."
+                and ui._autor_corto("Appleton, Victor, II") == "Appleton, Victor, II"
+                and ui._autor_corto("Allen, George (Vicar of St. Thomas's, Islington), 1827-1878")
+                    == "Allen, George (Vicar of St. Thomas's, Islington)")
+               and "Jr., II y parentesis intactos")
+
+# La prueba de punta a punta: con «fix» por «fox» la explicacion culpaba a la
+# /f/. Ahora la evaluacion guarda lo que se entendio y el prompt lo lleva.
+def _lo_que_se_entendio_viaja():
+    ev = ui.voz.evaluar_pronunciacion("The quick brown fox jumps over the lazy dog",
+                                      "The quick brown fix jumps over the lazy")
+    assert ("fox", "fix") in ev.entendidas, ev.entendidas
+    assert ("dog", "") in ev.entendidas, ev.entendidas
+    assert ev.palabras_falladas == ["fox", "dog"], ev.palabras_falladas
+    texto = ui.voz._lo_que_se_entendio(ev.entendidas)
+    assert "fox → «fix»" in texto and "dog → (no se oyó)" in texto, texto
+    assert ui.voz._lo_que_se_entendio([]) == "" and ui.voz._lo_que_se_entendio(None) == ""
+    tramo = ui.voz.evaluar_pronunciacion("I am going to go", "I am gonna go")
+    assert ("going", "gonna") in tramo.entendidas and ("to", "gonna") in tramo.entendidas, tramo.entendidas
+    return "fox → fix y dog sin oir llegan al prompt"
+
+
+prueba("la explicacion sabe lo que se entendio", _lo_que_se_entendio_viaja)
+
+prueba("el relleno de los markdown no toca el html del lector",
+       lambda: (":not(:has(.html-container)):has(.prose *)" in ui._CSS_GLOBAL
+                and "hide-container:has(.prose *)" not in ui._CSS_GLOBAL)
+               and "la regla excluye los gr.HTML")
+
+# Codex: al vencer el plazo sin que cambiase el texto, desplazaba igual 6 s
+# despues. La rama del plazo solo para; la del texto nuevo es la unica que sube.
+prueba("el salto al texto no se dispara al vencer el plazo",
+       lambda: (ui.re.search(r"else if \(\+\+vueltas > 40\) \{\s*parar\(\);\s*\}", ui.JS_AL_TEXTO)
+                and "window.__llAlTexto()" in ui.JS_AL_TEXTO
+                and "'touchstart'" in ui.JS_AL_TEXTO)
+               and "plazo sin salto, cancela la anterior y cede al gesto")
 
 titulo("Avisos legibles cuando algo falla")
 

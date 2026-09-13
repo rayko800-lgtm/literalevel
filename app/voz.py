@@ -15,7 +15,7 @@ que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
 import difflib, hashlib, os, re, sqlite3, tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -86,6 +86,10 @@ class Evaluacion:
     palabras_dichas: list[str]
     palabras_falladas: list[str]       # subconjunto de palabras_objetivo
     transcripcion: str                 # lo que de verdad se comparo (puede ser "")
+    # Pares (lo que debia decir, lo que se entendio en su lugar); "" si no se
+    # oyo nada. Sin esto la explicacion adivinaba el sonido: con «fix» por
+    # «fox» culpaba a la /f/, que estaba bien, y no a la vocal.
+    entendidas: list[tuple[str, str]] = field(default_factory=list)
 
 
 def evaluar_pronunciacion(frase_objetivo: str, transcripcion: str) -> Evaluacion:
@@ -102,14 +106,22 @@ def evaluar_pronunciacion(frase_objetivo: str, transcripcion: str) -> Evaluacion
 
     sm = difflib.SequenceMatcher(None, palabras_obj, palabras_dic, autojunk=False)
     falladas: list[str] = []
-    for tag, i1, i2, _j1, _j2 in sm.get_opcodes():
+    entendidas: list[tuple[str, str]] = []
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag in ("replace", "delete"):
             falladas.extend(palabras_obj[i1:i2])
+            objetivo, dicho = palabras_obj[i1:i2], palabras_dic[j1:j2]
+            if len(objetivo) == len(dicho):
+                entendidas.extend(zip(objetivo, dicho))
+            else:
+                # Tramos de distinta longitud («going to» por «gonna»): cada
+                # palabra se empareja con el tramo entero que se oyo.
+                entendidas.extend((w, " ".join(dicho)) for w in objetivo)
 
     puntuacion = round(sm.ratio() * 100, 1) if palabras_obj else 0.0
     return Evaluacion(puntuacion=puntuacion, palabras_objetivo=palabras_obj,
                       palabras_dichas=palabras_dic, palabras_falladas=falladas,
-                      transcripcion=transcripcion)
+                      transcripcion=transcripcion, entendidas=entendidas)
 
 
 # --- Transcripcion (necesita red) --------------------------------------
@@ -199,9 +211,27 @@ _PROMPT_REGLAS = (
     "Una o dos frases por campo.")
 
 
-def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles") -> Correccion | None:
+def _lo_que_se_entendio(entendidas) -> str:
+    """El parrafo del prompt con lo que se oyo en lugar de cada palabra."""
+    pares = [(o, d) for o, d in (entendidas or []) if o]
+    if not pares:
+        return ""
+    lineas = "; ".join(f"{o} → «{d}»" if d else f"{o} → (no se oyó)" for o, d in pares)
+    return ("Lo que la transcripción automática entendió en su lugar: " + lineas + ". "
+            "Elige el `fonema` comparando lo que debía decir con lo que se entendió: el "
+            "sonido que falla es el que cambia entre las dos (en «fox» → «fix» es la vocal, "
+            "no la /f/). La transcripción puede equivocarse; si no hay diferencia clara, "
+            "elige el sonido más difícil de la palabra para un hispanohablante.\n\n")
+
+
+def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles",
+                        entendidas: list[tuple[str, str]] | None = None) -> Correccion | None:
     """Pide a OpenAI una explicacion breve en español de como corregir cada
     palabra fallada: que sonido falla y como colocar la boca.
+
+    `entendidas` son los pares (debia decir, se entendio) de `Evaluacion`. Es
+    opcional para no romper a quien llame con la lista sola, pero sin ellos el
+    modelo tiene que adivinar que sonido fallo.
 
     `None` si no hay clave, no hay palabras que explicar, o falla la llamada.
     """
@@ -217,7 +247,8 @@ def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles") ->
                 {"role": "system", "content": _PROMPT_SISTEMA},
                 {"role": "user", "content":
                     f"El alumno ha pronunciado mal estas palabras en {idioma}: "
-                    f"{', '.join(palabras_falladas)}.\n\n{_PROMPT_REGLAS}"},
+                    f"{', '.join(palabras_falladas)}.\n\n"
+                    f"{_lo_que_se_entendio(entendidas)}{_PROMPT_REGLAS}"},
             ],
             response_format=Correccion,
         )
@@ -394,7 +425,8 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
 
     correccion = None
     if evaluacion.palabras_falladas:
-        correccion = explicar_correccion(evaluacion.palabras_falladas)
+        correccion = explicar_correccion(evaluacion.palabras_falladas,
+                                         entendidas=evaluacion.entendidas)
 
     # El audio de referencia se genera SIEMPRE, no solo cuando algo falla.
     # Antes iba dentro del `if`: quien pronunciaba bien se encontraba el
