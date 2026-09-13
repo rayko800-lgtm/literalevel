@@ -229,6 +229,10 @@ def explicar_correccion(palabras_falladas: list[str], idioma: str = "ingles",
     """Pide a OpenAI una explicacion breve en español de como corregir cada
     palabra fallada: que sonido falla y como colocar la boca.
 
+    `idioma` es vestigial: el prompt y el inventario de fonemas son de ingles
+    americano, y cualquier otro valor le daria al modelo una contradiccion.
+    Se conserva solo para no romper a quien ya lo pasa. (Fable, auditoria 18.)
+
     `entendidas` son los pares (debia decir, se entendio) de `Evaluacion`. Es
     opcional para no romper a quien llame con la lista sola, pero sin ellos el
     modelo tiene que adivinar que sonido fallo.

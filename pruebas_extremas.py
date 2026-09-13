@@ -6177,6 +6177,9 @@ def _normalizacion_de_simbolos():
         "ɔː": "ɔ", "ɔ": "ɔ", "iː": "i", "uː": "u", "ɑː": "ɑ", "e": "ɛ",
         "t͡ʃ": "tʃ", "ʧ": "tʃ", "d͡ʒ": "dʒ", "ˈæ": "æ", "eɪ̯": "eɪ",
         "ɜː": "ɝ", "ər": "ɚ", "əʊ": "oʊ", "g": "ɡ", "/ð/": "ð",
+        # Fable (auditoria 18): el gancho rotico no es un diacritico que se
+        # pueda quitar, y las mayusculas ASCII valen para todas las letras.
+        "ə˞": "ɚ", "ɜ˞": "ɝ", "W": "w", "S": "s", "R": "ɹ", "ñ": None,
         # Sin equivalente en General American, o no son fonemas: sin audio
         # antes que un audio que ensena otro sonido.
         "ɒ": None, "ɪə": None, "eə": None, "ɾ": None, "ʔ": None,
@@ -6217,7 +6220,14 @@ def _fonema_desconocido_no_revienta():
         assert "<script" not in html, html
     # Un detalle vacio del todo tampoco tira nada.
     assert ui._detalle_de_voz(SimpleNamespace()).startswith("- **")
-    return "texto sin reproductor, y ninguna excepcion"
+    # El HTML tiene que ir en el TEXTO del modelo, que es lo que se imprime.
+    # Con el `<script>` en `fonema`, lo de arriba pasaba siempre: un fonema que
+    # no esta en el inventario no se pinta. Fable (auditoria 18).
+    html = ui._detalle_de_voz(_detalle(sonido='<img src=x onerror=alert(1)>',
+                                       boca="<script>alert(2)</script>"))
+    assert "<script" not in html and "<img" not in html, html
+    assert "&lt;script&gt;" in html and "&lt;img" in html, html
+    return "texto sin reproductor, sin excepcion y con el texto del modelo escapado"
 
 
 prueba("fonemas: detalle con fonema desconocido no revienta",
@@ -6257,7 +6267,8 @@ def _ipa_ausente_no_se_inventa():
                                     audio_uk=None, audio_us=None)]
 
     viejo = (fonemas_mod._diccionario, fonemas_mod._diccionario_fallo)
-    fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = _Dic(), False
+    viejo_lexicon = sys.modules.get("lexicon")
+    fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = _Dic(), None
     try:
         for palabra in ("zarzaparrilla", "the"):
             assert fonemas_mod.ipa_de_palabra(palabra) == (None, None), palabra
@@ -6268,14 +6279,35 @@ def _ipa_ausente_no_se_inventa():
         assert fonemas_mod.ipa_de_palabra("thought") == ("/θɔːt/", "UK")
         cabeza = ui._detalle_de_voz(_detalle(palabra="thought", fonema="θ")).split("<br>")[0]
         assert "/θɔːt/ (UK)" in cabeza, cabeza
+        # Y avisa de que la transcripcion es britanica y el sonido americano.
+        assert "británica" in cabeza, cabeza
 
-        # Y sin diccionario en disco, lo mismo: nada inventado y nada roto.
-        fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = None, True
+        # Sin diccionario en disco -recien fallado-, lo mismo: nada inventado,
+        # nada roto, y no se reintenta en cada palabra.
+        fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = None, fonemas_mod.time.monotonic()
         assert fonemas_mod.ipa_de_palabra("warn") == (None, None)
         assert "sin transcripción" in ui._detalle_de_voz(_detalle())
+
+        # Pero el fallo NO es para siempre: pasado el plazo se vuelve a abrir.
+        # En el Space el diccionario es un volumen montado y puede llegar tarde.
+        # `ipa_de_palabra` usa tambien `lexicon._mejor_fonetica`: el modulo
+        # fingido lleva la real, o la llamada falla y devuelve (None, None).
+        import lexicon as _lexicon_real
+        sys.modules["lexicon"] = SimpleNamespace(Diccionario=lambda ruta: _Dic(),
+                                                 RUTA_DICCIONARIO="finge",
+                                                 _mejor_fonetica=_lexicon_real._mejor_fonetica)
+        fonemas_mod._diccionario = None
+        fonemas_mod._diccionario_fallo = fonemas_mod.time.monotonic() - fonemas_mod._REINTENTO_S - 1
+        assert fonemas_mod.ipa_de_palabra("thought") == ("/θɔːt/", "UK"), \
+            "tras el plazo no reintento abrir el diccionario"
+        assert fonemas_mod._diccionario_fallo is None
     finally:
         fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = viejo
-    return "sin fila o sin IPA dice 'sin transcripción'"
+        if viejo_lexicon is not None:
+            sys.modules["lexicon"] = viejo_lexicon
+        else:
+            sys.modules.pop("lexicon", None)
+    return "sin fila o sin IPA dice 'sin transcripción', y el fallo se reintenta pasado el plazo"
 
 
 prueba("fonemas: IPA de palabra ausente en Kaikki no se inventa",
@@ -6314,15 +6346,30 @@ def _la_practica_pinta_ipa_y_audio():
                                  sonido="Como el «shhh» de pedir silencio"),
             _detalle(palabra="the", fonema="ninguno", sonido="Es el ritmo")]))
     viejo_practicar, viejo_falta = ui.voz.practicar, ui.config.falta
+    viejo_dic = (fonemas_mod._diccionario, fonemas_mod._diccionario_fallo)
     audio = TMP / "fonemas_practica.wav"
     audio.write_bytes(b"RIFF")
+
+    # Diccionario fingido, para que la prueba MIDA la IPA y no pase igual con
+    # o sin Kaikki en disco (Fable, auditoria 18).
+    class _Dic:
+        def buscar(self, lema):
+            if lema != "warn":
+                return []
+            return [SimpleNamespace(pos="verb", ipa_uk="/wɔːn/", ipa_us="/woɹn/",
+                                    audio_uk=None, audio_us=None)]
+
     try:
         ui.config.falta = lambda: []
         ui.voz.practicar = lambda *a, **k: sesion
+        fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = _Dic(), None
         _, veredicto, _ = ui._practicar(str(audio), "I warn the ship")
     finally:
         ui.voz.practicar, ui.config.falta = viejo_practicar, viejo_falta
+        fonemas_mod._diccionario, fonemas_mod._diccionario_fallo = viejo_dic
     veredicto = str(veredicto)
+    assert "**warn** /woɹn/ (US)" in veredicto, f"no pinto la IPA americana de warn: {veredicto[:400]}"
+    assert "**ship** (sin transcripción" in veredicto, veredicto[:400]
     assert "**Cómo corregirlo:** Casi." in veredicto, veredicto[:300]
     assert veredicto.count("<audio") == 2, f"esperaba 2 reproductores: {veredicto}"
     assert "/w/" in veredicto and "/ʃ/" in veredicto, veredicto

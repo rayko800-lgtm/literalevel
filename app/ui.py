@@ -3146,6 +3146,10 @@ def _detalle_de_voz(d) -> str:
     ipa, variante = fonemas.ipa_de_palabra(cruda)
     if ipa:
         cabeza = f"- **{palabra}** {_html.escape(ipa, quote=False)} ({variante})"
+        # Si Kaikki solo trae la britanica, en la misma linea convivirian dos
+        # convenciones (/θɔːt/ arriba, /ɔ/ americano abajo). Se dice. Fable.
+        if variante == "UK":
+            cabeza += " · transcripción británica; el sonido de abajo es el americano"
     else:
         cabeza = f"- **{palabra}** (sin transcripción fonética en el diccionario)"
     trozos = [cabeza]
@@ -3159,8 +3163,12 @@ def _detalle_de_voz(d) -> str:
         trozos.append(linea)
     # El modelo suele cerrar la frase con su punto; poner otro detras dejaba
     # «..» en cada linea.
-    sonido = str(getattr(d, "sonido_que_falla", "") or "").strip().rstrip(".")
-    boca = str(getattr(d, "como_colocar_la_boca", "") or "").strip()
+    # Escapado, como la palabra: es texto del modelo. En pantalla lo limpiaba
+    # DOMPurify, pero por la API de Gradio salia crudo a cualquier cliente.
+    # Lo encontro Fable (auditoria 18).
+    sonido = _html.escape(str(getattr(d, "sonido_que_falla", "") or "").strip().rstrip("."),
+                          quote=False)
+    boca = _html.escape(str(getattr(d, "como_colocar_la_boca", "") or "").strip(), quote=False)
     explicacion = " ".join(t for t in (f"{sonido}." if sonido else "", boca) if t)
     if explicacion:
         trozos.append(explicacion)
@@ -3240,7 +3248,7 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         L.append("Ni una palabra fallada. Sube el listón con una frase más larga.")
 
     if s.correccion:
-        L.append(f"**Cómo corregirlo:** {s.correccion.resumen}")
+        L.append(f"**Cómo corregirlo:** {_html.escape(str(s.correccion.resumen or ''), quote=False)}")
         # Cada detalle en su propia linea de la lista, con su IPA y el audio
         # del fonema: ver `_detalle_de_voz`.
         L.append("\n".join(_detalle_de_voz(d) for d in s.correccion.detalles))

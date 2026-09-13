@@ -45,7 +45,9 @@ reconocedor de fonemas, esta en `tools/fonemas_generados.json`.
 """
 from __future__ import annotations
 
+import sys
 import threading
+import time
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
@@ -149,8 +151,13 @@ _ALIAS = {
 
 # Diacriticos que no cambian el fonema: ligadura (t͡ʃ), no silabica (eɪ̯),
 # silabica (n̩), aspiracion y los de posicion. Se quitan antes de comparar.
+#
+# NO estan el gancho rotico (˞) ni la tilde nasal (̃), aunque estuvieron: el
+# gancho es justo la diferencia entre /ə/ («sofa») y /ɚ/ («butter»), y
+# quitarlo convertia «ə˞» en /ə/ y dejaba muertos los alias «ə˞» y «ɜ˞». Lo
+# encontro Fable (auditoria 18).
 _DIACRITICOS = {"͡", "͜", "̯", "̩", "ʰ", "̚",
-                "̠", "̟", "̥", "̪", "̃", "˞"}
+                "̠", "̟", "̥", "̪"}
 _ENVOLTURA = "/[]ˈˌ.‿ ()'\"«»“”`"
 
 
@@ -174,9 +181,14 @@ def normalizar(simbolo: object) -> str | None:
     texto = unicodedata.normalize("NFC", texto)
     if not texto or len(texto) > 4:
         return None
+    # Minusculas solo en ASCII, y ANTES de las dos busquedas: «R» ya daba /ɹ/
+    # por el alias, pero «W» o «S» daban `None` porque el inventario se miraba
+    # sin bajar. Los simbolos AFI no tienen mayuscula y no se tocan.
+    if texto.isascii():
+        texto = texto.lower()
     if texto in _POR_SIMBOLO:
         return texto
-    return _ALIAS.get(texto) or _ALIAS.get(texto.lower())
+    return _ALIAS.get(texto)
 
 
 def buscar(simbolo: object) -> Fonema | None:
@@ -207,7 +219,12 @@ def audio_de(simbolo: object) -> str | None:
 # --- IPA de la palabra entera: del diccionario local, nunca del modelo ------
 
 _diccionario = None
-_diccionario_fallo = False
+# Momento (time.monotonic) del ultimo intento fallido, o None. No es un «fallo
+# para siempre»: en el Space el diccionario es un volumen montado, y si la
+# primera practica llegaba antes que el volumen, todas las del proceso decian
+# «sin transcripcion» hasta reiniciar. Lo encontro Fable (auditoria 18).
+_diccionario_fallo: float | None = None
+_REINTENTO_S = 60.0
 _cerrojo = threading.Lock()
 
 
@@ -219,19 +236,27 @@ def _abrir_diccionario():
     MiniLM, que son los que pesan y que `ui` sigue cargando al primer uso de
     la consulta lexica. Abrir el SQLite en `mode=ro` tarda milisegundos.
 
-    Si el diccionario no esta (una copia sin datos), se recuerda el fallo
-    para no reintentar el `open` en cada palabra.
+    Si el diccionario no esta (una copia sin datos, un volumen que aun no se
+    ha montado), no se reintenta el `open` en cada palabra, pero si pasado
+    `_REINTENTO_S`, y el motivo se escribe una vez en el registro.
     """
     global _diccionario, _diccionario_fallo
-    if _diccionario is not None or _diccionario_fallo:
+    if _diccionario is not None:
         return _diccionario
+    if _diccionario_fallo is not None and time.monotonic() - _diccionario_fallo < _REINTENTO_S:
+        return None
     with _cerrojo:
-        if _diccionario is None and not _diccionario_fallo:
+        if _diccionario is None and (_diccionario_fallo is None or
+                                     time.monotonic() - _diccionario_fallo >= _REINTENTO_S):
             try:
                 import lexicon
                 _diccionario = lexicon.Diccionario(lexicon.RUTA_DICCIONARIO)
-            except Exception:
-                _diccionario_fallo = True
+                _diccionario_fallo = None
+            except Exception as e:
+                if _diccionario_fallo is None:
+                    print(f"fonemas: no se pudo abrir el diccionario ({type(e).__name__}: {e}); "
+                          f"se reintenta cada {_REINTENTO_S:.0f} s", file=sys.stderr)
+                _diccionario_fallo = time.monotonic()
     return _diccionario
 
 
