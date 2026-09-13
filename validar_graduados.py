@@ -85,8 +85,16 @@ def _spearman(a, b):
     return _pearson(_rangos(a), _rangos(b))
 
 
+# Las primeras 48 lineas de StoryWeaver se bajaron antes de pasar al orden
+# aleatorio: vienen del listado de la API, que pone primero los libros mejor
+# valorados. Con ellas la muestra tendria sesgo de popularidad, asi que se
+# apartan; todo lo que sigue se bajo en orden aleatorio e intercalando niveles.
+SESGADAS_AL_PRINCIPIO = {"storyweaver": 48}
+
+
 def cargar(fuente, ruta, tope):
     filas = [json.loads(l) for l in ruta.open(encoding="utf-8")]
+    filas = filas[SESGADAS_AL_PRINCIPIO.get(fuente, 0):]
     df = pd.DataFrame(filas)
     df["fuente"] = fuente
     for col in ("slug", "archivo", "url"):
