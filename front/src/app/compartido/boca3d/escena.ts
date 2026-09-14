@@ -16,17 +16,74 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Linea } from './animacion';
 import { Labios, PoseSonido, REPOSO } from './poses';
 
 export interface Colores {
   lengua: string; labios: string; dientes: string; encia: string; velo: string; hueso: string; faringe: string;
+  piel: string; mucosa: string;
 }
 
+/** Colores de tejido vivo: lengua rosada, encías rosa claro, dientes marfil,
+ *  piel cálida y mucosa húmeda un punto más oscura que la encía. Todos van
+ *  a materiales físicos (`materialDe`). */
 export const COLORES_POR_DEFECTO: Colores = {
-  lengua: '#d9727f', labios: '#e59a94', dientes: '#f6f3ec', encia: '#efb9b1', velo: '#e4a39c',
-  hueso: '#ece7dc', faringe: '#cdbcbc',
+  lengua: '#d4737d', labios: '#c9686e', dientes: '#f1e9d8', encia: '#e6989d', velo: '#d68b90',
+  hueso: '#e6dcc9', faringe: '#c98a8c', piel: '#e0b19c', mucosa: '#cf868a',
 };
+
+/** Qué tejido es cada pieza: decide brillo, barniz húmedo y velo de
+ *  subsuperficie (sheen) del material físico. */
+export type Tejido = 'piel' | 'mucosa' | 'encia' | 'diente' | 'hueso' | 'labio' | 'lengua';
+
+/** Un material físico por tejido, sin texturas descargadas. La piel y la
+ *  mucosa llevan un velo (sheen) que aclara los bordes como la luz que
+ *  atraviesa el tejido; la mucosa, la encía y la lengua, un barniz fino y
+ *  poco rugoso (húmedas); los dientes, barniz duro y un velo cálido que
+ *  imita la leve translucidez del esmalte. */
+export function materialDe(tejido: Tejido, color: string, extra: Partial<THREE.MeshPhysicalMaterialParameters> = {}): THREE.MeshPhysicalMaterial {
+  const base: Record<Tejido, Partial<THREE.MeshPhysicalMaterialParameters>> = {
+    piel: { roughness: 0.62, clearcoat: 0.04, clearcoatRoughness: 0.6, sheen: 0.55, sheenRoughness: 0.75, sheenColor: new THREE.Color('#ffd6c4') },
+    mucosa: { roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.32, sheen: 0.45, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffb0b4') },
+    encia: { roughness: 0.42, clearcoat: 0.45, clearcoatRoughness: 0.3, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
+    diente: { roughness: 0.3, clearcoat: 0.65, clearcoatRoughness: 0.18, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color('#fff4dc'), ior: 1.6 },
+    hueso: { roughness: 0.72, clearcoat: 0, sheen: 0.2, sheenRoughness: 0.9, sheenColor: new THREE.Color('#fff3e0') },
+    labio: { roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.35, sheen: 0.5, sheenRoughness: 0.65, sheenColor: new THREE.Color('#ffb6b0') },
+    lengua: { roughness: 0.46, clearcoat: 0.4, clearcoatRoughness: 0.3, sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ff9aa6') },
+  };
+  return new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), metalness: 0, ...base[tejido], ...extra });
+}
+
+/** Papilas de la lengua: un mapa de relieve procedimental (puntitos suaves
+ *  al azar) pintado en un canvas. Sin canvas 2D (pruebas), no hay relieve. */
+function texturaPapilas(): THREE.Texture | null {
+  try {
+    const lado = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = lado;
+    const ctx = c.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, lado, lado);
+    let semilla = 7;
+    const azar = () => { semilla = (semilla * 16807) % 2147483647; return semilla / 2147483647; };
+    for (let i = 0; i < 2600; i++) {
+      const x = azar() * lado, y = azar() * lado, r = 1.6 + azar() * 2.4;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(255,255,255,${0.35 + azar() * 0.4})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(5, 3);
+    return t;
+  } catch {
+    return null;
+  }
+}
 
 // --- Anatomía fija -----------------------------------------------------------
 
@@ -449,6 +506,10 @@ export interface OpcionesEscena {
   reducirMovimiento?: boolean;
   /** La mejilla translúcida del lado de la cámara (por defecto, sí). */
   mejilla?: boolean;
+  /** Sombras de contacto de la luz principal (por defecto, sí). */
+  sombras?: boolean;
+  /** Reflejos de un entorno neutro precalculado (por defecto, sí). */
+  entorno?: boolean;
   /** URL de una lengua modelada en Blender (.glb con las shape keys de
    *  `MORFOS_LENGUA`): sustituye al tubo cuando carga. */
   lenguaGlb?: string;
@@ -492,6 +553,8 @@ export class EscenaBoca {
   /** Premolares y molares: se esconden los del lado de la cámara en la vista de lado. */
   private readonly dientesLaterales: THREE.Mesh[] = [];
   private lateralesOcultos: 'ninguno' | 'z+' | 'z-' = 'ninguno';
+  private readonly sombras: boolean;
+  private readonly papilas: THREE.Texture | null;
   private readonly observador: ResizeObserver | null = null;
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
@@ -523,10 +586,21 @@ export class EscenaBoca {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // Tono fotográfico (ACES): los brillos del barniz húmedo no se queman.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    this.sombras = opciones.sombras !== false;
+    if (this.sombras) {
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    }
     this.canvas = this.renderer.domElement;
     this.canvas.style.display = 'block';
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
+    // Fondo neutro con viñeta suave, como un fondo de estudio: el lienzo es
+    // transparente, así que va en el propio elemento y vale en la app y en la demo.
+    this.canvas.style.background = 'radial-gradient(ellipse at 50% 42%, #f8f4f0 0%, #ede7e2 52%, #d6cec7 100%)';
     contenedor.appendChild(this.canvas);
 
     this.camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
@@ -551,18 +625,42 @@ export class EscenaBoca {
     // giran la boca. `girarLibre(true)` captura todo, para quien lo pida.
     this.girarLibre(false);
 
-    this.escena.add(new THREE.HemisphereLight(0xffffff, 0x6b7a90, 1.3));
-    const luz = new THREE.DirectionalLight(0xffffff, 1.7);
-    luz.position.set(-4, 6, 7);
+    // Luz de tres puntos, suave: principal cálida desde arriba y delante (la
+    // única que da sombras de contacto), relleno frío desde atrás y abajo,
+    // y un contraluz que separa el perfil del fondo. El entorno (una sala
+    // neutra precalculada) da los reflejos del barniz húmedo.
+    this.escena.add(new THREE.HemisphereLight(0xfff4ea, 0x8a7f86, 0.55));
+    const luz = new THREE.DirectionalLight(0xfff1e4, 1.9);
+    luz.position.set(-4.5, 7, 7.5);
+    if (this.sombras) {
+      luz.castShadow = true;
+      luz.shadow.mapSize.set(512, 512);
+      luz.shadow.radius = 4;
+      luz.shadow.bias = -0.0008;
+      luz.shadow.normalBias = 0.02;
+      const s = luz.shadow.camera;
+      s.left = -5; s.right = 5; s.top = 5; s.bottom = -5; s.near = 1; s.far = 30;
+    }
     this.escena.add(luz);
-    const relleno = new THREE.DirectionalLight(0xffffff, 0.6);
-    relleno.position.set(5, 1, -5);
+    const relleno = new THREE.DirectionalLight(0xdfe8ff, 0.55);
+    relleno.position.set(5, -1, -4);
     this.escena.add(relleno);
+    const contraluz = new THREE.DirectionalLight(0xffffff, 0.7);
+    contraluz.position.set(2, 4, -8);
+    this.escena.add(contraluz);
+    if (opciones.entorno === true) {
+      try {
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        this.escena.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        this.escena.environmentIntensity = 0.45;
+        pmrem.dispose();
+      } catch { /* sin entorno: las luces bastan */ }
+    }
 
-    const mDientes = material(col.dientes, { roughness: 0.4 });
-    const mEncia = material(col.encia);
-    const mHueso = material(col.hueso);
-    const mLabios = material(col.labios, { roughness: 0.6 });
+    const mDientes = materialDe('diente', col.dientes);
+    const mEncia = materialDe('encia', col.encia);
+    const mHueso = materialDe('hueso', col.hueso);
+    const mLabios = materialDe('labio', col.labios);
 
     // Maxilar: paladar, encía con dientes superiores, velo con bisagra, faringe.
     const paladar = new THREE.Mesh(banda(PALADAR, GROSOR_PALADAR, ANCHO), mEncia);
@@ -573,17 +671,17 @@ export class EscenaBoca {
     this.escena.add(arcoSup);
     this.dentalSimple.push(paladar, arcoSup);
 
-    const veloMalla = new THREE.Mesh(new THREE.CapsuleGeometry(GROSOR_PALADAR / 2, LARGO_VELO - GROSOR_PALADAR / 2, 4, 10), material(col.velo));
+    const veloMalla = new THREE.Mesh(new THREE.CapsuleGeometry(GROSOR_PALADAR / 2, LARGO_VELO - GROSOR_PALADAR / 2, 4, 10), materialDe('mucosa', col.velo));
     veloMalla.rotation.z = -Math.PI / 2;                      // la cápsula a lo largo de +x
     veloMalla.position.x = LARGO_VELO / 2;
-    const veloAncho = new THREE.Mesh(new THREE.BoxGeometry(LARGO_VELO, GROSOR_PALADAR, ANCHO * 0.7), material(col.velo));
+    const veloAncho = new THREE.Mesh(new THREE.BoxGeometry(LARGO_VELO, GROSOR_PALADAR, ANCHO * 0.7), materialDe('mucosa', col.velo));
     veloAncho.position.x = LARGO_VELO / 2;
     this.velo.add(veloAncho, veloMalla);
     this.velo.position.set(PIVOTE_VELO.x, PIVOTE_VELO.y, 0);
     this.escena.add(this.velo);
 
     // La pared de la faringe, de la nasofaringe a la garganta.
-    const faringe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.6, ANCHO), material(col.faringe, { transparent: true, opacity: 0.55 }));
+    const faringe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.6, ANCHO), materialDe('mucosa', col.faringe, { transparent: true, opacity: 0.55 }));
     faringe.position.set(FARINGE_X, -0.6, 0);
     this.escena.add(faringe);
     this.cavidadesSimples.push(faringe);
@@ -636,7 +734,8 @@ export class EscenaBoca {
     this.labioInf.userData = { largo: 2.3, radio: 0.3 };
     this.mandibula.add(this.labioInf);
 
-    this.lengua = new THREE.Mesh(geometriaLengua(), material(col.lengua, { roughness: 0.55 }));
+    this.papilas = texturaPapilas();
+    this.lengua = new THREE.Mesh(geometriaLengua(), materialDe('lengua', col.lengua));
     this.escena.add(this.lengua);
 
     // La mejilla del lado de la cámara: translúcida, se pinta la última y no
@@ -651,8 +750,9 @@ export class EscenaBoca {
 
     this.actual = poseNumerica(REPOSO);
     this.aplicar(this.actual);
+    this.sombrear();
     if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua);
-    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col.labios);
+    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col);
 
     if (typeof ResizeObserver !== 'undefined') {
       this.observador = new ResizeObserver(() => this.redimensionar());
@@ -798,14 +898,11 @@ export class EscenaBoca {
       });
       if (!malla) { liberarModelo(gltf.scene); return; }
       const m = malla as THREE.Mesh;
-      // Mucosa húmeda sin texturas: brillo de barniz fino y un velo rosado
-      // (sheen) que imita algo de subsuperficie en los bordes.
+      // Mucosa húmeda con papilas de relieve: el material físico de la
+      // lengua más el mapa procedimental (si la malla trae UV).
       (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
-      m.material = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(color), roughness: 0.42, metalness: 0,
-        clearcoat: 0.35, clearcoatRoughness: 0.3,
-        sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ff9aa6'),
-      });
+      const conUv = !!m.geometry.getAttribute('uv');
+      m.material = materialDe('lengua', color, conUv && this.papilas ? { bumpMap: this.papilas, bumpScale: 0.6 } : {});
       const dic = m.morphTargetDictionary ?? {};
       this.indicesMorfos = MORFOS_LENGUA.map(nombre => dic[nombre]);
       this.lenguaGlb = m;
@@ -815,6 +912,7 @@ export class EscenaBoca {
       this.dentroMandibula.add(m);
       this.contenedor.dataset['lengua'] = 'blender';
       liberarModelo(gltf.scene);
+      this.sombrear();
       this.aplicar(this.actual);
     }, undefined, () => { /* sin lengua modelada: se queda el tubo */ });
   }
@@ -823,7 +921,19 @@ export class EscenaBoca {
     return this.lenguaGlb !== null;
   }
 
-  private cargarCara(url: string, colorLabios: string): void {
+  /** Las piezas opacas dan y reciben sombra; las translúcidas (aire, huecos,
+   *  mejilla) no. Se repite al cargar cada modelo. */
+  private sombrear(): void {
+    if (!this.sombras) return;
+    this.escena.traverse(o => {
+      if (!(o instanceof THREE.Mesh)) return;
+      const opaco = !(Array.isArray(o.material) ? o.material : [o.material]).some(m => m.transparent);
+      o.castShadow = opaco;
+      o.receiveShadow = opaco;
+    });
+  }
+
+  private cargarCara(url: string, col: Colores): void {
     new GLTFLoader().load(url, gltf => {
       const piezas = new Map<string, THREE.Mesh>();
       gltf.scene.updateMatrixWorld(true);
@@ -842,8 +952,7 @@ export class EscenaBoca {
         destino.geometry.dispose();
         destino.geometry = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
         destino.userData['modelado'] = true;
-        destino.material = new THREE.MeshPhysicalMaterial({ color: colorLabios, roughness: 0.48,
-          clearcoat: 0.15, clearcoatRoughness: 0.4 });
+        destino.material = materialDe('labio', col.labios);
         // Las shape keys del labio (fruncir, estirar): el visor las mezcla
         // desde el largo entre comisuras de la pose. Sin ellas, se escala.
         destino.updateMorphTargets();
@@ -853,17 +962,17 @@ export class EscenaBoca {
       for (const nombre of nombres.slice(2)) {
         const fuente = piezas.get(nombre)!;
         const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
-          material(nombre === 'nariz' ? '#dcb0a1' : '#c88185', { roughness: 0.68 }));
+          nombre === 'nariz' ? materialDe('piel', col.piel) : materialDe('mucosa', col.mucosa));
         (nombre === 'suelo_boca' ? this.dentroMandibula : this.escena).add(pieza);
       }
       const menton = piezas.get('menton');
       if (menton) this.dentroMandibula.add(new THREE.Mesh(
-        menton.geometry.clone().applyMatrix4(menton.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+        menton.geometry.clone().applyMatrix4(menton.matrixWorld), materialDe('piel', col.piel)));
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
       for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
         const fuente = piezas.get(nombre);
         if (fuente) this.escena.add(new THREE.Mesh(
-          fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+          fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), materialDe('piel', col.piel)));
       }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
       const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
@@ -874,9 +983,10 @@ export class EscenaBoca {
         for (const nombre of dentales) {
           const fuente = piezas.get(nombre)!;
           const inferior = nombre.includes('_inf') || nombre === 'mandibula_modelada';
-          const pieza = new THREE.Mesh(fuente.geometry.clone(), material(
-            nombre.startsWith('diente_') ? '#f4eddf' : nombre === 'mandibula_modelada' ? '#d8c8b4' : '#d9959b',
-            { roughness: nombre.startsWith('diente_') ? 0.3 : 0.6 }));
+          const pieza = new THREE.Mesh(fuente.geometry.clone(),
+            nombre.startsWith('diente_') ? materialDe('diente', col.dientes)
+              : nombre === 'mandibula_modelada' ? materialDe('hueso', col.hueso)
+              : materialDe('encia', col.encia));
           fuente.matrixWorld.decompose(pieza.position, pieza.quaternion, pieza.scale);
           (inferior ? this.dentroMandibula : this.escena).add(pieza);
           if (nombre.startsWith('diente_') && Math.abs(pieza.position.z) > 0.42) this.dientesLaterales.push(pieza);
@@ -888,7 +998,7 @@ export class EscenaBoca {
         for (const nombre of ['velo_modelado', 'uvula']) {
           const fuente = piezas.get(nombre)!;
           this.velo.add(new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
-            material('#d9959b', { roughness: 0.6 })));
+            materialDe('mucosa', col.velo)));
         }
       }
       for (const m of piezas.values()) {
@@ -898,6 +1008,7 @@ export class EscenaBoca {
       this.cavidadesSimples.forEach(m => { m.visible = false; });
       this.sueloSimple.visible = false;
       this.caraModelada = true;
+      this.sombrear();
       this.contenedor.dataset['cara'] = 'blender';
       const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
       this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
@@ -921,6 +1032,8 @@ export class EscenaBoca {
         (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
       }
     });
+    this.papilas?.dispose();
+    this.escena.environment?.dispose();
     this.renderer.dispose();
     this.canvas.remove();
   }

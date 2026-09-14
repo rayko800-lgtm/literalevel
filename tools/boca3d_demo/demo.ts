@@ -6,7 +6,7 @@
  *  Parámetros de la URL: ?s=ɑ (sonido), ?ciclo=0 (sin ciclo al elegir: la
  *  pose quieta, para capturas), ?palabra=ˈpɑvɚti (la reproduce),
  *  ?giro=-1.0&polar=1.2 (vista girada: negativo mira hacia la cara),
- *  ?mejilla=0 (sin mejilla), ?fps=1 (mide cuadros por segundo reproduciendo
+ *  ?mejilla=0 (sin mejilla), ?sombras=0 y ?entorno=0 (sin sombras, sin reflejos), ?fps=1 (mide cuadros por segundo reproduciendo
  *  una palabra en bucle y lo escribe en la leyenda). */
 import { cicloSonido, giroPara, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
 import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
@@ -47,6 +47,8 @@ function arrancar(): void {
   const escena = new EscenaBoca(visor, {
     reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
     mejilla: params.get('mejilla') !== '0',
+    sombras: params.get('sombras') !== '0',
+    entorno: params.get('entorno') === '1',
     // El modelado es el predeterminado en la demo, nunca en la app pública.
     lenguaGlb: params.get('lengua') !== '0' ? 'lengua.glb' : undefined,
     caraGlb: params.get('cara') !== '0' ? 'cara.glb' : undefined,
