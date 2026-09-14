@@ -137,9 +137,32 @@ def perfil(nombre, puntos, grosor, ancho, mat):
 
 labio("labio_superior", True)
 labio("labio_inferior", False)
+# La nariz: el dorso es una banda con volumen (no una cinta) y a los lados
+# van las aletas y la punta como elipsoides, para que en tres cuartos tenga
+# cuerpo y no parezca una cuchilla.
 perfil("nariz", [(-2.5, 3.2), (-2.9, 2.65), (-3.55, 2.05), (-3.6, 1.82),
                  (-3.3, 1.65), (-2.97, 1.7), (-2.8, 1.2), (-2.85, 0.88)],
-       0.12, [0.28, 0.33, 0.55, 0.62, 0.54, 0.32, 0.25, 0.42], PIEL)
+       0.22, [0.3, 0.38, 0.5, 0.55, 0.5, 0.36, 0.28, 0.42], PIEL)
+
+
+def elipsoide(nombre, centro, escala, mat):
+    """Un elipsoide liso en coordenadas del visor (x, arriba, lateral)."""
+    x, arriba, lateral = centro
+    ex, earriba, elateral = escala
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1.0,
+                                         location=(x, -lateral, arriba))
+    ob = bpy.context.object
+    ob.name = nombre
+    ob.scale = (ex, elateral, earriba)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bpy.ops.object.shade_smooth()
+    ob.data.materials.append(mat)
+    return ob
+
+
+elipsoide("aleta_izq", (-3.12, 1.78, 0.46), (0.42, 0.32, 0.3), PIEL)
+elipsoide("aleta_der", (-3.12, 1.78, -0.46), (0.42, 0.32, 0.3), PIEL)
+elipsoide("punta_nariz", (-3.5, 1.95, 0.0), (0.36, 0.34, 0.48), PIEL)
 perfil("techo_nasal", [(-2.55, 3.15), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11, 0.9, MUCOSA)
 perfil("faringe", [(2.8, 2.1), (3.05, 1.55), (3.16, 0.6), (3.08, -0.55),
                    (2.95, -1.65), (2.8, -2.5), (2.75, -3.1)], 0.15, 1.0, MUCOSA)

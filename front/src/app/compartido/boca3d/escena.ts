@@ -501,6 +501,11 @@ export class EscenaBoca {
   /** La línea de tiempo en marcha (ciclo de un sonido o palabra entera). */
   private linea: { claves: { t: number; n: PoseNumerica }[]; total: number } | null = null;
   private lineaT0 = 0;
+  /** Giro de cámara (radianes de azimut) que acompaña a la línea: sube a
+   *  mitad del ciclo y vuelve al final. Negativo mira hacia la cara. */
+  private giroLinea = 0;
+  private giroBase = { azimut: 0, polar: 1.49, distancia: 13 };
+  private arrastrando = false;
   private sucio = true;
   private vivo = true;
   private rafId = 0;
@@ -536,6 +541,9 @@ export class EscenaBoca {
     this.controles.minPolarAngle = 0.35;
     this.controles.maxPolarAngle = 2.5;
     this.controles.addEventListener('change', () => { this.sucio = true; });
+    // Si el usuario arrastra, el giro automático de la cámara se cancela.
+    this.controles.addEventListener('start', () => { this.arrastrando = true; this.giroLinea = 0; });
+    this.controles.addEventListener('end', () => { this.arrastrando = false; });
     this.controles.update();
     // OrbitControls pone touch-action: none al conectarse, y eso deja la
     // página sin scroll sobre la boca. Con pan-y el navegador se queda los
@@ -679,8 +687,9 @@ export class EscenaBoca {
   /** Reproduce una línea de tiempo (`cicloSonido` o `lineaPalabra`) desde el
    *  principio; al acabar se queda en su última clave. Con reducir movimiento
    *  no se mueve nada: va de golpe a la pose quieta de la línea. */
-  reproducir(linea: Linea): void {
+  reproducir(linea: Linea, opciones: { giro?: number } = {}): void {
     this.desde = this.hacia = null;
+    this.giroLinea = 0;
     if (this.reducirMovimiento || linea.claves.length < 2) {
       this.linea = null;
       this.actual = poseNumerica(linea.quieta);
@@ -693,7 +702,25 @@ export class EscenaBoca {
     });
     this.linea = { claves, total: linea.total };
     this.lineaT0 = performance.now();
+    // El giro de cámara que acompaña al sonido (labios redondeados o
+    // estirados se ven de frente): solo si el usuario no está arrastrando.
+    if (opciones.giro && !this.arrastrando) {
+      const d = this.camara.position.clone().sub(this.controles.target);
+      this.giroBase = { azimut: Math.atan2(d.x, d.z), polar: Math.acos(Math.min(1, Math.max(-1, d.y / d.length()))), distancia: d.length() };
+      this.giroLinea = opciones.giro;
+    }
     this.sucio = true;
+  }
+
+  /** La cámara a un azimut, conservando la altura y la distancia de `giroBase`. */
+  private colocarAzimut(azimut: number): void {
+    const { polar, distancia } = this.giroBase;
+    const o = this.controles.target;
+    this.camara.position.set(
+      o.x + distancia * Math.sin(polar) * Math.sin(azimut),
+      o.y + distancia * Math.cos(polar),
+      o.z + distancia * Math.sin(polar) * Math.cos(azimut));
+    this.camara.lookAt(o);
   }
 
   /** Corta la línea en marcha y se queda donde está. */
@@ -829,6 +856,12 @@ export class EscenaBoca {
       const menton = piezas.get('menton');
       if (menton) this.dentroMandibula.add(new THREE.Mesh(
         menton.geometry.clone().applyMatrix4(menton.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+      // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
+      for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
+        const fuente = piezas.get(nombre);
+        if (fuente) this.escena.add(new THREE.Mesh(
+          fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+      }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
       const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
         ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
@@ -908,7 +941,17 @@ export class EscenaBoca {
       const t = (performance.now() - this.lineaT0) / 1000;
       this.actual = this.poseDeLinea(t);
       this.aplicar(this.actual);
-      if (t >= this.linea.total) this.linea = null;
+      if (this.giroLinea) {
+        // Sube y baja con una campana suave: en mitad del ciclo está girada del todo.
+        const f = Math.min(1, Math.max(0, t / this.linea.total));
+        const peso = Math.pow(Math.sin(Math.PI * f), 2);
+        this.colocarAzimut(this.giroBase.azimut + this.giroLinea * peso);
+      }
+      if (t >= this.linea.total) {
+        if (this.giroLinea) this.colocarAzimut(this.giroBase.azimut);
+        this.linea = null;
+        this.giroLinea = 0;
+      }
       this.sucio = true;
     } else if (this.hacia && this.desde) {
       const t = Math.min(1, (performance.now() - this.t0) / this.duracion);
