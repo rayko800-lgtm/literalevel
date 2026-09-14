@@ -21,6 +21,8 @@ import { miles } from '../nucleo/formato';
 
       @if (error()) { <div class="aviso error"><p>{{ error() }}</p></div> }
 
+      @if (avisoVoz()) { <div class="aviso ambar"><p>{{ avisoVoz() }}</p></div> }
+
       <!-- Las que se te escaparon en Pronunciar: cada una lleva a practicar su frase. -->
       @if (falladas().length) {
         <section class="voz-practicar" data-seccion="voz">
@@ -67,7 +69,7 @@ import { miles } from '../nucleo/formato';
                     <button type="button" class="tarjeta carta" [class.vuelta]="vistas().has(a.lema)" (click)="voltear(a.lema)"
                             [attr.aria-expanded]="vistas().has(a.lema)">
                       <strong lang="en">{{ a.palabra }}</strong>
-                      <span class="frase en-libro" lang="en">{{ a.oracion }}</span>
+                      <span class="frase en-libro" lang="en">{{ a.cita || a.oracion }}</span>
                       @if (vistas().has(a.lema)) {
                         <span class="sentido" lang="en">{{ a.sentido || 'Sin acepción guardada' }}</span>
                       } @else {
@@ -89,7 +91,7 @@ import { miles } from '../nucleo/formato';
                     @if (a.rareza) { <span class="chip">{{ a.rareza }}</span> }
                     @if (a.libro) { <span class="tenue pequeno">{{ a.libro }}@if (a.capitulo) {, cap. {{ a.capitulo }}}</span> }
                   </div>
-                  <blockquote class="en-libro" lang="en">{{ a.oracion }}</blockquote>
+                  <blockquote class="en-libro" lang="en">{{ a.cita || a.oracion }}</blockquote>
                   @if (a.sentido) { <p class="suave pequeno" lang="en">{{ a.sentido }}</p> }
                 </li>
               }
@@ -138,11 +140,16 @@ export class Palabras implements OnInit {
   protected readonly error = signal('');
   protected readonly vistas = signal(new Set<string>());
   protected readonly falladas = signal<PalabraFallada[]>([]);
+  /** El historial de voz existe pero no se puede leer: se dice, en vez de una lista vacía. */
+  protected readonly avisoVoz = signal<string | null>(null);
   protected readonly miles = miles;
 
   async ngOnInit(): Promise<void> {
     // Aparte: si falla, el cuaderno se enseña igual.
-    this.api.falladas().subscribe({ next: r => this.falladas.set(r.palabras), error: () => {} });
+    this.api.falladas().subscribe({
+      next: r => { this.falladas.set(r.palabras); this.avisoVoz.set(r.aviso ?? null); },
+      error: () => {},
+    });
     try {
       const [c, r] = await Promise.all([firstValueFrom(this.api.cuaderno()), firstValueFrom(this.api.repaso())]);
       this.cuaderno.set(c);

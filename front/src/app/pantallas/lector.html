@@ -285,7 +285,7 @@
         }
 
         @if (w.origen_oracion !== 'sin_contexto') {
-          <blockquote class="contexto en-libro" lang="en">{{ w.oracion }}</blockquote>
+          <blockquote class="contexto en-libro" lang="en">{{ w.cita || w.oracion }}</blockquote>
         }
 
         @if (w.motivo_sin_explicacion && !w.definicion_contextual && !explicando()) {
@@ -302,7 +302,7 @@
         }
 
         <div class="fila acciones-palabra">
-          <a class="boton pequeno secundario" routerLink="/pronunciar" [queryParams]="{ frase: w.oracion }">
+          <a class="boton pequeno secundario" routerLink="/pronunciar" [queryParams]="{ frase: w.cita || w.oracion }">
             <app-icono nombre="micro" />Leer esta frase en voz alta
           </a>
         </div>
