@@ -1127,6 +1127,7 @@ def topes_de_medir_y_de_la_curva():
         cerrados_medir = (cliente.post("/api/perfil/muestra", headers=lector, json={"texto": prosa}).status_code,
                           cliente.post("/api/perfil/libro", headers=lector, json={"libro_id": LIBRE}).status_code,
                           cliente.post(f"/api/libros/{LIBRE}/capitulos/{n}/medir", headers=lector).status_code)
+        aviso_medir = cliente.post(f"/api/libros/{LIBRE}/capitulos/{n}/medir", headers=lector).json()["detail"]
         # La curva: la primera entra, repetirla no gasta, y sin ficha 429.
         api._TRABAJOS.clear()
         del gastos[:]
@@ -1157,6 +1158,11 @@ def topes_de_medir_y_de_la_curva():
     assert primera["trabajo"] and repetida["trabajo"] == primera["trabajo"], (primera, repetida)
     assert gastos_curva == [("curvas", api._CURVAS_HORA)], gastos_curva
     assert sin_ficha.status_code == 429, sin_ficha.status_code
+    # El aviso no promete que medir siga gratis (f4, reinicio 11): dice qué se acabó.
+    assert aviso_medir == ("Has llegado al límite de medidas de nivel y de capítulos de esta hora. "
+                           "Vuelve a intentarlo en 1 minuto. Leer y buscar siguen funcionando."), aviso_medir
+    assert sin_ficha.json()["detail"] == ("Has llegado al límite de curvas de libros de esta hora. "
+                                          "Vuelve a intentarlo en 1 minuto. Leer y buscar siguen funcionando."), sin_ficha.json()
     assert llena.status_code == 503 and gastos_llena == [], (llena.status_code, gastos_llena)
     assert f"{api._CURVAS_VIVAS} libros" in llena.json()["detail"], llena.json()
     assert hueco.status_code == 200, hueco.status_code

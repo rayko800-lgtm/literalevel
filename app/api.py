@@ -794,7 +794,20 @@ def _frenar(pet: _Lector, cubo: str, tope: int) -> None:
     Va DESPUÉS de lo que se rechaza sin coste (texto que no es prosa, capítulo
     que no existe), para que un error no gaste ficha."""
     if not ui._dentro_del_limite(pet, cubo, tope):
-        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente(cubo, pet)))
+        raise _no(429, _mensaje_tope_medir(cubo, ui._minutos_para_la_siguiente(cubo, pet)))
+
+
+_QUE_SE_MIDE = {"medidas": "medidas de nivel y de capítulos", "curvas": "curvas de libros"}
+
+
+def _mensaje_tope_medir(cubo: str, minutos: int) -> str:
+    """El aviso de `ui._mensaje_limite` dice que medir un capítulo no cuesta
+    nada y sigue funcionando: con estos topes ya no es verdad (f4 y Central,
+    reinicio 11). Aquí se dice qué se ha acabado y que leer y buscar siguen."""
+    m = max(1, minutos)
+    cuando = "en 1 minuto" if m == 1 else f"en unos {m} minutos"
+    return (f"Has llegado al límite de {_QUE_SE_MIDE.get(cubo, 'mediciones')} de esta hora. "
+            f"Vuelve a intentarlo {cuando}. Leer y buscar siguen funcionando.")
 
 
 @app.post("/api/perfil/muestra")
