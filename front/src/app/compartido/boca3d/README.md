@@ -115,9 +115,10 @@ apagó la guarda.
 
 **Guarda de fluidez** (`EscenaBoca`, opción `guarda`, encendida por defecto):
 los dos primeros segundos pinta todos los cuadros y los cuenta; por debajo de
-30 por segundo apaga las sombras sin recargar y vuelve a medir; si sigue por
-debajo, esconde la piel translúcida del lado de la cámara. `estadoGuarda` da
-los fps medidos y la etapa (0 nada, 1 sombras, 2 sombras y mejilla). El mapa de
+30 por segundo baja las sombras a 512, luego las apaga, y si sigue por
+debajo esconde la piel translúcida del lado de la cámara, todo sin recargar.
+`estadoGuarda` da los fps medidos y la etapa (0 nada, 1 sombras a 512, 2 sombras
+apagadas, 3 sombras y mejilla). El mapa de
 entorno para reflejos (`entorno: true`) queda apagado: en SwiftShader baja a 4 fps.
 
 ## La cabeza de MakeHuman (14 sep 2026)
@@ -182,7 +183,7 @@ si un archivo falta o no contiene las piezas esperadas.
 - Materiales en el visor (`materialDe`): uno físico por tejido, sin texturas
   descargadas: piel y mucosa con velo de subsuperficie (sheen) y barniz húmedo,
   dientes marfil con velo cálido, lengua con papilas de relieve procedimentales
-  (canvas). Luz de tres puntos con sombras de contacto (PCF 512), tono ACES y
+  (canvas). Luz de tres puntos con sombras suaves (PCFSoft 1024, la guarda baja a 512), tono ACES y
   fondo neutro con viñeta en el propio lienzo. `tools/boca3d_demo/capturar.mjs`
   saca las cinco vistas de cada paso a 390 px.
 - Las piezas se cargan en sus grupos: labio inferior y suelo siguen la mandíbula.

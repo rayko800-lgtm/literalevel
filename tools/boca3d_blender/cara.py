@@ -481,7 +481,7 @@ def piel(nombre, perfil, lado, cerrado, anillos=14, encoger=1.0, tapa=False, exc
     return malla(nombre, vertices, orientar(vertices, caras, fuera), PIEL)
 
 
-def placa(nombre, poligono, z, mat, escala=1.0):
+def placa(nombre, poligono, z, mat, escala=1.0, centro=None, ngon=False):
     """Una cara plana en el corte (z), mirando a la camara (+z). Los puntos
     repetidos y los triangulos sin area (perfiles muestreados) se descartan."""
     limpio = []
@@ -490,7 +490,10 @@ def placa(nombre, poligono, z, mat, escala=1.0):
             limpio.append((x, y))
     if len(limpio) > 2 and math.hypot(limpio[0][0] - limpio[-1][0], limpio[0][1] - limpio[-1][1]) <= 1e-4:
         limpio.pop()
-    puntos = [(C_CABEZA[0] + (x - C_CABEZA[0]) * escala, C_CABEZA[1] + (y - C_CABEZA[1]) * escala, z) for x, y in limpio]
+    cx, cy = centro if centro else C_CABEZA
+    puntos = [(cx + (x - cx) * escala, cy + (y - cy) * escala, z) for x, y in limpio]
+    if ngon:
+        return malla(nombre, puntos, [tuple(range(len(puntos)))], mat)
     triangulos = mathutils.geometry.tessellate_polygon([[(x, y, 0.0) for x, y, _ in puntos]])
     def area(tri):
         (ax, ay, _), (bx, by, _), (cx, cy, _) = (puntos[i] for i in tri)
@@ -675,6 +678,88 @@ def labios_en_piel(ob):
                                           0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0))
 
 
+def pared_por_corte(ob, nombre, z):
+    """La pared del fondo a la profundidad z del visor: la seccion EXACTA de
+    la piel en ese plano, rellena con bmesh (triangle_fill sobre las aristas
+    del corte). Un contorno muestreado y teselado dejaba huecos."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    # Lateral del visor z = -y de Blender: el plano y = -z.
+    # Se quita el lado de la camara: las aristas del corte quedan como borde
+    # (con las dos mitades, triangle_fill no rellenaba nada).
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0.0, -z, 0.0),
+                           plane_no=(0.0, 1.0, 0.0), clear_outer=False, clear_inner=True)
+    aristas = [e for e in bm.edges if e.is_boundary and all(abs(v.co.y + z) < 1e-4 for v in e.verts)]
+    relleno = bmesh.ops.triangle_fill(bm, use_beauty=True, use_dissolve=False, edges=aristas)
+    nuevas = {g for g in relleno["geom"] if isinstance(g, bmesh.types.BMFace)}
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f not in nuevas], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    datos = bpy.data.meshes.new(nombre)
+    bm.to_mesh(datos)
+    bm.free()
+    datos.update()
+    pieza = bpy.data.objects.new(nombre, datos)
+    bpy.context.collection.objects.link(pieza)
+    datos.materials.append(PARED)
+    return pieza
+
+
+def centroide(poligono):
+    return (sum(x for x, _ in poligono) / len(poligono), sum(y for _, y in poligono) / len(poligono))
+
+
+def contorno_a_profundidad(ob, z):
+    """El contorno de la piel en el plano lateral z del visor (Blender
+    y = -z): se corta una copia con bisect y se ordenan los vertices del
+    plano en dos ramas (cara y nuca) por altura, como el perfil sagital."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, -z, 0), plane_no=(0, 1, 0),
+                           clear_outer=False, clear_inner=False)
+    puntos = [(v.co.x, v.co.z) for v in bm.verts if abs(v.co.y + z) < 1e-3]
+    bm.free()
+    if len(puntos) < 8:
+        return None
+    ys = [y for _, y in puntos]
+    y0, y1 = min(ys) + 0.05, max(ys) - 0.05
+    def rama(elegir, de_cara):
+        # Solo los puntos de esa rama (cara: x < 1,5; nuca: el resto): la nuca
+        # de MakeHuman es de malla gruesa y en las alturas sin puntos de nuca el
+        # maximo era un punto de la cuenca del ojo, y la pared salia rota.
+        por_y = {}
+        for x, y in puntos:
+            if (x < 1.5) != de_cara:
+                continue
+            k = round(y, 1)
+            por_y[k] = elegir(por_y.get(k, x), x)
+        return sorted(por_y.items())
+    cara_, nuca_ = rama(min, True), rama(max, False)
+    if not cara_ or not nuca_:
+        return None
+    def en(ramita, y):
+        if y <= ramita[0][0]:
+            return ramita[0][1]
+        for (ya, xa), (yb, xb) in zip(ramita, ramita[1:]):
+            if y <= yb:
+                return xa + (xb - xa) * (y - ya) / (yb - ya) if yb > ya else xb
+        return ramita[-1][1]
+    pasos = 40
+    alturas = [y0 + (y1 - y0) * k / pasos for k in range(pasos + 1)]
+    def suavizada(ramita):
+        xs = [en(ramita, y) for y in alturas]
+        # Media movil de cinco: la cuenca del ojo y las mallas gruesas dejaban
+        # dientes de sierra en el contorno, que se veian por la cavidad nasal.
+        return [sum(xs[max(0, k - 2):k + 3]) / len(xs[max(0, k - 2):k + 3]) for k in range(len(xs))]
+    cara_x, nuca_x = suavizada(cara_), suavizada(nuca_)
+    # Las dos ramas no se cruzan (en la cuenca del ojo o en los extremos
+    # podian hacerlo y el poligono se autocortaba: la teselacion dejaba
+    # huecos que se veian por la cavidad nasal como cuñas oscuras).
+    nuca_x = [max(n, c + 0.15) for c, n in zip(cara_x, nuca_x)]
+    return [(x, y) for x, y in zip(cara_x, alturas)] + [(x, y) for x, y in reversed(list(zip(nuca_x, alturas)))]
+
+
 def cabeza_makehuman():
     vertices, caras, ojos = leer_obj_mh()
     caras = sin_boca_interior(vertices, caras)
@@ -753,14 +838,17 @@ def cabeza_makehuman():
     placa("corte_nariz", nariz_corte, -0.01, CORTE)
     placa("corte_maxilar", maxilar, -0.01, CORTE)
     placa("corte_mandibula", mandibula, -0.01, CORTE)
-    # La pared del fondo de las cavidades: el perfil entero, encogido.
-    perfil = frente + [(x, y) for x, y in reversed(nuca)]
-    placa("pared_lejana", perfil, -1.3, PARED, escala=0.96)
-    # Dos paredes mas al fondo: de tres cuartos, a traves de la mitad
-    # translucida, se veia el reves oscuro de la piel lejana y la cabeza
-    # parecia hueca; con carne a varias profundidades se lee maciza.
-    placa("pared_lejana_2", perfil, -2.1, PARED, escala=0.86)
-    placa("pared_lejana_3", perfil, -2.8, PARED, escala=0.66)
+    # Las paredes del fondo de las cavidades, a tres profundidades (de tres
+    # cuartos, a traves de la mitad translucida, se veia el reves oscuro de
+    # la piel y la cabeza parecia hueca). Cada una con el contorno REAL de la
+    # piel a esa profundidad, encogido un poco: con el perfil sagital encogido
+    # asomaban por la sien y el angulo de la mandibula como dientes de sierra.
+    for nombre, z in (("pared_lejana", -1.3), ("pared_lejana_2", -2.1), ("pared_lejana_3", -2.8)):
+        contorno = contorno_a_profundidad(ob, z)
+        if contorno:
+            # Un solo poligono (n-gon): la teselacion de Blender al exportar
+            # aguanta los contornos concavos; tessellate_polygon dejaba huecos.
+            placa(nombre, contorno, z, PARED, escala=0.97, centro=centroide(contorno), ngon=True)
     # El ojo del lado lejano: globo blanco e iris oscuro; el hueco de la cuenca
     # de MakeHuman queda cubierto.
     x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]

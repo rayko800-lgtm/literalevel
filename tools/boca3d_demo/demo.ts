@@ -119,7 +119,7 @@ function arrancar(): void {
         const fps = cuadros / ((performance.now() - t0) / 1000);
         const g = escena.estadoGuarda;
         const guarda = g.fps === null ? 'guarda sin medir' : `guarda: ${g.fps.toFixed(1)} fps al arrancar, `
-          + ['todo encendido', 'sombras apagadas', 'sombras y mejilla apagadas'][g.etapa];
+          + ['todo encendido', 'sombras a 512', 'sombras apagadas', 'sombras y mejilla apagadas'][g.etapa];
         leyenda.textContent = `${fps.toFixed(1)} cuadros por segundo (${cuadros} en ${segundos} s) · ${guarda}`;
         resolve(fps);
       }

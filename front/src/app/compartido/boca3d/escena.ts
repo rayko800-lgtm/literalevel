@@ -713,7 +713,7 @@ export class EscenaBoca {
     this.guarda.midiendo = opciones.guarda !== false;
     if (this.sombras) {
       this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFShadowMap;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     }
     this.canvas = this.renderer.domElement;
     this.canvas.style.display = 'block';
@@ -755,13 +755,17 @@ export class EscenaBoca {
     this.luzPrincipal = luz;
     luz.position.set(-4.5, 7, 7.5);
     if (this.sombras) {
+      // Sombras suaves de 1024 (la guarda baja a 512 si hace falta), con
+      // sesgo por normal alto: en la piel curva de la cabeza el mapa de 512
+      // con sesgo bajo dejaba dientes de sierra en la mandíbula y franjas en
+      // la mejilla. El encuadre cubre la cabeza entera (x −3,6..5,5, y −2,6..4).
       luz.castShadow = true;
-      luz.shadow.mapSize.set(512, 512);
-      luz.shadow.radius = 4;
-      luz.shadow.bias = -0.0008;
-      luz.shadow.normalBias = 0.02;
+      luz.shadow.mapSize.set(1024, 1024);
+      luz.shadow.radius = 6;
+      luz.shadow.bias = -0.0004;
+      luz.shadow.normalBias = 0.06;
       const s = luz.shadow.camera;
-      s.left = -5; s.right = 5; s.top = 5; s.bottom = -5; s.near = 1; s.far = 30;
+      s.left = -7; s.right = 7; s.top = 7; s.bottom = -7; s.near = 1; s.far = 30;
     }
     this.escena.add(luz);
     const relleno = new THREE.DirectionalLight(0xdfe8ff, 0.55);
@@ -1147,7 +1151,7 @@ export class EscenaBoca {
         // Marfil mate liso (Central, 14 sep): con textura el corte se mezclaba
         // con la cavidad de lado.
         const mat = tejido === 'corte' ? materialDe('hueso', '#f6ece3', { roughness: 0.92, sheen: 0 })
-          : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0 })
+          : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0, side: THREE.DoubleSide })
           : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : materialDe('piel', col.piel, nombre === 'cabeza_lejana' && labiosEnPiel ? { side: THREE.DoubleSide } : {});
@@ -1158,7 +1162,10 @@ export class EscenaBoca {
         if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
         // El revés de la piel lejana (a dos caras) no recibe sombras: a la
         // sombra de sí misma se veía negro por dentro desde tres cuartos.
-        if (nombre === 'cabeza_lejana' && labiosEnPiel) pieza.userData['sinSombraRecibida'] = true;
+        if ((nombre === 'cabeza_lejana' && labiosEnPiel) || tejido === 'pared') pieza.userData['sinSombraRecibida'] = true;
+        // Las paredes del fondo tampoco: las caras del corte les echaban
+        // encima su sombra y la cavidad salia oscura y con motas (Central:
+        // «pared del fondo clara y lisa»).
         if (nombre === 'cabeza_lejana') this.conMorfosDeLabios(pieza, fuente);
       }
       const cercana = piezas.get('cabeza_cercana');
@@ -1296,8 +1303,8 @@ export class EscenaBoca {
 
   /** Guarda automática de fluidez (criterio de Central, 14 sep): los dos
    *  primeros segundos se pintan todos los cuadros y se cuentan; por debajo
-   *  de 30 por segundo se apagan las sombras sin recargar y se mide otra
-   *  vez; si sigue por debajo, se esconde la mejilla translúcida. */
+   *  de 30 por segundo se bajan las sombras a 512, luego se apagan, y si
+   *  sigue por debajo, se esconde la mejilla translúcida; todo sin recargar. */
   private medirGuarda(): void {
     const g = this.guarda;
     if (!g.midiendo) return;
@@ -1309,15 +1316,26 @@ export class EscenaBoca {
     if (s < 2) return;
     g.fps = g.cuadros / s;
     g.t0 = 0;
-    if (g.fps >= 30 || g.etapa >= 2) { g.midiendo = false; return; }
+    if (g.fps >= 30 || g.etapa >= 3) { g.midiendo = false; return; }
     g.etapa++;
     if (g.etapa === 1) {
+      this.bajarSombras();
+    } else if (g.etapa === 2) {
       this.apagarSombras();
     } else {
       this.mejilla.visible = false;
       g.midiendo = false;
     }
     this.sucio = true;
+  }
+
+  /** El mapa de sombras a 512: se descarta el de 1024 y se vuelve a crear. */
+  private bajarSombras(): void {
+    if (!this.renderer.shadowMap.enabled) return;
+    const sombra = this.luzPrincipal.shadow;
+    sombra.mapSize.set(512, 512);
+    sombra.map?.dispose();
+    sombra.map = null;
   }
 
   private apagarSombras(): void {
@@ -1330,7 +1348,8 @@ export class EscenaBoca {
   }
 
   /** Estado de la guarda de fluidez: los cuadros por segundo medidos y qué
-   *  se ha apagado (0 nada, 1 sombras, 2 sombras y mejilla). */
+   *  se ha rebajado (0 nada, 1 sombras a 512, 2 sombras apagadas, 3 sombras
+   *  y mejilla apagadas). */
   get estadoGuarda(): { fps: number | null; etapa: number; midiendo: boolean } {
     return { fps: this.guarda.fps, etapa: this.guarda.etapa, midiendo: this.guarda.midiendo };
   }
