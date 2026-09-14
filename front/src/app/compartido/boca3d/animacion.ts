@@ -18,6 +18,9 @@ export interface Linea {
   claves: Clave[];
   /** La pose que se enseña quieta cuando no hay que mover nada. */
   quieta: PoseSonido;
+  /** Segundo de la línea en que empieza a sonar el sonido (o la palabra):
+   *  el audio se arranca para que su primera energía caiga ahí. */
+  sonidoEn: number;
 }
 
 /** El factor de «despacio» de las palabras del 2D. */
@@ -72,7 +75,30 @@ export function cicloSonido(pose: PoseSonido, catalogo: CatalogoPoses): Linea {
     claves = [{ t: 0, pose: R }, { t: t[0], pose: R }, { t: t[1], pose: PA }, { t: t[2], pose: PA },
       { t: t[3], pose: R }, { t: 2.8, pose: R }];
   }
-  return { total: 2.8, claves, quieta: PA };
+  // El sonido suena cuando la boca llega a la pose (la tercera clave en
+  // todos los casos), no cuando arranca el movimiento.
+  return { total: 2.8, claves, quieta: PA, sonidoEn: claves[2].t };
+}
+
+/** Cuánto duran los sonidos de una palabra (sin reposos), a `lento` = 1. */
+function duracionSegmentos(segmentos: Segmento[], catalogo: CatalogoPoses): number {
+  return segmentos.reduce((suma, s) => {
+    let d = (catalogo.duracion_s[s.pose.movimiento] ?? DURACION_S[s.pose.movimiento]) * (s.pose.larga ? 1.25 : 1);
+    d *= s.acento_silaba === 1 ? 1.4 : s.acento_silaba === 2 ? 1.15 : 1;
+    return suma + d;
+  }, 0);
+}
+
+/** El factor de `lineaPalabra` que hace que la palabra dure lo que dura su
+ *  audio: la parte hablada del audio (sin el silencio inicial que trae el
+ *  TTS y un poco de cola) repartida entre los sonidos. Acotado para que un
+ *  audio raro no deje la boca parada ni frenética. */
+export function lentoParaAudio(segmentos: Segmento[], catalogo: CatalogoPoses, duracionAudioS: number,
+                               silencioInicialS = 0.12, silencioFinalS = 0.15): number {
+  const base = duracionSegmentos(segmentos, catalogo);
+  if (!(base > 0) || !(duracionAudioS > 0)) return LENTO;
+  const hablado = Math.max(0.2, duracionAudioS - silencioInicialS - silencioFinalS);
+  return Math.min(3, Math.max(0.35, hablado / base));
 }
 
 /** La palabra entera: cada sonido con su duración (`DURACION_S`, larga ×1,25,
@@ -92,11 +118,7 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
     }
     return R;
   };
-  const durs = segmentos.map(s => {
-    let d = (catalogo.duracion_s[s.pose.movimiento] ?? DURACION_S[s.pose.movimiento]) * (s.pose.larga ? 1.25 : 1);
-    d *= s.acento_silaba === 1 ? 1.4 : s.acento_silaba === 2 ? 1.15 : 1;
-    return d * lento;
-  });
+  const durs = segmentos.map(s => duracionSegmentos([s], catalogo) * lento);
   const inicio = 0.45;
   const total = inicio + durs.reduce((a, b) => a + b, 0) + 1.0;
   const claves: Clave[] = [{ t: 0, pose: R }, { t: inicio - 0.05, pose: R }];
@@ -120,5 +142,5 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
   // La pose quieta: la vocal acentuada, o la primera vocal, o el primer sonido.
   const fija = vocales.find(i => segmentos[i].acento_silaba === 1) ?? vocales[0] ?? 0;
   const quieta = segmentos.length ? objetivos(segmentos[fija].pose, vecino(fija), R)[0] : R;
-  return { total, claves, quieta };
+  return { total, claves, quieta, sonidoEn: inicio };
 }

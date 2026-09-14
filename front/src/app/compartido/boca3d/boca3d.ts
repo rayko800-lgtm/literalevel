@@ -2,10 +2,11 @@ import {
   ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal,
   viewChild,
 } from '@angular/core';
-import { Acento, urlCorteSonido } from '../../nucleo/api';
+import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
-import { cicloSonido, giroPara, lineaPalabra } from './animacion';
+import { Linea, cicloSonido, giroPara, lentoParaAudio, lineaPalabra } from './animacion';
+import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
 import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
 
@@ -44,10 +45,16 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
       <div class="pie">
         <span class="botones">
           @if (pose() && elegido()) {
-            <button type="button" class="boton" (click)="verMovimiento()" title="Reproducir el sonido" aria-label="Reproducir el sonido"><app-icono nombre="play" /></button>
+            @if (urlAudioSonido()) {
+              <button type="button" class="boton principal" (click)="escucharYVer()"><app-icono nombre="altavoz" />Escuchar y ver</button>
+            } @else {
+              <button type="button" class="boton" (click)="verMovimiento()" title="Reproducir el sonido" aria-label="Reproducir el sonido"><app-icono nombre="play" /></button>
+            }
           }
           @if (segmentos().length) {
-            <button type="button" class="boton" (click)="verPalabra()"><app-icono nombre="play" />Palabra <span class="ipa">/{{ textoIpa() }}/</span></button>
+            <button type="button" class="boton" [class.principal]="!!urlAudioPalabra()" (click)="verPalabra()">
+              <app-icono [nombre]="urlAudioPalabra() ? 'altavoz' : 'play'" />{{ urlAudioPalabra() ? 'Escuchar y ver' : 'Palabra' }}
+              <span class="ipa">/{{ textoIpa() }}/</span></button>
           }
           <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
                   (click)="alternarGiro()" title="Giro libre" aria-label="Giro libre"><app-icono nombre="ajustes" /></button>
@@ -81,6 +88,7 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
       background: transparent; color: inherit; cursor: pointer; min-height: 48px; min-width: 48px; }
     .boton.activo { background: var(--acento-suave, #e6ecff); border-color: var(--acento, #2f5bea);
       color: var(--acento-texto, #2449c9); }
+    .boton.principal { background: var(--acento, #2f5bea); border-color: var(--acento, #2f5bea); color: #fff; padding: 8px 14px; }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
   `,
 })
@@ -102,6 +110,13 @@ export class Boca3d {
   /** Una transcripción IPA: «Ver la palabra» la reproduce entera. */
   readonly ipa = input<string>('');
   readonly acentoIpa = input<Acento | null>(null);
+  /** El mp3 del sonido, tal como lo da `/api/fonemas` en `audio` (relativo o
+   *  absoluto): aparece «Escuchar y ver», que arranca audio y ciclo a la vez. */
+  readonly audioSonido = input<string | null>(null);
+  /** El mp3 de la palabra (`audio` del detalle de `/api/voz`, o `audio_us` /
+   *  `audio_uk` de `/api/palabra`): «Escuchar y ver /ipa/» reproduce la palabra
+   *  con la boca ajustada a la duración real del audio. */
+  readonly audioPalabra = input<string | null>(null);
   /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
   readonly autoReproducir = input<boolean>(true);
   /** La mejilla translúcida del lado de la cámara. Es lo que más cuesta
@@ -119,6 +134,8 @@ export class Boca3d {
   private readonly troceada = computed(() => trocearIpa(this.ipa(), this.catalogo(), this.acentoIpa() ?? this.acento()));
   readonly segmentos = computed(() => this.troceada().segmentos);
   readonly textoIpa = computed(() => this.troceada().texto);
+  readonly urlAudioSonido = computed(() => urlMotor(this.audioSonido()));
+  readonly urlAudioPalabra = computed(() => urlMotor(this.audioPalabra()));
   readonly urlRespaldo = computed(() => {
     const dada = this.svg2dUrl();
     if (dada !== null) return dada || null;
@@ -137,6 +154,10 @@ export class Boca3d {
 
   private readonly lienzo = viewChild.required<ElementRef<HTMLDivElement>>('lienzo');
   private escena: EscenaBoca | null = null;
+  private readonly sonador = new Sonador();
+  /** Número de la última petición de audio: si llega otra antes de que la
+   *  primera decodifique, la primera no arranca nada. */
+  private peticion = 0;
 
   constructor() {
     const destruir = inject(DestroyRef);
@@ -171,7 +192,7 @@ export class Boca3d {
       if (this.autoReproducir() && this.elegido()) escena.reproducir(cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6));
     });
-    destruir.onDestroy(() => this.escena?.destruir());
+    destruir.onDestroy(() => { this.sonador.destruir(); this.escena?.destruir(); });
   }
 
   /** Reposo → sonido → reposo, una vez. */
@@ -180,13 +201,47 @@ export class Boca3d {
     if (p && this.escena) this.escena.reproducir(cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
   }
 
-  /** La palabra de `ipa` entera, con las duraciones del catálogo. */
+  /** El sonido: su audio y su ciclo arrancan en el mismo instante, con el
+   *  audio desplazado para que suene cuando la boca llega a la pose. Si el
+   *  audio no se puede preparar, el ciclo va solo. */
+  escucharYVer(): void {
+    const p = this.pose();
+    if (!p || !this.escena) return;
+    const url = this.urlAudioSonido();
+    if (!url) { this.verMovimiento(); return; }
+    void this.conAudio(url, () => cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
+  }
+
+  /** La palabra de `ipa` entera: con audio, la línea se escala a la duración
+   *  real del audio (menos su silencio inicial) para que las bocas caigan en
+   *  sus sílabas; sin audio, con las duraciones del catálogo. */
   verPalabra(): void {
     const segs = this.segmentos();
-    if (segs.length && this.escena) this.escena.reproducir(lineaPalabra(segs, this.catalogo()));
+    if (!segs.length || !this.escena) return;
+    const url = this.urlAudioPalabra();
+    if (!url) { this.escena.reproducir(lineaPalabra(segs, this.catalogo())); return; }
+    void this.conAudio(url, listo => lineaPalabra(segs, this.catalogo(),
+      listo.duracion > 0 ? lentoParaAudio(segs, this.catalogo(), listo.duracion, listo.silencio) : undefined));
+  }
+
+  private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number }) => Linea,
+                         opciones: { giro?: number } = {}): Promise<void> {
+    this.sonador.despertar();                    // dentro del clic, por iOS
+    this.sonador.parar();
+    const numero = ++this.peticion;
+    const listo = await this.sonador.preparar(url);
+    if (numero !== this.peticion || !this.escena) return;
+    if (!listo) {
+      this.escena.reproducir(linea({ duracion: 0, silencio: 0 }), opciones);
+      return;
+    }
+    const l = linea(listo);
+    this.escena.reproducir(l, opciones);
+    listo.tocar(l.sonidoEn - listo.silencio);
   }
 
   elegir(simbolo: string): void {
+    this.sonador.parar();
     this.elegidoPorChip.set(simbolo);
   }
 

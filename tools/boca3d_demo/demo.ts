@@ -6,9 +6,11 @@
  *  Parámetros de la URL: ?s=ɑ (sonido), ?ciclo=0 (sin ciclo al elegir: la
  *  pose quieta, para capturas), ?palabra=ˈpɑvɚti (la reproduce),
  *  ?giro=-1.0&polar=1.2 (vista girada: negativo mira hacia la cara),
- *  ?mejilla=0 (sin mejilla), ?sombras=0 (sin sombras), ?entorno=1 (reflejos), ?guarda=0 (sin guarda de fluidez), ?fps=1 (mide cuadros por segundo reproduciendo
+ *  ?audio=palabra.mp3 (con «Ver la palabra», suena y la línea se escala a su
+ *  duración: la leyenda dice duración, silencio inicial y factor), ?mejilla=0 (sin mejilla), ?sombras=0 (sin sombras), ?entorno=1 (reflejos), ?guarda=0 (sin guarda de fluidez), ?fps=1 (mide cuadros por segundo reproduciendo
  *  una palabra en bucle y lo escribe en la leyenda). */
-import { cicloSonido, giroPara, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
+import { cicloSonido, giroPara, lentoParaAudio, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
+import { Sonador } from '../../front/src/app/compartido/boca3d/audio';
 import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
 import { CatalogoPoses, PoseSonido, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
 import catalogoJson from '../../front/src/app/compartido/boca3d/poses.ejemplo.json';
@@ -17,7 +19,7 @@ const CATALOGO = catalogoJson as unknown as CatalogoPoses;
 const PALABRA_FPS = 'ˌɪntəˈnæʃənəl ˈpɑvɚti';
 
 declare global {
-  interface Window { escenaBoca: EscenaBoca; medirFps: (segundos?: number) => Promise<number>; }
+  interface Window { escenaBoca: EscenaBoca; medirFps: (segundos?: number) => Promise<number>; palabraConAudio: (ipa: string) => Promise<void>; }
 }
 
 function arrancar(): void {
@@ -73,15 +75,31 @@ function arrancar(): void {
     b.addEventListener('click', () => ir(s));
     chips.appendChild(b);
   }
-  const palabra = (ipa: string) => {
+  const palabra = (ipa: string, lento?: number) => {
     const { texto, segmentos } = trocearIpa(ipa, CATALOGO);
     if (!segmentos.length) { leyenda.textContent = `No reconozco ningún sonido en «${ipa}»`; return null; }
-    const linea = lineaPalabra(segmentos, CATALOGO);
+    const linea = lineaPalabra(segmentos, CATALOGO, lento);
     escena.reproducir(linea);
     leyenda.textContent = `/${texto}/ · ${segmentos.map(s => s.simbolo).join(' ')} · ${linea.total.toFixed(1)} s`;
     return linea;
   };
-  raiz.querySelector('.palabra')!.addEventListener('submit', e => { e.preventDefault(); palabra(entradaIpa.value); });
+  // Con ?audio=..., la palabra suena y su línea se ajusta a la duración del audio (como en la app).
+  const sonador = new Sonador();
+  const audioUrl = params.get('audio');
+  const palabraConAudio = async (ipa: string) => {
+    if (!audioUrl) { palabra(ipa); return; }
+    sonador.despertar();
+    const listo = await sonador.preparar(audioUrl);
+    if (!listo) { palabra(ipa); leyenda.textContent += ' · sin audio'; return; }
+    const { segmentos } = trocearIpa(ipa, CATALOGO);
+    const lento = lentoParaAudio(segmentos, CATALOGO, listo.duracion, listo.silencio);
+    const linea = palabra(ipa, lento);
+    if (!linea) return;
+    listo.tocar(linea.sonidoEn - listo.silencio);
+    leyenda.textContent += ` · audio ${listo.duracion.toFixed(2)} s, silencio ${listo.silencio.toFixed(2)} s, lento ${lento.toFixed(2)}`;
+  };
+  window.palabraConAudio = palabraConAudio;
+  raiz.querySelector('.palabra')!.addEventListener('submit', e => { e.preventDefault(); void palabraConAudio(entradaIpa.value); });
   raiz.querySelector('.reset')!.addEventListener('click', () => escena.restablecerVista());
   const libre = raiz.querySelector('.libre') as HTMLInputElement;
   libre.addEventListener('change', () => escena.girarLibre(libre.checked));

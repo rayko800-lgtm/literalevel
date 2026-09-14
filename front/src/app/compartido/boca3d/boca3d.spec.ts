@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { cicloSonido, giroPara, lineaPalabra } from './animacion';
+import { cicloSonido, giroPara, lentoParaAudio, lineaPalabra } from './animacion';
+import { silencioInicial } from './audio';
 import { Boca3d } from './boca3d';
 import { poseNumerica } from './escena';
 import { POSES_PROTOTIPO, REPOSO, poseDe, resolver, trocearIpa, CATALOGO_PROTOTIPO } from './poses';
@@ -131,6 +132,37 @@ describe('líneas de tiempo', () => {
     const s = l.claves.find(c => c.pose.punta === 'alveolar')!;
     expect(s.pose.cuerpo).toEqual([0.62, 0.65]);       // la /s/ tiene cuerpo propio
     for (let i = 1; i < l.claves.length; i++) expect(l.claves[i].t).toBeGreaterThanOrEqual(l.claves[i - 1].t);
+    expect(l.sonidoEn).toBeCloseTo(0.45, 6);            // la palabra suena al acabar el reposo inicial
+  });
+
+  it('el sonido de un ciclo suena cuando la boca llega a la pose, no al arrancar', () => {
+    const l = cicloSonido(POSES_PROTOTIPO['p'], CATALOGO_PROTOTIPO);
+    expect(l.sonidoEn).toBeCloseTo(0.95, 6);
+    expect(l.claves.findIndex(c => c.pose.labios === 'cerrados')).toBe(2);
+    expect(cicloSonido(POSES_PROTOTIPO['i'], CATALOGO_PROTOTIPO).sonidoEn).toBeCloseTo(0.95, 6);
+  });
+
+  it('con audio, la palabra dura lo que dura la parte hablada del audio', () => {
+    const { segmentos } = trocearIpa('ˈsi', CATALOGO_PROTOTIPO);
+    const base = 0.22 * 1.4 + 0.34 * 1.25 * 1.4;          // sin ×1,6
+    // Un audio de 1,2 s con 0,1 s de silencio inicial: hablado 0,95 s.
+    const lento = lentoParaAudio(segmentos, CATALOGO_PROTOTIPO, 1.2, 0.1);
+    expect(lento).toBeCloseTo(0.95 / base, 6);
+    const l = lineaPalabra(segmentos, CATALOGO_PROTOTIPO, lento);
+    expect(l.total).toBeCloseTo(0.45 + 0.95 + 1.0, 6);
+    // Acotado: un audio absurdo no deja la boca parada ni frenética.
+    expect(lentoParaAudio(segmentos, CATALOGO_PROTOTIPO, 30)).toBe(3);
+    expect(lentoParaAudio(segmentos, CATALOGO_PROTOTIPO, 0.05)).toBe(0.35);
+    expect(lentoParaAudio(segmentos, CATALOGO_PROTOTIPO, 0)).toBe(1.6);
+  });
+
+  it('mide el silencio inicial del audio y lo acota a medio segundo', () => {
+    const f = 1000;
+    const canal = new Float32Array(f);                    // 1 s
+    for (let i = 250; i < f; i++) canal[i] = 0.3;         // suena a partir de 0,25 s
+    expect(silencioInicial([canal], f)).toBeCloseTo(0.25, 6);
+    expect(silencioInicial([new Float32Array(f)], f)).toBeCloseTo(0.12, 6);   // todo silencio: el fijo
+    expect(silencioInicial([], f)).toBe(0);
   });
 });
 

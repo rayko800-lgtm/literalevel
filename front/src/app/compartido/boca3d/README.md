@@ -15,6 +15,7 @@ y Three.js se descargan con `@defer`, solo al abrirlo.
 | `animacion.ts` | Las líneas de tiempo: ciclo de un sonido y palabra entera, con los tiempos del 2D. |
 | `poses.ts` | El contrato de poses (`PoseSonido`, `CatalogoPoses`), las cinco embebidas del prototipo, `poseDe`, `resolver` y `trocearIpa`. |
 | `poses.ejemplo.json` | Snapshot completo de 46 sonidos + 6 de RP de `PARAMETROS`, incluido en el chunk diferido. |
+| `audio.ts` | `Sonador`: descarga y decodifica el mp3 (Web Audio), mide su silencio inicial y lo arranca a la vez que la línea; sin Web Audio, un `<audio>` con desfase fijo. |
 | `boca3d.spec.ts` | Pruebas de poses, líneas de tiempo y del respaldo 2D en jsdom. |
 
 Fuera de la carpeta: `tools/exportar_poses_boca3d.py` genera el JSON;
@@ -43,14 +44,18 @@ el símbolo tal como lo da la API en su inventario (`/api/fonemas`, RP incluido:
 | `ipa` | `string` | `''` | Transcripción de una palabra: aparece «Ver la palabra». |
 | `catalogo` | `CatalogoPoses` | snapshot completo | Poses generadas del motor; no requiere red adicional. |
 | `acentoIpa` | `Acento \| null` | `null` | Acento de la palabra; null usa el del fonema. Conserva RP aunque un fonema tenga respaldo GA. |
+| `audioSonido` | `string \| null` | `null` | El mp3 del sonido (`audio` de `/api/fonemas`, relativo o absoluto: se resuelve con `urlMotor`). Con él, el botón es **«Escuchar y ver»**: audio y ciclo arrancan a la vez y el audio se desplaza para sonar cuando la boca llega a la pose. |
+| `audioPalabra` | `string \| null` | `null` | El mp3 de la palabra (`audio` del detalle de `/api/voz`, o `audio_us`/`audio_uk` de `/api/palabra`). «Escuchar y ver /ipa/» escala la línea a la duración real del audio (menos su silencio inicial, medido con Web Audio o 120 ms fijos) para que las bocas caigan en sus sílabas. Si el audio falla, la palabra va sola. |
 | `svg2dUrl` | `string \| null` | `null` | Respaldo sin WebGL. `null` = el SVG de la API del sonido (quieto con reduced-motion); `''` lo apaga. |
 | `leyenda` | `boolean` | `true` | La frase de la pose bajo el visor. |
 | `conSelector` | `boolean` | `false` | Chips para elegir sonido (demo y prototipo). |
 | `autoReproducir` | `boolean` | `true` | Al cambiar `sonido`, reproduce reposo → sonido → reposo. |
 | `mejilla` | `boolean` | `true` | La mejilla translúcida. Es lo que más cuesta sin GPU. |
 
-Métodos públicos: `verMovimiento()`, `verPalabra()`, `restablecer()`,
-`alternarGiro()`. Sin WebGL pinta el respaldo 2D; con `prefers-reduced-motion`
+Métodos públicos: `verMovimiento()`, `escucharYVer()` (el sonido con su audio),
+`verPalabra()` (con audio si hay `audioPalabra`), `restablecer()`, `alternarGiro()`.
+Desde fuera (un botón propio de la pantalla) se llaman con `viewChild` dentro
+del mismo clic: el contexto de audio se crea en ese gesto, que es lo que exige iOS. Sin WebGL pinta el respaldo 2D; con `prefers-reduced-motion`
 no interpola: salta a la pose (en la palabra, a la vocal acentuada).
 
 ### Integracion
