@@ -685,7 +685,15 @@ def _pedir_explicacion_openai(
         "la oracion y alguna de las OTRAS ACEPCIONES DEL DICCIONARIO de la lista si, "
         "usa esa como base y copia su texto EXACTO en 'acepcion_usada'. Si la dada "
         "encaja, deja 'acepcion_usada' vacio. Nunca escribas en 'acepcion_usada' algo "
-        "que no este en la lista.\n\n") if otras else (
+        "que no este en la lista.\n"
+        # «waistcoat» en Alice: OpenAI recibio las dos acepciones y se quedo con
+        # «An ornamental garment worn under a doublet» (f4, informe final,
+        # captura 10). Kaikki no la marca como historica, asi que el filtro de
+        # marginales no puede apartarla.
+        "Si la definicion dada describe una prenda, un oficio, una costumbre o un "
+        "objeto de otra epoca (por ejemplo, algo que se llevaba bajo un jubon) y la "
+        "oracion no esta situada en esa epoca, y en la lista hay una acepcion de uso "
+        "actual que encaja, elige la de uso actual.\n\n") if otras else (
         "Deja 'acepcion_usada' vacio.\n\n")
     instrucciones = (
         "Eres el asistente lexico de LiteraLevel, una app para lectores "

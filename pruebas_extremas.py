@@ -6754,6 +6754,9 @@ def _la_definicion_por_ia_se_pide_bien():
         modelo="modelo-falso", alternativas=["To the greatest extent; most.", "For the most part; mainly."])
     assert "For the most part; mainly." in capturado["input"]
     assert "Nunca escribas en 'acepcion_usada'" in capturado["instructions"]
+    # «waistcoat» en Alicia: con las dos acepciones delante, OpenAI se quedo con
+    # la del jubon, que Kaikki no marca como historica (f4, captura 10).
+    assert "otra epoca" in capturado["instructions"] and "uso actual" in capturado["instructions"]
     assert {"traduccion", "acepcion_usada"} <= set(capturado["text_format"].model_fields)
     return "prompts de IA y de acepcion alternativa con sus campos"
 
