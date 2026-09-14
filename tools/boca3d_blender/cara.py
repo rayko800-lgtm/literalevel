@@ -601,6 +601,42 @@ def recortar(ob, y, arriba):
     ob.data.update()
 
 
+def labios_en_piel(ob):
+    """Shape keys de los labios sobre la piel de MakeHuman, en coordenadas del
+    visor (Blender guarda (x, -lateral, altura)): `fruncir` (los labios salen
+    hacia delante y las comisuras se juntan: /u/, /o/), `estirar` (las
+    comisuras se separan y suben un poco: /i/) y `labio_atras` (el labio de
+    abajo se mete bajo los incisivos: /f v/). El visor las mezcla desde el
+    largo de los labios de la pose, como hacia con los tubos. Los pesos caen
+    con la distancia al centro de la boca (-3,1, 0,15, 0), mas lejos a lo
+    ancho que a lo alto."""
+    ob.shape_key_add(name="Basis", from_mix=False)
+    base = [(v.co.x, v.co.z, -v.co.y) for v in ob.data.vertices]      # (x, altura, lateral) del visor
+
+    def peso_boca(x, y, z, rx=1.1, ry=0.95, rz=1.7):
+        d = math.sqrt(((x + 3.1) / rx) ** 2 + ((y - 0.15) / ry) ** 2 + (z / rz) ** 2)
+        t = max(0.0, min(1.0, 1 - d))
+        return t * t * (3 - 2 * t)
+
+    def clave(nombre, delta):
+        k = ob.shape_key_add(name=nombre, from_mix=False)
+        for i, (x, y, z) in enumerate(base):
+            dx, dy, dz = delta(x, y, z)
+            k.data[i].co = (x + dx, -(z + dz), y + dy)
+
+    # Fruncir: hacia delante, comisuras hacia dentro y los dos labios se
+    # separan un poco en el centro (la «o» de /u/); estirar: comisuras hacia
+    # fuera y arriba, labios algo hacia atras.
+    abre = lambda y: (1.0 if y > 0.15 else -1.0) * max(0.0, 1 - abs(y - 0.15) / 0.5)
+    clave("fruncir", lambda x, y, z: (-0.75 * peso_boca(x, y, z), 0.13 * abre(y) * peso_boca(x, y, z, 0.8, 0.6, 0.9),
+                                      -0.5 * z * peso_boca(x, y, z)))
+    clave("estirar", lambda x, y, z: (0.2 * peso_boca(x, y, z), 0.1 * peso_boca(x, y, z) * min(1.0, abs(z) / 1.2),
+                                      0.45 * z * peso_boca(x, y, z)))
+    abajo = lambda y: max(0.0, min(1.0, (0.15 - y) / 0.08))
+    clave("labio_atras", lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
+                                          0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0))
+
+
 def cabeza_makehuman():
     vertices, caras, ojos = leer_obj_mh()
     caras = sin_boca_interior(vertices, caras)
@@ -609,13 +645,18 @@ def cabeza_makehuman():
     recortar(ob, Y_CORTE_ARRIBA, arriba=True)
     recortar(ob, Y_CORTE_ABAJO, arriba=False)
     ob["labios_en_piel"] = 1                  # el visor esconde sus tubos de labios
-    # La piel cercana: la misma, reflejada (MakeHuman es simetrica).
+    labios_en_piel(ob)
+    # La piel cercana: la misma, reflejada (MakeHuman es simetrica), con las
+    # mismas shape keys reflejadas.
     espejo = ob.copy()
     espejo.data = ob.data.copy()
     espejo.name = "cabeza_cercana"
     bpy.context.collection.objects.link(espejo)
     for v in espejo.data.vertices:
         v.co.y = -v.co.y                       # el lateral del visor es -y en Blender
+    for bloque in espejo.data.shape_keys.key_blocks:
+        for punto in bloque.data:
+            punto.co.y = -punto.co.y
     espejo.data.flip_normals()
     espejo.data.update()
     # El perfil del corte: por cada altura, el punto mas adelantado (la cara) y
@@ -670,7 +711,7 @@ def cabeza_makehuman():
     placa("corte_mandibula", mandibula, -0.01, CORTE)
     # La pared del fondo de las cavidades: el perfil entero, encogido.
     perfil = frente + [(x, y) for x, y in reversed(nuca)]
-    placa("pared_lejana", perfil, -1.4, PARED, escala=0.85)
+    placa("pared_lejana", perfil, -1.3, PARED, escala=0.96)
     # El ojo del lado lejano: globo blanco e iris oscuro; el hueco de la cuenca
     # de MakeHuman queda cubierto.
     x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]

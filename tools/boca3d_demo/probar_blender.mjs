@@ -55,7 +55,19 @@ try {
       const s = ({ theta: '\u03b8', ng: '\u014b' })[sonido] ?? sonido;
       await page.locator(`button[data-s="${s}"]`).click();
       await page.waitForFunction(() => !window.escenaBoca.enTransicion);
-      if (sonido === 'u') {
+      if (sonido === 'u' && await page.evaluate(() => !window.escenaBoca.labioSup.visible)) {
+        // Con la cabeza de MakeHuman los labios estan en la piel: la piel del
+        // lado lejano y la cercana exponen «fruncir» por nombre y /u/ lo aplica.
+        const piel = await page.evaluate(() => {
+          const e = window.escenaBoca;
+          return e.pielesConLabios.map(m => ({ claves: Object.keys(m.morphTargetDictionary ?? {}), fruncir: m.morphTargetInfluences[m.morphTargetDictionary['fruncir']] }));
+        });
+        assert.equal(piel.length, 2, `pieles con labios: ${JSON.stringify(piel)}`);
+        for (const p of piel) {
+          assert.ok(p.claves.includes('fruncir') && p.claves.includes('estirar') && p.claves.includes('labio_atras'), `piel sin shape keys de labios: ${JSON.stringify(p)}`);
+          assert.ok(p.fruncir > 0.5, `/u/ no frunce la piel: ${JSON.stringify(p)}`);
+        }
+      } else if (sonido === 'u') {
         // Y se aplican: en /u/ el labio superior frunce (influencia > 0,5) y no se escala.
         const u = await page.evaluate(() => {
           const m = window.escenaBoca.labioSup;

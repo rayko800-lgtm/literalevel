@@ -513,7 +513,7 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
       // en la línea de la boca: el labio de abajo entero va con la mandíbula
       // y el de arriba se queda; los labios son una ranura, así que no se
       // rasga nada. Hacia las mejillas vuelve la rampa suave.
-      const frente = suave01((-1.6 - x) / 0.8);
+      const frente = suave01((-1.6 - x) / 0.8) * (1 - suave01((Math.abs(z) - 0.85) / 0.5));   // no en las comisuras
       const bajoLabio = suave01((0.2 - y) / 0.1);
       bajo = bajo + (bajoLabio - bajo) * frente;
     }
@@ -669,6 +669,8 @@ export class EscenaBoca {
   private readonly sombras: boolean;
   /** Las pieles de la media cabeza: siguen a la mandíbula por pesos. */
   private readonly pielesDeformables: PielDeformable[] = [];
+  /** Las pieles con shape keys de labios (cabeza de MakeHuman). */
+  readonly pielesConLabios: THREE.Mesh[] = [];
   private readonly luzPrincipal: THREE.DirectionalLight;
   private readonly papilas: THREE.Texture | null;
   private readonly hueso: THREE.Texture | null;
@@ -1047,6 +1049,17 @@ export class EscenaBoca {
     return this.lenguaGlb !== null;
   }
 
+  /** Una piel con las shape keys de los labios (fruncir, estirar,
+   *  labio_atras de cara.py): se queda con los nombres de la malla cargada
+   *  (al clonar la geometría se pierden) y entra en la lista que `aplicar`
+   *  mueve desde la pose. */
+  private conMorfosDeLabios(pieza: THREE.Mesh, fuente: THREE.Mesh): void {
+    if (!fuente.morphTargetDictionary || !('fruncir' in fuente.morphTargetDictionary)) return;
+    pieza.updateMorphTargets();
+    pieza.morphTargetDictionary = { ...fuente.morphTargetDictionary };
+    this.pielesConLabios.push(pieza);
+  }
+
   /** Las piezas opacas dan y reciben sombra; las translúcidas (aire, huecos,
    *  mejilla) no. Se repite al cargar cada modelo. */
   private sombrear(): void {
@@ -1109,7 +1122,7 @@ export class EscenaBoca {
         // mira un poco más atrás, y la piel translúcida se aclara.
         this.cabezaEntera = true;
         this.controles.target.x = 0.9;
-        (this.mejilla.material as THREE.MeshStandardMaterial).opacity = 0.1;
+        (this.mejilla.material as THREE.MeshStandardMaterial).opacity = 0;
       }
       const menton = piezas.get('menton');
       if (menton) this.dentroMandibula.add(new THREE.Mesh(
@@ -1130,11 +1143,9 @@ export class EscenaBoca {
         // Caras del corte y pared del fondo claras y mates, como el 2D: la
         // lengua es lo único saturado y la cavidad se lee como hueco.
         const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
-        if (tejido === 'corte' && this.hueso) uvPlanas(geometria);
-        const mat = tejido === 'corte' ? materialDe('hueso', '#f6ece3', { roughness: 0.92, sheen: 0,
-            // Solo mapa de color: el relieve en una cara tan grande costaba la
-            // mitad de los cuadros en SwiftShader (10 -> 4 fps) y apenas se veia.
-            ...(this.hueso ? { map: this.hueso } : {}) })
+        // Marfil mate liso (Central, 14 sep): con textura el corte se mezclaba
+        // con la cavidad de lado.
+        const mat = tejido === 'corte' ? materialDe('hueso', '#f6ece3', { roughness: 0.92, sheen: 0 })
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0 })
           : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
@@ -1144,6 +1155,7 @@ export class EscenaBoca {
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
         if (nombre === 'cabeza_lejana' || nombre === 'pared_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
+        if (nombre === 'cabeza_lejana') this.conMorfosDeLabios(pieza, fuente);
       }
       const cercana = piezas.get('cabeza_cercana');
       if (cercana) {
@@ -1151,6 +1163,7 @@ export class EscenaBoca {
         this.mejilla.geometry = cercana.geometry.clone().applyMatrix4(cercana.matrixWorld);
         this.mejilla.position.z = 0;
         this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel));
+        this.conMorfosDeLabios(this.mejilla, cercana);
       }
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
       for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
@@ -1328,8 +1341,13 @@ export class EscenaBoca {
     // La piel translúcida del lado de la cámara se aclara al pasar de 45° de
     // giro: de frente, media cara sólida y media de cristal quedaba rara.
     const giro = Math.min(Math.abs(azimut), Math.abs(Math.abs(azimut) - Math.PI));
-    const base = this.cabezaEntera ? 0.1 : 0.14;
-    const opacidad = base - (base - 0.04) * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
+    // Con la cabeza entera, de lado (menos de 25°) la piel translúcida no
+    // cubre la cavidad (opacidad cero) y aparece al girar hacia la cara o la
+    // nuca; con el loft, al revés: se aclara al pasar de 45°.
+    const base = this.cabezaEntera ? 0.09 : 0.14;
+    const opacidad = this.cabezaEntera
+      ? base * Math.min(1, Math.max(0, (giro - (25 * Math.PI) / 180) / ((20 * Math.PI) / 180)))
+      : base - (base - 0.04) * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
     const matMejilla = this.mejilla.material as THREE.MeshStandardMaterial;
     if (Math.abs(matMejilla.opacity - opacidad) > 0.002) { matMejilla.opacity = opacidad; this.sucio = true; }
     if (ahora === this.lateralesOcultos) return;
@@ -1389,6 +1407,21 @@ export class EscenaBoca {
     // El labio inferior vive en la mandíbula: su posición es local al pivote.
     this.labioInf.position.set(avance(n[I_LI]) - PIVOTE_MAND.x, n[I_LI + 1] - PIVOTE_MAND.y, 0);
     this.labio(this.labioInf, n[I_LI + 2], n[I_LI + 3], hueco / 2);
+    // Los labios en la piel (MakeHuman): las mismas influencias que los tubos
+    // (del largo de la pose) y el labio de abajo hacia atrás en la labiodental
+    // (la pose lo coloca 0,3 detrás de LABIO_X).
+    if (this.pielesConLabios.length) {
+      const largo = n[I_LS + 2];
+      const fruncir = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05)));
+      const estirar = Math.min(1, Math.max(0, (largo - 2.3) / (2.9 - 2.3)));
+      const atras = Math.min(1, Math.max(0, (n[I_LI] - LABIO_X) / 0.3));
+      for (const piel of this.pielesConLabios) {
+        const dic = piel.morphTargetDictionary!, inf = piel.morphTargetInfluences!;
+        inf[dic['fruncir']] = fruncir;
+        inf[dic['estirar']] = estirar;
+        if ('labio_atras' in dic) inf[dic['labio_atras']] = atras;
+      }
+    }
     if (this.lenguaGlb?.morphTargetInfluences) {
       const inf = this.lenguaGlb.morphTargetInfluences;
       this.indicesMorfos.forEach((idx, i) => { if (idx !== undefined) inf[idx] = n[I_MORFOS + i]; });
