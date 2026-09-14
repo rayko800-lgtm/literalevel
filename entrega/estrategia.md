@@ -242,7 +242,7 @@ Su crítica es de usuaria y de diseñadora a la vez:
 | Lo que dijo | Diagnóstico | Corrección | Verificación |
 |---|---|---|---|
 | Retraso de 2-3 s al deslizar en el teléfono | `backdrop-filter` en más de cien bloques y fondo con `background-attachment: fixed`: repintado completo en cada fotograma | Los dos efectos, solo en dispositivos con ratón | Con emulación táctil quedan desactivados; **falta confirmarlo en un teléfono real** |
-| El texto toca el borde redondeado | Los bloques de Markdown de Gradio no tienen relleno, pero aquí todos llevan fondo de panel | Relleno interior a los bloques con contenido | Medido y capturado a 390 y 1440 px |
+| El texto toca el borde redondeado | Los bloques de Markdown de la interfaz de entonces (Gradio) no tienen relleno, pero aquí todos llevan fondo de panel | Relleno interior a los bloques con contenido | Medido y capturado a 390 y 1440 px |
 | En modo oscuro no distingue las secciones | Panel al 72 % sobre casi negro y borde al 16 % en *hielo*, la paleta por defecto | Panel y borde más claros en las dos paletas oscuras | Las 85 parejas de contraste WCAG siguen pasando |
 | Quiere una barra de navegación con las funciones y los ajustes aparte | *Colores* y *Estado* eran pestañas como leer o pronunciar. **El profesor había dicho lo mismo**: «Colores toma demasiada presencia» | Botón **⚙ Ajustes** en la cabecera; barra de pestañas fija arriba al bajar y centrada en escritorio | Probado en el navegador; a 390 px «Pronunciar» sigue en el menú «…» |
 | «Siguiente capítulo» la deja al final | Los botones no movían la página | Al cambiar de capítulo sube al principio del texto | Teléfono: el lector queda justo bajo la barra con el capítulo nuevo |
@@ -261,6 +261,15 @@ los de debajo del texto. Las dos se descubrieron midiendo la página en un
 navegador controlado a ancho de teléfono. Es la misma lección del apartado 3.2,
 repetida.
 
+**Lo que vino después de ese ciclo cambió la interfaz entera.** Ese mismo 12 de
+septiembre, en la revisión del avance, el profesor Barranco pidió que la
+aplicación entregada no fuera la de Gradio sino un front propio, separado del
+motor. La interfaz pasó a Angular sobre una API (apartado 4.6). Las
+correcciones del Cuadro 1b se hicieron primero en Gradio, que sigue en marcha
+como motor, y las que tocan la pantalla se llevaron al front: los ajustes fuera
+de la navegación, el lector que sube al cambiar de capítulo, «Otra frase» y la
+ficha de cada sonido.
+
 ### 3.4 La lección, en una línea
 
 **El valor de una prueba de usuario no está en el promedio de satisfacción, sino
@@ -276,7 +285,8 @@ prueba hasta ahí.
 ## 4. Usabilidad del modelo
 
 Un modelo es usable cuando el usuario puede confiar en él sin entenderlo. Eso
-se construye con cinco decisiones, todas medidas.
+se construye con cinco decisiones, todas medidas, y con la interfaz que las
+pone delante del lector (4.6).
 
 ### 4.1 La espera se traslada, no se pide
 
@@ -356,6 +366,64 @@ tarda lo mismo; deja de parecer que la aplicación se colgó. La misma idea
 gobierna la curva de dificultad, que se repinta cada pocos capítulos mientras
 mide (el repintado cuesta 25 ms, medido) y los recursos pesados, que se cargan
 al primer uso y no al arrancar.
+
+### 4.6 La interfaz entregada: un front de Angular sobre una API
+
+Hasta el 12 de septiembre de 2026 la aplicación era una sola pieza: ocho
+pestañas de Gradio que hacían de interfaz y de motor a la vez. En la revisión
+del avance de ese día, el profesor Barranco pidió que la entrega fuera un front
+propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
+
+- **El front** es una aplicación de Angular 22 (componentes independientes, sin
+  `zone.js`) publicada como **Space estático** de Hugging Face
+  (`MikeMaki1763/literalevel-front`), gratuito y siempre despierto: es HTML, CSS
+  y JavaScript ya compilados. Tiene cuatro sitios en vez de ocho pestañas
+  —*Leer*, *Encontrar*, *Pronunciar* y *Tu nivel*—, más *Mis palabras*; los
+  ajustes (paleta, tamaño de letra, idioma de las explicaciones) y el estado del
+  servicio salen de la navegación, que es lo que Laura y el profesor habían
+  pedido por separado.
+- **La API** es un servicio FastAPI (`app/api.py`, 37 rutas bajo `/api`)
+  **montado en el mismo Space de Gradio** que ya existía, con Gradio en la raíz
+  como motor y respaldo. **No reimplementa ninguna regla**: importa el módulo
+  de la interfaz de Gradio y llama a sus mismas funciones, así que los topes de
+  uso, la puerta de pago, el aislamiento por lector y la degradación sin clave
+  son los mismos que verifican las pruebas de robustez. La identidad del lector
+  viaja en una cabecera (`X-Lector`) y sus datos siguen en el bucket montado en
+  `/data`. El primer montaje falló —el proxy de renderizado en servidor de
+  Gradio no dejaba pasar `/api`— y el segundo, sin ese proxy, es el que está en
+  marcha.
+- **Regla de entrega:** una función existe cuando tiene ruta en la API **y**
+  pantalla en el front. Lo que solo vive en Gradio no cuenta como entregado.
+- **Pruebas:** 31 pruebas de la API sin red ni clave (aislamiento entre
+  lectores, rutas que no dejan recorrer el disco, lo de pago que no cobra sin
+  clave, CORS del front, subidas grandes cortadas antes de leerlas enteras), más
+  las pruebas de componentes del front, además de las 334 de robustez del motor.
+
+**Lo que el front añadió a la usabilidad en un día.** Tres cosas, y las tres
+salieron de mirar cómo se usa un teléfono:
+
+- **Uso con una sola mano.** Un estudio propio (`investigacion/una_mano.md`)
+  fijó diez reglas a partir de la literatura sobre el alcance del pulgar y el
+  tamaño de los objetivos; las primeras ya están en el front: en el lector, una
+  barra única abajo con capítulo y página anterior y siguiente y el índice, que
+  se esconde con la navegación; nada primario en el cuarto superior de la
+  pantalla; en *Pronunciar*, una barra de acción fija abajo con el micrófono en
+  el centro, que no se mueve entre grabar, parar y corregir.
+- **Corrección de pronunciación con fonema determinista.** Con la misma
+  grabación, el modelo generativo señalaba un sonido distinto en cada llamada.
+  Ahora el fonema que falla sale de **alinear la transcripción de lo que había
+  que decir con la de lo que se entendió** —las dos de diccionario: Wiktionary
+  y, donde no la trae, CMUdict, 126.052 palabras bajo licencia BSD— y el
+  consejo de boca, lengua y aire sale de una ficha fija por fonema. Del modelo
+  queda solo el resumen. Dos voces con el mismo audio dan el mismo fonema.
+- **Animación del corte de la boca.** Para cada uno de los 41 sonidos del
+  inglés americano (y los 44 del británico), un corte sagital animado —labios,
+  dientes, paladar, velo, lengua y mandíbula— que va del reposo a la posición
+  del sonido y vuelve; y para la palabra entera, la secuencia de sus sonidos a
+  partir de su transcripción. Son SVG animados con CSS, sin JavaScript,
+  generados una vez en el servidor y servidos por la API; el front los enseña
+  en la ficha de cada sonido y en la corrección —primero el sonido que falla y
+  después la palabra—, y con «reducir movimiento» del sistema los deja quietos.
 
 ---
 
@@ -499,7 +567,7 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 | # | Acción | Por qué | Coste | Terminado cuando |
 |---|---|---|---|---|
 | **A1** | **Publicar el modelo y el diccionario** como repositorios abiertos | Desbloquea la reproducibilidad del cuaderno, que antes no corría en un Colab ajeno | ~30 min; gratuito. Requiere un token que solo el autor puede crear | **HECHO a medias**: el modelo (328 MB) está en `MikeMaki1763/literalevel-v4`, público y con la descarga sin credenciales verificada. El diccionario (243 MB) sigue sin publicar |
-| **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware `cpu-basic` no añade coste | **HECHO**: `huggingface.co/spaces/MikeMaki1763/literalevel`, público y en marcha. Queda el disco persistente, que es A4 |
+| **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware `cpu-basic` no añade coste, y el Space estático del front es gratuito | **HECHO**: `MikeMaki1763/literalevel-front` (el front) y `MikeMaki1763/literalevel` (API y motor), públicos y en marcha. El disco persistente es A4 |
 | ~~**A3**~~ **HECHO** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales | T4 gratuita; la descarga por `common-pile/project_gutenberg` (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión | **Cumplido el 12 de septiembre de 2026**: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa |
 | ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí |
 | **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
@@ -527,7 +595,7 @@ publicación y un micrófono.
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas— |
 | Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
 | Producto | Robustez | **Cumplido**: 303 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
-| Operación | Enlace permanente disponible | **Cumplido**: `MikeMaki1763/literalevel` en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en `/data` |
+| Operación | Enlace permanente disponible | **Cumplido**: el front en `MikeMaki1763/literalevel-front` y la API con el motor en `MikeMaki1763/literalevel`, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en `/data` |
 | Operación | Catálogo medido, no heredado | **Cumplido** el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |
 

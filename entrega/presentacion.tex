@@ -274,6 +274,53 @@ no.}
 \end{frame}
 
 % ===========================================================================
+\begin{frame}{La aplicación entregada}
+\vspace{1mm}
+{\small Un \emph{front} propio, separado del motor: lo pidió el profesor en la
+revisión del 12 de septiembre, y es lo que se entrega.}
+\vspace{2mm}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize, node distance=5mm]
+\tikzset{caja/.style={draw=llcian!70, fill=llfondo, rounded corners=2pt,
+                      text width=3.4cm, align=center, inner sep=4pt,
+                      minimum height=1.5cm}}
+\node[caja] (f) {\textbf{Front · Angular 22}\\ Space estático, gratis,\\
+  siempre despierto\\ \emph{Leer · Encontrar · Pronunciar · Tu nivel}};
+\node[caja, right=of f] (a) {\textbf{API · FastAPI}\\ 37 rutas en \cod{/api}\\
+  el mismo código\\ que Gradio: no\\ reimplementa reglas};
+\node[caja, right=of a] (m) {\textbf{Motor}\\ modelo v4 · diccionario\\
+  Space de Gradio,\\ \cod{cpu-basic}; Gradio\\ en la raíz, de respaldo};
+\draw[->, llcian!80, thick] (f) -- node[above] {HTTPS} (a);
+\draw[->, llcian!80, thick] (a) -- (m);
+\end{tikzpicture}
+\end{center}
+
+\vspace{2mm}
+\begin{columns}[T]
+\begin{column}{0.32\textwidth}
+\textbf{\color{llazul} Con una mano}\\[2pt]
+{\small Barra de lectura abajo, al alcance del pulgar; el micrófono fijo en el
+centro; nada primario en el cuarto superior.}
+\end{column}
+\begin{column}{0.32\textwidth}
+\textbf{\color{llazul} Fonema determinista}\\[2pt]
+{\small El sonido que falla sale de alinear dos transcripciones de diccionario,
+no del modelo: dos voces, el mismo fonema.}
+\end{column}
+\begin{column}{0.32\textwidth}
+\textbf{\color{llazul} La boca por dentro}\\[2pt]
+{\small Corte animado de labios, lengua y velo para 41 sonidos y para la
+palabra entera; quieto si el sistema pide menos movimiento.}
+\end{column}
+\end{columns}
+
+\vspace{3mm}
+{\footnotesize\color{llgris} Regla de entrega: una función existe cuando tiene
+ruta en la API \textbf{y} pantalla en el \emph{front}.}
+\end{frame}
+
+% ===========================================================================
 \begin{frame}{Ejemplo de uso y aplicación}
 \vspace{1mm}
 {\small \textbf{El recorrido del apartado 8.2 del documento}, paso a paso: una
@@ -367,8 +414,9 @@ nadie.}
 \midrule
 Publicar el modelo & 30 min, gratis &
   \textbf{Hecho}: el cuaderno corre en un Colab limpio \\[3mm]
-Desplegar de forma permanente & 7 USD/mes &
-  \textbf{Hecho}: dirección fija que no muere al apagar \\[3mm]
+Desplegar de forma permanente & 7 USD/mes por la API y el motor;
+  el \emph{front} estático, gratis &
+  \textbf{Hecho}: dos direcciones fijas que no mueren al apagar \\[3mm]
 Terminar la medición del catálogo & T4 gratuita; la última tanda,
   55 min sin errores &
   \textbf{Hecho}: 53.179 libros y 585.111 capítulos medidos por el v4,
@@ -402,10 +450,12 @@ en una escala continua propia.}\\[8mm]
 \begin{center}
 {\Large\bfseries\color{llazul} Funcionando ahora mismo}\\[8mm]
 
-{\large\ttfamily huggingface.co/spaces/MikeMaki1763/literalevel}\\[10mm]
+{\large\ttfamily mikemaki1763-literalevel-front.static.hf.space}\\[6mm]
 
+{\small\color{llgris} API y motor:
+\ttfamily huggingface.co/spaces/MikeMaki1763/literalevel}\\[3mm]
 {\small\color{llgris} Modelo público:
-\ttfamily huggingface.co/MikeMaki1763/literalevel-v4}\\[14mm]
+\ttfamily huggingface.co/MikeMaki1763/literalevel-v4}\\[10mm]
 
 {\normalsize Si alguna vez abandonaste un libro en inglés pensando que el
 problema eras tú:\\[3pt] \textbf{no lo eras. Era el libro.}}

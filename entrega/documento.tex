@@ -255,16 +255,17 @@ LiteraLevel no certifica ningún nivel del Marco Común Europeo}. Las letras A1 
 fueron el ancla con la que se entrenó el modelo, no un título que la aplicación
 expida. Sirven para elegir qué leer, no para acreditar nada.
 
-El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio 6.26
-\parencite{abid2019gradio}, probada por una lectora de quince años, prima del autor y ajena al
-proyecto— y con el catálogo entero medido: \textbf{53.179 libros} en inglés de dominio
+El proyecto se cierra con una aplicación funcionando —un \emph{front} de Angular publicado
+como sitio estático sobre una API propia, con Gradio 6.26 \parencite{abid2019gradio} como
+motor y respaldo; probada por una lectora de quince años, prima del autor y ajena al
+proyecto, y por una desarrolladora web— y con el catálogo entero medido: \textbf{53.179 libros} en inglés de dominio
 público de Project Gutenberg, leídos enteros por el modelo, capítulo a capítulo. La última
 tanda, en una GPU gratuita, tardó 55 minutos: el cuello de botella nunca fue el modelo,
 sino leer y guardar los archivos.
 
 \vspace{0.4cm}
 \noindent\textbf{Palabras clave:} legibilidad automática, MCER, adquisición de
-segundas lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
+segundas lenguas, lectura extensiva, transformers, Project Gutenberg, Angular.
 
 \vspace{0.8cm}
 \noindent\fbox{\begin{minipage}{0.97\textwidth}
@@ -798,7 +799,7 @@ P.»\par\medskip
 \endlastfoot
 Retraso de 2--3~s al deslizar en el teléfono & \cod{backdrop-filter} en más de cien bloques y fondo con \cod{background-attachment:\allowbreak fixed}: repintado completo en cada fotograma & Los dos efectos, solo en dispositivos con ratón & Con emulación táctil quedan desactivados; \textbf{falta confirmarlo en un teléfono real} \\
 \addlinespace
-El texto toca el borde redondeado & Los bloques de Markdown de Gradio no tienen relleno, pero aquí todos llevan fondo de panel & Relleno interior a los bloques con contenido & Medido y capturado a 390 y 1440~px \\
+El texto toca el borde redondeado & Los bloques de Markdown de la interfaz de entonces (Gradio) no tienen relleno, pero aquí todos llevan fondo de panel & Relleno interior a los bloques con contenido & Medido y capturado a 390 y 1440~px \\
 \addlinespace
 En modo oscuro no distingue las secciones & Panel al 72\,\% sobre casi negro y borde al 16\,\% en \emph{hielo}, la paleta por defecto & Panel y borde más claros en las dos paletas oscuras & Las 85 parejas de contraste WCAG siguen pasando \\
 \addlinespace
@@ -823,6 +824,14 @@ después y los botones que pulsó Laura eran los de debajo del texto. Las dos se
 descubrieron midiendo la página en un navegador controlado a ancho de teléfono: es la
 misma lección del apartado anterior, repetida.
 
+\textbf{Lo que vino después de ese ciclo cambió la interfaz entera.} Ese mismo 12 de
+septiembre, en la revisión del avance, el profesor Barranco pidió que la aplicación
+entregada no fuera la de Gradio sino un \emph{front} propio, separado del motor. La
+interfaz pasó a Angular sobre una API (apartado~\ref{sec:front}). Las correcciones del
+cuadro~\ref{cuad:laura} se hicieron primero en Gradio, que sigue en marcha como motor, y
+las que tocan la pantalla se llevaron al \emph{front}: los ajustes fuera de la navegación,
+el lector que sube al cambiar de capítulo, «Otra frase» y la ficha de cada sonido.
+
 \subsubsection{La lección, en una línea}
 
 \textbf{El valor de una prueba de usuario no está en el promedio de satisfacción, sino
@@ -836,7 +845,8 @@ usabilidad; el accionable A8 lleva la prueba hasta ahí.
 \subsection{Usabilidad del modelo}
 
 Un modelo es usable cuando el usuario puede confiar en él sin entenderlo. Eso se
-construye con cinco decisiones, todas medidas.
+construye con cinco decisiones, todas medidas, y con la interfaz que las pone delante del
+lector (apartado~\ref{sec:front}).
 
 \subsubsection{La espera se traslada, no se pide}
 
@@ -909,6 +919,71 @@ parecer que la aplicación se colgó. La misma idea gobierna la curva de dificul
 se repinta cada pocos capítulos mientras mide (el repintado cuesta 25~ms, medido) y los
 recursos pesados, que se cargan al primer uso y no al arrancar.
 
+\subsubsection{La interfaz entregada: un \emph{front} de Angular sobre una API}
+\label{sec:front}
+
+Hasta el 12 de septiembre de 2026 la aplicación era una sola pieza: ocho pestañas de
+Gradio que hacían de interfaz y de motor a la vez. En la revisión del avance de ese día,
+el profesor Barranco pidió que la entrega fuera un \emph{front} propio, separado del
+motor. Se hizo al día siguiente, y es lo que se entrega:
+
+\begin{itemize}
+  \item \textbf{El \emph{front}} es una aplicación de Angular 22 (componentes
+        independientes, sin \cod{zone.js}) publicada como \textbf{Space estático} de
+        Hugging Face (\cod{MikeMaki1763/\allowbreak literalevel-front}), gratuito y siempre
+        despierto: es HTML, CSS y JavaScript ya compilados. Tiene cuatro sitios en vez de
+        ocho pestañas —\emph{Leer}, \emph{Encontrar}, \emph{Pronunciar} y \emph{Tu
+        nivel}—, más \emph{Mis palabras}; los ajustes (paleta, tamaño de letra, idioma de
+        las explicaciones) y el estado del servicio salen de la navegación, que es lo que
+        Laura y el profesor habían pedido por separado.
+  \item \textbf{La API} es un servicio FastAPI (\cod{app/api.py}, 37 rutas bajo
+        \cod{/api}) \textbf{montado en el mismo Space de Gradio} que ya existía, con Gradio
+        en la raíz como motor y respaldo. \textbf{No reimplementa ninguna regla}: importa
+        el módulo de la interfaz de Gradio y llama a sus mismas funciones, así que los
+        topes de uso, la puerta de pago, el aislamiento por lector y la degradación sin
+        clave son los mismos que verifican las pruebas de robustez. La identidad del lector
+        viaja en una cabecera (\cod{X-Lector}) y sus datos siguen en el bucket montado en
+        \cod{/data}. El primer montaje falló ---el proxy de renderizado en servidor de
+        Gradio no dejaba pasar \cod{/api}--- y el segundo, sin ese proxy, es el que está en
+        marcha.
+  \item \textbf{Regla de entrega:} una función existe cuando tiene ruta en la API
+        \textbf{y} pantalla en el \emph{front}. Lo que solo vive en Gradio no cuenta como
+        entregado.
+  \item \textbf{Pruebas:} 31 pruebas de la API sin red ni clave (aislamiento entre
+        lectores, rutas que no dejan recorrer el disco, lo de pago que no cobra sin clave,
+        CORS del \emph{front}, subidas grandes cortadas antes de leerlas entera), más las
+        pruebas de componentes del \emph{front}, además de las 334 de robustez del motor.
+\end{itemize}
+
+\medskip\noindent\textbf{Lo que el \emph{front} añadió a la usabilidad en un día.} Tres
+cosas, y las tres salieron de mirar cómo se usa un teléfono:
+
+\begin{itemize}
+  \item \textbf{Uso con una sola mano.} Un estudio propio
+        (\cod{investigacion/\allowbreak una\_mano.md}) fijó diez reglas a partir de la
+        literatura sobre el alcance del pulgar y el tamaño de los objetivos; las primeras ya
+        están en el \emph{front}: en el lector, una barra única abajo con capítulo y página
+        anterior y siguiente y el índice, que se esconde con la navegación; nada primario
+        en el cuarto superior de la pantalla; en \emph{Pronunciar}, una barra de acción
+        fija abajo con el micrófono en el centro, que no se mueve entre grabar, parar y
+        corregir.
+  \item \textbf{Corrección de pronunciación con fonema determinista.} Con la misma
+        grabación, el modelo generativo señalaba un sonido distinto en cada llamada. Ahora
+        el fonema que falla sale de \textbf{alinear la transcripción de lo que había que
+        decir con la de lo que se entendió} ---las dos de diccionario: Wiktionary y, donde
+        no la trae, CMUdict, 126.052 palabras bajo licencia BSD--- y el consejo de boca,
+        lengua y aire sale de una ficha fija por fonema. Del modelo queda solo el resumen.
+        Dos voces con el mismo audio dan el mismo fonema.
+  \item \textbf{Animación del corte de la boca.} Para cada uno de los 41 sonidos del
+        inglés americano (y los 44 del británico), un corte sagital animado ---labios,
+        dientes, paladar, velo, lengua y mandíbula--- que va del reposo a la posición del
+        sonido y vuelve; y para la palabra entera, la secuencia de sus sonidos a partir de
+        su transcripción. Son SVG animados con CSS, sin JavaScript, generados una vez en el
+        servidor y servidos por la API; el \emph{front} los enseña en la ficha de cada
+        sonido y en la corrección ---primero el sonido que falla y después la palabra---, y
+        con «reducir movimiento» del sistema los deja quietos.
+\end{itemize}
+
 \subsection{Accionables}
 
 Diez acciones concretas (cuadro~\ref{cuad:accionables}), ordenadas por puntos de rúbrica
@@ -933,7 +1008,7 @@ terminado. No son «se podría»: son «se hace».
 \endlastfoot
 \textbf{A1} & \textbf{Publicar el modelo y el diccionario} como repositorios abiertos & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO a medias}: el modelo está en \cod{MikeMaki1763/\allowbreak literalevel-v4}, público y con la descarga sin credenciales verificada; el diccionario (243 MB) sigue sin publicar \\
 \addlinespace
-\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: un Space de Gradio exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento). El hardware \cod{cpu-basic} no añade coste & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel}, público y en marcha; queda el disco persistente, que es A4 \\
+\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware \cod{cpu-basic} no añade coste, y el Space estático del \emph{front} es gratuito & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel-front} (el \emph{front}) y \cod{MikeMaki1763/\allowbreak literalevel} (API y motor), públicos y en marcha; el disco persistente es A4 \\
 \addlinespace
 \textbf{A3 · HECHO} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales & T4 gratuita; la descarga por el volcado de Common Pile (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión (\S\ref{sec:escalado}) & \textbf{Cumplido el 12 de septiembre de 2026}: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa \\
 \addlinespace
@@ -972,7 +1047,7 @@ Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correla
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas--- \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
 Producto & Robustez & \textbf{Cumplido}: 303 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
-Operación & Enlace permanente disponible & \textbf{Cumplido}: \cod{MikeMaki1763/\allowbreak literalevel} en Hugging Face Spaces, público y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
+Operación & Enlace permanente disponible & \textbf{Cumplido}: el \emph{front} en \cod{MikeMaki1763/\allowbreak literalevel-front} y la API con el motor en \cod{MikeMaki1763/\allowbreak literalevel}, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{Cumplido} el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
 \bottomrule
@@ -2900,15 +2975,19 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         y las 144 parejas de nivel y predicción están publicadas. Recalculadas en CPU en menos
         de un minuto, dan las mismas cifras a cuatro decimales.
   \item \textbf{El despliegue está en el escalón más barato, y eso tiene dos
-        consecuencias.} La aplicación
-        está publicada en Hugging Face Spaces (\cod{MikeMaki1763/\allowbreak literalevel}, hardware
-        \cod{cpu-basic}), con dirección fija que sobrevive a apagar el equipo del autor.
-        Cuesta \textbf{7 USD al mes}: un Space de Gradio exige cuenta Pro, y el
-        hardware elegido, \cod{cpu-basic}, es el que no añade coste sobre esa
-        suscripción. Pero ese hardware \textbf{suspende el servicio tras 48 h sin visitas}
-        (\cod{gcTimeout} $=$ 172.800 s según la API de Hugging Face), de modo que el primer
-        visitante después de una pausa paga un arranque en frío mientras se cargan
-        \emph{torch} y los 328 MB del modelo. Está medido: reiniciando el Space,
+        consecuencias.} La aplicación está publicada en dos Spaces de Hugging Face con
+        dirección fija que sobrevive a apagar el equipo del autor: el \emph{front} de
+        Angular en un Space estático (\cod{MikeMaki1763/\allowbreak literalevel-front}),
+        gratuito y sin suspensión, y la API con el motor de Gradio en
+        \cod{MikeMaki1763/\allowbreak literalevel}, hardware \cod{cpu-basic}. Este segundo
+        cuesta \textbf{7 USD al mes}: un Space de Gradio exige cuenta Pro, y
+        \cod{cpu-basic} es el hardware que no añade coste sobre esa suscripción. Pero ese
+        hardware \textbf{suspende el servicio tras 48 h sin visitas} (\cod{gcTimeout} $=$
+        172.800 s según la API de Hugging Face), de modo que el \emph{front} abre al
+        instante, pero su primera llamada a la API después de una pausa paga un arranque
+        en frío mientras se cargan \emph{torch} y los 328 MB del modelo; el \emph{front} lo
+        dice con palabras («tarda unos 30 segundos en despertar») en vez de fallar. Está
+        medido: reiniciando el Space,
         \textbf{31 s hasta que el runtime dice \cod{RUNNING} y 32 s hasta que la página
         responde}. Es la cota inferior, porque ahí la imagen del contenedor ya estaba
         construida; despertar de una suspensión de 48 h añade traerla. El disco del
@@ -3048,7 +3127,8 @@ reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y 
 interfaz que se puede usar con el pulgar.
 
 \textbf{Y queda pendiente lo que más pesa.} La aplicación funciona y ya tiene dirección
-fija, pero sobre el hardware más barato: se suspende por inactividad. El catálogo ya está
+fija ---el \emph{front} de Angular en un Space estático y la API con el motor en otro---,
+pero el motor corre sobre el hardware más barato: se suspende por inactividad. El catálogo ya está
 medido entero ---53.179 libros--- y las métricas del v4, que el documento citaba sin poder
 recalcular, ya se recalculan desde el repositorio. Lo que queda está planificado con coste
 y criterio de terminado en el cuadro~\ref{cuad:accionables}.
