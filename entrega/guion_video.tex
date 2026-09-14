@@ -63,12 +63,12 @@
   colback=white, colframe=llazul!55, boxrule=0.9pt, arc=2mm,
   left=8pt, right=8pt, top=7pt, bottom=7pt,
   fonttitle=\bfseries\small\color{white},
-  colbacktitle=llazul, title={#1}, enhanced}
+  colbacktitle=llazul, title={#1}, enhanced, breakable}
 
 % --- Caja de lo que se VE / se hace ---------------------------------------
 \newtcolorbox{ve}{
   colback=llfondo, colframe=llgrisclaro, boxrule=0.8pt, arc=2mm,
-  left=8pt, right=8pt, top=6pt, bottom=6pt}
+  left=8pt, right=8pt, top=6pt, bottom=6pt, enhanced, breakable}
 
 % --- Etiqueta de tiempo ----------------------------------------------------
 \newcommand{\reloj}[1]{{\small\bfseries\color{llcian}#1}}
@@ -142,7 +142,7 @@ Mtro. Fernando Barranco Rodríguez
 \begin{tcolorbox}[colback=llfondo, colframe=llazul!35, boxrule=0.8pt,
                   arc=3mm, width=13cm, halign=center]
   {\large\bfseries\color{llazul} MP4 · máximo 5 minutos · cara visible todo el tiempo}\\[4pt]
-  {\small Objetivo: \textbf{4:40}. Texto hablado: \textbf{569 palabras} = 3:48 a
+  {\small Objetivo: \textbf{4:40}. Texto hablado: \textbf{601 palabras} = 4:00 a
    ritmo normal.\\ El resto es el tiempo que tarda la demo en vivo.}
 \end{tcolorbox}
 
@@ -168,9 +168,13 @@ Y se cruza con la plantilla de la \textbf{presentación modelo del propio
 profesor}: cifras grandes y desnudas en vez de párrafos, objetivos numerados,
 métricas sin adornos, y sobre todo su \emph{«Ejemplo de uso y aplicación»} ---
 tomar \emph{un} caso real y recorrerlo paso a paso. Aquí es \textbf{el mismo
-caso que recorren el documento (§8.2) y la diapositiva 8}: una lectora con
-perfil \textbf{1,20 sobre 2} y \emph{Crime and Punishment}. Los tres
-entregables cuentan el mismo recorrido, con el mismo lector y el mismo libro.
+caso que recorren el documento (§8.2) y la diapositiva «Ejemplo de uso y
+aplicación»}: una lectora con perfil \textbf{1,20 sobre 2} y \emph{Crime and
+Punishment}. Los tres entregables cuentan el mismo recorrido, con el mismo
+lector y el mismo libro. \textbf{La aplicación que se enseña es el \emph{front}
+de Angular} (\texttt{mikemaki1763-literalevel-front.static.hf.space}), en el
+móvil: es lo que se entrega desde el 13 de septiembre de 2026, a petición del
+profesor.
 
 \begin{ve}
 \textbf{Nota honesta sobre las fuentes.} ANSVA está verificado y es suyo.
@@ -263,28 +267,39 @@ capítulo a capítulo.
 \reloj{1:05 – 3:35}
 
 \begin{ve}
-\textbf{En pantalla:} compartir pantalla y \textbf{usar la aplicación de
-verdad}. Nada de capturas. Que se vea el cursor moverse.
-\textbf{Usa el mismo caso que el documento §8.2 y la diapositiva 8}: perfil
-\textbf{1,20} y \emph{Crime and Punishment} (PG2554). Las cifras que se
-dicen ---203.415 palabras, 836 ventanas, media 1,70--- son las que dio la app
-publicada el 12 de septiembre de 2026, con el libro abierto desde el buscador
-(ahora en \texttt{.txt}, el mismo texto con el que se midió el catálogo; el
-documento cita 203.699 y 840 porque aquella medida se hizo sobre el EPUB). Y el
-libro \textbf{se abre desde el buscador}: escribe «dostoyevski» y sale.
+\textbf{En pantalla:} el \textbf{\emph{front} de Angular en el móvil} y
+\textbf{usarlo de verdad}. Nada de capturas pegadas: que se vea el dedo (o el
+cursor) moverse. Dos maneras de enseñar el móvil en OBS: la pantalla del
+teléfono duplicada en el equipo, o el navegador del equipo con la vista de
+dispositivo a \textbf{390 px} de ancho, que es como se probó el \emph{front}.
+Miguel sigue a cámara todo el rato; la app va en una ventana al lado.
+\textbf{Usa el mismo caso que el documento §8.2 y la diapositiva «Ejemplo de
+uso y aplicación»}: perfil \textbf{1,20} y \emph{Crime and Punishment}
+(PG2554). Las cifras que se dicen ---203.415 palabras, 836 ventanas, media
+1,70--- son las que dio la app publicada el 12 de septiembre de 2026, con el
+libro abierto desde el buscador (en \texttt{.txt}, el mismo texto con el que se
+midió el catálogo; el documento cita 203.699 y 840 porque aquella medida se
+hizo sobre el EPUB). El motor es el mismo detrás del \emph{front}, así que las
+cifras no cambian. Y el libro \textbf{se abre desde el buscador}: escribe
+«dostoyevski» en \emph{Encontrar} y sale.
 
 \textbf{El libro del recorrido tiene que ser uno que el buscador devuelva.}
 Si hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
 
-\textbf{Enciende la aplicación antes de grabar, y úsala.} Tres cosas de la
-primera vez, medidas el 11 de septiembre de 2026:
+\textbf{Entra antes de grabar, y úsala.} Entrar es \emph{Ajustes
+$\rightarrow$ Tu perfil} (usuario y contraseña): sin entrar, la explicación en
+contexto y la corrección de pronunciación no salen, porque son lo que cuesta
+dinero. Y tres cosas de la primera vez, medidas el 11 de septiembre de 2026 y
+que siguen igual, porque el motor es el mismo:
 
 \begin{itemize}
   \item La \textbf{primera consulta léxica de la sesión tarda unos 55 segundos}:
         carga el diccionario de 243 MB, spaCy y el modelo de similitud. Los
         \textbf{40 milisegundos} que dices a cámara son \textbf{en caliente}, y son
         ciertos: la segunda palabra sale al instante. \textbf{Consulta una palabra
-        cualquiera antes de grabar} y el paso Cuatro va fluido.
+        cualquiera antes de grabar} y el paso Cuatro va fluido. Si el motor
+        llevaba horas sin visitas, la primera llamada tarda además medio minuto
+        en despertarlo; el \emph{front} lo dice en pantalla. Despiértalo antes.
   \item \textbf{Calcula la curva del libro antes.} Queda guardada, así que en la
         toma sale en segundos en vez de en dos minutos de silencio. Y hasta que no
         está calculada, la ficha no sabe si el libro te queda por encima y te da el
@@ -304,16 +319,16 @@ primera vez, medidas el 11 de septiembre de 2026:
         capítulos a tu nivel.
 \end{itemize}
 
-\textbf{«Sorpréndeme» ya se puede pulsar.} Desde el 12 de septiembre de 2026 la
-letra de cada libro es la que midió el modelo sobre el libro entero, no la
-etiqueta heredada, así que ya no se desmiente sola. Aun así, un capítulo
-concreto puede salir por encima o por debajo de la media del libro: si pasa, es
-la curva haciendo su trabajo, y se puede decir.
+\textbf{El nivel se puede medir de tres maneras y el guion enseña una.} El
+cuestionario con tres fragmentos es el que da 1,20 en segundos. \emph{Mídeme
+con un texto} y \emph{Mídeme con un libro que ya leí} están en \emph{Tu
+nivel}, bajo «Afinar»: nómbralas y pasa, no las hagas, que el libro tarda en
+medirse.
 
 \textbf{Y la palabra del paso Cuatro se elige antes, no en directo.} El
 diccionario solo trae fonética en el 3,1\% de sus entradas ---el 58\% de las
-consultas sobre un libro real, §6.4 del documento---, así que «la fonética
-británica y americana» depende de la palabra que se toque. Y hay una segunda
+consultas sobre un libro real, §6.4 del documento---, así que la fonética
+depende de la palabra que se toque. Y hay una segunda
 trampa, medida: \textbf{las palabras con el contraste británico/americano más
 bonito son las polisémicas, que es justo donde el desambiguador flojea}. De las
 tres apariciones de \emph{clerk} en estos capítulos, dos devuelven una acepción
@@ -325,41 +340,94 @@ Así que la palabra del plano está \textbf{medida}, no elegida por bonita:
 que sale sin aviso---, acepción correcta, y la fonética británica y la americana
 se oyen distintas. Está en \emph{«He was in terrible poverty, yet he took upon
 himself the payment of his brother's debts»}, y encima es el tema del libro. Si
-quieres otra: \textbf{torture} (0,504) o \textbf{cruelty} (0,502).
+quieres otra: \textbf{torture} (0,504) o \textbf{cruelty} (0,502). En la hoja
+de la palabra se ve \textbf{«En español»} (la traducción) y \textbf{«Aquí
+significa»}; la marca \textbf{IA} solo sale cuando la definición no viene del
+diccionario, así que \textbf{para enseñar la marca toca antes una palabra que
+Wiktionary no traiga} (un nombre propio raro del capítulo vale) y vuelve a
+\emph{poverty}.
 
-Y si alguna vez sale el aviso de \textbf{«la acepción elegida es dudosa», dilo
-en voz alta}: que el modelo avise de que no está seguro es de lo mejor que tiene
-esta aplicación, y es el mismo criterio que la banda en vez del decimal.
+Y si alguna vez sale el aviso de \textbf{«no estoy seguro de que sea esta
+acepción», dilo en voz alta}: que el modelo avise de que no está seguro es de
+lo mejor que tiene esta aplicación, y es el mismo criterio que la banda en vez
+del decimal.
+
+\textbf{La frase del paso Cinco la trae la app} («Una frase de mi libro» en
+\emph{Pronunciar}), así que es del capítulo abierto. Léela con alguna palabra
+a propósito mal dicha si quieres que salga un sonido señalado; si la lees
+perfecta, la corrección dirá que se entendió todo y no habrá fonema que
+enseñar. El botón del sonido \textbf{suena} (audio pregrabado, sin coste) y
+«Ver cómo se mueve la boca» abre \textbf{primero el sonido y después la
+palabra entera}, animados. Con «Reducir movimiento» del sistema salen quietos:
+tenlo apagado al grabar.
+
+\textbf{Planos de pantalla que hacen falta}, en el orden del guion. Son la
+referencia de lo que tiene que verse en cada paso y el plan B si algo falla en
+directo; todos a 390 px de ancho, con perfil 1,20 puesto:
+
+\begin{itemize}
+  \item {}[CAPTURA: inicio del \emph{front} en el móvil, con la navegación Leer ·
+        Encontrar · Pronunciar · Tu nivel]
+  \item {}[CAPTURA: Ajustes $\rightarrow$ Tu perfil, formulario Usuario y
+        Contraseña con el botón «Entrar»]
+  \item {}[CAPTURA: Tu nivel, resultado «1,20 de 2 · intermedio» con la escala y
+        la franja de lecturas recomendadas]
+  \item {}[CAPTURA: Tu nivel $\rightarrow$ «Afinar»: «Mídeme con un texto» y
+        «Mídeme con un libro que ya leí»]
+  \item {}[CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
+        con el nivel al lado de cada libro, \emph{Crime and Punishment} visible]
+  \item {}[CAPTURA: ficha de \emph{Crime and Punishment}: 203.415 palabras,
+        diálogo, vocabulario y la curva medida con la media 1,70 y la línea «tu
+        nivel»]
+  \item {}[CAPTURA: lector con la hoja de \emph{poverty}: fonética con audio, «En
+        español» y «Aquí significa»]
+  \item {}[CAPTURA: hoja de una palabra que el diccionario no trae, con la marca
+        «IA» en la definición]
+  \item {}[CAPTURA: Pronunciar, con la frase del libro escrita y la barra de
+        acción fija abajo: micrófono en el centro y «Corrígeme»]
+  \item {}[CAPTURA: la corrección palabra por palabra, el sonido que falla con su
+        botón de audio y «Cómo colocar la boca»]
+  \item {}[CAPTURA: «Ver cómo se mueve la boca» abierto: el corte del sonido y el
+        de la palabra entera]
+  \item {}[CAPTURA: Mis palabras, con la lista de palabras consultadas y su
+        frase, y «Repasa cinco»]
+  \item {}[CAPTURA: para el cierre, la dirección del \emph{front} grande sobre la
+        portada: \texttt{mikemaki1763-literalevel-front.static.hf.space}]
+\end{itemize}
 \end{ve}
 
 \begin{dice}
-Esto es LiteraLevel.
+Esto es LiteraLevel, en el móvil. El \emph{front} que ven es nuevo: el
+profesor lo pidió en la revisión, separado del motor.
 
-\textbf{Uno.} Contesto seis preguntas sobre cómo leo y leo tres fragmentos
-reales. En segundos tengo mi nivel: \textbf{1,20 sobre 2}, banda intermedia.
-\emph{(mostrar el resultado)}
+\textbf{Uno.} Entro y mido mi nivel: seis preguntas y tres fragmentos reales.
+También vale un texto mío, o un libro que ya leí. En segundos: \textbf{1,20
+sobre 2}, banda intermedia. \emph{(mostrar el resultado)}
 
-\textbf{Dos.} Le describo en español lo que me apetece leer y me busca por
-significado, no por título, \textbf{con mi nivel al lado de cada libro}. Y
-escribo \emph{dostoyevski} mal escrito, y aun así lo encuentra.
+\textbf{Dos.} Describo en español lo que me apetece leer y busca por
+significado, \textbf{con mi nivel al lado de cada libro}. Escribo
+\emph{dostoyevski} mal escrito, y lo encuentra.
 
-\textbf{Tres.} Abro \emph{Crimen y castigo} y aparece su ficha, contada sobre
-el texto y no sobre la portada: \textbf{203.415 palabras}, cuánto es diálogo,
-qué se repite, y cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta
-curva: \textbf{la dificultad capítulo a capítulo}, con el modelo leyendo el
-libro entero. \textbf{836 ventanas}: media \textbf{1,70}. Mi
-nivel es 1,20. Este libro me queda por encima, y lo sé antes de la primera
-página.
+\textbf{Tres.} Abro \emph{Crimen y castigo}: su ficha, contada sobre el texto:
+\textbf{203.415 palabras}, cuánto es diálogo, qué se repite. Y la curva:
+\textbf{la dificultad capítulo a capítulo}, con el modelo leyendo el libro
+entero. \textbf{836 ventanas}: media \textbf{1,70}. Mi nivel es 1,20. Me
+queda por encima, y lo sé antes de la primera página.
 
-\textbf{Cuatro.} \emph{(doble clic en} poverty\emph{)} Toco una palabra y en
-\textbf{40 milisegundos} tengo el diccionario y la fonética británica y
-americana, del archivo local: la misma palabra suena distinta a los dos lados
-del Atlántico. Y unos segundos después llega lo que no se puede contar: qué
-significa \textbf{en esta frase}, y su gramática.
+\textbf{Cuatro.} \emph{(tocar} poverty\emph{)} Toco una palabra y en
+\textbf{40 milisegundos} tengo el diccionario, la fonética con su audio y la
+traducción. Unos segundos después, lo que no se puede contar: qué significa
+\textbf{en esta frase}. Y si la define un modelo porque el diccionario no la
+trae, lo dice con una marca: \textbf{IA}.
 
-\textbf{Cinco.} \emph{(leer una frase en voz alta al micrófono)} Y leo en voz
-alta. Me marca en verde lo que sonó bien y en rojo lo que no, palabra por
-palabra.
+\textbf{Cinco.} \emph{(leer la frase y pulsar Corrígeme)} Leo en voz alta y
+pulso \emph{Corrígeme}. Me marca palabra por palabra lo que se entendió; me
+señala \textbf{el sonido} que falla; lo oigo bien dicho; y veo \textbf{cómo se
+mueve la boca} por dentro para hacerlo. \emph{(abrir Ver cómo se mueve la
+boca)}
+
+\textbf{Seis.} Y lo que consulto se queda en \textbf{Mis palabras}, con su
+frase, para repasar.
 \end{dice}
 
 \begin{ve}
@@ -405,8 +473,10 @@ libros}. Empieza el que le toca, entiende lo que lee, y sigue.
 \reloj{4:15 – 4:40}
 
 \begin{ve}
-\textbf{En pantalla:} el enlace de la aplicación, grande. Y debajo, pequeño: el
-repositorio.
+\textbf{En pantalla:} el enlace del \emph{front}, grande:\\
+\texttt{mikemaki1763-literalevel-front.static.hf.space}\\
+Y debajo, pequeño: el repositorio y el motor:\\
+\texttt{huggingface.co/spaces/\allowbreak MikeMaki1763/\allowbreak literalevel}
 \end{ve}
 
 \begin{dice}
@@ -440,6 +510,8 @@ casero.}
 ¿Se oye el audio de la app en la demo? & comprobar niveles en OBS \\
 ¿Funciona el micrófono para la pronunciación? & \textbf{hace falta un headset} \\
 ¿El enlace del final está vivo? & pegarlo en el móvil y abrirlo \\
+¿El motor está despierto y has entrado? & abrir \emph{Ajustes $\rightarrow$ Tu perfil} y consultar una palabra antes \\
+¿«Reducir movimiento» está apagado en el sistema? & si no, la boca sale quieta \\
 \bottomrule
 \end{tabularx}
 \end{center}

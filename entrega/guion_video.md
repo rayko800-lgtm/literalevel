@@ -7,8 +7,8 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 569 palabras y son 3:48 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta —y la regla de las notas se le añadió al contador el 11 de septiembre, cuando una nota que citaba «la fonética británica y americana» se le coló en el parlamento. El minuto que
-sobra no es un descuido, es el presupuesto para lo que la demo tarda *de verdad*
+**El texto hablado son 601 palabras y son 4:00 a 150 palabras por minuto.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta —y la regla de las notas se le añadió al contador el 11 de septiembre, cuando una nota que citaba «la fonética británica y americana» se le coló en el parlamento. Los cuarenta segundos que
+sobran no son un descuido, son el presupuesto para lo que la demo tarda *de verdad*
 — esperar a que salga el nivel, a que responda la búsqueda, que suene el audio,
 leer la frase en voz alta. Si al ensayar te sale muy corto, no metas más texto:
 ve más despacio y deja respirar las pausas.
@@ -35,9 +35,12 @@ Y se cruza con la plantilla de la **presentación modelo del propio profesor**
 párrafos, objetivos numerados, métricas sin adornos, y sobre todo su
 **«Ejemplo de uso y aplicación»** — tomar *un* caso real y recorrerlo paso a
 paso. En su proyecto de Yelp ese recorrido es el corazón de la presentación.
-Aquí es **el mismo caso que recorren el documento (§8.2) y la diapositiva 8**:
-una lectora con perfil **1,20 sobre 2** y *Crime and Punishment*. Los tres
-entregables cuentan el mismo recorrido, con el mismo lector y el mismo libro.
+Aquí es **el mismo caso que recorren el documento (§8.2) y la diapositiva
+«Ejemplo de uso y aplicación»**: una lectora con perfil **1,20 sobre 2** y
+*Crime and Punishment*. Los tres entregables cuentan el mismo recorrido, con el
+mismo lector y el mismo libro. **La aplicación que se enseña es el front de
+Angular** (`mikemaki1763-literalevel-front.static.hf.space`), en el móvil: es lo
+que se entrega desde el 13 de septiembre de 2026, a petición del profesor.
 
 ---
 
@@ -94,28 +97,38 @@ capítulo a capítulo.»
 
 ## S — SATISFACCIÓN · 1:05 – 3:35
 
-> **En pantalla:** compartir pantalla y **usar la aplicación de verdad**.
-> Nada de capturas. Que se vea el cursor moverse.
-> **Usa el mismo caso que el documento §8.2 y la diapositiva 8**: perfil
-> **1,20** y *Crime and Punishment* (PG2554). Las cifras que se dicen
-> —203.415 palabras, 836 ventanas, media 1,70— son las que dio la app
-> publicada el 12 de septiembre de 2026, con el libro abierto desde el
-> buscador (ahora en `.txt`, el mismo texto con el que se midió el
+> **En pantalla:** el **front de Angular en el móvil** y **usarlo de verdad**.
+> Nada de capturas pegadas: que se vea el dedo (o el cursor) moverse. Dos
+> maneras de enseñar el móvil en OBS: la pantalla del teléfono duplicada en
+> el equipo, o el navegador del equipo con la vista de dispositivo a
+> **390 px** de ancho, que es como se probó el front. Miguel sigue a cámara
+> todo el rato; la app va en una ventana al lado.
+> **Usa el mismo caso que el documento §8.2 y la diapositiva «Ejemplo de uso
+> y aplicación»**: perfil **1,20** y *Crime and Punishment* (PG2554). Las
+> cifras que se dicen —203.415 palabras, 836 ventanas, media 1,70— son las
+> que dio la app publicada el 12 de septiembre de 2026, con el libro abierto
+> desde el buscador (en `.txt`, el mismo texto con el que se midió el
 > catálogo; el documento cita 203.699 y 840 porque aquella medida se hizo
-> sobre el EPUB). Y
-> el libro **se abre desde el buscador**: escribe «dostoyevski» y sale.
+> sobre el EPUB). El motor es el mismo detrás del front, así que las cifras
+> no cambian. Y el libro **se abre desde el buscador**: escribe
+> «dostoyevski» en *Encontrar* y sale.
 >
 > **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
 > hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
 >
-> **Enciende la aplicación antes de grabar, y úsala.** Tres cosas de la
-> primera vez, medidas el 11 de septiembre de 2026:
+> **Entra antes de grabar, y úsala.** Entrar es *Ajustes → Tu perfil*
+> (usuario y contraseña): sin entrar, la explicación en contexto y la
+> corrección de pronunciación no salen, porque son lo que cuesta dinero. Y
+> tres cosas de la primera vez, medidas el 11 de septiembre de 2026 y que
+> siguen igual, porque el motor es el mismo:
 >
 > - La **primera consulta léxica de la sesión tarda unos 55 segundos**:
 >   carga el diccionario de 243 MB, spaCy y el modelo de similitud. Los
 >   **40 milisegundos** que dices a cámara son **en caliente**, y son
 >   ciertos: la segunda palabra sale al instante. **Consulta una palabra
->   cualquiera antes de grabar** y el paso Cuatro va fluido.
+>   cualquiera antes de grabar** y el paso Cuatro va fluido. Si el motor
+>   llevaba horas sin visitas, la primera llamada tarda además medio
+>   minuto en despertarlo; el front lo dice en pantalla. Despiértalo antes.
 > - **Calcula la curva del libro antes.** Queda guardada, así que en la
 >   toma sale en segundos en vez de en dos minutos de silencio. Y hasta
 >   que no está calculada, la ficha no sabe si el libro te queda por
@@ -134,16 +147,15 @@ capítulo a capítulo.»
 >   Huckleberry Finn*: los dos quedan por encima y tienen capítulos a tu
 >   nivel.
 >
-> **«Sorpréndeme» ya se puede pulsar.** Desde el 12 de septiembre de 2026
-> la letra de cada libro es la que midió el modelo sobre el libro entero,
-> no la etiqueta heredada, así que ya no se desmiente sola. Aun así, un
-> capítulo concreto puede salir por encima o por debajo de la media del
-> libro: si pasa, es la curva haciendo su trabajo, y se puede decir.
+> **El nivel se puede medir de tres maneras y el guion enseña una.** El
+> cuestionario con tres fragmentos es el que da 1,20 en segundos. *Mídeme
+> con un texto* y *Mídeme con un libro que ya leí* están en *Tu nivel*, bajo
+> «Afinar»: nómbralas y pasa, no las hagas, que el libro tarda en medirse.
 >
 > **Y la palabra del paso Cuatro se elige antes, no en directo.** El
 > diccionario solo trae fonética en el 3,1 % de sus entradas —el 58 % de las
-> consultas sobre un libro real, §6.4 del documento—, así que «la fonética
-> británica y americana» depende de la palabra que se toque. Y hay una
+> consultas sobre un libro real, §6.4 del documento—, así que la fonética
+> depende de la palabra que se toque. Y hay una
 > segunda trampa, medida: **las palabras con el contraste británico/
 > americano más bonito son las polisémicas, que es justo donde el
 > desambiguador flojea**. De las tres apariciones de *clerk* en estos
@@ -155,38 +167,87 @@ capítulo a capítulo.»
 > sale sin aviso—, acepción correcta, y */ˈpɒvəti/* frente a */ˈpɑːvɚti/*
 > se oye. Está en *«He was in terrible poverty, yet he took upon himself
 > the payment of his brother's debts»*, y encima es el tema del libro. Si
-> quieres otra: **torture** (0,504) o **cruelty** (0,502).
+> quieres otra: **torture** (0,504) o **cruelty** (0,502). En la hoja de la
+> palabra se ve **«En español»** (la traducción) y **«Aquí significa»**; la
+> marca **IA** solo sale cuando la definición no viene del diccionario, así
+> que **para enseñar la marca toca antes una palabra que Wiktionary no
+> traiga** (un nombre propio raro del capítulo vale) y vuelve a *poverty*.
 >
-> Y si alguna vez sale el aviso de **«la acepción elegida es dudosa»,
-> dilo en voz alta**: que el modelo avise de que no está seguro es de lo
-> mejor que tiene esta aplicación, y es el mismo criterio que la banda en
-> vez del decimal.
+> Y si alguna vez sale el aviso de **«no estoy seguro de que sea esta
+> acepción», dilo en voz alta**: que el modelo avise de que no está seguro
+> es de lo mejor que tiene esta aplicación, y es el mismo criterio que la
+> banda en vez del decimal.
+>
+> **La frase del paso Cinco la trae la app** («Una frase de mi libro» en
+> *Pronunciar*), así que es del capítulo abierto. Léela con alguna palabra
+> a propósito mal dicha si quieres que salga un sonido señalado; si la lees
+> perfecta, la corrección dirá que se entendió todo y no habrá fonema que
+> enseñar. El botón del sonido **suena** (audio pregrabado, sin coste) y
+> «Ver cómo se mueve la boca» abre **primero el sonido y después la palabra
+> entera**, animados. Con «Reducir movimiento» del sistema salen quietos:
+> tenlo apagado al grabar.
+>
+> **Planos de pantalla que hacen falta**, en el orden del guion. Son la
+> referencia de lo que tiene que verse en cada paso y el plan B si algo
+> falla en directo; todos a 390 px de ancho, con perfil 1,20 puesto:
+>
+> - [CAPTURA: inicio del front en el móvil, con la navegación Leer ·
+>   Encontrar · Pronunciar · Tu nivel]
+> - [CAPTURA: Ajustes → Tu perfil, formulario Usuario y Contraseña con el
+>   botón «Entrar»]
+> - [CAPTURA: Tu nivel, resultado «1,20 de 2 · intermedio» con la escala
+>   y la franja de lecturas recomendadas]
+> - [CAPTURA: Tu nivel → «Afinar»: «Mídeme con un texto» y «Mídeme con un
+>   libro que ya leí»]
+> - [CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
+>   con el nivel al lado de cada libro, *Crime and Punishment* visible]
+> - [CAPTURA: ficha de *Crime and Punishment*: 203.415 palabras, diálogo,
+>   vocabulario y la curva medida con la media 1,70 y la línea «tu nivel»]
+> - [CAPTURA: lector con la hoja de *poverty*: fonética con audio, «En
+>   español» y «Aquí significa»]
+> - [CAPTURA: hoja de una palabra que el diccionario no trae, con la marca
+>   «IA» en la definición]
+> - [CAPTURA: Pronunciar, con la frase del libro escrita y la barra de
+>   acción fija abajo: micrófono en el centro y «Corrígeme»]
+> - [CAPTURA: la corrección palabra por palabra, el sonido que falla con su
+>   botón de audio y «Cómo colocar la boca»]
+> - [CAPTURA: «Ver cómo se mueve la boca» abierto: el corte del sonido y
+>   el de la palabra entera]
+> - [CAPTURA: Mis palabras, con la lista de palabras consultadas y su
+>   frase, y «Repasa cinco»]
+> - [CAPTURA: para el cierre, la dirección del front grande sobre la
+>   portada: `mikemaki1763-literalevel-front.static.hf.space`]
 
-«Esto es LiteraLevel.
+«Esto es LiteraLevel, en el móvil. El front que ven es nuevo: el profesor lo
+pidió en la revisión, separado del motor.
 
-**Uno.** Contesto seis preguntas sobre cómo leo y leo tres fragmentos reales.
-En segundos tengo mi nivel: **1,20 sobre 2**, banda intermedia.
-*(mostrar el resultado)*
+**Uno.** Entro y mido mi nivel: seis preguntas y tres fragmentos reales.
+También vale un texto mío, o un libro que ya leí. En segundos: **1,20 sobre
+2**, banda intermedia. *(mostrar el resultado)*
 
-**Dos.** Le describo en español lo que me apetece leer y me busca por
-significado, no por título, **con mi nivel al lado de cada libro**. Y
-escribo *dostoyevski* mal escrito, y aun así lo encuentra.
+**Dos.** Describo en español lo que me apetece leer y busca por significado,
+**con mi nivel al lado de cada libro**. Escribo *dostoyevski* mal escrito, y
+lo encuentra.
 
-**Tres.** Abro *Crimen y castigo* y aparece su ficha, contada sobre el texto y
-no sobre la portada: **203.415 palabras**, cuánto es diálogo, qué se repite, y
-cuánto tardo yo a la velocidad que le toca a mi nivel. Y esta curva: **la
+**Tres.** Abro *Crimen y castigo*: su ficha, contada sobre el texto:
+**203.415 palabras**, cuánto es diálogo, qué se repite. Y la curva: **la
 dificultad capítulo a capítulo**, con el modelo leyendo el libro entero.
-**836 ventanas**: media **1,70**. Mi nivel es 1,20. Este libro
-me queda por encima, y lo sé antes de la primera página.
+**836 ventanas**: media **1,70**. Mi nivel es 1,20. Me queda por encima, y lo
+sé antes de la primera página.
 
-**Cuatro.** *(doble clic en* poverty*)* Toco una palabra y en **40
-milisegundos** tengo el diccionario y la fonética británica y americana, del
-archivo local: la misma palabra suena distinta a los dos lados del Atlántico. Y
-unos segundos después llega lo que no se puede contar: qué significa **en esta
-frase**, y su gramática.
+**Cuatro.** *(tocar* poverty*)* Toco una palabra y en **40 milisegundos**
+tengo el diccionario, la fonética con su audio y la traducción. Unos segundos
+después, lo que no se puede contar: qué significa **en esta frase**. Y si la
+define un modelo porque el diccionario no la trae, lo dice con una marca:
+**IA**.
 
-**Cinco.** *(leer una frase en voz alta al micrófono)* Y leo en voz alta. Me
-marca en verde lo que sonó bien y en rojo lo que no, palabra por palabra.»
+**Cinco.** *(leer la frase y pulsar Corrígeme)* Leo en voz alta y pulso
+*Corrígeme*. Me marca palabra por palabra lo que se entendió; me señala **el
+sonido** que falla; lo oigo bien dicho; y veo **cómo se mueve la boca** por
+dentro para hacerlo. *(abrir Ver cómo se mueve la boca)*
+
+**Seis.** Y lo que consulto se queda en **Mis palabras**, con su frase, para
+repasar.»
 
 > **En pantalla, al terminar la demo:** las métricas desnudas.
 > **distilroberta-base** · Spearman **0,908** interno · orden MCER
@@ -224,8 +285,9 @@ libros**. Empieza el que le toca, entiende lo que lee, y sigue.»
 
 ## A — ACCIÓN · 4:15 – 4:40
 
-> **En pantalla:** el enlace de la aplicación, grande. Y debajo, pequeño:
-> el repositorio.
+> **En pantalla:** el enlace del front, grande:
+> `mikemaki1763-literalevel-front.static.hf.space`. Y debajo, pequeño: el
+> repositorio y el motor (`huggingface.co/spaces/MikeMaki1763/literalevel`).
 
 «LiteraLevel está funcionando ahora mismo, no es una maqueta. Este es el
 enlace; se abre en el móvil y funciona.
@@ -251,6 +313,8 @@ Pruébalo.»
 | ¿Se oye el audio de la app en la demo? | comprobar niveles en OBS |
 | ¿Funciona el micrófono para la parte de pronunciación? | **hace falta un headset** |
 | ¿El enlace del final está vivo? | pegarlo en el móvil y abrirlo |
+| ¿El motor está despierto y has entrado? | abrir *Ajustes → Tu perfil* y consultar una palabra antes de grabar |
+| ¿«Reducir movimiento» está apagado en el sistema? | si no, la boca sale quieta |
 
 ## Lo que este guion NO hace, a propósito
 
