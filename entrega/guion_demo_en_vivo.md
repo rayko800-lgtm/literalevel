@@ -156,7 +156,7 @@ respondo sus preguntas.»
 
 | Si pasa esto | Se hace esto | Se dice |
 |---|---|---|
-| **El Space está dormido** y el front enseña «Despertando…» | Seguir hablando del paso siguiente mientras despierta; si no responde en lo que dura una frase larga, abrir la **grabación previa** rotulada | «El servidor gratuito se duerme si nadie lo usa; mientras despierta, les cuento lo que va a salir.» |
+| **El Space está dormido** y el front enseña «Despertando…» | Seguir hablando del paso siguiente mientras despierta; si no responde en lo que dura una frase larga, abrir la **grabación previa** rotulada | «El servidor del motor se duerme si nadie lo usa; mientras despierta, les cuento lo que va a salir.» |
 | **El micrófono falla** en *Pronunciar* | Probar una vez más con los auriculares; si falla, pasar a la **grabación previa** de los pasos 5 y 6 | «El micrófono no me responde; se lo enseño en una grabación previa del mismo recorrido.» |
 | **La IA no responde** o se acabó el cupo | Seguir: el diccionario, la fonética, el buscador y la ficha no dependen de ella | «La parte de IA no está respondiendo, y precisamente por eso la aplicación no se cae: el diccionario y la lectura siguen funcionando.» |
 | **La boca 3D no carga** | Pulsar «Recargar y reintentar» una vez; si no, quedarse con el corte 2D | «La 3D tarda en cargar; el corte de perfil enseña lo mismo.» |
