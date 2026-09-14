@@ -809,7 +809,11 @@ def perfil_libro(datos: NivelLibroPeticion, pet: Lector) -> dict:
         raise _no(503, f"No he podido cargar el modelo ({type(e).__name__}).") from e
     p = perfil_mod.Perfil(nivel=r.puntuacion, banda=r.banda, origen="muestra",
                           creado=perfil_mod._ahora(), nombre=datos.nombre.strip())
-    p.guardar(ui._archivo_lector("perfil.json", pet))
+    try:
+        p.guardar(ui._archivo_lector("perfil.json", pet))
+    except OSError as e:
+        # Como en /api/perfil/muestra; sin esto era el 500 genérico (auditoría de Codex, 7).
+        raise _no(500, "No he podido guardar tu nivel.") from e
     return {**_perfil_json(p),
             "partes": min(ui.PARTES_MUESTRA, len(ui._cuerpo_para_muestra(libro)))}
 
@@ -844,16 +848,21 @@ def recomendar(pet: Lector, n: int = 10) -> dict:
     p = _perfil_de(pet)
     if p is None:
         return {"resultados": [], "necesita_perfil": True, "rango": None, "rescate": False}
-    cat = ui.catalogo()
-    libros = cat.por_nivel(p.nivel, holgura=ui.HOLGURA_POR_NIVEL, n=n)
     rescate = False
-    # Nunca un callejon: si nada de tu nivel se abre, lo mas facil que si.
-    if libros and not any(ui._abrible(b.id) for b in libros):
-        faciles = [b for b in cat.por_nivel(p.nivel, holgura=3.0, n=200) if ui._abrible(b.id)]
-        if faciles:
-            faciles.sort(key=lambda b: scoring.ANCHORS.index(b.nivel)
-                         if b.nivel in scoring.ANCHORS else 9)
-            libros, rescate = faciles[:n], True
+    # Con mensaje propio: si el catálogo no carga, esto caía en el 500 genérico
+    # (auditoría de Codex, 7), como ya hace /api/buscar.
+    try:
+        cat = ui.catalogo()
+        libros = cat.por_nivel(p.nivel, holgura=ui.HOLGURA_POR_NIVEL, n=n)
+        # Nunca un callejon: si nada de tu nivel se abre, lo mas facil que si.
+        if libros and not any(ui._abrible(b.id) for b in libros):
+            faciles = [b for b in cat.por_nivel(p.nivel, holgura=3.0, n=200) if ui._abrible(b.id)]
+            if faciles:
+                faciles.sort(key=lambda b: scoring.ANCHORS.index(b.nivel)
+                             if b.nivel in scoring.ANCHORS else 9)
+                libros, rescate = faciles[:n], True
+    except Exception as e:
+        raise _no(503, f"El catálogo no está disponible ahora mismo ({type(e).__name__}).") from e
     lo = max(0.0, p.nivel - ui.HOLGURA_POR_NIVEL)
     hi = min(2.0, p.nivel + ui.HOLGURA_POR_NIVEL)
     return {"resultados": [_libro_tarjeta(b) for b in libros], "necesita_perfil": False,
@@ -906,12 +915,21 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
         raise _no(422, "El archivo está vacío.")
     ident = "u" + h.hexdigest()[:16]
     carpeta = _dir_subidos(pet)
-    carpeta.mkdir(parents=True, exist_ok=True)
+    try:
+        carpeta.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise _no(500, "No he podido guardar el libro en el servidor.") from e
     destino = carpeta / f"{ident[1:]}{ext}"
     if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
         raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Borra alguno con la papelera de «Mis libros» para subir otro.")
     if not destino.exists():
-        destino.write_bytes(b"".join(trozos))
+        # Disco lleno o sin permiso: con mensaje propio, no el 500 genérico
+        # (auditoría de Codex, 7).
+        try:
+            destino.write_bytes(b"".join(trozos))
+        except OSError as e:
+            destino.unlink(missing_ok=True)
+            raise _no(500, "No he podido guardar el libro en el servidor.") from e
     try:
         lib = _cargar_libro(str(destino))
     except HTTPException:

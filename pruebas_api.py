@@ -409,6 +409,38 @@ def extracto_de_seguir_leyendo_salta_la_licencia():
     return extracto[:40]
 
 
+def errores_con_mensaje_propio_y_no_el_500_generico():
+    """Auditoría de Codex (7): recomendar con el catálogo caído, guardar el nivel
+    medido con un libro y escribir una subida caían en «Algo ha fallado en el
+    servidor». Cada uno tiene que decir qué ha pasado."""
+    from pathlib import Path
+    from types import SimpleNamespace as NS
+    from unittest.mock import patch
+    lector = nuevo_lector()
+    generico = "Algo ha fallado"
+
+    def roto():
+        raise RuntimeError("catalogo roto")
+
+    with patch.object(api, "_perfil_de", lambda pet: NS(nivel=1.0)), patch.object(ui, "catalogo", roto):
+        rec = cliente.get("/api/recomendar", headers=lector)
+    with patch.object(api, "_puntuar", lambda t: NS(puntuacion=1.0, banda="intermedio")), \
+            patch.object(ui, "_muestra_de_libro", lambda lib: "word " * 200), \
+            patch.object(api.perfil_mod.Perfil, "guardar", side_effect=OSError("disco lleno")):
+        niv = cliente.post("/api/perfil/libro", headers=lector, json={"libro_id": LIBRE})
+    texto = ("The tailor sewed a coat for the king by candlelight every evening. " * 50 + "\n\n") * 3
+    with patch.object(ui, "_dentro_del_limite", lambda pet, cubo, tope: True), \
+            patch.object(Path, "write_bytes", side_effect=OSError("disco lleno")):
+        sub = cliente.post("/api/libros", headers=lector, files={"archivo": ("sastre.txt", texto.encode(), "text/plain")})
+    resumen = {}
+    for nombre, r, estado, frase in (("recomendar", rec, 503, "catálogo"), ("perfil/libro", niv, 500, "guardar tu nivel"),
+                                     ("subida", sub, 500, "guardar el libro")):
+        detalle = r.json().get("detail", "")
+        assert r.status_code == estado and frase in detalle and generico not in detalle, (nombre, r.status_code, detalle)
+        resumen[nombre] = r.status_code
+    return resumen
+
+
 def cuento_de_parrafos_cortos_no_pierde_el_principio():
     """El recorte de la portada solo va en el capitulo con la marca de Gutenberg."""
     import re
@@ -948,7 +980,7 @@ if __name__ == "__main__":
                aviso_de_contenido_en_ficha_y_tarjeta, devolucion_va_a_la_cuenta_cobrada,
                sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
                historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion,
-               extracto_de_seguir_leyendo_salta_la_licencia):
+               extracto_de_seguir_leyendo_salta_la_licencia, errores_con_mensaje_propio_y_no_el_500_generico):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
