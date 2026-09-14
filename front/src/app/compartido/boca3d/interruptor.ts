@@ -1,30 +1,16 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { Acento } from '../../nucleo/api';
-
-/** Interruptor de compilación de la boca 3D.
+/** Interruptor de la boca 3D.
  *
- *  Decisión de Miguel (14 sep): publicar el front SIN el 3D y decidir otro día
- *  si se enciende. Apagado, Pronunciar no enseña «Boca en 3D» y no importa el
- *  componente real, así que three.js, sus cargadores y las poses no entran en
- *  el build (ni siquiera como chunk diferido). El componente, sus pruebas y los
- *  glb de `public/boca3d` se quedan donde están.
+ *  Encendido (Miguel, 14 sep, 02:55: «incorpóralo de una»). Pronunciar enseña
+ *  «Boca en 3D» en la ficha del sonido y en la corrección, e importa el
+ *  componente real DIRECTAMENTE desde `./boca3d`: el @defer solo lo separa en su
+ *  propio chunk si el import es directo (con una reexportación desde aquí,
+ *  three.js entraba entero en el chunk de Pronunciar). Así three.js solo baja
+ *  al pulsar el botón.
  *
- *  Para ENCENDERLO, dos cambios en este archivo:
- *    1. `export const BOCA3D_ACTIVO = true;`
- *    2. borrar la clase de abajo y poner `export { Boca3d as Boca3dVisor } from './boca3d';`
+ *  Para APAGARLO otra vez y dejar three.js fuera del build (como en b05a4e6):
+ *    1. aquí, `export const BOCA3D_ACTIVO = false;`
+ *    2. en `pantallas/pronunciar.ts`, cambiar el import de `Boca3d` por un
+ *       sustituto vacío con selector `app-boca3d` y las entradas sonido, acento,
+ *       ipa, acentoIpa y svg2dUrl.
  */
-export const BOCA3D_ACTIVO = false;
-
-/** Sustituto sin nada dentro, con las mismas entradas que usa Pronunciar. */
-@Component({
-  selector: 'app-boca3d',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: '',
-})
-export class Boca3dVisor {
-  readonly sonido = input<string>('');
-  readonly acento = input<Acento>('ga');
-  readonly ipa = input<string>('');
-  readonly acentoIpa = input<Acento | null>(null);
-  readonly svg2dUrl = input<string | null>(null);
-}
+export const BOCA3D_ACTIVO = true;

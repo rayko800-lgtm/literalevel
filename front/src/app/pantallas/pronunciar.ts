@@ -4,7 +4,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { BOCA3D_ACTIVO, Boca3dVisor } from '../compartido/boca3d/interruptor';
+// Import directo desde boca3d.ts, no reexportado: con una reexportación el
+// @defer no separa el componente y three.js (736 KB) entraba en el chunk de
+// Pronunciar en vez de bajar al pulsar «Boca en 3D».
+import { Boca3d } from '../compartido/boca3d/boca3d';
+import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
@@ -20,7 +24,7 @@ type Grabacion = 'lista' | 'grabando' | 'grabada';
 @Component({
   selector: 'app-pronunciar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icono, Boca3dVisor],
+  imports: [FormsModule, RouterLink, Icono, Boca3d],
   templateUrl: './pronunciar.html',
   styleUrl: './pronunciar.css',
 })

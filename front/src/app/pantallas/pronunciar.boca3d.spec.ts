@@ -5,9 +5,10 @@ import { provideRouter } from '@angular/router';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
 import { Pronunciar } from './pronunciar';
 
-/** Con el interruptor de la boca 3D apagado (decisión de Miguel, 14 sep), ni la
- *  ficha del sonido ni la corrección enseñan «Boca en 3D»; el corte 2D sí. */
-describe('Pronunciar con la boca 3D apagada', () => {
+/** Con el interruptor de la boca 3D encendido (Miguel, 14 sep), la ficha del
+ *  sonido y la corrección enseñan «Boca en 3D»; el visor no se monta (ni baja
+ *  three.js) hasta que se pulsa. */
+describe('Pronunciar con la boca 3D encendida', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Pronunciar],
@@ -15,8 +16,8 @@ describe('Pronunciar con la boca 3D apagada', () => {
     }).compileComponents();
   });
 
-  it('no pinta el botón 3D ni el visor, y sí la ficha y los cortes 2D', async () => {
-    expect(BOCA3D_ACTIVO).toBe(false);
+  it('pinta «Boca en 3D» en la ficha y en la corrección, sin montar el visor hasta pulsar', async () => {
+    expect(BOCA3D_ACTIVO).toBe(true);
     const fixture = TestBed.createComponent(Pronunciar);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const c = fixture.componentInstance as any;
@@ -38,11 +39,14 @@ describe('Pronunciar con la boca 3D apagada', () => {
     await fixture.whenStable();
 
     const raiz = fixture.nativeElement as HTMLElement;
-    // Control: lo que rodea al botón sí está, así que su ausencia no es por no pintar nada.
     expect(raiz.querySelector('.ficha-sonido')).not.toBeNull();
     expect(raiz.querySelector('details.boca')).not.toBeNull();
-    const botones = [...raiz.querySelectorAll('button')].map(b => b.textContent ?? '');
-    expect(botones.some(t => /Boca en 3D|Cerrar 3D/.test(t))).toBe(false);
+    const botones3d = [...raiz.querySelectorAll('button')].filter(b => /Boca en 3D/.test(b.textContent ?? ''));
+    // Uno en la ficha del sonido y otro en el detalle de la corrección.
+    expect(botones3d.length).toBe(2);
+    expect(raiz.querySelector('.ficha-sonido button[aria-expanded]')?.textContent).toContain('Boca en 3D');
+    expect(raiz.querySelector('details.boca button[aria-expanded]')?.textContent).toContain('Boca en 3D');
+    // Sin pulsar, no se monta el visor.
     expect(raiz.querySelector('app-boca3d')).toBeNull();
   });
 });
