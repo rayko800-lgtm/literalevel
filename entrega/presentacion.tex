@@ -59,7 +59,7 @@
 % --- Una cifra grande y sola, que es la regla del guion --------------------
 \newcommand{\cifra}[2]{%
   \begin{minipage}{\linewidth}\centering
-    {\fontsize{46}{50}\selectfont\bfseries\color{llazul}#1}\\[4pt]
+    {\fontsize{42}{46}\selectfont\bfseries\color{llazul}#1}\\[4pt]
     {\small\color{llgris}#2}
   \end{minipage}}
 
@@ -107,8 +107,8 @@
 {\large Un hispanohablante elige un libro en inglés que suena bien,\\[2pt]
 lo abre\ldots{} y a las tres páginas lo cierra.}\\[8mm]
 
-{\Large\bfseries\color{llazul} No porque no sepa inglés.}\\[3pt]
-{\Large\bfseries\color{llazul} Porque eligió mal el libro.}\\[10mm]
+{\Large\bfseries\color{llazul} Quizá no era falta de capacidad.}\\[3pt]
+{\Large\bfseries\color{llazul} Quizá necesitaba otra lectura.}\\[10mm]
 
 {\color{llgris} Nadie le dijo antes de abrirlo si estaba a su altura.}
 \end{center}
@@ -136,9 +136,9 @@ domina. Encontrar ese peldaño es el problema.}
 \textbf{\color{llazul} Quién paga qué}\\[2pt]
 {\small Medir un libro, leerlo, buscar y el diccionario: \textbf{gratis}, corren
 en local sobre datos abiertos.\\[3pt]
-Explicar una palabra, resumir y corregir la pronunciación: salen a un servicio
-de pago.\\[3pt]
-Esa frontera no se diseñó: \textbf{salió de medir qué costaba cada cosa}.}
+Explicar el contexto, traducir, resumir y corregir la pronunciación: usan
+OpenAI, con permiso y cuota.\\[3pt]
+Sin clave, \textbf{la lectura y el diccionario local siguen disponibles}.}
 \end{column}
 \end{columns}
 \end{frame}
@@ -154,7 +154,7 @@ Esa frontera no se diseñó: \textbf{salió de medir qué costaba cada cosa}.}
   \cifra{654}{documentos anclados\\a niveles del MCER}
 \end{column}
 \begin{column}{0.33\textwidth}\centering
-  \cifra{61.642}{libros en inglés de\\Project Gutenberg}
+  \cifra{61.642}{libros objetivo en inglés\\Gutenberg, 7 sep. 2026}
 \end{column}
 \end{columns}
 
@@ -175,8 +175,8 @@ directa de los PDF.
         a capítulo, y no una muestra de sus primeras páginas.
   \item[{\color{llcian}\bfseries 03}] \textbf{Recomendar qué leer hoy}, con la
         dificultad puesta al lado del nivel del lector.
-  \item[{\color{llcian}\bfseries 04}] \textbf{Acompañar la lectura}: definición
-        en contexto y corrección de pronunciación.
+  \item[{\color{llcian}\bfseries 04}] \textbf{Acompañar la lectura}: diccionario,
+        explicación contextual y práctica de pronunciación.
 \end{itemize}
 \end{frame}
 
@@ -212,11 +212,9 @@ ordinal es sobre sextiles de CLEAR, no sobre niveles MCER.}
 \end{center}
 
 \vspace{-1mm}
-{\footnotesize Subir la potencia del clasificador sobre las mismas variables
-\textbf{no movió el resultado}: un XGBoost de 300 árboles queda por detrás de
-una regresión logística. Cambiar la representación sí. Las tres barras salen de
-\textbf{la misma tanda}, que es la única forma de que la comparación signifique
-algo.}
+{\footnotesize Con las mismas variables, un XGBoost de 300 árboles queda por
+detrás de una regresión logística. Cambiar la representación sí mejora el
+resultado. Las tres barras proceden de \textbf{la misma tanda}.}
 \end{frame}
 
 % ===========================================================================
@@ -259,7 +257,7 @@ British Council, desarrollo & 38 & 100\,\% & 0,829 \\
 \end{tabular}\\[3mm]
 {\scriptsize\color{llgris} Métricas internas recalculadas el 12 de septiembre con el
 guion de entrenamiento y datos públicos: idénticas a cuatro decimales.}
-\\[7mm]
+\\[3mm]
 
 {\small Sobre textos externos con nivel oficial, las medias por nivel salen
 \textbf{estrictamente crecientes}:}\\[3mm]
@@ -276,8 +274,7 @@ no.}
 % ===========================================================================
 \begin{frame}{La aplicación entregada}
 \vspace{1mm}
-{\small Un \emph{front} propio, separado del motor: lo pidió el profesor en la
-revisión del 12 de septiembre, y es lo que se entrega.}
+{\small Angular es la interfaz del lector; la API conecta con el motor de Python.}
 \vspace{2mm}
 
 \begin{center}
@@ -285,13 +282,13 @@ revisión del 12 de septiembre, y es lo que se entrega.}
 \tikzset{caja/.style={draw=llcian!70, fill=llfondo, rounded corners=2pt,
                       text width=3.4cm, align=center, inner sep=4pt,
                       minimum height=1.5cm}}
-\node[caja] (f) {\textbf{Front · Angular 22}\\ Space estático, gratis,\\
-  siempre despierto\\ \emph{Leer · Encontrar · Pronunciar · Tu nivel}};
-\node[caja, right=of f] (a) {\textbf{API · FastAPI}\\ 37 rutas en \cod{/api}\\
-  el mismo código\\ que Gradio: no\\ reimplementa reglas};
+\node[caja] (f) {\textbf{Front · Angular 22}\\ Interfaz entregada\\
+  Space estático\\ \emph{Leer · Encontrar · Pronunciar · Tu nivel}};
+\node[caja, right=of f] (a) {\textbf{API · FastAPI}\\ Rutas bajo \cod{/api}\\
+  reutiliza los módulos\\ y las puertas de pago\\ del motor};
 \node[caja, right=of a] (m) {\textbf{Motor}\\ modelo v4 · diccionario\\
   Space de Gradio,\\ \cod{cpu-basic}; Gradio\\ en la raíz, de respaldo};
-\draw[->, llcian!80, thick] (f) -- node[above] {HTTPS} (a);
+\draw[->, llcian!80, thick] (f) -- (a);
 \draw[->, llcian!80, thick] (a) -- (m);
 \end{tikzpicture}
 \end{center}
@@ -300,34 +297,31 @@ revisión del 12 de septiembre, y es lo que se entrega.}
 \begin{columns}[T]
 \begin{column}{0.32\textwidth}
 \textbf{\color{llazul} Con una mano}\\[2pt]
-{\small Barra de lectura abajo, al alcance del pulgar; el micrófono fijo en el
-centro; nada primario en el cuarto superior.}
+{\small Barra de lectura al alcance del pulgar y acceso al micrófono desde
+la vista de pronunciación.}
 \end{column}
 \begin{column}{0.32\textwidth}
-\textbf{\color{llazul} Fonema determinista}\\[2pt]
-{\small El sonido que falla sale de alinear dos transcripciones de diccionario,
-no del modelo: dos voces, el mismo fonema.}
+\textbf{\color{llazul} Voz e IPA}\\[2pt]
+{\small Compara lo dicho con la frase objetivo; ofrece IPA de diccionario,
+audio y orientación para practicar el sonido.}
 \end{column}
 \begin{column}{0.32\textwidth}
-\textbf{\color{llazul} La boca por dentro}\\[2pt]
-{\small Corte animado de labios, lengua y velo para 41 sonidos y para la
-palabra entera; quieto si el sistema pide menos movimiento.}
+\textbf{\color{llazul} Apoyo articulatorio}\\[2pt]
+{\small Cortes 2D de labios y lengua por sonido y palabra; respetan la
+preferencia de reducir movimiento. Son apoyo didáctico, no diagnóstico.}
 \end{column}
 \end{columns}
 
 \vspace{3mm}
-{\footnotesize\color{llgris} Regla de entrega: una función existe cuando tiene
-ruta en la API \textbf{y} pantalla en el \emph{front}.}
+{\footnotesize\color{llgris} Portadas FLUX y Blender 3D siguen en preparación;
+no son requisitos de esta demo.}
 \end{frame}
 
 % ===========================================================================
 \begin{frame}{Ejemplo de uso y aplicación}
 \vspace{1mm}
-{\small \textbf{El recorrido del apartado 8.2 del documento}, paso a paso: una
-lectora cuyo perfil da \textbf{1,20 sobre 2}, banda intermedia. Los pasos y las
-cifras son los de la aplicación; la lectora ilustra, no es una sesión
-registrada. Las pruebas de usuario reales son dos, Esmeralda y Laura, $n=2$, y
-están en el documento.}
+{\small \textbf{Caso ilustrativo del documento}: perfil \textbf{1,20 sobre 2},
+banda intermedia. No es una sesión registrada ni un resultado fijo del cuestionario.}
 \vspace{2mm}
 
 \begin{center}
@@ -338,8 +332,8 @@ están en el documento.}
 \node[p] (a) {\textbf{1. Se sitúa}\\ cuestionario\\ $\rightarrow$ 1,20};
 \node[p, right=of a] (b) {\textbf{2. Busca}\\ escribe mal\\ «dostoyevski»};
 \node[p, right=of b] (c) {\textbf{3. Abre}\\ \emph{Crime and}\\ \emph{Punishment}};
-\node[p, right=of c] (d) {\textbf{4. Mide}\\ 840 ventanas\\ en 134 s};
-\node[p, right=of d] (e) {\textbf{5. Lee}\\ palabra: 40 ms\\ y en voz alta};
+\node[p, right=of c] (d) {\textbf{4. Compara}\\ curva guardada\\ con su nivel};
+\node[p, right=of d] (e) {\textbf{5. Lee}\\ diccionario\\ y voz alta};
 \foreach \x/\y in {a/b,b/c,c/d,d/e}
   \draw[->, llcian!80, thick] (\x) -- (\y);
 \end{tikzpicture}
@@ -353,16 +347,16 @@ están en el documento.}
 \midrule
 Se sitúa & 1,20 sobre 2, banda \emph{intermedia}, ancla B2 \\
 Busca & búsqueda por significado; el nombre mal escrito llega igual \\
-Abre & ficha sobre el texto: 203.699 palabras, diálogo, repeticiones \\
-Mide & 840 ventanas en 134 s $\rightarrow$ media \textbf{1,70}; la segunda vez, 0,02 s \\
-Lee & la palabra en 40 ms; la voz alta, corregida palabra por palabra \\
+Abre & ficha sobre el texto: extensión, diálogo y repeticiones \\
+Compara & ejemplo registrado: dificultad \textbf{1,70} frente a perfil \textbf{1,20} \\
+Lee & diccionario primero; explicación de IA después, si está habilitada \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \vspace{1mm}
-{\footnotesize\color{llgris} \textbf{1,70 frente a 1,20}: el libro le queda por
-encima, y lo sabe antes de la primera página.}
+{\footnotesize\color{llgris} La medición histórica del libro no es una promesa
+de latencia HTTP. En la demo se muestran los valores que devuelve la app.}
 \end{frame}
 
 % ===========================================================================
@@ -404,31 +398,28 @@ nadie.}
 % ===========================================================================
 \begin{frame}{Estrategia}
 \vspace{3mm}
-{\small Tres acciones, con coste real y criterio de terminado.}
+{\small Acciones operativas y siguiente validación con lectores.}
 \vspace{3mm}
 
 \begin{center}\small
 \begin{tabular}{@{}p{0.30\linewidth} p{0.30\linewidth} p{0.30\linewidth}@{}}
 \toprule
-\textbf{Qué} & \textbf{Cuánto cuesta} & \textbf{Cuándo está hecho} \\
+\textbf{Acción} & \textbf{Recursos} & \textbf{Criterio de terminado} \\
 \midrule
-Publicar el modelo & 30 min, gratis &
-  \textbf{Hecho}: el cuaderno corre en un Colab limpio \\[3mm]
-Desplegar de forma permanente & 7 USD/mes por la API y el motor;
-  el \emph{front} estático, gratis &
-  \textbf{Hecho}: dos direcciones fijas que no mueren al apagar \\[3mm]
-Terminar la medición del catálogo & T4 gratuita; la última tanda,
-  55 min sin errores &
-  \textbf{Hecho}: 53.179 libros y 585.111 capítulos medidos por el v4,
-  y la app los usa \\
+Servir interfaz y motor & Angular estático + API en Space de Gradio;
+  IA con cuota &
+  \textbf{Publicado}: comprobar navegación y respuesta JSON antes de la demo \\[3mm]
+Ofrecer lecturas ajustadas & Catálogo medido por v4 y corpus graduados abiertos &
+  \textbf{Disponible}: 53.179 libros y 585.111 capítulos de Gutenberg medidos \\[3mm]
+Validar la utilidad & Pruebas con lectores y registro de tareas &
+  \textbf{Pendiente}: medir comprensión y continuidad con usuarios \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\vspace{6mm}
-{\footnotesize\color{llgris} El coste de medir el catálogo entero está en otro
-orden de magnitud que la tarifa de la alternativa comercial. Eso es lo que hace
-viable el proyecto, no la métrica.}
+\vspace{3mm}
+{\footnotesize\color{llgris} La consulta local no llama a OpenAI. El servicio
+remoto y la IA sí tienen costes operativos.}
 \end{frame}
 
 % ===========================================================================
@@ -457,8 +448,8 @@ en una escala continua propia.}\\[8mm]
 {\small\color{llgris} Modelo público:
 \ttfamily huggingface.co/MikeMaki1763/literalevel-v4}\\[10mm]
 
-{\normalsize Si alguna vez abandonaste un libro en inglés pensando que el
-problema eras tú:\\[3pt] \textbf{no lo eras. Era el libro.}}
+{\normalsize Elige una lectura, compara su dificultad con tu nivel\\[3pt]
+y prueba si te ayuda a seguir leyendo.}
 \end{center}
 \end{frame}
 
