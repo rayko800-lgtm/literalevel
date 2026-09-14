@@ -461,6 +461,34 @@ def _atribucion_fuera_al_medir():
 prueba("la atribucion de un texto libre no se mide con el cuento", _atribucion_fuera_al_medir)
 
 
+def _texto_servido_limpio_sin_tocar_lo_medido():
+    """Punto 4 de la prueba como persona (14 sep 2026): sin U+FEFF, sin parrafos
+    repetidos seguidos ni paginas duplicadas en un parrafo; el estribillo y la
+    repeticion no consecutiva se quedan; y lo que se mide no cambia."""
+    spec = importlib.util.spec_from_file_location("catalogar_corpus", "tools/catalogar_corpus.py")
+    cc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cc)
+    pagina = "Today is Monday. It is Anie's first online class today. Mother said waking her up now."
+    assert cc.limpiar_para_servir("﻿Hola.\n\nAdios.") == "Hola.\n\nAdios.", "U+FEFF"
+    assert cc.limpiar_para_servir(f"{pagina}\n\n{pagina}\n\nFin.") == f"{pagina}\n\nFin.", "parrafo repetido seguido"
+    assert cc.limpiar_para_servir(f"{pagina} {pagina}") == pagina, "pagina duplicada dentro del parrafo"
+    # Doce palabras o mas por mitad, pero UNA frase: es del cuento, se queda.
+    medio = "Run, run, as fast as you can, you cannot catch me, I am the Gingerbread Man!"
+    estribillo = f"{medio} {medio}"
+    assert cc.limpiar_para_servir(estribillo) == estribillo, "se come un estribillo de una frase"
+    lejos = f"{pagina}\n\nOtra cosa.\n\n{pagina}"
+    assert cc.limpiar_para_servir(lejos) == lejos, "se come una repeticion no consecutiva"
+    df = pd.DataFrame({"id": ["SWV1"], "title": ["t"], "author": ["a"], "licencia": ["CC BY 4.0"],
+                       "atribucion": ["«t», StoryWeaver"], "url": [""], "texto": [f"﻿{pagina}\n\n{pagina}"]})
+    servido = cc.textos_para_servir(df)
+    assert servido.loc[0, "texto"] == f"{pagina}\n\n«t», StoryWeaver", servido.loc[0, "texto"]
+    assert df.loc[0, "texto"] == f"﻿{pagina}\n\n{pagina}", "textos_para_servir cambio el texto que se mide"
+    return "U+FEFF, parrafo y pagina dobles fuera; estribillo y repeticion lejana dentro"
+
+
+prueba("el texto servido sale limpio sin tocar el que se mide", _texto_servido_limpio_sin_tocar_lo_medido)
+
+
 def _correccion_se_aplica_al_cargar():
     """PG2242: la tabla de correcciones cambia la dificultad del libro, su letra
     y su curva de un capitulo, sin tocar el CSV grande."""

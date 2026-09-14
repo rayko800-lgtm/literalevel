@@ -74,6 +74,49 @@ def parrafos(t):
                        for p in re.split(r"\n\s*\n", t) if p.strip())
 
 
+# Lo que se SIRVE al lector, limpio; lo que se MIDE, tal cual. La clave de
+# `medir_corpus` es el contenido del texto: limpiar antes de medir cambiaria la
+# clave de esos textos y habria que volver a medirlos (prueba como persona del
+# 14 sep 2026: SWV138722 repetia paginas enteras y SWV229485 traia U+FEFF).
+_FIN_DE_FRASE = re.compile(r"[.!?][\"”’')]*(?=\s|$)")
+
+
+def _pagina_doble(parrafo):
+    """La mitad de un parrafo que es la misma pagina dos veces seguidas, o None.
+    Solo si cada mitad tiene al menos 12 palabras y dos frases: un estribillo de
+    una frase repetida es del cuento, no del volcado."""
+    w = parrafo.split()
+    if len(w) < 24 or len(w) % 2:
+        return None
+    mitad = w[:len(w) // 2]
+    if mitad != w[len(w) // 2:] or len(_FIN_DE_FRASE.findall(" ".join(mitad))) < 2:
+        return None
+    return " ".join(mitad)
+
+
+def limpiar_para_servir(texto):
+    """Sin U+FEFF, sin un parrafo identico al anterior y sin paginas duplicadas
+    dentro de un parrafo. Las frases repetidas sueltas se quedan: en un cuento
+    infantil la repeticion suele ser a proposito."""
+    salida = []
+    for p in re.split(r"\n\s*\n", str(texto or "").replace("﻿", "")):
+        p = " ".join(p.split())
+        if not p:
+            continue
+        p = _pagina_doble(p) or p
+        if salida and salida[-1] == p:
+            continue
+        salida.append(p)
+    return "\n\n".join(salida)
+
+
+def textos_para_servir(df):
+    """Las filas de corpus_abierto.parquet: el texto limpio y la atribucion al final."""
+    textos = df[["id", "title", "author", "licencia", "atribucion", "url", "texto"]].copy()
+    textos["texto"] = textos["texto"].map(limpiar_para_servir) + "\n\n" + textos["atribucion"]
+    return textos
+
+
 def identificador(fuente, f):
     if fuente == "storyweaver":
         return f"SWV{f['id']}"
@@ -202,9 +245,7 @@ def main():
     # LF siempre: en Windows pandas escribia CRLF, y la huella del archivo (y con
     # ella el nombre del .npy de embeddings) cambiaba segun la maquina.
     df[columnas].to_csv(CSV_SALIDA, index=False, lineterminator="\n")
-    textos = df[["id", "title", "author", "licencia", "atribucion", "url", "texto"]].copy()
-    textos["texto"] = textos["texto"] + "\n\n" + textos["atribucion"]
-    textos.to_parquet(TEXTOS_SALIDA, index=False)
+    textos_para_servir(df).to_parquet(TEXTOS_SALIDA, index=False)
     print("letras:", df["nivel_cefr"].value_counts().sort_index().to_dict())
     print("->", CSV_SALIDA, "|", TEXTOS_SALIDA)
 
