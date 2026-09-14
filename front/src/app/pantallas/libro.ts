@@ -281,7 +281,11 @@ import { Sesion } from '../nucleo/sesion';
       grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
     .indice li a { background: transparent; border: 1px solid var(--borde); }
     @media (max-width: 760px) {
-      .cabecera { grid-template-columns: 128px 1fr; align-items: start; }
+      /* minmax(0, 1fr): con la portada de 128 px, un chip largo («entre 9 h 41 min y
+         15 h 50 min») empujaba la columna y la ficha se salía 4 px a 390. */
+      .cabecera { grid-template-columns: 128px minmax(0, 1fr); align-items: start; }
+      .info { min-width: 0; }
+      .chips .chip { max-width: 100%; white-space: normal; }
       /* La portada guarda su proporción; con 120 px el título se sigue leyendo. */
       .dos-col { grid-template-columns: 1fr; }
       .cta .boton { flex: 1 1 100%; }
