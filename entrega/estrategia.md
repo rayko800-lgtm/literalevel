@@ -356,6 +356,7 @@ el modelo de lenguaje explica el contexto y la gramática sin sustituir una
 acepción utilizable de Wiktionary. Si no existe, desde el 13 de septiembre puede
 proponer una definición marcada como generada por IA, solo con acceso
 autorizado. La definición de diccionario y el texto generado no son lo mismo.
+Y si la elección entre acepciones es dudosa —menos de 0,05 de afinidad entre las dos más cercanas— y no hay explicación de OpenAI, desde `bf3a9f2` la ficha no afirma una: dice «Puede ser» y enseña la acepción principal de cada entrada del diccionario, si hay al menos dos.
 
 ### 4.5 La latencia se reparte para que la pantalla no se quede quieta
 
@@ -385,12 +386,15 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   ajustes (paleta, tamaño de letra, idioma de las explicaciones) y el estado del
   servicio salen de la navegación, que es lo que Laura y el profesor habían
   pedido por separado.
-- **La API** es un servicio FastAPI (`app/api.py`, 37 rutas bajo `/api`)
+- **La API** es un servicio FastAPI (`app/api.py`, 38 rutas bajo `/api` a fecha de `db366b8`)
   **montado en el mismo Space de Gradio** que ya existía, con Gradio en la raíz
   como motor y respaldo. **Reutiliza el motor y ayudantes de Gradio**, pero sus
   adaptadores contienen lógica propia: topes, cobro, aislamiento y degradación
   requieren pruebas también en la API. Compartir funciones no basta para
-  demostrar equivalencia. La identidad del lector
+  demostrar equivalencia. El inicio de sesión frena los intentos fallidos en una hora: 15 por IP y,
+  desde `514786b`, 20 por usuario, porque la IP sale de una cabecera que puede
+  escribir el cliente. Solo cuentan los que fallan, y son valores por defecto
+  que se cambian por variable de entorno. La identidad del lector
   viaja en una cabecera (`X-Lector`) y sus datos siguen en el bucket montado en
   `/data`. El primer montaje falló —el proxy de renderizado en servidor de
   Gradio no dejaba pasar `/api`— y el segundo, sin ese proxy, es el que está en
@@ -406,6 +410,8 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   lectura de Alicia en Angular, diccionario sin perfil y rechazo de voz anónima.
   No se probó OpenAI real ni micrófono físico en ese cierre. Evidencia:
   `auditoria/despliegue_codex_2026-09-13_noche.md`.
+  Recuento local a fecha de `db366b8` (14 de septiembre, árbol de `app/`
+  limpio): 40 de 40 pruebas API y las 346 pruebas extremas del motor.
 
 **Lo que el front añadió a la usabilidad en un día.** Tres cosas, y las tres
 salieron de mirar cómo se usa un teléfono:
@@ -588,7 +594,7 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 | ~~**A3**~~ **HECHO** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales | T4 gratuita; la descarga por `common-pile/project_gutenberg` (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión | **Cumplido el 12 de septiembre de 2026**: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa |
 | ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí |
 | **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
-| **A6 · HECHO** | **Sustituir el catálogo heredado** de 1.197 registros | Incluía 1.049 registros sin texto descargable, el 87,6 % de aquella versión, no de la actual | Incluido en A3 | El catálogo medido actual contiene 53.179 IDs de Gutenberg; se mantienen las exclusiones de índices y obras no literarias en la recomendación |
+| **A6 · HECHO** | **Sustituir el catálogo heredado** de 1.197 registros | Incluía 1.049 registros sin texto descargable, el 87,6 % de aquella versión, no de la actual | Incluido en A3 | El catálogo medido actual contiene 53.179 IDs de Gutenberg; a fecha de `db366b8` se excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos, directorios), y por nivel solo se ofrecen obras literarias. Una medida del precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo camino da 1,713 (C1) |
 | **A7** | **Calibrar la escala** con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos | La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior | Una tarde | Las medias por nivel siguen estrictamente crecientes **y** se acercan a sus anclas |
 | **A8** | **Repetir la prueba de usuario con cinco lectores** de perfiles distintos sobre Angular, con guion de tareas y observación en silencio | Los dos ciclos previos encontraron fallos graves; no validan todos los cambios del nuevo front (Nielsen, 2000) | Cinco sesiones de 20 min | Existe una lista priorizada de hallazgos y las tres primeras correcciones están hechas |
 | **A9** | **Instrumentar la métrica que de verdad importa**: proporción de libros empezados que se terminan, con recomendación y sin ella | Todo lo demás son métricas de proceso. Esta es la única que valida la propuesta de valor | Una jornada de instrumentación, respetando el aislamiento por sesión | Hay una cifra base con la que comparar dentro de un mes |
@@ -630,7 +636,7 @@ visuales pendientes no deben desplazar el ensayo de la demo.
 | Que la letra MCER se lea como una certificación | Alto, reputacional | Declaración de alcance en el documento y aviso permanente en pantalla |
 | Que la remedición del catálogo no termine a tiempo | ~~Medio~~ **Resuelto** | Terminada el 12 de septiembre de 2026: sin Drive, con los resultados en Hugging Face tras cada lote, 0 errores y ningún libro medido dos veces |
 | Sobrecarga del espejo de descarga de Project Gutenberg | Medio, ético | Seis hilos y no treinta, cada uno con su pausa entre peticiones; y el vocabulario se obtuvo del SPGC, no rascando el sitio |
-| Contenido inapropiado para una lectora menor de edad | Medio | Decisión razonada de **no filtrar por contenido** y avisar en la ficha; se argumenta en el apartado 8.4 del documento principal |
+| Contenido inapropiado para una lectora menor de edad | Medio | Decisión razonada de **no filtrar por contenido** y avisar en la ficha (una lista curada: 2 títulos a fecha de `db366b8`, que no encabezan la recomendación por nivel y no se quitan); se argumenta en el apartado 8.4 del documento principal |
 
 *Cuadro 4. Riesgos y mitigaciones.*
 

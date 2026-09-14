@@ -910,8 +910,11 @@ guarda en disco y viene marcado como lo que es. \textbf{Ninguna cifra de la fich
 dice un modelo generativo.} En el diccionario, la regla equivalente: el modelo de
 lenguaje explica el contexto y la gramática sin sustituir una acepción utilizable de
 Wiktionary. Si no existe, desde el 13 de septiembre puede proponer una definición
-marcada como generada por IA, solo con acceso autorizado. La definición de diccionario
-y el texto generado no son lo mismo.
+marcada como generada por IA, solo con acceso autorizado. La definición de diccionario y el texto generado no son lo mismo.
+Y si la elección entre acepciones es dudosa ---menos de 0,05 de afinidad
+entre las dos más cercanas--- y no hay explicación de OpenAI, desde \cod{bf3a9f2}
+la ficha no afirma una: dice «Puede ser» y enseña la acepción principal de
+cada entrada del diccionario, si hay al menos dos.
 
 \subsubsection{La latencia se reparte para que la pantalla no se quede quieta}
 
@@ -942,12 +945,14 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         nivel}—, más \emph{Mis palabras}; los ajustes (paleta, tamaño de letra, idioma de
         las explicaciones) y el estado del servicio salen de la navegación, que es lo que
         Laura y el profesor habían pedido por separado.
-  \item \textbf{La API} es un servicio FastAPI (\cod{app/api.py}, 37 rutas bajo
-        \cod{/api}) \textbf{montado en el mismo Space de Gradio} que ya existía, con Gradio
+  \item \textbf{La API} es un servicio FastAPI (\cod{app/api.py}, 38 rutas bajo \cod{/api} a fecha de \cod{db366b8}) \textbf{montado en el mismo Space de Gradio} que ya existía, con Gradio
         en la raíz como motor y respaldo. \textbf{Reutiliza el motor y ayudantes de Gradio},
         pero sus adaptadores contienen lógica propia: topes, cobro, aislamiento y
         degradación requieren pruebas también en la API. Compartir funciones no basta
-        para demostrar equivalencia. La identidad del lector
+        para demostrar equivalencia. El inicio de sesión frena los intentos fallidos en una hora: 15 por IP
+        y, desde \cod{514786b}, 20 por usuario, porque la IP sale de una cabecera que
+        puede escribir el cliente. Solo cuentan los que fallan, y son valores por
+        defecto que se cambian por variable de entorno. La identidad del lector
         viaja en una cabecera (\cod{X-Lector}) y sus datos siguen en el bucket montado en
         \cod{/data}. El primer montaje falló ---el proxy de renderizado en servidor de
         Gradio no dejaba pasar \cod{/api}--- y el segundo, sin ese proxy, es el que está en
@@ -964,6 +969,8 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         Alicia en Angular, diccionario sin perfil y rechazo de voz anónima. No se probó
         OpenAI real ni micrófono físico en ese cierre. Evidencia:
         \cod{auditoria/\allowbreak despliegue\_codex\_\allowbreak 2026-09-13\_noche.md}.
+        Recuento local a fecha de \cod{db366b8} (14 de septiembre, árbol de
+        \cod{app/} limpio): 40 de 40 pruebas API y las 346 pruebas extremas del motor.
 \end{itemize}
 
 \medskip\noindent\textbf{Lo que el \emph{front} añadió a la usabilidad en un día.} Tres
@@ -1006,7 +1013,7 @@ Su calidad visual sigue sin comprobarse. El enlace del lector es
 
 El 14 de septiembre se volvieron a contar con pandas \textbf{53.179 IDs únicos y
 585.111 capítulos} en el catálogo local. Es una comprobación del artefacto, no una
-nueva inferencia. Las 37 rutas API se contaron en el código. En el cierre remoto
+nueva inferencia. Las 38 rutas API se contaron en el código a fecha de \cod{db366b8}. En el cierre remoto
 anterior, \emph{house} eligió un sentido no adecuado para una frase sobre la ubicación
 de un edificio: disponibilidad del diccionario no demuestra desambiguación correcta
 en todos los casos. Estos límites también forman parte de la entrega.
@@ -1043,7 +1050,7 @@ terminado. No son «se podría»: son «se hace».
 \addlinespace
 \textbf{A5} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla \\
 \addlinespace
-\textbf{A6 · HECHO} & \textbf{Sustituir el catálogo heredado} de 1.197 registros & Incluía 1.049 registros sin texto descargable, el 87,6\pct{} de aquella versión, no de la actual & Incluido en A3 & El catálogo medido actual contiene 53.179 IDs de Gutenberg; se mantienen las exclusiones de índices y obras no literarias en la recomendación \\
+\textbf{A6 · HECHO} & \textbf{Sustituir el catálogo heredado} de 1.197 registros & Incluía 1.049 registros sin texto descargable, el 87,6\pct{} de aquella versión, no de la actual & Incluido en A3 & El catálogo medido actual contiene 53.179 IDs de Gutenberg; a fecha de \cod{db366b8} se excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos, directorios), y por nivel solo se ofrecen obras literarias. Una medida del precálculo se corrige al cargar (\cod{correcciones\_\allowbreak catalogo.csv}): PG2242, \emph{A Midsummer Night's Dream} del First Folio, guardó 0,697 y releída por el mismo camino da 1,713 (C1) \\
 \addlinespace
 \textbf{A7} & \textbf{Calibrar la escala} con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos & La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior & Una tarde & Las medias por nivel siguen estrictamente crecientes \textbf{y} se acercan a sus anclas \\
 \addlinespace
@@ -1524,7 +1531,7 @@ T6 & \textbf{Descarte de portada, índice y portadilla} por la etiqueta «Antes 
 \addlinespace
 T7 & \textbf{Muestreo de hasta 8 bloques repartidos por el documento} para la puntuación rápida & Dar un número en segundos, no en minutos & Cuantificado: 8 bloques dan 1,784 y el recorrido completo de las 23 ventanas del mismo capítulo da 1,743. El atajo se desvía 0,041 sobre una escala de 0 a 2 \\
 \addlinespace
-T8 & \textbf{Recorte de entradas del usuario en el servidor} (40 caracteres por palabra, 400 por oración, 20 MB por fichero) & El límite del navegador es una sugerencia, no una defensa & Una cadena de 3.000 caracteres pasaba el filtro de «máximo cuatro palabras» y se pintaba como encabezado: 9.312 caracteres llenando la pantalla del móvil \\
+T8 & \textbf{Recorte de entradas del usuario en el servidor} (40 caracteres por palabra, 400 por oración, 20 MB por fichero y, desde \cod{9eb3c91}, 100 MB descomprimidos por EPUB) & El límite del navegador es una sugerencia, no una defensa & Una cadena de 3.000 caracteres pasaba el filtro de «máximo cuatro palabras» y se pintaba como encabezado: 9.312 caracteres llenando la pantalla del móvil \\
 \end{longtable}
 \end{small}
 
@@ -2837,8 +2844,14 @@ materias que asigna el propio Project Gutenberg —90 libros de 61.642— y desp
 deliberadamente. El razonamiento: esto es una plataforma de literatura, y la literatura es
 donde esas cosas aparecen. Filtrar por etiqueta habría eliminado también obras que son
 literatura por derecho propio, como \emph{Fanny Hill}, perseguida judicialmente y
-relevante precisamente por eso. En su lugar se usa un mecanismo que ya existía: la ficha
-de cada libro trae un campo de aviso que se muestra como «Antes de empezar». \textbf{Se
+relevante precisamente por eso. En su lugar se avisa, y el aviso ya está en la
+aplicación: una lista curada a mano (\cod{avisos\_contenido.csv}) pone en la ficha del
+libro un recuadro «Aviso sobre el contenido» antes de abrirlo, sin bloquear nada. A
+fecha de \cod{db366b8} lleva 2 títulos, las dos ediciones de \emph{Little Black Sambo}
+de Helen Bannerman (PG17824 y PG1330), por estereotipos raciales. El buscador no
+cambia de orden por el aviso; al recomendar por nivel, los 5 primeros puestos son
+para títulos sin aviso y los que lo llevan siguen detrás, sin quitar ninguno. Aparte,
+el resumen que escribe el modelo puede añadir su propio «Antes de empezar». \textbf{Se
 informa al lector y se le deja elegir; no se elige por él.} Es una decisión discutible y
 por eso se argumenta en lugar de ocultarse.
 
