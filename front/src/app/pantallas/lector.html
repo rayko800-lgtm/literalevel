@@ -27,11 +27,12 @@
       </div>
       <p class="fila"><a class="boton secundario" routerLink="/encontrar">Elegir otro libro</a></p>
     } @else if (cargando() && !capitulo()) {
-      <div class="hoja">
+      <div class="hoja" [style]="estiloTinte()">
         @if (descargando()) {
           <div class="espera"><span class="giro"></span>
-            <span>Abriendo el libro. Si es la primera vez que alguien lo lee aquí, se descarga de Project Gutenberg
-              y puede tardar unos segundos; después queda guardado.</span></div>
+            <span>Abriendo el libro. Si es la primera vez que alguien lo lee aquí,
+              {{ esGutenberg() ? 'se descarga de Project Gutenberg y puede tardar unos segundos' : 'se prepara el texto y puede tardar unos segundos' }};
+              después queda guardado.</span></div>
         } @else {
           <div class="esqueleto" style="height:2.2rem;width:60%;margin:0 auto 2rem"></div>
           @for (i of [1, 2, 3, 4, 5]; track i) {
@@ -42,7 +43,7 @@
     }
 
     @if (capitulo(); as c) {
-      <article class="hoja" [class.recargando]="cargando()" [class.paginado]="paginado()">
+      <article class="hoja" [class.recargando]="cargando()" [class.paginado]="paginado()" [style]="estiloTinte()">
         <!-- Todo lo del capítulo va DENTRO de #texto: en modo páginas es la caja de
              columnas, y la cabecera y el cierre tienen que caer en sus páginas. -->
         <div class="texto" #texto lang="en" (pointerdown)="alTocar($event)" (pointerup)="alSoltarToque($event)"

@@ -6,6 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
+import { familiaDe, paletaDe } from '../compartido/portada';
+import { tinteLector } from '../compartido/tinte';
 import { Api, Capitulo, Libro, Medida, Palabra, mensajeError, urlMotor } from '../nucleo/api';
 import { cefr, miles, minutosDe, num } from '../nucleo/formato';
 import { Preferencias } from '../nucleo/preferencias';
@@ -15,6 +17,11 @@ const PISTA = 'literalevel.pista-palabra';
 const PISTA_PAGINAS = 'literalevel.pista-paginas';
 /** Hueco entre columnas en modo páginas: cada página avanza su ancho más esto. */
 const HUECO = 48;
+
+/** Si el sistema está en oscuro, y se actualiza si cambia (una sola escucha para toda la app). */
+const CONSULTA_OSCURO = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+const OSCURO_SISTEMA = signal(!!CONSULTA_OSCURO?.matches);
+CONSULTA_OSCURO?.addEventListener?.('change', e => OSCURO_SISTEMA.set(e.matches));
 
 function leerBandera(clave: string): boolean {
   try { return localStorage.getItem(clave) !== 'vista'; } catch { return true; }
@@ -65,6 +72,23 @@ export class Lector implements OnDestroy {
   protected readonly indiceAbierto = signal(false);
   protected readonly pista = signal(leerBandera(PISTA));
   protected readonly pistaPaginas = signal(leerBandera(PISTA_PAGINAS));
+
+  /** Solo los «PG…» se bajan de Gutenberg; los libres salen del corpus abierto. */
+  protected readonly esGutenberg = computed(() => /^pg/i.test(this.id()));
+  /** Claro u oscuro, como el resto de la app: «Noche», o «Automático» con el sistema en oscuro. */
+  private readonly oscuro = computed(() => {
+    const t = this.prefs.tema();
+    return t === 'noche' || (t === 'sistema' && OSCURO_SISTEMA());
+  });
+  /** La hoja toma el fondo y el acento de la portada del libro (Miguel, 14 sep),
+   *  con el texto a 7:1 o más (compartido/tinte.ts). Se apaga en Ajustes. */
+  protected readonly estiloTinte = computed(() => {
+    const l = this.libro();
+    if (!l || this.prefs.colorDelLibro() === 'no') return '';
+    const t = tinteLector(paletaDe(l.id, familiaDe(l.temas)), this.oscuro());
+    return `--lector-fondo: ${t.fondo}; --lector-texto: ${t.texto}; --acento: ${t.acento}; ` +
+      `--acento-texto: ${t.acentoTexto}; --acento-suave: ${t.acentoSuave}; --seleccion: ${t.seleccion};`;
+  });
 
   protected readonly medida = signal<Medida | null>(null);
   protected readonly midiendo = signal(false);

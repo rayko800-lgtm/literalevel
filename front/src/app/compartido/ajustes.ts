@@ -36,6 +36,17 @@ import { Icono } from './icono';
       </section>
 
       <section>
+        <h3>Color del libro en el lector</h3>
+        <!-- El fondo y el acento de la portada, suaves y con el texto a 7:1 o más. -->
+        <div class="opciones">
+          <button type="button" class="opcion" [class.elegida]="prefs.colorDelLibro() === 'si'"
+                  [attr.aria-pressed]="prefs.colorDelLibro() === 'si'" (click)="prefs.colorDelLibro.set('si')">Con su color</button>
+          <button type="button" class="opcion" [class.elegida]="prefs.colorDelLibro() === 'no'"
+                  [attr.aria-pressed]="prefs.colorDelLibro() === 'no'" (click)="prefs.colorDelLibro.set('no')">Sin color</button>
+        </div>
+      </section>
+
+      <section>
         <h3>Tamaño de la letra del libro</h3>
         <div class="opciones">
           @for (l of letras; track l.valor) {

@@ -36,6 +36,8 @@ export class Preferencias {
   readonly modoLectura = signal<ModoLectura>(leer('literalevel.modo', ['paginas', 'rollo'], 'paginas'));
   /** Acento de Pronunciar: la tabla del AFI y la IPA de toda la corrección. */
   readonly acento = signal<'ga' | 'rp'>(leer('literalevel.acento', ['ga', 'rp'], 'ga'));
+  /** El lector toma el fondo y el acento de la portada del libro (Miguel, 14 sep). */
+  readonly colorDelLibro = signal<'si' | 'no'>(leer('literalevel.color-libro', ['si', 'no'], 'si'));
 
   constructor() {
     effect(() => {
@@ -55,5 +57,6 @@ export class Preferencias {
     effect(() => guardar('literalevel.idioma', this.idioma()));
     effect(() => guardar('literalevel.modo', this.modoLectura()));
     effect(() => guardar('literalevel.acento', this.acento()));
+    effect(() => guardar('literalevel.color-libro', this.colorDelLibro()));
   }
 }
