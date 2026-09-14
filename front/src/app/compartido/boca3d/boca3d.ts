@@ -5,7 +5,7 @@ import {
 import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
-import { Linea, cicloSonido, giroPara, lentoParaAudio, lineaPalabra } from './animacion';
+import { Linea, Velocidad, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
 import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
@@ -65,6 +65,9 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
     @if (leyenda() && pose()?.leyenda; as l) {
       <p class="leyenda"><strong class="ipa">{{ elegido() ? '/' + elegido() + '/' : 'reposo' }}</strong> · {{ l }}</p>
     }
+    @if (aviso(); as a) {
+      <p class="leyenda aviso" role="status">{{ a }}</p>
+    }
   `,
   styles: `
     :host { display: block; min-width: 0; margin-top: 12px; }
@@ -90,6 +93,7 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
       color: var(--acento-texto, #2449c9); }
     .boton.principal { background: var(--acento, #2f5bea); border-color: var(--acento, #2f5bea); color: #fff; padding: 8px 14px; }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
+    .leyenda.aviso { font-size: .9em; color: var(--texto-tenue, #647189); }
   `,
 })
 export class Boca3d {
@@ -124,12 +128,20 @@ export class Boca3d {
   readonly conEscuchar = input<boolean>(true);
   /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
   readonly autoReproducir = input<boolean>(true);
+  /** Velocidad de la boca y del audio: 1 (normal), 0,5 o 0,25. La línea de
+   *  tiempo (ciclo y palabra) se estira y el audio suena con `playbackRate`
+   *  igual y `preservesPitch`; si el navegador no sabe ralentizar sin
+   *  cambiar el tono, el audio va a 1× y la boca despacio, y se avisa en
+   *  `aviso` (Miguel, 14 sep: «va muy rápida; que se pueda ver cada movimiento»). */
+  readonly velocidad = input<Velocidad>(1);
   /** La mejilla translúcida del lado de la cámara. Es lo que más cuesta
    *  pintar sin GPU (medido en Chrome headless): se puede apagar. */
   readonly mejilla = input<boolean>(true);
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
+  /** Un aviso bajo la leyenda (el audio no se pudo ralentizar), o vacío. */
+  readonly aviso = signal('');
   /** El lienzo captura también los gestos verticales (sin scroll sobre la boca). */
   readonly giroLibre = signal(false);
   private readonly elegidoPorChip = signal<string | null>(null);
@@ -194,16 +206,21 @@ export class Boca3d {
       const p = this.pose();
       const escena = this.escena;
       if (!p || !escena) return;
-      if (this.autoReproducir() && this.elegido()) escena.reproducir(cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
-      else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6));
+      if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
+      else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
     });
     destruir.onDestroy(() => { this.sonador.destruir(); this.escena?.destruir(); });
+  }
+
+  /** La línea a la velocidad elegida. */
+  private lenta(l: Linea): Linea {
+    return aVelocidad(l, this.velocidad());
   }
 
   /** Reposo → sonido → reposo, una vez. */
   verMovimiento(): void {
     const p = this.pose();
-    if (p && this.escena) this.escena.reproducir(cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
+    if (p && this.escena) this.escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
   }
 
   /** El sonido: su audio y su ciclo arrancan en el mismo instante, con el
@@ -224,7 +241,7 @@ export class Boca3d {
     const segs = this.segmentos();
     if (!segs.length || !this.escena) return;
     const url = this.urlAudioPalabra();
-    if (!url) { this.escena.reproducir(lineaPalabra(segs, this.catalogo())); return; }
+    if (!url) { this.escena.reproducir(this.lenta(lineaPalabra(segs, this.catalogo()))); return; }
     void this.conAudio(url, listo => lineaPalabra(segs, this.catalogo(),
       listo.duracion > 0 ? lentoParaAudio(segs, this.catalogo(), listo.duracion, listo.silencio) : undefined));
   }
@@ -236,13 +253,24 @@ export class Boca3d {
     const numero = ++this.peticion;
     const listo = await this.sonador.preparar(url);
     if (numero !== this.peticion || !this.escena) return;
+    this.aviso.set('');
     if (!listo) {
-      this.escena.reproducir(linea({ duracion: 0, silencio: 0 }), opciones);
+      this.escena.reproducir(this.lenta(linea({ duracion: 0, silencio: 0 })), opciones);
       return;
     }
-    const l = linea(listo);
+    // La línea se ajusta al audio a 1× y después se estira; el audio suena a
+    // la misma velocidad, así que el desfase del silencio inicial se estira igual.
+    const v = this.velocidad();
+    const l = this.lenta(linea(listo));
     this.escena.reproducir(l, opciones);
-    listo.tocar(l.sonidoEn - listo.silencio);
+    // Con la boca despacio el audio puede no poder ralentizarse (sin
+    // preservesPitch): suena a 1× y su silencio dura lo de siempre.
+    const r = listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, v), v);
+    if (r.velocidad !== v) {
+      r.parar();
+      listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1), 1);
+      this.aviso.set('Este navegador no puede ralentizar el audio sin cambiar el tono: el audio suena a velocidad normal y la boca va despacio.');
+    }
   }
 
   elegir(simbolo: string): void {

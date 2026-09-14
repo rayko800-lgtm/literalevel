@@ -26,6 +26,27 @@ export interface Linea {
 /** El factor de «despacio» de las palabras del 2D. */
 export const LENTO = 1.6;
 
+/** Las velocidades que ofrece el visor: normal, media y un cuarto. */
+export const VELOCIDADES = [1, 0.5, 0.25] as const;
+export type Velocidad = (typeof VELOCIDADES)[number];
+
+/** La misma línea, `velocidad` veces más rápida (0,5 = el doble de larga):
+ *  todos los instantes se dividen por la velocidad, incluido `sonidoEn`. */
+export function aVelocidad(linea: Linea, velocidad: number): Linea {
+  const v = velocidad > 0 ? velocidad : 1;
+  if (v === 1) return linea;
+  return { ...linea, total: linea.total / v, sonidoEn: linea.sonidoEn / v,
+    claves: linea.claves.map(c => ({ ...c, t: c.t / v })) };
+}
+
+/** Cuándo arrancar el audio (segundos desde el arranque de la línea) para
+ *  que su primera energía caiga en `sonidoEn` de la línea ya ralentizada:
+ *  el silencio inicial del archivo dura `silencio / velocidadAudio` al
+ *  reproducirlo a esa velocidad (1 si el navegador no pudo ralentizarlo). */
+export function retrasoAudio(sonidoEnLento: number, silencio: number, velocidadAudio: number): number {
+  return sonidoEnLento - silencio / (velocidadAudio > 0 ? velocidadAudio : 1);
+}
+
 function objetivos(pose: PoseSonido, vecino: PoseSonido, reposo: PoseSonido): [PoseSonido, PoseSonido | null] {
   const a = resolver(pose, vecino);
   let b: PoseSonido | null = null;

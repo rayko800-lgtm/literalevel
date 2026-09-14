@@ -6,10 +6,10 @@
  *  Parámetros de la URL: ?s=ɑ (sonido), ?ciclo=0 (sin ciclo al elegir: la
  *  pose quieta, para capturas), ?palabra=ˈpɑvɚti (la reproduce),
  *  ?giro=-1.0&polar=1.2 (vista girada: negativo mira hacia la cara),
- *  ?audio=palabra.mp3 (con «Ver la palabra», suena y la línea se escala a su
+ *  ?velocidad=0.5 (o 0.25: boca y audio despacio), ?audio=palabra.mp3 (con «Ver la palabra», suena y la línea se escala a su
  *  duración: la leyenda dice duración, silencio inicial y factor), ?mejilla=0 (sin mejilla), ?sombras=0 (sin sombras), ?entorno=1 (reflejos), ?guarda=0 (sin guarda de fluidez), ?fps=1 (mide cuadros por segundo reproduciendo
  *  una palabra en bucle y lo escribe en la leyenda). */
-import { cicloSonido, giroPara, lentoParaAudio, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
+import { aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from '../../front/src/app/compartido/boca3d/animacion';
 import { Sonador } from '../../front/src/app/compartido/boca3d/audio';
 import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
 import { CatalogoPoses, PoseSonido, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
@@ -46,6 +46,7 @@ function arrancar(): void {
     return;
   }
   const params = new URLSearchParams(location.search);
+  const velocidad = Number(params.get('velocidad')) || 1;
   const escena = new EscenaBoca(visor, {
     reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
     mejilla: params.get('mejilla') !== '0',
@@ -62,8 +63,8 @@ function arrancar(): void {
   const ir = (simbolo: string) => {
     const pose: PoseSonido | null = poseDe(CATALOGO, simbolo);
     if (!pose) return;
-    if (ciclo.checked && simbolo) escena.reproducir(cicloSonido(pose, CATALOGO), { giro: giroPara(pose) });
-    else escena.irA(pose, lento.checked ? 2.5 : 0.55);
+    if (ciclo.checked && simbolo) escena.reproducir(aVelocidad(cicloSonido(pose, CATALOGO), velocidad), { giro: giroPara(pose) });
+    else escena.irA(pose, (lento.checked ? 2.5 : 0.55) / velocidad);
     leyenda.textContent = (simbolo ? `/${simbolo}/ · ` : 'reposo · ') + pose.leyenda;
     chips.querySelectorAll('button').forEach(b => b.classList.toggle('elegido', b.dataset['s'] === simbolo));
   };
@@ -78,7 +79,7 @@ function arrancar(): void {
   const palabra = (ipa: string, lento?: number) => {
     const { texto, segmentos } = trocearIpa(ipa, CATALOGO);
     if (!segmentos.length) { leyenda.textContent = `No reconozco ningún sonido en «${ipa}»`; return null; }
-    const linea = lineaPalabra(segmentos, CATALOGO, lento);
+    const linea = aVelocidad(lineaPalabra(segmentos, CATALOGO, lento), velocidad);
     escena.reproducir(linea);
     leyenda.textContent = `/${texto}/ · ${segmentos.map(s => s.simbolo).join(' ')} · ${linea.total.toFixed(1)} s`;
     return linea;
@@ -95,8 +96,8 @@ function arrancar(): void {
     const lento = lentoParaAudio(segmentos, CATALOGO, listo.duracion, listo.silencio);
     const linea = palabra(ipa, lento);
     if (!linea) return;
-    listo.tocar(linea.sonidoEn - listo.silencio);
-    leyenda.textContent += ` · audio ${listo.duracion.toFixed(2)} s, silencio ${listo.silencio.toFixed(2)} s, lento ${lento.toFixed(2)}`;
+    const r = listo.tocar(retrasoAudio(linea.sonidoEn, listo.silencio, velocidad), velocidad);
+    leyenda.textContent += ` · audio ${listo.duracion.toFixed(2)} s, silencio ${listo.silencio.toFixed(2)} s, lento ${lento.toFixed(2)}, velocidad ${velocidad} (audio a ${r.velocidad}×)`;
   };
   window.palabraConAudio = palabraConAudio;
   raiz.querySelector('.palabra')!.addEventListener('submit', e => { e.preventDefault(); void palabraConAudio(entradaIpa.value); });

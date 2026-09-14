@@ -47,6 +47,7 @@ el símbolo tal como lo da la API en su inventario (`/api/fonemas`, RP incluido:
 | `audioSonido` | `string \| null` | `null` | El mp3 del sonido (`audio` de `/api/fonemas`, relativo o absoluto: se resuelve con `urlMotor`). Con él, el botón es **«Escuchar y ver»**: audio y ciclo arrancan a la vez y el audio se desplaza para sonar cuando la boca llega a la pose. |
 | `audioPalabra` | `string \| null` | `null` | El mp3 de la palabra (`audio` del detalle de `/api/voz`, o `audio_us`/`audio_uk` de `/api/palabra`). «Escuchar y ver /ipa/» escala la línea a la duración real del audio (menos su silencio inicial, medido con Web Audio o 120 ms fijos) para que las bocas caigan en sus sílabas. Si el audio falla, la palabra va sola. |
 | `svg2dUrl` | `string \| null` | `null` | Respaldo sin WebGL. `null` = el SVG de la API del sonido (quieto con reduced-motion); `''` lo apaga. |
+| `velocidad` | `1 \| 0.5 \| 0.25` | `1` | Velocidad de la boca y del audio. La línea (ciclo y palabra) se estira y el audio suena con `playbackRate` igual y `preservesPitch`; si el navegador no sabe ralentizar sin cambiar el tono, el audio va a 1×, la boca despacio, y `aviso()` lo dice bajo la leyenda. |
 | `conEscuchar` | `boolean` | `true` | Con `false` no aparecen los botones «Escuchar y ver» (la pantalla pone el suyo y llama a `escucharYVer()` / `verPalabra()`); el play del sonido queda como antes, sin audio. |
 | `leyenda` | `boolean` | `true` | La frase de la pose bajo el visor. |
 | `conSelector` | `boolean` | `false` | Chips para elegir sonido (demo y prototipo). |

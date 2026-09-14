@@ -16,8 +16,37 @@ export interface AudioListo {
   /** Segundos de silencio al principio (medidos, o 0,12 si no se pudo). */
   silencio: number;
   /** Arranca el audio dentro de `retrasoS` segundos (negativo: ya empezado,
-   *  salta ese tramo). Devuelve la función que lo para. */
-  tocar(retrasoS: number): () => void;
+   *  salta ese tramo) a `velocidad` (1, 0,5, 0,25) conservando el tono.
+   *  Devuelve la función que lo para y la velocidad a la que de verdad suena:
+   *  1 si el navegador no sabe ralentizar sin cambiar el tono (entonces la
+   *  boca va despacio y el audio no; quien llama lo avisa). */
+  tocar(retrasoS: number, velocidad?: number): { parar: () => void; velocidad: number };
+}
+
+/** El navegador ralentiza un `<audio>` conservando el tono (`preservesPitch`;
+ *  Safari viejo, `webkitPreservesPitch`). */
+export function conservaTono(a: HTMLMediaElement): boolean {
+  return 'preservesPitch' in a || 'webkitPreservesPitch' in a;
+}
+
+function ralentizar(a: HTMLMediaElement, velocidad: number): number {
+  if (velocidad === 1) { a.playbackRate = 1; return 1; }
+  if (!conservaTono(a)) { a.playbackRate = 1; return 1; }
+  (a as HTMLMediaElement & { webkitPreservesPitch?: boolean }).preservesPitch = true;
+  (a as HTMLMediaElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch = true;
+  a.playbackRate = velocidad;
+  return velocidad;
+}
+
+/** Un `<audio>` que arranca dentro de `retrasoS` a `velocidad`; el salto
+ *  inicial (retraso negativo) va en tiempo del archivo: `-retraso * velocidad`. */
+function tocarElemento(a: HTMLAudioElement, retrasoS: number, velocidad: number): { parar: () => void; velocidad: number } {
+  const real = ralentizar(a, velocidad);
+  let id = 0;
+  const arrancar = () => { a.currentTime = retrasoS < 0 ? -retrasoS * real : 0; void a.play().catch(() => {}); };
+  if (retrasoS > 0) id = window.setTimeout(arrancar, retrasoS * 1000);
+  else arrancar();
+  return { parar: () => { clearTimeout(id); a.pause(); }, velocidad: real };
 }
 
 const SILENCIO_FIJO = 0.12;
@@ -81,8 +110,15 @@ export class Sonador {
     return {
       duracion: buffer.duration,
       silencio,
-      tocar: retrasoS => {
+      tocar: (retrasoS, velocidad = 1) => {
         this.parar();
+        if (velocidad !== 1) {
+          // Despacio: un <audio> con preservesPitch; Web Audio cambiaría el tono.
+          const a = new Audio(url);
+          const r = tocarElemento(a, retrasoS, velocidad);
+          this.parando = r.parar;
+          return r;
+        }
         const fuente = ctx.createBufferSource();
         fuente.buffer = buffer;
         fuente.connect(ctx.destination);
@@ -90,7 +126,7 @@ export class Sonador {
         else fuente.start(ctx.currentTime, Math.min(buffer.duration, -retrasoS));
         const parar = () => { try { fuente.stop(); } catch { /* ya parada */ } fuente.disconnect(); };
         this.parando = parar;
-        return parar;
+        return { parar, velocidad: 1 };
       },
     };
   }
@@ -106,15 +142,11 @@ export class Sonador {
         resolver({
           duracion: Number.isFinite(a.duration) ? a.duration : 1,
           silencio: SILENCIO_FIJO,
-          tocar: retrasoS => {
+          tocar: (retrasoS, velocidad = 1) => {
             this.parar();
-            let id = 0;
-            const arrancar = () => { a.currentTime = retrasoS < 0 ? -retrasoS : 0; void a.play().catch(() => {}); };
-            if (retrasoS > 0) id = window.setTimeout(arrancar, retrasoS * 1000);
-            else arrancar();
-            const parar = () => { clearTimeout(id); a.pause(); };
-            this.parando = parar;
-            return parar;
+            const r = tocarElemento(a, retrasoS, velocidad);
+            this.parando = r.parar;
+            return r;
           },
         });
       }, { once: true });
