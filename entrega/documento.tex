@@ -30,6 +30,7 @@
 % --- Página ---------------------------------------------------------------
 \usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
 \usepackage{microtype}
+\setlength{\emergencystretch}{1em}
 \usepackage{setspace}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
@@ -255,10 +256,11 @@ LiteraLevel no certifica ningún nivel del Marco Común Europeo}. Las letras A1 
 fueron el ancla con la que se entrenó el modelo, no un título que la aplicación
 expida. Sirven para elegir qué leer, no para acreditar nada.
 
-El proyecto se cierra con una aplicación funcionando —un \emph{front} de Angular publicado
-como sitio estático sobre una API propia, con Gradio 6.26 \parencite{abid2019gradio} como
-motor y respaldo; probada por una lectora de quince años, prima del autor y ajena al
-proyecto, y por una desarrolladora web— y con el catálogo entero medido: \textbf{53.179 libros} en inglés de dominio
+La entrega usa \textbf{Angular como interfaz y una API FastAPI sobre el motor Python};
+Gradio 6.26 \parencite{abid2019gradio} se conserva como respaldo. Las pruebas de usabilidad
+de la interfaz anterior con Esmeralda y Laura motivaron esta separación, pero no equivalen
+a una validación de usuario de todos los cambios posteriores. El catálogo medido
+contiene \textbf{53.179 libros} en inglés de dominio
 público de Project Gutenberg, leídos enteros por el modelo, capítulo a capítulo. La última
 tanda, en una GPU gratuita, tardó 55 minutos: el cuello de botella nunca fue el modelo,
 sino leer y guardar los archivos.
@@ -797,7 +799,7 @@ P.»\par\medskip
 \caption{El segundo ciclo, de la crítica a la verificación.}
 \label{cuad:laura}
 \endlastfoot
-Retraso de 2--3~s al deslizar en el teléfono & \cod{backdrop-filter} en más de cien bloques y fondo con \cod{background-attachment:\allowbreak fixed}: repintado completo en cada fotograma & Los dos efectos, solo en dispositivos con ratón & Con emulación táctil quedan desactivados; \textbf{falta confirmarlo en un teléfono real} \\
+Retraso de 2--3~s al deslizar en el teléfono & \cod{backdrop-filter} en más de cien bloques y fondo con \cod{background-\allowbreak attachment:\allowbreak fixed}: repintado completo en cada fotograma & Los dos efectos, solo en dispositivos con ratón & Con emulación táctil quedan desactivados; \textbf{falta confirmarlo en un teléfono real} \\
 \addlinespace
 El texto toca el borde redondeado & Los bloques de Markdown de la interfaz de entonces (Gradio) no tienen relleno, pero aquí todos llevan fondo de panel & Relleno interior a los bloques con contenido & Medido y capturado a 390 y 1440~px \\
 \addlinespace
@@ -893,8 +895,10 @@ ficha—, y se dice con palabras que el lector
 entienda —«se ha agotado el presupuesto mensual de explicaciones; el diccionario, la
 fonética y el audio siguen funcionando»— en lugar del error técnico en crudo.
 
-La regla que verifican las 303 pruebas de robustez es una sola: \textbf{ningún manejador
-puede lanzar una excepción hacia la interfaz}. Lo que falla vuelve como texto legible.
+La regla de diseño es que los fallos vuelvan como texto legible en vez de excepciones
+sin tratar. Las pruebas cubren escenarios concretos; no demuestran que ningún manejador
+pueda fallar. El corte de verificación actual se distingue de las baterías históricas
+en el apartado~\ref{sec:front}.
 
 \subsubsection{Cada número dice de dónde viene}
 
@@ -904,8 +908,10 @@ proporción de diálogo, vocabulario) sale solo al abrirlo, es instantáneo y no
 red; el \emph{resumen} escrito por un modelo generativo va detrás de un botón, se
 guarda en disco y viene marcado como lo que es. \textbf{Ninguna cifra de la ficha la
 dice un modelo generativo.} En el diccionario, la regla equivalente: el modelo de
-lenguaje explica el contexto y la gramática, y tiene prohibido redefinir la palabra; la
-definición es siempre la de Wiktionary.
+lenguaje explica el contexto y la gramática sin sustituir una acepción utilizable de
+Wiktionary. Si no existe, desde el 13 de septiembre puede proponer una definición
+marcada como generada por IA, solo con acceso autorizado. La definición de diccionario
+y el texto generado no son lo mismo.
 
 \subsubsection{La latencia se reparte para que la pantalla no se quede quieta}
 
@@ -938,10 +944,10 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         Laura y el profesor habían pedido por separado.
   \item \textbf{La API} es un servicio FastAPI (\cod{app/api.py}, 37 rutas bajo
         \cod{/api}) \textbf{montado en el mismo Space de Gradio} que ya existía, con Gradio
-        en la raíz como motor y respaldo. \textbf{No reimplementa ninguna regla}: importa
-        el módulo de la interfaz de Gradio y llama a sus mismas funciones, así que los
-        topes de uso, la puerta de pago, el aislamiento por lector y la degradación sin
-        clave son los mismos que verifican las pruebas de robustez. La identidad del lector
+        en la raíz como motor y respaldo. \textbf{Reutiliza el motor y ayudantes de Gradio},
+        pero sus adaptadores contienen lógica propia: topes, cobro, aislamiento y
+        degradación requieren pruebas también en la API. Compartir funciones no basta
+        para demostrar equivalencia. La identidad del lector
         viaja en una cabecera (\cod{X-Lector}) y sus datos siguen en el bucket montado en
         \cod{/data}. El primer montaje falló ---el proxy de renderizado en servidor de
         Gradio no dejaba pasar \cod{/api}--- y el segundo, sin ese proxy, es el que está en
@@ -949,10 +955,15 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
   \item \textbf{Regla de entrega:} una función existe cuando tiene ruta en la API
         \textbf{y} pantalla en el \emph{front}. Lo que solo vive en Gradio no cuenta como
         entregado.
-  \item \textbf{Pruebas:} 31 pruebas de la API sin red ni clave (aislamiento entre
-        lectores, rutas que no dejan recorrer el disco, lo de pago que no cobra sin clave,
-        CORS del \emph{front}, subidas grandes cortadas antes de leerlas entera), más las
-        pruebas de componentes del \emph{front}, además de las 334 de robustez del motor.
+  \item \textbf{Verificación del 13 de septiembre, corte actualizado el 14:} 32 de 35
+        pruebas API pasaron en el entorno aislado; tres quedaron sin validar por
+        dependencias NLP ausentes. Pasaron además 7 pruebas de concurrencia de voz,
+        10 del despliegue y 11 del pipeline de portadas. No se suman como una prueba
+        completa de usuario ni sustituyen la batería histórica del motor. El backend
+        publicado \cod{e56cf08} se cotejó por hash y se comprobó salud JSON, lectura de
+        Alicia en Angular, diccionario sin perfil y rechazo de voz anónima. No se probó
+        OpenAI real ni micrófono físico en ese cierre. Evidencia:
+        \cod{auditoria/\allowbreak despliegue\_codex\_\allowbreak 2026-09-13\_noche.md}.
 \end{itemize}
 
 \medskip\noindent\textbf{Lo que el \emph{front} añadió a la usabilidad en un día.} Tres
@@ -972,8 +983,9 @@ cosas, y las tres salieron de mirar cómo se usa un teléfono:
         el fonema que falla sale de \textbf{alinear la transcripción de lo que había que
         decir con la de lo que se entendió} ---las dos de diccionario: Wiktionary y, donde
         no la trae, CMUdict, 126.052 palabras bajo licencia BSD--- y el consejo de boca,
-        lengua y aire sale de una ficha fija por fonema. Del modelo queda solo el resumen.
-        Dos voces con el mismo audio dan el mismo fonema.
+        lengua y aire sale de una ficha fija por fonema. Del modelo queda el resumen.
+        La selección del fonema es determinista dadas las mismas palabras y
+        transcripciones; esto no hace determinista al reconocimiento de voz.
   \item \textbf{Animación del corte de la boca.} Para cada uno de los 41 sonidos del
         inglés americano (y los 44 del británico), un corte sagital animado ---labios,
         dientes, paladar, velo, lengua y mandíbula--- que va del reposo a la posición del
@@ -983,6 +995,21 @@ cosas, y las tres salieron de mirar cómo se usa un teléfono:
         sonido y en la corrección ---primero el sonido que falla y después la palabra---, y
         con «reducir movimiento» del sistema los deja quietos.
 \end{itemize}
+
+\noindent\textbf{Corte técnico pendiente de publicación.} Al cierre anterior, Blender
+tenía una demo local del corte 3D, pendiente de integración pública y revisión anatómica;
+el respaldo publicado seguía siendo 2D. Las portadas FLUX no se generaron: el pipeline
+exige saldo, tarifa actual, aprobación de muestras y permiso separado para publicar.
+La selección local de 1.200 libros contiene 746 motivos temáticos y 454 genéricos.
+Su calidad visual sigue sin comprobarse. El enlace del lector es
+\url{https://mikemaki1763-literalevel-front.static.hf.space/}.
+
+El 14 de septiembre se volvieron a contar con pandas \textbf{53.179 IDs únicos y
+585.111 capítulos} en el catálogo local. Es una comprobación del artefacto, no una
+nueva inferencia. Las 37 rutas API se contaron en el código. En el cierre remoto
+anterior, \emph{house} eligió un sentido no adecuado para una frase sobre la ubicación
+de un edificio: disponibilidad del diccionario no demuestra desambiguación correcta
+en todos los casos. Estos límites también forman parte de la entrega.
 
 \subsection{Accionables}
 
@@ -1008,7 +1035,7 @@ terminado. No son «se podría»: son «se hace».
 \endlastfoot
 \textbf{A1} & \textbf{Publicar el modelo y el diccionario} como repositorios abiertos & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO a medias}: el modelo está en \cod{MikeMaki1763/\allowbreak literalevel-v4}, público y con la descarga sin credenciales verificada; el diccionario (243 MB) sigue sin publicar \\
 \addlinespace
-\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware \cod{cpu-basic} no añade coste, y el Space estático del \emph{front} es gratuito & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel-front} (el \emph{front}) y \cod{MikeMaki1763/\allowbreak literalevel} (API y motor), públicos y en marcha; el disco persistente es A4 \\
+\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware \cod{cpu-basic} no añade coste, y el Space estático del \emph{front} es gratuito & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel-\allowbreak front} (el \emph{front}) y \cod{MikeMaki1763/\allowbreak literalevel} (API y motor), públicos y en marcha; el disco persistente es A4 \\
 \addlinespace
 \textbf{A3 · HECHO} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales & T4 gratuita; la descarga por el volcado de Common Pile (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión (\S\ref{sec:escalado}) & \textbf{Cumplido el 12 de septiembre de 2026}: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa \\
 \addlinespace
@@ -1016,11 +1043,11 @@ terminado. No son «se podría»: son «se hace».
 \addlinespace
 \textbf{A5} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla \\
 \addlinespace
-\textbf{A6} & \textbf{Retirar del catálogo los 1.049 registros no descargables} o marcarlos como fichas informativas sin botón de lectura & Hoy son el 87,6\pct{} del catálogo y no se pueden abrir. Ya no aparecen en el desplegable, pero siguen ocupando el índice & Media jornada & El catálogo lista solo lo que se puede leer, o distingue visualmente ambas cosas sin ambigüedad \\
+\textbf{A6 · HECHO} & \textbf{Sustituir el catálogo heredado} de 1.197 registros & Incluía 1.049 registros sin texto descargable, el 87,6\pct{} de aquella versión, no de la actual & Incluido en A3 & El catálogo medido actual contiene 53.179 IDs de Gutenberg; se mantienen las exclusiones de índices y obras no literarias en la recomendación \\
 \addlinespace
 \textbf{A7} & \textbf{Calibrar la escala} con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos & La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior & Una tarde & Las medias por nivel siguen estrictamente crecientes \textbf{y} se acercan a sus anclas \\
 \addlinespace
-\textbf{A8} & \textbf{Repetir la prueba de usuario con cinco lectores} de perfiles distintos, con guion de tareas y observación en silencio & $n = 1$ encuentra fallos graves; cinco encuentran la mayoría \parencite{nielsen2000five} & Cinco sesiones de 20 min & Existe una lista priorizada de hallazgos y las tres primeras correcciones están hechas \\
+\textbf{A8} & \textbf{Repetir la prueba de usuario con cinco lectores} de perfiles distintos sobre Angular, con guion de tareas y observación en silencio & Los dos ciclos previos encontraron fallos graves; no validan todos los cambios del nuevo front \parencite{nielsen2000five} & Cinco sesiones de 20 min & Existe una lista priorizada de hallazgos y las tres primeras correcciones están hechas \\
 \addlinespace
 \textbf{A9} & \textbf{Instrumentar la métrica que de verdad importa}: proporción de libros empezados que se terminan, con recomendación y sin ella & Todo lo demás son métricas de proceso. Esta es la única que valida la propuesta de valor & Una jornada de instrumentación, respetando el aislamiento por sesión & Hay una cifra base con la que comparar dentro de un mes \\
 \addlinespace
@@ -1028,10 +1055,11 @@ terminado. No son «se podría»: son «se hace».
 \end{longtable}
 \end{small}
 
-\noindent\textbf{Orden de ejecución si el tiempo aprieta:} A1 $\rightarrow$ A2
-$\rightarrow$ A5 $\rightarrow$ A3 $\rightarrow$ A4. Los tres primeros son los que
-protegen o desbloquean más puntos de rúbrica por hora invertida, y ninguno de ellos es
-un problema de modelado: son despliegue, publicación y un micrófono.
+\noindent\textbf{Orden de ejecución actualizado:} ensayar la voz con micrófono real
+(A5), recorrer Angular con usuarios (A8), grabar el video y comprobar los archivos
+de entrega. A2, A3, A4 y la sustitución del catálogo de A6 ya tienen evidencia de
+cierre; no se vuelven a presentar como trabajo por empezar. Las mejoras visuales
+pendientes no deben desplazar el ensayo de la demo.
 
 \subsection{Métricas de éxito}
 
@@ -1046,7 +1074,7 @@ Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textb
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas}: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas--- \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Cumplido}: 303 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz \\
+Producto & Robustez & \textbf{Parcial, corte 13--14 sep}: API 32/35 en entorno aislado; tres sin validar por dependencias NLP. Voz concurrente 7/7, despliegue 10/10 y portadas 11/11; no equivalen a una prueba completa de usuario \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: el \emph{front} en \cod{MikeMaki1763/\allowbreak literalevel-front} y la API con el motor en \cod{MikeMaki1763/\allowbreak literalevel}, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{Cumplido} el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
@@ -1587,6 +1615,7 @@ Las dos cosas son ciertas.
 \begin{table}[htbp]
 \centering
 \small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}l l R{2.1cm} R{2.1cm} l@{}}
 \toprule
 \textbf{Modelo} & \textbf{Representación del texto} & \textbf{Exactitud (6 clases)} & \textbf{Error ordinal medio} & \textbf{Tanda} \\
@@ -2516,11 +2545,14 @@ red; por eso la ficha se pinta en dos etapas.}
         outputs}): un esquema Pydantic con un campo por cada cosa que se va a pintar
         ---definición en contexto, explicación gramatical, versión adaptada al nivel y
         ejemplo simplificado--- en lugar de texto libre que luego haya que trocear.
-        \textbf{No es un adorno de ingeniería: es lo que hace que el modelo no pueda
-        redefinir la palabra.} Al esquema se le pasa la acepción que ya eligió el
-        desambiguador local y el prompt le prohíbe inventar otra, así que el servicio
-        externo aporta el contexto y \textbf{nunca} el significado. La misma técnica se
-        usa en la corrección de pronunciación y en el resumen de «¿de qué trata?».
+        El esquema fija la forma de la respuesta, \textbf{no garantiza su veracidad}.
+        Si Kaikki trae una acepción utilizable, la definición se conserva y el servicio
+        explica y traduce el contexto; ante una elección dudosa solo puede seleccionar
+        otra glosa existente. Desde el 13 de septiembre, si no hay acepción utilizable
+        y se autoriza la llamada, puede ofrecer una definición \textbf{marcada como
+        generada por IA}, nunca atribuida al diccionario. Sin clave se conserva la ficha
+        local y el aviso de ausencia. Las salidas estructuradas también se usan en
+        pronunciación y en «¿de qué trata?».
   \item Lee una frase en voz alta y recibe la corrección palabra por palabra.
 \end{enumerate}
 

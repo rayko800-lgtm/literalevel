@@ -339,9 +339,10 @@ palabras que el lector entienda —«se ha agotado el presupuesto mensual de
 explicaciones; el diccionario, la fonética y el audio siguen funcionando»— en
 lugar del error técnico en crudo.
 
-La regla que verifican las 303 pruebas de robustez es una sola: **ningún
-manejador puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve
-como texto legible.
+La regla de diseño es que los fallos vuelvan como texto legible en vez de
+excepciones sin tratar. Las pruebas cubren escenarios concretos; no demuestran
+que ningún manejador pueda fallar. El corte de verificación actual se distingue
+de las baterías históricas en el apartado 4.6.
 
 ### 4.4 Cada número dice de dónde viene
 
@@ -351,8 +352,10 @@ proporción de diálogo, vocabulario) sale solo al abrirlo, es instantáneo y no
 necesita red; el *resumen* escrito por un modelo generativo va detrás de un
 botón, se guarda en disco y viene marcado como lo que es. **Ninguna cifra de la
 ficha la dice un modelo generativo.** En el diccionario, la regla equivalente:
-el modelo de lenguaje explica el contexto y la gramática, y tiene prohibido
-redefinir la palabra; la definición es siempre la de Wiktionary.
+el modelo de lenguaje explica el contexto y la gramática sin sustituir una
+acepción utilizable de Wiktionary. Si no existe, desde el 13 de septiembre puede
+proponer una definición marcada como generada por IA, solo con acceso
+autorizado. La definición de diccionario y el texto generado no son lo mismo.
 
 ### 4.5 La latencia se reparte para que la pantalla no se quede quieta
 
@@ -384,20 +387,25 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   pedido por separado.
 - **La API** es un servicio FastAPI (`app/api.py`, 37 rutas bajo `/api`)
   **montado en el mismo Space de Gradio** que ya existía, con Gradio en la raíz
-  como motor y respaldo. **No reimplementa ninguna regla**: importa el módulo
-  de la interfaz de Gradio y llama a sus mismas funciones, así que los topes de
-  uso, la puerta de pago, el aislamiento por lector y la degradación sin clave
-  son los mismos que verifican las pruebas de robustez. La identidad del lector
+  como motor y respaldo. **Reutiliza el motor y ayudantes de Gradio**, pero sus
+  adaptadores contienen lógica propia: topes, cobro, aislamiento y degradación
+  requieren pruebas también en la API. Compartir funciones no basta para
+  demostrar equivalencia. La identidad del lector
   viaja en una cabecera (`X-Lector`) y sus datos siguen en el bucket montado en
   `/data`. El primer montaje falló —el proxy de renderizado en servidor de
   Gradio no dejaba pasar `/api`— y el segundo, sin ese proxy, es el que está en
   marcha.
 - **Regla de entrega:** una función existe cuando tiene ruta en la API **y**
   pantalla en el front. Lo que solo vive en Gradio no cuenta como entregado.
-- **Pruebas:** 31 pruebas de la API sin red ni clave (aislamiento entre
-  lectores, rutas que no dejan recorrer el disco, lo de pago que no cobra sin
-  clave, CORS del front, subidas grandes cortadas antes de leerlas enteras), más
-  las pruebas de componentes del front, además de las 334 de robustez del motor.
+- **Verificación del 13 de septiembre, corte actualizado el 14:** 32 de 35
+  pruebas API pasaron en el entorno aislado; tres quedaron sin validar por
+  dependencias NLP ausentes. Pasaron además 7 pruebas de concurrencia de voz,
+  10 del despliegue y 11 del pipeline de portadas. No se suman como una prueba
+  completa de usuario ni sustituyen la batería histórica del motor.
+  El backend publicado `e56cf08` se cotejó por hash y se comprobó salud JSON,
+  lectura de Alicia en Angular, diccionario sin perfil y rechazo de voz anónima.
+  No se probó OpenAI real ni micrófono físico en ese cierre. Evidencia:
+  `auditoria/despliegue_codex_2026-09-13_noche.md`.
 
 **Lo que el front añadió a la usabilidad en un día.** Tres cosas, y las tres
 salieron de mirar cómo se usa un teléfono:
@@ -415,7 +423,8 @@ salieron de mirar cómo se usa un teléfono:
   que decir con la de lo que se entendió** —las dos de diccionario: Wiktionary
   y, donde no la trae, CMUdict, 126.052 palabras bajo licencia BSD— y el
   consejo de boca, lengua y aire sale de una ficha fija por fonema. Del modelo
-  queda solo el resumen. Dos voces con el mismo audio dan el mismo fonema.
+  queda el resumen. La selección del fonema es determinista dadas las mismas
+  palabras y transcripciones; esto no hace determinista al reconocimiento de voz.
 - **Animación del corte de la boca.** Para cada uno de los 41 sonidos del
   inglés americano (y los 44 del británico), un corte sagital animado —labios,
   dientes, paladar, velo, lengua y mandíbula— que va del reposo a la posición
@@ -424,6 +433,14 @@ salieron de mirar cómo se usa un teléfono:
   generados una vez en el servidor y servidos por la API; el front los enseña
   en la ficha de cada sonido y en la corrección —primero el sonido que falla y
   después la palabra—, y con «reducir movimiento» del sistema los deja quietos.
+
+**No confundir el avance local con la entrega publicada.** Al corte anterior,
+Blender tenía una demo local del corte 3D, pendiente de integración pública y
+revisión anatómica; el respaldo publicado seguía siendo 2D. Las portadas FLUX
+no se generaron: el pipeline exige saldo, tarifa actual, aprobación de muestras
+y permiso separado para publicar. La selección local de 1.200 libros contiene
+746 motivos temáticos y 454 genéricos. Su calidad visual sigue sin comprobarse.
+El enlace del lector es https://mikemaki1763-literalevel-front.static.hf.space/ .
 
 ---
 
@@ -571,18 +588,19 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 | ~~**A3**~~ **HECHO** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales | T4 gratuita; la descarga por `common-pile/project_gutenberg` (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión | **Cumplido el 12 de septiembre de 2026**: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa |
 | ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí |
 | **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
-| **A6** | **Retirar del catálogo los 1.049 registros no descargables** o marcarlos como fichas informativas sin botón de lectura | Hoy son el 87,6 % del catálogo y no se pueden abrir. Ya no aparecen en el desplegable, pero siguen ocupando el índice | Media jornada | El catálogo lista solo lo que se puede leer, o distingue visualmente ambas cosas sin ambigüedad |
+| **A6 · HECHO** | **Sustituir el catálogo heredado** de 1.197 registros | Incluía 1.049 registros sin texto descargable, el 87,6 % de aquella versión, no de la actual | Incluido en A3 | El catálogo medido actual contiene 53.179 IDs de Gutenberg; se mantienen las exclusiones de índices y obras no literarias en la recomendación |
 | **A7** | **Calibrar la escala** con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos | La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior | Una tarde | Las medias por nivel siguen estrictamente crecientes **y** se acercan a sus anclas |
-| **A8** | **Repetir la prueba de usuario con cinco lectores** de perfiles distintos, con guion de tareas y observación en silencio | n = 1 encuentra fallos graves; cinco encuentran la mayoría (Nielsen, 2000) | Cinco sesiones de 20 min | Existe una lista priorizada de hallazgos y las tres primeras correcciones están hechas |
+| **A8** | **Repetir la prueba de usuario con cinco lectores** de perfiles distintos sobre Angular, con guion de tareas y observación en silencio | Los dos ciclos previos encontraron fallos graves; no validan todos los cambios del nuevo front (Nielsen, 2000) | Cinco sesiones de 20 min | Existe una lista priorizada de hallazgos y las tres primeras correcciones están hechas |
 | **A9** | **Instrumentar la métrica que de verdad importa**: proporción de libros empezados que se terminan, con recomendación y sin ella | Todo lo demás son métricas de proceso. Esta es la única que valida la propuesta de valor | Una jornada de instrumentación, respetando el aislamiento por sesión | Hay una cifra base con la que comparar dentro de un mes |
 | **A10** | **Ampliar el corpus de anclaje MCER** más allá de los 654 documentos actuales | Es el eslabón más delgado de la cadena de evidencia y el que limita la confianza en la letra que se muestra | Trabajo de corpus, sin coste de cómputo | El corpus de anclaje supera los 1.000 documentos con niveles de fuente institucional |
 
 *Cuadro 2. Accionables, con coste y criterio de terminado.*
 
-**Orden de ejecución si el tiempo aprieta:** A1 → A2 → A5 → A3 → A4. Los tres
-primeros son los que protegen o desbloquean más puntos de rúbrica por hora
-invertida, y ninguno de ellos es un problema de modelado: son despliegue,
-publicación y un micrófono.
+**Orden de ejecución actualizado:** ensayar la voz con micrófono real (A5),
+recorrer Angular con usuarios (A8), grabar el video y comprobar los archivos
+de entrega. A2, A3, A4 y la sustitución del catálogo de A6 ya tienen evidencia
+de cierre; no se vuelven a presentar como trabajo por empezar. Las mejoras
+visuales pendientes no deben desplazar el ensayo de la demo.
 
 ---
 
@@ -594,7 +612,7 @@ publicación y un micrófono.
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas**: lo completó, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas— |
 | Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Cumplido**: 303 pruebas de estrés y 27 pasos de integración, ningún manejador lanza hacia la interfaz |
+| Producto | Robustez | **Parcial, corte 13–14 sep**: API 32/35 en entorno aislado; tres sin validar por dependencias NLP. Voz concurrente 7/7, despliegue 10/10 y portadas 11/11; no equivalen a una prueba completa de usuario |
 | Operación | Enlace permanente disponible | **Cumplido**: el front en `MikeMaki1763/literalevel-front` y la API con el motor en `MikeMaki1763/literalevel`, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en `/data` |
 | Operación | Catálogo medido, no heredado | **Cumplido** el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |

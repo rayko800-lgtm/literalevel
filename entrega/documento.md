@@ -55,15 +55,17 @@ LiteraLevel no certifica ningún nivel del Marco Común Europeo**. Las letras
 A1 a C2 fueron el ancla con la que se entrenó el modelo, no un título que la
 aplicación expida. Sirven para elegir qué leer, no para acreditar nada.
 
-El proyecto se cierra con una aplicación funcionando —ocho pestañas en Gradio
-6.26, probada por una lectora de quince años, prima del autor y ajena al
-proyecto— y con el catálogo entero medido: **53.179 libros** en inglés de
+La entrega usa **Angular como interfaz y una API FastAPI sobre el motor Python**;
+Gradio 6.26 se conserva como respaldo. Las pruebas de usabilidad de la interfaz
+anterior con Esmeralda y Laura motivaron esta separación, pero no equivalen a
+una validación de usuario de todos los cambios posteriores. El catálogo medido
+contiene **53.179 libros** en inglés de
 dominio público de Project Gutenberg, leídos enteros por el modelo, capítulo a
 capítulo. La última tanda, en una GPU gratuita, tardó 55 minutos: el cuello de
 botella nunca fue el modelo, sino leer y guardar los archivos.
 
 **Palabras clave:** legibilidad automática, MCER, adquisición de segundas
-lenguas, lectura extensiva, transformers, Project Gutenberg, Gradio.
+lenguas, lectura extensiva, transformers, Project Gutenberg, Angular.
 
 ---
 
@@ -1106,12 +1108,14 @@ intermedia, ancla B2).
    outputs*): un esquema Pydantic con un campo por cada cosa que se va a
    pintar —definición en contexto, explicación gramatical, versión adaptada al
    nivel y ejemplo simplificado— en lugar de texto libre que luego haya que
-   trocear. **No es un adorno de ingeniería: es lo que hace que el modelo no
-   pueda redefinir la palabra.** Al esquema se le pasa la acepción que ya
-   eligió el desambiguador local y el prompt le prohíbe inventar otra, así que
-   el servicio externo aporta el contexto y **nunca** el significado. La misma
-   técnica se usa en la corrección de pronunciación y en el resumen de «¿de
-   qué trata?».
+   trocear. El esquema fija la forma de la respuesta, **no garantiza su
+   veracidad**. Si Kaikki trae una acepción utilizable, la definición se conserva
+   y el servicio explica y traduce el contexto; ante una elección dudosa solo
+   puede seleccionar otra glosa existente. Desde el 13 de septiembre, si no hay
+   acepción utilizable y se autoriza la llamada, puede ofrecer una definición
+   **marcada como generada por IA**, nunca atribuida al diccionario. Sin clave
+   se conserva la ficha local y el aviso de ausencia. Las salidas estructuradas
+   también se usan en pronunciación y en «¿de qué trata?».
 6. Lee una frase en voz alta y recibe la corrección palabra por palabra.
 
 Ese recorrido es la unidad de valor del producto: **no es un modelo con una
@@ -1237,7 +1241,38 @@ deja elegir; no se elige por él.** Es una decisión discutible y por eso se
 argumenta en lugar de ocultarse.
 
 
-### 8.5 Contra quién compite esto
+### 8.5 Entrega web y corte de verificación
+
+**Estado documental al 14 de septiembre de 2026.** El enlace para el lector es
+https://mikemaki1763-literalevel-front.static.hf.space/ . Es el front Angular;
+el Space `MikeMaki1763/literalevel` aloja FastAPI y conserva Gradio como respaldo.
+La API tiene **37 rutas bajo `/api`**, contadas en el código local, y reutiliza
+los módulos Python y ayudantes de acceso. Sus adaptadores tienen lógica propia
+y se prueban por separado: compartir funciones no garantiza por sí solo que
+ambas interfaces cobren, almacenen o respondan igual.
+
+El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111
+capítulos**. Esto confirma el tamaño del artefacto, no repite su inferencia ni
+garantiza que toda descarga futura esté disponible.
+
+El despliegue del backend `e56cf08` fue cotejado por hash el 13 de septiembre:
+salud JSON, lectura de Alicia desde Angular, diccionario sin perfil y rechazo
+de voz anónima. En el entorno local aislado pasaron **32 de 35 pruebas API**;
+tres quedaron sin validar por dependencias NLP ausentes. También pasaron 7
+pruebas de concurrencia de voz, 10 de despliegue y 11 de portadas, con sus
+alcances separados. No se probó OpenAI real ni micrófono físico en ese cierre.
+La consulta de *house* eligió un sentido no adecuado al contexto: disponibilidad
+del diccionario no demuestra que su desambiguación sea correcta en todos los
+casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
+
+**Portadas y Blender no se cuentan como producto publicado en ese corte.** El
+pipeline de portadas está bloqueado por defecto; no generó imágenes nuevas con
+FLUX ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454
+genéricos, pendientes de muestra y revisión visual. El corte de boca 3D tiene
+una demo local validada, pero su integración pública no se da por terminada
+hasta comprobarla en Angular. Se mantiene el recurso 2D existente como respaldo.
+
+### 8.6 Contra quién compite esto
 
 Un proyecto que no sabe contra qué compite no puede decir qué aporta. La versión
 larga está en el documento de estrategia; aquí van las tres alternativas reales
