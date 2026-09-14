@@ -140,9 +140,49 @@ labio("labio_inferior", False)
 # La nariz: el dorso es una banda con volumen (no una cinta) y a los lados
 # van las aletas y la punta como elipsoides, para que en tres cuartos tenga
 # cuerpo y no parezca una cuchilla.
-perfil("nariz", [(-2.5, 3.2), (-2.9, 2.65), (-3.55, 2.05), (-3.6, 1.82),
-                 (-3.3, 1.65), (-2.97, 1.7), (-2.8, 1.2), (-2.85, 0.88)],
-       0.22, [0.3, 0.38, 0.5, 0.55, 0.5, 0.36, 0.28, 0.42], PIEL)
+def orientar(vertices, caras, hacia):
+    """Da la vuelta a las caras cuya normal no apunta hacia `hacia(centro_de_cara)`."""
+    salida = []
+    for cara in caras:
+        a, b, c = (vertices[i] for i in cara[:3])
+        n = ((b[1]-a[1])*(c[2]-a[2]) - (b[2]-a[2])*(c[1]-a[1]),
+             (b[2]-a[2])*(c[0]-a[0]) - (b[0]-a[0])*(c[2]-a[2]),
+             (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0]))
+        cx = sum(vertices[i][0] for i in cara) / len(cara)
+        cy = sum(vertices[i][1] for i in cara) / len(cara)
+        cz = sum(vertices[i][2] for i in cara) / len(cara)
+        d = hacia((cx, cy, cz))
+        salida.append(cara if n[0]*d[0] + n[1]*d[1] + n[2]*d[2] >= 0 else tuple(reversed(cara)))
+    return salida
+
+
+
+def nariz(nombre):
+    """El caballete de la nariz baja del puente a la punta y vuelve por
+    debajo a la base; a cada punto le sale una seccion en medio arco que cae
+    hasta la mejilla (la linea del perfil de la cara detras de la nariz),
+    asi que de frente y de tres cuartos la nariz es un volumen, no una cinta."""
+    espina = [(-2.5, 3.22), (-2.72, 2.95), (-2.9, 2.65), (-3.2, 2.35), (-3.55, 2.05), (-3.62, 1.82),
+              (-3.42, 1.66), (-3.15, 1.64), (-2.97, 1.7), (-2.85, 1.35), (-2.82, 1.05), (-2.85, 0.9)]
+    anchos = [0.22, 0.26, 0.3, 0.36, 0.44, 0.5, 0.5, 0.48, 0.44, 0.38, 0.34, 0.36]
+    # La mejilla detras de cada punto: el borde del perfil de la cara (x = -2,6
+    # abajo, retrocediendo hacia el puente), un poco por dentro de la piel.
+    mejilla = [(-2.35, y) if y > 2.4 else (-2.45, y) for _, y in espina]
+    vertices, caras = [], []
+    lados = 12
+    for (px, py), (mx, my), w in zip(espina, mejilla, anchos):
+        for j in range(lados + 1):
+            a = -math.pi / 2 + math.pi * j / lados
+            s, c = math.sin(a), math.cos(a)
+            vertices.append((px + (mx - px) * (1 - c), py + (my - py) * (1 - c), w * s))
+    n = lados + 1
+    for i in range(len(espina) - 1):
+        for j in range(lados):
+            caras.append((i*n + j, i*n + j + 1, (i+1)*n + j + 1, (i+1)*n + j))
+    return malla(nombre, vertices, orientar(vertices, caras, lambda c: (-1.0, 0.2, c[2])), PIEL)
+
+
+nariz("nariz")
 
 
 def elipsoide(nombre, centro, escala, mat):
@@ -160,9 +200,10 @@ def elipsoide(nombre, centro, escala, mat):
     return ob
 
 
-elipsoide("aleta_izq", (-3.12, 1.78, 0.46), (0.42, 0.32, 0.3), PIEL)
-elipsoide("aleta_der", (-3.12, 1.78, -0.46), (0.42, 0.32, 0.3), PIEL)
-elipsoide("punta_nariz", (-3.5, 1.95, 0.0), (0.36, 0.34, 0.48), PIEL)
+# Las aletas van medio hundidas en los lados del cono de la nariz.
+elipsoide("aleta_izq", (-3.02, 1.76, 0.4), (0.3, 0.26, 0.24), PIEL)
+elipsoide("aleta_der", (-3.02, 1.76, -0.4), (0.3, 0.26, 0.24), PIEL)
+elipsoide("punta_nariz", (-3.48, 1.93, 0.0), (0.34, 0.32, 0.4), PIEL)
 perfil("techo_nasal", [(-2.55, 3.15), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11, 0.9, MUCOSA)
 perfil("faringe", [(2.8, 2.1), (3.05, 1.55), (3.16, 0.6), (3.08, -0.55),
                    (2.95, -1.65), (2.8, -2.5), (2.75, -3.1)], 0.15, 1.0, MUCOSA)
@@ -258,9 +299,112 @@ for i in range(pasos):
         caras.append((a, b, b+lados, a+lados))
 caras += [tuple(reversed(range(lados))), tuple(pasos*lados+j for j in range(lados))]
 malla("suelo_boca", vertices, caras, MUCOSA)
+# El menton: la banda va sobre el borde del perfil de la media cabeza y
+# redondea ese borde; estrecha, para no asomar por la piel lejana, que se
+# encoge al alejarse del corte.
 perfil("menton", [(-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45),
        (-1.92, -1.98), (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15)],
-       0.12, [0.6, 0.7, 0.82, 0.98, 1.04, 0.97, 0.72], PIEL)
+       0.12, [0.3, 0.36, 0.42, 0.46, 0.48, 0.46, 0.4], PIEL)
+
+# --- La media cabeza --------------------------------------------------------
+# Lo que cierra la cara de perfil sin cajas: una piel lejana (del lado
+# contrario a la camara) que sale del perfil exterior del corte sagital y se
+# encoge hacia un centro al alejarse del plano, como media cabeza; las caras
+# del corte (tejido cortado, mate) en tres trozos (craneo, maxilar, mandibula)
+# que dejan como hueco las cavidades (boca, faringe, nariz); una pared
+# interior al fondo de las cavidades; y la misma piel del lado de la camara,
+# que el visor pinta translucida. Craneo, maxilar y pared son fijos; el corte
+# de la mandibula gira con ella, y la piel se deforma en el visor por pesos.
+import mathutils.geometry
+
+CORTE = material("corte", (0.93, 0.74, 0.68), 0.85)
+PARED = material("pared", (0.70, 0.42, 0.44), 0.55)
+C_CABEZA = (0.6, 0.3)                 # hacia donde se encoge el perfil
+W_CABEZA = 3.0                        # media anchura de la cabeza
+EXP_CABEZA = 0.5                      # <1: lados mas planos, menos huevo
+
+
+def muestrear(puntos, paso=0.18):
+    """Puntos cada `paso` unidades sobre la polilinea (los vertices originales se conservan)."""
+    salida = []
+    for (x0, y0), (x1, y1) in zip(puntos, puntos[1:]):
+        n = max(1, int(math.hypot(x1 - x0, y1 - y0) / paso))
+        for k in range(n):
+            f = k / n
+            salida.append((x0 + (x1 - x0) * f, y0 + (y1 - y0) * f))
+    salida.append(puntos[-1])
+    return salida
+
+
+def piel(nombre, perfil, lado, cerrado, anillos=14, encoger=1.0, tapa=False, excluir=None, hasta_anillo=None):
+    """La piel: el perfil (lista de (x, y) en el corte) alejandose del plano
+    hacia `lado` (+1 camara, -1 lejos) y encogiendose hacia C_CABEZA.
+    `excluir` = (i0, i1) deja sin caras los tramos entre esos indices del
+    perfil en los primeros `hasta_anillo` anillos (el hueco que ocupa la
+    mandibula, que solo se mueve cerca del corte)."""
+    vertices, caras = [], []
+    n = len(perfil)
+    anillos_total = 14                # los anillos de la cabeza entera: una pieza parcial usa los mismos
+    for k in range(anillos + 1):
+        th = (math.pi / 2) * (min(k, anillos_total) / anillos_total) * 0.97
+        f = math.cos(th) ** EXP_CABEZA * encoger
+        z = lado * W_CABEZA * math.sin(th)
+        for x, y in perfil:
+            vertices.append((C_CABEZA[0] + (x - C_CABEZA[0]) * f, C_CABEZA[1] + (y - C_CABEZA[1]) * f, z))
+    tramos = n if cerrado else n - 1
+    for k in range(anillos):
+        for i in range(tramos):
+            j = (i + 1) % n
+            if excluir and excluir[0] <= i and j <= excluir[1] and (hasta_anillo is None or k < hasta_anillo):
+                continue
+            caras.append((k*n + i, k*n + j, (k+1)*n + j, (k+1)*n + i))
+    if tapa:
+        centro = len(vertices)
+        vertices.append((C_CABEZA[0], C_CABEZA[1], lado * W_CABEZA * encoger))
+        for i in range(tramos):
+            caras.append((anillos*n + i, anillos*n + (i + 1) % n, centro))
+    fuera = lambda c: (c[0] - C_CABEZA[0], c[1] - C_CABEZA[1], c[2])
+    return malla(nombre, vertices, orientar(vertices, caras, fuera), PIEL)
+
+
+def placa(nombre, poligono, z, mat, escala=1.0):
+    """Una cara plana en el corte (z), mirando a la camara (+z)."""
+    puntos = [(C_CABEZA[0] + (x - C_CABEZA[0]) * escala, C_CABEZA[1] + (y - C_CABEZA[1]) * escala, z) for x, y in poligono]
+    triangulos = mathutils.geometry.tessellate_polygon([[(x, y, 0.0) for x, y, _ in puntos]])
+    caras = orientar(puntos, [tuple(tri) for tri in triangulos], lambda c: (0, 0, 1))
+    return malla(nombre, puntos, caras, mat)
+
+
+# El perfil exterior, en el sentido de las agujas del reloj visto desde la
+# camara: corte de arriba, nuca, corte del cuello, garganta, menton (la banda
+# «menton» va justo en este borde), detras de los labios y al lado de la nariz.
+PERFIL = [(-2.45, 3.25), (3.55, 3.25), (3.55, -2.55), (2.04, -2.55), (2.0, -2.15), (0.8, -2.06), (-0.8, -2.14),
+          (-1.92, -1.98), (-2.64, -1.45), (-2.94, -0.95), (-2.9, -0.55), (-2.62, -0.42), (-2.62, 0.9),
+          (-2.62, 1.6), (-2.5, 2.4), (-2.45, 3.25)]
+perfil = muestrear(PERFIL)
+# El craneo es el perfil entero cerrado (con su tapa al fondo) menos el
+# tramo de la mandibula.
+# La piel es una sola pieza por lado: el visor la deforma (escena.ts,
+# `pielQueSigueLaMandibula`) para que el menton y la barbilla acompañen a la
+# mandibula sin costuras; una pieza partida dejaba un escalon al abrir.
+piel("cabeza_lejana", perfil[:-1], -1, cerrado=True, tapa=True)
+piel("cabeza_cercana", perfil[:-1], +1, cerrado=True, tapa=True)
+
+# Las caras del corte: tejido entre la piel y las cavidades.
+CORTE_CRANEO = [(-2.45, 3.25), (3.55, 3.25), (3.55, -2.55), (2.78, -2.55), (2.8, -2.5), (2.95, -1.65), (3.08, -0.55),
+                (3.16, 0.6), (3.05, 1.55), (2.8, 2.1), (1.8, 2.6), (0.4, 2.8), (-1.4, 2.85), (-2.45, 3.1)]
+CORTE_MAXILAR = [(-2.62, 0.45), (-2.62, 1.72), (2.35, 1.72), (2.35, 1.05), (2.05, 1.22), (1.7, 1.32), (1.2, 1.42),
+                 (0.6, 1.5), (0.0, 1.52), (-0.6, 1.48), (-1.2, 1.35), (-1.7, 1.15), (-2.05, 0.92), (-2.3, 0.75), (-2.55, 0.5)]
+CORTE_MANDIBULA = [(-2.55, -0.05), (-2.62, -0.42), (-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45), (-1.92, -1.98),
+                   (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15), (2.04, -2.5), (2.1, -2.3), (2.2, -1.9), (2.4, -1.5),
+                   (2.5, -1.42), (1.32, -1.47), (0.15, -1.51), (-1.02, -1.56), (-2.2, -1.6), (-2.45, -1.3),
+                   (-2.5, -0.8), (-2.55, -0.35)]
+placa("corte_craneo", CORTE_CRANEO, -0.01, CORTE)
+placa("corte_maxilar", CORTE_MAXILAR, -0.01, CORTE)
+placa("corte_mandibula", CORTE_MANDIBULA, -0.01, CORTE)
+# La pared del fondo de las cavidades (la mejilla por dentro), algo encogida
+# para quedar dentro de la piel a esa profundidad.
+placa("pared_lejana", PERFIL[:-1], -1.4, PARED, escala=0.9)
 
 for ob in bpy.context.scene.objects:
     assert all(math.isfinite(c) for v in ob.data.vertices for c in v.co)

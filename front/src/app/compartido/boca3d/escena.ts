@@ -30,7 +30,7 @@ export interface Colores {
  *  a materiales físicos (`materialDe`). */
 export const COLORES_POR_DEFECTO: Colores = {
   lengua: '#d4737d', labios: '#c9686e', dientes: '#f1e9d8', encia: '#e6989d', velo: '#d68b90',
-  hueso: '#e6dcc9', faringe: '#c98a8c', piel: '#e0b19c', mucosa: '#cf868a',
+  hueso: '#e6dcc9', faringe: '#c98a8c', piel: '#eac2ad', mucosa: '#cf868a',
 };
 
 /** Qué tejido es cada pieza: decide brillo, barniz húmedo y velo de
@@ -436,6 +436,52 @@ function geometriaMejilla(): THREE.BufferGeometry {
   return g;
 }
 
+/** La piel de la media cabeza (cara.py) con los pesos con que cada vértice
+ *  sigue el giro de la mandíbula: 1 en la barbilla y bajo el maxilar, 0 por
+ *  encima de la línea de la boca, hacia la nuca y en el lado lejano. */
+interface PielDeformable {
+  geometria: THREE.BufferGeometry;
+  reposo: Float32Array;
+  pesos: Float32Array;
+  ultimoGiro: number;
+}
+
+const suave01 = (t: number) => { const s = Math.min(1, Math.max(0, t)); return s * s * (3 - 2 * s); };
+
+export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry): PielDeformable {
+  const pos = geometria.getAttribute('position') as THREE.BufferAttribute;
+  const reposo = new Float32Array(pos.array as Float32Array);
+  const pesos = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) {
+    const x = reposo[3 * i], y = reposo[3 * i + 1], z = reposo[3 * i + 2];
+    const bajo = suave01((0.35 - y) / 1.1);           // de la línea de la boca (0,35) a la barbilla (-0,75)
+    const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
+    const cerca = 1 - suave01((Math.abs(z) - 1.6) / 1.4);   // el lado lejano de la cabeza, quieto
+    pesos[i] = bajo * delante * cerca;
+  }
+  return { geometria, reposo, pesos, ultimoGiro: NaN };
+}
+
+/** Gira cada vértice alrededor del pivote de la mandíbula por su peso. */
+function deformarPiel(piel: PielDeformable, giro: number): void {
+  if (giro === piel.ultimoGiro) return;
+  piel.ultimoGiro = giro;
+  const pos = piel.geometria.getAttribute('position') as THREE.BufferAttribute;
+  const salida = pos.array as Float32Array;
+  const { reposo, pesos } = piel;
+  for (let i = 0; i < pos.count; i++) {
+    const w = pesos[i];
+    const x = reposo[3 * i], y = reposo[3 * i + 1];
+    if (w <= 0) { salida[3 * i] = x; salida[3 * i + 1] = y; continue; }
+    const a = giro * w, c = Math.cos(a), s = Math.sin(a);
+    const dx = x - PIVOTE_MAND.x, dy = y - PIVOTE_MAND.y;
+    salida[3 * i] = PIVOTE_MAND.x + dx * c - dy * s;
+    salida[3 * i + 1] = PIVOTE_MAND.y + dx * s + dy * c;
+  }
+  pos.needsUpdate = true;
+  piel.geometria.computeVertexNormals();
+}
+
 const MUESTRAS = 56, LADOS = 16;
 
 /** Geometría vacía de la lengua, con el tamaño fijo: se rellena con `deformarLengua`. */
@@ -558,6 +604,8 @@ export class EscenaBoca {
   private readonly dientesLaterales: THREE.Mesh[] = [];
   private lateralesOcultos: 'ninguno' | 'z+' | 'z-' = 'ninguno';
   private readonly sombras: boolean;
+  /** Las pieles de la media cabeza: siguen a la mandíbula por pesos. */
+  private readonly pielesDeformables: PielDeformable[] = [];
   private readonly luzPrincipal: THREE.DirectionalLight;
   private readonly papilas: THREE.Texture | null;
   private readonly guarda = { midiendo: true, t0: 0, calentando: 0, cuadros: 0, fps: null as number | null, etapa: 0 };
@@ -656,6 +704,11 @@ export class EscenaBoca {
     const contraluz = new THREE.DirectionalLight(0xffffff, 0.7);
     contraluz.position.set(2, 4, -8);
     this.escena.add(contraluz);
+    // La media cabeza lejana mira al otro lado de la luz principal: un
+    // relleno suave desde delante y ese lado para que no quede en sombra.
+    const lejano = new THREE.DirectionalLight(0xfff0e6, 0.75);
+    lejano.position.set(-6, 3, -5);
+    this.escena.add(lejano);
     if (opciones.entorno === true) {
       try {
         const pmrem = new THREE.PMREMGenerator(this.renderer);
@@ -976,6 +1029,32 @@ export class EscenaBoca {
       const menton = piezas.get('menton');
       if (menton) this.dentroMandibula.add(new THREE.Mesh(
         menton.geometry.clone().applyMatrix4(menton.matrixWorld), materialDe('piel', col.piel)));
+      // La media cabeza (cara.py): piel lejana en dos trozos (el de la
+      // mandíbula gira con ella), caras del corte (tejido mate) y pared del
+      // fondo de las cavidades. La piel del lado de la cámara sustituye a la
+      // lámina de la mejilla, con el mismo material translúcido.
+      const cabeza: [string, Tejido | 'corte' | 'pared', boolean][] = [
+        ['cabeza_lejana', 'piel', false],
+        ['corte_craneo', 'corte', false], ['corte_maxilar', 'corte', false], ['corte_mandibula', 'corte', true],
+        ['pared_lejana', 'pared', false],
+      ];
+      for (const [nombre, tejido, enMandibula] of cabeza) {
+        const fuente = piezas.get(nombre);
+        if (!fuente) continue;
+        const mat = tejido === 'corte' ? materialDe('hueso', '#f2d5ca', { roughness: 0.88, sheen: 0.3 })
+          : tejido === 'pared' ? materialDe('mucosa', '#c98b8e', { roughness: 0.6, clearcoat: 0.2 })
+          : materialDe('piel', col.piel);
+        const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), mat);
+        (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
+        if (nombre === 'cabeza_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry));
+      }
+      const cercana = piezas.get('cabeza_cercana');
+      if (cercana) {
+        this.mejilla.geometry.dispose();
+        this.mejilla.geometry = cercana.geometry.clone().applyMatrix4(cercana.matrixWorld);
+        this.mejilla.position.z = 0;
+        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry));
+      }
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
       for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
         const fuente = piezas.get(nombre);
@@ -1173,6 +1252,7 @@ export class EscenaBoca {
 
   private aplicar(n: PoseNumerica): void {
     this.mandibula.rotation.z = n[I_MAND];
+    for (const piel of this.pielesDeformables) deformarPiel(piel, n[I_MAND]);
     this.velo.rotation.z = n[I_VELO];
     // El aire nasal aparece a medida que el velo baja.
     const abierto = (n[I_VELO] - VELO_CERRADO) / (VELO_ABIERTO - VELO_CERRADO);
