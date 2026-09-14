@@ -2,7 +2,26 @@
 
 Miguel pidio continuar el 13 de septiembre por la noche, sin compras ni
 comprometer el proyecto. Se conserva el reparto por archivos y se trabaja
-localmente: no se ha autorizado desde esta sesion ningun despliegue publico.
+localmente: al cerrar la primera tanda no habia autorizacion de despliegue.
+
+## Actualizacion: Despliegue Autorizado
+
+Miguel autorizo despues explicitamente cambios, pruebas y despliegue. Codex
+principal fue el unico desplegador. Backend publicado en
+`e56cf08b2de2c98542963cf2ae3286313d23f684`: solo `app/api.py` y `app/voz.py`,
+con los cierres descritos abajo. RUNNING, salud JSON, lectura Angular y rechazo
+de voz anonima comprobados; ambos archivos cotejados por hash despues de subir.
+No se cambio hardware, plan, secretos ni frontend; no se compro nada.
+
+Script protegido en `7e68a54` y `0aec4ee`: `--solo`, rechazo de cambios sin
+commit, control de revision remota y escaneo de los bytes enviados. Diez
+pruebas offline. Se repitieron las siete de voz y once de portadas.
+La suite API completa ahora se pudo ejecutar en un entorno aislado: 32/35;
+tres fallos relacionados con el diccionario por falta de spaCy en ese entorno.
+No se cuentan como aprobados. Detalles, limites y otro caso de acepcion
+incorrecta observado en `despliegue_codex_2026-09-13_noche.md`.
+
+El resto de este documento conserva el estado historico de la primera tanda.
 
 ## Fuente Del Encargo
 
