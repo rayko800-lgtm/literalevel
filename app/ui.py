@@ -427,14 +427,64 @@ LIMITE_DESCARGAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_DESCARGAS", "20")
 # puede entrar las veces que quiera. Quince y no tres porque la contrasena del
 # profesor va por WhatsApp y el dia de la demo nadie quiere un candado.
 LIMITE_INTENTOS_ENTRAR = int(os.environ.get("LITERALEVEL_LIMITE_INTENTOS", "15"))
+# Y por USUARIO, ademas de por IP. El cubo por IP solo frena a quien no puede
+# cambiar de IP, y la IP salia de una cabecera que escribe el cliente (revision
+# de api.py en 2a49bf2, hallazgo 1). Las contrasenas son dos palabras de 50 y
+# tres cifras: 2.205.000 combinaciones. Con 20 fallos por usuario y hora son 480
+# al dia por perfil; con los diez perfiles, un mes da en torno a un 6,5 % de
+# acertar alguno. Por encima de los 15 por IP a proposito: si no, quien falla
+# desde una IP dejaria fuera al dueño que entra desde otra antes de agotar la
+# suya. El precio: quien conozca un usuario puede cerrarle la puerta una hora.
+LIMITE_INTENTOS_USUARIO = int(os.environ.get("LITERALEVEL_LIMITE_INTENTOS_USUARIO", "20"))
 _VENTANA = 3600.0
 
 _gasto: dict[str, list[float]] = {}
 _CANDADO_GASTO = threading.Lock()
 
+# Cuantos proxies de confianza hay delante de la app. Vacio: se toma la ultima
+# direccion PUBLICA de x-forwarded-for, la que añadio el primer proxy que vio
+# al visitante. "0": no se mira la cabecera. "N": la N-esima empezando por la
+# derecha. Ver `_ip`.
+_SALTOS_PROXY = os.environ.get("LITERALEVEL_SALTOS_PROXY", "").strip()
+# Redes que no son un visitante sino un proxy o la red del contenedor. A mano y
+# no con `is_private`: Python cuenta como privadas las redes de documentacion
+# (203.0.113.0/24 y compañia), que son las que usan las pruebas.
+_REDES_INTERNAS = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10",
+                   "127.0.0.0/8", "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10")
+_IP_DIAGNOSTICADA = False
+
+
+def _direccion(texto: str):
+    """La direccion IP de un trozo de x-forwarded-for, o None si no lo es."""
+    import ipaddress
+    try:
+        return ipaddress.ip_address(str(texto).strip().strip("[]"))
+    except ValueError:
+        return None
+
+
+def _es_interna(direccion) -> bool:
+    import ipaddress
+    return any(direccion.version == red.version and direccion in red
+               for red in (ipaddress.ip_network(r) for r in _REDES_INTERNAS))
+
 
 def _ip(peticion) -> str:
-    """La IP del visitante. Detras de un proxy viene en x-forwarded-for."""
+    """La IP del visitante, para los topes por hora y el freno de la puerta.
+
+    Detras de un proxy viene en x-forwarded-for, pero el PRIMER valor de esa
+    cabecera lo escribe el cliente: los proxies AÑADEN al final. Antes se tomaba
+    ese primero, y cambiandolo en cada peticion no habia freno de contrasenas ni
+    tope por hora (revision de api.py en 2a49bf2, hallazgo 1). Ahora se toma la
+    ultima direccion publica: lo que el cliente se invente queda a su izquierda.
+    Si todas son internas, la ultima. `LITERALEVEL_SALTOS_PROXY` fija el numero
+    exacto de proxies si se conoce.
+
+    La primera vez que llega la cabecera se escribe en el registro su FORMA
+    -cuantos saltos, cuales son internos y cual se usa, sin las direcciones-,
+    para comprobar en el Space que se elige bien.
+    """
+    global _IP_DIAGNOSTICADA
     if peticion is None:
         return "local"
     cabeceras = getattr(peticion, "headers", None) or {}
@@ -442,21 +492,43 @@ def _ip(peticion) -> str:
         reenviada = cabeceras.get("x-forwarded-for")
     except AttributeError:
         reenviada = None
-    if reenviada:
-        return str(reenviada).split(",")[0].strip()[:64]
     cliente = getattr(peticion, "client", None)
-    return str(getattr(cliente, "host", None) or "desconocida")[:64]
+    directa = str(getattr(cliente, "host", None) or "desconocida")[:64]
+    if not reenviada or _SALTOS_PROXY == "0":
+        return directa
+    cadena = [t.strip() for t in str(reenviada).split(",") if t.strip()]
+    if not cadena:
+        return directa
+    if _SALTOS_PROXY.isdigit():
+        n = int(_SALTOS_PROXY)
+        elegida = cadena[-n] if len(cadena) >= n else cadena[0]
+    else:
+        ips = [(t, d) for t, d in ((t, _direccion(t)) for t in cadena) if d is not None]
+        elegida = next((t for t, d in reversed(ips) if not _es_interna(d)),
+                       ips[-1][0] if ips else None)
+    if not _IP_DIAGNOSTICADA:
+        _IP_DIAGNOSTICADA = True
+        forma = ", ".join(
+            "no-ip" if d is None else ("interna" if _es_interna(d) else "publica")
+            for d in (_direccion(t) for t in cadena))
+        posicion = cadena.index(elegida) + 1 if elegida in cadena else "ninguna (la directa)"
+        print(f"_ip: x-forwarded-for con {len(cadena)} valores ({forma}); se usa el {posicion}. "
+              "Ajustable con LITERALEVEL_SALTOS_PROXY.", file=sys.stderr)
+    return (elegida or directa)[:64]
 
 
-def _minutos_para_la_siguiente(cubo: str, peticion) -> int:
+def _minutos_para_la_siguiente(cubo: str, peticion, clave: str | None = None) -> int:
     """Cuanto falta para que se libere una ficha de este cubo, en minutos.
 
     El aviso de tope decia siempre "60 minutos", que es la ventana entera y
     casi nunca lo que falta: quien agoto el cupo hace cincuenta y ocho minutos
     leia que tenia que esperar una hora mas. Se calcula con la marca mas
     antigua que sigue viva.
+
+    `clave` sustituye a «cubo:IP» cuando el cubo no va por IP (el freno por
+    usuario de la puerta).
     """
-    clave = f"{cubo}:{_ip(peticion)}"
+    clave = clave or f"{cubo}:{_ip(peticion)}"
     ahora = time.time()
     with _CANDADO_GASTO:
         marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]
@@ -466,7 +538,7 @@ def _minutos_para_la_siguiente(cubo: str, peticion) -> int:
     return max(1, int(faltan // 60) + (1 if faltan % 60 else 0))
 
 
-def _cubo_agotado(peticion, cubo: str, tope: int) -> bool:
+def _cubo_agotado(peticion, cubo: str, tope: int, clave: str | None = None) -> bool:
     """Si el cubo ya no tiene fichas. MIRA, no consume.
 
     Hace falta para la puerta de entrada: ahi la ficha la gasta el intento
@@ -475,18 +547,18 @@ def _cubo_agotado(peticion, cubo: str, tope: int) -> bool:
     """
     if tope <= 0:
         return False
-    clave = f"{cubo}:{_ip(peticion)}"
+    clave = clave or f"{cubo}:{_ip(peticion)}"
     ahora = time.time()
     with _CANDADO_GASTO:
         marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]
     return len(marcas) >= tope
 
 
-def _dentro_del_limite(peticion, cubo: str, tope: int) -> bool:
+def _dentro_del_limite(peticion, cubo: str, tope: int, clave: str | None = None) -> bool:
     """Consume una ficha del cubo. False si ya no quedan en esta hora."""
     if tope <= 0:
         return True                        # 0 o negativo = sin limite
-    clave = f"{cubo}:{_ip(peticion)}"
+    clave = clave or f"{cubo}:{_ip(peticion)}"
     ahora = time.time()
     with _CANDADO_GASTO:
         marcas = [t for t in _gasto.get(clave, []) if ahora - t < _VENTANA]
@@ -557,8 +629,15 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
                 "configurados y todo está disponible.")
     # El freno va ANTES de comprobar nada: si ya se agotaron los intentos, esta
     # peticion no llega a `verificar` y no sirve para descartar contrasenas.
-    if _cubo_agotado(peticion, "entrar", LIMITE_INTENTOS_ENTRAR):
-        faltan = _minutos_para_la_siguiente("entrar", peticion)
+    # Dos cubos: por IP y por USUARIO (en minusculas, exista o no, para que el
+    # freno no diga que usuarios hay). El segundo para a quien cambia de IP
+    # en cada intento.
+    por_usuario = f"entrar-usuario:{str(usuario or '').strip().lower()[:80]}"
+    if (_cubo_agotado(peticion, "entrar", LIMITE_INTENTOS_ENTRAR)
+            or _cubo_agotado(peticion, "entrar-usuario", LIMITE_INTENTOS_USUARIO,
+                             clave=por_usuario)):
+        faltan = max(_minutos_para_la_siguiente("entrar", peticion),
+                     _minutos_para_la_siguiente("entrar-usuario", peticion, clave=por_usuario))
         return (f"**Demasiados intentos fallidos.** Vuelve a probar en "
                 f"{faltan} minuto{'s' if faltan != 1 else ''}.")
     # Este manejador lo toca TODO visitante, y era el unico que no cumplia la
@@ -573,8 +652,10 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
         if c is None:
             with _CANDADO_CODIGO:
                 _CODIGO_SESION.pop(_sesion_de(peticion), None)
-            # La ficha la gasta el que falla, no el que entra.
+            # La ficha la gasta el que falla, no el que entra: una de cada cubo.
             _dentro_del_limite(peticion, "entrar", LIMITE_INTENTOS_ENTRAR)
+            _dentro_del_limite(peticion, "entrar-usuario", LIMITE_INTENTOS_USUARIO,
+                               clave=por_usuario)
             return ("**No he podido entrar.** Revisa el usuario y la contraseña; "
                     "se distinguen mayúsculas en la contraseña, no en el usuario.")
         with _CANDADO_CODIGO:

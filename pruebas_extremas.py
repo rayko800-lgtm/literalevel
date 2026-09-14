@@ -5087,6 +5087,59 @@ prueba("la puerta de entrada tiene freno",
        _la_puerta_de_entrada_tiene_freno)
 
 
+def _la_ip_no_se_inventa_y_el_freno_va_tambien_por_usuario():
+    """Revision de api.py en 2a49bf2, hallazgo 1: la IP salia del PRIMER valor
+    de x-forwarded-for, que escribe el cliente. Cambiandolo en cada intento no
+    habia freno de contrasenas ni tope por hora."""
+    # Los proxies añaden al final: se usa la ultima direccion publica.
+    assert ui._ip(_Pet(ip="1.2.3.4, 203.0.113.9")) == "203.0.113.9"
+    assert ui._ip(_Pet(ip="8.8.8.8, 203.0.113.9, 10.0.0.2")) == "203.0.113.9"
+    assert ui._ip(_Pet(ip="basura, 10.0.0.2")) == "10.0.0.2"
+    viejo = ui._SALTOS_PROXY
+    try:
+        ui._SALTOS_PROXY = "2"
+        assert ui._ip(_Pet(ip="1.1.1.1, 2.2.2.2, 3.3.3.3")) == "2.2.2.2"
+        ui._SALTOS_PROXY = "0"
+        assert ui._ip(_Pet(ip="1.1.1.1", host="198.51.100.4")) == "198.51.100.4"
+    finally:
+        ui._SALTOS_PROXY = viejo
+
+    def dentro():
+        ui._gasto.clear()
+        # 1) Inventarse el principio de la cabecera no da intentos nuevos.
+        for i in range(ui.LIMITE_INTENTOS_ENTRAR):
+            falso = _Visitante(f"spoof-{i}", ip=f"{i + 1}.9.9.9, 203.0.113.60")
+            assert "No he podido entrar" in ui._entrar("jefe", f"MAL-{i}", falso), i
+        otro_falso = _Visitante("spoof-ultimo", ip="77.7.7.7, 203.0.113.60")
+        assert "Demasiados intentos" in ui._entrar("jefe", "MAL-X", otro_falso), \
+            "cambiando x-forwarded-for se sigue probando contraseñas"
+
+        # 2) Por usuario: muchas IP de verdad contra el MISMO usuario tambien paran.
+        ui._gasto.clear()
+        tope_u = ui.LIMITE_INTENTOS_USUARIO
+        assert ui.LIMITE_INTENTOS_ENTRAR < tope_u <= 30, tope_u
+        for i in range(tope_u):
+            v = _Visitante(f"red-{i}", ip=f"198.51.100.{i + 1}")
+            assert "No he podido entrar" in ui._entrar(" JEFE ", f"MAL-{i}", v), i
+        nueva = _Visitante("red-nueva", ip="198.51.100.200")
+        assert "Demasiados intentos" in ui._entrar("jefe", "MAL-Y", nueva), \
+            "con una IP distinta por intento no hay freno para ese usuario"
+        # El freno no dice si el usuario existe: otro usuario, aunque no exista,
+        # recibe el mensaje normal desde una IP limpia.
+        assert "No he podido entrar" in ui._entrar("nadie", "MAL-Z", nueva)
+        return f"ip de la derecha; {ui.LIMITE_INTENTOS_ENTRAR} por ip y {tope_u} por usuario"
+
+    try:
+        return _con_codigos(dentro)
+    finally:
+        ui._gasto.clear()
+        ui._CODIGO_SESION.clear()
+
+
+prueba("la ip no se inventa y el freno va tambien por usuario",
+       _la_ip_no_se_inventa_y_el_freno_va_tambien_por_usuario)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 
