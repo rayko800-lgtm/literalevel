@@ -205,6 +205,15 @@ _EXT_LIBRO = (".epub", ".pdf", ".txt")
 _TOPE_SUBIDA = 20 * 1024 * 1024     # el mismo que `ui.TAMANO_MAXIMO_SUBIDA`
 _MAX_SUBIDOS = 30                   # libros propios por lector
 _SUBIDAS_HORA = 12                  # intentos de subida por IP y hora
+# Revisión de 4e (6): medir no cuesta dinero, pero es CPU del único proceso del
+# Space, y la puntuación va de una en una (`_CANDADO_MODELO`): sin freno, un
+# bucle de peticiones de medir dejaba a los demás esperando detrás. Por IP y
+# hora, como los topes de `ui`; 0 quita el tope.
+_MEDIDAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_MEDIDAS", "40"))    # muestra, libro y capítulo
+_CURVAS_HORA = int(os.environ.get("LITERALEVEL_LIMITE_CURVAS", "6"))       # curvas nuevas
+# Y la curva abre un hilo por libro que espera su turno: sin tope de cola, mil
+# libros distintos eran mil hilos vivos. Para todos, no por IP.
+_CURVAS_VIVAS = int(os.environ.get("LITERALEVEL_CURVAS_EN_COLA", "4"))
 _HOLGURA_FORMULARIO = 64 * 1024     # cabeceras multipart y campos de texto
 
 
@@ -780,6 +789,14 @@ def _puntuar(texto: str):
         return ui.puntuador().puntuar(texto)
 
 
+def _frenar(pet: _Lector, cubo: str, tope: int) -> None:
+    """Gasta una ficha del cubo por IP y hora, o 429 con los minutos que faltan.
+    Va DESPUÉS de lo que se rechaza sin coste (texto que no es prosa, capítulo
+    que no existe), para que un error no gaste ficha."""
+    if not ui._dentro_del_limite(pet, cubo, tope):
+        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente(cubo, pet)))
+
+
 @app.post("/api/perfil/muestra")
 def perfil_muestra(datos: MuestraPeticion, pet: Lector) -> dict:
     texto = datos.texto.strip()
@@ -787,6 +804,7 @@ def perfil_muestra(datos: MuestraPeticion, pet: Lector) -> dict:
     ok, motivo = scoring.continuous_prose(texto)
     if not ok:
         raise _no(422, scoring._MOTIVOS.get(motivo, motivo))
+    _frenar(pet, "medidas", _MEDIDAS_HORA)  # tope de la muestra
     try:
         r = _puntuar(texto)
     except ValueError as e:
@@ -809,6 +827,7 @@ def perfil_libro(datos: NivelLibroPeticion, pet: Lector) -> dict:
     muestra = ui._muestra_de_libro(libro)
     if len(muestra.split()) < 150:
         raise _no(422, "Ese libro tiene muy poco texto corrido para medirlo.")
+    _frenar(pet, "medidas", _MEDIDAS_HORA)  # tope del nivel con un libro
     try:
         r = _puntuar(muestra)
     except ValueError as e:
@@ -981,6 +1000,7 @@ def medir_capitulo(libro_id: str, n: int, pet: Lector) -> dict:
     ident = _normalizar_id(libro_id)
     _, lib = _abrir(ident, pet, descargar=False)
     c = _cap(lib, n)
+    _frenar(pet, "medidas", _MEDIDAS_HORA)  # tope de medir un capítulo
     try:
         r = _puntuar(ficha.sin_licencia(c.texto))
     except ValueError as e:
@@ -1132,6 +1152,12 @@ def medir_curva(libro_id: str, datos: CurvaPeticion, pet: Lector) -> dict:
             if t["clave"] == clave and t["modo"] == datos.modo and \
                     t["estado"] in ("en_cola", "en_curso"):
                 return {"trabajo": t["id"], "ya_medido": False}
+        # La cola, antes que la ficha por hora: si no cabe, no se gasta.
+        vivas = sum(1 for t in _TRABAJOS.values() if t["estado"] in ("en_cola", "en_curso"))
+        if _CURVAS_VIVAS > 0 and vivas >= _CURVAS_VIVAS:
+            raise _no(503, f"Ahora mismo se están midiendo {vivas} libros. "
+                           "Vuelve a pedir la curva en unos minutos.")
+        _frenar(pet, "curvas", _CURVAS_HORA)
         trabajo = {"id": uuid.uuid4().hex, "clave": clave, "modo": datos.modo,
                    "libro_id": ident, "estado": "en_cola", "hechos": 0, "total": 0,
                    "filas": [], "error": None, "creado": time.time(), "terminado": None}
@@ -1459,8 +1485,10 @@ def audio(nombre: str):
     p = _DIR_AUDIO / nombre
     if not p.is_file():
         raise _no(404, "No existe ese audio.")
+    # nosniff, como los SVG: el nombre lo elige el cliente (revisión de 4e, 7).
     return FileResponse(p, media_type="audio/mpeg",
-                        headers={"Cache-Control": "public, max-age=604800"})
+                        headers={"Cache-Control": "public, max-age=604800",
+                                 "X-Content-Type-Options": "nosniff"})
 
 
 def _url_audio_fonema(ruta: Path, prefijo: str) -> str | None:
@@ -1552,12 +1580,13 @@ def _svg_corte(clase: str, texto: str, acento: str, quieto: bool,
 
 def _pasada(dur: float | None, una: bool, quieto: bool = False) -> tuple[float | None, bool]:
     """«Escuchar y ver»: `dur` (segundos del audio) y `una=1` (una sola pasada,
-    sin bucle), contrato de entrega-4e. Redondeado a 0,1 s y fuera de 0,3..10
+    sin bucle), contrato de entrega-4e. Redondeado a 0,1 s y fuera de 0,3..30
     se ignora, para que la caché no guarde una copia por cada milisegundo. El
     quieto no se mueve: ni lo uno ni lo otro."""
     if quieto:
         return None, True
-    if dur is not None and not (math.isfinite(dur) and 0.3 <= dur <= 10):
+    # 30 y no 10 desde «Más lento» (4e, da5c96d): un mp3 de 8 s a 0,25× pasa de 30.
+    if dur is not None and not (math.isfinite(dur) and 0.3 <= dur <= 30):
         dur = None
     return (round(dur, 1) if dur is not None else None), not una
 

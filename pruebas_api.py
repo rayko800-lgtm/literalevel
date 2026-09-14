@@ -970,6 +970,9 @@ def corte_de_una_pasada_con_la_duracion_del_audio():
     assert corta.status_code == 200, (corta.status_code, corta.text[:200])
     assert corta.text == aa.svg_articulacion("θ", "ga", dur=1.4, repetir=False), "dur o una no llegan como tocan"
     assert corta.text != aa.svg_articulacion("θ", "ga", dur=1.4), "una=1 no quita el bucle"
+    # «Más lento»: un audio de 8,6 s a 0,5× son 17,2 s, y tiene que llegar.
+    lenta = cliente.get(theta, params={"dur": "17.24", "una": "1"})
+    assert lenta.text == aa.svg_articulacion("θ", "ga", dur=17.2, repetir=False), "dur de más de 10 s no llega"
     en_bucle = cliente.get(theta, params={"dur": "1.4"})
     assert en_bucle.text == aa.svg_articulacion("θ", "ga", dur=1.4, repetir=True)
     assert cliente.get(theta).text == aa.svg_articulacion("θ", "ga")
@@ -1082,6 +1085,93 @@ def ritmo_de_la_lectura_con_nivel_y_audio_natural():
     return f"nivel 1.6, audio natural {r['ritmo']['natural']['audio_natural'][:22]}…, 1 intento"
 
 
+def topes_de_medir_y_de_la_curva():
+    """Revisión de 4e (6): muestra, nivel con libro y medir capítulo gastan
+    ficha del cubo «medidas»; la curva, del cubo «curvas», y además no admite
+    más hilos vivos que `_CURVAS_VIVAS` (sin gastar ficha si no cabe). Lo que
+    se rechaza gratis no gasta; pedir otra vez una curva en marcha tampoco. Y
+    el audio sale con nosniff (7)."""
+    from types import SimpleNamespace as NS
+    # Prosa de verdad (Conan Doyle, dominio público): una frase repetida no pasa el filtro.
+    prosa = ("To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any "
+             "other name. In his eyes she eclipses and predominates the whole of her sex. It was not that "
+             "he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, "
+             "were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most "
+             "perfect reasoning and observing machine that the world has seen, but as a lover he would have "
+             "placed himself in a false position. He never spoke of the softer passions, save with a gibe "
+             "and a sneer. They were admirable things for the observer, excellent for drawing the veil "
+             "from men's motives and actions. ") * 2
+    lector = nuevo_lector()
+    gastos, cerrados = [], set()
+
+    def cubo_espia(pet, cubo, tope, clave=None):
+        gastos.append((cubo, tope))
+        return cubo not in cerrados
+
+    n = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=lector))["inicial"]
+    originales = (ui._dentro_del_limite, api._puntuar, api._medir_libro, ui._analisis_guardado)
+    trabajos = api._TRABAJOS.copy()
+    ui._dentro_del_limite = cubo_espia
+    api._puntuar = lambda texto: NS(puntuacion=1.0, banda=2, n_bloques=1, confianza="alta")
+    api._medir_libro = lambda trabajo, lib, modo: None      # el hilo no hace nada: el trabajo sigue «en_cola»
+    ui._analisis_guardado = lambda *a, **k: None
+    try:
+        # Lo que se rechaza sin coste no gasta ficha.
+        no_prosa = cliente.post("/api/perfil/muestra", headers=lector, json={"texto": "hola " * 3})
+        gastos_rechazo = list(gastos)
+        abiertos = (cliente.post("/api/perfil/muestra", headers=lector, json={"texto": prosa}).status_code,
+                    cliente.post("/api/perfil/libro", headers=lector, json={"libro_id": LIBRE}).status_code,
+                    cliente.post(f"/api/libros/{LIBRE}/capitulos/{n}/medir", headers=lector).status_code)
+        gastos_abiertos = list(gastos)
+        cerrados.add("medidas")
+        cerrados_medir = (cliente.post("/api/perfil/muestra", headers=lector, json={"texto": prosa}).status_code,
+                          cliente.post("/api/perfil/libro", headers=lector, json={"libro_id": LIBRE}).status_code,
+                          cliente.post(f"/api/libros/{LIBRE}/capitulos/{n}/medir", headers=lector).status_code)
+        # La curva: la primera entra, repetirla no gasta, y sin ficha 429.
+        api._TRABAJOS.clear()
+        del gastos[:]
+        primera = _ok(cliente.post(f"/api/libros/{LIBRE}/curva", headers=lector, json={"modo": "rapido"}))
+        repetida = _ok(cliente.post(f"/api/libros/{LIBRE}/curva", headers=lector, json={"modo": "rapido"}))
+        gastos_curva = list(gastos)
+        api._TRABAJOS.clear()
+        cerrados.add("curvas")
+        sin_ficha = cliente.post(f"/api/libros/{LIBRE}/curva", headers=lector, json={"modo": "rapido"})
+        # Con la cola llena, 503 y SIN gastar ficha.
+        cerrados.discard("curvas")
+        for i in range(api._CURVAS_VIVAS):
+            api._TRABAJOS[f"otro{i}"] = {"id": f"otro{i}", "clave": f"otro{i}", "modo": "rapido", "estado": "en_curso"}
+        del gastos[:]
+        llena = cliente.post(f"/api/libros/{LIBRE}/curva", headers=lector, json={"modo": "rapido"})
+        gastos_llena = list(gastos)
+        # Una que ya terminó no ocupa sitio en la cola.
+        api._TRABAJOS["otro0"]["estado"] = "hecho"
+        hueco = cliente.post(f"/api/libros/{LIBRE}/curva", headers=lector, json={"modo": "rapido"})
+    finally:
+        ui._dentro_del_limite, api._puntuar, api._medir_libro, ui._analisis_guardado = originales
+        api._TRABAJOS.clear()
+        api._TRABAJOS.update(trabajos)
+    assert no_prosa.status_code == 422 and gastos_rechazo == [], (no_prosa.status_code, gastos_rechazo)
+    assert abiertos == (200, 200, 200), abiertos
+    assert gastos_abiertos == [("medidas", api._MEDIDAS_HORA)] * 3, gastos_abiertos
+    assert cerrados_medir == (429, 429, 429), cerrados_medir
+    assert primera["trabajo"] and repetida["trabajo"] == primera["trabajo"], (primera, repetida)
+    assert gastos_curva == [("curvas", api._CURVAS_HORA)], gastos_curva
+    assert sin_ficha.status_code == 429, sin_ficha.status_code
+    assert llena.status_code == 503 and gastos_llena == [], (llena.status_code, gastos_llena)
+    assert f"{api._CURVAS_VIVAS} libros" in llena.json()["detail"], llena.json()
+    assert hueco.status_code == 200, hueco.status_code
+    # nosniff en el audio.
+    mp3 = api._DIR_AUDIO / f"prueba_{uuid.uuid4().hex[:8]}.mp3"
+    mp3.parent.mkdir(parents=True, exist_ok=True)
+    mp3.write_bytes(b"ID3" + b"\x00" * 64)
+    try:
+        audio = cliente.get(f"/api/audio/{mp3.name}")
+    finally:
+        mp3.unlink(missing_ok=True)
+    assert audio.status_code == 200 and audio.headers.get("x-content-type-options") == "nosniff", audio.headers
+    return f"medidas 3×200 y 3×429, curva 1 ficha, cola llena 503 sin ficha, audio nosniff"
+
+
 if __name__ == "__main__":
     print("API de LiteraLevel\n")
     for fn in (sin_lector_no_hay_datos, lector_corto_no_vale, perfiles_aislados,
@@ -1098,7 +1188,7 @@ if __name__ == "__main__":
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
-               ritmo_de_la_lectura_con_nivel_y_audio_natural,
+               ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
