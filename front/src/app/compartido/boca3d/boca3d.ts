@@ -5,7 +5,7 @@ import {
 import { Acento, urlCorteSonido } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
-import { cicloSonido, lineaPalabra } from './animacion';
+import { cicloSonido, giroPara, lineaPalabra } from './animacion';
 import { EscenaBoca } from './escena';
 import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
 
@@ -168,7 +168,7 @@ export class Boca3d {
       const p = this.pose();
       const escena = this.escena;
       if (!p || !escena) return;
-      if (this.autoReproducir() && this.elegido()) escena.reproducir(cicloSonido(p, this.catalogo()));
+      if (this.autoReproducir() && this.elegido()) escena.reproducir(cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6));
     });
     destruir.onDestroy(() => this.escena?.destruir());
@@ -177,7 +177,7 @@ export class Boca3d {
   /** Reposo → sonido → reposo, una vez. */
   verMovimiento(): void {
     const p = this.pose();
-    if (p && this.escena) this.escena.reproducir(cicloSonido(p, this.catalogo()));
+    if (p && this.escena) this.escena.reproducir(cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
   }
 
   /** La palabra de `ipa` entera, con las duraciones del catálogo. */

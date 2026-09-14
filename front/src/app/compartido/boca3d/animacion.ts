@@ -40,6 +40,14 @@ function conAlgoQueVer(pose: PoseSonido, resuelta: PoseSonido, R: PoseSonido): P
   return todoLibre ? { ...resuelta, mandibula: Math.max(resuelta.mandibula, R.mandibula + 0.25) } : resuelta;
 }
 
+/** Cuánto gira la cámara hacia la cara (radianes de azimut, negativo = hacia
+ *  la cara) durante el ciclo de un sonido: lo que pasa en los labios —el
+ *  fruncido de /u/, el estiramiento de /i/— se ve de frente, no de lado. */
+export function giroPara(pose: PoseSonido): number {
+  return pose.labios === 'redondeados' || pose.labios === 'muy_redondeados' || pose.labios === 'estirados'
+    ? -(30 * Math.PI) / 180 : 0;
+}
+
 /** Reposo → sonido → reposo, en un ciclo de 2,8 s. */
 export function cicloSonido(pose: PoseSonido, catalogo: CatalogoPoses): Linea {
   const R = catalogo.reposo;

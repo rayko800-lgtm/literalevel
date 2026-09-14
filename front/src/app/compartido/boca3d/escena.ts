@@ -359,17 +359,22 @@ function geometriaLabio(largo: number, radio: number): THREE.BufferGeometry {
 /** La mejilla: una lámina translúcida en el lado de la cámara, con las
  *  esquinas redondeadas, para que la cabeza tenga un lado sin tapar nada. */
 function geometriaMejilla(): THREE.BufferGeometry {
+  // Sigue el perfil de la cara modelada (tools/boca3d_blender/cara.py): el
+  // puente de la nariz y el techo nasal por arriba, la faringe por detrás, el
+  // mentón por debajo y, delante, se queda detrás de las comisuras y de la
+  // nariz, que sobresalen. Sin cara modelada también cierra bien las piezas
+  // simples.
   const f = new THREE.Shape();
-  f.moveTo(-2.1, 0.7);
-  f.quadraticCurveTo(-2.5, 1.2, -1.6, 1.55);
-  f.lineTo(2.3, 1.85);
-  f.quadraticCurveTo(3.1, 1.9, 3.05, 1.1);
-  f.lineTo(3.05, -1.9);
-  f.quadraticCurveTo(3.0, -2.5, 2.3, -2.45);
-  f.lineTo(-1.3, -2.2);
-  f.quadraticCurveTo(-2.3, -2.1, -2.3, -1.2);
-  f.lineTo(-2.35, 0.2);
-  f.quadraticCurveTo(-2.4, 0.55, -2.1, 0.7);
+  f.moveTo(-2.35, 0.95);                              // bajo la nariz, detrás de los labios
+  f.quadraticCurveTo(-2.55, 2.1, -2.35, 3.05);        // el lateral de la nariz, hasta el puente
+  f.quadraticCurveTo(-0.6, 3.0, 1.8, 2.75);           // el techo nasal
+  f.quadraticCurveTo(3.0, 2.5, 3.1, 1.5);             // la nasofaringe
+  f.quadraticCurveTo(3.25, -0.6, 2.85, -2.3);         // la pared de la faringe
+  f.quadraticCurveTo(2.7, -2.75, 2.0, -2.45);         // la garganta
+  f.quadraticCurveTo(0.5, -2.4, -0.8, -2.35);         // debajo del mentón
+  f.quadraticCurveTo(-2.4, -2.2, -2.85, -1.2);        // el mentón
+  f.quadraticCurveTo(-3.0, -0.6, -2.55, -0.15);       // el surco bajo el labio
+  f.quadraticCurveTo(-2.35, 0.3, -2.35, 0.95);        // detrás de las comisuras
   const g = new THREE.ExtrudeGeometry(f, { depth: 0.05, bevelEnabled: false });
   return g;
 }
@@ -496,6 +501,11 @@ export class EscenaBoca {
   /** La línea de tiempo en marcha (ciclo de un sonido o palabra entera). */
   private linea: { claves: { t: number; n: PoseNumerica }[]; total: number } | null = null;
   private lineaT0 = 0;
+  /** Giro de cámara (radianes de azimut) que acompaña a la línea: sube a
+   *  mitad del ciclo y vuelve al final. Negativo mira hacia la cara. */
+  private giroLinea = 0;
+  private giroBase = { azimut: 0, polar: 1.49, distancia: 13 };
+  private arrastrando = false;
   private sucio = true;
   private vivo = true;
   private rafId = 0;
@@ -531,6 +541,9 @@ export class EscenaBoca {
     this.controles.minPolarAngle = 0.35;
     this.controles.maxPolarAngle = 2.5;
     this.controles.addEventListener('change', () => { this.sucio = true; });
+    // Si el usuario arrastra, el giro automático de la cámara se cancela.
+    this.controles.addEventListener('start', () => { this.arrastrando = true; this.giroLinea = 0; });
+    this.controles.addEventListener('end', () => { this.arrastrando = false; });
     this.controles.update();
     // OrbitControls pone touch-action: none al conectarse, y eso deja la
     // página sin scroll sobre la boca. Con pan-y el navegador se queda los
@@ -674,8 +687,9 @@ export class EscenaBoca {
   /** Reproduce una línea de tiempo (`cicloSonido` o `lineaPalabra`) desde el
    *  principio; al acabar se queda en su última clave. Con reducir movimiento
    *  no se mueve nada: va de golpe a la pose quieta de la línea. */
-  reproducir(linea: Linea): void {
+  reproducir(linea: Linea, opciones: { giro?: number } = {}): void {
     this.desde = this.hacia = null;
+    this.giroLinea = 0;
     if (this.reducirMovimiento || linea.claves.length < 2) {
       this.linea = null;
       this.actual = poseNumerica(linea.quieta);
@@ -688,7 +702,25 @@ export class EscenaBoca {
     });
     this.linea = { claves, total: linea.total };
     this.lineaT0 = performance.now();
+    // El giro de cámara que acompaña al sonido (labios redondeados o
+    // estirados se ven de frente): solo si el usuario no está arrastrando.
+    if (opciones.giro && !this.arrastrando) {
+      const d = this.camara.position.clone().sub(this.controles.target);
+      this.giroBase = { azimut: Math.atan2(d.x, d.z), polar: Math.acos(Math.min(1, Math.max(-1, d.y / d.length()))), distancia: d.length() };
+      this.giroLinea = opciones.giro;
+    }
     this.sucio = true;
+  }
+
+  /** La cámara a un azimut, conservando la altura y la distancia de `giroBase`. */
+  private colocarAzimut(azimut: number): void {
+    const { polar, distancia } = this.giroBase;
+    const o = this.controles.target;
+    this.camara.position.set(
+      o.x + distancia * Math.sin(polar) * Math.sin(azimut),
+      o.y + distancia * Math.cos(polar),
+      o.z + distancia * Math.sin(polar) * Math.cos(azimut));
+    this.camara.lookAt(o);
   }
 
   /** Corta la línea en marcha y se queda donde está. */
@@ -728,7 +760,13 @@ export class EscenaBoca {
   }
 
   private distanciaEncuadre(): number {
-    return (this.caraModelada ? 16 : 13) * Math.max(1, 1 / this.camara.aspect);
+    // Con la cara modelada el perfil entero no cabe a 13, pero lo que importa
+    // es la boca: en el móvil a 16 quedaba pequeña. La nariz y la garganta se
+    // ven enteras al girar.
+    // 14,5 es lo más cerca que el perfil entero (nariz, mentón, faringe) cabe
+    // sin tocar el borde del lienzo en un móvil (288x420): lo mide
+    // tools/probar_boca_integrada.mjs.
+    return (this.caraModelada ? 14.5 : 13) * Math.max(1, 1 / this.camara.aspect);
   }
 
   /** Con `true` el lienzo captura todos los gestos táctiles (también los
@@ -806,6 +844,10 @@ export class EscenaBoca {
         destino.userData['modelado'] = true;
         destino.material = new THREE.MeshPhysicalMaterial({ color: colorLabios, roughness: 0.48,
           clearcoat: 0.15, clearcoatRoughness: 0.4 });
+        // Las shape keys del labio (fruncir, estirar): el visor las mezcla
+        // desde el largo entre comisuras de la pose. Sin ellas, se escala.
+        destino.updateMorphTargets();
+        destino.scale.set(1, 1, 1);
       }
       (Array.isArray(materialAnterior) ? materialAnterior : [materialAnterior]).forEach(m => m.dispose());
       for (const nombre of nombres.slice(2)) {
@@ -817,6 +859,12 @@ export class EscenaBoca {
       const menton = piezas.get('menton');
       if (menton) this.dentroMandibula.add(new THREE.Mesh(
         menton.geometry.clone().applyMatrix4(menton.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+      // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
+      for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
+        const fuente = piezas.get(nombre);
+        if (fuente) this.escena.add(new THREE.Mesh(
+          fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+      }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
       const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
         ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
@@ -896,7 +944,17 @@ export class EscenaBoca {
       const t = (performance.now() - this.lineaT0) / 1000;
       this.actual = this.poseDeLinea(t);
       this.aplicar(this.actual);
-      if (t >= this.linea.total) this.linea = null;
+      if (this.giroLinea) {
+        // Sube y baja con una campana suave: en mitad del ciclo está girada del todo.
+        const f = Math.min(1, Math.max(0, t / this.linea.total));
+        const peso = Math.pow(Math.sin(Math.PI * f), 2);
+        this.colocarAzimut(this.giroBase.azimut + this.giroLinea * peso);
+      }
+      if (t >= this.linea.total) {
+        if (this.giroLinea) this.colocarAzimut(this.giroBase.azimut);
+        this.linea = null;
+        this.giroLinea = 0;
+      }
       this.sucio = true;
     } else if (this.hacia && this.desde) {
       const t = Math.min(1, (performance.now() - this.t0) / this.duracion);
@@ -931,7 +989,14 @@ export class EscenaBoca {
 
   private labio(m: THREE.Mesh, largo: number, radio: number): void {
     if (m.userData['modelado']) {
-      m.scale.set(radio / 0.3, radio / 0.3, largo / 2.3);
+      const dic = m.morphTargetDictionary, inf = m.morphTargetInfluences;
+      if (dic && inf && 'fruncir' in dic && 'estirar' in dic) {
+        // 2,3 es el largo neutro; 1,05 el de «muy redondeados»; 2,9 el de «estirados».
+        inf[dic['fruncir']] = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05)));
+        inf[dic['estirar']] = Math.min(1, Math.max(0, (largo - 2.3) / (2.9 - 2.3)));
+      } else {
+        m.scale.set(radio / 0.3, radio / 0.3, largo / 2.3);
+      }
       return;
     }
     const u = m.userData as { largo: number; radio: number };

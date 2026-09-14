@@ -8,7 +8,7 @@
  *  ?giro=-1.0&polar=1.2 (vista girada: negativo mira hacia la cara),
  *  ?mejilla=0 (sin mejilla), ?fps=1 (mide cuadros por segundo reproduciendo
  *  una palabra en bucle y lo escribe en la leyenda). */
-import { cicloSonido, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
+import { cicloSonido, giroPara, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
 import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
 import { CatalogoPoses, PoseSonido, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
 import catalogoJson from '../../front/src/app/compartido/boca3d/poses.ejemplo.json';
@@ -57,7 +57,7 @@ function arrancar(): void {
   const ir = (simbolo: string) => {
     const pose: PoseSonido | null = poseDe(CATALOGO, simbolo);
     if (!pose) return;
-    if (ciclo.checked && simbolo) escena.reproducir(cicloSonido(pose, CATALOGO));
+    if (ciclo.checked && simbolo) escena.reproducir(cicloSonido(pose, CATALOGO), { giro: giroPara(pose) });
     else escena.irA(pose, lento.checked ? 2.5 : 0.55);
     leyenda.textContent = (simbolo ? `/${simbolo}/ · ` : 'reposo · ') + pose.leyenda;
     chips.querySelectorAll('button').forEach(b => b.classList.toggle('elegido', b.dataset['s'] === simbolo));

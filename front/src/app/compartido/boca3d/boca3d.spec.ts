@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { cicloSonido, lineaPalabra } from './animacion';
+import { cicloSonido, giroPara, lineaPalabra } from './animacion';
 import { Boca3d } from './boca3d';
 import { poseNumerica } from './escena';
 import { POSES_PROTOTIPO, REPOSO, poseDe, resolver, trocearIpa, CATALOGO_PROTOTIPO } from './poses';
@@ -92,6 +92,13 @@ describe('trocearIpa y resolver', () => {
 });
 
 describe('líneas de tiempo', () => {
+  it('la cámara gira 30° hacia la cara solo en los sonidos con labios redondeados o estirados', () => {
+    expect(giroPara(POSES_PROTOTIPO['i'])).toBeCloseTo(-Math.PI / 6, 6);      // estirados
+    expect(giroPara({ ...REPOSO, labios: 'muy_redondeados' })).toBeLessThan(0);
+    expect(giroPara(POSES_PROTOTIPO['p'])).toBe(0);                           // cerrados
+    expect(giroPara(POSES_PROTOTIPO['ɑ'])).toBe(0);                           // neutros
+  });
+
   it('la /h/, que lo deja todo libre, abre la mandíbula en su ciclo para que se vea algo', () => {
     const h = { ...REPOSO, movimiento: 'fricativa' as const, sonora: false, lugar: 'glotal',
                 libres: ['mandibula', 'labios', 'punta', 'cuerpo'] as const, leyenda: 'aire en la garganta' };

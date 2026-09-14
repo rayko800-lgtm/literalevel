@@ -78,6 +78,77 @@ def techo(x, velo_abierto):
     return mejor
 
 
+# --- Dientes, encias y hueso, igual que arcoDental/tuboArco en escena.ts -----
+# Coordenadas de escena con la boca cerrada: x delante/atras, `alto` arriba,
+# `lat` lateral. En Blender el vertice es (x, y=lat, z=alto); los arcos son
+# simetricos, asi que el signo del lateral no importa. Medidas de entrega-4e.
+
+MEDIO_ANCHO = 1.35
+DIENTES_U = [-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92]
+
+
+def arco(u, retroceso=2.3):
+    return -2.6 + retroceso * u * u, MEDIO_ANCHO * u
+
+
+def pen_tubo(x, alto, lat, y0, r, retroceso=2.3):
+    """Cuanto entra el punto en un tubo que sigue el arco (positivo = dentro)."""
+    mejor = 9.0
+    for k in range(-30, 31):
+        cx, cz = arco(k / 30, retroceso)
+        mejor = min(mejor, math.hypot(x - cx, alto - y0, lat - cz))
+    return r - mejor
+
+
+def pen_diente(x, alto, lat, u, y_centro):
+    """Cuanto entra el punto en la caja de un diente (positivo = dentro)."""
+    cx, cz = arco(u)
+    incisivo = abs(u) < 0.3
+    w, d, h = (0.34, 0.24, 0.5) if incisivo else (0.4, 0.36, 0.5)
+    ang = -math.atan2(2 * 2.3 * u, MEDIO_ANCHO)
+    dx, dz = x - cx, lat - cz
+    lx = dx * math.cos(ang) + dz * math.sin(ang)
+    lz = -dx * math.sin(ang) + dz * math.cos(ang)
+    return min(d / 2 - abs(lx), h / 2 - abs(alto - y_centro), w / 2 - abs(lz))
+
+
+def pen_superior(x, alto, lat):
+    """Arco superior: encia (tubo y 0,98 r 0,2) y dientes (centro y 0,7)."""
+    if alto < 0.3 or (abs(lat) < 0.5 and x > -2.2):        # lejos del arco: no hay nada que medir
+        return -9.0
+    p = pen_tubo(x, alto, lat, 0.98, 0.2)
+    for u in DIENTES_U:
+        p = max(p, pen_diente(x, alto, lat, u, 0.7))
+    return p
+
+
+def pen_inferior(x, alto, lat):
+    """Mandibula: encia (y -0,2 r 0,2), hueso (y -0,62 r 0,28, retroceso 2,6) y dientes (centro y 0,1)."""
+    if alto > 0.5 or (abs(lat) < 0.5 and alto > -0.25 and x > -2.2):
+        return -9.0
+    p = max(pen_tubo(x, alto, lat, -0.2, 0.2), pen_tubo(x, alto, lat, -0.62, 0.28, 2.6))
+    for u in DIENTES_U:
+        p = max(p, pen_diente(x, alto, lat, u, 0.1))
+    return p
+
+
+def empujar_fuera(x, lat, alto, muestras=(0.0,)):
+    """Saca el vertice de dientes y encias: hacia la linea media si es el arco
+    (lo que roza son los bordes laterales) y hacia arriba si es el hueso.
+    `muestras` son desplazamientos en x que otra shape key puede sumar."""
+    for _ in range(30):
+        if max(pen_superior(x + d, alto, lat) for d in muestras) > -HOLGURA and abs(lat) > 0.02:
+            lat -= math.copysign(0.02, lat)
+        elif max(pen_inferior(x + d, alto, lat) for d in muestras) > -HOLGURA:
+            if abs(lat) > 0.45:
+                lat -= math.copysign(0.02, lat)
+            else:
+                alto += 0.02
+        else:
+            break
+    return lat, alto
+
+
 # --- Forma base --------------------------------------------------------------
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -122,6 +193,12 @@ for v in ob.data.vertices:
     y *= 1 + 0.15 * rampa(x, 0.6, 2.0)
     v.co = (x + CENTRO[0], y + CENTRO[1], z + CENTRO[2])
 
+# La forma base tampoco roza dientes ni encias.
+for v in ob.data.vertices:
+    x, y, z = v.co
+    y, z = empujar_fuera(x, y, z)
+    v.co = (x, y, z)
+
 base = [tuple(v.co) for v in ob.data.vertices]
 
 # --- Shape keys: una por parametro, recortadas contra el techo --------------
@@ -144,8 +221,14 @@ def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0)):
         tope = min(techo(nx + d, velo_abierto) for d in muestras) - (-TOLERANCIA_TOQUE if toca else HOLGURA)
         if nz > tope:
             nz = tope
-        k.data[i].co = (nx, y + dy, nz)
-        deltas.append((nx - x, dy, nz - z))
+        ny = y + dy
+        # Tambien la punta interdental: pasa entre los incisivos por encima de
+        # los de abajo y por debajo de los de arriba, asi que el empuje no la
+        # toca; lo que rozaba eran los bordes de la lamina contra los
+        # premolares de abajo en /θ ð/ (medido por entrega-4e).
+        ny, nz = empujar_fuera(nx, ny, nz, muestras)
+        k.data[i].co = (nx, ny, nz)
+        deltas.append((nx - x, ny - y, nz - z))
     CLAVES[nombre] = deltas
     return k
 
@@ -156,14 +239,14 @@ dorso_w = lambda x: campana(x, 1.45, 0.75)
 raiz_w = lambda x: rampa(x, 0.8, 2.4)
 arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas que la de abajo
 
-clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))))
+clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))), margen_x=(-0.7, 0.6))
 clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) ** 1.3), toca=True, margen_x=(-0.3, 0.1))
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
-clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)))
+clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)), margen_x=(-0.5, 0.1))
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
-clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)))
+clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)), margen_x=(-0.7, 0.6))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
 clave("cuerpo_atras", lambda x, y, z: (0.7 * campana(x, 0.3, 2.0), 0.0, 0.0))
 clave("dorso_velo", lambda x, y, z: (0.15 * dorso_w(x), 0.0, 1.6 * dorso_w(x) * arriba(z)), velo_abierto=True, toca=True, margen_x=(-0.1, 0.4))
@@ -203,6 +286,7 @@ poses["reposo"] = catalogo["reposo"]
 informe = []
 peor = 0.0
 peor_pliegue = 0.0
+peor_roce = -9.0        # cuanto entra la lengua en dientes, encias o hueso (negativo = holgura)
 interdentales = []
 ES_PUNTA = [punta_w(x) > 0.6 for x, _, _ in base]
 ES_CUERPO = [punta_w(x) < 0.15 for x, _, _ in base]
@@ -214,15 +298,21 @@ for nombre, p in poses.items():
     pos = []
     angulo = min(1.0, max(0.0, p["mandibula"])) * 0.42
     coseno, seno = math.cos(angulo), math.sin(angulo)
+    roce_sup = roce_inf = -9.0
     for i, (x, y, z) in enumerate(base):
         nx = x + sum(w * CLAVES[m][i][0] for w, m in zip(inf, MORFOS))
+        ny = y + sum(w * CLAVES[m][i][1] for w, m in zip(inf, MORFOS))
         nz = z + sum(w * CLAVES[m][i][2] for w, m in zip(inf, MORFOS))
+        # Los dientes de abajo giran con la lengua: se miden en coordenadas locales.
+        roce_inf = max(roce_inf, pen_inferior(nx, nz, ny))
         # EscenaBoca monta el GLB dentro de la mandibula: comparar el techo
         # contra coordenadas locales ocultaba el error de la punta interdental.
         nx, nz = (2.6 + (nx - 2.6) * coseno - (nz - 0.9) * seno,
                   0.9 + (nx - 2.6) * seno + (nz - 0.9) * coseno)
-        pos.append((nx, y, nz))
+        pos.append((nx, ny, nz))
         entra = max(entra, nz - techo(nx, p["velo_abierto"]))
+        # Los de arriba estan fijos: se miden con la lengua ya girada.
+        roce_sup = max(roce_sup, pen_superior(nx, nz, ny))
     # La lengua no se dobla sobre si misma: ningun vertice de la punta queda
     # por debajo de la cara de arriba del cuerpo en su misma vertical.
     cuerpo = [(px, py, pz) for (px, py, pz), c in zip(pos, ES_CUERPO) if c]
@@ -239,8 +329,10 @@ for nombre, p in poses.items():
         y_min, y_max = min(v[2] for v in punta), max(v[2] for v in punta)
         assert frente < -2.72 and y_min > -0.41 and y_max < 0.45, (nombre, frente, y_min, y_max)
         interdentales.append((nombre, round(frente, 4), round(y_min, 4), round(y_max, 4)))
-    informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3)))
+    roce = max(roce_sup, roce_inf)
+    informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3), round(roce, 3)))
     peor = max(peor, exceso)
+    peor_roce = max(peor_roce, roce)
     peor_pliegue = max(peor_pliegue, pliegue)
 informe.sort(key=lambda r: -max(r[2], r[3]))
 
@@ -257,6 +349,12 @@ bpy.ops.export_scene.gltf(
     filepath=os.path.abspath(SALIDA), export_format="GLB", export_morph=True, export_morph_normal=True,
     export_apply=False, export_yup=True, export_materials="EXPORT",
 )
+# El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
+# dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
+PUBLICO = os.path.join(RAIZ, "front", "public", "boca3d", "lengua.glb")
+if os.path.isdir(os.path.dirname(PUBLICO)) and os.path.abspath(SALIDA) != os.path.abspath(PUBLICO):
+    import shutil
+    shutil.copyfile(SALIDA, PUBLICO)
 
 with open(SALIDA, "rb") as f:
     _, _, length = struct.unpack("<III", f.read(12))
@@ -268,9 +366,10 @@ print("LENGUA_OK", json.dumps({
     "morph_targets": [len(p.get("targets", [])) for p in malla["primitives"]],
     "targetNames": malla.get("extras", {}).get("targetNames"),
     "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3), "peor_pliegue": round(peor_pliegue, 3),
+    "peor_roce_dientes": round(peor_roce, 3),
     "interdentales (nombre, x, ymin, ymax)": interdentales,
-    "peores (nombre, entra, exceso, pliegue)": informe[:6],
+    "peores (nombre, entra, exceso, pliegue, roce)": sorted(informe, key=lambda r: -max(r[2], r[3], r[4]))[:6],
 }, ensure_ascii=False))
-if peor > 0.005 or peor_pliegue > 0.005:
-    print("COLISION: alguna pose entra en el techo o la punta se dobla sobre el cuerpo", file=sys.stderr)
+if peor > 0.005 or peor_pliegue > 0.005 or peor_roce > 0.005:
+    print("COLISION: alguna pose entra en el techo, en los dientes, o la punta se dobla sobre el cuerpo", file=sys.stderr)
     sys.exit(1)

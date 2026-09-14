@@ -44,14 +44,20 @@ def malla(nombre, vertices, caras, mat):
     return ob
 
 
-def labio(nombre, superior):
-    """Arco cerrado, comisuras afinadas y borde humedo plano para el sellado.
+def puntos_labio(superior, fruncir=0.0, estirar=0.0):
+    """Los vertices de un labio: arco cerrado, comisuras afinadas y borde
+    humedo plano para el sellado. `fruncir` (0..1) junta las comisuras, saca
+    el centro hacia delante y engorda; `estirar` (0..1) separa las comisuras,
+    afina y retrae un poco. Son las dos shape keys que el visor mezcla desde
+    `labios` de la pose (redondeados, muy_redondeados, estirados).
 
     Base 2.3 de ancho y radio 0.3, igual al contrato de geometriaLabio.
     La cara de contacto conserva y=+/-0.3 en el centro: /p b m/ sellan.
     """
-    vertices, caras = [], []
+    vertices = []
     n, lados = 64, 20
+    ancho = 1.15 * (1 - 0.5 * fruncir + 0.25 * estirar)         # media distancia entre comisuras
+    grosor = 0.3 * (1 + 0.2 * fruncir - 0.2 * estirar)
     for i in range(n + 1):
         t = -1 + 2 * i / n
         fin = max(0.025, (1 - t * t) ** 0.55)
@@ -59,17 +65,28 @@ def labio(nombre, superior):
         # Dos lobulos superiores y una depresion central: arco de Cupido.
         cupido = 0.055 * (math.exp(-((abs(t) - 0.28) / 0.16) ** 2)
                            - 0.5 * math.exp(-(t / 0.12) ** 2)) if superior else 0
+        # Fruncir saca el centro hacia delante (mas que las comisuras) y
+        # estirar lo retrae.
+        adelante = -0.5 * fruncir * (1 - 0.5 * t * t) + 0.12 * estirar
         for j in range(lados):
             a = 2 * math.pi * j / lados
             c, s = math.cos(a), math.sin(a)
             contacto = (s < 0) if superior else (s > 0)
             alto = 0.3 if contacto else (0.24 if superior else 0.31)
+            alto *= grosor / 0.3
             # El borde humedo es ancho y plano, no una seccion circular que
             # deja una rendija aparente al ver /p/ ligeramente desde arriba.
             perfil_y = math.copysign(abs(s) ** 0.28, s) if contacto else s
             y = alto * perfil_y * (fin ** 0.16 if contacto else fin) + (cupido * max(0, s) if superior else 0)
-            x = arco + 0.3 * c * fin
-            vertices.append((x, y, 1.15 * t))
+            x = arco + grosor * c * fin + adelante
+            vertices.append((x, y, ancho * t))
+    return vertices
+
+
+def labio(nombre, superior):
+    """El labio con sus dos shape keys (fruncir, estirar)."""
+    caras = []
+    n, lados = 64, 20
     for i in range(n):
         for j in range(lados):
             a = i * lados + j
@@ -77,7 +94,13 @@ def labio(nombre, superior):
             caras.append((a, b, b + lados, a + lados))
     caras.append(tuple(reversed(range(lados))))
     caras.append(tuple(n * lados + j for j in range(lados)))
-    return malla(nombre, vertices, caras, LABIOS)
+    ob = malla(nombre, puntos_labio(superior), caras, LABIOS)
+    ob.shape_key_add(name="Basis", from_mix=False)
+    for clave, kw in (("fruncir", {"fruncir": 1.0}), ("estirar", {"estirar": 1.0})):
+        k = ob.shape_key_add(name=clave, from_mix=False)
+        for i, (x, y, z) in enumerate(puntos_labio(superior, **kw)):
+            k.data[i].co = (x, -z, y)          # la misma conversion de ejes que malla()
+    return ob
 
 
 def perfil(nombre, puntos, grosor, ancho, mat):
@@ -114,9 +137,32 @@ def perfil(nombre, puntos, grosor, ancho, mat):
 
 labio("labio_superior", True)
 labio("labio_inferior", False)
+# La nariz: el dorso es una banda con volumen (no una cinta) y a los lados
+# van las aletas y la punta como elipsoides, para que en tres cuartos tenga
+# cuerpo y no parezca una cuchilla.
 perfil("nariz", [(-2.5, 3.2), (-2.9, 2.65), (-3.55, 2.05), (-3.6, 1.82),
                  (-3.3, 1.65), (-2.97, 1.7), (-2.8, 1.2), (-2.85, 0.88)],
-       0.12, [0.28, 0.33, 0.55, 0.62, 0.54, 0.32, 0.25, 0.42], PIEL)
+       0.22, [0.3, 0.38, 0.5, 0.55, 0.5, 0.36, 0.28, 0.42], PIEL)
+
+
+def elipsoide(nombre, centro, escala, mat):
+    """Un elipsoide liso en coordenadas del visor (x, arriba, lateral)."""
+    x, arriba, lateral = centro
+    ex, earriba, elateral = escala
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1.0,
+                                         location=(x, -lateral, arriba))
+    ob = bpy.context.object
+    ob.name = nombre
+    ob.scale = (ex, elateral, earriba)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bpy.ops.object.shade_smooth()
+    ob.data.materials.append(mat)
+    return ob
+
+
+elipsoide("aleta_izq", (-3.12, 1.78, 0.46), (0.42, 0.32, 0.3), PIEL)
+elipsoide("aleta_der", (-3.12, 1.78, -0.46), (0.42, 0.32, 0.3), PIEL)
+elipsoide("punta_nariz", (-3.5, 1.95, 0.0), (0.36, 0.34, 0.48), PIEL)
 perfil("techo_nasal", [(-2.55, 3.15), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11, 0.9, MUCOSA)
 perfil("faringe", [(2.8, 2.1), (3.05, 1.55), (3.16, 0.6), (3.08, -0.55),
                    (2.95, -1.65), (2.8, -2.5), (2.75, -3.1)], 0.15, 1.0, MUCOSA)
@@ -221,7 +267,13 @@ for ob in bpy.context.scene.objects:
     assert all(p.area > 1e-10 for p in ob.data.polygons), ob.name
 
 bpy.ops.export_scene.gltf(filepath=os.path.abspath(SALIDA), export_format="GLB", export_yup=True,
-                          export_materials="EXPORT")
+                          export_materials="EXPORT", export_morph=True, export_morph_normal=True)
+# El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
+# dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
+PUBLICO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "front", "public", "boca3d", "cara.glb"))
+if os.path.isdir(os.path.dirname(PUBLICO)) and os.path.abspath(SALIDA) != PUBLICO:
+    import shutil
+    shutil.copyfile(SALIDA, PUBLICO)
 proyecto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "build", "boca3d_modelos", "cara.blend"))
 os.makedirs(os.path.dirname(proyecto), exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=proyecto)
