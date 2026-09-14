@@ -129,9 +129,16 @@
               }
             }
           </ul>
-          <p class="tenue pequeno leyenda"><span class="muestra bien"></span>bien pronunciada · <span class="muestra mal"></span>no se entendió como esa palabra
-            @if (v.natural) { · <strong>negrita</strong>: con énfasis · <span class="arco" aria-hidden="true">‿</span> se une con la siguiente }
-            @if (v.hayMarcasDeTiempo) { · «aquí aceleras» y «aquí sin pausa», medidos en tu grabación }
+          <!-- Cada tramo de la leyenda en su <span>: .leyenda es flex y un texto suelto
+               se partía en trozos («negrita» en una línea y «: con énfasis» en otra). -->
+          <p class="tenue pequeno leyenda">
+            <span><span class="muestra bien"></span> bien pronunciada</span>
+            <span><span class="muestra mal"></span> no se entendió como esa palabra</span>
+            @if (v.natural) {
+              <span><strong>negrita</strong>: con énfasis</span>
+              <span><span class="arco" aria-hidden="true">‿</span> se une con la siguiente</span>
+            }
+            @if (v.hayMarcasDeTiempo) { <span>«aquí aceleras» y «aquí sin pausa»: medidos en tu grabación</span> }
           </p>
         }
       }

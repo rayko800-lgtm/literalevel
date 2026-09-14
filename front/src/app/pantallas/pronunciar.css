@@ -50,14 +50,16 @@
 .palabras-voz li { padding: .05em .3em; border-radius: 6px; border-bottom: 3px solid transparent; }
 .palabras-voz .bien { border-bottom-color: var(--verde); }
 .palabras-voz .mal { background: var(--rojo-suave); border-bottom-color: var(--rojo); font-weight: 650; }
-.leyenda { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin: 0; }
+.leyenda { display: flex; align-items: center; gap: .35rem .9rem; flex-wrap: wrap; margin: 0; }
+.leyenda > span { display: inline-flex; align-items: center; gap: .35rem; }
 /* Lectura natural (ritmo de entrega-4e): énfasis, enlaces y dónde acelerar o no parar. */
 .palabras-voz li.enfasis { font-weight: 800; }
 .palabras-voz li.tramo:not(.mal) { background: var(--acento-suave); }
 .palabras-voz li.enlace { padding: 0; margin: 0 -.4rem; border: 0; align-self: flex-end; line-height: 1;
   color: var(--acento-texto); font-weight: 800; }
+/* Las etiquetas son de la interfaz, no del libro: sin la letra con serifa de .en-libro. */
 .palabras-voz li.marca { align-self: center; padding: .15em .55em; border: 0; border-radius: 999px;
-  font-size: .75rem; font-weight: 700; letter-spacing: .01em; }
+  font-family: var(--fuente-ui); font-size: .75rem; font-weight: 700; letter-spacing: .01em; }
 .palabras-voz li.marca.acelera { background: var(--acento-suave); color: var(--acento-texto); }
 .palabras-voz li.marca.pausa { background: var(--rojo-suave); color: var(--texto); }
 .leyenda .arco { color: var(--acento-texto); font-weight: 800; }
