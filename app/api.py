@@ -526,6 +526,35 @@ def _cap(libro: reader.Libro, n: int):
     return c
 
 
+_TEMAS_POR_ID: dict[str, str] | None = None
+_CANDADO_TEMAS = threading.Lock()
+
+
+def _temas(id_libro) -> list[str]:
+    """Los temas del catálogo de un libro, para la portada tipográfica del front
+    (Miguel, 14 sep): los de Gutenberg («Science fiction; Short stories») y los
+    de los corpus libres («Children's stories; StoryWeaver reading level 2»).
+    Como mucho ocho; [] si no los hay o si el catálogo no carga (sin cachear el
+    fallo: la próxima vez se intenta otra vez)."""
+    global _TEMAS_POR_ID
+    ident = str(id_libro or "").strip().upper()
+    if not ident:
+        return []
+    if _TEMAS_POR_ID is None:
+        with _CANDADO_TEMAS:
+            if _TEMAS_POR_ID is None:
+                try:
+                    d = ui.catalogo().df
+                except Exception:
+                    return []
+                if "temas" in d.columns:
+                    pares = zip(d["id"].astype(str).str.strip().str.upper(), d["temas"].fillna("").astype(str))
+                    _TEMAS_POR_ID = {i: t for i, t in pares if t.strip()}
+                else:
+                    _TEMAS_POR_ID = {}
+    return [t.strip() for t in _TEMAS_POR_ID.get(ident, "").split(";") if t.strip()][:8]
+
+
 def _libro_tarjeta(b) -> dict:
     """Un resultado del catalogo, listo para pintarse en una tarjeta."""
     dificultad = _finito(b.dificultad)
@@ -534,7 +563,7 @@ def _libro_tarjeta(b) -> dict:
             "gancho": " ".join(str(b.gancho or "").split()),
             "descargas": b.descargas, "similitud": b.similitud,
             "afinidad": b.afinidad, "abrible": ui._abrible(b.id),
-            "url": b.url_gutenberg,
+            "url": b.url_gutenberg, "temas": _temas(b.id),
             # Contrato con f4 (catalogo.py de8a4a8): "" en el catalogo es sin aviso.
             "aviso_contenido": getattr(b, "aviso_contenido", "") or None}
 
@@ -602,6 +631,7 @@ def _libro_json(ident: str, libro: reader.Libro, pet: _Lector) -> dict:
         "id": ident,
         "titulo": libro.titulo_visible,
         "aviso_contenido": _aviso_contenido(libro),
+        "temas": _temas(getattr(libro, "id_catalogo", None) or ident),
         "autor": ui._autor_corto(libro.autor),
         "palabras": (c.palabras if c else libro.palabras),
         "inicial": _capitulo_inicial(libro),

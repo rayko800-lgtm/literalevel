@@ -101,6 +101,8 @@ export interface LibroTarjeta {
   url: string;
   /** Nota en español si el libro lleva aviso de contenido (catalogo.py, f4); si no, null. */
   aviso_contenido?: string | null;
+  /** Temas del catálogo («Science fiction», «Children's stories»…): deciden la familia de la portada. */
+  temas?: string[];
 }
 
 export interface ResultadoBusqueda {
@@ -130,6 +132,8 @@ export interface Libro {
   titulo: string;
   /** Nota en español si el libro lleva aviso de contenido; null en subidos y sin aviso. */
   aviso_contenido?: string | null;
+  /** Temas del catálogo, para la portada; [] en subidos. */
+  temas?: string[];
   autor: string;
   palabras: number;
   inicial: number;

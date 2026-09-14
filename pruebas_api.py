@@ -1085,6 +1085,29 @@ def ritmo_de_la_lectura_con_nivel_y_audio_natural():
     return f"nivel 1.6, audio natural {r['ritmo']['natural']['audio_natural'][:22]}…, 1 intento"
 
 
+def temas_para_la_portada():
+    """La tarjeta y la ficha traen los temas del catálogo, partidos por «;» y en
+    su orden, para la portada tipográfica; un libro sin temas trae []."""
+    from app import catalogo as cat
+    d = ui.catalogo().df
+    fila = d[d["id"].astype(str).str.upper() == "PG1661"].iloc[0]
+    esperados = [t.strip() for t in str(fila["temas"]).split(";") if t.strip()][:8]
+    assert len(esperados) >= 1, fila["temas"]
+    b = cat.Libro(id="PG1661", titulo="The Adventures of Sherlock Holmes", autor="Doyle", nivel="B2",
+                  gancho="", descargas=1)
+    tarjeta = api._libro_tarjeta(b)
+    assert tarjeta["temas"] == esperados, (tarjeta["temas"], esperados)
+    # Los ids llegan como sea («pg1661» en una URL escrita a mano): los temas no dependen de eso.
+    minusculas = api._libro_tarjeta(cat.Libro(id="pg1661", titulo="x", autor="", nivel="B2", gancho="", descargas=0))
+    assert minusculas["temas"] == esperados, minusculas["temas"]
+    sin = api._libro_tarjeta(cat.Libro(id="NO-EXISTE-9", titulo="x", autor="", nivel="A1", gancho="", descargas=0))
+    assert sin["temas"] == [], sin["temas"]
+    libre = d[d["id"].astype(str).str.upper() == LIBRE.upper()].iloc[0]
+    ficha = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=A))
+    assert ficha["temas"] == [t.strip() for t in str(libre["temas"]).split(";") if t.strip()][:8], ficha["temas"]
+    return f"PG1661 {esperados[:2]}, {LIBRE} {ficha['temas']}"
+
+
 def topes_de_medir_y_de_la_curva():
     """Revisión de 4e (6): muestra, nivel con libro y medir capítulo gastan
     ficha del cubo «medidas»; la curva, del cubo «curvas», y además no admite
@@ -1195,6 +1218,7 @@ if __name__ == "__main__":
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
+               temas_para_la_portada,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,

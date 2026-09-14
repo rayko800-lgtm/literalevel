@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Curva as GraficaCurva } from '../compartido/curva';
 import { Icono } from '../compartido/icono';
+import { Portada } from '../compartido/portada';
 import { Api, Curva, EntradaBiblioteca, Libro, Trabajo, mensajeError } from '../nucleo/api';
 import { cefr, miles, minutosDe, num } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
@@ -12,7 +13,7 @@ import { Sesion } from '../nucleo/sesion';
 @Component({
   selector: 'app-libro',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icono, GraficaCurva],
+  imports: [RouterLink, Icono, GraficaCurva, Portada],
   template: `
     <div class="pagina" data-seccion="encontrar">
       <a class="volver" routerLink="/encontrar"><app-icono nombre="izq" />Encontrar</a>
@@ -29,9 +30,7 @@ import { Sesion } from '../nucleo/sesion';
 
       @if (libro(); as l) {
         <section class="cabecera">
-          <div class="portada" [attr.data-letra]="l.cefr" aria-hidden="true">
-            <span>{{ (l.titulo[0] || '·').toUpperCase() }}</span>
-          </div>
+          <app-portada class="portada" [id]="l.id" [titulo]="l.titulo" [autor]="l.autor" [cefr]="l.cefr" [temas]="l.temas" />
           <div class="info">
             <h1>{{ l.titulo }}</h1>
             <p class="autor">{{ l.autor || 'Autor desconocido' }}</p>
@@ -234,12 +233,7 @@ import { Sesion } from '../nucleo/sesion';
   styles: `
     .volver { display: inline-flex; align-items: center; gap: .3rem; min-height: 44px; margin-bottom: .5rem; color: var(--texto-suave); text-decoration: none; font-weight: 600; }
     .cabecera { display: grid; grid-template-columns: 150px 1fr; gap: clamp(1rem, 3vw, 2rem); align-items: center; margin-bottom: 1.5rem; }
-    .portada { aspect-ratio: 3 / 4.3; border-radius: 10px 16px 16px 10px; display: grid; place-items: center; color: #fff;
-      font-family: var(--fuente-libro); font-size: 3.5rem; background: linear-gradient(160deg, var(--p1, #5b7cf0), var(--p2, #2e46b0));
-      box-shadow: inset 6px 0 0 rgba(0,0,0,.12), var(--sombra-alta); }
-    .portada[data-letra="A1"], .portada[data-letra="A2"] { --p1: #3fb58a; --p2: #1f7a5b; }
-    .portada[data-letra="C1"] { --p1: #c0782f; --p2: #874b14; }
-    .portada[data-letra="C2"] { --p1: #b0496b; --p2: #6e2440; }
+    .portada { display: block; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .28)); }
     .info h1 { margin-bottom: .2rem; overflow-wrap: anywhere; }
     .autor { color: var(--texto-suave); font-size: 1.1rem; margin-bottom: .8rem; }
     .chips { gap: .45rem; margin-bottom: 1.1rem; }
@@ -287,8 +281,8 @@ import { Sesion } from '../nucleo/sesion';
       grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
     .indice li a { background: transparent; border: 1px solid var(--borde); }
     @media (max-width: 760px) {
-      .cabecera { grid-template-columns: 96px 1fr; align-items: start; }
-      .portada { font-size: 2.2rem; }
+      .cabecera { grid-template-columns: 128px 1fr; align-items: start; }
+      /* La portada guarda su proporción; con 120 px el título se sigue leyendo. */
       .dos-col { grid-template-columns: 1fr; }
       .cta .boton { flex: 1 1 100%; }
       .rasgos div { grid-template-columns: 1fr; gap: 0; }
