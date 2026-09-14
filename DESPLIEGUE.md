@@ -240,6 +240,16 @@ Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás prepara
 | `5de9ab4` | `app/ui.py`, `app/voz.py`, `app/articulacion.py` y el módulo nuevo `app/animacion_articulatoria.py` | 4e, `05783c0` (animaciones 2D) | 85 SVG de la tabla en `/config`, servidos desde `/data/articulacion_svg/` como `image/svg+xml`; la voz de un compuesto ya solo detalla la pieza que falla |
 
 | `bdc0b8d` | `app/api.py` | e6, `edbcd01` | `/api/articulacion/{ga,rp}/{símbolo}.svg` y `palabra.svg` dan 200 `image/svg+xml` con caché de 30 días y `nosniff`; fuera de inventario 404; IPA inválida 422 |
+| `dfc755c` | `app/api.py` | e6, `2a49bf2` | con acento UK el sonido que falla y su audio son británicos (`/api/fonemas/rp/…`); la IPA de la palabra sigue US si no hay transcripción británica (decisión de la central) |
+| `e0e5f81` | `app/api.py`, `app/ui.py`, `app/reader.py` | 4e `514786b` + `9eb3c91` + `17b8ac3`, e6 `d7098e9` | subida de 21 MB da 413 a los 0,7 s (curl; urllib ve `SSLEOFError` porque sigue enviando); registro: «_ip: x-forwarded-for con 1 valores (publica); se usa el 1», así que no hace falta `LITERALEVEL_SALTOS_PROXY` |
+| `e3a79cb` | `app/api.py`, `app/catalogo.py`, `app/ficha.py`, `app/lexicon.py`, `app/ui.py`, `app/animacion_articulatoria.py`, `avisos_contenido.csv`, `correcciones_catalogo.csv` | f4 `de8a4a8`, 4e (5 commits), e6 `e5ae1ad` | aviso de contenido en ficha y tarjetas; PG17824 6.º por nivel; PG2242 a 1,713; «bank» sin sesión con 4 acepciones principales; frases de Alice sin comillas sueltas; `alice.txt` conserva su nombre; sinopsis de Alice regenerada sin el final (se borró `analisis/47f56b5ec94e389e56c5-sinopsis.json` del bucket) |
+
+**La prueba final como persona** (13 sep 2026, front publicado a 390 px táctil) se hizo con un micrófono
+falso: `getUserMedia` sustituido por un script inyectado que reproduce un WAV de TTS. Servir el WAV
+desde `127.0.0.1` se queda colgado (Chrome pide permiso de «acceso a red local» a una web pública):
+hay que meterlo en la página como `data:` URL, subiéndolo a un `<input type=file>` creado para eso.
+Y una pestaña abierta durante una publicación del front deja de navegar sin avisar, porque los chunks
+del build anterior dan 404 (lo arregló e6 recargando una vez).
 
 `app/animacion_articulatoria.py` llegó en `87f1435`, antes de la base desplegada, y
 **nunca se había subido**: un despliegue que solo compara commits no lo habría visto. Se
