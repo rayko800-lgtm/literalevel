@@ -705,7 +705,13 @@ export class EscenaBoca {
       gltf.scene.traverse(o => { if (!malla && o instanceof THREE.Mesh && o.morphTargetInfluences) malla = o; });
       if (!malla) return;
       const m = malla as THREE.Mesh;
-      m.material = material(color, { roughness: 0.5 });
+      // Mucosa húmeda sin texturas: brillo de barniz fino y un velo rosado
+      // (sheen) que imita algo de subsuperficie en los bordes.
+      m.material = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(color), roughness: 0.42, metalness: 0,
+        clearcoat: 0.35, clearcoatRoughness: 0.3,
+        sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ff9aa6'),
+      });
       const dic = m.morphTargetDictionary ?? {};
       this.indicesMorfos = MORFOS_LENGUA.map(nombre => dic[nombre]);
       this.lenguaGlb = m;

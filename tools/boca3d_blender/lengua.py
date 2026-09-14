@@ -1,10 +1,17 @@
 """Una lengua modelada en Blender (sin ventana) con shape keys por parametro,
 exportada a glTF binario para el visor 3D de la boca.
 
-Muestra para que Miguel vea la diferencia de aspecto frente al tubo de seis
-nudos: superficie organica suave, punta afinada, surco central. Las shape keys
-son una por parametro de `animacion_articulatoria.PARAMETROS`, y el visor las
-mezcla (`morphTargetInfluences`) desde el mismo JSON de poses.
+Superficie organica suave, punta afinada, surco central, bordes laterales
+marcados y la raiz bajando al suelo de la boca. Las shape keys son una por
+parametro de `animacion_articulatoria.PARAMETROS`, y el visor las mezcla
+(`morphTargetInfluences`) desde el mismo JSON de poses.
+
+SIN COLISION CON EL PALADAR, comprobado: el guion carga poses.ejemplo.json,
+calcula las influencias de cada pose con la MISMA regla que escena.ts
+(`morfosDe`), mezcla las shape keys y mide cuanto entra la lengua en el techo
+(paladar y velo, con la misma geometria que escena.ts). Cada shape key se
+recorta contra el techo y despues se reparte cada pose: si alguna entra mas
+que la tolerancia, se dice y el guion termina con error.
 
 Coordenadas del visor: -x delante (punta), +x atras (raiz), +y arriba, z lateral.
 En Blender se modela con Z arriba e Y lateral; el exportador (export_yup) lo
@@ -17,23 +24,70 @@ import json
 import math
 import os
 import struct
+import sys
 
 import bpy
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.abspath(os.path.join(AQUI, "..", ".."))
 SALIDA = os.environ.get("SALIDA_GLB", os.path.join(AQUI, "..", "boca3d_demo", "lengua.glb"))
+POSES = os.path.join(RAIZ, "front", "src", "app", "compartido", "boca3d", "poses.ejemplo.json")
 
-# --- Forma base: un elipsoide afinado hacia la punta, con surco central ------
+# --- El techo de la boca, igual que en escena.ts -----------------------------
+
+PALADAR = [(-2.55, 0.5), (-2.3, 0.75), (-2.05, 0.92), (-1.7, 1.15), (-1.2, 1.35), (-0.6, 1.48),
+           (0.0, 1.52), (0.6, 1.5), (1.2, 1.42), (1.7, 1.32), (2.05, 1.22)]
+GROSOR_PALADAR = 0.26
+PIVOTE_VELO, LARGO_VELO = (2.05, 1.22), 1.2
+VELO_CERRADO, VELO_ABIERTO = -0.44, -1.22
+SUELO_Y = -1.1                                  # cara de arriba del suelo de la boca
+FARINGE_X = 3.0                                 # cara delantera de la pared
+HOLGURA = 0.06                                  # separacion minima con el techo
+TOLERANCIA_TOQUE = 0.08                         # lo que puede entrar cuando toca (punta_toca, dorso_velo)
+
+
+def paladar_en(x):
+    if x <= PALADAR[0][0]:
+        return 9.0
+    for (x0, y0), (x1, y1) in zip(PALADAR, PALADAR[1:]):
+        if x <= x1:
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+    return PALADAR[-1][1]
+
+
+def velo_en(angulo, f):
+    c, s = math.cos(angulo), math.sin(angulo)
+    px, py = PIVOTE_VELO[0] + c * LARGO_VELO * f, PIVOTE_VELO[1] + s * LARGO_VELO * f
+    nx, ny = s, -c
+    if ny > 0:
+        nx, ny = -nx, -ny
+    return px, py, nx, ny
+
+
+def techo(x, velo_abierto):
+    """Cara inferior del techo sobre x: paladar, y detras, el velo."""
+    if x <= PIVOTE_VELO[0]:
+        return paladar_en(x) - GROSOR_PALADAR / 2
+    ang = VELO_ABIERTO if velo_abierto else VELO_CERRADO
+    mejor = 9.0
+    for i in range(11):
+        px, py, nx, ny = velo_en(ang, i / 10)
+        if abs(px - x) < 0.25:
+            mejor = min(mejor, py + ny * GROSOR_PALADAR / 2)
+    return mejor
+
+
+# --- Forma base --------------------------------------------------------------
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=1.0)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=72, ring_count=36, radius=1.0)
 ob = bpy.context.active_object
 ob.name = "lengua"
 ob.data.name = "lengua"
 bpy.ops.object.shade_smooth()
 
-LARGO, ANCHO, ALTO = 2.2, 1.0, 0.45   # semiejes
-CENTRO = (0.2, 0.0, -0.4)             # la punta queda en x=-2.0, la raiz en 2.4
+LARGO, ANCHO, ALTO = 2.2, 1.0, 0.42   # semiejes
+CENTRO = (0.2, 0.0, -0.45)            # la punta queda en x=-2.0, la raiz en 2.4
 
 
 def suave(t):
@@ -50,15 +104,18 @@ def campana(x, c, w):
 
 
 for v in ob.data.vertices:
-    x, y, z = v.co.x * LARGO, v.co.y * ANCHO, v.co.z * ALTO
-    # Afinar hacia la punta (mas estrecha y mas plana) y engordar un poco atras.
-    f = 0.45 + 0.55 * rampa(x, -2.2, -0.4)
+    ux, uy, uz = v.co.x, v.co.y, v.co.z          # en la esfera unidad
+    x, y, z = ux * LARGO, uy * ANCHO, uz * ALTO
+    # Afinar hacia la punta (mas estrecha y mas plana).
+    f = 0.42 + 0.58 * rampa(x, -2.2, -0.3)
     y *= f
-    z *= 0.6 + 0.4 * rampa(x, -2.2, -0.9)
-    # La cara de arriba algo mas plana que la de abajo, y un surco central.
+    z *= 0.55 + 0.45 * rampa(x, -2.2, -0.9)
+    # Seccion con bordes: arriba plano y las esquinas marcadas, abajo mas redondo.
+    lateral = abs(uy)
     if z > 0:
-        z *= 0.85
-        z -= 0.05 * campana(y, 0.0, 0.18) * rampa(x, -1.6, -0.6) * (1 - rampa(x, 1.2, 2.2))
+        z *= 0.55 + 0.45 * (1 - lateral ** 3)          # la cara de arriba, casi plana
+        z += 0.06 * campana(lateral, 0.82, 0.12) * rampa(x, -1.8, -0.8)   # el borde lateral
+        z -= 0.05 * campana(y, 0.0, 0.16) * rampa(x, -1.6, -0.6) * (1 - rampa(x, 1.2, 2.2))  # surco
     # La raiz baja hacia el suelo de la boca y engorda: no queda flotando.
     z -= 0.7 * rampa(x, 1.0, 2.4)
     y *= 1 + 0.15 * rampa(x, 0.6, 2.0)
@@ -66,36 +123,95 @@ for v in ob.data.vertices:
 
 base = [tuple(v.co) for v in ob.data.vertices]
 
-# --- Shape keys: una por parametro ------------------------------------------
+# --- Shape keys: una por parametro, recortadas contra el techo --------------
 
 ob.shape_key_add(name="Basis", from_mix=False)
+CLAVES = {}
 
 
-def clave(nombre, delta):
-    """`delta(x, y, z) -> (dx, dy, dz)` sobre la forma base."""
+def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0)):
+    """`delta(x, y, z) -> (dx, dy, dz)` sobre la forma base; el resultado no
+    entra en el techo (salvo la holgura de un toque, si `toca`). `margen_x`
+    recorta tambien contra el techo desplazado, porque otra shape key
+    (cuerpo_delante, cuerpo_atras) puede mover la lengua en x a la vez."""
     k = ob.shape_key_add(name=nombre, from_mix=False)
+    deltas = []
+    muestras = [margen_x[0] + (margen_x[1] - margen_x[0]) * j / 4 for j in range(5)]
     for i, (x, y, z) in enumerate(base):
         dx, dy, dz = delta(x, y, z)
-        k.data[i].co = (x + dx, y + dy, z + dz)
+        nx, nz = x + dx, z + dz
+        tope = min(techo(nx + d, velo_abierto) for d in muestras) - (-TOLERANCIA_TOQUE if toca else HOLGURA)
+        if nz > tope:
+            nz = tope
+        k.data[i].co = (nx, y + dy, nz)
+        deltas.append((nx - x, dy, nz - z))
+    CLAVES[nombre] = deltas
     return k
 
 
-# Peso de la punta (1 en la punta, 0 desde x=-0.6 hacia atras) y del cuerpo.
 punta_w = lambda x: 1 - rampa(x, -2.0, -0.6)
 cuerpo_w = lambda x: campana(x, 0.1, 1.3)
-dorso_w = lambda x: campana(x, 1.5, 0.75)
+dorso_w = lambda x: campana(x, 1.45, 0.75)
 raiz_w = lambda x: rampa(x, 0.8, 2.4)
+arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas que la de abajo
 
 clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))))
-clave("punta_arriba", lambda x, y, z: (0.15 * punta_w(x), 0.0, 1.25 * punta_w(x) ** 1.3))
-clave("punta_atras", lambda x, y, z: (0.9 * punta_w(x) ** 1.2, 0.0, 1.05 * punta_w(x)))
-clave("punta_interdental", lambda x, y, z: (-0.7 * punta_w(x), 0.0, 0.55 * punta_w(x)))
-clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.3 * cuerpo_w(x) * (0.6 + 0.4 * (z > CENTRO[2]))))
-clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.75 * cuerpo_w(x)))
-clave("cuerpo_delante", lambda x, y, z: (-0.85 * campana(x, 0.0, 2.0), 0.0, 0.0))
-clave("cuerpo_atras", lambda x, y, z: (0.75 * campana(x, 0.3, 2.0), 0.0, 0.0))
-clave("dorso_velo", lambda x, y, z: (0.15 * dorso_w(x), 0.0, 1.55 * dorso_w(x) * (0.55 + 0.45 * (z > CENTRO[2]))))
-clave("raiz_atras", lambda x, y, z: (0.55 * raiz_w(x), 0.0, -0.1 * raiz_w(x)))
+clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) ** 1.3), toca=True, margen_x=(-0.3, 0.1))
+clave("punta_atras", lambda x, y, z: (0.9 * punta_w(x) ** 1.2, 0.0, 0.95 * punta_w(x)))
+clave("punta_interdental", lambda x, y, z: (-0.6 * punta_w(x), 0.0, 0.45 * punta_w(x)))
+clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
+clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)))
+clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
+clave("cuerpo_atras", lambda x, y, z: (0.7 * campana(x, 0.3, 2.0), 0.0, 0.0))
+clave("dorso_velo", lambda x, y, z: (0.15 * dorso_w(x), 0.0, 1.6 * dorso_w(x) * arriba(z)), velo_abierto=True, toca=True, margen_x=(-0.1, 0.4))
+clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), 0.0, -0.1 * raiz_w(x)))
+
+MORFOS = ["mandibula", "punta_arriba", "punta_atras", "punta_interdental", "cuerpo_alto", "cuerpo_bajo",
+          "cuerpo_delante", "cuerpo_atras", "dorso_velo", "raiz_atras"]
+
+
+def morfos_de(p):
+    """La misma regla que `morfosDe` en escena.ts."""
+    alt, ade = p["cuerpo"]
+    toca = p["punta_toca"]
+    punta = p["punta"]
+    return [
+        min(1.0, max(0.0, p["mandibula"])),
+        (1.0 if toca else 0.75) if punta in ("alveolar", "postalveolar") else 0.45 if punta == "dental" else 0.0,
+        1.0 if punta == "retrofleja" else 0.0,
+        1.0 if punta == "interdental" else 0.0,
+        max(0.0, (alt - 0.45) / 0.55),
+        max(0.0, (0.45 - alt) / 0.45),
+        max(0.0, (ade - 0.5) / 0.5),
+        max(0.0, (0.5 - ade) / 0.5),
+        1.0 if p["dorso_velo"] else min(1.0, p["dorso_alto"]),
+        min(1.0, max(0.0, p["raiz"])),
+    ]
+
+
+# --- Comprobacion contra las poses del catalogo ------------------------------
+
+with open(POSES, encoding="utf-8") as f:
+    catalogo = json.load(f)
+poses = dict(catalogo["sonidos"])
+poses.update({f"rp:{k}": v for k, v in catalogo["rp"].items()})
+poses["reposo"] = catalogo["reposo"]
+
+informe = []
+peor = 0.0
+for nombre, p in poses.items():
+    inf = morfos_de(p)
+    toca = p["punta_toca"] or p["dorso_velo"]
+    permitido = TOLERANCIA_TOQUE if toca else 0.0
+    entra = 0.0
+    for i, (x, y, z) in enumerate(base):
+        nx = x + sum(w * CLAVES[m][i][0] for w, m in zip(inf, MORFOS))
+        nz = z + sum(w * CLAVES[m][i][2] for w, m in zip(inf, MORFOS))
+        entra = max(entra, nz - techo(nx, p["velo_abierto"]))
+    exceso = entra - permitido
+    informe.append((nombre, round(entra, 3), round(exceso, 3)))
+    peor = max(peor, exceso)
+informe.sort(key=lambda r: -r[2])
 
 # --- Material y exportacion --------------------------------------------------
 
@@ -104,8 +220,6 @@ mat.use_nodes = True
 bsdf = mat.node_tree.nodes["Principled BSDF"]
 bsdf.inputs["Base Color"].default_value = (0.80, 0.36, 0.42, 1.0)
 bsdf.inputs["Roughness"].default_value = 0.45
-bsdf.inputs["Subsurface"].default_value = 0.15
-bsdf.inputs["Subsurface Color"].default_value = (0.9, 0.3, 0.3, 1.0)
 ob.data.materials.append(mat)
 
 bpy.ops.export_scene.gltf(
@@ -122,4 +236,9 @@ print("LENGUA_OK", json.dumps({
     "blender": bpy.app.version_string, "bytes": length, "vertices": len(ob.data.vertices),
     "morph_targets": [len(p.get("targets", [])) for p in malla["primitives"]],
     "targetNames": malla.get("extras", {}).get("targetNames"),
-}))
+    "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3),
+    "peores": informe[:6],
+}, ensure_ascii=False))
+if peor > 0.005:
+    print("COLISION: alguna pose entra en el techo mas de lo permitido", file=sys.stderr)
+    sys.exit(1)
