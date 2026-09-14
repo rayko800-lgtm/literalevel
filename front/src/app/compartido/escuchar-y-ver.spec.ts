@@ -3,6 +3,8 @@ import { CorteEnPantalla, EntornoEscuchar, EscucharYVer, VozNavegador, duracionP
 /** Un <audio> de mentira: guarda los oyentes y deja disparar los eventos a mano. */
 class AudioFalso {
   duration = NaN;
+  playbackRate = 1;
+  preservesPitch = false;
   currentTime = 5;
   pausado = 0;
   falla = false;
@@ -17,14 +19,14 @@ function montar() {
   const audios: AudioFalso[] = [];
   const pedidos: string[] = [];
   const revocadas: string[] = [];
-  const habladas: { texto: string; voz: VozNavegador; empezar: () => void }[] = [];
+  const habladas: { texto: string; voz: VozNavegador; empezar: () => void; velocidad: number }[] = [];
   let n = 0;
   const entorno: EntornoEscuchar = {
     crearAudio: () => { const a = new AudioFalso(); audios.push(a); return a as unknown as HTMLAudioElement; },
     traerSvg: async url => { pedidos.push(url); return new Blob([url]); },
     crearUrl: () => `blob:vuelta-${++n}`,
     revocarUrl: url => { revocadas.push(url); },
-    hablar: (texto, voz, empezar) => { habladas.push({ texto, voz, empezar }); return true; },
+    hablar: (texto, voz, empezar, velocidad) => { habladas.push({ texto, voz, empezar, velocidad }); return true; },
     callar: () => {},
   };
   return { eyv: new EscucharYVer(entorno), audios, pedidos, revocadas, habladas };
@@ -42,7 +44,8 @@ describe('Escuchar y ver', () => {
     expect(duracionParaCorte(3.04)).toBe(3);
     expect(duracionParaCorte(1.26)).toBe(1.3);
     expect(duracionParaCorte(0.1)).toBe(0.3);
-    expect(duracionParaCorte(14)).toBe(10);
+    expect(duracionParaCorte(14)).toBe(14);
+    expect(duracionParaCorte(40)).toBe(30);
     expect(duracionParaCorte(NaN)).toBeNull();
     expect(duracionParaCorte(Infinity)).toBeNull();
   });
@@ -113,6 +116,21 @@ describe('Escuchar y ver', () => {
     expect(audios[0].pausado).toBe(1);
     audios[1].disparar('playing');
     expect(eyv.src('ficha', corte().base)).toBe('/dos.svg?una=1&r=1');
+  });
+
+  it('más lento: el audio a esa velocidad sin cambiar el tono, y el corte dura lo que el audio así', () => {
+    const { eyv, audios, habladas } = montar();
+    eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad: 0.5 });
+    expect(audios[0].playbackRate).toBe(0.5);
+    expect(audios[0].preservesPitch).toBe(true);
+    audios[0].duration = 3.4;
+    audios[0].disparar('playing');
+    expect(eyv.src('ficha', corte().base)).toBe('/api/articulacion/ga/θ.svg?dur=6.8&una=1&r=1');
+    // Una velocidad que no es de las tres vuelve a 1×.
+    eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad: 3 });
+    expect(audios[0].playbackRate).toBe(1);
+    eyv.escuchar({ audio: null, texto: 'war', cortes: [corte()], velocidad: 0.25 });
+    expect(habladas.map(h => h.velocidad)).toEqual([0.25]);
   });
 
   it('si cambia la base (otro sonido), pinta la base nueva', () => {

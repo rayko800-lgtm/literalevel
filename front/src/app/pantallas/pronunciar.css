@@ -97,9 +97,13 @@
 .cortes { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
 .cortes figure { margin: 0; display: grid; gap: .25rem; justify-items: center; flex: 1 1 200px; max-width: 260px; }
 .cortes figcaption { font-size: .85rem; color: var(--texto-suave); text-align: center; }
-/* «Escuchar y ver» y «Boca en 3D», juntos y a la vista del corte. */
+/* «Escuchar y ver», «Más lento» y «Boca en 3D», juntos debajo de la animación y
+   pegados abajo mientras se ve (sticky dentro de su tarjeta): pulsar y mirar a la vez. */
 .botones-corte { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin: .25rem 0; }
-.botones-corte .boton { min-height: 48px; flex: 1 1 10rem; max-width: 18rem; }
+.botones-corte .boton { min-height: 48px; flex: 1 1 8rem; max-width: 18rem; }
+.botones-corte.pegada { position: sticky; bottom: .5rem; z-index: 5; padding: .5rem; border-radius: var(--radio);
+  background: color-mix(in srgb, var(--superficie-2) 94%, transparent); box-shadow: 0 8px 22px -14px rgba(0, 0, 0, .7); }
+.ficha-sonido .botones-corte.pegada { background: color-mix(in srgb, var(--superficie) 94%, transparent); }
 .otra { margin-top: .5rem; }
 
 .afi { margin: 1rem 0; }
@@ -153,6 +157,9 @@
   :host-context(body:has(.nav-movil.oculta)) .grabadora {
     bottom: 0; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
   .microfono { width: 72px; height: 72px; font-size: 1.9rem; }
+  /* Encima de la grabadora fija (72 px de micrófono y su margen) y de la navegación. */
+  .botones-corte.pegada { bottom: calc(var(--barra-inf) + 6rem); }
+  :host-context(body:has(.nav-movil.oculta)) .botones-corte.pegada { bottom: 6rem; }
   /* Con el teclado abierto sobre la frase, la barra estorba: fuera. */
   :host:has(textarea:focus) .grabadora { display: none; }
   .otra { display: none; }

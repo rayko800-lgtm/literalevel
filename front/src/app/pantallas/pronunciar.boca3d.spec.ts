@@ -49,7 +49,9 @@ describe('Pronunciar con la boca 3D encendida', () => {
     // Sin pulsar, no se monta el visor.
     expect(raiz.querySelector('app-boca3d')).toBeNull();
     // «Escuchar y ver»: uno solo en cada sitio, junto a «Boca en 3D».
-    expect(raiz.querySelectorAll('.ficha-sonido .botones-corte button').length).toBe(2);
+    // «Escuchar y ver», «Más lento» y «Boca en 3D».
+    expect(raiz.querySelectorAll('.ficha-sonido .botones-corte button').length).toBe(3);
+    expect(raiz.querySelector('.ficha-sonido .botones-corte button:nth-child(2)')?.textContent).toContain('Más lento');
     expect(raiz.querySelector('.ficha-sonido .botones-corte button')?.textContent).toContain('Escuchar y ver');
     expect(raiz.querySelector('details.boca .botones-corte button')?.textContent).toContain('Escuchar y ver');
     expect([...raiz.querySelectorAll('button')].filter(b => /Escuchar y ver/.test(b.textContent ?? '')).length).toBe(2);

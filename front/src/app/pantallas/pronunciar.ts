@@ -9,7 +9,7 @@ import { Icono } from '../compartido/icono';
 // Pronunciar en vez de bajar al pulsar «Boca en 3D».
 import { Boca3d } from '../compartido/boca3d/boca3d';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
-import { CorteEnPantalla, EscucharYVer, PeticionEscuchar } from '../compartido/escuchar-y-ver';
+import { CorteEnPantalla, EscucharYVer, PeticionEscuchar, duracionParaCorte } from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
@@ -67,6 +67,11 @@ export class Pronunciar implements OnInit, OnDestroy {
   private reloj: ReturnType<typeof setInterval> | undefined;
   /** «Escuchar y ver»: el audio y el corte 2D arrancan juntos (compartido/escuchar-y-ver.ts). */
   protected readonly eyv = new EscucharYVer();
+  /** «Más lento» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»):
+   *  1×, 0,5× y 0,25× para el audio, el corte 2D y el 3D. */
+  protected readonly velocidad = signal(1);
+  protected readonly etiquetaVelocidad = computed(() =>
+    this.velocidad() === 0.5 ? 'Lento · 0,5×' : this.velocidad() === 0.25 ? 'Muy lento · 0,25×' : 'Más lento');
   /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
    *  `viewChild(Boca3d)` usaría la clase como valor y el @defer dejaría de
    *  separar three.js. */
@@ -223,7 +228,8 @@ export class Pronunciar implements OnInit, OnDestroy {
    *  la voz del navegador) y los dos cortes vuelven a empezar. Con el 3D
    *  abierto, el audio lo pone el 3D (verPalabra, en este mismo clic) y aquí
    *  solo se reinicia el 2D, para no oírlo dos veces. */
-  protected escucharPalabra(d: Detalle, i: number): void {
+  protected escucharPalabra(d: Detalle, i: number, ev?: Event): void {
+    this.mostrarAnimacion(ev);
     const pedido = this.pedidoPalabra(d, i);
     const visor = this.visor();
     if (visor && this.visor3d() === 'detalle-' + i) {
@@ -236,7 +242,8 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   /** El altavoz del sonido que falla: suena y su corte vuelve a empezar. */
   protected escucharFonemaDetalle(d: Detalle, i: number): void {
-    const pedido: PeticionEscuchar = { audio: urlMotor(d.fonema?.audio), cortes: this.cortesDelDetalle(d, i, true) };
+    const pedido: PeticionEscuchar = { audio: urlMotor(d.fonema?.audio), cortes: this.cortesDelDetalle(d, i, true),
+      velocidad: this.velocidad() };
     const visor = this.visor();
     if (visor && this.visor3d() === 'detalle-' + i) {
       visor.escucharYVer();
@@ -248,7 +255,27 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   private pedidoPalabra(d: Detalle, i: number): PeticionEscuchar {
     return { audio: urlMotor(d.audio), texto: d.palabra, voz: d.variante === 'UK' ? 'en-GB' : 'en-US',
-      cortes: this.cortesDelDetalle(d, i) };
+      cortes: this.cortesDelDetalle(d, i), velocidad: this.velocidad() };
+  }
+
+  /** 1× → 0,5× → 0,25× → 1×. */
+  protected cambiarVelocidad(): void {
+    this.velocidad.update(v => v === 1 ? 0.5 : v === 0.5 ? 0.25 : 1);
+  }
+
+  /** Al pulsar, que la animación quede a la vista entre la cabecera y la barra
+   *  de los botones (captura de Miguel: el botón arriba y la boca abajo no se
+   *  podían mirar a la vez). El 3D si está abierto; si no, los cortes 2D. */
+  private mostrarAnimacion(ev?: Event): void {
+    const boton = ev?.currentTarget as HTMLElement | null;
+    const grupo = boton?.closest?.('details.boca, .ficha-sonido');
+    const blanco = grupo?.querySelector<HTMLElement>('app-boca3d') ?? grupo?.querySelector<HTMLElement>('.cortes, img.corte');
+    if (!blanco || typeof window === 'undefined') return;
+    const r = blanco.getBoundingClientRect();
+    const arriba = 64;                                   // la cabecera fija
+    const abajo = boton?.closest('.botones-corte')?.getBoundingClientRect().top ?? window.innerHeight;
+    if (r.top >= arriba && r.bottom <= abajo) return;
+    window.scrollBy({ top: r.top + r.height / 2 - (arriba + abajo) / 2, behavior: this.sinMovimiento ? 'auto' : 'smooth' });
   }
 
   /** Con el audio del sonido, su corte dura lo que el mp3; con el de la palabra,
@@ -259,7 +286,8 @@ export class Pronunciar implements OnInit, OnDestroy {
     const f = d.fonema;
     if (sonido && f) {
       cortes.push({ clave: `d${i}-sonido`, base: sonido,
-        animada: dur => this.sinMovimiento ? null : urlCorteSonido(f.simbolo, f.acento ?? 'ga', false, soloSonido ? dur : null) });
+        animada: dur => this.sinMovimiento ? null : urlCorteSonido(f.simbolo, f.acento ?? 'ga', false,
+          soloSonido ? dur : this.cicloDelSonido()) });
     }
     const palabra = soloSonido ? null : this.corteDeLaPalabra(d);
     if (palabra && d.ipa) {
@@ -270,9 +298,17 @@ export class Pronunciar implements OnInit, OnDestroy {
     return cortes;
   }
 
+  /** Con el audio de la palabra, el corte del sonido da su pasada de 2,8 s,
+   *  estirada si va más lento. */
+  private cicloDelSonido(): number | null {
+    const v = this.velocidad();
+    return v === 1 ? null : duracionParaCorte(2.8 / v);
+  }
+
   /** «Escuchar y ver» de la ficha y su altavoz: el mp3 del sonido y el corte a
    *  su compás. Con el 3D abierto en el mismo sonido, el audio lo pone el 3D. */
-  protected escucharSonido(s: Fonema): void {
+  protected escucharSonido(s: Fonema, ev?: Event): void {
+    this.mostrarAnimacion(ev);
     const pedido = this.pedidoSonido(s);
     const visor = this.visor();
     if (visor && this.visor3d() === 'sonido' && this.elegido()?.simbolo === s.simbolo) {
@@ -286,7 +322,8 @@ export class Pronunciar implements OnInit, OnDestroy {
   private pedidoSonido(s: Fonema): PeticionEscuchar {
     const acento = this.acento();
     return { audio: urlMotor(s.audio), cortes: [{ clave: 'ficha', base: this.corteSonido(s.simbolo),
-      animada: dur => this.sinMovimiento ? null : urlCorteSonido(s.simbolo, acento, false, dur) }] };
+      animada: dur => this.sinMovimiento ? null : urlCorteSonido(s.simbolo, acento, false, dur) }],
+      velocidad: this.velocidad() };
   }
 
   protected verFonemas(ev: Event): void {
