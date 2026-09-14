@@ -15,7 +15,7 @@ que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
 import difflib, hashlib, os, re, sqlite3, tempfile, threading
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,8 +41,14 @@ VOZ_POR_DEFECTO = "alloy"
 # versionar la huella hace que todos se regeneren una vez y evita conservar
 # para siempre un archivo que ya llego recortado.
 VERSION_AUDIO_TTS = "v2-pausa-atomico"
-# Memoria acotada y compartida por los hilos de Gradio/API de este proceso.
-_CANDADOS_AUDIO = [threading.Lock() for _ in range(64)]
+# Un candado por CLAVE exacta de audio (la ruta del mp3 de la cache): se crea
+# al pedirlo y se borra cuando nadie lo usa, asi que la memoria no crece.
+# Antes (71e4b52, Codex) eran 64 franjas fijas, y dos palabras DISTINTAS que
+# caian en la misma franja se esperaban durante toda la llamada de red al TTS,
+# hasta 90 s. Con la clave exacta solo espera quien pide el MISMO audio, que
+# es lo que se quiere: se encuentra el mp3 ya publicado y no se paga dos veces.
+_CANDADOS_AUDIO = {}          # clave -> [candado, usuarios]
+_CANDADO_TABLA_AUDIO = threading.Lock()
 
 _PUNTUACION_RE = re.compile(r"[^\w\s'-]", re.UNICODE)
 _GUION_SOLO_RE = re.compile(r"(^[-']+|[-']+$)")
@@ -450,6 +456,22 @@ def _escribir_audio_atomico(respuesta, ruta: Path) -> None:
     finally:
         temporal.unlink(missing_ok=True)
 
+@contextmanager
+def _candado_audio(clave: str):
+    """Exclusion mutua por clave exacta de audio. Ver `_CANDADOS_AUDIO`."""
+    with _CANDADO_TABLA_AUDIO:
+        entrada = _CANDADOS_AUDIO.setdefault(clave, [threading.Lock(), 0])
+        entrada[1] += 1
+    try:
+        with entrada[0]:
+            yield
+    finally:
+        with _CANDADO_TABLA_AUDIO:
+            entrada[1] -= 1
+            if entrada[1] == 0 and _CANDADOS_AUDIO.get(clave) is entrada:
+                del _CANDADOS_AUDIO[clave]
+
+
 def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = None,
                            voz: str = VOZ_POR_DEFECTO) -> str | None:
     """Genera un audio con tts-1 de la pronunciacion correcta de `texto`.
@@ -467,8 +489,7 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
     ademas instantaneo.
     """
     reutilizable = _ruta_audio_cache(texto, voz) if ruta_salida is None else None
-    candado = (_CANDADOS_AUDIO[int(hashlib.sha256(str(reutilizable).encode()).hexdigest()[:8], 16)
-                              % len(_CANDADOS_AUDIO)] if reutilizable is not None else nullcontext())
+    candado = _candado_audio(str(reutilizable)) if reutilizable is not None else nullcontext()
     try:
         with candado:
             # Releer DENTRO: otro lector puede haber publicado mientras esperabamos.
@@ -493,24 +514,45 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
 
 # --- Registro de puntos debiles (SQLite, sin red) ----------------------
 
+class HistorialIlegible(RuntimeError):
+    """El historial de pronunciacion existe pero no se puede leer (corrupto, o
+    bloqueado mas tiempo del que espera SQLite).
+
+    Se lanza en vez de devolver una lista vacia: vacia quiere decir «no has
+    fallado ninguna palabra», y en ese caso no es verdad. Si la base no existe,
+    si es una lista vacia: ese lector todavia no ha practicado.
+    """
+
+
 def _conectar(ruta: str = RUTA_DB_POR_DEFECTO) -> sqlite3.Connection:
+    """Conexion a la base de puntos debiles, con el esquema al dia.
+
+    `BEGIN IMMEDIATE` (71e4b52, Codex) serializa la migracion entre hilos y
+    procesos, pero se abria en CADA conexion, tambien para leer: dos lecturas a
+    la vez se esperaban y, pasados los 5 s de SQLite, «Mis palabras» salia
+    vacia. Ahora el esquema se mira sin transaccion y solo si falta la tabla o
+    la columna `frase` se abre la transaccion, se vuelve a mirar DENTRO -otro
+    hilo puede haber migrado mientras tanto- y se migra. Si algo falla, la
+    conexion se cierra (y lo que no se confirmo se deshace).
+    """
     os.makedirs(os.path.dirname(ruta), exist_ok=True)
     con = sqlite3.connect(ruta)
     try:
-        # Serializa comprobar y migrar tambien entre procesos sobre la misma DB.
-        con.execute("BEGIN IMMEDIATE")
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS palabras_debiles (
-                palabra    TEXT PRIMARY KEY,
-                fallos     INTEGER NOT NULL DEFAULT 0,
-                ultima_vez TEXT NOT NULL
-            )
-        """)
-        # Las bases viejas no guardaban la frase en que se fallo.
         columnas = {fila[1] for fila in con.execute("PRAGMA table_info(palabras_debiles)")}
         if "frase" not in columnas:
-            con.execute("ALTER TABLE palabras_debiles ADD COLUMN frase TEXT")
-        con.commit()
+            con.execute("BEGIN IMMEDIATE")
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS palabras_debiles (
+                    palabra    TEXT PRIMARY KEY,
+                    fallos     INTEGER NOT NULL DEFAULT 0,
+                    ultima_vez TEXT NOT NULL
+                )
+            """)
+            # Las bases viejas no guardaban la frase en que se fallo.
+            columnas = {fila[1] for fila in con.execute("PRAGMA table_info(palabras_debiles)")}
+            if "frase" not in columnas:
+                con.execute("ALTER TABLE palabras_debiles ADD COLUMN frase TEXT")
+            con.commit()
     except BaseException:
         con.close()
         raise
@@ -553,9 +595,13 @@ def palabras_para_practicar(n: int = 15, ruta: str = RUTA_DB_POR_DEFECTO) -> lis
 
     Cada elemento: {"palabra", "fallos", "ultima_vez", "frase"} (`frase` puede
     ser None en fallos registrados antes de guardarla). Orden: mas fallos
-    primero y, a igualdad, la mas reciente. Lista vacia si no hay historial o
-    si algo falla al leer. La base es la del lector: pasale su `ruta`.
+    primero y, a igualdad, la mas reciente. Lista vacia si este lector no tiene
+    historial. Si lo tiene y no se puede leer, `HistorialIlegible`: antes era
+    tambien una lista vacia, que decia «no has fallado nada». La base es la del
+    lector: pasale su `ruta`.
     """
+    if not os.path.exists(ruta):
+        return []
     try:
         con = _conectar(ruta)
         try:
@@ -566,16 +612,20 @@ def palabras_para_practicar(n: int = 15, ruta: str = RUTA_DB_POR_DEFECTO) -> lis
                     for p, f, u, fr in cur.fetchall()]
         finally:
             con.close()
-    except Exception:
-        return []
+    except Exception as e:
+        raise HistorialIlegible(
+            "No he podido leer tu historial de pronunciación ahora mismo "
+            f"({type(e).__name__}). Vuelve a intentarlo en un momento.") from e
 
 
 def puntos_debiles(n: int = 10, ruta: str = RUTA_DB_POR_DEFECTO) -> list[tuple[str, int]]:
     """Las `n` palabras que mas fallos acumulan, de mas a menos fallos.
 
-    Devuelve pares (palabra, fallos). Lista vacia si no hay historial o si
-    algo falla al leer la base de datos.
+    Devuelve pares (palabra, fallos). Lista vacia si no hay historial; si lo
+    hay y no se puede leer, `HistorialIlegible` (ver `palabras_para_practicar`).
     """
+    if not os.path.exists(ruta):
+        return []
     try:
         con = _conectar(ruta)
         try:
@@ -585,8 +635,10 @@ def puntos_debiles(n: int = 10, ruta: str = RUTA_DB_POR_DEFECTO) -> list[tuple[s
             return cur.fetchall()
         finally:
             con.close()
-    except Exception:
-        return []
+    except Exception as e:
+        raise HistorialIlegible(
+            "No he podido leer tu historial de pronunciación ahora mismo "
+            f"({type(e).__name__}). Vuelve a intentarlo en un momento.") from e
 
 
 # --- Ciclo completo -----------------------------------------------------

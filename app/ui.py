@@ -3972,14 +3972,18 @@ def _repasar(peticion: gr.Request = None):
     que fallaste al leerlas en voz alta. Sin nota y sin racha: es un
     recordatorio, no un examen."""
     anotaciones = cuaderno.para_repasar(5, _archivo_lector("cuaderno.db", peticion))
+    aviso_voz = ""
     try:
         debiles = voz.puntos_debiles(n=5, ruta=_archivo_lector("voz.db", peticion))
-    except Exception:
+    except Exception as e:
+        # Un historial que no se puede leer ya no pasa por «nada que repasar»
+        # (`voz.HistorialIlegible`): se dice, y el cuaderno se sigue enseñando.
         debiles = []
-    if not anotaciones and not debiles:
+        aviso_voz = f"<p>{_html.escape(_aviso(e))}</p>"
+    if not anotaciones and not debiles and not aviso_voz:
         return ("<p>No hay nada que repasar todavía. Consulta alguna palabra "
                 "mientras lees, o practica una frase en voz alta.</p>")
-    trozos = [_CSS_CUADERNO]
+    trozos = [_CSS_CUADERNO, aviso_voz]
     if anotaciones:
         trozos.append("<p><b>Del cuaderno</b> — ¿las recuerdas?</p>"
                       '<div id="ll-cuaderno">')

@@ -6933,6 +6933,39 @@ prueba("voz: las mal pronunciadas se guardan con su frase",
        _las_mal_pronunciadas_se_guardan_con_su_frase)
 
 
+def _un_historial_ilegible_se_avisa_en_las_tres_vistas():
+    """Una voz.db que existe y no se lee no es «no has fallado nada»: voz lanza
+    HistorialIlegible y «Palabras que pronuncié mal», «Mis puntos débiles» y
+    «Repasa cinco» lo dicen. Sin base, las tres siguen diciendo que no hay nada."""
+    carpeta = TMP / "historial_ilegible"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    rota = carpeta / "voz.db"
+    rota.write_bytes(b"esto no es una base de datos sqlite " * 50)
+    try:
+        ui.voz.puntos_debiles(5, ruta=str(rota))
+        raise AssertionError("una base ilegible devolvio lista")
+    except ui.voz.HistorialIlegible:
+        pass
+    viejo = ui._archivo_lector
+    try:
+        ui._archivo_lector = lambda nombre, peticion=None: str(carpeta / nombre)
+        mal, debiles, repaso = ui._mal_pronunciadas(), ui._debiles(), ui._repasar()
+        for vista in (mal, debiles, repaso):
+            assert "[!]" in vista and "historial" in vista, vista
+        assert "No hay nada que repasar" not in repaso, repaso
+        rota.unlink()
+        assert "Todavía no hay palabras mal pronunciadas" in ui._mal_pronunciadas()
+        assert "Aún no hay palabras registradas" in ui._debiles()
+        assert "No hay nada que repasar" in ui._repasar()
+    finally:
+        ui._archivo_lector = viejo
+    return "las tres vistas avisan; sin base, siguen vacias"
+
+
+prueba("voz: un historial ilegible se avisa en las tres vistas",
+       _un_historial_ilegible_se_avisa_en_las_tres_vistas)
+
+
 def _cada_palabra_fallada_suena_sola():
     """audios_de_palabras pide cada palabra una vez, con tope, y el detalle de la
     correccion pinta su reproductor."""
