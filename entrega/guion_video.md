@@ -33,9 +33,11 @@ con clics y audio es lo que decide si cabe en cinco minutos.
 - Ensayar audio del micrófono y audio de la app en OBS. La corrección depende
   de lo que se entienda: no prometer que siempre señalará un fonema concreto.
   Si se representa un error intencional, anunciar que es una demostración.
-- No depender de portadas FLUX ni de Blender 3D: son ampliaciones en preparación.
-  El apoyo articulatorio de esta toma es el corte 2D disponible. No fingir
-  imágenes generadas, respuestas en vivo ni tiempos de espera que no ocurrieron.
+- Comprobar el apoyo articulatorio en la ficha IPA y en la corrección: el modelo
+  Blender de 38 piezas se carga al abrir el 3D y conserva un respaldo 2D.
+  Es una ayuda didáctica, no clínica. Ensayar su apertura sin alargar la toma.
+- Las portadas FLUX siguen pendientes. No fingir imágenes generadas, respuestas
+  en vivo ni tiempos de espera que no ocurrieron.
 - Preparar una grabación de respaldo del mismo recorrido. Si se usa, rotularla
   como **grabación previa**, sin presentar la reproducción como respuesta en vivo.
 

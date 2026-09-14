@@ -909,7 +909,7 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
     carpeta.mkdir(parents=True, exist_ok=True)
     destino = carpeta / f"{ident[1:]}{ext}"
     if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
-        raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Quita alguno de «Mis libros» para subir otro.")
+        raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Borra alguno con la papelera de «Mis libros» para subir otro.")
     if not destino.exists():
         destino.write_bytes(b"".join(trozos))
     try:
@@ -1133,45 +1133,82 @@ def _va_a_costar(pet: _Lector) -> bool:
             and cuentas.permite(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))[0])
 
 
+def _cobrar(pet: _Lector) -> tuple[bool, str, str | None]:
+    """Cobra un uso y devuelve también el código COBRADO.
+
+    Es lo mismo que `ui._puede_pagar` (`cuentas.consumir` con el código de la
+    sesión), pero con el código leído una sola vez y devuelto: cada devolución
+    volvía a preguntar `ui._codigo_de(pet)`, y con /api/salir o un cambio de
+    cuenta desde otra pestaña a mitad de consulta el uso no se devolvía o se
+    devolvía a otra cuenta (auditoría de Codex, 2)."""
+    codigo = ui._codigo_de(pet)
+    puede, motivo = cuentas.consumir(ui.BASE_DATOS_LECTOR, codigo)
+    return puede, motivo, codigo
+
+
+def _devolver(codigo: str | None) -> None:
+    """Devuelve a la cuenta que se cobró, no a la que haya ahora en la sesión."""
+    cuentas.devolver(ui.BASE_DATOS_LECTOR, codigo)
+
+
+# Un candado por libro para la sinopsis, no uno global: otra sinopsis de otro
+# libro no espera, y la segunda petición del mismo libro lee lo que dejó la primera.
+_CANDADOS_SINOPSIS: dict[str, threading.Lock] = {}
+_REGISTRO_SINOPSIS = threading.Lock()
+
+
+def _candado_sinopsis(lib: reader.Libro) -> threading.Lock:
+    clave = ui._clave_libro(lib)
+    with _REGISTRO_SINOPSIS:
+        return _CANDADOS_SINOPSIS.setdefault(clave, threading.Lock())
+
+
 @app.post("/api/libros/{libro_id}/sinopsis")
 def sinopsis(libro_id: str, pet: Lector) -> dict:
-    """«¿De que trata?», con las mismas guardas que `ui._de_que_trata`."""
+    """«¿De que trata?», con las mismas guardas que `ui._de_que_trata`.
+
+    Con un candado por libro: dos peticiones a la vez del mismo libro sin
+    sinopsis guardada cobraban y generaban las dos (auditoría de Codex, 1).
+    Dentro se vuelve a mirar la caché ANTES de cobrar."""
     ident = _normalizar_id(libro_id)
     _, lib = _abrir(ident, pet, descargar=False)
     datos = ui._sinopsis_guardada(lib)
     if datos is not None:
         return {"sinopsis": datos}
-    if _va_a_costar(pet) and not ui._dentro_del_limite(pet, "sinopsis",
-                                                      ui.LIMITE_SINOPSIS_HORA):
-        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("sinopsis", pet)))
-    if config.falta():
-        raise _no(503, "Para el resumen hace falta la clave de OpenAI. La ficha "
-                       "contada no la necesita.")
-    puede, motivo = ui._puede_pagar(pet)
-    if not puede:
-        raise _no(403, motivo)
-    try:
-        cliente = ui.consultor()._cliente()
-    except Exception as e:
-        cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
-        raise _no(503, f"No he podido preparar el resumen ({type(e).__name__}).") from e
-    if cliente is None:
-        cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
-        raise _no(503, "Para el resumen hace falta la clave de OpenAI.")
-    datos, causa = ficha.sinopsis(lib, cliente)
-    if datos is None:
-        if causa in ("sin_red", "sin_pasajes"):
-            cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
-        raise _no(502, "No he podido preparar el resumen ahora mismo."
-                  + ("" if causa in ("sin_red", "sin_pasajes")
-                     else " Este intento sí ha consumido uno de tus usos."))
-    try:
-        ui.RUTA_ANALISIS.mkdir(parents=True, exist_ok=True)
-        import json
-        (ui.RUTA_ANALISIS / f"{ui._clave_libro(lib)}-sinopsis.json").write_text(
-            json.dumps(datos, ensure_ascii=False), encoding="utf-8")
-    except OSError:
-        pass
+    with _candado_sinopsis(lib):
+        datos = ui._sinopsis_guardada(lib)
+        if datos is not None:
+            return {"sinopsis": datos}
+        if _va_a_costar(pet) and not ui._dentro_del_limite(pet, "sinopsis",
+                                                          ui.LIMITE_SINOPSIS_HORA):
+            raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("sinopsis", pet)))
+        if config.falta():
+            raise _no(503, "Para el resumen hace falta la clave de OpenAI. La ficha "
+                           "contada no la necesita.")
+        puede, motivo, cobrado = _cobrar(pet)
+        if not puede:
+            raise _no(403, motivo)
+        try:
+            cliente = ui.consultor()._cliente()
+        except Exception as e:
+            _devolver(cobrado)
+            raise _no(503, f"No he podido preparar el resumen ({type(e).__name__}).") from e
+        if cliente is None:
+            _devolver(cobrado)
+            raise _no(503, "Para el resumen hace falta la clave de OpenAI.")
+        datos, causa = ficha.sinopsis(lib, cliente)
+        if datos is None:
+            if causa in ("sin_red", "sin_pasajes"):
+                _devolver(cobrado)
+            raise _no(502, "No he podido preparar el resumen ahora mismo."
+                      + ("" if causa in ("sin_red", "sin_pasajes")
+                         else " Este intento sí ha consumido uno de tus usos."))
+        try:
+            ui.RUTA_ANALISIS.mkdir(parents=True, exist_ok=True)
+            (ui.RUTA_ANALISIS / f"{ui._clave_libro(lib)}-sinopsis.json").write_text(
+                json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
     return {"sinopsis": ui._sinopsis_guardada(lib) or datos}
 
 
@@ -1311,22 +1348,22 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
             raise _no(429, ui._mensaje_limite(idioma,
                                               ui._minutos_para_la_siguiente("lexico", pet)))
         with _CANDADO_LEXICO:
-            puede, motivo = False, ""
+            puede, motivo, cobrado = False, "", None
             try:
                 if not config.falta():
-                    puede, motivo = ui._puede_pagar(pet)
+                    puede, motivo, cobrado = _cobrar(pet)
                 r = ui.consultor().consultar(palabra_, oracion, _nivel(pet), idioma=idioma,
                                              usar_openai=puede)
             except Exception as e:
                 # Solo se devuelve lo cobrado: sin clave, sin perfil o si el propio
                 # cobro falla no hubo uso, y devolverlo regalaba uno (revisión de 4e).
                 if puede:
-                    cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
+                    _devolver(cobrado)
                 raise _no(503, f"El diccionario no está disponible ({type(e).__name__}).") from e
         if not puede and motivo:
             r.avisos = [a for a in r.avisos if "OPENAI_API_KEY" not in a] + [motivo]
         elif puede and getattr(r, "llamadas_de_pago", 0) == 0:
-            cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
+            _devolver(cobrado)
         registrar = bool(r.sentido)
         avisos = _avisos_palabra(r, idioma, quitar_sin_clave=False)
 
@@ -1753,6 +1790,41 @@ def olvidar_libro(libro_id: str, pet: Lector) -> dict:
                  if _id_de_ruta(e.ruta, pet) == ident), None)
     if ruta:
         biblioteca.olvidar(ruta, ui._archivo_lector("biblioteca.json", pet))
+    return {"ok": True}
+
+
+@app.delete("/api/libros/{libro_id}")
+def borrar_subido(libro_id: str, pet: Lector) -> dict:
+    """Borra de verdad un libro subido: archivo, nombre guardado, entrada de
+    «Mis libros» y caché de memoria.
+
+    Quitarlo solo de la biblioteca (DELETE /api/biblioteca) dejaba el archivo
+    ocupando uno de los 30 huecos y el 429 no se iba nunca (auditoría de Codex,
+    4). Solo libros subidos, y solo en la carpeta de este lector."""
+    ident = _normalizar_id(libro_id)
+    if not ident.startswith("u"):
+        raise _no(400, "Solo se pueden borrar los libros que hayas subido tú.")
+    carpeta = _dir_subidos(pet)
+    borrados = 0
+    for ext in _EXT_LIBRO:
+        p = carpeta / f"{ident[1:]}{ext}"
+        if not p.is_file():
+            continue
+        with _CANDADO_LIBROS:
+            for clave in [k for k in _LIBROS if k[0] == str(p)]:
+                del _LIBROS[clave]
+        biblioteca.olvidar(str(p), ui._archivo_lector("biblioteca.json", pet))
+        p.unlink(missing_ok=True)
+        borrados += 1
+    if not borrados:
+        raise _no(404, "Ese libro ya no está en el servidor.")
+    try:
+        ruta = _nombres_subidos(pet)
+        nombres = json.loads(ruta.read_text("utf-8"))
+        if isinstance(nombres, dict) and nombres.pop(ident, None) is not None:
+            ruta.write_text(json.dumps(nombres, ensure_ascii=False), "utf-8")
+    except (OSError, ValueError):
+        pass
     return {"ok": True}
 
 

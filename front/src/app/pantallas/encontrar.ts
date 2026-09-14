@@ -115,7 +115,8 @@ type Vista = 'buscar' | 'nivel' | 'mios';
                     <div class="fila">
                       <a class="boton pequeno" [routerLink]="['/leer', e.id, e.capitulo]">Seguir</a>
                       <a class="boton pequeno secundario" [routerLink]="['/libro', e.id]">Ficha</a>
-                      <button type="button" class="boton-icono" (click)="olvidar(e)" [attr.aria-label]="'Quitar ' + e.titulo + ' de mis libros'"><app-icono nombre="basura" /></button>
+                      <button type="button" class="boton-icono" (click)="olvidar(e)"
+                              [attr.aria-label]="(e.id.startsWith('u') ? 'Borrar el libro subido ' : 'Quitar de mis libros ') + e.titulo"><app-icono nombre="basura" /></button>
                     </div>
                   </li>
                 }
@@ -289,8 +290,12 @@ export class Encontrar implements OnInit {
   }
 
   protected async olvidar(e: EntradaBiblioteca): Promise<void> {
+    // Un libro subido se borra de verdad: quitarlo solo de la estantería dejaba el
+    // archivo ocupando uno de los 30 huecos y el 429 no se iba nunca (auditoría de Codex, 4).
+    const subido = e.id.startsWith('u');
+    if (subido && !confirm(`¿Borrar «${e.titulo}»? Se borra el archivo que subiste; para volver a leerlo tendrás que subirlo otra vez.`)) return;
     try {
-      await firstValueFrom(this.api.olvidar(e.id));
+      await firstValueFrom(subido ? this.api.borrarSubido(e.id) : this.api.olvidar(e.id));
       this.mios.set((this.mios() ?? []).filter(x => x.id !== e.id));
       void this.sesion.refrescar();
     } catch (err) {

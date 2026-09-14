@@ -12,9 +12,10 @@ import re
 import sqlite3
 import tempfile
 import threading
+import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -25,15 +26,20 @@ RAIZ = Path(__file__).resolve().parent
 
 def funciones_reales(carpeta):
     nombres = {"_ahora", "_texto_para_tts", "_ruta_audio_cache", "_escribir_audio_atomico",
-               "generar_audio_correcto", "_conectar", "registrar_fallos", "palabras_para_practicar"}
-    constantes = {"MODELO_VOZ", "VOZ_POR_DEFECTO", "VERSION_AUDIO_TTS", "_CANDADOS_AUDIO"}
+               "_candado_audio", "generar_audio_correcto", "_conectar", "registrar_fallos",
+               "palabras_para_practicar", "puntos_debiles"}
+    constantes = {"MODELO_VOZ", "VOZ_POR_DEFECTO", "VERSION_AUDIO_TTS", "_CANDADOS_AUDIO",
+                  "_CANDADO_TABLA_AUDIO"}
+    clases = {"HistorialIlegible"}
     arbol = ast.parse((RAIZ / "app" / "voz.py").read_text(encoding="utf-8"))
     nodos = [n for n in arbol.body if (
         isinstance(n, ast.FunctionDef) and n.name in nombres) or (
+        isinstance(n, ast.ClassDef) and n.name in clases) or (
         isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id in constantes for t in n.targets))]
     espacio = dict(hashlib=hashlib, os=os, re=re, sqlite3=sqlite3, tempfile=tempfile,
-                   threading=threading, nullcontext=nullcontext, datetime=datetime,
-                   timezone=timezone, Path=Path, RUTA_DB_POR_DEFECTO=str(Path(carpeta) / "voz.db"),
+                   threading=threading, nullcontext=nullcontext, contextmanager=contextmanager,
+                   datetime=datetime, timezone=timezone, Path=Path,
+                   RUTA_DB_POR_DEFECTO=str(Path(carpeta) / "voz.db"),
                    RUTA_AUDIO_GENERADO=Path(carpeta) / "audio")
     exec(compile(ast.Module(body=nodos, type_ignores=[]), "voz[funciones_reales]", "exec"), espacio)
     return espacio
@@ -56,24 +62,7 @@ class VozConcurrencia(unittest.TestCase):
         for repeticion in range(5):
             texto = f"word {repeticion}"
             ruta = self.v["_ruta_audio_cache"](texto, self.v["VOZ_POR_DEFECTO"])
-            indice = int(hashlib.sha256(str(ruta).encode()).hexdigest()[:8], 16) % 64
-            todos_esperan, liberar = threading.Event(), threading.Event()
-            mutex, contador = threading.Lock(), []
-            original = self.v["_CANDADOS_AUDIO"][indice]
-
-            class Observado:
-                def __enter__(self):
-                    with mutex:
-                        contador.append(1)
-                        if len(contador) == 8:
-                            todos_esperan.set()
-                    original.acquire()
-
-                def __exit__(self, *args):
-                    original.release()
-
-            self.v["_CANDADOS_AUDIO"][indice] = Observado()
-            llamadas = []
+            liberar, llamadas = threading.Event(), []
 
             def crear(**kwargs):
                 llamadas.append(kwargs)
@@ -85,7 +74,16 @@ class VozConcurrencia(unittest.TestCase):
             with ThreadPoolExecutor(max_workers=8) as pool:
                 futuros = [pool.submit(self.v["generar_audio_correcto"], texto) for _ in range(8)]
                 try:
-                    self.assertTrue(todos_esperan.wait(5), "no llegaron los ocho lectores al candado")
+                    # Los ocho se apuntan al candado de la MISMA clave y el primero ya
+                    # esta llamando al proveedor antes de que nadie termine.
+                    fin = time.monotonic() + 5
+                    while time.monotonic() < fin:
+                        entrada = self.v["_CANDADOS_AUDIO"].get(str(ruta))
+                        if entrada is not None and entrada[1] == 8 and len(llamadas) == 1:
+                            break
+                        time.sleep(0.01)
+                    else:
+                        self.fail("no llegaron los ocho lectores al candado de la clave")
                     self.assertEqual(len(llamadas), 1)
                 finally:
                     liberar.set()
@@ -93,8 +91,7 @@ class VozConcurrencia(unittest.TestCase):
             self.assertEqual(rutas, [str(ruta)] * 8)
             self.assertEqual(len(llamadas), 1)
             self.assertEqual(ruta.read_bytes(), b"audio simulado")
-            self.v["_CANDADOS_AUDIO"][indice] = original
-        self.assertEqual(len(self.v["_CANDADOS_AUDIO"]), 64)
+        self.assertEqual(self.v["_CANDADOS_AUDIO"], {}, "quedan candados de claves que ya nadie usa")
 
     def test_cache_sin_cliente_y_frase_sin_renormalizar(self):
         llamadas = []
@@ -117,21 +114,41 @@ class VozConcurrencia(unittest.TestCase):
             with ThreadPoolExecutor(max_workers=1) as pool:
                 self.assertIsNotNone(pool.submit(self.v["generar_audio_correcto"], error).result(timeout=3))
         self.assertEqual(list(self.v["RUTA_AUDIO_GENERADO"].glob("*.tmp")), [])
+        self.assertEqual(self.v["_CANDADOS_AUDIO"], {})
 
     def test_claves_distintas_pueden_generar_en_paralelo(self):
-        def indice(texto):
-            ruta = self.v["_ruta_audio_cache"](texto, self.v["VOZ_POR_DEFECTO"])
-            return int(hashlib.sha256(str(ruta).encode()).hexdigest()[:8], 16) % 64
-        primero = "one"
-        segundo = next(f"other {i}" for i in range(100) if indice(f"other {i}") != indice(primero))
         barrera = threading.Barrier(2, timeout=3)
+
         def crear(**kwargs):
             barrera.wait()
             return self.respuesta()
+
+        self.cliente(crear)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futuros = [pool.submit(self.v["generar_audio_correcto"], t) for t in ("one", "other")]
+            self.assertTrue(all(f.result(timeout=5) for f in futuros))
+
+    def test_claves_de_la_misma_franja_antigua_no_se_esperan(self):
+        """Con las 64 franjas de 71e4b52, dos audios distintos cuya ruta caia en
+        la misma franja se esperaban durante la llamada de red. Con la clave
+        exacta, no: los dos llegan al proveedor a la vez."""
+        def franja(texto):
+            ruta = self.v["_ruta_audio_cache"](texto, self.v["VOZ_POR_DEFECTO"])
+            return int(hashlib.sha256(str(ruta).encode()).hexdigest()[:8], 16) % 64
+
+        primero = "one"
+        segundo = next(f"other {i}" for i in range(5000) if franja(f"other {i}") == franja(primero))
+        barrera = threading.Barrier(2, timeout=3)
+
+        def crear(**kwargs):
+            barrera.wait()
+            return self.respuesta()
+
         self.cliente(crear)
         with ThreadPoolExecutor(max_workers=2) as pool:
             futuros = [pool.submit(self.v["generar_audio_correcto"], t) for t in (primero, segundo)]
-            self.assertTrue(all(f.result(timeout=5) for f in futuros))
+            self.assertTrue(all(f.result(timeout=5) for f in futuros),
+                            "dos audios de la misma franja antigua se esperaron")
 
     def test_ruta_explicita_conserva_comportamiento(self):
         ruta = Path(self.temporal.name) / "explicito.mp3"
@@ -188,6 +205,34 @@ class VozConcurrencia(unittest.TestCase):
             with sqlite3.connect(ruta) as nueva:
                 self.assertEqual(nueva.execute("SELECT name FROM sqlite_master WHERE name='palabras_debiles'").fetchall(), [])
             nueva.close()
+
+    def test_leer_no_espera_al_que_escribe(self):
+        """`BEGIN IMMEDIATE` en cada conexion hacia que una lectura esperase a
+        cualquier escritura y, pasados 5 s, devolviera vacio. Con el esquema al
+        dia, leer ya no abre transaccion."""
+        ruta = str(Path(self.temporal.name) / "lectura.db")
+        self.v["registrar_fallos"](["fox"], ruta, "The fox jumps.")
+        escritor = sqlite3.connect(ruta)
+        escritor.execute("BEGIN IMMEDIATE")          # otro hilo o proceso a mitad de escribir
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                filas = pool.submit(self.v["palabras_para_practicar"], 5, ruta).result(timeout=3)
+        finally:
+            escritor.rollback()
+            escritor.close()
+        self.assertEqual([f["palabra"] for f in filas], ["fox"])
+
+    def test_historial_ilegible_avisa_y_sin_historial_es_vacio(self):
+        """Una base que no se puede leer no es «no has fallado nada»."""
+        no_existe = str(Path(self.temporal.name) / "no" / "existe.db")
+        self.assertEqual(self.v["palabras_para_practicar"](5, no_existe), [])
+        self.assertEqual(self.v["puntos_debiles"](5, no_existe), [])
+        self.assertFalse(Path(no_existe).parent.exists(), "leer sin historial no debe crear carpetas")
+        rota = Path(self.temporal.name) / "rota.db"
+        rota.write_bytes(b"esto no es una base de datos sqlite " * 50)
+        for funcion in ("palabras_para_practicar", "puntos_debiles"):
+            with self.assertRaises(self.v["HistorialIlegible"]):
+                self.v[funcion](5, str(rota))
 
 
 if __name__ == "__main__":

@@ -245,6 +245,12 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.cargarSonidos(acento);
   }
 
+  /** El @defer del 3D no pasa por el router: si falla su chunk (tras publicar un
+   *  build nuevo), la recarga automática de nucleo/version.ts no lo ve. */
+  protected recargarPara3d(): void {
+    location.reload();
+  }
+
   protected cerrarFicha(): void {
     this.elegido.set(null);
     if (this.visor3d() === 'sonido') this.visor3d.set(null);

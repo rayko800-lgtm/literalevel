@@ -61,9 +61,11 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
   `,
   styles: `
     :host { display: block; min-width: 0; margin-top: 12px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    /* Pastillas y controles con los mínimos de investigacion/una_mano.md: se tocan
+       seguidos (un sonido tras otro), así que 44-48 px y 8 px de hueco. */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .chip { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde, #d6deeb);
-      background: var(--tarjeta, transparent); color: inherit; cursor: pointer; min-height: 36px; }
+      background: var(--tarjeta, transparent); color: inherit; cursor: pointer; min-height: 44px; }
     .chip.elegido { background: var(--acento, #2f5bea); color: #fff; border-color: var(--acento, #2f5bea); }
     .ipa { font-family: 'Charis SIL', 'Doulos SIL', 'DejaVu Sans', 'Segoe UI', sans-serif; }
     .visor { position: relative; width: 100%; overflow: hidden; min-height: 220px; }
@@ -73,10 +75,10 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }
     .pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
       margin-top: 8px; font-size: .9em; color: var(--texto-tenue, #647189); }
-    .botones { display: flex; flex-wrap: wrap; gap: 6px; }
+    .botones { display: flex; flex-wrap: wrap; gap: 8px; }
     .boton { font: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       padding: 8px; border-radius: 6px; border: 1px solid var(--borde, #d6deeb);
-      background: transparent; color: inherit; cursor: pointer; min-height: 44px; min-width: 44px; }
+      background: transparent; color: inherit; cursor: pointer; min-height: 48px; min-width: 48px; }
     .boton.activo { background: var(--acento-suave, #e6ecff); border-color: var(--acento, #2f5bea);
       color: var(--acento-texto, #2449c9); }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
