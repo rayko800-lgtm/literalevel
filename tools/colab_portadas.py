@@ -1,12 +1,14 @@
 # %% [markdown]
 # # Portadas generadas por IA para el catálogo de LiteraLevel
 #
-# **Nada se lanza solo.** Este cuaderno tiene dos celdas que gastan GPU:
+# **Bloqueado por defecto.** Conectar una GPU ya consume unidades aunque el
+# codigo no genere nada: revisa Recursos antes de conectarla y desconecta al terminar.
+# La carga del modelo y estas dos celdas necesitan autorizacion explicita:
 #
-# 1. **«Medir 20»**: genera 20 portadas en local, imprime segundos por imagen y
+# 1. **«Medir 20»**: genera 20 portadas y una de calentamiento en local, imprime segundos por imagen y
 #    KB por webp, y NO sube nada. Sirve para cambiar las estimaciones del estudio
 #    del 13 de septiembre de 2026 por cifras reales.
-# 2. **«Tanda»**: solo arranca si `SALDO_CONFIRMADO` (unidades de Colab que
+# 2. **«Tanda»**: solo arranca si `SALDO_TANDA_CONFIRMADO` (unidades de Colab que
 #    Miguel ha mirado en el panel Recursos) cubre la estimación con margen.
 #
 # Reglas que no se negocian:
@@ -18,8 +20,10 @@
 # - Cada portada va con su JSON: paleta de 5 colores, `color_texto` por
 #   contraste WCAG y `acento`. La marca «Portada generada por IA, no oficial»
 #   la pone el front encima: no va dentro de la imagen.
-# - Reanudable: shards de 250, se retoma leyendo qué ids ya tienen JSON en el
-#   bucket, y la semilla es un hash del id (regenerar da la misma portada).
+# - Reanudable: shards de 250; solo cuentan los tres archivos en el mismo shard.
+#   Las muestras locales compatibles se reutilizan sin generar otra vez.
+#   La semilla es un hash del id; la reproducibilidad depende tambien del entorno.
+# - Publicar necesita `PUBLICAR_CONFIRMADO=True`, ademas de aprobar las muestras.
 #
 # Las celdas marcadas `[puro]` no tocan GPU ni red: las prueba
 # `pruebas_portadas.py` en local, que además comprueba que las reglas de
@@ -30,6 +34,8 @@
 import hashlib
 import json
 import re
+import math
+from pathlib import Path, PurePosixPath
 
 MODELO = "black-forest-labs/FLUX.1-schnell"
 ANCHO, ALTO = 768, 1152            # multiplos de 16, como pide FLUX
@@ -150,7 +156,7 @@ def construir_prompt(fila: dict) -> str:
 
 
 def semilla(id_libro: str) -> int:
-    """Semilla determinista por id: regenerar da la misma portada."""
+    """Semilla determinista por id; no garantiza igualdad entre entornos."""
     return int(hashlib.sha256(str(id_libro).upper().encode()).hexdigest()[:8], 16)
 
 
@@ -269,6 +275,79 @@ def shard_de(i: int) -> str:
     return f"shard_{i // SHARD:03d}"
 
 
+def id_seguro(valor) -> str:
+    pid = str(valor).upper()
+    if not re.fullmatch(r"PG[0-9]+", pid):
+        raise ValueError("ID de Gutenberg no valido")
+    return pid
+
+
+def validar_presupuesto(saldo, tarifa, segundos, autorizado=False) -> float:
+    """Rechaza tambien NaN/infinito: las comparaciones normales los dejan pasar."""
+    if autorizado is not True:
+        raise ValueError("Falta autorizacion explicita para esta etapa")
+    for nombre, valor in (("saldo", saldo), ("tarifa", tarifa), ("segundos", segundos)):
+        if isinstance(valor, bool) or not isinstance(valor, (int, float)) or not math.isfinite(valor) or valor <= 0:
+            raise ValueError(f"{nombre} debe ser un numero positivo y finito confirmado")
+    necesarias = tarifa * segundos / 3600
+    if saldo < necesarias * 1.2:
+        raise ValueError(f"Saldo insuficiente: se estiman {necesarias * 1.2:.2f} unidades con margen")
+    return necesarias
+
+
+def ids_completos(rutas, prefijo="portadas") -> set[str]:
+    """Un JSON suelto o ficheros en shards distintos no completan una portada."""
+    presentes = {PurePosixPath(str(r)) for r in rutas}
+    hechos = set()
+    for ruta in presentes:
+        if (ruta.suffix != ".json" or str(ruta.parent.parent) != prefijo
+                or not re.fullmatch(r"shard_[0-9]{3,}", ruta.parent.name)
+                or not re.fullmatch(r"PG[0-9]+", ruta.stem)):
+            continue
+        if all(ruta.with_name(nombre) in presentes
+               for nombre in (f"{ruta.stem}.webp", f"{ruta.stem}_256.webp")):
+            hechos.add(ruta.stem)
+    return hechos
+
+
+def pendientes_de(filas, hechos):
+    """El conteo solo incluye IDs de esta seleccion, sin duplicarlos."""
+    vistos = set()
+    pendientes = []
+    for i, fila in enumerate(filas):
+        pid = id_seguro(fila["id"])
+        if pid not in vistos and pid not in hechos:
+            pendientes.append((i, fila))
+        vistos.add(pid)
+    return pendientes
+
+
+def portada_local(fila, local):
+    """Reusa solo un trio compatible y verificable, nunca un JSON parcial."""
+    from PIL import Image
+    pid = id_seguro(fila["id"])
+    rutas = [Path(local) / nombre for nombre in (f"{pid}.webp", f"{pid}_256.webp", f"{pid}.json")]
+    try:
+        datos = json.loads(rutas[2].read_text(encoding="utf-8"))
+        esperado = {"id": pid, "modelo": MODELO, "pasos": PASOS, "tam": [ANCHO, ALTO],
+                    "semilla": semilla(pid), "generada_por_ia": True,
+                    "prompt_sha": hashlib.sha256(construir_prompt(fila).encode()).hexdigest()[:16]}
+        if not isinstance(datos, dict) or any(datos.get(k) != v for k, v in esperado.items()):
+            return None
+        if (not isinstance(datos.get("kb"), dict) or not isinstance(datos.get("segundos"), (int, float))
+                or not math.isfinite(datos["segundos"]) or datos["segundos"] <= 0
+                or any(clave not in datos for clave in ("paleta", "color_texto", "fondo_lector", "acento"))):
+            return None
+        for ruta, tam in zip(rutas[:2], ((ANCHO, ALTO), (round(ANCHO * MINIATURA / ALTO), MINIATURA))):
+            with Image.open(ruta) as img:
+                if img.format != "WEBP" or img.size != tam:
+                    return None
+                img.load()
+        return rutas, datos
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 # %%
 # --- 2. Instalar (Colab) -----------------------------------------------------
 # !pip -q install "diffusers>=0.31" "transformers>=4.44" accelerate sentencepiece "huggingface_hub>=1.30" pillow pandas
@@ -289,8 +368,16 @@ LOCAL.mkdir(parents=True, exist_ok=True)
 
 # Unidades que Miguel ha mirado en Recursos. None = la tanda NO arranca.
 SALDO_CONFIRMADO = None
-UNIDADES_POR_HORA_A100 = 15.0                  # medido en Colab: ~15 u/h
+AUTORIZAR_MEDICION = False
+UNIDADES_POR_HORA = None                      # tarifa ACTUAL que muestra Recursos
+MAX_MINUTOS_MEDICION = 10                     # incluye cargar el modelo
+MUESTRAS_APROBADAS = False
+PUBLICAR_CONFIRMADO = False
 SOBRECARGA = 1.3                               # webp + paleta + subida sobre la GPU
+
+validar_presupuesto(SALDO_CONFIRMADO, UNIDADES_POR_HORA,
+                    MAX_MINUTOS_MEDICION * 60, AUTORIZAR_MEDICION)
+inicio_medicion = time.monotonic()
 
 try:
     from google.colab import userdata
@@ -303,7 +390,7 @@ if not HF_TOKEN:
 import torch
 print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "NINGUNA")
 if not torch.cuda.is_available() or "A100" not in torch.cuda.get_device_name(0):
-    print("AVISO: el estudio de coste es para A100. Con otra tarjeta, mide antes de nada.")
+    raise SystemExit("Este cuaderno requiere A100; no descargar pesos en CPU ni en otra GPU sin adaptar y medir.")
 
 # %%
 # --- 4. Catalogo y seleccion -----------------------------------------------------
@@ -318,24 +405,24 @@ if CONJUNTO == "curado":
     csv_cur = hf_hub_download(REPO_SPACE, "catalogo_recomendaciones.csv", repo_type="space", token=HF_TOKEN)
     ids_curado = pd.read_csv(csv_cur, dtype=str)["id"].tolist()
 lista = seleccionar(medido, CONJUNTO, N_LIBROS, ids_curado).reset_index(drop=True)
+if len(lista) < 2:
+    raise SystemExit("Se necesitan al menos dos libros para medir con calentamiento separado.")
 print(f"{len(lista)} libros en el conjunto «{CONJUNTO}»")
 print("ejemplo de prompt:", construir_prompt(lista.iloc[0].to_dict())[:400])
 
 
 def ya_hechos() -> set[str]:
-    """Ids que YA tienen JSON en el bucket. Se reanuda con esto, no con un contador."""
-    hechos = set()
-    for x in api.list_bucket_tree(BUCKET, prefix=PREFIJO, recursive=True):
-        ruta = getattr(x, "path", "") or ""
-        if ruta.endswith(".json") and "/shard_" in ruta:
-            hechos.add(Path(ruta).stem.upper())
-    return hechos
+    """Solo trios completos en el bucket; un JSON no acredita ambos WebP."""
+    return ids_completos((getattr(x, "path", "") or "" for x in
+                         api.list_bucket_tree(BUCKET, prefix=PREFIJO, recursive=True)), PREFIJO)
 
 
 # %%
 # --- 5. Modelo -----------------------------------------------------------------
 from diffusers import FluxPipeline
 
+validar_presupuesto(SALDO_CONFIRMADO, UNIDADES_POR_HORA,
+                    MAX_MINUTOS_MEDICION * 60, AUTORIZAR_MEDICION)
 tuberia = FluxPipeline.from_pretrained(MODELO, torch_dtype=torch.bfloat16, token=HF_TOKEN).to("cuda")
 tuberia.set_progress_bar_config(disable=True)
 
@@ -343,6 +430,10 @@ tuberia.set_progress_bar_config(disable=True)
 def generar(fila: dict):
     """Una portada, su miniatura y su JSON en local. Devuelve (rutas, json)."""
     import io
+    pid = id_seguro(fila["id"])
+    guardada = portada_local(fila, LOCAL)
+    if guardada is not None:
+        return guardada
     prompt = construir_prompt(fila)
     t0 = time.time()
     img = tuberia(prompt, height=ALTO, width=ANCHO, num_inference_steps=PASOS, guidance_scale=0.0,
@@ -350,7 +441,6 @@ def generar(fila: dict):
                   generator=torch.Generator("cuda").manual_seed(semilla(fila["id"]))).images[0]
     torch.cuda.synchronize()
     segundos = time.time() - t0
-    pid = str(fila["id"]).upper()
     b1, b2 = io.BytesIO(), io.BytesIO()
     img.save(b1, "WEBP", quality=CALIDAD_WEBP, method=6)
     mini = img.copy()
@@ -358,9 +448,12 @@ def generar(fila: dict):
     mini.save(b2, "WEBP", quality=CALIDAD_WEBP, method=6)
     datos = json_de_portada(fila, prompt, paleta_de(img), len(b1.getvalue()) / 1024,
                             len(b2.getvalue()) / 1024, segundos)
-    (LOCAL / f"{pid}.webp").write_bytes(b1.getvalue())
-    (LOCAL / f"{pid}_256.webp").write_bytes(b2.getvalue())
-    (LOCAL / f"{pid}.json").write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
+    # JSON ultimo: nunca acredita una imagen cuya escritura no ha terminado.
+    for nombre, contenido in ((f"{pid}.webp", b1.getvalue()), (f"{pid}_256.webp", b2.getvalue()),
+                              (f"{pid}.json", json.dumps(datos, ensure_ascii=False, indent=1).encode("utf-8"))):
+        temporal = LOCAL / f"{nombre}.tmp"
+        temporal.write_bytes(contenido)
+        temporal.replace(LOCAL / nombre)
     return [LOCAL / f"{pid}.webp", LOCAL / f"{pid}_256.webp", LOCAL / f"{pid}.json"], datos
 
 
@@ -369,7 +462,12 @@ def generar(fila: dict):
 # La primera imagen incluye la compilacion/calentamiento: se descarta de la media.
 muestra = lista.sample(n=min(21, len(lista)), random_state=20260913).to_dict("records")
 tiempos, kbs = [], []
+gpu_actual = torch.cuda.get_device_name(0)
+if any(portada_local(fila, LOCAL) is not None for fila in muestra):
+    raise SystemExit("Ya hay muestras locales: conserva MEDIDA o usa otra carpeta para una medicion nueva. No se regenera automaticamente.")
 for k, fila in enumerate(muestra):
+    if time.monotonic() - inicio_medicion >= MAX_MINUTOS_MEDICION * 60:
+        raise SystemExit("Termino el tiempo autorizado de medicion. Desconecta la GPU y revisa las muestras guardadas.")
     _, d = generar(fila)
     if k == 0:
         print(f"calentamiento: {d['segundos']:.1f} s (no cuenta)")
@@ -379,27 +477,30 @@ for k, fila in enumerate(muestra):
     print(f"{k:2d} {d['id']:>8}  {d['segundos']:.2f} s  {d['kb']['portada']:.0f} KB  "
           f"texto {d['color_texto']} ({d['contraste_texto']}:1)  acento {d['acento']}")
 MEDIDA = {"s_por_imagen": sum(tiempos) / len(tiempos), "kb_por_portada": sum(kbs) / len(kbs),
-          "gpu": torch.cuda.get_device_name(0)}
+          "gpu": gpu_actual}
+(LOCAL / "medida.json").write_text(json.dumps(MEDIDA, indent=1), encoding="utf-8")
 horas = len(lista) * MEDIDA["s_por_imagen"] * SOBRECARGA / 3600
 print(f"\nMEDIDO en {MEDIDA['gpu']}: {MEDIDA['s_por_imagen']:.2f} s/imagen de GPU, "
       f"{MEDIDA['kb_por_portada']:.0f} KB/portada")
-print(f"Estimacion para {len(lista)} libros: {horas:.2f} h, ~{horas * UNIDADES_POR_HORA_A100:.1f} unidades, "
+print(f"Estimacion para {len(lista)} libros: {horas:.2f} h, ~{horas * UNIDADES_POR_HORA:.1f} unidades, "
       f"~{len(lista) * MEDIDA['kb_por_portada'] / 1024 / 1024:.2f} GB")
 print("Mira las 20 en /content/portadas antes de seguir: si no gustan, se cambia MOTIVOS/ESTILO, no se lanza.")
 
 # %%
 # --- 7. TANDA (solo con saldo confirmado) --------------------------------------------
-if SALDO_CONFIRMADO is None:
-    raise SystemExit("SALDO_CONFIRMADO es None: Miguel tiene que mirar las unidades y ponerlas en la celda 3.")
+# Confirmacion NUEVA despues de medir: la muestra ya consumio parte del saldo.
+SALDO_TANDA_CONFIRMADO = None
+if not MUESTRAS_APROBADAS or not PUBLICAR_CONFIRMADO:
+    raise SystemExit("Falta aprobar visualmente las muestras y autorizar la publicacion en el bucket.")
 if "MEDIDA" not in globals():
     raise SystemExit("Primero la celda «Medir 20»: la tanda se estima con cifras medidas, no del estudio.")
-pendientes_est = len(lista) - len(ya_hechos())
-necesarias = pendientes_est * MEDIDA["s_por_imagen"] * SOBRECARGA / 3600 * UNIDADES_POR_HORA_A100
-if SALDO_CONFIRMADO < necesarias * 1.2:
-    raise SystemExit(f"Saldo {SALDO_CONFIRMADO} < {necesarias * 1.2:.1f} unidades (estimacion x1,2). No arranca.")
-
 hechos = ya_hechos()
-pendientes = [(i, f) for i, f in enumerate(lista.to_dict("records")) if str(f["id"]).upper() not in hechos]
+pendientes = pendientes_de(lista.to_dict("records"), hechos)
+hechos = {id_seguro(f["id"]) for f in lista.to_dict("records")} & hechos
+if not pendientes:
+    raise SystemExit("La seleccion ya tiene sus portadas completas. Desconecta la GPU.")
+necesarias = validar_presupuesto(SALDO_TANDA_CONFIRMADO, UNIDADES_POR_HORA,
+                                len(pendientes) * MEDIDA["s_por_imagen"] * SOBRECARGA, True)
 print(f"ya hechos {len(hechos)} | pendientes {len(pendientes)} | necesarias ~{necesarias:.1f} u")
 buffer, errores, t0, hechos_ahora = [], 0, time.time(), 0
 
@@ -408,6 +509,8 @@ def volcar(buffer):
     """Sube de golpe lo acumulado y el progreso. Idempotente: reescribir no duplica."""
     if not buffer:
         return
+    if PUBLICAR_CONFIRMADO is not True:
+        raise RuntimeError("Publicacion no autorizada")
     add = [(str(ruta), f"{PREFIJO}/{shard}/{ruta.name}") for shard, rutas in buffer for ruta in rutas]
     progreso = {"conjunto": CONJUNTO, "total": len(lista), "hechos": len(hechos) + hechos_ahora,
                 "errores": errores, "s_por_imagen_medido": round(MEDIDA["s_por_imagen"], 3),
@@ -425,6 +528,10 @@ def volcar(buffer):
 
 try:
     for n, (i, fila) in enumerate(pendientes, 1):
+        # Freno entre imagenes: una inferencia/subida en curso puede excederlo.
+        if (time.time() - t0) / 3600 * UNIDADES_POR_HORA >= SALDO_TANDA_CONFIRMADO / 1.2:
+            print("Se alcanzo el presupuesto de tiempo; guardando el lote antes de parar.")
+            break
         try:
             rutas, _ = generar(fila)
             buffer.append((shard_de(i), rutas))

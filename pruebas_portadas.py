@@ -16,6 +16,9 @@ import os
 import sys
 import tempfile
 import traceback
+import ast
+import json
+from types import SimpleNamespace
 from pathlib import Path
 
 sys.path.insert(0, "app")
@@ -151,6 +154,126 @@ def _mismas_reglas_que_la_app():
 
 
 prueba("la seleccion usa las mismas reglas que el catalogo de la app", _mismas_reglas_que_la_app)
+
+
+def _presupuesto():
+    validar = P["validar_presupuesto"]
+    assert validar(10, 15, 600, True) == 2.5
+    for saldo, tarifa, segundos, permiso in (
+        (None, 15, 60, True), (0, 15, 60, True), (-1, 15, 60, True),
+        (float("nan"), 15, 60, True), (float("inf"), 15, 60, True),
+        (10, None, 60, True), (10, 0, 60, True), (10, 15, float("nan"), True),
+        (10, 15, 60, False), (10, 15, 60, 1), (True, 15, 60, True), (1, 15, 600, True),
+    ):
+        try:
+            validar(saldo, tarifa, segundos, permiso)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError((saldo, tarifa, segundos, permiso))
+
+
+prueba("el presupuesto exige permiso, saldo, tarifa y medida finitos con margen", _presupuesto)
+
+
+def _reanudar_remoto():
+    completos = P["ids_completos"]
+    rutas = [f"portadas/shard_000/PG11{ext}" for ext in (".json", ".webp", "_256.webp")]
+    assert completos(rutas) == {"PG11"}
+    assert completos(rutas[:2]) == set()
+    assert completos(rutas[:2] + ["portadas/shard_001/PG11_256.webp"]) == set()
+    assert completos([r.replace("portadas/", "otro/") for r in rutas]) == set()
+    assert completos(["portadas/progreso.json", "portadas/shard_000/../PG11.json"]) == set()
+    filas = [{"id": "PG11"}, {"id": "pg12"}, {"id": "PG12"}]
+    assert P["pendientes_de"](filas, {"PG11", "PG900", "PG901"}) == [(1, {"id": "pg12"})]
+    for pid in ("../../PG11", "PG11/../", "", "PG-1"):
+        try:
+            P["id_seguro"](pid)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(pid)
+
+
+prueba("reanudar exige ambos WebP junto al JSON y cuenta solo IDs seleccionados", _reanudar_remoto)
+
+
+def _funciones_ejecucion():
+    arbol = ast.parse(Path("tools/colab_portadas.py").read_text(encoding="utf-8"))
+    funciones = [n for n in arbol.body if isinstance(n, ast.FunctionDef) and n.name in ("generar", "volcar")]
+    espacio = dict(P)
+    exec(compile(ast.Module(body=funciones, type_ignores=[]), "portadas[runtime]", "exec"), espacio)
+    return espacio
+
+
+def _cache_local():
+    from PIL import Image
+    import itertools
+    E = _funciones_ejecucion()
+    llamadas = []
+    class Generador:
+        def manual_seed(self, semilla):
+            return self
+    def tuberia(*args, **kwargs):
+        llamadas.append(kwargs)
+        return SimpleNamespace(images=[Image.new("RGB", (P["ANCHO"], P["ALTO"]), "#223344")])
+    reloj = itertools.count()
+    E.update(tuberia=tuberia, time=SimpleNamespace(time=lambda: next(reloj)), torch=SimpleNamespace(
+        Generator=lambda dispositivo: Generador(), cuda=SimpleNamespace(synchronize=lambda: None)))
+    with tempfile.TemporaryDirectory() as carpeta:
+        E["LOCAL"] = Path(carpeta)
+        rutas, datos = E["generar"](FILA)
+        assert len(llamadas) == 1 and all(r.exists() for r in rutas)
+        assert E["generar"](FILA)[1] == datos and len(llamadas) == 1
+        assert not list(Path(carpeta).glob("*.tmp"))
+        assert P["portada_local"]({**FILA, "temas": "Horror tales"}, carpeta) is None
+        rutas[0].write_bytes(b"webp truncado")
+        assert P["portada_local"](FILA, carpeta) is None
+        E["generar"](FILA)
+        assert len(llamadas) == 2
+        rutas[2].write_text("[]", encoding="utf-8")
+        assert P["portada_local"](FILA, carpeta) is None
+        rutas[2].unlink()
+        assert P["portada_local"](FILA, carpeta) is None
+
+
+prueba("generar reutiliza la muestra sin GPU y rechaza cache parcial, corrupta o de otro prompt", _cache_local)
+
+
+def _guardas_reales():
+    fuente = Path("tools/colab_portadas.py").read_text(encoding="utf-8")
+    celda3 = next(c for c in fuente.split("# %%") if "# --- 3." in c)
+    # Ejecuta la configuracion REAL: debe parar antes de pedir secretos o importar torch.
+    with tempfile.TemporaryDirectory() as carpeta:
+        celda3 = celda3.replace('Path("/content/portadas")', f"Path({carpeta!r})")
+        try:
+            exec(compile(celda3, "portadas[config]", "exec"), dict(P))
+        except ValueError as e:
+            assert "autorizacion" in str(e)
+        else:
+            raise AssertionError("la configuracion permite ejecutar por defecto")
+    E = _funciones_ejecucion()
+    E["PUBLICAR_CONFIRMADO"] = False
+    try:
+        E["volcar"]([("shard_000", [Path("PG11.webp")])])
+    except RuntimeError as e:
+        assert "no autorizada" in str(e)
+    else:
+        raise AssertionError("se intento publicar sin permiso")
+
+
+prueba("las celdas reales bloquean secretos/GPU por defecto y bloquean subir sin permiso", _guardas_reales)
+
+
+def _notebook_sincronizado():
+    from tools.a_notebook import celdas
+    fuente = Path("tools/colab_portadas.py").read_text(encoding="utf-8")
+    nb = json.loads(Path("tools/colab_portadas.ipynb").read_text(encoding="utf-8"))
+    assert nb["cells"] == celdas(fuente), "regenerar tools/colab_portadas.ipynb"
+    assert "accelerator" not in nb["metadata"], "no preseleccionar recursos GPU al abrir el cuaderno"
+
+
+prueba("notebook sincronizado con la fuente y sin GPU preseleccionada", _notebook_sincronizado)
 
 print()
 if FALLOS:
