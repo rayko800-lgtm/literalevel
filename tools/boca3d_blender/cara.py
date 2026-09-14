@@ -84,7 +84,10 @@ def puntos_labio(superior, fruncir=0.0, estirar=0.0):
 
 
 def labio(nombre, superior):
-    """El labio con sus dos shape keys (fruncir, estirar)."""
+    """El labio con sus dos shape keys (fruncir, estirar) y colores por
+    vertice: bermellon en la parte que se ve y piel hacia atras, donde el
+    labio entra en la cara, con un borde entre los dos (el visor pinta el
+    material con vertexColors sobre base blanca)."""
     caras = []
     n, lados = 64, 20
     for i in range(n):
@@ -95,6 +98,19 @@ def labio(nombre, superior):
     caras.append(tuple(reversed(range(lados))))
     caras.append(tuple(n * lados + j for j in range(lados)))
     ob = malla(nombre, puntos_labio(superior), caras, LABIOS)
+    colores = ob.data.vertex_colors.new(name="bermellon")
+    rojo, piel = (0.80, 0.36, 0.40), (0.92, 0.72, 0.62)
+    for poligono in ob.data.polygons:
+        for indice_bucle in poligono.loop_indices:
+            v = ob.data.loops[indice_bucle].vertex_index
+            j = v % lados
+            a = 2 * math.pi * j / lados
+            c = -math.cos(a)                      # +1 delante (-x: lo que se ve), -1 hacia la cara
+            f = min(1.0, max(0.0, (c + 0.15) / 0.5))   # de piel (c < -0.15) a rojo (c > 0.35)
+            f = f * f * (3 - 2 * f)
+            colores.data[indice_bucle].color = (piel[0] + (rojo[0] - piel[0]) * f,
+                                                piel[1] + (rojo[1] - piel[1]) * f,
+                                                piel[2] + (rojo[2] - piel[2]) * f, 1.0)
     ob.shape_key_add(name="Basis", from_mix=False)
     for clave, kw in (("fruncir", {"fruncir": 1.0}), ("estirar", {"estirar": 1.0})):
         k = ob.shape_key_add(name=clave, from_mix=False)
@@ -200,10 +216,8 @@ def elipsoide(nombre, centro, escala, mat):
     return ob
 
 
-# Las aletas van medio hundidas en los lados del cono de la nariz.
-elipsoide("aleta_izq", (-3.02, 1.76, 0.4), (0.3, 0.26, 0.24), PIEL)
-elipsoide("aleta_der", (-3.02, 1.76, -0.4), (0.3, 0.26, 0.24), PIEL)
-elipsoide("punta_nariz", (-3.48, 1.93, 0.0), (0.34, 0.32, 0.4), PIEL)
+# Sin aletas ni punta aparte: el cono ya lleva el volumen, y de frente las
+# bolas quedaban raras (Central, 14 sep). `elipsoide` queda para otros usos.
 perfil("techo_nasal", [(-2.55, 3.15), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11, 0.9, MUCOSA)
 perfil("faringe", [(2.8, 2.1), (3.05, 1.55), (3.16, 0.6), (3.08, -0.55),
                    (2.95, -1.65), (2.8, -2.5), (2.75, -3.1)], 0.15, 1.0, MUCOSA)
@@ -217,19 +231,24 @@ perfil("paladar_modelado", [(-2.55, 0.5), (-2.3, 0.75), (-2.05, 0.92),
        0.13, 1.35, MUCOSA)
 
 
-def arco_encia(nombre, y, radio, retroceso, mat):
+def arco_encia(nombre, y, radio, retroceso, mat, fuera=None, alto=0.8, adelanto=0.0):
+    """Tubo que sigue la arcada. La seccion es eliptica y, con `fuera`, mas
+    gruesa hacia los labios que hacia la lengua (la normal del arco apunta
+    hacia dentro): asi la encia envuelve el cuello de los dientes sin
+    acercarse mas a la lengua, que es lo que mide lengua.py. `adelanto`
+    desplaza el arco hacia los labios."""
     vertices, caras = [], []
     pasos, lados = 96, 20
     for i in range(pasos + 1):
         u = -1 + 2 * i / pasos
-        x, z = -2.6 + retroceso * u*u, 1.35*u
+        x, z = -2.6 + retroceso * u*u - adelanto, 1.35*u
         nx, nz = 1.35, -2*retroceso*u
         norma = math.hypot(nx, nz)
         for j in range(lados):
             a = math.tau*j/lados
-            # Seccion eliptica: encia con volumen, sin tubo circular grueso.
-            vertices.append((x + radio*math.cos(a)*nx/norma,
-                             y + radio*0.8*math.sin(a), z + radio*math.cos(a)*nz/norma))
+            r = radio if (fuera is None or math.cos(a) >= 0) else fuera
+            vertices.append((x + r*math.cos(a)*nx/norma,
+                             y + radio*alto*math.sin(a), z + r*math.cos(a)*nz/norma))
     for i in range(pasos):
         for j in range(lados):
             a, b = i*lados+j, i*lados+(j+1)%lados
@@ -238,8 +257,12 @@ def arco_encia(nombre, y, radio, retroceso, mat):
     return malla(nombre, vertices, caras, mat)
 
 
-arco_encia("encia_superior", 0.98, 0.22, 2.3, MUCOSA)
-arco_encia("encia_inferior", -0.2, 0.22, 2.3, MUCOSA)
+arco_encia("encia_superior", 0.98, 0.22, 2.3, MUCOSA, fuera=0.34)
+arco_encia("encia_inferior", -0.2, 0.22, 2.3, MUCOSA, fuera=0.34)
+# El borde gingival: un cordon fino por delante de los cuellos, que hace la
+# arcada continua (los dientes salen de la encia, no flotan sobre ella).
+arco_encia("encia_borde_sup", 0.8, 0.075, 2.3, MUCOSA, alto=1.0, adelanto=0.2)
+arco_encia("encia_borde_inf", -0.02, 0.075, 2.3, MUCOSA, alto=1.0, adelanto=0.2)
 arco_encia("mandibula_modelada", -0.62, 0.28, 2.6, HUESO)
 
 
@@ -255,14 +278,20 @@ def diente(nombre, u, superior):
     ob.rotation_euler.z = -math.atan2(4.6*u, 1.35)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bisel = ob.modifiers.new("corona_redondeada", "BEVEL")
-    bisel.width = 0.045 if incisivo else 0.075
-    bisel.segments = 5
+    bisel.width = 0.09 if incisivo else 0.13
+    bisel.segments = 6
     bpy.ops.object.modifier_apply(modifier=bisel.name)
     for v in ob.data.vertices:
         # Corona algo mas estrecha junto a la encia; el borde no es una caja.
         cuello = max(0, (v.co.z if superior else -v.co.z) / 0.25)
+        borde = max(0, (-v.co.z if superior else v.co.z) / 0.25)
         v.co.x *= 1 - 0.16*cuello
         v.co.y *= 1 - 0.1*cuello
+        if incisivo:
+            v.co.x *= 1 - 0.4*borde          # el incisivo se afila hacia el borde cortante
+        else:
+            v.co.x *= 1 - 0.08*borde         # la corona del molar se cierra un poco arriba
+            v.co.y *= 1 - 0.08*borde
     ob.data.materials.append(ESMALTE)
     for p in ob.data.polygons:
         p.use_smooth = True

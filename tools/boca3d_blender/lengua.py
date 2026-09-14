@@ -185,8 +185,8 @@ for v in ob.data.vertices:
     # Seccion con bordes: arriba plano y las esquinas marcadas, abajo mas redondo.
     lateral = abs(uy)
     if z > 0:
-        z *= 0.55 + 0.45 * (1 - lateral ** 3)          # la cara de arriba, casi plana
-        z += 0.06 * campana(lateral, 0.82, 0.12) * rampa(x, -1.8, -0.8)   # el borde lateral
+        z *= 0.55 + 0.45 * (1 - lateral ** 2.2)        # la cara de arriba, plana y de bordes redondeados
+        z += 0.03 * campana(lateral, 0.78, 0.16) * rampa(x, -1.8, -0.8)   # el borde lateral, suave
         z -= 0.05 * campana(y, 0.0, 0.16) * rampa(x, -1.6, -0.6) * (1 - rampa(x, 1.2, 2.2))  # surco
     # La raiz baja hacia el suelo de la boca y engorda: no queda flotando.
     z -= 0.7 * rampa(x, 1.0, 2.4)

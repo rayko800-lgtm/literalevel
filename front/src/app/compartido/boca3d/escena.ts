@@ -1013,7 +1013,10 @@ export class EscenaBoca {
         destino.geometry.dispose();
         destino.geometry = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
         destino.userData['modelado'] = true;
-        destino.material = materialDe('labio', col.labios);
+        // Con colores por vértice (bermellón y piel, cara.py) el color base es
+        // blanco y lo pone la malla; sin ellos, el color de los labios.
+        const conColores = !!destino.geometry.getAttribute('color');
+        destino.material = materialDe('labio', conColores ? '#ffffff' : col.labios, conColores ? { vertexColors: true } : {});
         // Las shape keys del labio (fruncir, estirar): el visor las mezcla
         // desde el largo entre comisuras de la pose. Sin ellas, se escala.
         destino.updateMorphTargets();
@@ -1041,8 +1044,10 @@ export class EscenaBoca {
       for (const [nombre, tejido, enMandibula] of cabeza) {
         const fuente = piezas.get(nombre);
         if (!fuente) continue;
-        const mat = tejido === 'corte' ? materialDe('hueso', '#f2d5ca', { roughness: 0.88, sheen: 0.3 })
-          : tejido === 'pared' ? materialDe('mucosa', '#c98b8e', { roughness: 0.6, clearcoat: 0.2 })
+        // Caras del corte y pared del fondo claras y mates, como el 2D: la
+        // lengua es lo único saturado y la cavidad se lee como hueco.
+        const mat = tejido === 'corte' ? materialDe('hueso', '#f3e9df', { roughness: 0.92, sheen: 0 })
+          : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0 })
           : materialDe('piel', col.piel);
         const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), mat);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
@@ -1063,6 +1068,7 @@ export class EscenaBoca {
       }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
       const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
+        ...['encia_borde_sup', 'encia_borde_inf'].filter(n => piezas.has(n)),
         ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
       if (dentales.every(n => piezas.has(n))) {
         this.dentalSimple.forEach(o => { o.visible = false; });
@@ -1222,6 +1228,12 @@ export class EscenaBoca {
     const azimut = Math.atan2(d.x, d.z);          // 0 = de lado, ±π/2 = cara o nuca
     const deLado = Math.abs(azimut) < (20 * Math.PI) / 180 || Math.abs(Math.abs(azimut) - Math.PI) < (20 * Math.PI) / 180;
     const ahora: 'ninguno' | 'z+' | 'z-' = !deLado ? 'ninguno' : d.z >= 0 ? 'z+' : 'z-';
+    // La piel translúcida del lado de la cámara se aclara al pasar de 45° de
+    // giro: de frente, media cara sólida y media de cristal quedaba rara.
+    const giro = Math.min(Math.abs(azimut), Math.abs(Math.abs(azimut) - Math.PI));
+    const opacidad = 0.14 - 0.1 * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
+    const matMejilla = this.mejilla.material as THREE.MeshStandardMaterial;
+    if (Math.abs(matMejilla.opacity - opacidad) > 0.002) { matMejilla.opacity = opacidad; this.sucio = true; }
     if (ahora === this.lateralesOcultos) return;
     this.lateralesOcultos = ahora;
     for (const diente of this.dientesLaterales) {
