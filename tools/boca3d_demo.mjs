@@ -6,7 +6,7 @@
 //
 // Solo lee el front: no toca la app de Angular ni su router.
 import { build } from '../front/node_modules/esbuild/lib/main.js';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,4 +45,7 @@ writeFileSync(resolve(salida, 'index.html'), `<!doctype html>
 <div id="boca3d-demo"></div>
 <script src="demo.js"></script>
 `);
-console.log('demo en', resolve(salida, 'index.html'));
+// La lengua de Blender (tools/boca3d_blender/lengua.py), si se ha generado: ?lengua=glb la carga.
+const glb = resolve(RAIZ, 'tools/boca3d_demo/lengua.glb');
+if (existsSync(glb)) copyFileSync(glb, resolve(salida, 'lengua.glb'));
+console.log('demo en', resolve(salida, 'index.html'), existsSync(glb) ? '(con lengua.glb)' : '(sin lengua.glb)');

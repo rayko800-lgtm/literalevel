@@ -47,6 +47,8 @@ function arrancar(): void {
   const escena = new EscenaBoca(visor, {
     reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
     mejilla: params.get('mejilla') !== '0',
+    // ?lengua=glb: la lengua modelada en Blender (lengua.glb junto a la demo).
+    lenguaGlb: params.get('lengua') === 'glb' ? 'lengua.glb' : undefined,
   });
   window.escenaBoca = escena;
   if (params.get('ciclo') === '0') ciclo.checked = false;

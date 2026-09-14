@@ -15,6 +15,7 @@
  *  hay interpolación: se salta a la pose. */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Linea } from './animacion';
 import { Labios, PoseSonido, REPOSO } from './poses';
 
@@ -65,9 +66,36 @@ const N_NUDOS = 6;
 /** Mayor doblez admitido en la raíz alta (entre raíz baja → raíz alta y raíz alta → dorso). */
 const DOBLEZ_MAX = (85 * Math.PI) / 180;
 
-/** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y)]. */
-const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, TAMANO = I_NUDOS + N_NUDOS * 2;
+/** Las shape keys de la lengua modelada en Blender (tools/boca3d_blender/lengua.py),
+ *  una por parámetro; sus influencias van en la pose numérica para que se
+ *  interpolen igual que todo lo demás. */
+export const MORFOS_LENGUA = [
+  'mandibula', 'punta_arriba', 'punta_atras', 'punta_interdental', 'cuerpo_alto', 'cuerpo_bajo',
+  'cuerpo_delante', 'cuerpo_atras', 'dorso_velo', 'raiz_atras',
+] as const;
+
+/** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos]. */
+const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, I_MORFOS = I_NUDOS + N_NUDOS * 2;
+const TAMANO = I_MORFOS + MORFOS_LENGUA.length;
 type PoseNumerica = Float64Array;
+
+/** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
+function morfosDe(pose: PoseSonido): number[] {
+  const [alt, ade] = pose.cuerpo;
+  const toca = pose.punta_toca;
+  return [
+    Math.min(1, Math.max(0, pose.mandibula)),
+    pose.punta === 'alveolar' || pose.punta === 'postalveolar' ? (toca ? 1 : 0.75) : pose.punta === 'dental' ? 0.45 : 0,
+    pose.punta === 'retrofleja' ? 1 : 0,
+    pose.punta === 'interdental' ? 1 : 0,
+    Math.max(0, (alt - 0.45) / 0.55),
+    Math.max(0, (0.45 - alt) / 0.45),
+    Math.max(0, (ade - 0.5) / 0.5),
+    Math.max(0, (0.5 - ade) / 0.5),
+    pose.dorso_velo ? 1 : Math.min(1, pose.dorso_alto),
+    Math.min(1, Math.max(0, pose.raiz)),
+  ];
+}
 
 function paladarEn(x: number): number {
   if (x <= PALADAR[0][0]) return Infinity;      // delante de los dientes no hay techo
@@ -214,6 +242,7 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   for (let i = 0; i < N_NUDOS; i++) {
     n[I_NUDOS + 2 * i] = J[i][0]; n[I_NUDOS + 2 * i + 1] = J[i][1];
   }
+  morfosDe(pose).forEach((v, i) => { n[I_MORFOS + i] = v; });
   return n;
 }
 
@@ -393,6 +422,9 @@ export interface OpcionesEscena {
   reducirMovimiento?: boolean;
   /** La mejilla translúcida del lado de la cámara (por defecto, sí). */
   mejilla?: boolean;
+  /** URL de una lengua modelada en Blender (.glb con las shape keys de
+   *  `MORFOS_LENGUA`): sustituye al tubo cuando carga. */
+  lenguaGlb?: string;
 }
 
 export class EscenaBoca {
@@ -418,6 +450,9 @@ export class EscenaBoca {
   private readonly lengua: THREE.Mesh;
   private readonly mejilla: THREE.Mesh;
   private readonly aireNasal: THREE.Mesh;
+  /** La lengua modelada (si se pidió y ya cargó) y sus morfos por índice. */
+  private lenguaGlb: THREE.Mesh | null = null;
+  private indicesMorfos: (number | undefined)[] = [];
   /** Premolares y molares: se esconden los del lado de la cámara en la vista de lado. */
   private readonly dientesLaterales: THREE.Mesh[] = [];
   private lateralesOcultos: 'ninguno' | 'z+' | 'z-' = 'ninguno';
@@ -556,6 +591,7 @@ export class EscenaBoca {
 
     this.actual = poseNumerica(REPOSO);
     this.aplicar(this.actual);
+    if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua);
 
     if (typeof ResizeObserver !== 'undefined') {
       this.observador = new ResizeObserver(() => this.redimensionar());
@@ -660,6 +696,29 @@ export class EscenaBoca {
     this.sucio = true;
   }
 
+  /** Carga la lengua de Blender y, cuando llega, esconde el tubo. Si falla,
+   *  se queda el tubo y no pasa nada. */
+  private cargarLengua(url: string, color: string): void {
+    new GLTFLoader().load(url, gltf => {
+      if (!this.vivo) return;
+      let malla: THREE.Mesh | null = null;
+      gltf.scene.traverse(o => { if (!malla && o instanceof THREE.Mesh && o.morphTargetInfluences) malla = o; });
+      if (!malla) return;
+      const m = malla as THREE.Mesh;
+      m.material = material(color, { roughness: 0.5 });
+      const dic = m.morphTargetDictionary ?? {};
+      this.indicesMorfos = MORFOS_LENGUA.map(nombre => dic[nombre]);
+      this.lenguaGlb = m;
+      this.lengua.visible = false;
+      this.escena.add(m);
+      this.aplicar(this.actual);
+    }, undefined, () => { /* sin lengua modelada: se queda el tubo */ });
+  }
+
+  get tieneLenguaModelada(): boolean {
+    return this.lenguaGlb !== null;
+  }
+
   destruir(): void {
     this.vivo = false;
     cancelAnimationFrame(this.rafId);
@@ -743,7 +802,12 @@ export class EscenaBoca {
     // El labio inferior vive en la mandíbula: su posición es local al pivote.
     this.labioInf.position.set(n[I_LI] - PIVOTE_MAND.x, n[I_LI + 1] - PIVOTE_MAND.y, 0);
     this.labio(this.labioInf, n[I_LI + 2], n[I_LI + 3]);
-    deformarLengua(this.lengua.geometry, n);
+    if (this.lenguaGlb?.morphTargetInfluences) {
+      const inf = this.lenguaGlb.morphTargetInfluences;
+      this.indicesMorfos.forEach((idx, i) => { if (idx !== undefined) inf[idx] = n[I_MORFOS + i]; });
+    } else {
+      deformarLengua(this.lengua.geometry, n);
+    }
     this.sucio = true;
   }
 }
