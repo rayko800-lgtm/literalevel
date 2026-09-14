@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { urlMotor } from '../nucleo/api';
 
 /** Las doce familias en que se agrupan los temas de Gutenberg («Science
  *  fiction», «Detective and mystery stories»…) y de los corpus libres
@@ -262,6 +263,16 @@ export function motivoDe(id: string, p: Paleta): Forma[] {
     <div class="portada" [class.compacta]="compacta()" [attr.data-familia]="paleta().familia"
          [style.--fondo]="paleta().fondo" [style.--hondo]="paleta().hondo" [style.--tinta]="paleta().tinta"
          [style.--luz]="paleta().luz" [style.--escala]="escala()">
+      @if (urlIa(); as src) {
+        <!-- Portada ilustrada (punto 3): si algún día existe en /data/portadas, manda
+             ella; si no carga, vuelve la tipográfica. Siempre dice que es de IA. -->
+        <img class="ilustracion" [src]="src" alt="" loading="lazy" decoding="async" (error)="iaRota.set(true)" />
+        @if (compacta()) {
+          <span class="aviso-ia" title="Portada generada por IA, no oficial">IA<span class="oculto-visual"> · portada generada por IA, no oficial</span></span>
+        } @else {
+          <span class="aviso-ia largo">Portada generada por IA, no oficial</span>
+        }
+      } @else {
       <svg class="motivo" viewBox="0 0 300 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         @for (m of formas(); track $index) {
           @if (m.d) {
@@ -276,6 +287,7 @@ export function motivoDe(id: string, p: Paleta): Forma[] {
         <span class="titulo">{{ tituloVisible() }}</span>
         @if (!compacta() && autor()) { <span class="autor">{{ autor() }}</span> }
       </div>
+      }
       <span class="banda" aria-hidden="true">{{ cefr() || '—' }}</span>
     </div>
   `,
@@ -307,6 +319,13 @@ export function motivoDe(id: string, p: Paleta): Forma[] {
       font-family: var(--fuente-ui); font-size: max(9px, 7cqi); font-weight: 800; letter-spacing: .05em;
       background: rgba(0, 0, 0, .38); color: #fff;
     }
+    .ilustracion { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .aviso-ia {
+      position: absolute; top: 5px; right: 5px; padding: 1px 6px; border-radius: 999px;
+      font-family: var(--fuente-ui); font-size: max(9px, 7cqi); font-weight: 800; letter-spacing: .04em;
+      background: rgba(0, 0, 0, .62); color: #fff;
+    }
+    .aviso-ia.largo { left: 6%; right: 6%; top: 5%; text-align: center; font-size: max(9px, 5.4cqi); padding: .35em .5em; border-radius: 8px; }
     .compacta .letras { top: 7%; left: 8%; right: 7%; }
     .compacta .titulo { font-size: max(9px, calc(14cqi * var(--escala, 1))); -webkit-line-clamp: 4; }
     .compacta .banda { bottom: 6%; font-size: max(9px, 11cqi); }
@@ -320,6 +339,11 @@ export class Portada {
   readonly temas = input<readonly string[] | null | undefined>([]);
   /** En las tarjetas: sin autor y con el título más apretado. */
   readonly compacta = input(false);
+  /** `portada_ia` de la API: la ilustración por IA, si existe. */
+  readonly ia = input<string | null | undefined>(null);
+
+  protected readonly iaRota = signal(false);
+  protected readonly urlIa = computed(() => (this.iaRota() ? null : urlMotor(this.ia())));
 
   protected readonly familia = computed(() => familiaDe(this.temas()));
   protected readonly paleta = computed(() => paletaDe(this.id(), this.familia()));

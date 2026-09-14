@@ -103,6 +103,8 @@ export interface LibroTarjeta {
   aviso_contenido?: string | null;
   /** Temas del catálogo («Science fiction», «Children's stories»…): deciden la familia de la portada. */
   temas?: string[];
+  /** URL de una portada ilustrada por IA en /data/portadas, si la hay; si no, null y va la tipográfica. */
+  portada_ia?: string | null;
 }
 
 export interface ResultadoBusqueda {
@@ -134,6 +136,8 @@ export interface Libro {
   aviso_contenido?: string | null;
   /** Temas del catálogo, para la portada; [] en subidos. */
   temas?: string[];
+  /** URL de una portada ilustrada por IA, si la hay. */
+  portada_ia?: string | null;
   autor: string;
   palabras: number;
   inicial: number;

@@ -11,7 +11,7 @@ import { cefr, encaje, miles, num } from '../nucleo/formato';
   template: `
     <a class="tarjeta-libro" [routerLink]="['/libro', libro().id]" [class.sin-texto]="!libro().abrible">
       <app-portada class="portada" [id]="libro().id" [titulo]="libro().titulo" [autor]="libro().autor"
-                   [cefr]="letra()" [temas]="libro().temas" [compacta]="true" />
+                   [cefr]="letra()" [temas]="libro().temas" [ia]="libro().portada_ia" [compacta]="true" />
       <div class="cuerpo">
         <h3>{{ libro().titulo }}</h3>
         <p class="autor">{{ libro().autor || 'Autor desconocido' }}</p>

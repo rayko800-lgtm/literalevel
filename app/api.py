@@ -555,6 +555,30 @@ def _temas(id_libro) -> list[str]:
     return [t.strip() for t in _TEMAS_POR_ID.get(ident, "").split(";") if t.strip()][:8]
 
 
+# Portadas ilustradas por IA, si algún día las hay (Miguel, 14 sep): un archivo
+# por libro en /data/portadas (el disco persistente del Space), con el id del
+# catálogo como nombre: PG1661.webp. Sin carpeta o sin archivo, la portada es la
+# tipográfica del front. LITERALEVEL_PORTADAS la cambia (pruebas, local).
+_DIR_PORTADAS = Path(os.environ.get("LITERALEVEL_PORTADAS", "/data/portadas"))
+_EXT_PORTADA = {".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg"}
+
+
+def _portada_ia(id_libro) -> str | None:
+    """La URL de la portada por IA de un libro, o None. Lleva `?v=` con el
+    tamaño y la fecha: si se regenera con el mismo nombre, no sale la vieja."""
+    ident = str(id_libro or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9_-]{1,80}", ident):
+        return None
+    for ext in _EXT_PORTADA:
+        try:
+            st = (_DIR_PORTADAS / f"{ident}{ext}").stat()
+        except OSError:
+            continue
+        if st.st_size > 0:
+            return f"/api/portadas/{ident}{ext}?v={st.st_size}-{int(st.st_mtime)}"
+    return None
+
+
 def _libro_tarjeta(b) -> dict:
     """Un resultado del catalogo, listo para pintarse en una tarjeta."""
     dificultad = _finito(b.dificultad)
@@ -563,7 +587,7 @@ def _libro_tarjeta(b) -> dict:
             "gancho": " ".join(str(b.gancho or "").split()),
             "descargas": b.descargas, "similitud": b.similitud,
             "afinidad": b.afinidad, "abrible": ui._abrible(b.id),
-            "url": b.url_gutenberg, "temas": _temas(b.id),
+            "url": b.url_gutenberg, "temas": _temas(b.id), "portada_ia": _portada_ia(b.id),
             # Contrato con f4 (catalogo.py de8a4a8): "" en el catalogo es sin aviso.
             "aviso_contenido": getattr(b, "aviso_contenido", "") or None}
 
@@ -632,6 +656,7 @@ def _libro_json(ident: str, libro: reader.Libro, pet: _Lector) -> dict:
         "titulo": libro.titulo_visible,
         "aviso_contenido": _aviso_contenido(libro),
         "temas": _temas(getattr(libro, "id_catalogo", None) or ident),
+        "portada_ia": _portada_ia(getattr(libro, "id_catalogo", None) or ident),
         "autor": ui._autor_corto(libro.autor),
         "palabras": (c.palabras if c else libro.palabras),
         "inicial": _capitulo_inicial(libro),
@@ -1519,6 +1544,21 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
 def _nivel(pet: _Lector) -> float:
     p = _perfil_de(pet)
     return p.nivel if p is not None else ui.NIVEL_POR_DEFECTO
+
+
+@app.get("/api/portadas/{nombre}")
+def portada_ia(nombre: str):
+    """Una portada por IA de /data/portadas. Solo «ID.ext» del catálogo, nada
+    de rutas; nosniff y una semana de caché (la URL cambia si cambia el archivo)."""
+    m = re.fullmatch(r"([A-Z0-9_-]{1,80})(\.webp|\.png|\.jpg)", nombre)
+    if not m:
+        raise _no(404, "No existe esa portada.")
+    p = _DIR_PORTADAS / nombre
+    if not p.is_file() or p.stat().st_size == 0:
+        raise _no(404, "No existe esa portada.")
+    return FileResponse(p, media_type=_EXT_PORTADA[m.group(2)],
+                        headers={"Cache-Control": "public, max-age=604800",
+                                 "X-Content-Type-Options": "nosniff"})
 
 
 @app.get("/api/audio/{nombre}")

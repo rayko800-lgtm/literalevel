@@ -30,7 +30,7 @@ import { Sesion } from '../nucleo/sesion';
 
       @if (libro(); as l) {
         <section class="cabecera">
-          <app-portada class="portada" [id]="l.id" [titulo]="l.titulo" [autor]="l.autor" [cefr]="l.cefr" [temas]="l.temas" />
+          <app-portada class="portada" [id]="l.id" [titulo]="l.titulo" [autor]="l.autor" [cefr]="l.cefr" [temas]="l.temas" [ia]="l.portada_ia" />
           <div class="info">
             <h1>{{ l.titulo }}</h1>
             <p class="autor">{{ l.autor || 'Autor desconocido' }}</p>

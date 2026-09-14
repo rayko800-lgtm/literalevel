@@ -1108,6 +1108,40 @@ def temas_para_la_portada():
     return f"PG1661 {esperados[:2]}, {LIBRE} {ficha['temas']}"
 
 
+def portada_por_ia_si_existe():
+    """Punto 3 de las portadas: con PG1661.webp en la carpeta de portadas, la
+    tarjeta y la ficha traen su URL versionada y la ruta la sirve con nosniff;
+    sin archivo, None; y la ruta no deja salir de la carpeta."""
+    import tempfile as tf
+    from app import catalogo as cat
+    carpeta = Path(tf.mkdtemp(prefix="ll_portadas_"))
+    original = api._DIR_PORTADAS
+    api._DIR_PORTADAS = carpeta
+    try:
+        b = cat.Libro(id="PG1661", titulo="x", autor="", nivel="B2", gancho="", descargas=0)
+        sin = api._libro_tarjeta(b)["portada_ia"]
+        (carpeta / "PG1661.webp").write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 ")
+        (carpeta / "secreto.txt").write_text("no")
+        st = (carpeta / "PG1661.webp").stat()
+        con = api._libro_tarjeta(cat.Libro(id="pg1661", titulo="x", autor="", nivel="B2", gancho="", descargas=0))["portada_ia"]
+        ficha = _ok(cliente.get("/api/libros/PG1661", headers=A))["portada_ia"]
+        r = cliente.get("/api/portadas/PG1661.webp")
+        malos = [cliente.get(f"/api/portadas/{n}").status_code
+                 for n in ("secreto.txt", "..%2Fsecreto.txt", "PG1661.gif", "pg1661.webp", "NOPE.webp")]
+    finally:
+        api._DIR_PORTADAS = original
+        for f in carpeta.iterdir():
+            f.unlink()
+        carpeta.rmdir()
+    esperado = f"/api/portadas/PG1661.webp?v={st.st_size}-{int(st.st_mtime)}"
+    assert sin is None, sin
+    assert con == esperado and ficha == esperado, (con, ficha, esperado)
+    assert r.status_code == 200 and r.headers["content-type"] == "image/webp", (r.status_code, r.headers)
+    assert r.headers["x-content-type-options"] == "nosniff", r.headers
+    assert malos == [404, 404, 404, 404, 404], malos
+    return f"sin archivo None, con archivo {con}"
+
+
 def topes_de_medir_y_de_la_curva():
     """Revisión de 4e (6): muestra, nivel con libro y medir capítulo gastan
     ficha del cubo «medidas»; la curva, del cubo «curvas», y además no admite
@@ -1218,7 +1252,7 @@ if __name__ == "__main__":
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
-               temas_para_la_portada,
+               temas_para_la_portada, portada_por_ia_si_existe,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
