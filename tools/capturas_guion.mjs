@@ -26,7 +26,17 @@ const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE ??
 const BASE = (process.env.BASE ?? 'http://127.0.0.1:4200').replace(/\/$/, '');
 const API = (process.env.API ?? BASE).replace(/\/$/, '');
 const SALIDA = resolve(process.env.SALIDA ?? 'entrega/capturas');
-const USUARIO = process.env.USUARIO ?? '', CLAVE = process.env.CLAVE ?? '';
+// La cuenta: por USUARIO/CLAVE, o leída de un archivo local que no está en el
+// repositorio (CUENTA_ARCHIVO: una cuenta por línea, «usuario contraseña …»),
+// para que la contraseña no pase por la línea de órdenes ni por ningún registro.
+let USUARIO = process.env.USUARIO ?? '', CLAVE = process.env.CLAVE ?? '';
+if (process.env.CUENTA_ARCHIVO) {
+  const quiero = USUARIO || 'miguel';
+  const linea = readFileSync(resolve(process.env.CUENTA_ARCHIVO), 'utf8').split(/\r?\n/)
+    .map(l => l.trim().split(/\s+/)).find(c => c[0] === quiero);
+  if (!linea || !linea[1]) throw new Error(`la cuenta «${quiero}» no está en ${process.env.CUENTA_ARCHIVO}`);
+  USUARIO = linea[0]; CLAVE = linea[1];
+}
 const CHROME = process.env.CHROME ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PYTHON = process.env.PYTHON ?? 'python';
 const SOLO = process.env.SOLO ? new Set(process.env.SOLO.split(',')) : null;
@@ -242,8 +252,10 @@ try {
   await paso('ficha', async archivo => {
     await ir(`/libro/${LIBRO}`);
     await page.locator('app-curva svg').waitFor({ timeout: 120000 });
-    await ver(page.locator('section.curva'), 60);
-    await foto(archivo);
+    // La ficha entera: las 203.415 palabras van arriba y la curva abajo, y en
+    // una pantalla de móvil no caben juntas. Es la única captura de página completa.
+    await pausa(600);
+    await foto(archivo, { fullPage: true });
   });
 
   const seleccionar = async palabra => {
@@ -341,11 +353,17 @@ try {
     await ir('/palabras');
     const repaso = page.getByText('Repasa cinco');
     await repaso.waitFor({ timeout: 20000 });
-    await ver(repaso, 90);
+    // El título «Repasa cinco» arriba y, debajo, las palabras a repasar.
+    await repaso.evaluate(e => e.scrollIntoView({ block: 'start' }));
+    await page.mouse.wheel(0, -70);
+    await pausa(400);
     await foto(archivo);
   });
 
   await paso('cierre', async archivo => {
+    // «Donde lo dejaste» enseña el arranque del capítulo actual: que sea el
+    // primero de verdad y no el prefacio (que empieza por la licencia de Gutenberg).
+    await api('PUT', `/api/libros/${LIBRO}/progreso`, { capitulo: Math.min(1, total - 1) }).catch(() => {});
     const escritorio = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, colorScheme: 'light' });
     await escritorio.addInitScript(id => { try { localStorage.setItem('literalevel.lector', id); } catch { /* */ } }, lector);
     const p = await escritorio.newPage();
