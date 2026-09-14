@@ -482,7 +482,7 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     compuesto.write_bytes(b"ID3" + b"\x00" * 64)
     vistas = {}
 
-    def practicar_doble(ruta, frase, guardar_fallos=True):
+    def practicar_doble(ruta, frase, guardar_fallos=True, nivel=None):
         vistas["frase"] = frase
         ev = NS(puntuacion=60, transcripcion="the red rain coat", palabras_falladas=["raincoat"],
                 palabras_objetivo=["the", "red", "raincoat"], entendidas=[])
@@ -992,6 +992,96 @@ def corte_de_una_pasada_con_la_duracion_del_audio():
     return f"sonido 1,4 s de una pasada {len(corta.text)} B, palabra 0,8 s {len(palabra.text)} B"
 
 
+def indice_de_romanos_de_una_letra_no_abre_el_libro():
+    """PG1661 (Sherlock Holmes, un solo capítulo): el «Contents» es UN párrafo
+    con doce marcas «romano.», tres de una letra (I., V., X.), y se enseñaba al
+    empezar a leer. Con cinco o más marcas es índice; «Chapter IV.» citado una
+    vez en prosa no lo es (diagnóstico de entrega-4e)."""
+    indice = ("I. A Scandal in Bohemia II. The Red-Headed League III. A Case of Identity "
+              "IV. The Boscombe Valley Mystery V. The Five Orange Pips VI. The Man with the Twisted Lip "
+              "VII. The Adventure of the Blue Carbuncle VIII. The Adventure of the Speckled Band "
+              "IX. The Adventure of the Engineer’s Thumb X. The Adventure of the Noble Bachelor "
+              "XI. The Adventure of the Beryl Coronet XII. The Adventure of the Copper Beeches")
+    assert api._parece_indice(indice) is True, "el índice de PG1661 pasa por prosa"
+    prosa = ("As I explained in Chapter IV. of my notes, I had seldom heard him mention her under any "
+             "other name, and in his eyes she eclipsed and predominated the whole of her sex; it was not "
+             "that he felt any emotion akin to love for Irene Adler, as V. said.")
+    assert api._parece_indice(prosa) is False, "prosa con dos romanos sueltos se toma por índice"
+    lib = api._cargar_libro(ui._descargar_gutenberg("PG1661"))
+    primero = api._parrafos(lib, 0)[0]
+    assert primero.startswith("To Sherlock Holmes she is always _the_ woman."), primero[:80]
+    return primero[:40]
+
+
+def ritmo_de_la_lectura_con_nivel_y_audio_natural():
+    """Lectura natural (4e: 9f5f909, 55d546c, b41ff5e): el nivel del perfil llega
+    a voz, el ritmo sale tal cual con el mp3 natural como URL, el intento se
+    guarda en la voz.db del lector, y /api/voz/ritmo lee su evolución (con aviso
+    si la base no se puede leer)."""
+    from types import SimpleNamespace as NS
+    import config
+    import voz
+    lector = nuevo_lector()
+    mp3 = api._DIR_AUDIO / f"prueba_{uuid.uuid4().hex[:8]}.mp3"
+    mp3.parent.mkdir(parents=True, exist_ok=True)
+    mp3.write_bytes(b"ID3" + b"\x00" * 64)
+    ritmo = {"medido": True, "duracion_s": 3.4,
+             "palabras": [{"palabra": "you", "inicio": 0.4, "fin": 0.6}],
+             "pausas": [{"despues_de": 0, "segundos": 0.52, "en_referencia": False, "de_mas": True}],
+             "tramos": [{"desde": 0, "hasta": 1, "palabras_por_segundo": 2.1, "referencia": 3.2,
+                         "objetivo": 2.9, "acelerar": True}],
+             "natural": {"enfasis": [{"indice": 1, "ipa": None}], "enlaces": [],
+                         "reducciones": [], "tramos_rapidos": [], "version_natural": "you know.",
+                         "audio_natural": str(mp3)}}
+    vistas, guardados = {}, []
+
+    def practicar_doble(ruta, frase, guardar_fallos=True, nivel=None):
+        vistas["nivel"] = nivel
+        ev = NS(puntuacion=90, transcripcion="you know", palabras_falladas=[],
+                palabras_objetivo=["you", "know"], entendidas=[])
+        return NS(evaluacion=ev, transcripcion_ok=True, correccion=None, audio_correcto=None,
+                  audios_palabras={}, ritmo=ritmo)
+
+    def evolucion_doble(frase, n=10, ruta=None):
+        vistas["evolucion"] = (frase, n, Path(ruta).name)
+        return [{"fecha": "2026-09-14", "palabras_por_segundo": 2.1, "pausas_de_mas": 1, "tramos_a_acelerar": 1}]
+
+    def ilegible(frase, n=10, ruta=None):
+        raise voz.HistorialIlegible("No he podido leer tu historial de voz.")
+
+    originales = (voz.practicar, voz.registrar_ritmo, voz.evolucion_ritmo, config.falta, ui._puede_pagar,
+                  api._va_a_costar, api._perfil_de)
+    voz.practicar = practicar_doble
+    voz.registrar_ritmo = lambda r, frase, ruta=None: guardados.append((r, frase, Path(ruta).name))
+    voz.evolucion_ritmo = evolucion_doble
+    config.falta = lambda: False
+    ui._puede_pagar = lambda pet: (True, "")
+    api._va_a_costar = lambda pet: False
+    api._perfil_de = lambda pet: NS(nivel=1.6) if pet.session_hash == lector["X-Lector"] else None
+    try:
+        r = _ok(cliente.post("/api/voz", headers=lector, data={"frase": "You know.", "acento": "US"},
+                             files={"audio": ("voz.webm", b"\x1a" * 2000, "audio/webm")}))
+        evolucion = _ok(cliente.get("/api/voz/ritmo", headers=lector, params={"frase": "You know."}))
+        voz.evolucion_ritmo = ilegible
+        rota = _ok(cliente.get("/api/voz/ritmo", headers=lector, params={"frase": "You know."}))
+    finally:
+        (voz.practicar, voz.registrar_ritmo, voz.evolucion_ritmo, config.falta, ui._puede_pagar,
+         api._va_a_costar, api._perfil_de) = originales
+        mp3.unlink(missing_ok=True)
+    assert vistas.get("nivel") == 1.6, vistas
+    esperado = {**ritmo, "natural": {**ritmo["natural"], "audio_natural": f"/api/audio/{mp3.name}"}}
+    assert r["ritmo"] == esperado, r.get("ritmo")
+    # Se guarda el ritmo de voz (con su ruta), no el JSON ya convertido.
+    assert guardados == [(ritmo, "You know.", "voz.db")], guardados
+    assert ritmo["natural"]["audio_natural"] == str(mp3), "la API cambió el dict de voz"
+    assert evolucion == {"intentos": [{"fecha": "2026-09-14", "palabras_por_segundo": 2.1,
+                                       "pausas_de_mas": 1, "tramos_a_acelerar": 1}], "aviso": None}, evolucion
+    assert vistas.get("evolucion") == ("You know.", 10, "voz.db"), vistas
+    assert rota == {"intentos": [], "aviso": "No he podido leer tu historial de voz."}, rota
+    assert cliente.get("/api/voz/ritmo", headers=lector, params={"frase": ""}).status_code == 422
+    return f"nivel 1.6, audio natural {r['ritmo']['natural']['audio_natural'][:22]}…, 1 intento"
+
+
 if __name__ == "__main__":
     print("API de LiteraLevel\n")
     for fn in (sin_lector_no_hay_datos, lector_corto_no_vale, perfiles_aislados,
@@ -1007,7 +1097,8 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
-               corte_de_una_pasada_con_la_duracion_del_audio,
+               corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
+               ritmo_de_la_lectura_con_nivel_y_audio_natural,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,

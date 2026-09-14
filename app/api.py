@@ -440,9 +440,17 @@ def _parece_indice(texto: str) -> bool:
     que pasaba el filtro de longitud, y Pronunciar proponia leer en alto «VOICE
     FROM THE PALACE 102 VOICE FROM THE HOVEL 103 ... XXIII.» (15 de 60 frases).
     Un año suelto en una frase de prosa -1 de 17 palabras- no lo dispara.
+
+    Y cinco o más marcas «romano.» (tambien de una letra: «I.», «V.», «X.»)
+    son un indice: el «Contents» de *Sherlock Holmes* (PG1661) es un parrafo de
+    73 palabras con doce, de las que solo nueve tienen dos letras y quedaba justo
+    por debajo del 12 %, asi que abria el libro (diagnostico de entrega-4e). Un
+    «Chapter IV.» citado en prosa no llega a cinco.
     """
     palabras = re.findall(r"[^\W\d_]+|\d+", texto)
     if not palabras:
+        return True
+    if len(re.findall(r"\b[IVXLCDM]+\.", texto)) >= 5:
         return True
     letras = [ch for ch in texto if ch.isalpha()]
     mayusculas = sum(ch.isupper() for ch in letras) / max(1, len(letras))
@@ -1705,10 +1713,16 @@ async def practicar(pet: Lector, request: Request) -> dict:
             raise _no(403, motivo)
         try:
             # Desde aqui puede haber gasto aunque falle la transcripcion.
-            s = voz.practicar(tmp, frase, guardar_fallos=False)
+            # El nivel del lector fija la velocidad objetivo del ritmo (4e, 9f5f909).
+            perfil = _perfil_de(pet)
+            s = voz.practicar(tmp, frase, guardar_fallos=False,
+                              nivel=perfil.nivel if perfil is not None else None)
             if s.evaluacion.palabras_falladas and s.transcripcion_ok:
                 voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                      ruta=ui._archivo_lector("voz.db", pet), frase=frase)
+            # Solo guarda si se midió, y no lanza (4e, b41ff5e).
+            if getattr(s, "ritmo", None) is not None:
+                voz.registrar_ritmo(s.ritmo, frase, ruta=ui._archivo_lector("voz.db", pet))
         except Exception as e:
             raise _no(502, f"No he podido corregir la grabación ({type(e).__name__}).") from e
     finally:
@@ -1750,7 +1764,21 @@ async def practicar(pet: Lector, request: Request) -> dict:
         "resumen": s.correccion.resumen if s.correccion else None,
         "detalles": detalles, "audio_correcto": _url_audio(s.audio_correcto),
         "restantes": _entrada_json(pet)["restantes"],
+        "ritmo": _ritmo_json(getattr(s, "ritmo", None)),
     }
+
+
+def _ritmo_json(ritmo: dict | None) -> dict | None:
+    """El ritmo de `voz` tal cual (4e: 9f5f909 y 55d546c), salvo el mp3 de la
+    frase dicha con naturalidad, que llega como ruta local y sale como URL,
+    igual que `audio_correcto`. Índices sobre `palabras`."""
+    if not isinstance(ritmo, dict):
+        return None
+    ritmo = dict(ritmo)
+    natural = ritmo.get("natural")
+    if isinstance(natural, dict):
+        ritmo["natural"] = {**natural, "audio_natural": _url_audio(natural.get("audio_natural"))}
+    return ritmo
 
 
 def _historial_voz(leer) -> tuple[list, str | None]:
@@ -1779,6 +1807,16 @@ def falladas(pet: Lector, n: int = Query(15, ge=1, le=50)) -> dict:
     return {"palabras": [{"palabra": f["palabra"], "fallos": f["fallos"],
                           "ultima_vez": f.get("ultima_vez"), "frase": f.get("frase")}
                          for f in filas], "aviso": aviso}
+
+
+@app.get("/api/voz/ritmo")
+def ritmo_de_una_frase(pet: Lector, frase: str = Query(..., min_length=1, max_length=300)) -> dict:
+    """Cómo ha ido cambiando el ritmo de este lector con esa frase (4e, b41ff5e),
+    del intento más antiguo al más reciente. Sin red y gratis: lee su voz.db;
+    si no se puede leer, aviso en vez de una lista vacía que lo esconda."""
+    filas, aviso = _historial_voz(
+        lambda: voz.evolucion_ritmo(frase.strip(), n=10, ruta=ui._archivo_lector("voz.db", pet)))
+    return {"intentos": list(filas), "aviso": aviso}
 
 
 # --- Lo tuyo: cuaderno, repaso, biblioteca e inicio -----------------------------
