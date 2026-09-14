@@ -14,7 +14,7 @@ OPENAI_API_KEY, `transcribir_audio`, `explicar_correccion` y
 que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
-import difflib, hashlib, os, re, sqlite3, tempfile, threading
+import difflib, hashlib, json, os, re, sqlite3, tempfile, threading
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -697,6 +697,170 @@ def puntos_debiles(n: int = 10, ruta: str = RUTA_DB_POR_DEFECTO) -> list[tuple[s
 
 # --- Ciclo completo -----------------------------------------------------
 
+# --- Ritmo: pausas y velocidad medidas (lectura natural, parte 1) -------
+# Miguel (14 sep): «cuando leo suena muy cortado, muy robótico; que me diga dónde
+# acelerar». Las marcas de tiempo por palabra de whisper-1 (verbose_json, que se
+# factura igual que la transcripcion normal: por segundos de audio) dicen donde se
+# paro el lector y a que velocidad fue cada tramo. Se comparan con las de la frase
+# bien leida: el mp3 de referencia, transcrito UNA vez y guardado a su lado. Sin
+# marcas del lector no se marca nada: serian adivinadas.
+
+UMBRAL_PAUSA_S = 0.25   # un hueco mayor entre dos palabras parte el tramo
+PAUSA_DE_MAS_S = 0.35   # uno mayor que la referencia no tiene, se señala
+# Velocidad objetivo, en fraccion de la referencia, por nivel del lector (escala
+# publica 0-2; Central, 14 sep): la referencia es un TTS rapido y algo
+# artificial, y a un lector basico no se le pide ir tan deprisa.
+FACTOR_OBJETIVO = ((0.7, 0.8), (1.4, 0.9), (float("inf"), 1.0))
+FACTOR_SIN_NIVEL = 0.9  # sin perfil, el de intermedio
+
+
+def factor_objetivo(nivel) -> float:
+    """Fraccion de la velocidad de referencia que se pide a este nivel."""
+    try:
+        n = float(nivel)
+    except (TypeError, ValueError):
+        return FACTOR_SIN_NIVEL
+    if n != n:
+        return FACTOR_SIN_NIVEL
+    return next(f for tope, f in FACTOR_OBJETIVO if n < tope)
+
+
+def _campo(obj, nombre, defecto=None):
+    """El SDK devuelve objetos; una cache o una prueba, diccionarios."""
+    if isinstance(obj, dict):
+        return obj.get(nombre, defecto)
+    return getattr(obj, nombre, defecto)
+
+
+def transcribir_con_tiempos(ruta_audio: str | os.PathLike) -> dict | None:
+    """{"texto", "duracion", "palabras": [{"palabra", "inicio", "fin"}]} con
+    whisper-1 y marcas por palabra, o `None` sin clave o si falla. Nunca lanza."""
+    cliente = _cliente()
+    if cliente is None:
+        return None
+    try:
+        with open(ruta_audio, "rb") as f:
+            r = cliente.audio.transcriptions.create(
+                model=MODELO_TRANSCRIPCION, file=f, response_format="verbose_json",
+                timestamp_granularities=["word"])
+        palabras = []
+        for w in _campo(r, "words") or []:
+            try:
+                palabras.append({"palabra": str(_campo(w, "word", "") or ""),
+                                 "inicio": float(_campo(w, "start")), "fin": float(_campo(w, "end"))})
+            except (TypeError, ValueError):
+                continue
+        duracion = _campo(r, "duration")
+        return {"texto": str(_campo(r, "text", "") or ""),
+                "duracion": float(duracion) if duracion is not None else None,
+                "palabras": palabras}
+    except Exception:
+        return None
+
+
+def _tiempos_de_referencia(ruta_mp3) -> dict | None:
+    """Las marcas del mp3 de la frase bien leida, transcrito una sola vez y
+    guardado al lado (`<mp3>.tiempos.json`): la misma frase no se vuelve a pagar."""
+    if not ruta_mp3:
+        return None
+    lado = Path(str(ruta_mp3) + ".tiempos.json")
+    try:
+        if lado.is_file():
+            datos = json.loads(lado.read_text(encoding="utf-8"))
+            if isinstance(datos, dict) and isinstance(datos.get("palabras"), list):
+                return datos
+    except (OSError, ValueError):
+        pass
+    datos = transcribir_con_tiempos(ruta_mp3)
+    if datos and datos["palabras"]:
+        try:
+            descriptor, temporal = tempfile.mkstemp(dir=str(lado.parent), prefix=f".{lado.name}.", suffix=".tmp")
+            with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+                json.dump(datos, f, ensure_ascii=False)
+            os.replace(temporal, lado)
+        except OSError:
+            pass
+    return datos
+
+
+def _tiempos_por_indice(objetivo: list[str], tiempos: dict | None) -> dict[int, tuple[float, float]]:
+    """{indice en `objetivo`: (inicio, fin)} de las palabras que whisper oyo iguales."""
+    if not tiempos:
+        return {}
+    oidas, marcas = [], []
+    for w in tiempos.get("palabras") or []:
+        try:
+            marca = (float(w["inicio"]), float(w["fin"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        for trozo in normalizar_palabras(w.get("palabra", "")):
+            oidas.append(trozo)
+            marcas.append(marca)
+    por_indice = {}
+    for tag, i1, i2, j1, _j2 in difflib.SequenceMatcher(None, objetivo, oidas, autojunk=False).get_opcodes():
+        if tag == "equal":
+            for k in range(i2 - i1):
+                por_indice[i1 + k] = marcas[j1 + k]
+    return por_indice
+
+
+def medir_ritmo(evaluacion: Evaluacion, tiempos_lector: dict | None,
+                tiempos_referencia: dict | None, nivel=None) -> dict:
+    """Pausas y velocidad por tramo del intento, frente a la frase bien leida.
+
+    Indices: posiciones en `evaluacion.palabras_objetivo`; `hasta` es inclusivo.
+    `medido` es False sin marcas del lector, y entonces no se marca nada. Un
+    tramo sin marcas de referencia lleva `objetivo` None y nunca `acelerar`.
+    `natural` lo rellena la parte 2 (analisis de OpenAI)."""
+    objetivo = evaluacion.palabras_objetivo
+    lector = _tiempos_por_indice(objetivo, tiempos_lector)
+    ref = _tiempos_por_indice(objetivo, tiempos_referencia)
+    ritmo = {"medido": bool(lector), "duracion_s": None, "palabras": [], "pausas": [],
+             "tramos": [], "natural": None}
+    if not lector:
+        return ritmo
+    if tiempos_lector.get("duracion") is not None:
+        ritmo["duracion_s"] = round(float(tiempos_lector["duracion"]), 2)
+    ritmo["palabras"] = [{"palabra": objetivo[i], "inicio": round(a, 2), "fin": round(b, 2)}
+                         for i, (a, b) in sorted(lector.items())]
+    indices = sorted(lector)
+    tramos, actual = [], [indices[0]]
+    for i, j in zip(indices, indices[1:]):
+        hueco = lector[j][0] - lector[i][1]
+        if j == i + 1 and hueco > UMBRAL_PAUSA_S:
+            en_referencia = i in ref and j in ref and ref[j][0] - ref[i][1] > UMBRAL_PAUSA_S
+            ritmo["pausas"].append({"despues_de": i, "segundos": round(hueco, 2),
+                                    "en_referencia": en_referencia,
+                                    "de_mas": hueco > PAUSA_DE_MAS_S and not en_referencia})
+        if j != i + 1 or hueco > UMBRAL_PAUSA_S:
+            # Pausa, o una palabra sin marca en medio (whisper oyo otra): el tramo acaba.
+            tramos.append(actual)
+            actual = [j]
+        else:
+            actual.append(j)
+    tramos.append(actual)
+    factor = factor_objetivo(nivel)
+    for tramo in tramos:
+        if len(tramo) < 2:
+            continue
+        duracion = lector[tramo[-1]][1] - lector[tramo[0]][0]
+        if duracion <= 0:
+            continue
+        velocidad = len(tramo) / duracion
+        referencia = objetivo_pps = None
+        if all(k in ref for k in tramo):
+            duracion_ref = ref[tramo[-1]][1] - ref[tramo[0]][0]
+            if duracion_ref > 0:
+                referencia = len(tramo) / duracion_ref
+                objetivo_pps = referencia * factor
+        ritmo["tramos"].append({
+            "desde": tramo[0], "hasta": tramo[-1], "palabras_por_segundo": round(velocidad, 2),
+            "referencia": round(referencia, 2) if referencia else None,
+            "objetivo": round(objetivo_pps, 2) if objetivo_pps else None,
+            "acelerar": bool(objetivo_pps and velocidad < objetivo_pps)})
+    return ritmo
+
+
 @dataclass
 class SesionVoz:
     evaluacion: Evaluacion
@@ -708,6 +872,8 @@ class SesionVoz:
     # la palabra sola; tengo que escuchar todo el texto». Solo las que tienen
     # audio; sin clave y sin cache, vacio.
     audios_palabras: dict[str, str] = field(default_factory=dict)
+    # Pausas y velocidad del intento (ver `medir_ritmo`); None si no se midio.
+    ritmo: dict | None = None
 
 
 # 8 y no 6: un compuesto fallado pide tres (el compuesto y sus dos piezas).
@@ -728,7 +894,7 @@ def audios_de_palabras(palabras: list[str]) -> dict[str, str]:
 
 
 def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
-             guardar_fallos: bool = True) -> SesionVoz:
+             guardar_fallos: bool = True, nivel: float | None = None) -> SesionVoz:
     """Ciclo completo de practica: transcribe el audio del usuario, evalua
     contra la frase objetivo, explica como corregir lo que fallo, genera un
     audio de referencia y registra las palabras debiles.
@@ -738,7 +904,13 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     `transcripcion_ok` queda en `False` para que la interfaz pueda avisar sin
     que la funcion lance ninguna excepcion.
     """
-    transcripcion = transcribir_audio(ruta_audio)
+    # Con marcas por palabra para medir el ritmo; es la misma llamada de siempre
+    # con otro formato. Si no llegan, la transcripcion de antes: sin clave no
+    # sale ninguna llamada y, si fallo el formato con marcas, sale una sola.
+    tiempos = transcribir_con_tiempos(ruta_audio)
+    transcripcion = tiempos["texto"] if tiempos is not None else None
+    if tiempos is None:
+        transcripcion = transcribir_audio(ruta_audio)
     evaluacion = evaluar_pronunciacion(frase_objetivo, transcripcion or "")
 
     if guardar_fallos and evaluacion.palabras_falladas:
@@ -773,6 +945,8 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
             pedidas.extend(_clave_palabra(d.palabra) for d in correccion.detalles)
         audios = audios_de_palabras(pedidas)
 
+    ritmo = medir_ritmo(evaluacion, tiempos,
+                        _tiempos_de_referencia(audio_correcto) if tiempos else None, nivel)
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
                      audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None,
-                     audios_palabras=audios)
+                     audios_palabras=audios, ritmo=ritmo)
