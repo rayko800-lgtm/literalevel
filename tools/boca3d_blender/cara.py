@@ -268,6 +268,12 @@ for ob in bpy.context.scene.objects:
 
 bpy.ops.export_scene.gltf(filepath=os.path.abspath(SALIDA), export_format="GLB", export_yup=True,
                           export_materials="EXPORT", export_morph=True, export_morph_normal=True)
+# El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
+# dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
+PUBLICO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "front", "public", "boca3d", "cara.glb"))
+if os.path.isdir(os.path.dirname(PUBLICO)) and os.path.abspath(SALIDA) != PUBLICO:
+    import shutil
+    shutil.copyfile(SALIDA, PUBLICO)
 proyecto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "build", "boca3d_modelos", "cara.blend"))
 os.makedirs(os.path.dirname(proyecto), exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=proyecto)

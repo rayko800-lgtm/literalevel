@@ -222,8 +222,11 @@ def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0)):
         if nz > tope:
             nz = tope
         ny = y + dy
-        if nombre != "punta_interdental" or x > -1.2:    # la punta entre los dientes pasa a proposito
-            ny, nz = empujar_fuera(nx, ny, nz, muestras)
+        # Tambien la punta interdental: pasa entre los incisivos por encima de
+        # los de abajo y por debajo de los de arriba, asi que el empuje no la
+        # toca; lo que rozaba eran los bordes de la lamina contra los
+        # premolares de abajo en /θ ð/ (medido por entrega-4e).
+        ny, nz = empujar_fuera(nx, ny, nz, muestras)
         k.data[i].co = (nx, ny, nz)
         deltas.append((nx - x, ny - y, nz - z))
     CLAVES[nombre] = deltas
@@ -241,7 +244,7 @@ clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) 
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
-clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)))
+clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)), margen_x=(-0.5, 0.1))
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)), margen_x=(-0.7, 0.6))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
@@ -327,8 +330,6 @@ for nombre, p in poses.items():
         assert frente < -2.72 and y_min > -0.41 and y_max < 0.45, (nombre, frente, y_min, y_max)
         interdentales.append((nombre, round(frente, 4), round(y_min, 4), round(y_max, 4)))
     roce = max(roce_sup, roce_inf)
-    if p["punta"] == "interdental":
-        roce = -9.0    # la punta entre los incisivos es a proposito y ya tiene su asercion
     informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3), round(roce, 3)))
     peor = max(peor, exceso)
     peor_roce = max(peor_roce, roce)
@@ -348,6 +349,12 @@ bpy.ops.export_scene.gltf(
     filepath=os.path.abspath(SALIDA), export_format="GLB", export_morph=True, export_morph_normal=True,
     export_apply=False, export_yup=True, export_materials="EXPORT",
 )
+# El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
+# dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
+PUBLICO = os.path.join(RAIZ, "front", "public", "boca3d", "lengua.glb")
+if os.path.isdir(os.path.dirname(PUBLICO)) and os.path.abspath(SALIDA) != os.path.abspath(PUBLICO):
+    import shutil
+    shutil.copyfile(SALIDA, PUBLICO)
 
 with open(SALIDA, "rb") as f:
     _, _, length = struct.unpack("<III", f.read(12))
