@@ -328,6 +328,13 @@ Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás prepara
 | `e0e5f81` | `app/api.py`, `app/ui.py`, `app/reader.py` | 4e `514786b` + `9eb3c91` + `17b8ac3`, e6 `d7098e9` | subida de 21 MB da 413 a los 0,7 s (curl; urllib ve `SSLEOFError` porque sigue enviando); registro: «_ip: x-forwarded-for con 1 valores (publica); se usa el 1», así que no hace falta `LITERALEVEL_SALTOS_PROXY` |
 | `e3a79cb` | `app/api.py`, `app/catalogo.py`, `app/ficha.py`, `app/lexicon.py`, `app/ui.py`, `app/animacion_articulatoria.py`, `avisos_contenido.csv`, `correcciones_catalogo.csv` | f4 `de8a4a8`, 4e (5 commits), e6 `e5ae1ad` | aviso de contenido en ficha y tarjetas; PG17824 6.º por nivel; PG2242 a 1,713; «bank» sin sesión con 4 acepciones principales; frases de Alice sin comillas sueltas; `alice.txt` conserva su nombre; sinopsis de Alice regenerada sin el final (se borró `analisis/47f56b5ec94e389e56c5-sinopsis.json` del bucket) |
 | `c9ee482` | `app/catalogo.py`, `app/ui.py`; `app/voz.py`, `app/config.py`, `app/cuaderno.py`, `app/paletas.py`, `app/perfil.py` solo a LF | f4 `061df6b` (busqueda por titulo) + 4e `1a4b998` (cita por clausula), subido con `desplegar_app.py --solo` desde `c675b93` | «Little Black Sambo» en `/api/buscar` da PG1330 y PG17824 primeros; aviso de PG17824 intacto; segunda pasada de `--seco`: solo `app/api.py` por fin de linea (sucio en el disco, va al reinicio 8) |
+| `8107f18` | `app/api.py`, `app/ui.py`, `app/voz.py`, `avisos_contenido.csv` | e6 `32534bc` + `73d956e`, 4e `d765ee0`, f4 `dcb8c83`, con `desplegar_app.py --solo` desde `db366b8` | aviso en PG17824 y PG1330; «cita» de 31 palabras frente a la oración de 106; DELETE de un libro del catálogo 400; `/api/voz/falladas` sin base con `aviso` null; dos sinopsis simultáneas de PG2542 con el mismo texto y un solo `*-sinopsis.json` en el bucket; segunda pasada de `--seco`: **nada que subir, Space entero en LF** |
+
+**El bucket se lista con retraso.** Lo que la app escribe en `/data` (el montaje del
+Storage Bucket) tarda unos segundos en aparecer en `list_bucket_tree`: en el reinicio 8,
+listar justo después de las dos sinopsis daba 0 archivos nuevos y, poco después, el
+único esperado. Una comprobación que cuente archivos del bucket tiene que esperar o
+reintentar antes de dar un fallo.
 
 **La prueba final como persona** (13 sep 2026, front publicado a 390 px táctil) se hizo con un micrófono
 falso: `getUserMedia` sustituido por un script inyectado que reproduce un WAV de TTS. Servir el WAV
