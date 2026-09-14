@@ -45,15 +45,15 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
       <div class="pie">
         <span class="botones">
           @if (pose() && elegido()) {
-            @if (urlAudioSonido()) {
+            @if (urlAudioSonido() && conEscuchar()) {
               <button type="button" class="boton principal" (click)="escucharYVer()"><app-icono nombre="altavoz" />Escuchar y ver</button>
             } @else {
               <button type="button" class="boton" (click)="verMovimiento()" title="Reproducir el sonido" aria-label="Reproducir el sonido"><app-icono nombre="play" /></button>
             }
           }
           @if (segmentos().length) {
-            <button type="button" class="boton" [class.principal]="!!urlAudioPalabra()" (click)="verPalabra()">
-              <app-icono [nombre]="urlAudioPalabra() ? 'altavoz' : 'play'" />{{ urlAudioPalabra() ? 'Escuchar y ver' : 'Palabra' }}
+            <button type="button" class="boton" [class.principal]="!!urlAudioPalabra() && conEscuchar()" (click)="verPalabra()">
+              <app-icono [nombre]="urlAudioPalabra() && conEscuchar() ? 'altavoz' : 'play'" />{{ urlAudioPalabra() && conEscuchar() ? 'Escuchar y ver' : 'Palabra' }}
               <span class="ipa">/{{ textoIpa() }}/</span></button>
           }
           <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
@@ -117,6 +117,11 @@ export class Boca3d {
    *  `audio_uk` de `/api/palabra`): «Escuchar y ver /ipa/» reproduce la palabra
    *  con la boca ajustada a la duración real del audio. */
   readonly audioPalabra = input<string | null>(null);
+  /** Con `false` no se enseñan los botones «Escuchar y ver» (la pantalla
+   *  pone el suyo y llama a `escucharYVer()` / `verPalabra()`); el play del
+   *  sonido queda como siempre, pero ese play NO toca el audio: el audio solo
+   *  suena por los métodos. `verPalabra()` sí lo toca si hay `audioPalabra`. */
+  readonly conEscuchar = input<boolean>(true);
   /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
   readonly autoReproducir = input<boolean>(true);
   /** La mejilla translúcida del lado de la cámara. Es lo que más cuesta
