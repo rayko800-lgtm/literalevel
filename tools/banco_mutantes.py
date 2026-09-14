@@ -41,7 +41,13 @@ NL = chr(10)
 # porque la suite no existia en la copia, no porque cazara nada.
 COPIAR = ["app", "tools", "pruebas_extremas.py", "pruebas_integracion.py", "tests_smoke.py",
           "pruebas_ficha.py", "pruebas_perfil.py", "pruebas_lexicon.py", "pruebas_corpus.py",
-          "main.py", "validar_local.py", "catalogo_recomendaciones.csv"]
+          "main.py", "validar_local.py", "catalogo_recomendaciones.csv",
+          # pruebas_api y el catalogo con el que corre: sin ellos, un mutante de
+          # api.py salia «cazado por OTRA: []» porque la suite no estaba en la
+          # copia (14 sep 2026, C3-bloque-sin-marca-*).
+          "pruebas_api.py", "catalogo_medido.csv", "capitulos_medidos.parquet",
+          "catalogo_externo.csv", "corpus_abierto.parquet", "avisos_contenido.csv",
+          "correcciones_catalogo.csv"]
 
 # (id, archivo, viejo, nuevo, prueba que debe cazarlo)
 MUTANTES = [
