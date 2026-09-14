@@ -151,6 +151,30 @@ class DespliegueSeguro(unittest.TestCase):
         self.assertEqual([c.kwargs["parent_commit"] for c in api.create_commit.call_args_list],
                          ["revision-base", "revision-lfs"])
 
+    def test_escanea_bytes_congelados_tras_primera_revision(self):
+        api = Mock()
+        api.list_repo_tree.return_value = []
+        sdk = types.SimpleNamespace(HfApi=Mock(return_value=api), CommitOperationAdd=Mock())
+        falsa = "sk-" + "x" * 24
+
+        def cambiar_despues_del_scan(*a):
+            (self.raiz / "app/api.py").write_text(falsa, encoding="utf-8")
+            return [], ""
+
+        with patch.dict(sys.modules, {"huggingface_hub": sdk}), \
+                patch.object(despliegue, "RAIZ", str(self.raiz)), \
+                patch.object(despliegue, "token", return_value="token-simulado"), \
+                patch.object(despliegue, "quien", return_value=("prueba", "write")), \
+                patch.object(despliegue, "reglas_lfs_que_faltan", side_effect=cambiar_despues_del_scan), \
+                patch.object(despliegue, "exigir_confirmados"), \
+                patch.object(sys, "argv", ["desplegar_app.py", "--solo", "app/api.py"]), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as fallo:
+            despliegue.main()
+        self.assertIn("forma de credencial", str(fallo.exception))
+        self.assertNotIn(falsa, str(fallo.exception))
+        api.create_commit.assert_not_called()
+        sdk.CommitOperationAdd.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

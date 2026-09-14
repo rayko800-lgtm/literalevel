@@ -237,14 +237,17 @@ def reglas_lfs_que_faltan(api, cambian):
     return [l for l in necesarias if l.split()[0] not in patrones], actual
 
 
-def revisar(ruta, rel):
+def revisar(ruta, rel, contenido=None):
     # Un binario no lleva credenciales en texto, y leido como texto puede dar un
     # falso positivo que bloquee el despliegue. El parquet del corpus abierto SI
     # se escanea: lleva texto plano dentro.
     if rel.endswith(".mp3"):
         return
-    with open(ruta, encoding="utf-8", errors="replace") as f:
-        texto = f.read()
+    if contenido is None:
+        with open(ruta, encoding="utf-8", errors="replace") as f:
+            texto = f.read()
+    else:
+        texto = contenido.decode("utf-8", errors="replace")
     for patron in CREDENCIALES:
         m = patron.search(texto)
         if m:
@@ -342,8 +345,10 @@ def main():
     # editado mientras se consultaba el Space. El SDK recibe estos bytes.
     contenidos = {}
     for rel in cambian:
-        with open(os.path.join(RAIZ, rel.replace("/", os.sep)), "rb") as f:
+        local = os.path.join(RAIZ, rel.replace("/", os.sep))
+        with open(local, "rb") as f:
             contenidos[rel] = f.read()
+        revisar(local, rel, contenido=contenidos[rel])
     exigir_confirmados(seleccion)
 
     if faltan_lfs:
