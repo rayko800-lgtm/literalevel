@@ -364,6 +364,7 @@ PARED = material("pared", (0.70, 0.42, 0.44), 0.55)
 C_CABEZA = (0.6, 0.3)                 # hacia donde se encoge el perfil
 W_CABEZA = 3.0                        # media anchura de la cabeza
 EXP_CABEZA = 0.5                      # <1: lados mas planos, menos huevo
+BISEL = 0.14                          # radio del borde redondeado del corte sagital
 
 
 def muestrear(puntos, paso=0.18):
@@ -387,12 +388,23 @@ def piel(nombre, perfil, lado, cerrado, anillos=14, encoger=1.0, tapa=False, exc
     vertices, caras = [], []
     n = len(perfil)
     anillos_total = 14                # los anillos de la cabeza entera: una pieza parcial usa los mismos
+    # El borde del corte sagital va redondeado (un cuarto de circulo de radio
+    # BISEL desde el plano hacia dentro), no cortado a cuchillo: los primeros
+    # anillos giran desde el plano; luego siguen los de la media cabeza.
+    anillos_bisel = 4
+    escalas = []
+    for b in range(anillos_bisel):
+        fi = (math.pi / 2) * b / anillos_bisel
+        escalas.append((1 - BISEL * (1 - math.cos(fi)) / 3.0, -BISEL * math.sin(fi)))
     for k in range(anillos + 1):
         th = (math.pi / 2) * (min(k, anillos_total) / anillos_total) * 0.995   # el ultimo anillo, casi en el fondo: la tapa es pequeña y no hace pliegue
-        f = math.cos(th) ** EXP_CABEZA * encoger
-        z = lado * W_CABEZA * math.sin(th)
+        escalas.append((math.cos(th) ** EXP_CABEZA, -W_CABEZA * math.sin(th)))
+    for f0, z0 in escalas:
+        f = f0 * encoger
+        z = lado * -z0
         for x, y in perfil:
             vertices.append((C_CABEZA[0] + (x - C_CABEZA[0]) * f, C_CABEZA[1] + (y - C_CABEZA[1]) * f, z))
+    anillos += anillos_bisel
     tramos = n if cerrado else n - 1
     for k in range(anillos):
         for i in range(tramos):
@@ -441,9 +453,9 @@ CORTE_MANDIBULA = [(-2.55, -0.05), (-2.62, -0.42), (-2.9, -0.55), (-2.94, -0.95)
                    (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15), (2.04, -2.5), (2.1, -2.3), (2.2, -1.9), (2.4, -1.5),
                    (2.5, -1.42), (1.32, -1.47), (0.15, -1.51), (-1.02, -1.56), (-2.2, -1.6), (-2.45, -1.3),
                    (-2.5, -0.8), (-2.55, -0.35)]
-placa("corte_craneo", CORTE_CRANEO, -0.01, CORTE)
-placa("corte_maxilar", CORTE_MAXILAR, -0.01, CORTE)
-placa("corte_mandibula", CORTE_MANDIBULA, -0.01, CORTE)
+placa("corte_craneo", CORTE_CRANEO, -0.01, CORTE, escala=0.992)
+placa("corte_maxilar", CORTE_MAXILAR, -0.01, CORTE, escala=0.992)
+placa("corte_mandibula", CORTE_MANDIBULA, -0.01, CORTE, escala=0.992)
 # La pared del fondo de las cavidades (la mejilla por dentro), algo encogida
 # para quedar dentro de la piel a esa profundidad.
 placa("pared_lejana", PERFIL[:-1], -1.4, PARED, escala=0.9)

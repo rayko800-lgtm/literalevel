@@ -38,11 +38,32 @@ try {
     await page.waitForFunction(() => window.escenaBoca?.tieneCaraModelada && window.escenaBoca?.tieneLenguaModelada);
     await page.waitForFunction(() => !window.escenaBoca.enTransicion);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'desbordamiento horizontal');
+    // Los labios del glb exponen sus shape keys POR NOMBRE en el visor: si el
+    // diccionario se pierde al clonar la malla (paso en dffece4..f1b4d0a), el
+    // visor cae en escalar el tubo sin decir nada y /u/ no frunce.
+    const morfosLabios = await page.evaluate(() => {
+      const e = window.escenaBoca;
+      return [e.labioSup, e.labioInf].map(m => Object.keys(m.morphTargetDictionary ?? {}));
+    });
+    for (const [i, claves] of morfosLabios.entries()) {
+      for (const clave of ['fruncir', 'estirar', i === 0 ? 'comisura_abajo' : 'comisura_arriba']) {
+        assert.ok(claves.includes(clave), `labio ${i === 0 ? 'superior' : 'inferior'} sin la shape key «${clave}» por nombre: ${JSON.stringify(claves)}`);
+      }
+    }
     const muestras = [];
     for (const [sonido, nombre] of [['p','p'], ['i','i'], ['u','u'], ['theta','theta'], ['h','h'], ['ng','ng']]) {
       const s = ({ theta: '\u03b8', ng: '\u014b' })[sonido] ?? sonido;
       await page.locator(`button[data-s="${s}"]`).click();
       await page.waitForFunction(() => !window.escenaBoca.enTransicion);
+      if (sonido === 'u') {
+        // Y se aplican: en /u/ el labio superior frunce (influencia > 0,5) y no se escala.
+        const u = await page.evaluate(() => {
+          const m = window.escenaBoca.labioSup;
+          return { fruncir: m.morphTargetInfluences[m.morphTargetDictionary['fruncir']], escala: m.scale.toArray() };
+        });
+        assert.ok(u.fruncir > 0.5, `/u/ no frunce los labios: ${JSON.stringify(u)}`);
+        assert.deepEqual(u.escala, [1, 1, 1], `/u/ escala el tubo en vez de fruncir: ${JSON.stringify(u)}`);
+      }
       if (sonido === 'theta') {
         const punta = await page.evaluate(() => {
           const e = window.escenaBoca, m = e.lenguaGlb;

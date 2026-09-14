@@ -25,4 +25,16 @@ for (const nombre of ['lengua.glb', 'cara.glb']) {
   console.log(`${iguales ? 'OK   ' : 'DIFIEREN'} ${nombre}: demo ${sha(demo)} · public ${sha(publico)}`);
   if (!iguales) fallos++;
 }
+// Y los labios de cara.glb traen sus shape keys con nombre (extras.targetNames):
+// sin ellas el visor no puede fruncir ni estirar por nombre.
+const glb = readFileSync(resolve(RAIZ, 'front', 'public', 'boca3d', 'cara.glb'));
+const largoJson = glb.readUInt32LE(12);
+const doc = JSON.parse(glb.subarray(20, 20 + largoJson).toString('utf8'));
+for (const [malla, esperadas] of [['labio_superior', ['fruncir', 'estirar', 'comisura_abajo']], ['labio_inferior', ['fruncir', 'estirar', 'comisura_arriba']]]) {
+  const m = doc.meshes.find(x => x.name === malla);
+  const nombres = m?.extras?.targetNames ?? [];
+  const faltan = esperadas.filter(n => !nombres.includes(n));
+  console.log(`${faltan.length ? 'FALTAN' : 'OK   '} ${malla}: shape keys ${JSON.stringify(nombres)}`);
+  if (faltan.length) fallos++;
+}
 process.exit(fallos ? 1 : 0);

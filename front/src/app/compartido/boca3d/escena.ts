@@ -55,34 +55,76 @@ export function materialDe(tejido: Tejido, color: string, extra: Partial<THREE.M
   return new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), metalness: 0, ...base[tejido], ...extra });
 }
 
-/** Papilas de la lengua: un mapa de relieve procedimental (puntitos suaves
- *  al azar) pintado en un canvas. Sin canvas 2D (pruebas), no hay relieve. */
-function texturaPapilas(): THREE.Texture | null {
+/** Un canvas cuadrado pintado por `pintar`, como textura repetida. Sin
+ *  canvas 2D (pruebas), null. */
+function texturaCanvas(lado: number, repetir: [number, number], pintar: (ctx: CanvasRenderingContext2D, azar: () => number) => void): THREE.Texture | null {
   try {
-    const lado = 256;
     const c = document.createElement('canvas');
     c.width = c.height = lado;
     const ctx = c.getContext('2d');
     if (!ctx) return null;
-    ctx.fillStyle = '#808080';
-    ctx.fillRect(0, 0, lado, lado);
     let semilla = 7;
     const azar = () => { semilla = (semilla * 16807) % 2147483647; return semilla / 2147483647; };
-    for (let i = 0; i < 2600; i++) {
-      const x = azar() * lado, y = azar() * lado, r = 1.6 + azar() * 2.4;
+    pintar(ctx, azar);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repetir[0], repetir[1]);
+    return t;
+  } catch {
+    return null;
+  }
+}
+
+/** Puntitos suaves al azar sobre gris medio: relieve de papilas (lengua,
+ *  encías). `n` puntos de radio `r0..r1` en un canvas de 256. */
+function texturaPapilas(n = 2600, r0 = 1.6, r1 = 4, repetir: [number, number] = [5, 3]): THREE.Texture | null {
+  return texturaCanvas(256, repetir, (ctx, azar) => {
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < n; i++) {
+      const x = azar() * 256, y = azar() * 256, r = r0 + azar() * (r1 - r0);
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, `rgba(255,255,255,${0.35 + azar() * 0.4})`);
       g.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = g;
       ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(5, 3);
-    return t;
-  } catch {
-    return null;
+  });
+}
+
+/** Hueso y tejido cortados: vetas claras y oscuras muy suaves (manchas
+ *  grandes) y un grano fino, para que las caras del corte no sean un color
+ *  plano. Va como mapa de color (multiplica el marfil) y de relieve. */
+function texturaHueso(): THREE.Texture | null {
+  return texturaCanvas(256, [1.2, 1.2], (ctx, azar) => {
+    ctx.fillStyle = '#e8e2dc';
+    ctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 90; i++) {
+      const x = azar() * 256, y = azar() * 256, r = 14 + azar() * 40;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      const claro = azar() > 0.5;
+      g.addColorStop(0, claro ? 'rgba(255,250,244,0.22)' : 'rgba(150,120,110,0.16)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+    }
+    for (let i = 0; i < 9000; i++) {
+      ctx.fillStyle = azar() > 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(90,70,60,0.08)';
+      ctx.fillRect(azar() * 256, azar() * 256, 1.4, 1.4);
+    }
+  });
+}
+
+/** Coordenadas de textura planas (x, y del mundo) para piezas que vienen de
+ *  Blender sin UV: bastan para un relieve sutil. */
+function uvPlanas(g: THREE.BufferGeometry, escala = 0.35): void {
+  const pos = g.getAttribute('position');
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uv[2 * i] = (pos.getX(i) + pos.getZ(i) * 0.7) * escala;
+    uv[2 * i + 1] = pos.getY(i) * escala;
   }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 }
 
 // --- Anatomía fija -----------------------------------------------------------
@@ -612,6 +654,7 @@ export class EscenaBoca {
   private readonly pielesDeformables: PielDeformable[] = [];
   private readonly luzPrincipal: THREE.DirectionalLight;
   private readonly papilas: THREE.Texture | null;
+  private readonly hueso: THREE.Texture | null;
   private readonly guarda = { midiendo: true, t0: 0, calentando: 0, cuadros: 0, fps: null as number | null, etapa: 0 };
   private readonly observador: ResizeObserver | null = null;
   private actual: PoseNumerica;
@@ -800,6 +843,7 @@ export class EscenaBoca {
     this.mandibula.add(this.labioInf);
 
     this.papilas = texturaPapilas();
+    this.hueso = texturaHueso();
     this.lengua = new THREE.Mesh(geometriaLengua(), materialDe('lengua', col.lengua));
     this.escena.add(this.lengua);
 
@@ -1055,10 +1099,15 @@ export class EscenaBoca {
         if (!fuente) continue;
         // Caras del corte y pared del fondo claras y mates, como el 2D: la
         // lengua es lo único saturado y la cavidad se lee como hueco.
-        const mat = tejido === 'corte' ? materialDe('hueso', '#f3e9df', { roughness: 0.92, sheen: 0 })
+        const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
+        if (tejido === 'corte' && this.hueso) uvPlanas(geometria);
+        const mat = tejido === 'corte' ? materialDe('hueso', '#f6ece3', { roughness: 0.92, sheen: 0,
+            // Solo mapa de color: el relieve en una cara tan grande costaba la
+            // mitad de los cuadros en SwiftShader (10 -> 4 fps) y apenas se veia.
+            ...(this.hueso ? { map: this.hueso } : {}) })
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0 })
           : materialDe('piel', col.piel);
-        const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), mat);
+        const pieza = new THREE.Mesh(geometria, mat);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
@@ -1087,7 +1136,10 @@ export class EscenaBoca {
         for (const nombre of dentales) {
           const fuente = piezas.get(nombre)!;
           const inferior = nombre.includes('_inf') || nombre === 'mandibula_modelada';
-          const pieza = new THREE.Mesh(fuente.geometry.clone(),
+          const geometria = fuente.geometry.clone();
+          // Las encias van lisas: su relieve de papilas costaba cuadros en
+          // SwiftShader y a la distancia del visor no se distinguia.
+          const pieza = new THREE.Mesh(geometria,
             nombre.startsWith('diente_') ? materialDe('diente', col.dientes)
               : nombre === 'mandibula_modelada' ? materialDe('hueso', col.hueso)
               : materialDe('encia', col.encia));
@@ -1137,6 +1189,7 @@ export class EscenaBoca {
       }
     });
     this.papilas?.dispose();
+    this.hueso?.dispose();
     this.escena.environment?.dispose();
     this.renderer.dispose();
     this.canvas.remove();
