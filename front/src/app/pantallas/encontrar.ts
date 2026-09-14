@@ -81,10 +81,14 @@ type Vista = 'buscar' | 'nivel' | 'mios';
               <a class="boton" routerLink="/nivel">Medir mi nivel</a>
             </div>
           } @else if (cargando()) {
-            <div class="espera cargando"><span class="giro"></span>Buscando lo más leído cerca de tu nivel…</div>
+            <div class="espera cargando"><span class="giro"></span>Buscando lecturas cerca de tu nivel…</div>
           } @else if (recomendacion(); as r) {
             @if (r.rango) {
-              <p class="suave">Lo más leído entre <strong>{{ num(r.rango[0]) }}</strong> y <strong>{{ num(r.rango[1]) }}</strong>, cómodo pero con algo de reto.</p>
+              <!-- Desde el reinicio 12 un tercio de las tarjetas son textos libres
+                   (StoryWeaver, African Storybook, Let's Read, VOA) intercalados:
+                   ya no es solo «lo más leído» (decisión de Miguel, aviso de f4). -->
+              <p class="suave">Lecturas entre <strong>{{ num(r.rango[0]) }}</strong> y <strong>{{ num(r.rango[1]) }}</strong>, cómodas pero con algo de reto:
+                {{ hayLibres(r.resultados) ? 'lo más leído, con cuentos de libre acceso intercalados.' : 'lo más leído.' }}</p>
             }
             @if (r.rescate) {
               <p class="aviso ambar">Ninguno de los libros de tu nivel se puede abrir aquí. Estos son los más fáciles que sí: ve despacio y toca las palabras.</p>
@@ -271,6 +275,11 @@ export class Encontrar implements OnInit {
       this.lento.set(false);
       this.cargando.set(false);
     }
+  }
+
+  /** Algún texto libre entre las tarjetas: los de Gutenberg son los únicos con id «PG…». */
+  protected hayLibres(libros: LibroTarjeta[]): boolean {
+    return libros.some(l => !/^pg/i.test(l.id));
   }
 
   private async recomendar(): Promise<void> {

@@ -22,7 +22,7 @@ import { Sesion } from '../nucleo/sesion';
       } @else if (!libro()) {
         <div class="tarjeta">
           <div class="espera"><span class="giro"></span>
-            <span>{{ lento() ? 'Descargando el libro de Project Gutenberg. La primera vez puede tardar; después queda guardado.' : 'Abriendo el libro…' }}</span>
+            <span>{{ lento() ? (esGutenberg() ? 'Descargando el libro de Project Gutenberg. La primera vez puede tardar; después queda guardado.' : 'Preparando el texto. La primera vez puede tardar; después queda guardado.') : 'Abriendo el libro…' }}</span>
           </div>
         </div>
       }
@@ -305,6 +305,8 @@ export class FichaLibro implements OnDestroy {
   protected readonly libro = signal<Libro | null>(null);
   protected readonly error = signal('');
   protected readonly lento = signal(false);
+  /** Solo los «PG…» se bajan de Gutenberg; los textos libres (StoryWeaver, VOA…) salen del corpus abierto. */
+  protected readonly esGutenberg = computed(() => /^pg/i.test(this.id()));
   protected readonly curva = signal<Curva | null>(null);
   protected readonly trabajo = signal<Trabajo | null>(null);
   protected readonly errorCurva = signal('');
