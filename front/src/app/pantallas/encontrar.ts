@@ -52,7 +52,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
         @case ('buscar') {
           @if (cargando()) {
             <div class="espera cargando"><span class="giro"></span>
-              <span>{{ lento() ? 'La primera búsqueda desde que despertó el servidor carga el buscador: unos 15 segundos. Después es inmediato.' : 'Buscando…' }}</span></div>
+              <span>{{ lento() ? 'Despertando el buscador: la primera búsqueda tarda unos 20 segundos. Después va al momento.' : 'Buscando…' }}</span></div>
           } @else if (resultados(); as rs) {
             @if (aviso()) { <p class="aviso pequeno">{{ aviso() }}</p> }
             @if (rs.length) {
@@ -254,7 +254,8 @@ export class Encontrar implements OnInit {
     this.vista.set('buscar');
     this.error.set('');
     this.cargando.set(true);
-    const reloj = setTimeout(() => this.lento.set(true), 1500);
+    // 3 s: con el catálogo de 15.357 externos, la primera tarda unos 21 (f4, reinicio 10).
+    const reloj = setTimeout(() => this.lento.set(true), 3000);
     if (navegar) void this.router.navigate([], { queryParams: { q, vista: null }, replaceUrl: true });
     try {
       const r = await firstValueFrom(this.api.buscar(q, this.ajustar));

@@ -50,6 +50,8 @@ export class Nivel implements OnInit {
   protected readonly midiendoLibro = signal<string | null>(null);
   /** Título del libro con que se midió, para decirlo en el resultado. */
   protected readonly libroMedido = signal<string | null>(null);
+  /** Más de 3 s midiendo: casi seguro que el servidor está cargando el modelo. */
+  protected readonly medidorLento = signal(false);
 
   protected readonly num = num;
   protected readonly cefr = cefr;
@@ -223,7 +225,7 @@ export class Nivel implements OnInit {
     this.guardando.set(true);
     this.error.set('');
     try {
-      const p = await firstValueFrom(this.api.perfilDesdeMuestra(this.muestra));
+      const p = await this.conAvisoLento(firstValueFrom(this.api.perfilDesdeMuestra(this.muestra)));
       this.sesion.fijarPerfil(p);
       this.muestra = '';
       this.vista.set('resultado');
@@ -261,7 +263,7 @@ export class Nivel implements OnInit {
     this.error.set('');
     try {
       const libro = await firstValueFrom(this.api.subirLibro(archivo));
-      const p = await firstValueFrom(this.api.perfilDesdeLibro(libro.id));
+      const p = await this.conAvisoLento(firstValueFrom(this.api.perfilDesdeLibro(libro.id)));
       this.sesion.fijarPerfil(p);
       this.libroMedido.set(libro.titulo || archivo.name);
       this.vista.set('resultado');
@@ -277,7 +279,7 @@ export class Nivel implements OnInit {
     this.midiendoLibro.set(libro.id);
     this.error.set('');
     try {
-      const p = await firstValueFrom(this.api.perfilDesdeLibro(libro.id));
+      const p = await this.conAvisoLento(firstValueFrom(this.api.perfilDesdeLibro(libro.id)));
       this.sesion.fijarPerfil(p);
       this.libroMedido.set(libro.titulo);
       this.librosEncontrados.set(null);
@@ -288,6 +290,18 @@ export class Nivel implements OnInit {
       this.error.set(mensajeError(e));
     } finally {
       this.midiendoLibro.set(null);
+    }
+  }
+
+  /** La primera medición tras despertar el servidor carga el modelo: si pasan
+   *  3 s, se dice, para que no parezca colgado. */
+  private async conAvisoLento<T>(promesa: Promise<T>): Promise<T> {
+    const reloj = setTimeout(() => this.medidorLento.set(true), 3000);
+    try {
+      return await promesa;
+    } finally {
+      clearTimeout(reloj);
+      this.medidorLento.set(false);
     }
   }
 

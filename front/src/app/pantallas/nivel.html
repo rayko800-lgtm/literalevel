@@ -1,4 +1,7 @@
 <div class="pagina estrecha" data-seccion="nivel">
+  @if (medidorLento()) {
+    <p class="espera" role="status"><span class="giro"></span>Despertando el medidor: la primera medición tarda unos 20 segundos.</p>
+  }
   @if (error()) {
     <div class="aviso error" role="alert"><p>{{ error() }}</p></div>
   }
