@@ -338,6 +338,29 @@ def _correccion_se_aplica_al_cargar():
 prueba("la tabla de correcciones se aplica al cargar sin tocar el CSV", _correccion_se_aplica_al_cargar)
 
 
+def _titulo_entero_gana_a_palabra_suelta():
+    """Prueba final del 13 sep 2026: «Little Black Sambo» empataba a 0,85 con
+    cinco titulos que solo comparten «Black». Sin perder «chejov» ni un nombre
+    dentro de una frase en espanol."""
+    titulos = ["Little Black Sambo Bannerman, Helen", "Queen of the Black Coast Howard, Robert E.",
+               "Beyond the Black River Howard, Robert E.", "The Story of Little Black Sambo Bannerman, Helen",
+               "The Cherry Orchard Chekhov, Anton", "Oliver Twist Dickens, Charles"]
+    f = cm._fichas(titulos)
+    lex = cm._similitud_nombres("Little Black Sambo", f)
+    exactos = min(lex[0], lex[3])
+    parciales = max(lex[1], lex[2])
+    assert exactos > parciales, f"un titulo que solo comparte «Black» empata o gana: {lex.round(3).tolist()}"
+    assert exactos * cm._PESO_NOMBRE > parciales * cm._PESO_NOMBRE + 0.01, "la ventaja no aguanta el desempate por tema"
+    chejov = cm._similitud_nombres("chejov", f)[4]
+    assert chejov >= cm._PARECIDO_NOMBRE, f"«chejov» ya no rescata a Chekhov: {chejov:.3f}"
+    dickens = cm._similitud_nombres("libros de dickens sobre huerfanos", f)[5]
+    assert dickens >= cm._PARECIDO_NOMBRE, f"un autor dentro de una frase ya no se rescata: {dickens:.3f}"
+    return f"exacto {exactos:.2f} > parcial {parciales:.2f}; chejov {chejov:.2f}; dickens en frase {dickens:.2f}"
+
+
+prueba("un titulo entero gana a los que solo comparten una palabra", _titulo_entero_gana_a_palabra_suelta)
+
+
 # --- 2. El lector ---------------------------------------------------------------
 print("\nAbrir un libro libre en el lector")
 

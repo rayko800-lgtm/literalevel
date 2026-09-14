@@ -207,8 +207,9 @@ def _similitud_nombres(consulta: str, fichas: list[set[str]]) -> np.ndarray:
     fuera = np.zeros(len(fichas), dtype=np.float32)
     cache: dict[tuple[str, str], float] = {}
     for i, ficha in enumerate(fichas):
-        mejor = 0.0
+        mejor, cubiertas = 0.0, 0
         for pista in pistas:
+            mejor_pista = 0.0
             for palabra in ficha:
                 # Descarte barato antes de la comparacion cara: longitudes muy
                 # distintas o inicial distinta nunca dan un parecido alto.
@@ -219,9 +220,16 @@ def _similitud_nombres(consulta: str, fichas: list[set[str]]) -> np.ndarray:
                 if r is None:
                     r = difflib.SequenceMatcher(None, pista, palabra).ratio()
                     cache[clave] = r
-                if r > mejor:
-                    mejor = r
-        fuera[i] = mejor
+                if r > mejor_pista:
+                    mejor_pista = r
+            mejor = max(mejor, mejor_pista)
+            cubiertas += mejor_pista >= _PARECIDO_NOMBRE
+        # La mejor palabra sigue mandando -una sola pista acertada rescata un
+        # autor transliterado aunque la consulta traiga mas palabras-, pero
+        # cuantas mas palabras de la consulta casan, mas vale. Sin esto,
+        # «Little Black Sambo» empataba a 0,85 con cinco titulos que solo
+        # comparten «Black» y el libro no salia (prueba final, 13 sep 2026).
+        fuera[i] = mejor * (1.0 - 0.15 * (1.0 - cubiertas / len(pistas)))
     return fuera
 
 
@@ -536,8 +544,11 @@ class Catalogo:
             self._fichas = _fichas(
                 (self.df["title"].astype(str) + " " + self.df["author"].astype(str)).tolist())
         lex = _similitud_nombres(consulta, self._fichas)
+        # Entre libros con el mismo acierto de nombre (dos ediciones del mismo
+        # titulo) desempata el tema, con un peso que no puede adelantar a un
+        # nombre mas completo.
         sim = np.maximum(sim, np.where(lex >= _PARECIDO_NOMBRE,
-                                       lex * _PESO_NOMBRE, 0.0))
+                                       lex * _PESO_NOMBRE + 0.01 * sim, 0.0))
 
         if nivel_lector is None:
             total = sim
