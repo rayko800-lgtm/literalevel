@@ -214,11 +214,11 @@ def nariz(nombre):
 nariz("nariz")
 
 
-def elipsoide(nombre, centro, escala, mat):
+def elipsoide(nombre, centro, escala, mat, segmentos=32):
     """Un elipsoide liso en coordenadas del visor (x, arriba, lateral)."""
     x, arriba, lateral = centro
     ex, earriba, elateral = escala
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1.0,
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=segmentos, ring_count=max(6, segmentos // 2), radius=1.0,
                                          location=(x, -lateral, arriba))
     ob = bpy.context.object
     ob.name = nombre
@@ -244,6 +244,23 @@ perfil("paladar_modelado", [(-2.55, 0.5), (-2.3, 0.75), (-2.05, 0.92),
        0.13, 1.35, MUCOSA)
 
 
+# La arcada dental: frente plano de incisivos y lados que se abren, como la
+# de Bonwill, en vez de una parabola: x = -2,6 + retroceso * |u|^EXPO_ARCO.
+# La MISMA curva y la misma tangente viven en lengua.py, medir_roces.py y
+# escena.ts (arco / arcoDental): cambiarla aqui es cambiarla en los cuatro.
+EXPO_ARCO = 2.6
+
+
+def arco(u, retroceso=2.3):
+    """(x, lateral) del punto u (-1..1) de la arcada."""
+    return -2.6 + retroceso * abs(u) ** EXPO_ARCO, 1.35 * u
+
+
+def tangente_arco(u, retroceso=2.3):
+    """dx/du: hacia donde mira un diente en u (giro alrededor del eje vertical)."""
+    return retroceso * EXPO_ARCO * abs(u) ** (EXPO_ARCO - 1) * (1 if u >= 0 else -1)
+
+
 def arco_encia(nombre, y, radio, retroceso, mat, fuera=None, alto=0.8, adelanto=0.0):
     """Tubo que sigue la arcada. La seccion es eliptica y, con `fuera`, mas
     gruesa hacia los labios que hacia la lengua (la normal del arco apunta
@@ -254,8 +271,9 @@ def arco_encia(nombre, y, radio, retroceso, mat, fuera=None, alto=0.8, adelanto=
     pasos, lados = 96, 20
     for i in range(pasos + 1):
         u = -1 + 2 * i / pasos
-        x, z = -2.6 + retroceso * u*u - adelanto, 1.35*u
-        nx, nz = 1.35, -2*retroceso*u
+        x, z = arco(u, retroceso)
+        x -= adelanto
+        nx, nz = 1.35, -tangente_arco(u, retroceso)
         norma = math.hypot(nx, nz)
         for j in range(lados):
             a = math.tau*j/lados
@@ -280,42 +298,78 @@ arco_encia("mandibula_modelada", -0.62, 0.28, 2.6, HUESO)
 
 
 def diente(nombre, u, superior):
-    incisivo = abs(u) < 0.3
-    profundidad, ancho = (0.24, 0.34) if incisivo else (0.36, 0.40)
+    """Una corona por tipo: incisivos en pala (finos, afilados al borde),
+    caninos en punta, premolares con dos cuspides (surco a lo largo de la
+    arcada) y molares con cuatro (surcos en cruz). Cubo subdividido, bisel
+    solo en las aristas vivas y desplazamientos de vertices."""
+    tipo = 'incisivo' if abs(u) < 0.3 else 'canino' if abs(u) < 0.5 else 'premolar' if abs(u) < 0.85 else 'molar'
+    profundidad, ancho = {'incisivo': (0.24, 0.34), 'canino': (0.3, 0.34), 'premolar': (0.36, 0.38), 'molar': (0.42, 0.46)}[tipo]
     y = 0.7 if superior else 0.1
-    x, z = -2.6 + 2.3*u*u, 1.35*u
+    x, z = arco(u)
     bpy.ops.mesh.primitive_cube_add(size=2, location=(x, -z, y))
     ob = bpy.context.object
     ob.name = nombre
     ob.scale = (profundidad/2, ancho/2, 0.25)
-    ob.rotation_euler.z = -math.atan2(4.6*u, 1.35)
+    ob.rotation_euler.z = -math.atan2(tangente_arco(u), 1.35)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bisel = ob.modifiers.new("corona_redondeada", "BEVEL")
-    bisel.width = 0.09 if incisivo else 0.13
-    bisel.segments = 6
+    bisel.width = 0.07 if tipo == 'incisivo' else 0.1
+    bisel.segments = 4
     bpy.ops.object.modifier_apply(modifier=bisel.name)
+    # Una subdivision despues del bisel (antes, el bisel dejaba caras de area
+    # cero entre cortes mas finos que su anchura): da vertices a la cara
+    # oclusal para los surcos.
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.subdivide(number_cuts=1)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    arriba = -1 if superior else 1               # hacia el borde cortante / la cara oclusal
     for v in ob.data.vertices:
-        # Corona algo mas estrecha junto a la encia; el borde no es una caja.
-        cuello = max(0, (v.co.z if superior else -v.co.z) / 0.25)
-        borde = max(0, (-v.co.z if superior else v.co.z) / 0.25)
-        v.co.x *= 1 - 0.16*cuello
-        v.co.y *= 1 - 0.1*cuello
-        if incisivo:
-            v.co.x *= 1 - 0.4*borde          # el incisivo se afila hacia el borde cortante
+        cuello = max(0.0, -arriba * v.co.z / 0.25)   # 1 junto a la encia
+        borde = max(0.0, arriba * v.co.z / 0.25)     # 1 en el borde
+        v.co.x *= 1 - 0.14*cuello
+        v.co.y *= 1 - 0.08*cuello
+        if tipo == 'incisivo':
+            v.co.x *= 1 - 0.5*borde**1.5             # pala: se afila hacia el borde cortante
+            v.co.y *= 1 + 0.06*borde                  # y se ensancha un poco
+        elif tipo == 'canino':
+            v.co.x *= 1 - 0.55*borde**2               # punta
+            v.co.y *= 1 - 0.5*borde**2
         else:
-            v.co.x *= 1 - 0.08*borde         # la corona del molar se cierra un poco arriba
+            v.co.x *= 1 - 0.08*borde
             v.co.y *= 1 - 0.08*borde
+            if borde > 0.85:                          # la cara oclusal: surcos entre cuspides
+                hondo = 0.045 * math.exp(-(v.co.y / 0.07) ** 2)           # surco mesio-distal... a lo ancho
+                surco = 0.05 * math.exp(-(v.co.x / 0.06) ** 2)            # surco a lo largo de la arcada (2 cuspides)
+                v.co.z -= arriba * (surco + (hondo if tipo == 'molar' else 0.0))
     ob.data.materials.append(ESMALTE)
     for p in ob.data.polygons:
         p.use_smooth = True
     ob.data.use_auto_smooth = True
+    ob.data.auto_smooth_angle = math.radians(50)
     normal = ob.modifiers.new("normales_corona", "WEIGHTED_NORMAL")
     bpy.ops.object.modifier_apply(modifier=normal.name)
 
 
-for i, u in enumerate([-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92]):
+DIENTES_U = [-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92]
+for i, u in enumerate(DIENTES_U):
     diente("diente_sup_%02d" % i, u, True)
     diente("diente_inf_%02d" % i, u, False)
+
+# Papilas de la encia: un bulto pequeño entre cada dos dientes, en la linea
+# de la encia y algo hacia fuera; el borde gingival pasa por detras.
+for i, (u0, u1) in enumerate(zip(DIENTES_U, DIENTES_U[1:])):
+    u = (u0 + u1) / 2
+    x, z = arco(u)
+    tx, tz = tangente_arco(u), 1.35
+    norma = math.hypot(tx, tz)
+    nx, nz = -tz / norma, tx / norma          # la normal hacia fuera (hacia los labios)
+    if nx > 0:
+        nx, nz = -nx, -nz
+    for superior in (True, False):
+        y = 0.8 if superior else -0.02
+        elipsoide("papila_%s_%02d" % ('sup' if superior else 'inf', i),
+                  (x + nx * 0.16, y, z + nz * 0.16), (0.075, 0.1, 0.09), MUCOSA, segmentos=12)
 
 # Velo en su sistema local: el mismo pivote y rotacion que la animacion 2D.
 perfil("velo_modelado", [(0.03, 0), (0.35, 0), (0.7, -0.015), (1.12, -0.03)],

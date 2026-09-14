@@ -42,8 +42,15 @@ def cargar_glb(ruta):
     return acc(p["attributes"]["POSITION"]), {n: acc(t["POSITION"]) for n, t in zip(m["extras"]["targetNames"], p["targets"])}
 
 
+EXPO_ARCO = 2.6                 # la arcada de cara.py
+
+
 def arco(u, ret=2.3):
-    return np.stack([-2.6 + ret * u * u, (ANCHO / 2) * u], axis=-1)
+    return np.stack([-2.6 + ret * np.abs(u) ** EXPO_ARCO, (ANCHO / 2) * u], axis=-1)
+
+
+def tangente_arco(u, ret=2.3):
+    return ret * EXPO_ARCO * abs(u) ** (EXPO_ARCO - 1) * (1 if u >= 0 else -1)
 
 
 def rotar(xy, ang):
@@ -62,9 +69,8 @@ def piezas(ang):
         tubos.append((np.stack([xy[:, 0], xy[:, 1], a[:, 1]], 1), r, nombre))
     for u in [-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92]:
         pt = arco(np.array([u]))[0]
-        inc = abs(u) < 0.3
-        w, dd = (0.34, 0.24) if inc else (0.4, 0.36)
-        rot_y = -math.atan2(2 * 2.3 * u, ANCHO / 2)
+        w, dd = (0.34, 0.24) if abs(u) < 0.3 else (0.34, 0.3) if abs(u) < 0.5 else (0.38, 0.36) if abs(u) < 0.85 else (0.46, 0.42)
+        rot_y = -math.atan2(tangente_arco(u), ANCHO / 2)
         dientes.append((np.array([pt[0], 0.7, pt[1]]), rot_y, dd, 0.5, w, f"diente sup u={u:+.2f}", 0.0))
         dientes.append((np.array([pt[0], 0.1, pt[1]]), rot_y, dd, 0.5, w, f"diente inf u={u:+.2f}", ang))
     return tubos, dientes

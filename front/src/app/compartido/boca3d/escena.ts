@@ -389,9 +389,15 @@ function banda(perfil: [number, number][], grosor: number, ancho: number): THREE
   return g;
 }
 
-/** El arco dental en planta: u de -1 (izquierda) a 1 (derecha). */
+/** La arcada dental en planta: u de -1 (izquierda) a 1 (derecha). Frente
+ *  plano de incisivos y lados que se abren (|u|^2,6, como la de Bonwill); la
+ *  misma curva que cara.py, lengua.py y medir_roces.py. */
+const EXPO_ARCO = 2.6;
 function arco(u: number, retroceso = 2.3): THREE.Vector2 {
-  return new THREE.Vector2(-2.6 + retroceso * u * u, (ANCHO / 2) * u);   // (x, z)
+  return new THREE.Vector2(-2.6 + retroceso * Math.pow(Math.abs(u), EXPO_ARCO), (ANCHO / 2) * u);   // (x, z)
+}
+function tangenteArco(u: number, retroceso = 2.3): number {
+  return retroceso * EXPO_ARCO * Math.pow(Math.abs(u), EXPO_ARCO - 1) * Math.sign(u);
 }
 
 /** Los dientes de un arco. Devuelve los laterales (premolares y molares),
@@ -405,7 +411,7 @@ function arcoDental(grupo: THREE.Group, y: number, alto: number, mat: THREE.Mate
     const w = incisivo ? 0.34 : 0.4, d = incisivo ? 0.24 : 0.36;
     const diente = new THREE.Mesh(new THREE.BoxGeometry(d, alto, w), mat);
     diente.position.set(p.x, y, p.y);
-    diente.rotation.y = -Math.atan2(2 * 2.3 * u, ANCHO / 2);   // mirando a la tangente del arco
+    diente.rotation.y = -Math.atan2(tangenteArco(u), ANCHO / 2);   // mirando a la tangente de la arcada
     grupo.add(diente);
     if (!incisivo) laterales.push(diente);
   }
@@ -1127,8 +1133,9 @@ export class EscenaBoca {
           fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), materialDe('piel', col.piel)));
       }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
+      const papilas = Array.from(piezas.keys()).filter(n => n.startsWith('papila_'));
       const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
-        ...['encia_borde_sup', 'encia_borde_inf'].filter(n => piezas.has(n)),
+        ...['encia_borde_sup', 'encia_borde_inf'].filter(n => piezas.has(n)), ...papilas,
         ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
       if (dentales.every(n => piezas.has(n))) {
         this.dentalSimple.forEach(o => { o.visible = false; });

@@ -87,8 +87,15 @@ MEDIO_ANCHO = 1.35
 DIENTES_U = [-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92]
 
 
+EXPO_ARCO = 2.6                 # la arcada de cara.py: frente plano, lados abiertos
+
+
 def arco(u, retroceso=2.3):
-    return -2.6 + retroceso * u * u, MEDIO_ANCHO * u
+    return -2.6 + retroceso * abs(u) ** EXPO_ARCO, MEDIO_ANCHO * u
+
+
+def tangente_arco(u, retroceso=2.3):
+    return retroceso * EXPO_ARCO * abs(u) ** (EXPO_ARCO - 1) * (1 if u >= 0 else -1)
 
 
 def pen_tubo(x, alto, lat, y0, r, retroceso=2.3):
@@ -103,9 +110,10 @@ def pen_tubo(x, alto, lat, y0, r, retroceso=2.3):
 def pen_diente(x, alto, lat, u, y_centro):
     """Cuanto entra el punto en la caja de un diente (positivo = dentro)."""
     cx, cz = arco(u)
-    incisivo = abs(u) < 0.3
-    w, d, h = (0.34, 0.24, 0.5) if incisivo else (0.4, 0.36, 0.5)
-    ang = -math.atan2(2 * 2.3 * u, MEDIO_ANCHO)
+    # Cajas por tipo de corona (cara.py): incisivo, canino, premolar, molar.
+    w, d = (0.34, 0.24) if abs(u) < 0.3 else (0.34, 0.3) if abs(u) < 0.5 else (0.38, 0.36) if abs(u) < 0.85 else (0.46, 0.42)
+    h = 0.5
+    ang = -math.atan2(tangente_arco(u), MEDIO_ANCHO)
     dx, dz = x - cx, lat - cz
     lx = dx * math.cos(ang) + dz * math.sin(ang)
     lz = -dx * math.sin(ang) + dz * math.cos(ang)
