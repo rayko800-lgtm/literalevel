@@ -43,6 +43,13 @@ import { Sesion } from '../nucleo/sesion';
               <span class="chip">{{ miles(l.palabras) }} palabras</span>
               @if (l.ficha) { <span class="chip"><app-icono nombre="reloj" />{{ l.ficha.tiempo }}</span> }
             </div>
+            <!-- Aviso de contenido (contrato con f4): informa antes de abrir, no bloquea nada. -->
+            @if (l.aviso_contenido) {
+              <aside class="aviso-contenido" role="note">
+                <strong><app-icono nombre="info" />Aviso sobre el contenido</strong>
+                <p>{{ l.aviso_contenido }}</p>
+              </aside>
+            }
             <div class="fila cta">
               @if (enEstanteria(); as e) {
                 <a class="boton" [routerLink]="['/leer', l.id, e.capitulo]"><app-icono nombre="libro" />Seguir en el capítulo {{ e.capitulo + 1 }}</a>
@@ -238,6 +245,10 @@ import { Sesion } from '../nucleo/sesion';
     .chips { gap: .45rem; margin-bottom: 1.1rem; }
     .cta { margin-bottom: .4rem; }
     .veredicto { margin-bottom: 1.25rem; border-left: 5px solid var(--borde-fuerte); }
+    .aviso-contenido { margin: .75rem 0 .75rem; padding: .7rem .9rem; border-radius: var(--radio-sm);
+      background: var(--ambar-suave); border-left: 4px solid var(--ambar); display: grid; gap: .25rem; }
+    .aviso-contenido strong { display: flex; align-items: center; gap: .4rem; color: var(--texto); }
+    .aviso-contenido p { margin: 0; color: var(--texto); line-height: 1.5; }
     .niveles { margin-bottom: 1.25rem; }
     .niveles summary { display: flex; align-items: center; gap: .5rem; min-height: 48px; cursor: pointer; font-weight: 650;
       color: var(--acento-texto); list-style: none; }

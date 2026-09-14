@@ -240,7 +240,17 @@
           </div>
         }
 
-        @if (w.sentido) {
+        @if (w.acepciones_principales?.length && !w.definicion_contextual && !explicando()) {
+          <!-- «bank» en «on the bank» (f4, captura 21): con la acepción dudosa y sin
+               explicación, mejor enseñar las posibles que afirmar una equivocada. -->
+          <div class="bloque posibles">
+            <span class="etiqueta">Diccionario (Wiktionary) · Puede ser</span>
+            <ul lang="en">
+              @for (a of w.acepciones_principales; track a) { <li>{{ a }}</li> }
+            </ul>
+            <p class="tenue pequeno">Tu frase no deja claro cuál de estas es, y esta vez no hay explicación de contexto: quédate con la que encaje al leerla.</p>
+          </div>
+        } @else if (w.sentido) {
           <div class="bloque">
             <span class="etiqueta">En el diccionario</span>
             <p lang="en">{{ w.sentido }}</p>

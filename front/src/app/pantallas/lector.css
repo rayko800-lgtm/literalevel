@@ -75,6 +75,7 @@
 .traduccion p { font-size: 1.1rem; font-weight: 600; }
 .chip.ia { min-height: 20px; padding: 0 .5rem; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase;
   background: var(--ambar-suave); color: var(--ambar); border-color: transparent; vertical-align: middle; }
+.posibles ul { margin: .2rem 0 .3rem; padding-left: 1.1rem; display: grid; gap: .35rem; line-height: 1.45; }
 .definicion-ia { padding: .8rem .95rem; border-radius: var(--radio-sm); border: 1px dashed var(--borde-fuerte); }
 .contexto { margin: 0; padding: .5rem .9rem; border-left: 3px solid var(--acento); color: var(--lector-texto);
   background: var(--superficie-2); border-radius: 0 10px 10px 0; line-height: 1.55; }

@@ -90,6 +90,8 @@ export interface LibroTarjeta {
   afinidad: number;
   abrible: boolean;
   url: string;
+  /** Nota en español si el libro lleva aviso de contenido (catalogo.py, f4); si no, null. */
+  aviso_contenido?: string | null;
 }
 
 export interface ResultadoBusqueda {
@@ -117,6 +119,8 @@ export interface Sinopsis { de_que_trata?: string; temas?: string[]; para_quien?
 export interface Libro {
   id: string;
   titulo: string;
+  /** Nota en español si el libro lleva aviso de contenido; null en subidos y sin aviso. */
+  aviso_contenido?: string | null;
   autor: string;
   palabras: number;
   inicial: number;
@@ -199,6 +203,8 @@ export interface Palabra {
   compuesto: string | null;
   /** Esa parte («war»): de ella son el sentido y la categoría. */
   parte_del_diccionario: string | null;
+  /** Glosa principal de cada entrada del diccionario, solo si la acepción es dudosa y no hubo explicación. */
+  acepciones_principales?: string[];
   audio_uk: string | null;
   audio_us: string | null;
   audio_generado: boolean;
