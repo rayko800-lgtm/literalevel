@@ -1,0 +1,1263 @@
+{
+ "version": 1,
+ "origen": "app/animacion_articulatoria.PARAMETROS",
+ "escala": {
+  "mandibula": "0 dientes juntos .. 1 muy abierta",
+  "cuerpo": "[altura, adelantamiento] 0..1",
+  "labios": [
+   "neutros",
+   "cerrados",
+   "redondeados",
+   "muy_redondeados",
+   "estirados",
+   "labiodental"
+  ],
+  "punta": [
+   "reposo",
+   "interdental",
+   "dental",
+   "alveolar",
+   "postalveolar",
+   "retrofleja"
+  ],
+  "movimiento": [
+   "oclusiva",
+   "fricativa",
+   "africada",
+   "nasal",
+   "aproximante",
+   "vocal",
+   "diptongo"
+  ]
+ },
+ "duracion_s": {
+  "vocal": 0.34,
+  "diptongo": 0.46,
+  "oclusiva": 0.2,
+  "africada": 0.28,
+  "fricativa": 0.22,
+  "nasal": 0.2,
+  "aproximante": 0.18
+ },
+ "factor_lento": 1.6,
+ "reposo": {
+  "movimiento": "vocal",
+  "mandibula": 0.2,
+  "labios": "neutros",
+  "punta": "reposo",
+  "punta_toca": false,
+  "cuerpo": [
+   0.45,
+   0.5
+  ],
+  "dorso_velo": false,
+  "dorso_alto": 0.0,
+  "raiz": 0.0,
+  "velo_abierto": false,
+  "sonora": true,
+  "lugar": "",
+  "larga": false,
+  "leyenda": ""
+ },
+ "sonidos": {
+  "p": {
+   "movimiento": "oclusiva",
+   "mandibula": 0.08,
+   "labios": "cerrados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "bilabial",
+   "larga": false,
+   "leyenda": "labios cerrados que se abren de golpe, con soplo"
+  },
+  "b": {
+   "movimiento": "oclusiva",
+   "mandibula": 0.08,
+   "labios": "cerrados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "bilabial",
+   "larga": false,
+   "leyenda": "labios cerrados del todo que se separan, sin soplo"
+  },
+  "t": {
+   "movimiento": "oclusiva",
+   "mandibula": 0.18,
+   "labios": "neutros",
+   "punta": "alveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.6,
+    0.65
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta en el alvéolo, no en los dientes; explosión con soplo"
+  },
+  "d": {
+   "movimiento": "oclusiva",
+   "mandibula": 0.18,
+   "labios": "neutros",
+   "punta": "alveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.6,
+    0.65
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta en el alvéolo, no en los dientes; toca y baja rápido"
+  },
+  "k": {
+   "movimiento": "oclusiva",
+   "mandibula": 0.25,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.3
+   ],
+   "dorso_velo": true,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "velar",
+   "larga": false,
+   "leyenda": "el dorso cierra contra el velo; explosión con soplo"
+  },
+  "ɡ": {
+   "movimiento": "oclusiva",
+   "mandibula": 0.25,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.3
+   ],
+   "dorso_velo": true,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "velar",
+   "larga": false,
+   "leyenda": "el dorso cierra contra el velo y se suelta, sin soplo"
+  },
+  "f": {
+   "movimiento": "fricativa",
+   "mandibula": 0.14,
+   "labios": "labiodental",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "labiodental",
+   "larga": false,
+   "leyenda": "labio inferior contra dientes superiores"
+  },
+  "v": {
+   "movimiento": "fricativa",
+   "mandibula": 0.14,
+   "labios": "labiodental",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "labiodental",
+   "larga": false,
+   "leyenda": "labio inferior contra dientes superiores; los labios no se juntan"
+  },
+  "θ": {
+   "movimiento": "fricativa",
+   "mandibula": 0.36,
+   "labios": "neutros",
+   "punta": "interdental",
+   "punta_toca": false,
+   "cuerpo": [
+    0.5,
+    0.75
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "interdental",
+   "larga": false,
+   "leyenda": "punta entre los dientes; el aire pasa por encima"
+  },
+  "ð": {
+   "movimiento": "fricativa",
+   "mandibula": 0.36,
+   "labios": "neutros",
+   "punta": "interdental",
+   "punta_toca": false,
+   "cuerpo": [
+    0.5,
+    0.75
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "interdental",
+   "larga": false,
+   "leyenda": "punta entre los dientes, sin golpe; el aire pasa por encima"
+  },
+  "s": {
+   "movimiento": "fricativa",
+   "mandibula": 0.1,
+   "labios": "estirados",
+   "punta": "alveolar",
+   "punta_toca": false,
+   "cuerpo": [
+    0.62,
+    0.65
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta cerca del alvéolo sin tocarlo; aire afilado"
+  },
+  "z": {
+   "movimiento": "fricativa",
+   "mandibula": 0.1,
+   "labios": "estirados",
+   "punta": "alveolar",
+   "punta_toca": false,
+   "cuerpo": [
+    0.62,
+    0.65
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta cerca del alvéolo sin tocarlo; zumbido de abeja"
+  },
+  "ʃ": {
+   "movimiento": "fricativa",
+   "mandibula": 0.12,
+   "labios": "redondeados",
+   "punta": "postalveolar",
+   "punta_toca": false,
+   "cuerpo": [
+    0.72,
+    0.6
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "postalveolar",
+   "larga": false,
+   "leyenda": "labios redondeados; lengua tras el alvéolo, sin tocar"
+  },
+  "ʒ": {
+   "movimiento": "fricativa",
+   "mandibula": 0.12,
+   "labios": "redondeados",
+   "punta": "postalveolar",
+   "punta_toca": false,
+   "cuerpo": [
+    0.72,
+    0.6
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "postalveolar",
+   "larga": false,
+   "leyenda": "labios redondeados; lengua tras el alvéolo, sin tocar"
+  },
+  "h": {
+   "movimiento": "fricativa",
+   "mandibula": 0.2,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "glotal",
+   "larga": false,
+   "leyenda": "la boca ya está en la vocal; el aire roza en la garganta"
+  },
+  "tʃ": {
+   "movimiento": "africada",
+   "mandibula": 0.12,
+   "labios": "redondeados",
+   "punta": "postalveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.7,
+    0.62
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": false,
+   "lugar": "postalveolar",
+   "larga": false,
+   "leyenda": "cierre tras el alvéolo que se suelta en «sh»",
+   "hacia": {
+    "movimiento": "fricativa",
+    "mandibula": 0.12,
+    "labios": "redondeados",
+    "punta": "postalveolar",
+    "punta_toca": false,
+    "cuerpo": [
+     0.72,
+     0.6
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": false,
+    "lugar": "postalveolar",
+    "larga": false,
+    "leyenda": ""
+   }
+  },
+  "dʒ": {
+   "movimiento": "africada",
+   "mandibula": 0.12,
+   "labios": "redondeados",
+   "punta": "postalveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.7,
+    0.62
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "postalveolar",
+   "larga": false,
+   "leyenda": "cierre tras el alvéolo que se suelta con zumbido",
+   "hacia": {
+    "movimiento": "fricativa",
+    "mandibula": 0.12,
+    "labios": "redondeados",
+    "punta": "postalveolar",
+    "punta_toca": false,
+    "cuerpo": [
+     0.72,
+     0.6
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "postalveolar",
+    "larga": false,
+    "leyenda": ""
+   }
+  },
+  "m": {
+   "movimiento": "nasal",
+   "mandibula": 0.08,
+   "labios": "cerrados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": true,
+   "sonora": true,
+   "lugar": "bilabial",
+   "larga": false,
+   "leyenda": "labios cerrados; el velo baja y el aire sale por la nariz"
+  },
+  "n": {
+   "movimiento": "nasal",
+   "mandibula": 0.18,
+   "labios": "neutros",
+   "punta": "alveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.6,
+    0.65
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": true,
+   "sonora": true,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta en el alvéolo; el velo baja y el aire sale por la nariz"
+  },
+  "ŋ": {
+   "movimiento": "nasal",
+   "mandibula": 0.25,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.45,
+    0.3
+   ],
+   "dorso_velo": true,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": true,
+   "sonora": true,
+   "lugar": "velar",
+   "larga": false,
+   "leyenda": "dorso contra el velo bajado; aire por la nariz, sin soltar g"
+  },
+  "l": {
+   "movimiento": "aproximante",
+   "mandibula": 0.22,
+   "labios": "neutros",
+   "punta": "alveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.5,
+    0.55
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.6,
+   "raiz": 0.35,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta en el alvéolo, aire por los lados; dorso alzado atrás (l oscura)"
+  },
+  "ɹ": {
+   "movimiento": "aproximante",
+   "mandibula": 0.22,
+   "labios": "redondeados",
+   "punta": "retrofleja",
+   "punta_toca": false,
+   "cuerpo": [
+    0.55,
+    0.35
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.8,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "postalveolar",
+   "larga": false,
+   "leyenda": "punta curvada hacia atrás, sin tocar el paladar; no vibra ni golpea"
+  },
+  "w": {
+   "movimiento": "aproximante",
+   "mandibula": 0.12,
+   "labios": "muy_redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.88,
+    0.08
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.4,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "labios muy redondeados; dorso hacia el velo, sin tocar"
+  },
+  "j": {
+   "movimiento": "aproximante",
+   "mandibula": 0.12,
+   "labios": "estirados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    1.0,
+    0.92
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "dorso muy cerca del paladar duro, sin tocar, como una i rápida"
+  },
+  "i": {
+   "movimiento": "vocal",
+   "mandibula": 0.12,
+   "labios": "estirados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    1.0,
+    1.0
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "lengua alta y adelante, labios estirados; larga y tensa"
+  },
+  "ɪ": {
+   "movimiento": "vocal",
+   "mandibula": 0.26,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.78,
+    0.8
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "más baja, más atrás y más relajada que /i/; corta"
+  },
+  "ɛ": {
+   "movimiento": "vocal",
+   "mandibula": 0.42,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.58,
+    0.85
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "lengua a media altura y adelante; corta"
+  },
+  "æ": {
+   "movimiento": "vocal",
+   "mandibula": 1.0,
+   "labios": "estirados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.15,
+    0.85
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "boca muy abierta y lengua baja adelante: entre a y e"
+  },
+  "ɑ": {
+   "movimiento": "vocal",
+   "mandibula": 0.92,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.05,
+    0.05
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.8,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "boca muy abierta, lengua baja y atrás; larga"
+  },
+  "ɔ": {
+   "movimiento": "vocal",
+   "mandibula": 0.68,
+   "labios": "redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.3,
+    0.05
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.6,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "lengua atrás y baja, labios redondeados, boca abierta"
+  },
+  "ʊ": {
+   "movimiento": "vocal",
+   "mandibula": 0.26,
+   "labios": "redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.78,
+    0.22
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "más baja y relajada que /u/; labios algo redondeados; corta"
+  },
+  "u": {
+   "movimiento": "vocal",
+   "mandibula": 0.12,
+   "labios": "muy_redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    1.0,
+    0.05
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.2,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "lengua alta y atrás, labios muy redondeados; larga y tensa"
+  },
+  "ʌ": {
+   "movimiento": "vocal",
+   "mandibula": 0.58,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.35,
+    0.45
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "lengua en el centro, media baja y relajada; corta"
+  },
+  "ə": {
+   "movimiento": "vocal",
+   "mandibula": 0.34,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.5,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "todo relajado, lengua en el centro; muy corta"
+  },
+  "ɝ": {
+   "movimiento": "vocal",
+   "mandibula": 0.28,
+   "labios": "redondeados",
+   "punta": "retrofleja",
+   "punta_toca": false,
+   "cuerpo": [
+    0.58,
+    0.35
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.2,
+   "raiz": 0.8,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "lengua recogida con color de r durante toda la vocal, sin tocar"
+  },
+  "ɚ": {
+   "movimiento": "vocal",
+   "mandibula": 0.3,
+   "labios": "neutros",
+   "punta": "retrofleja",
+   "punta_toca": false,
+   "cuerpo": [
+    0.52,
+    0.4
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.1,
+   "raiz": 0.6,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "como /ɝ/ pero breve, átona y sin fuerza"
+  },
+  "eɪ": {
+   "movimiento": "diptongo",
+   "mandibula": 0.4,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.62,
+    0.85
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de e media hacia i: la lengua sube",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.26,
+    "labios": "neutros",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.78,
+     0.8
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "más baja, más atrás y más relajada que /i/; corta"
+   }
+  },
+  "aɪ": {
+   "movimiento": "diptongo",
+   "mandibula": 0.92,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.08,
+    0.55
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de a abierta hacia i: la boca se cierra y la lengua sube",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.26,
+    "labios": "neutros",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.78,
+     0.8
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "más baja, más atrás y más relajada que /i/; corta"
+   }
+  },
+  "ɔɪ": {
+   "movimiento": "diptongo",
+   "mandibula": 0.55,
+   "labios": "redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.4,
+    0.08
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de o redondeada hacia i: la lengua va adelante",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.26,
+    "labios": "estirados",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.78,
+     0.8
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "más baja, más atrás y más relajada que /i/; corta"
+   }
+  },
+  "oʊ": {
+   "movimiento": "diptongo",
+   "mandibula": 0.38,
+   "labios": "redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.6,
+    0.12
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de o redondeada hacia u: los labios se cierran",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.26,
+    "labios": "muy_redondeados",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.78,
+     0.22
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "más baja y relajada que /u/; labios algo redondeados; corta"
+   }
+  },
+  "aʊ": {
+   "movimiento": "diptongo",
+   "mandibula": 0.92,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.08,
+    0.55
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de a abierta hacia u: la boca se cierra y los labios se redondean",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.26,
+    "labios": "muy_redondeados",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.78,
+     0.22
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "más baja y relajada que /u/; labios algo redondeados; corta"
+   }
+  },
+  "ɒ": {
+   "movimiento": "vocal",
+   "mandibula": 1.0,
+   "labios": "redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.02,
+    0.02
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.8,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "boca muy abierta, lengua baja atrás, labios algo redondeados; corta"
+  },
+  "ɜː": {
+   "movimiento": "vocal",
+   "mandibula": 0.36,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.46,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "lengua relajada en el centro, sin r: la punta no sube; larga"
+  },
+  "ɪə": {
+   "movimiento": "diptongo",
+   "mandibula": 0.26,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.78,
+    0.8
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de i relajada hacia el centro, sin r",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.34,
+    "labios": "neutros",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.5,
+     0.5
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "todo relajado, lengua en el centro; muy corta"
+   }
+  },
+  "eə": {
+   "movimiento": "diptongo",
+   "mandibula": 0.42,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.6,
+    0.85
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de e hacia el centro, sin r",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.34,
+    "labios": "neutros",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.5,
+     0.5
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "todo relajado, lengua en el centro; muy corta"
+   }
+  },
+  "ʊə": {
+   "movimiento": "diptongo",
+   "mandibula": 0.26,
+   "labios": "redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.78,
+    0.22
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "de u relajada hacia el centro, sin r",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.34,
+    "labios": "neutros",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.5,
+     0.5
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "todo relajado, lengua en el centro; muy corta"
+   }
+  }
+ },
+ "rp": {
+  "əʊ": {
+   "movimiento": "diptongo",
+   "mandibula": 0.34,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.5,
+    0.5
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "empieza en el centro sin redondear y se cierra hacia u",
+   "hacia": {
+    "movimiento": "vocal",
+    "mandibula": 0.26,
+    "labios": "redondeados",
+    "punta": "reposo",
+    "punta_toca": false,
+    "cuerpo": [
+     0.78,
+     0.22
+    ],
+    "dorso_velo": false,
+    "dorso_alto": 0.0,
+    "raiz": 0.0,
+    "velo_abierto": false,
+    "sonora": true,
+    "lugar": "",
+    "larga": false,
+    "leyenda": "más baja y relajada que /u/; labios algo redondeados; corta"
+   }
+  },
+  "ɔː": {
+   "movimiento": "vocal",
+   "mandibula": 0.45,
+   "labios": "muy_redondeados",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.55,
+    0.05
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.4,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": true,
+   "leyenda": "lengua atrás, más cerrada que la americana, labios muy redondeados; larga"
+  },
+  "æ": {
+   "movimiento": "vocal",
+   "mandibula": 1.0,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.1,
+    0.8
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "boca muy abierta, lengua baja adelante, cerca de a; corta"
+  },
+  "e": {
+   "movimiento": "vocal",
+   "mandibula": 0.34,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.66,
+    0.85
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "lengua media alta y adelante, algo más cerrada; corta"
+  },
+  "ʌ": {
+   "movimiento": "vocal",
+   "mandibula": 0.68,
+   "labios": "neutros",
+   "punta": "reposo",
+   "punta_toca": false,
+   "cuerpo": [
+    0.28,
+    0.55
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "",
+   "larga": false,
+   "leyenda": "lengua baja en el centro, cerca de a; corta"
+  },
+  "l": {
+   "movimiento": "aproximante",
+   "mandibula": 0.22,
+   "labios": "neutros",
+   "punta": "alveolar",
+   "punta_toca": true,
+   "cuerpo": [
+    0.5,
+    0.55
+   ],
+   "dorso_velo": false,
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "velo_abierto": false,
+   "sonora": true,
+   "lugar": "alveolar",
+   "larga": false,
+   "leyenda": "punta en el alvéolo, aire por los lados; clara antes de vocal"
+  }
+ }
+}
