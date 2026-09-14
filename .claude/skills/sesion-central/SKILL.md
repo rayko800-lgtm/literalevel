@@ -123,6 +123,21 @@ correr. Y en cualquier caso: una orden importante no está entregada hasta
 que la sesión la acusa; si en cinco minutos no hay acuse, se reenvía en una
 línea.
 
+**Se repitió el 14 por la mañana**: a las 06:52 cayeron a la vez las cuatro
+sesiones y la central, y nadie volvió hasta las 10:12. Tres horas y veinte
+minutos sin reinicio y con un despliegue a medio ordenar. Lo que sí siguió
+fue el proceso de medición de f4, porque era un `python` en segundo plano y
+no dependía de Claude: terminó solo a las 07:57. Dos reglas más:
+
+- Cuando la central vuelve de un límite, **da por hecho que las demás
+  también cayeron**: `ListAgents` con todas en `idle` y `git log` sin
+  commits desde la misma hora lo confirman. Reactívalas en el mismo
+  mensaje con su siguiente paso y la frase «si tenías algo a medias, dime
+  el estado en una línea y continúa».
+- **Lo que tenga que sobrevivir a un límite va como proceso del sistema**
+  (medición, descarga, banco de mutantes), reanudable por shards, nunca
+  como turno de una sesión.
+
 ## 4. Lanzar a Codex desde la central
 
 La central es el sitio natural para encargar la auditoría externa: no ha
