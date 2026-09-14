@@ -39,6 +39,8 @@ writeFileSync(resolve(salida, 'index.html'), `<!doctype html>
   .chips button.elegido { background: var(--acento); color: #fff; border-color: var(--acento); }
   .visor { width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; }
   .leyenda { min-height: 1.4em; }
+  .palabra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .palabra input { max-width: 100%; min-width: 0; font: inherit; }
   .pista { font-size: .9em; opacity: .75; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .pista button { font: inherit; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--borde); background: transparent; color: inherit; }
 </style>
