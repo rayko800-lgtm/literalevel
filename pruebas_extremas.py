@@ -5200,6 +5200,52 @@ prueba("un epub que se descomprime a gigas no se abre",
        _un_epub_que_se_descomprime_a_gigas_no_se_abre)
 
 
+def _la_clave_de_analisis_lleva_el_texto():
+    """Revision de api.py en 2a49bf2, hallazgo 4: la clave de la curva y la
+    sinopsis no llevaba el texto y la carpeta es comun. Un libro subido con el
+    titulo y los recuentos de uno del catalogo escribia lo que veian todos."""
+    R = ui.reader
+
+    def libro(final, id_catalogo=None):
+        l = R.Libro("pg1342.txt", "Austen", [R.Capitulo("Chapter I", "word " * 100 + final)])
+        if id_catalogo:
+            l.id_catalogo = id_catalogo
+        return l
+
+    alfa, omega = libro("alpha"), libro("omega")
+    assert (alfa.palabras, alfa.titulo) == (omega.palabras, omega.titulo)
+    assert ui._clave_libro_v3(alfa) == ui._clave_libro_v3(omega), "la prueba ya no reproduce el fallo"
+    assert ui._clave_libro(alfa) != ui._clave_libro(omega), "mismo titulo y recuentos, otro texto, misma clave"
+    assert ui._clave_libro(alfa) == ui._clave_libro(libro("alpha")), "el mismo texto cambia de clave"
+
+    viejo = ui.RUTA_ANALISIS
+    try:
+        ui.RUTA_ANALISIS = TMP / "analisis_migracion"
+        ui.RUTA_ANALISIS.mkdir(exist_ok=True)
+        subido, catalogo = libro("alpha"), libro("alpha", id_catalogo="PG1342")
+        v3 = ui._clave_libro_v3(catalogo)
+        (ui.RUTA_ANALISIS / f"{v3}.json").write_text(ui.json.dumps(
+            {"filas": [{"capitulo": 1, "dificultad": 1.1}], "ventanas": 3, "palabras": 101}),
+            encoding="utf-8")
+        (ui.RUTA_ANALISIS / f"{v3}-sinopsis.json").write_text(ui.json.dumps(
+            {"de_que_trata": "Una novela.", "temas": ["amor"]}), encoding="utf-8")
+        # Un libro subido no hereda lo guardado con la clave vieja.
+        assert ui._analisis_guardado(subido) is None, "un libro subido hereda la curva vieja"
+        assert ui._sinopsis_guardada(subido) is None, "un libro subido hereda la sinopsis vieja"
+        # Uno del catalogo, si: no se recalcula lo ya pagado.
+        assert ui._analisis_guardado(catalogo)["filas"][0]["dificultad"] == 1.1
+        assert ui._sinopsis_guardada(catalogo)["de_que_trata"] == "Una novela."
+        assert (ui.RUTA_ANALISIS / f"{ui._clave_libro(catalogo)}-sinopsis.json").is_file()
+        assert (ui.RUTA_ANALISIS / f"{v3}-sinopsis.json").is_file(), "se movio en vez de copiarse"
+    finally:
+        ui.RUTA_ANALISIS = viejo
+    return "clave con el texto; el catalogo hereda la v3 y lo subido no"
+
+
+prueba("la clave de analisis lleva el texto",
+       _la_clave_de_analisis_lleva_el_texto)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 

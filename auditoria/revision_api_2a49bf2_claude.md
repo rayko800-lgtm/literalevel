@@ -124,7 +124,11 @@ ataque. Se dice en cada caso.
   - `app/ui.py:2083-2093` (`_clave_libro`) y `ui.py:2080` (`RUTA_ANALISIS`);
   - `app/api.py:989-1011` (curva) y `1030-1069` (sinopsis), que aceptan ids
     `u…` de libros subidos;
-  - `app/reader.py:144-146` y `233` (de dónde sale el título).
+  - `app/reader.py:144-146` (de dónde sale el título). Corrección posterior:
+    en la primera versión de este informe se citaba también la línea 233, y
+    esa línea es el título de un CAPÍTULO. Un `.txt` subido toma como título
+    el nombre de su archivo (`reader.py:236`), que es un hash, así que por
+    `.txt` no se puede suplantar un libro. Por EPUB, sí.
 - **Cita** (`ui.py:2089-2092`):
   ```python
   h = hashlib.sha256(
@@ -135,8 +139,8 @@ ataque. Se dice en cada caso.
 - **Por qué:**
   - La clave no incluye el texto, solo el título, las palabras y los títulos y
     recuentos de capítulo.
-  - Todo eso lo controla quien sube el archivo: el título sale del
-    `dc:title` del EPUB o de la cabecera del `.txt`.
+  - Todo eso lo controla quien sube un EPUB: el título sale de su
+    `dc:title`.
   - `RUTA_ANALISIS` es **común** a todos los lectores.
   - Un archivo con el mismo título y los mismos recuentos por capítulo que un
     libro del catálogo, pero con otro texto, guarda:

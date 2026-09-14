@@ -2162,16 +2162,60 @@ RUTA_ANALISIS = BASE_DATOS_LECTOR / "analisis"
 
 
 def _clave_libro(libro) -> str:
-    """Identifica un libro por su contenido, no por el nombre del archivo."""
+    """Identifica un libro por su contenido, no por el nombre del archivo.
+
+    Con el TEXTO dentro. La v3 solo miraba titulo, palabras y titulos de
+    capitulo, y la carpeta de analisis es comun a todos los lectores: un epub
+    subido con el titulo y los recuentos de un libro del catalogo -todo eso lo
+    elige quien sube el archivo- escribia la curva y la sinopsis que veian todos
+    los lectores del libro de verdad (revision de api.py en 2a49bf2, hallazgo
+    4). Con el texto, dos claves solo coinciden si el texto es el mismo, y
+    entonces compartir el analisis es correcto. Hashear un libro de 1 MB son
+    milisegundos.
+
+    Lo ya guardado con la v3 no se tira: `_heredar_clave_vieja`.
+    """
     import hashlib
     # La version entra en la clave: al empezar a recortar la licencia de
     # Gutenberg antes de puntuar, los analisis ya guardados dejaron de ser
     # comparables con los nuevos. Sin esto seguirian sirviendose los viejos.
     h = hashlib.sha256(
+        f"v4-con-texto\x1f{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
+    for c in libro.capitulos:
+        h.update(f"\x1e{c.titulo}\x1f".encode("utf-8"))
+        h.update(c.texto.encode("utf-8"))
+    return h.hexdigest()[:20]
+
+
+def _clave_libro_v3(libro) -> str:
+    """La clave anterior, sin el texto. Solo para heredar lo ya calculado."""
+    import hashlib
+    h = hashlib.sha256(
         f"v3-sin-portadilla\x1f{libro.titulo}\x1f{libro.palabras}".encode("utf-8"))
     for c in libro.capitulos[:40]:
         h.update(f"{c.titulo}\x1f{c.palabras}".encode("utf-8"))
     return h.hexdigest()[:20]
+
+
+def _heredar_clave_vieja(libro, ruta_nueva, sufijo: str) -> None:
+    """Si falta el archivo con la clave nueva, trae el de la v3, pero SOLO para
+    libros del catalogo.
+
+    Asi no se recalcula lo ya pagado: las sinopsis cuestan un uso cada una. Un
+    libro subido no hereda nunca, porque una clave v3 es justo lo que ese libro
+    podia suplantar. Se COPIA, no se mueve: si un archivo subido en Gradio se
+    llama `pg1342.epub` y tiene otro texto, heredaria una copia y el libro de
+    verdad conservaria la suya.
+    """
+    try:
+        if ruta_nueva.exists() or not getattr(libro, "id_catalogo", None):
+            return
+        vieja = RUTA_ANALISIS / f"{_clave_libro_v3(libro)}{sufijo}.json"
+        if vieja.is_file():
+            import shutil
+            shutil.copyfile(vieja, ruta_nueva)
+    except OSError:
+        pass
 
 
 def _palabras_del_cuerpo(libro) -> int:
@@ -2220,8 +2264,10 @@ def _analisis_guardado(libro, modo="completo"):
     escribe la app, no un usuario, pero un archivo a medias de un reinicio en
     mitad de la escritura tiene exactamente esta pinta.
     """
+    ruta = _ruta_analisis(libro, modo)
+    _heredar_clave_vieja(libro, ruta, "" if modo == "completo" else f"-{modo}")
     try:
-        d = json.loads(_ruta_analisis(libro, modo).read_text(encoding="utf-8"))
+        d = json.loads(ruta.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     if not isinstance(d, dict):
@@ -2514,6 +2560,7 @@ def _sinopsis_guardada(libro):
     """
     try:
         ruta = RUTA_ANALISIS / f"{_clave_libro(libro)}-sinopsis.json"
+        _heredar_clave_vieja(libro, ruta, "-sinopsis")
         d = json.loads(ruta.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
