@@ -67,6 +67,16 @@
   border: 1.5px solid var(--acento); background: var(--superficie); color: var(--acento-texto); font-weight: 700; font-size: 1.1rem; cursor: pointer; }
 .simbolo[disabled] { border-color: var(--borde); color: var(--texto-tenue); cursor: default; }
 .referencia { display: grid; gap: .4rem; justify-items: start; }
+/* El SVG trae sus trazos en gris (#6b7683) y sin fondo: dentro de un <img> no le
+   llegan las variables del tema, así que va sobre una lámina clara en todos. */
+.corte { display: block; width: min(240px, 100%); height: auto; margin: .25rem auto; padding: .4rem;
+  border-radius: var(--radio-sm); background: #f6f3ec; }
+.boca summary { display: inline-flex; align-items: center; gap: .4rem; min-height: 48px; cursor: pointer;
+  color: var(--acento-texto); font-weight: 650; list-style: none; }
+.boca summary::-webkit-details-marker { display: none; }
+.cortes { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
+.cortes figure { margin: 0; display: grid; gap: .25rem; justify-items: center; flex: 1 1 200px; max-width: 260px; }
+.cortes figcaption { font-size: .85rem; color: var(--texto-suave); text-align: center; }
 .otra { margin-top: .5rem; }
 
 .afi { margin: 1rem 0; }

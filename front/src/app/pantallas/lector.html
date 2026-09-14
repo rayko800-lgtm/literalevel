@@ -295,6 +295,10 @@
             <app-icono nombre="micro" />Leer esta frase en voz alta
           </a>
         </div>
+        @if (w.desde_cache) {
+          <!-- Para que se sepa que repetir la consulta no gastó cupo (como en Gradio). -->
+          <p class="tenue pequeno guardada"><app-icono nombre="check" />Respuesta guardada: esta consulta no ha gastado usos.</p>
+        }
       }
 
       <form class="otra" (ngSubmit)="consultarEscrita()">

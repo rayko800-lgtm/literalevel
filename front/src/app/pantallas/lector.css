@@ -79,6 +79,7 @@
 .contexto { margin: 0; padding: .5rem .9rem; border-left: 3px solid var(--acento); color: var(--lector-texto);
   background: var(--superficie-2); border-radius: 0 10px 10px 0; line-height: 1.55; }
 .acciones-palabra { margin-top: .2rem; }
+.guardada { display: flex; align-items: center; gap: .35rem; margin: 0; }
 .nota-compuesto { margin: 0; padding: .5rem .8rem; border-radius: var(--radio-sm); background: var(--ambar-suave);
   color: var(--texto); font-size: .92rem; line-height: 1.45; }
 .otra { display: flex; gap: .5rem; margin-top: auto; padding-top: .8rem; border-top: 1px solid var(--borde); }

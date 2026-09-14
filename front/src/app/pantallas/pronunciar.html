@@ -148,6 +148,29 @@
                   <span class="suave pequeno">como en <em lang="en">{{ f.ejemplos.join(', ') }}</em></span>
                 </div>
               }
+              @if (corteDelSonido(d) || corteDeLaPalabra(d)) {
+                <!-- Cerrado no descarga nada: el <img loading="lazy"> espera a que se abra.
+                     Si una imagen falla, se quita en vez de dejar el icono roto. -->
+                <details class="boca">
+                  <summary><app-icono nombre="ojo" />Ver cómo se mueve la boca</summary>
+                  <div class="cortes">
+                    @if (corteDelSonido(d); as sonido) {
+                      <figure>
+                        <img class="corte" [src]="sonido" width="240" height="248" loading="lazy" (error)="$any($event.target).closest('figure').hidden = true"
+                             [attr.alt]="'Corte de perfil de la boca haciendo el sonido /' + d.fonema?.simbolo + '/'" />
+                        <figcaption>El sonido /{{ d.fonema?.simbolo }}/</figcaption>
+                      </figure>
+                    }
+                    @if (corteDeLaPalabra(d); as palabra) {
+                      <figure>
+                        <img class="corte" [src]="palabra" width="240" height="248" loading="lazy" (error)="$any($event.target).closest('figure').hidden = true"
+                             [attr.alt]="'Corte de perfil de la boca diciendo ' + d.palabra" />
+                        <figcaption>La palabra entera: <span lang="en">{{ d.palabra }}</span></figcaption>
+                      </figure>
+                    }
+                  </div>
+                </details>
+              }
               @if (d.sonido_que_falla) { <p><strong>Qué falla:</strong> {{ d.sonido_que_falla }}</p> }
               @if (d.como_colocar_la_boca) { <p><strong>Cómo colocar la boca:</strong> {{ d.como_colocar_la_boca }}</p> }
             </article>
@@ -205,6 +228,8 @@
                 </button>
               </header>
               <p class="tenue pequeno">Como en <em lang="en">{{ s.ejemplos.join(', ') }}</em></p>
+              <img class="corte" [src]="corteSonido(s.simbolo)" width="240" height="248" loading="lazy"
+                   [attr.alt]="'Corte de perfil de la boca: cómo se colocan los labios y la lengua para /' + s.simbolo + '/'" />
               <dl>
                 <div><dt>Labios</dt><dd>{{ s.ficha.labios }}</dd></div>
                 <div><dt>Lengua</dt><dd>{{ s.ficha.lengua }}</dd></div>

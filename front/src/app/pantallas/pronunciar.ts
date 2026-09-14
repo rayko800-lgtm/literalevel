@@ -4,7 +4,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlMotor } from '../nucleo/api';
+import {
+  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
+} from '../nucleo/api';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 
@@ -202,6 +204,27 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   protected verFonemas(ev: Event): void {
     if ((ev.target as HTMLDetailsElement).open) this.cargarSonidos(this.acento());
+  }
+
+  /** «Reducir movimiento» del sistema: el corte de la boca, quieto en su posición. */
+  protected readonly sinMovimiento =
+    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  protected corteSonido(simbolo: string): string {
+    return urlCorteSonido(simbolo, this.acento(), this.sinMovimiento);
+  }
+
+  /** Primero el sonido que falla y luego la palabra entera (lo pidió Miguel).
+   *  El símbolo del fonema es del inventario americano: en «rp» daría 404. */
+  protected corteDelSonido(d: CorreccionVoz['detalles'][number]): string | null {
+    return d.fonema ? urlCorteSonido(d.fonema.simbolo, 'ga', this.sinMovimiento) : null;
+  }
+
+  /** La palabra sale aunque no haya fonema («tragic» entendido «Mahic»); con
+   *  «reducir movimiento», no: solo el sonido quieto. */
+  protected corteDeLaPalabra(d: CorreccionVoz['detalles'][number]): string | null {
+    if (!d.ipa || this.sinMovimiento) return null;
+    return urlCortePalabra(d.ipa, d.variante === 'UK' ? 'rp' : 'ga');
   }
 
   protected cambiarAcento(acento: Acento): void {

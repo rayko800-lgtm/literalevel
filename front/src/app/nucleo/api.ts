@@ -21,6 +21,17 @@ export function urlMotor(ruta: string | null | undefined): string | null {
   return /^https?:\/\//.test(ruta) ? ruta : BASE_API + ruta;
 }
 
+/** El corte de la boca de un sonido (SVG de animacion_articulatoria), animado o
+ *  quieto para quien pide reducir el movimiento. */
+export function urlCorteSonido(simbolo: string, acento: Acento, quieto = false): string {
+  return `${BASE_API}/api/articulacion/${acento}/${encodeURIComponent(simbolo)}.svg${quieto ? '?quieto=1' : ''}`;
+}
+
+/** La boca diciendo una palabra entera, a partir de su IPA. */
+export function urlCortePalabra(ipa: string, acento: Acento): string {
+  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento })}`;
+}
+
 /** Lo que se le enseña al lector cuando algo falla: una frase, nunca un código. */
 export function mensajeError(error: unknown, porDefecto = 'No he podido hablar con LiteraLevel.'): string {
   if (error instanceof HttpErrorResponse) {
