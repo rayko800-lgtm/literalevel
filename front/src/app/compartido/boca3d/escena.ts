@@ -809,6 +809,10 @@ export class EscenaBoca {
         destino.userData['modelado'] = true;
         destino.material = new THREE.MeshPhysicalMaterial({ color: colorLabios, roughness: 0.48,
           clearcoat: 0.15, clearcoatRoughness: 0.4 });
+        // Las shape keys del labio (fruncir, estirar): el visor las mezcla
+        // desde el largo entre comisuras de la pose. Sin ellas, se escala.
+        destino.updateMorphTargets();
+        destino.scale.set(1, 1, 1);
       }
       (Array.isArray(materialAnterior) ? materialAnterior : [materialAnterior]).forEach(m => m.dispose());
       for (const nombre of nombres.slice(2)) {
@@ -934,7 +938,14 @@ export class EscenaBoca {
 
   private labio(m: THREE.Mesh, largo: number, radio: number): void {
     if (m.userData['modelado']) {
-      m.scale.set(radio / 0.3, radio / 0.3, largo / 2.3);
+      const dic = m.morphTargetDictionary, inf = m.morphTargetInfluences;
+      if (dic && inf && 'fruncir' in dic && 'estirar' in dic) {
+        // 2,3 es el largo neutro; 1,05 el de «muy redondeados»; 2,9 el de «estirados».
+        inf[dic['fruncir']] = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05)));
+        inf[dic['estirar']] = Math.min(1, Math.max(0, (largo - 2.3) / (2.9 - 2.3)));
+      } else {
+        m.scale.set(radio / 0.3, radio / 0.3, largo / 2.3);
+      }
       return;
     }
     const u = m.userData as { largo: number; radio: number };
