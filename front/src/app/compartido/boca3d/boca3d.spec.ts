@@ -92,6 +92,17 @@ describe('trocearIpa y resolver', () => {
 });
 
 describe('líneas de tiempo', () => {
+  it('la /h/, que lo deja todo libre, abre la mandíbula en su ciclo para que se vea algo', () => {
+    const h = { ...REPOSO, movimiento: 'fricativa' as const, sonora: false, lugar: 'glotal',
+                libres: ['mandibula', 'labios', 'punta', 'cuerpo'] as const, leyenda: 'aire en la garganta' };
+    const l = cicloSonido({ ...h, libres: [...h.libres] }, CATALOGO_PROTOTIPO);
+    expect(l.quieta.mandibula).toBeGreaterThan(REPOSO.mandibula + 0.2);
+    expect(l.claves.some(c => c.pose.mandibula > REPOSO.mandibula + 0.2)).toBe(true);
+    const n = poseNumerica(l.quieta);
+    expect(n[n.length - 1]).toBe(1);                   // el aire oral, último valor de la pose numérica
+    expect(poseNumerica(REPOSO)[n.length - 1]).toBe(0);
+  });
+
   it('el ciclo de un sonido dura 2,8 s, empieza y acaba en reposo y pasa por el sonido', () => {
     const l = cicloSonido(POSES_PROTOTIPO['p'], CATALOGO_PROTOTIPO);
     expect(l.total).toBe(2.8);

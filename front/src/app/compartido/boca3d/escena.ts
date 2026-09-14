@@ -74,9 +74,10 @@ export const MORFOS_LENGUA = [
   'cuerpo_delante', 'cuerpo_atras', 'dorso_velo', 'raiz_atras',
 ] as const;
 
-/** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos]. */
+/** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos, aire oral]. */
 const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, I_MORFOS = I_NUDOS + N_NUDOS * 2;
-const TAMANO = I_MORFOS + MORFOS_LENGUA.length;
+const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
+const TAMANO = I_AIRE_ORAL + 1;
 type PoseNumerica = Float64Array;
 
 /** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
@@ -84,7 +85,7 @@ function morfosDe(pose: PoseSonido): number[] {
   const [alt, ade] = pose.cuerpo;
   const toca = pose.punta_toca;
   return [
-    Math.min(1, Math.max(0, pose.mandibula)),
+    0.3 * Math.min(1, Math.max(0, pose.mandibula)),   // el resto lo pone el giro de la mandíbula
     pose.punta === 'alveolar' || pose.punta === 'postalveolar' ? (toca ? 1 : 0.75) : pose.punta === 'dental' ? 0.45 : 0,
     pose.punta === 'retrofleja' ? 1 : 0,
     pose.punta === 'interdental' ? 1 : 0,
@@ -243,6 +244,9 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
     n[I_NUDOS + 2 * i] = J[i][0]; n[I_NUDOS + 2 * i + 1] = J[i][1];
   }
   morfosDe(pose).forEach((v, i) => { n[I_MORFOS + i] = v; });
+  // El aire por la boca se marca en la /h/: sale de la garganta y no hay
+  // nada en la boca que lo pare, que es lo que la distingue del reposo.
+  n[I_AIRE_ORAL] = pose.lugar === 'glotal' ? 1 : 0;
   return n;
 }
 
@@ -298,6 +302,15 @@ function arcoDental(grupo: THREE.Group, y: number, alto: number, mat: THREE.Mate
     if (!incisivo) laterales.push(diente);
   }
   return laterales;
+}
+
+/** El aire por la boca: de la garganta, sobre la lengua, sale entre los labios. */
+function geometriaAireOral(): THREE.BufferGeometry {
+  const curva = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(2.55, -1.9, 0), new THREE.Vector3(2.5, -0.7, 0), new THREE.Vector3(1.6, 0.35, 0),
+    new THREE.Vector3(0.0, 0.6, 0), new THREE.Vector3(-1.6, 0.35, 0), new THREE.Vector3(-3.6, 0.1, 0),
+  ]);
+  return new THREE.TubeGeometry(curva, 40, 0.09, 8, false);
 }
 
 /** El aire nasal: de la faringe, por detrás del velo, sube a la nariz y sale. */
@@ -450,6 +463,9 @@ export class EscenaBoca {
   private readonly lengua: THREE.Mesh;
   private readonly mejilla: THREE.Mesh;
   private readonly aireNasal: THREE.Mesh;
+  private readonly aireOral: THREE.Mesh;
+  /** Las piezas que van dentro de la mandíbula, en coordenadas del mundo con la boca cerrada. */
+  private readonly dentroMandibula: THREE.Group;
   /** La lengua modelada (si se pidió y ya cargó) y sus morfos por índice. */
   private lenguaGlb: THREE.Mesh | null = null;
   private indicesMorfos: (number | undefined)[] = [];
@@ -553,11 +569,17 @@ export class EscenaBoca {
     }));
     this.aireNasal.renderOrder = 4;
     this.escena.add(this.aireNasal);
+    this.aireOral = new THREE.Mesh(geometriaAireOral(), material('#2f9cc0', {
+      transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#2f9cc0'), emissiveIntensity: 0.4,
+    }));
+    this.aireOral.renderOrder = 4;
+    this.escena.add(this.aireOral);
 
     // Mandíbula: gira en el pivote y arrastra hueso, dientes inferiores y labio
     // inferior. `dentro` deshace el desplazamiento del pivote para que las
     // piezas se coloquen en coordenadas del mundo con la boca cerrada.
     const dentro = new THREE.Group();
+    this.dentroMandibula = dentro;
     dentro.position.set(-PIVOTE_MAND.x, -PIVOTE_MAND.y, 0);
     dentro.add(tuboArco(-0.2, 0.2, mEncia));
     dentro.add(tuboArco(-0.62, 0.28, mHueso, 2.6));
@@ -716,7 +738,9 @@ export class EscenaBoca {
       this.indicesMorfos = MORFOS_LENGUA.map(nombre => dic[nombre]);
       this.lenguaGlb = m;
       this.lengua.visible = false;
-      this.escena.add(m);
+      // La lengua va sobre el suelo de la boca: baja y gira con la mandíbula
+      // (consejo de entrega-4e); el morfo `mandibula` solo añade un poco.
+      this.dentroMandibula.add(m);
       this.aplicar(this.actual);
     }, undefined, () => { /* sin lengua modelada: se queda el tubo */ });
   }
@@ -803,6 +827,7 @@ export class EscenaBoca {
     // El aire nasal aparece a medida que el velo baja.
     const abierto = (n[I_VELO] - VELO_CERRADO) / (VELO_ABIERTO - VELO_CERRADO);
     (this.aireNasal.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, abierto));
+    (this.aireOral.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, n[I_AIRE_ORAL]));
     this.labioSup.position.set(n[I_LS], n[I_LS + 1], 0);
     this.labio(this.labioSup, n[I_LS + 2], n[I_LS + 3]);
     // El labio inferior vive en la mandíbula: su posición es local al pivote.

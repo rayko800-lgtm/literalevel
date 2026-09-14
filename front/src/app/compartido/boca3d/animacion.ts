@@ -32,10 +32,19 @@ function objetivos(pose: PoseSonido, vecino: PoseSonido, reposo: PoseSonido): [P
   return [a, b];
 }
 
+/** Un sonido que lo deja todo libre (/h/: la boca ya está en la vocal) no
+ *  se distingue del reposo. Para que se vea algo, abre la mandíbula. */
+function conAlgoQueVer(pose: PoseSonido, resuelta: PoseSonido, R: PoseSonido): PoseSonido {
+  const libres = pose.libres ?? [];
+  const todoLibre = (['mandibula', 'labios', 'punta', 'cuerpo'] as const).every(c => libres.includes(c));
+  return todoLibre ? { ...resuelta, mandibula: Math.max(resuelta.mandibula, R.mandibula + 0.25) } : resuelta;
+}
+
 /** Reposo → sonido → reposo, en un ciclo de 2,8 s. */
 export function cicloSonido(pose: PoseSonido, catalogo: CatalogoPoses): Linea {
   const R = catalogo.reposo;
-  const [PA, PB] = objetivos(pose, R, R);
+  const [PA0, PB] = objetivos(pose, R, R);
+  const PA = conAlgoQueVer(pose, PA0, R);
   const m = pose.movimiento;
   let claves: Clave[];
   if (m === 'oclusiva') {

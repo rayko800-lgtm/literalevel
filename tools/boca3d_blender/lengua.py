@@ -157,7 +157,9 @@ arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas q
 
 clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))))
 clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) ** 1.3), toca=True, margen_x=(-0.3, 0.1))
-clave("punta_atras", lambda x, y, z: (0.9 * punta_w(x) ** 1.2, 0.0, 0.95 * punta_w(x)))
+# Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
+# para que la punta no se doble sobre el cuerpo (comprobado abajo).
+clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
 clave("punta_interdental", lambda x, y, z: (-0.6 * punta_w(x), 0.0, 0.45 * punta_w(x)))
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)))
@@ -199,19 +201,34 @@ poses["reposo"] = catalogo["reposo"]
 
 informe = []
 peor = 0.0
+peor_pliegue = 0.0
+ES_PUNTA = [punta_w(x) > 0.6 for x, _, _ in base]
+ES_CUERPO = [punta_w(x) < 0.15 for x, _, _ in base]
 for nombre, p in poses.items():
     inf = morfos_de(p)
     toca = p["punta_toca"] or p["dorso_velo"]
     permitido = TOLERANCIA_TOQUE if toca else 0.0
     entra = 0.0
+    pos = []
     for i, (x, y, z) in enumerate(base):
         nx = x + sum(w * CLAVES[m][i][0] for w, m in zip(inf, MORFOS))
         nz = z + sum(w * CLAVES[m][i][2] for w, m in zip(inf, MORFOS))
+        pos.append((nx, y, nz))
         entra = max(entra, nz - techo(nx, p["velo_abierto"]))
+    # La lengua no se dobla sobre si misma: ningun vertice de la punta queda
+    # por debajo de la cara de arriba del cuerpo en su misma vertical.
+    cuerpo = [(px, py, pz) for (px, py, pz), c in zip(pos, ES_CUERPO) if c]
+    pliegue = 0.0
+    for (px, py, pz), es_punta in zip(pos, ES_PUNTA):
+        if not es_punta:
+            continue
+        techo_cuerpo = max((cz for cx, cy, cz in cuerpo if abs(cx - px) < 0.1 and abs(cy - py) < 0.12), default=-9.0)
+        pliegue = max(pliegue, techo_cuerpo - pz)
     exceso = entra - permitido
-    informe.append((nombre, round(entra, 3), round(exceso, 3)))
+    informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3)))
     peor = max(peor, exceso)
-informe.sort(key=lambda r: -r[2])
+    peor_pliegue = max(peor_pliegue, pliegue)
+informe.sort(key=lambda r: -max(r[2], r[3]))
 
 # --- Material y exportacion --------------------------------------------------
 
@@ -236,9 +253,9 @@ print("LENGUA_OK", json.dumps({
     "blender": bpy.app.version_string, "bytes": length, "vertices": len(ob.data.vertices),
     "morph_targets": [len(p.get("targets", [])) for p in malla["primitives"]],
     "targetNames": malla.get("extras", {}).get("targetNames"),
-    "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3),
-    "peores": informe[:6],
+    "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3), "peor_pliegue": round(peor_pliegue, 3),
+    "peores (nombre, entra, exceso, pliegue)": informe[:6],
 }, ensure_ascii=False))
-if peor > 0.005:
-    print("COLISION: alguna pose entra en el techo mas de lo permitido", file=sys.stderr)
+if peor > 0.005 or peor_pliegue > 0.005:
+    print("COLISION: alguna pose entra en el techo o la punta se dobla sobre el cuerpo", file=sys.stderr)
     sys.exit(1)
