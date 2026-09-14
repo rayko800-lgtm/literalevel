@@ -37,8 +37,12 @@ import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe } fro
     </div>
     @if (modo() === '3d') {
       <div class="pie">
-        <span class="pista">Gira la boca con el dedo</span>
-        <button type="button" class="boton pequeno fantasma" (click)="restablecer()">Vista de lado</button>
+        <span class="pista">{{ giroLibre() ? 'Arrastra en cualquier dirección' : 'Arrastra de lado para girar la boca' }}</span>
+        <span class="botones">
+          <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
+                  (click)="alternarGiro()">Girar libremente</button>
+          <button type="button" class="boton" (click)="restablecer()">Vista de lado</button>
+        </span>
       </div>
     }
     @if (leyenda() && pose()?.leyenda; as l) {
@@ -58,10 +62,13 @@ import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe } fro
     .lienzo[hidden] { display: none; }
     .respaldo { display: block; width: 100%; height: auto; }
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }
-    .pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;
-      font-size: .9em; color: var(--texto-tenue, #647189); }
+    .pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      margin-top: 8px; font-size: .9em; color: var(--texto-tenue, #647189); }
+    .botones { display: flex; gap: 6px; }
     .boton { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde, #d6deeb);
       background: transparent; color: inherit; cursor: pointer; min-height: 36px; }
+    .boton.activo { background: var(--acento-suave, #e6ecff); border-color: var(--acento, #2f5bea);
+      color: var(--acento-texto, #2449c9); }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
   `,
 })
@@ -80,6 +87,8 @@ export class Boca3d {
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
+  /** El lienzo captura también los gestos verticales (sin scroll sobre la boca). */
+  readonly giroLibre = signal(false);
   private readonly elegidoPorChip = signal<string | null>(null);
   readonly elegido = computed(() => this.elegidoPorChip() ?? this.sonido());
   readonly simbolos = computed(() => Object.keys(this.catalogo().sonidos));
@@ -138,5 +147,10 @@ export class Boca3d {
 
   restablecer(): void {
     this.escena?.restablecerVista();
+  }
+
+  alternarGiro(): void {
+    this.giroLibre.update(v => !v);
+    this.escena?.girarLibre(this.giroLibre());
   }
 }

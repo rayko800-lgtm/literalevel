@@ -375,6 +375,7 @@ export class EscenaBoca {
   private sucio = true;
   private vivo = true;
   private rafId = 0;
+  private libre = false;
   reducirMovimiento: boolean;
 
   constructor(private readonly contenedor: HTMLElement, opciones: OpcionesEscena = {}) {
@@ -387,7 +388,6 @@ export class EscenaBoca {
     this.canvas.style.display = 'block';
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
-    this.canvas.style.touchAction = 'none';
     contenedor.appendChild(this.canvas);
 
     this.camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
@@ -403,6 +403,11 @@ export class EscenaBoca {
     this.controles.maxPolarAngle = 2.5;
     this.controles.addEventListener('change', () => { this.sucio = true; });
     this.controles.update();
+    // OrbitControls pone touch-action: none al conectarse, y eso deja la
+    // página sin scroll sobre la boca. Con pan-y el navegador se queda los
+    // gestos verticales (scroll) y nos manda pointercancel; los horizontales
+    // giran la boca. `girarLibre(true)` captura todo, para quien lo pida.
+    this.girarLibre(false);
 
     this.escena.add(new THREE.HemisphereLight(0xffffff, 0x6b7a90, 1.3));
     const luz = new THREE.DirectionalLight(0xffffff, 1.7);
@@ -514,6 +519,18 @@ export class EscenaBoca {
 
   restablecerVista(): void {
     this.vista(0.02);
+  }
+
+  /** Con `true` el lienzo captura todos los gestos táctiles (también los
+   *  verticales); con `false`, solo los horizontales y la página sigue
+   *  haciendo scroll. */
+  girarLibre(activo: boolean): void {
+    this.libre = activo;
+    this.canvas.style.touchAction = activo ? 'none' : 'pan-y';
+  }
+
+  get giraLibre(): boolean {
+    return this.libre;
   }
 
   destruir(): void {

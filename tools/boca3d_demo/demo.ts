@@ -14,7 +14,8 @@ function arrancar(): void {
     <div class="chips"></div>
     <div class="visor"></div>
     <p class="leyenda"></p>
-    <p class="pista">Arrastra para girar la boca. <button type="button" class="reset">Vista de lado</button>
+    <p class="pista">Arrastra de lado para girar la boca. <button type="button" class="reset">Vista de lado</button>
+      <label><input type="checkbox" class="libre" /> girar libremente (sin scroll sobre la boca)</label>
       <label><input type="checkbox" class="lento" /> transición lenta</label></p>`;
   const chips = raiz.querySelector('.chips')!;
   const visor = raiz.querySelector('.visor') as HTMLElement;
@@ -46,6 +47,8 @@ function arrancar(): void {
     chips.appendChild(b);
   }
   raiz.querySelector('.reset')!.addEventListener('click', () => escena.restablecerVista());
+  const libre = raiz.querySelector('.libre') as HTMLInputElement;
+  libre.addEventListener('change', () => escena.girarLibre(libre.checked));
   const params = new URLSearchParams(location.search);
   ir(params.get('s') ?? '');
   // ?giro=0.9 abre la vista girada de entrada (para capturas sin tocar la pantalla).
