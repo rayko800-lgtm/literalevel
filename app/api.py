@@ -1875,8 +1875,11 @@ def inicio(pet: Lector) -> dict:
             if 0 <= e["capitulo"] < len(lib.capitulos):
                 c = lib.capitulos[e["capitulo"]]
                 seguir["titulo_capitulo"] = c.titulo
-                parrafos = [" ".join(t.split()) for t in re.split(r"\n\s*\n", c.texto)
-                            if len(t.split()) >= 25]
+                # Los párrafos LIMPIOS del lector (`_parrafos`: sin la licencia de
+                # Gutenberg ni la portadilla), no el texto crudo: con el progreso
+                # en el capítulo 0, «Donde lo dejaste» enseñaba la licencia (b9).
+                parrafos = [p for p in _parrafos(lib, e["capitulo"])
+                            if len(p.split()) >= 25 and not _es_preambulo(p) and not _parece_indice(p)]
                 if parrafos:
                     frases = ui._oraciones(ui._sin_encabezado(parrafos[0]))
                     seguir["extracto"] = " ".join(frases[:2])[:280] if frases else None

@@ -381,6 +381,34 @@ def libro_con_licencia_abre_en_la_obra():
     return c["parrafos"][0][:40]
 
 
+def extracto_de_seguir_leyendo_salta_la_licencia():
+    """b9, capturas del guion: «Donde lo dejaste» con el progreso en el capítulo 0
+    enseñaba como extracto el texto de la licencia de Gutenberg."""
+    cabecera = ("The Project Gutenberg eBook of Pruebas de lectura\n\n"
+                "*** START OF THE PROJECT GUTENBERG EBOOK PRUEBAS DE LECTURA ***\n\n"
+                "Produced by Alguien Inventado and the Online Distributed Proofreading Team at "
+                "https://www.pgdp.net. This eBook is for the use of anyone anywhere in the United States "
+                "and most other parts of the world at no cost and with almost no restrictions whatsoever.\n\n")
+    parrafo = " ".join(["The old gardener walked slowly along the path beside the quiet river."] * 5)
+    texto = cabecera + "\n\n".join([parrafo] * 12)
+    lector = nuevo_lector()
+    dentro = ui._dentro_del_limite
+    ui._dentro_del_limite = lambda pet, cubo, tope: True   # la suite ya roza el tope de subidas
+    try:
+        d = _ok(cliente.post("/api/libros", headers=lector,
+                             files={"archivo": ("portadilla.txt", texto.encode(), "text/plain")}))
+    finally:
+        ui._dentro_del_limite = dentro
+    _ok(cliente.put(f"/api/libros/{d['id']}/progreso", headers=lector, json={"capitulo": 0}))
+    seguir = _ok(cliente.get("/api/inicio", headers=lector))["seguir"]
+    assert seguir and seguir["id"] == d["id"] and seguir["capitulo"] == 0, seguir
+    extracto = (seguir.get("extracto") or "").lower()
+    assert extracto.startswith("the old gardener"), extracto
+    for sucio in ("gutenberg", "produced by", "ebook", "proofreading"):
+        assert sucio not in extracto, f"el extracto trae «{sucio}»"
+    return extracto[:40]
+
+
 def cuento_de_parrafos_cortos_no_pierde_el_principio():
     """El recorte de la portada solo va en el capitulo con la marca de Gutenberg."""
     import re
@@ -919,7 +947,8 @@ if __name__ == "__main__":
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
                aviso_de_contenido_en_ficha_y_tarjeta, devolucion_va_a_la_cuenta_cobrada,
                sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
-               historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion):
+               historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion,
+               extracto_de_seguir_leyendo_salta_la_licencia):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
