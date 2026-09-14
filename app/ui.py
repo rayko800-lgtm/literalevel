@@ -1150,10 +1150,16 @@ NOTA_NIVEL_HEREDADO = (
 # Y cuando el catalogo YA esta medido, decir "heredada y sin medir" seria
 # mentir en la otra direccion. La letra de un libro medido sale del numero del
 # v4 sobre el libro entero (`catalogo.Catalogo`, con `scoring.anchor_cefr`).
+# Los cuentos cortos de los corpus libres (StoryWeaver, African Storybook, Let's
+# Read, VOA) no se miden uno a uno: van en bloques de 250 palabras o mas por
+# fuente y nivel. Decir «entero, capitulo a capitulo» de ellos no era verdad
+# (prueba como persona de f4, 14 sep).
 NOTA_NIVEL_MEDIDO = (
-    "La letra de cada libro sale de **medirlo entero con el modelo**, capítulo "
-    "a capítulo. Es orientativa: el modelo ordena bien los niveles, pero no "
-    "certifica ninguno. Al abrirlo, la curva dice dónde se pone cuesta arriba."
+    "La letra de cada libro sale de **medirlo con el modelo**: los libros, "
+    "enteros y capítulo a capítulo; los cuentos cortos, en un bloque con otros "
+    "de su misma fuente y nivel. Es orientativa: el modelo ordena bien los "
+    "niveles, pero no certifica ninguno. Al abrir un libro largo, la curva dice "
+    "dónde se pone cuesta arriba."
 )
 
 

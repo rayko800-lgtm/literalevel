@@ -1108,6 +1108,18 @@ def temas_para_la_portada():
     return f"PG1661 {esperados[:2]}, {LIBRE} {ficha['temas']}"
 
 
+def nota_de_nivel_dice_libros_y_cuentos():
+    """Prueba de f4 (4): la nota bajo los resultados decía «medirlo entero,
+    capítulo a capítulo», que no es verdad para los cuentos medidos en bloque."""
+    nota = ui._nota_nivel()
+    assert ui.catalogo().medido, "el catálogo de pruebas no está medido"
+    assert nota == ui.NOTA_NIVEL_MEDIDO, nota
+    assert "los libros, enteros y capítulo a capítulo" in nota, nota
+    assert "los cuentos cortos, en un bloque con otros de su misma fuente y nivel" in nota, nota
+    assert "medirlo entero" not in nota, nota
+    return nota[:70]
+
+
 def plurales_de_los_minutos():
     """Prueba de f4 (1): «1 minutos». Uno en singular y sin «unos»; varios, «unos N»."""
     assert ui._cuanto_falta(1) == "en 1 minuto" and ui._cuanto_falta(0) == "en 1 minuto"
@@ -1273,6 +1285,7 @@ if __name__ == "__main__":
                corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
                temas_para_la_portada, portada_por_ia_si_existe, plurales_de_los_minutos,
+               nota_de_nivel_dice_libros_y_cuentos,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
