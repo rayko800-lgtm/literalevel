@@ -1,218 +1,557 @@
-% LiteraLevel: guion actualizado a Angular + API, 14 septiembre 2026.
-% Fuente hablada equivalente: guion_video.md; contador: tools/contar_guion.py.
+% ===========================================================================
+%  LiteraLevel — Guion del vídeo (Módulo 5, 20 puntos)
+%  Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
+%
+%  Mismo estilo que documento.tex a proposito: mismos colores, misma
+%  tipografia, mismos escudos. Los dos entregables tienen que parecer del
+%  mismo trabajo.
+%
+%    tectonic guion_video.tex
+%    pdflatex guion_video (x2)
+% ===========================================================================
+
 \documentclass[11pt,a4paper]{article}
-\usepackage{fontspec}
+
+\usepackage{iftex}
+\usepackage{graphicx}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+
 \usepackage[spanish,es-noquoting,es-nodecimaldot]{babel}
 \usepackage[a4paper,margin=2.4cm,headheight=14pt]{geometry}
-\usepackage{graphicx}
 \usepackage{microtype}
 \usepackage{setspace}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
 \usepackage{enumitem}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{tabularx}
 \usepackage{xcolor}
+\usepackage{tikz}
 \usepackage[most]{tcolorbox}
 \usepackage[hidelinks]{hyperref}
+
 \definecolor{llazul}{HTML}{1F4E79}
 \definecolor{llcian}{HTML}{2E86AB}
+\definecolor{llverde}{HTML}{2A9D8F}
+\definecolor{llambar}{HTML}{E9A13B}
+\definecolor{llrojo}{HTML}{C1495B}
 \definecolor{llgris}{HTML}{5A5A5A}
 \definecolor{llgrisclaro}{HTML}{E8ECF0}
 \definecolor{llfondo}{HTML}{F7F9FB}
+
 \setstretch{1.10}
-\setlist{itemsep=4pt,topsep=4pt}
+\setlist{itemsep=2pt, topsep=4pt}
+
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{\small\color{llgris} LiteraLevel · guion del vídeo}
+\lhead{\small\color{llgris} LiteraLevel — guion del vídeo}
 \rhead{\small\color{llgris} Módulo 5 · 20 pts}
 \cfoot{\small\thepage}
-\titleformat{\section}{\large\bfseries\color{llazul}}{}{0em}{}
-\newtcolorbox{dice}{colback=white,colframe=llazul!55,boxrule=0.8pt,arc=1mm,
-  left=8pt,right=8pt,top=7pt,bottom=7pt,enhanced,breakable}
-\newtcolorbox{ve}{colback=llfondo,colframe=llgrisclaro,boxrule=0.7pt,arc=1mm,
-  left=8pt,right=8pt,top=6pt,bottom=6pt,enhanced,breakable}
-\newcommand{\fase}[2]{\section{#1}\noindent{\small\bfseries\color{llcian}#2}\par\medskip}
+
+\titleformat{\section}{\large\bfseries\color{llazul}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+% --- Caja de lo que se DICE -----------------------------------------------
+\newtcolorbox{dice}[1][]{
+  colback=white, colframe=llazul!55, boxrule=0.9pt, arc=2mm,
+  left=8pt, right=8pt, top=7pt, bottom=7pt,
+  fonttitle=\bfseries\small\color{white},
+  colbacktitle=llazul, title={#1}, enhanced, breakable}
+
+% --- Caja de lo que se VE / se hace ---------------------------------------
+\newtcolorbox{ve}{
+  colback=llfondo, colframe=llgrisclaro, boxrule=0.8pt, arc=2mm,
+  left=8pt, right=8pt, top=6pt, bottom=6pt, enhanced, breakable}
+
+% --- Etiqueta de tiempo ----------------------------------------------------
+\newcommand{\reloj}[1]{{\small\bfseries\color{llcian}#1}}
+
+% --- Fase de ANSVA ---------------------------------------------------------
+\newcommand{\fase}[3]{%
+  \vspace{0.5em}
+  \noindent\begin{tikzpicture}
+    \node[fill=#3, text=white, rounded corners=3pt, inner xsep=8pt,
+          inner ysep=4pt, font=\bfseries] (l) {#1};
+    \node[right=8pt of l, font=\large\bfseries, text=llazul] {#2};
+  \end{tikzpicture}\par\vspace{0.3em}}
+
+\usetikzlibrary{positioning}
+
 \begin{document}
-\hypersetup{pageanchor=false}
+
+% ===========================================================================
 \begin{titlepage}
 \centering
-\begin{minipage}{0.22\textwidth}\raggedright
-\includegraphics[height=2.2cm]{logos/logo_unam.png}
-\end{minipage}\hfill
-\begin{minipage}{0.52\textwidth}\centering
-{\large\bfseries Universidad Nacional Autónoma de México}\par\medskip
-{\normalsize Facultad de Estudios Superiores Acatlán}
-\end{minipage}\hfill
-\begin{minipage}{0.22\textwidth}\raggedleft
-\includegraphics[height=2.2cm]{logos/logo_fes_acatlan.png}
-\end{minipage}
-\vspace{2cm}
-{\Huge\bfseries\color{llazul} Guion del vídeo}\par\bigskip
-{\LARGE LiteraLevel}\par\bigskip
-{\large Angular + API FastAPI}\par
-\vspace{1.5cm}
-{\Large Miguel Reyes Carrillo}\par\bigskip
-{\large Proyecto integrador · Módulo 5}\par
-{\normalsize Diplomado en Ciencia de Datos · Generación 34}\par\bigskip
-{\normalsize Mtro. Fernando Barranco Rodríguez}\par
-\vfill
-\begin{ve}
-\centering
-\textbf{MP4 · máximo 5:00 · cara visible todo el tiempo}\par\medskip
-Objetivo: \textbf{4:40}. Texto hablado: \textbf{480 palabras}.\par
-3:12 a 150 palabras/min; unos 3:42 a 130.\par
-Con hasta 55 segundos de acciones: presupuesto conservador \textbf{4:37}.\par\medskip
-\small Estimación, no ensayo cronometrado. Actualizado el 14 de septiembre de 2026.
-\end{ve}
-\end{titlepage}
-\hypersetup{pageanchor=true}
 
-\section{Preparación de la toma}
-El producto que se muestra es \textbf{Angular con la API FastAPI}. Gradio
-queda como motor y respaldo. OBS debe mostrar la app y la cara de Miguel
-durante toda la grabación, sin superponer la cámara a los resultados.
+\begin{minipage}{0.25\textwidth}
+    \raggedright
+    \includegraphics[height=2.4cm]{logos/logo_unam.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    \centering
+    {\large\bfseries Universidad Nacional Autónoma de México\par}
+    \vspace{0.2cm}
+    {\normalsize FACULTAD DE ESTUDIOS SUPERIORES ACATLÁN\par}
+\end{minipage}
+\hfill
+\begin{minipage}{0.25\textwidth}
+    \raggedleft
+    \includegraphics[height=2.4cm]{logos/logo_fes_acatlan.png}
+\end{minipage}
+
+\vspace{2.2cm}
+
+{\Huge\bfseries\color{llazul} Guion del vídeo\par}
+
+\vspace{0.5cm}
+
+{\LARGE LiteraLevel\par}
+
+\vspace{1.6cm}
+
+{\Large\bfseries Proyecto integrador --- Módulo 5\par}
+
+\vspace{1.0cm}
+
+{\large
+\textbf{Alumno:}\\
+Miguel Reyes Carrillo
+\par}
+
+\vspace{0.6cm}
+
+{\large
+\textbf{Profesor:}\\
+Mtro. Fernando Barranco Rodríguez
+\par}
+
+\vspace{0.6cm}
+
+{\large Diplomado en Ciencia de Datos --- Generación 34\par}
+
+\vfill
+
+\begin{tcolorbox}[colback=llfondo, colframe=llazul!35, boxrule=0.8pt,
+                  arc=3mm, width=13cm, halign=center]
+  {\large\bfseries\color{llazul} MP4 · máximo 5 minutos · cara visible todo el tiempo}\\[4pt]
+  {\small Objetivo: \textbf{4:40}. Texto hablado: \textbf{496 palabras} = 3:18 a 150 palabras por minuto (3:49 a 130).\\ El resto, hasta 4:40, es lo que tarda la demo en vivo.}
+\end{tcolorbox}
+
+\vspace{0.6cm}
+
+{\normalsize Ciudad de México, septiembre de 2026\par}
+
+\end{titlepage}
+
+% ===========================================================================
+\section{Por qué está construido así}
+
+Sobre el método \textbf{ANSVA} de Fernando Miralles, campeón de España de
+oratoria: \textbf{A}tención, \textbf{N}ecesidad, \textbf{S}atisfacción,
+\textbf{V}isualización, \textbf{A}cción.
+
+No es un adorno. Encaja con lo que la rúbrica premia, porque el módulo declara
+que lo que evalúa es \emph{«hacer que esos modelos sean accesibles y valiosos
+para un usuario final»}. ANSVA obliga a hablar del usuario antes que del
+modelo, que es exactamente el orden que se espera.
+
+Y se cruza con la plantilla de la \textbf{presentación modelo del propio
+profesor}: cifras grandes y desnudas en vez de párrafos, objetivos numerados,
+métricas sin adornos, y sobre todo su \emph{«Ejemplo de uso y aplicación»} ---
+tomar \emph{un} caso real y recorrerlo paso a paso. Aquí es \textbf{el mismo
+caso que recorren el documento (§8.2) y la diapositiva «Ejemplo de uso y
+aplicación»}: un perfil \textbf{1,20 sobre 2}, preparado para el ejemplo, y \emph{Crime and
+Punishment}. Los tres entregables cuentan el mismo recorrido, con el mismo perfil y el mismo libro. \textbf{La aplicación que se enseña es el \emph{front}
+de Angular} (\texttt{mikemaki1763-literalevel-front.static.hf.space}), en el
+móvil: es lo que se entrega desde el 13 de septiembre de 2026, a petición del
+profesor.
+
+\begin{ve}
+\textbf{Nota honesta sobre las fuentes.} ANSVA está verificado y es suyo.
+Miralles enseña además una \emph{«estructura de la sardina»}, y PAS, y ADP, de
+las que encontré el nombre pero \textbf{no su anatomía} en fuentes públicas ---
+están en su libro y su curso. No las he usado para no inventármelas.
+\end{ve}
+
+\begin{ve}
+\textbf{Versión fusionada.} Parte del guion de b9 (698b804) con tres cambios
+del de Codex (13281a9): el texto recortado a menos de 500 palabras, la hoja de
+la palabra contada en dos tiempos (lo local al instante; la traducción y la
+explicación después, con IA) con el perfil 1,20 dicho como preparado para el
+ejemplo, y la preparación de la toma (respaldo rotulado, privacidad y ensayo
+cronometrado).
+\end{ve}
+
+\subsection{Cómo se reparte el tiempo}
+
+\begin{center}
+\begin{tikzpicture}[font=\small]
+  \foreach \x/\w/\c/\n in {0.00/1.56/llcian/A, 1.76/1.68/llverde/N, 3.64/6.24/llazul/S, 10.08/1.56/llambar/V, 11.84/0.96/llrojo/A}
+    \draw[fill=\c, draw=none, rounded corners=1.5pt]
+      (\x,0) rectangle (\x+\w,0.55) node[midway, text=white, font=\bfseries] {\n};
+  \node[below] at (0.78,-0.05) {13\,\%};
+  \node[below] at (2.60,-0.05) {14\,\%};
+  \node[below] at (6.76,-0.05) {52\,\%};
+  \node[below] at (10.86,-0.05) {13\,\%};
+  \node[below] at (12.32,-0.05) {8\,\%};
+\end{tikzpicture}
+\end{center}
+
+\noindent La \textbf{S} se lleva la mitad. A y N juntas no pasan de un cuarto:
+son el trampolín, no la piscina.
+
+\subsection{Tres consejos de entrega}
+
 \begin{itemize}
-\item Abrir \url{https://mikemaki1763-literalevel-front.static.hf.space/} a
-390 px de ancho o duplicar el móvil. Comprobar que texto y cámara son legibles.
-\item Entrar en Ajustes antes de grabar. No mostrar contraseña, identificador
-de lector, consola, secretos ni paneles de administración.
-\item Preparar un perfil \textbf{ilustrativo} de 1,20 sobre 2, buscar
-\emph{dostoyevski} y abrir \emph{Crime and Punishment} (PG2554). No es una
-sesión real registrada ni un resultado fijo del cuestionario.
-\item Abrir previamente la curva guardada. El ejemplo documentado ronda
-1,70; si la medición vigente cambia, decir el valor visible. No mezclar el
-ensayo de EPUB (203.699 palabras, 840 ventanas) con el de TXT (203.415, 836),
-ni prometer esos tiempos en el móvil.
-\item Preparar una palabra y una frase corta. \textbf{Traducción y explicación
-llegan con la etapa de IA}, no con una supuesta respuesta completa en 40 ms.
-Conservar los avisos de acepción dudosa. Sin permiso, mostrar la parte gratuita.
-\item Ensayar micrófono y audio de la app. No prometer un fonema concreto:
-la corrección depende de lo que se entienda. Anunciar un error intencional si
-se representa como demostración.
-\item Comprobar el apoyo articulatorio en la ficha IPA y en la corrección:
-el modelo Blender de 38 piezas se carga al abrir el 3D y conserva un respaldo
-2D. Es una ayuda didáctica, no clínica. Ensayar su apertura sin alargar la toma.
-\item Las portadas FLUX siguen pendientes. No fingir imágenes generadas,
-respuestas en vivo ni tiempos de espera que no ocurrieron.
-\item Preparar un respaldo del mismo recorrido. Si se usa, rotular
-\textbf{grabación previa}; no presentarlo como respuesta en vivo.
+  \item \textbf{Mira a la cámara, no a la pantalla.} Es lo que la rúbrica exige
+        y lo que más se nota. Pon la ventana de OBS justo debajo del objetivo.
+  \item \textbf{Las pausas no son huecos, son puntuación.} Después de cada cifra
+        grande, callarse un segundo. El silencio es lo que hace que un número
+        suene grande.
+  \item \textbf{Ensáyalo dos veces con cronómetro y una tercera grabando.} El
+        primer intento siempre sale a seis minutos.
 \end{itemize}
 
-\section{Ritmo y ensayo}
-ANSVA organiza el relato: atención, necesidad, satisfacción, visualización y
-acción. Reservar hasta 55 segundos para clics, frase leída, audio y pausas.
-Si el ensayo supera 4:40, recortar acciones; no acelerar hasta resultar
-incomprensible. La presentación es apoyo para la defensa: no hay que leer
-todas las diapositivas en el vídeo.
+\subsection{Preparación de la toma}
 
-El contador oficial es \texttt{tools/contar\_guion.py}. Cuenta los parlamentos
-de \texttt{guion\_video.md}, sin notas de producción. El ensayo completo con
-acciones es lo que decide si cabe en cinco minutos.
+\begin{itemize}
+  \item \textbf{Ensayo cronometrado, y se corta a 4:40.} Si un ensayo pasa de
+        4:40, se detiene y se recortan acciones (menos toques, menos espera),
+        no palabras dichas más deprisa. El MP4 final nunca pasa de 5:00.
+  \item \textbf{Privacidad.} Entra antes de grabar y fuera de plano: en la toma
+        no se ven la contraseña, el identificador de lector, la consola del
+        navegador, claves ni paneles de administración.
+  \item \textbf{Grabación de respaldo.} Graba antes el mismo recorrido. Si en
+        directo algo falla y se usa, va rotulada en pantalla como
+        \textbf{grabación previa}: nunca se presenta una reproducción como
+        respuesta en vivo.
+  \item \textbf{La boca en 3D, de lejos.} Hasta que el \emph{front} desplegado
+        lleve los \texttt{.glb} corregidos (rama \texttt{boca3d}, 75f334a), la
+        lengua que carga es la anterior y roza los dientes en seis sonidos,
+        entre ellos las dos \emph{th}. Si se abre el 3D, no acercar la cámara
+        a la lengua; para enseñar el movimiento basta el corte 2D.
+\end{itemize}
+
 \newpage
+% ===========================================================================
+\section{El guion}
 
-\fase{A · Atención}{0:00 - 0:25}
-\begin{ve}\textbf{En pantalla:} LiteraLevel. Miguel visible. Pausa breve tras
-la pregunta.\end{ve}
-\begin{dice}
-¿Te ha pasado? Abres un libro en inglés que te interesa y, a las pocas
-páginas, lo dejas. Quizá no era falta de capacidad: quizá necesitabas otra
-lectura. LiteraLevel te ayuda a comparar la dificultad de un libro con tu
-nivel antes de empezar, y te acompaña mientras lees.
+\fase{A}{ATENCIÓN}{llcian}
+\reloj{0:00 – 0:30}
+
+\begin{ve}
+\textbf{En pantalla:} portada. Solo el nombre \emph{LiteraLevel} y una frase.
+Sin logotipo animado, sin música.
+\end{ve}
+
+\begin{dice}[Miguel, a cámara]
+Un hispanohablante que quiere leer en inglés se topa siempre con el mismo
+muro. Elige un libro que suena bien, lo abre\ldots{} y a las tres páginas lo cierra.
+
+No porque no sepa inglés. Porque \textbf{eligió mal el libro}.
+
+Nadie le dijo que \emph{Moby Dick} le quedaba grande y que \emph{El sabueso de los
+Baskerville} le quedaba justo. Eso es lo que hace LiteraLevel.
 \end{dice}
 
-\fase{N · Necesidad}{0:25 - 0:50}
-\begin{ve}\textbf{En pantalla:} ficha de libro con nivel y curva por
-capítulos.\end{ve}
+\begin{ve}
+\emph{Pausa de un segundo antes de pasar de diapositiva.}
+\end{ve}
+
+\fase{N}{NECESIDAD}{llverde}
+\reloj{0:30 – 1:00}
+
+\begin{ve}
+\textbf{En pantalla:} tres cifras grandes, una por línea. Nada más.\\
+\textbf{1.500 millones} de personas estudian inglés \quad·\quad
+\textbf{la lectura extensiva} es de los métodos con más respaldo \quad·\quad
+\textbf{53.179} libros gratis, medidos.
+\end{ve}
+
 \begin{dice}
-Hay miles de libros gratuitos, pero elegir uno adecuado sigue siendo difícil.
-Además, un libro no tiene una sola dificultad: sus capítulos cambian.
-Nuestro usuario es un hispanohablante que quiere leer en inglés con autonomía.
-Necesita una orientación comprensible, no otro examen ni una etiqueta que
-prometa más de lo que puede medir.
+La investigación es clara: leer mucho, a un nivel algo por encima del tuyo,
+es de lo que mejor funciona.
+
+El problema no es encontrar libros: hay decenas de miles gratis. El problema es
+\textbf{saber cuál}.
+
+Las etiquetas que existen ---A1, B2, C1--- casi nunca las pone alguien que haya
+leído el libro. Y un libro no tiene una sola dificultad: cambia de capítulo a
+capítulo.
 \end{dice}
 
-\fase{S · Satisfacción}{0:50 - 3:35}
-\begin{ve}\textbf{En pantalla:} Angular. Recorrer Tu nivel, Encontrar, ficha,
-lector, Pronunciar y Mis palabras. Mostrar el perfil ilustrativo preparado;
-las credenciales ya están introducidas fuera de toma.\end{ve}
+\fase{S}{SATISFACCIÓN}{llazul}
+\reloj{1:00 – 3:35}
+
+\begin{ve}
+\textbf{En pantalla:} el \textbf{\emph{front} de Angular en el móvil} y
+\textbf{usarlo de verdad}. Nada de capturas pegadas: que se vea el dedo (o el
+cursor) moverse. Dos maneras de enseñar el móvil en OBS: la pantalla del
+teléfono duplicada en el equipo, o el navegador del equipo con la vista de
+dispositivo a \textbf{390 px} de ancho, que es como se probó el \emph{front}.
+Miguel sigue a cámara todo el rato; la app va en una ventana al lado.
+\textbf{Usa el mismo caso que el documento §8.2 y la diapositiva «Ejemplo de
+uso y aplicación»}: perfil \textbf{1,20} y \emph{Crime and Punishment}
+(PG2554). Las cifras que se dicen ---203.415 palabras, media 1,70--- son las
+que dio la app publicada el 12 de septiembre de 2026, con el libro abierto
+desde el buscador (en \texttt{.txt}, el mismo texto con el que se midió el
+catálogo, 836 ventanas; el documento cita 203.699 y 840 porque aquella medida
+se hizo sobre el EPUB: no mezclar las dos). El motor es el mismo detrás del
+\emph{front}, así que las cifras no cambian; si la ficha enseña otro valor,
+\textbf{di el que se ve}. Y el libro \textbf{se abre desde el buscador}: escribe
+«dostoyevski» en \emph{Encontrar} y sale.
+
+\textbf{El libro del recorrido tiene que ser uno que el buscador devuelva.}
+Si hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
+
+\textbf{Entra antes de grabar, y úsala.} Entrar es \emph{Ajustes
+$\rightarrow$ Tu perfil} (usuario y contraseña), fuera de plano: sin entrar, la explicación en
+contexto y la corrección de pronunciación no salen, porque son lo que cuesta
+dinero. Y tres cosas de la primera vez, medidas el 11 de septiembre de 2026 y
+que siguen igual, porque el motor es el mismo:
+
+\begin{itemize}
+  \item La \textbf{primera consulta léxica de la sesión tarda unos 55 segundos}:
+        carga el diccionario de 243 MB, spaCy y el modelo de similitud. Los
+        \textbf{40 milisegundos} que dices a cámara son \textbf{en caliente} y
+        cubren \textbf{solo lo local}: lema, diccionario, acepción y fonética
+        (§8.2 del documento). \textbf{La traducción y el «Aquí significa» salen
+        de la IA} y llegan unos segundos después, en la segunda etapa de la hoja:
+        no los atribuyas al diccionario ni a los 40 ms. \textbf{Consulta una palabra
+        cualquiera antes de grabar} y el paso Cuatro va fluido. Si el motor
+        llevaba horas sin visitas, la primera llamada tarda además medio minuto
+        en despertarlo; el \emph{front} lo dice en pantalla. Despiértalo antes.
+  \item \textbf{Calcula la curva del libro antes.} Queda guardada, así que en la
+        toma sale en segundos en vez de en dos minutos de silencio. Y hasta que no
+        está calculada, la ficha no sabe si el libro te queda por encima y te da el
+        rango en vez del dato.
+  \item \textbf{Con tu perfil puesto, \emph{Crime and Punishment} no sale el
+        primero.} Probado en la app publicada el 12 de septiembre de 2026 con un
+        perfil de 1,34: «dostoyevski» devuelve primero \emph{Best Russian Short
+        Stories} y \textbf{el nuestro, segundo}; sin perfil sale tercero, tras
+        \emph{The Idiot} y \emph{The House of the Dead}. Con otro perfil puede
+        moverse un puesto. Está en la lista y se abre bien; \textbf{elígelo sin
+        dudar}, que dudar delante de la cámara parece que la app no lo encuentra.
+  \item \textbf{Con perfil 1,20 no esperes capítulos sugeridos para este libro.}
+        Su capítulo más llevadero mide 1,52, por encima de lo que la app ofrece a
+        ese nivel, así que la sugerencia ---bien hecha--- no sale. Si quieres
+        enseñarla, abre \emph{Alice's Adventures in Wonderland} o
+        \emph{Adventures of Huckleberry Finn}: los dos quedan por encima y tienen
+        capítulos a tu nivel.
+\end{itemize}
+
+\textbf{El perfil 1,20 se prepara antes y se dice como preparado.} El
+cuestionario no garantiza ese número: responderlo en directo puede dar otro.
+Deja puesto el perfil de 1,20 y, en el paso Uno, enseña el resultado.
+\emph{Mídeme con un texto}, que nombras, y \emph{Mídeme con un libro que ya
+leí} están en \emph{Tu nivel}, bajo «Afinar»: no las hagas en directo, que el
+libro tarda en medirse.
+
+\textbf{Y la palabra del paso Cuatro se elige antes, no en directo.} El
+diccionario solo trae fonética en el 3,1\% de sus entradas ---el 58\% de las
+consultas sobre un libro real, §6.4 del documento---, así que la fonética
+depende de la palabra que se toque. Y hay una segunda
+trampa, medida: \textbf{las palabras con el contraste británico/americano más
+bonito son las polisémicas, que es justo donde el desambiguador flojea}. De las
+tres apariciones de \emph{clerk} en estos capítulos, dos devuelven una acepción
+eclesiástica ---«laico que asiste en el oficio anglicano»--- y las tres salen
+marcadas «dudosa».
+
+Así que la palabra del plano está \textbf{medida}, no elegida por bonita:
+\textbf{poverty}, afinidad \textbf{0,505} ---por encima del umbral de duda, así
+que sale sin aviso---, acepción correcta, y la fonética británica y la americana
+se oyen distintas. Está en \emph{«He was in terrible poverty, yet he took upon
+himself the payment of his brother's debts»}, y encima es el tema del libro. Si
+quieres otra: \textbf{torture} (0,504) o \textbf{cruelty} (0,502). En la hoja
+de la palabra se ve \textbf{«En español»} (la traducción) y \textbf{«Aquí
+significa»}; la marca \textbf{IA} solo sale cuando la definición no viene del
+diccionario, así que \textbf{para enseñar la marca toca antes una palabra que
+Wiktionary no traiga} (un nombre propio raro del capítulo vale) y vuelve a
+\emph{poverty}.
+
+Y si alguna vez sale el aviso de \textbf{«no estoy seguro de que sea esta
+acepción», dilo en voz alta}: que el modelo avise de que no está seguro es de
+lo mejor que tiene esta aplicación, y es el mismo criterio que la banda en vez
+del decimal.
+
+\textbf{La frase del paso Cinco la trae la app} («Una frase de mi libro» en
+\emph{Pronunciar}), así que es del capítulo abierto. La corrección depende de lo que se
+entienda: si la lees perfecta, dirá que se entendió todo y no habrá sonido que
+señalar. Si lees alguna palabra mal a propósito para que salga, dilo («la digo
+mal a propósito»). El botón del sonido \textbf{suena} (audio pregrabado, sin coste) y
+«Ver cómo se mueve la boca» abre \textbf{primero el sonido y después la
+palabra entera}, animados. Con «Reducir movimiento» del sistema salen quietos:
+tenlo apagado al grabar. Y la boca en 3D, de lejos (ver \emph{Preparación de
+la toma}).
+
+\textbf{Planos de pantalla que hacen falta}, en el orden del guion. Son la
+referencia de lo que tiene que verse en cada paso y el plan B si algo falla en
+directo; todos a 390 px de ancho, con perfil 1,20 puesto:
+
+\begin{itemize}
+  \item {}[CAPTURA: inicio del \emph{front} en el móvil, con la navegación Leer ·
+        Encontrar · Pronunciar · Tu nivel]
+  \item {}[CAPTURA: Ajustes $\rightarrow$ Tu perfil, formulario Usuario y
+        Contraseña con el botón «Entrar», sin nada escrito]
+  \item {}[CAPTURA: Tu nivel, resultado «1,20 de 2 · intermedio» con la escala y
+        la franja de lecturas recomendadas]
+  \item {}[CAPTURA: Tu nivel $\rightarrow$ «Afinar»: «Mídeme con un texto» y
+        «Mídeme con un libro que ya leí»]
+  \item {}[CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
+        con el nivel al lado de cada libro, \emph{Crime and Punishment} visible]
+  \item {}[CAPTURA: ficha de \emph{Crime and Punishment}: 203.415 palabras,
+        diálogo, vocabulario y la curva medida con la media 1,70 y la línea «tu
+        nivel»]
+  \item {}[CAPTURA: lector con la hoja de \emph{poverty}: fonética con audio, «En
+        español» y «Aquí significa»]
+  \item {}[CAPTURA: hoja de una palabra que el diccionario no trae, con la marca
+        «IA» en la definición]
+  \item {}[CAPTURA: Pronunciar, con la frase del libro escrita y la barra de
+        acción fija abajo: micrófono en el centro y «Corrígeme»]
+  \item {}[CAPTURA: la corrección palabra por palabra, el sonido que falla con su
+        botón de audio y «Cómo colocar la boca»]
+  \item {}[CAPTURA: «Ver cómo se mueve la boca» abierto: el corte del sonido y el
+        de la palabra entera]
+  \item {}[CAPTURA: Mis palabras, con la lista de palabras consultadas y su
+        frase, y «Repasa cinco»]
+  \item {}[CAPTURA: para el cierre, la dirección del \emph{front} grande sobre la
+        portada: \texttt{mikemaki1763-literalevel-front.static.hf.space}]
+\end{itemize}
+\end{ve}
+
 \begin{dice}
-Esta es la aplicación. La interfaz está hecha en Angular y se comunica con
-una API FastAPI. El motor de Python también conserva Gradio como respaldo.
+Esto es LiteraLevel, en el móvil. Este \emph{front} lo pidió el profesor en la
+revisión.
 
-Primero, sitúo mi nivel con un cuestionario o con un texto que ya leo cómodo.
-Para este ejemplo preparé un perfil de \textbf{1,20 sobre 2}, banda intermedia.
+\textbf{Uno.} Mido mi nivel con unas preguntas y tres fragmentos reales, o con un texto mío.
+Para este ejemplo, un perfil preparado: \textbf{1,20 sobre 2}. \emph{(mostrar el resultado)}
 
-Ahora busco. Puedo describir en español lo que me apetece leer. Escribo
-\emph{dostoyevski} y elijo \emph{Crimen y castigo}. La ficha muestra datos del
-texto y su curva de dificultad. En este ejemplo, el libro ronda \textbf{1,70}.
-Al compararlo con mi perfil, veo que me exigirá más.
+\textbf{Dos.} Describo en español lo que me apetece leer y busca por significado,
+\textbf{con mi nivel al lado de cada libro}. Escribo \emph{dostoyevski}, y lo encuentra.
 
-Entro al lector y toco una palabra. Primero aparece el diccionario, con la
-pronunciación disponible. Después, si tengo permiso para usar IA, llegan la
-traducción y la explicación de esa frase. El diccionario y el texto generado
-se distinguen; si la acepción es dudosa, la aplicación lo avisa.
+\textbf{Tres.} Abro \emph{Crimen y castigo}: \textbf{203.415 palabras}, cuánto es diálogo, qué se repite. Y la curva: \textbf{la
+dificultad capítulo a capítulo}. Media \textbf{1,70}. Mi perfil es 1,20: me queda
+por encima, y lo sé antes de la primera página.
 
-También puedo practicar una frase en voz alta. Grabo y pido la corrección.
-Comparo las palabras que se entendieron con las que quería decir, escucho el
-audio de referencia y abro el apoyo de articulación para practicar.
+\textbf{Cuatro.} \emph{(tocar} poverty\emph{)} Toco una palabra y en \textbf{40 milisegundos}
+tengo el diccionario y la fonética. Unos segundos después llega lo que pone
+la IA: la traducción y qué significa \textbf{en esta frase}. Y si el diccionario no la
+trae, la define un modelo y lo marca: \textbf{IA}.
 
-Las palabras consultadas quedan en \textbf{Mis palabras}, con su frase, para
-volver a ellas sin perder el contexto.
+\textbf{Cinco.} \emph{(leer la frase y pulsar Corrígeme)} Leo en voz alta y pulso
+\emph{Corrígeme}: me marca lo que se entendió, me señala \textbf{el
+sonido} que falla, lo oigo bien dicho y veo \textbf{cómo se mueve la boca}.
+\emph{(abrir Ver cómo se mueve la boca)}
 
-Detrás está un modelo distilroberta afinado en regresión. Su validación interna
-registró un Spearman de \textbf{0,908}. Es una medida de orden, no una nota para
-el lector. \textbf{No certificamos ningún nivel del MCER}: usamos una escala
-propia de cero a dos para orientar la lectura.
+\textbf{Seis.} Lo que consulto se queda en \textbf{Mis palabras}, con su frase, para
+repasar.
 \end{dice}
 
-\fase{V · Visualización}{3:35 - 4:15}
-\begin{ve}\textbf{En pantalla:} 53.179 libros de Gutenberg y 585.111 capítulos
-medidos. No confundir con el catálogo objetivo de 61.642 ni con los corpus
-graduados.\end{ve}
-\begin{dice}
-El catálogo medido reúne \textbf{53.179 libros} de Project Gutenberg y
-\textbf{585.111 capítulos}. La aplicación aprovecha esa información para
-comparar lecturas y, cuando hay capítulos adecuados, sugerir por dónde empezar.
+\begin{ve}
+\textbf{En pantalla, al terminar la demo:} las métricas desnudas.\\[3pt]
+\textbf{distilroberta-base} \quad·\quad Spearman \textbf{0,908} interno \quad·\quad
+orden MCER estrictamente creciente en textos externos \quad·\quad escala pública 0--2
+\end{ve}
 
-Leer, buscar y consultar el diccionario no requieren llamadas de pago a
-OpenAI. La explicación y la voz tienen su puerta de acceso y su cuota.
-La siguiente validación será comprobar con lectores si esta ayuda mejora
-su experiencia y continuidad.
+\begin{dice}
+Detrás, un distilroberta afinado: Spearman de 0,908 en
+validación interna, y en textos externos con nivel oficial, el orden de A1 a
+C1 sale estrictamente creciente.
+
+Y lo digo con todas las letras: \textbf{no certificamos ningún nivel del MCER}.
+Sirve para elegir qué leer, no para acreditar nada.
 \end{dice}
 
-\fase{A · Acción}{4:15 - 4:40}
-\begin{ve}\textbf{En pantalla:}
-\url{https://mikemaki1763-literalevel-front.static.hf.space/}.
-Mantener la mirada un segundo al terminar; cara visible hasta el final.\end{ve}
+\fase{V}{VISUALIZACIÓN}{llambar}
+\reloj{3:35 – 4:15}
+
+\begin{ve}
+\textbf{En pantalla:} el catálogo. \textbf{53.179} libros de Project Gutenberg y
+\textbf{585.111} capítulos, y debajo: \emph{medidos enteros por el modelo}.
+\end{ve}
+
 \begin{dice}
-Este es el enlace de LiteraLevel. Se abre en el navegador del móvil o del
-ordenador. Elige un libro que te interese, compara su dificultad con tu perfil
-y prueba una página con las ayudas de lectura. Ese es el siguiente paso:
-no demostrar cuánto inglés sabes, sino encontrar qué te apetece seguir leyendo.
+Ahora imagina esto a escala.
+
+Hemos medido \textbf{53.179 libros} de Project Gutenberg enteros, capítulo a
+capítulo: \textbf{585.111 capítulos}.
+
+Y eso permite algo que una etiqueta por libro no puede: si un libro te queda
+grande, la aplicación te dice \textbf{qué capítulos sí están a tu nivel}.
+
+Para el lector eso significa empezar el libro que le toca, entender lo que
+lee, \textbf{y seguir}.
 \end{dice}
+
+\fase{A}{ACCIÓN}{llrojo}
+\reloj{4:15 – 4:40}
+
+\begin{ve}
+\textbf{En pantalla:} el enlace del \emph{front}, grande:\\
+\texttt{mikemaki1763-literalevel-front.static.hf.space}\\
+Y debajo, pequeño: el repositorio y el motor:\\
+\texttt{huggingface.co/spaces/\allowbreak MikeMaki1763/\allowbreak literalevel}
+\end{ve}
+
+\begin{dice}
+LiteraLevel funciona ahora mismo, no es una maqueta. Este es el enlace; se
+abre en el móvil.
+
+Si hablas español y alguna vez abandonaste un libro en inglés pensando que el
+problema eras tú ---no lo eras. Era el libro.
+
+Pruébalo.
+\end{dice}
+
+\begin{ve}
+\emph{Mantener la mirada un segundo después de la última palabra. No cortar en
+seco: el corte inmediato después de hablar es lo que hace que un vídeo parezca
+casero.}
+\end{ve}
+
 \newpage
-
+% ===========================================================================
 \section{Comprobación antes de grabar}
-\noindent\begin{tabularx}{\textwidth}{@{}p{0.22\textwidth} X@{}}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X l@{}}
 \toprule
-\textbf{Comprobación} & \textbf{Criterio} \\
+\textbf{Comprobación} & \textbf{Cómo} \\
 \midrule
-Duración real & Ensayo completo menor de 4:40; MP4 final nunca supera 5:00 \\[5pt]
-Cámara & Cara visible y reconocible todo el tiempo \\[5pt]
-Pantalla & Texto legible; cámara no tapa controles ni resultados \\[5pt]
-Privacidad & Sin contraseñas, tokens, IDs de lector ni datos de terceros \\[5pt]
-Sonido & Micrófono y audio de la app se oyen sin saturar \\[5pt]
-Estado & Front abre y backend responde; no basta un 200 con HTML \\[5pt]
-Ejemplo & Libro y palabra preparados; valores dichos coinciden con pantalla \\[5pt]
-IA & No atribuir traducción al diccionario ni ocultar el aviso de duda \\[5pt]
-Respaldo & Si se reproduce una captura, rotular grabación previa \\[5pt]
-Formato & Exportar MP4 y reproducirlo completo antes de entregar \\
+¿El ensayo completo baja de 4:40? & cronometrarlo; si pasa, recortar acciones \\
+¿Se te ve la cara \textbf{todo} el rato? & requisito explícito de la rúbrica \\
+¿Es MP4, y dura menos de 5:00? & reproducirlo entero antes de entregar \\
+¿Se oye el audio de la app en la demo? & comprobar niveles en OBS \\
+¿Funciona el micrófono para la pronunciación? & \textbf{hace falta un headset} \\
+¿El enlace del final está vivo? & pegarlo en el móvil y abrirlo \\
+¿El motor está despierto y has entrado? & \emph{Ajustes $\rightarrow$ Tu perfil} fuera de plano, y una palabra antes \\
+¿No se ve nada privado? & ni contraseña, ni identificador, ni consola, ni claves \\
+¿Hay respaldo grabado? & si se usa, rotulado \textbf{grabación previa} \\
+¿Lo que dices coincide con lo que se ve? & perfil, media de la ficha y palabra \\
+¿«Reducir movimiento» está apagado en el sistema? & si no, la boca sale quieta \\
 \bottomrule
 \end{tabularx}
-\bigskip
+\end{center}
 
-Las métricas corresponden a la documentación del modelo, no a una nueva
-evaluación hecha al grabar. Este guion no demuestra mejora pedagógica ni
-ausencia total de fallos; esos resultados necesitan una evaluación propia.
+\section{Lo que este guion no hace, a propósito}
+
+\begin{itemize}
+  \item \textbf{No explica cómo funciona el modelo por dentro.} Eso es el
+        documento y el cuaderno. Un vídeo de cinco minutos que explica
+        arquitecturas no vende nada.
+  \item \textbf{No pide disculpas por lo que falta.} Las limitaciones van en el
+        documento, donde se leen con calma; en el vídeo restan y no suman.
+  \item \textbf{No abre con «Hola, soy Miguel y les voy a presentar\ldots»}.
+        Esa frase gasta ocho segundos de los primeros diez, que son los que
+        deciden si te siguen escuchando.
+\end{itemize}
+
 \end{document}
