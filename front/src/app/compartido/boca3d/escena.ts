@@ -359,17 +359,22 @@ function geometriaLabio(largo: number, radio: number): THREE.BufferGeometry {
 /** La mejilla: una lámina translúcida en el lado de la cámara, con las
  *  esquinas redondeadas, para que la cabeza tenga un lado sin tapar nada. */
 function geometriaMejilla(): THREE.BufferGeometry {
+  // Sigue el perfil de la cara modelada (tools/boca3d_blender/cara.py): el
+  // puente de la nariz y el techo nasal por arriba, la faringe por detrás, el
+  // mentón por debajo y, delante, se queda detrás de las comisuras y de la
+  // nariz, que sobresalen. Sin cara modelada también cierra bien las piezas
+  // simples.
   const f = new THREE.Shape();
-  f.moveTo(-2.1, 0.7);
-  f.quadraticCurveTo(-2.5, 1.2, -1.6, 1.55);
-  f.lineTo(2.3, 1.85);
-  f.quadraticCurveTo(3.1, 1.9, 3.05, 1.1);
-  f.lineTo(3.05, -1.9);
-  f.quadraticCurveTo(3.0, -2.5, 2.3, -2.45);
-  f.lineTo(-1.3, -2.2);
-  f.quadraticCurveTo(-2.3, -2.1, -2.3, -1.2);
-  f.lineTo(-2.35, 0.2);
-  f.quadraticCurveTo(-2.4, 0.55, -2.1, 0.7);
+  f.moveTo(-2.35, 0.95);                              // bajo la nariz, detrás de los labios
+  f.quadraticCurveTo(-2.55, 2.1, -2.35, 3.05);        // el lateral de la nariz, hasta el puente
+  f.quadraticCurveTo(-0.6, 3.0, 1.8, 2.75);           // el techo nasal
+  f.quadraticCurveTo(3.0, 2.5, 3.1, 1.5);             // la nasofaringe
+  f.quadraticCurveTo(3.25, -0.6, 2.85, -2.3);         // la pared de la faringe
+  f.quadraticCurveTo(2.7, -2.75, 2.0, -2.45);         // la garganta
+  f.quadraticCurveTo(0.5, -2.4, -0.8, -2.35);         // debajo del mentón
+  f.quadraticCurveTo(-2.4, -2.2, -2.85, -1.2);        // el mentón
+  f.quadraticCurveTo(-3.0, -0.6, -2.55, -0.15);       // el surco bajo el labio
+  f.quadraticCurveTo(-2.35, 0.3, -2.35, 0.95);        // detrás de las comisuras
   const g = new THREE.ExtrudeGeometry(f, { depth: 0.05, bevelEnabled: false });
   return g;
 }
