@@ -220,6 +220,33 @@ for ipa in ("/ˈtɹædʒɪk/", largo, "/ˈmoʊstli/"):
     solapes = [(i, j) for i, j in zip(orden, orden[1:]) if iv[i][1] > iv[j][0] + 0.11]
     comprobar(f"los rotulos de {ipa} no se montan", len(orden) > 1 and not solapes, str(solapes))
 
+# --- 6. Que se distinga cada pieza ----------------------------------------------
+# Miguel (14 sep): «la lengua se ve como todo pegado, no logro distinguir».
+t_quieto = aa.svg_articulacion_quieto("t")
+comprobar("el paladar duro tiene cuerpo, en otro color que la lengua",
+          f'fill="{aa._HUESO}"' in t_quieto and aa._HUESO not in aa._LENGUA)
+# El contorno es una copia rellena y algo mayor, sin trazo: un stroke en los
+# trapecios se estiraba con su escala y salian rectangulos granates enormes.
+comprobar("la lengua lleva contorno oscuro, sin trazo que se estire",
+          f'<g fill="{aa._BORDE_LENGUA}">' in t_quieto and 'stroke-width="3.2"' not in t_quieto)
+comprobar("el suelo de la boca no es de la tinta de la lengua",
+          f'rx="48" ry="20" fill="{aa._SUELO}"' in t_quieto and f'rx="48" ry="20" fill="{aa._LENGUA}"' not in t_quieto)
+comprobar("el suelo va debajo de la lengua", t_quieto.index(f'fill="{aa._SUELO}"') < t_quieto.index(f'fill="{aa._LENGUA}"'))
+comprobar("dientes blancos con borde oscuro", t_quieto.count(f'fill="{aa._DIENTE}" stroke="{aa._DIENTE_BORDE}"') == 2)
+comprobar("la punta de la lengua va resaltada", re.search(r'-j0"><circle r="2\.1"', t_quieto) is not None)
+contactos = {"t": aa._LUGARES["alveolar"], "k": aa._velo_superficie(False)[3], "θ": aa._LUGARES["interdental"],
+             "v": aa._LUGARES["labiodental"], "p": aa._LUGARES["bilabial"]}
+for s, (x, y) in contactos.items():
+    for modo, funcion in (("quieto", aa.svg_articulacion_quieto), ("animado", aa.svg_articulacion)):
+        comprobar(f"/{s}/ {modo}: un aro marca donde toca",
+                  f'-ct" transform="translate({aa._n(x)},{aa._n(y)})"' in funcion(s))
+for s in ("i", "s", "ɹ", "ə"):
+    comprobar(f"/{s}/: sin aro de contacto, porque no toca", '-ct"' not in aa.svg_articulacion(s))
+t_animado = aa.svg_articulacion("t")
+comprobar("el aro se enciende solo con la posicion del sonido",
+          re.search(r"@keyframes ll[0-9a-f]+-ct\{", t_animado) is not None)
+comprobar("el aro quieto no se anima", "@keyframes" not in t_quieto)
+
 print()
 print(f"pesos de los SVG de sonido: minimo {min(pesos)}, medio {sum(pesos) // len(pesos)}, maximo {max(pesos)} bytes")
 if FALLOS:

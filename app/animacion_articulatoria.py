@@ -695,6 +695,17 @@ _TRAZO = "var(--ll-trazo,#6b7683)"
 _ACENTO = "var(--ll-acento,#2f9cc0)"
 _LENGUA = "var(--ll-lengua,#d9727f)"
 _VIBRA = "#e39b3a"
+# Cada pieza en su color, para que se distinga en un movil (Miguel, 14 sep: «la
+# lengua se ve como todo pegado, no logro distinguir»). Todo va dentro de un
+# <img> sobre una lamina clara (#f6f3ec en el front), asi que son colores fijos.
+_BORDE_LENGUA = "#9e3b4a"   # contorno de la lengua
+_HUESO = "#dccfb9"          # paladar duro
+_SUELO = "#dcbcc0"          # suelo de la boca, debajo de la lengua
+_DIENTE = "#ffffff"
+_DIENTE_BORDE = "#4f5966"
+_TOCA = "#1d6f8f"           # donde toca
+_PALADAR_FORMA = ("M64,97C70,99 74,97 78,92C84,82 104,72 130,71C150,71 162,73 170,77"
+                  "L172,68C140,66 80,72 52,78Z")
 _FUENTE = "'Segoe UI','Charis SIL','Doulos SIL','DejaVu Sans',Arial,sans-serif"
 
 _ANATOMIA = (
@@ -797,21 +808,40 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
 
     p = f'class="{P}-p {P}-'
     partes = []
+    # Paladar duro con cuerpo, entre el suelo de la nariz y el techo de la boca:
+    # asi el hueco de aire entre el paladar y la lengua se ve como hueco.
+    partes.append(f'<path d="{_PALADAR_FORMA}" fill="{_HUESO}"/>')
+    # El suelo de la boca va con la mandibula y DEBAJO de la lengua, en otro color.
+    partes.append(f'<g {p}mand"><ellipse cx="124" cy="146" rx="48" ry="20" fill="{_SUELO}" '
+                  f'stroke="{_TRAZO}" stroke-width="1"/></g>')
     # Anatomia fija.
     partes.append(f'<g fill="none" stroke="{_TRAZO}" stroke-width="1.6" stroke-linecap="round" '
                   f'stroke-linejoin="round">{_ANATOMIA}</g>')
     # Pliegues vocales.
     partes.append(f'<path d="M192,197L200,200 192,203ZM210,197L202,200 210,203Z" fill="{_TRAZO}"/>')
-    # Lengua: raiz, cuerpo, dorso y punta (misma tinta: se ven como una sola).
+    # Lengua: raiz, cuerpo, dorso y punta, con un contorno oscuro. El contorno es
+    # una copia de las mismas piezas con trazo grueso, pintada debajo: por fuera
+    # asoma el borde y por dentro la tapa la copia de relleno, sin costuras.
     ncx, ncy, nrx, nry = _NUCLEO
-    lengua = [f'<ellipse {p}nu" cx="{_n(ncx)}" cy="{_n(ncy)}" rx="{_n(nrx)}" ry="{_n(nry)}"/>']
-    for i in range(7):
-        tramo = ""
-        if i < 6:
-            r0, r1 = _RADIOS[i], _RADIOS[i + 1]
-            tramo = f'<path {p}s{i}" d="M0,-{_n(r0)}L1,-{_n(r1)} 1,{_n(r1)} 0,{_n(r0)}Z"/>'
-        lengua.append(f'<g {p}j{i}"><circle r="{_n(_RADIOS[i])}"/>{tramo}</g>')
-    partes.append(f'<g fill="{_LENGUA}">{"".join(lengua)}</g>')
+    def piezas_lengua(margen: float) -> str:
+        """Las piezas de la lengua con `margen` de mas en su grosor. Los
+        trapecios solo se estiran a lo largo (scale(largo,1)), asi que el
+        margen en y da un borde parejo; un stroke se estiraba con ellos."""
+        piezas = [f'<ellipse {p}nu" cx="{_n(ncx)}" cy="{_n(ncy)}" '
+                  f'rx="{_n(nrx + margen)}" ry="{_n(nry + margen)}"/>']
+        for i in range(7):
+            tramo = ""
+            if i < 6:
+                r0, r1 = _RADIOS[i] + margen, _RADIOS[i + 1] + margen
+                tramo = f'<path {p}s{i}" d="M0,-{_n(r0)}L1,-{_n(r1)} 1,{_n(r1)} 0,{_n(r0)}Z"/>'
+            piezas.append(f'<g {p}j{i}"><circle r="{_n(_RADIOS[i] + margen)}"/>{tramo}</g>')
+        return "".join(piezas)
+
+    partes.append(f'<g fill="{_BORDE_LENGUA}">{piezas_lengua(1.5)}</g>')
+    partes.append(f'<g fill="{_LENGUA}">{piezas_lengua(0.0)}</g>')
+    # La punta, resaltada: se mueve con su articulacion.
+    partes.append(f'<g {p}j0"><circle r="2.1" fill="#ffffff" stroke="{_BORDE_LENGUA}" '
+                  f'stroke-width="1.1"/></g>')
     if fantasma:
         puntos = " ".join(f"{_n(fantasma[f'j{i}'][0])},{_n(fantasma[f'j{i}'][1] - _RADIOS[i])}" for i in range(1, 6))
         partes.append(f'<path d="M{puntos}" fill="none" stroke="{_LENGUA}" stroke-width="1.6" '
@@ -822,17 +852,16 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
     # Mandibula: base de la lengua, incisivo inferior, labio inferior y menton.
     partes.append(
         f'<g {p}mand">'
-        f'<ellipse cx="124" cy="146" rx="48" ry="20" fill="{_LENGUA}"/>'
-        f'<path d="M63,113C60,119 59,128 60,138L69,138C69,128 68,120 66,113Z" fill="#f4f1ea" '
-        f'stroke="{_TRAZO}" stroke-width="1.2"/>'
+        f'<path d="M63,113C60,119 59,128 60,138L69,138C69,128 68,120 66,113Z" fill="{_DIENTE}" '
+        f'stroke="{_DIENTE_BORDE}" stroke-width="1.3"/>'
         f'<path d="M40,130C43,140 50,146 48,156C46,168 56,176 76,176C104,176 128,178 150,194" fill="none" '
         f'stroke="{_TRAZO}" stroke-width="1.6" stroke-linecap="round"/>'
         f'<path {p}li" d="M58,114C49,110 39,113 38,121C38,130 46,134 58,132C60,126 60,120 58,114Z" '
         f'fill="#c77b7b" fill-opacity=".6" stroke="{_TRAZO}" stroke-width="1.4"/></g>')
     # Incisivo superior y labio superior.
     partes.append(
-        f'<path d="M60,96C58,104 56,114 57,120C60,121 62,118 64,112C66,106 68,100 70,96Z" fill="#f4f1ea" '
-        f'stroke="{_TRAZO}" stroke-width="1.2"/>'
+        f'<path d="M60,96C58,104 56,114 57,120C60,121 62,118 64,112C66,106 68,100 70,96Z" fill="{_DIENTE}" '
+        f'stroke="{_DIENTE_BORDE}" stroke-width="1.3"/>'
         f'<path {p}ls" d="M50,87C42,92 36,99 39,105C41,110 49,111 57,109C59,102 58,94 55,89Z" '
         f'fill="#c77b7b" fill-opacity=".6" stroke="{_TRAZO}" stroke-width="1.4"/>')
     # Marcas: aire por la boca y por la nariz, ruido, explosion y vibracion.
@@ -883,6 +912,25 @@ def _partir(texto: str, ancho: int = 46) -> list[str]:
     return renglones
 
 
+def _contacto(art: Articulacion) -> tuple[float, float] | None:
+    """El punto donde una parte toca otra en la posicion del sonido, o None.
+
+    La punta en el alveolo (/t d n l/) o detras (/ʃ tʃ/ si toca), el dorso en el
+    velo (/k ɡ ŋ/), la punta entre los dientes (/θ ð/), el labio en los dientes
+    (/f v/) o los labios juntos (/p b m/)."""
+    if art.dorso_velo:
+        return _velo_superficie(art.velo_abierto)[3]
+    if art.punta == "interdental":
+        return _LUGARES["interdental"]
+    if art.punta_toca and art.punta in ("alveolar", "postalveolar"):
+        return _LUGARES[art.punta]
+    if art.labios == "labiodental":
+        return _LUGARES["labiodental"]
+    if art.labios == "cerrados":
+        return _LUGARES["bilabial"]
+    return None
+
+
 def _cuerdas(art: Articulacion) -> str:
     return "con vibración" if art.sonora else "sin vibración"
 
@@ -918,7 +966,24 @@ def _construir(simbolo: str, acento: str, animado: bool) -> str | None:
     if fantasma:
         desc += " La línea discontinua marca adónde llega la lengua al final del deslizamiento."
     P = _prefijo(acento, sonido.simbolo, "a" if animado else "q")
+    estilo_toca = cuerpo_toca = ""
+    punto = _contacto(a)
+    if punto is not None:
+        x, y = punto
+        clase = f"{P}-ct"
+        cuerpo_toca = (f'<g class="{clase}" transform="translate({_n(x)},{_n(y)})">'
+                       f'<circle r="6" fill="none" stroke="{_TOCA}" stroke-width="1.8"/>'
+                       f'<circle r="1.6" fill="{_TOCA}"/></g>')
+        if linea:
+            # Encendido solo mientras se sostiene la posicion del sonido; con
+            # «reducir movimiento» la figura se queda en esa posicion y el aro, visible.
+            quietas = [tt for tt, pose in linea.poses if pose == fija]
+            tramos = [(min(quietas), max(quietas))] if quietas else []
+            estilo_toca = (_kf(clase, _opacidad(tramos, linea.total), linea.total, "opacity")
+                           + f".{P} .{clase}{{opacity:1;animation:{clase} {linea.total:.2f}s linear infinite}}")
+        desc += " Un aro marca dónde toca."
     return _svg(P, titulo, desc, linea, fija, marcas, leyenda, f"/{sonido.simbolo}/",
+                extra_estilo=estilo_toca, extra_cuerpo=cuerpo_toca,
                 fantasma=fantasma, alto_texto=12 * len(leyenda) + 2)
 
 
