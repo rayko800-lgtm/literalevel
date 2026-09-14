@@ -42,7 +42,9 @@ Una por una, y marcando:
       «Puede ser».
 - [ ] **Frase de voz ensayada:** «Don't you want to come with us?». Leerla
       **una vez antes** en *Pronunciar*, para que su análisis quede guardado y en
-      directo salga sin esperar.
+      directo salga sin esperar. Verificada en el Space publicado a fecha de
+      `de36496` (reinicio 9, comprobado por f4): salen *doncha* y *wanna*
+      marcadas IA, el audio natural y el intento en el historial del ritmo.
 - [ ] **Auriculares con micrófono** conectados y probados. Nivel de entrada
       comprobado en el sistema.
 - [ ] **«Reducir movimiento» apagado** en el sistema: con él encendido, la boca
