@@ -173,7 +173,7 @@
 
   @if (panelAbierto()) {
     <div class="velo-palabra" (click)="cerrarPalabra()"></div>
-    <aside class="panel-palabra" role="dialog" aria-label="Significado de la palabra" [class.expandida]="hojaExpandida()">
+    <aside class="panel-palabra" role="dialog" aria-modal="true" aria-label="Significado de la palabra" [class.expandida]="hojaExpandida()">
       <!-- Arrastrar hacia abajo cierra; hacia arriba, la hoja crece. -->
       <div class="asa" aria-hidden="true" (pointerdown)="empezarArrastre($event, 'palabra')"><span></span></div>
       <header class="cab-palabra">
@@ -318,7 +318,7 @@
 
 @if (indiceAbierto() && libro(); as l) {
   <div class="velo-indice" (click)="indiceAbierto.set(false)"></div>
-  <aside class="indice" role="dialog" aria-label="Índice del libro" [class.expandida]="hojaExpandida()">
+  <aside class="indice" role="dialog" aria-modal="true" aria-label="Índice del libro" [class.expandida]="hojaExpandida()">
     <div class="asa" aria-hidden="true" (pointerdown)="empezarArrastre($event, 'indice')"><span></span></div>
     <header class="cab-palabra">
       <div>
@@ -331,7 +331,8 @@
     <ol class="lista-indice">
       @for (cap of l.capitulos; track cap.indice) {
         <li>
-          <a [routerLink]="['/leer', l.id, cap.indice]" [class.actual]="cap.indice === indice()" [class.alcance]="sugeridos().has(cap.indice)">
+          <a [routerLink]="['/leer', l.id, cap.indice]" [class.actual]="cap.indice === indice()" [class.alcance]="sugeridos().has(cap.indice)"
+             [attr.aria-current]="cap.indice === indice() ? 'page' : null">
             <span class="n">{{ cap.indice + 1 }}</span>
             <span class="t">{{ cap.titulo }}</span>
             <span class="p tenue">{{ minutosDe(cap.palabras) }} min</span>
