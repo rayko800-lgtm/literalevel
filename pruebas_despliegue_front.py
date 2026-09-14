@@ -127,6 +127,11 @@ class DespliegueFront(unittest.TestCase):
         resultado = d.configurar_html(original)
         self.assertIn(d.API.encode(), resultado)
         self.assertTrue(resultado.endswith(original[original.index(b"\n</head>"):]))
+        # Lo que de verdad sale del build: Angular minifica content="" a
+        # `content` sin valor, y así se publicó un front sin API (14 sep).
+        minificado = d.configurar_html(b'<head><meta name="literalevel-api" content><title>x</title></head>')
+        self.assertEqual(minificado, b'<head><meta name="literalevel-api" content="'
+                         + d.API.encode() + b'"><title>x</title></head>')
         for html in (b"<head></head>", HTML + HTML,
                      b'<meta name="literalevel-api" content="" content="x">',
                      b'<meta name="literalevel-api" name="otro" content="">',

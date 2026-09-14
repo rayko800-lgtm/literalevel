@@ -70,9 +70,12 @@ def configurar_html(contenido):
             if (sum(k == "name" for k, _ in attrs) != 1
                     or sum(k == "content" for k, _ in attrs) != 1):
                 abortar("la meta literalevel-api tiene atributos ambiguos.")
+            # El build de Angular minifica content="" a `content` sin valor, y el
+            # parser lo da como None: sin tratarlo aparte, la meta salía vacía y
+            # el front publicado pedía /api a su propio dominio (404, 14 sep).
             nueva = "<meta" + "".join(
-                " " + k + ("" if v is None else '="' + escape(
-                    API if k == "content" else v, quote=True) + '"')
+                " " + k + ('="' + escape(API, quote=True) + '"' if k == "content"
+                           else "" if v is None else '="' + escape(v, quote=True) + '"')
                 for k, v in attrs) + ">"
             linea, columna = self.getpos()
             inicio = inicios[linea - 1] + columna
@@ -86,6 +89,8 @@ def configurar_html(contenido):
     if len(parser.cambios) != 1:
         abortar("index.html debe tener exactamente una meta literalevel-api.")
     inicio, largo, nueva = parser.cambios[0]
+    if 'content="' + escape(API, quote=True) + '"' not in nueva:
+        abortar("la meta literalevel-api no quedo apuntando a la API.")
     return (texto[:inicio] + nueva + texto[inicio + largo:]).encode("utf-8")
 
 
