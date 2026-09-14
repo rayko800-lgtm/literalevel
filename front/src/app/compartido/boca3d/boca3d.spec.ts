@@ -50,6 +50,15 @@ describe('poseDe', () => {
     expect(poseDe(CATALOGO_PROTOTIPO, '')).toBe(REPOSO);
     expect(poseDe(CATALOGO_PROTOTIPO, 'x')).toBeNull();
   });
+
+  it('acepta los símbolos del inventario británico de la API: «iː» y «ɑː» caen en /i/ y /ɑ/', () => {
+    expect(poseDe(CATALOGO_PROTOTIPO, 'iː', 'rp')).toBe(POSES_PROTOTIPO['i']);
+    expect(poseDe(CATALOGO_PROTOTIPO, 'ɑː', 'rp')).toBe(POSES_PROTOTIPO['ɑ']);
+    // Lo que el británico articula distinto va en `rp` y gana al americano.
+    const con_rp = { ...CATALOGO_PROTOTIPO, rp: { 'ɑː': POSES_PROTOTIPO['i'] } };
+    expect(poseDe(con_rp, 'ɑː', 'rp')).toBe(POSES_PROTOTIPO['i']);
+    expect(poseDe(con_rp, 'ɑ', 'ga')).toBe(POSES_PROTOTIPO['ɑ']);
+  });
 });
 
 describe('trocearIpa y resolver', () => {

@@ -2,7 +2,7 @@ import {
   ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal,
   viewChild,
 } from '@angular/core';
-import { urlCorteSonido } from '../../nucleo/api';
+import { Acento, urlCorteSonido } from '../../nucleo/api';
 import { cicloSonido, lineaPalabra } from './animacion';
 import { EscenaBoca } from './escena';
 import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
@@ -80,9 +80,12 @@ import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe, troc
   `,
 })
 export class Boca3d {
-  /** Símbolo IPA a enseñar; vacío es el reposo. */
+  /** Símbolo IPA a enseñar, tal como lo da la API en su inventario (el mismo
+   *  que va a `urlCorteSonido`); vacío es el reposo. */
   readonly sonido = input<string>('');
-  readonly acento = input<'ga' | 'rp'>('ga');
+  /** El mismo acento que usa el front para los SVG (`Fonema.acento` en la
+   *  corrección, el elegido en la tabla del AFI). */
+  readonly acento = input<Acento>('ga');
   /** Las poses; por defecto, las cinco del prototipo. */
   readonly catalogo = input<CatalogoPoses>(CATALOGO_PROTOTIPO);
   /** El corte 2D para cuando no hay WebGL. Por defecto, el SVG de la API del

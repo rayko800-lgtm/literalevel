@@ -102,12 +102,14 @@ export const CATALOGO_PROTOTIPO: CatalogoPoses = {
   version: 1, duracion_s: DURACION_S, reposo: REPOSO, sonidos: POSES_PROTOTIPO,
 };
 
-/** La pose de un símbolo en un catálogo, o `null` si no la trae. */
+/** La pose de un símbolo en un catálogo, o `null` si no la trae. Acepta los
+ *  símbolos tal como los da la API en cada inventario (`/api/fonemas`): en RP,
+ *  «iː», «ɑː», «uː» y «r» caen en «i», «ɑ», «u» y «ɹ», como en el 2D. */
 export function poseDe(catalogo: CatalogoPoses, simbolo: string, acento: 'ga' | 'rp' = 'ga'): PoseSonido | null {
   const s = normalizarSimbolo(simbolo.normalize('NFC').trim().replace(/^\/|\/$/g, ''), acento);
   if (!s) return catalogo.reposo;
   if (acento === 'rp' && catalogo.rp?.[s]) return catalogo.rp[s];
-  return catalogo.sonidos[s] ?? null;
+  return catalogo.sonidos[s] ?? catalogo.sonidos[s.replace(/ː/g, '')] ?? null;
 }
 
 /** Rellena los campos libres de `pose` con los del vecino (una vocal, o el
