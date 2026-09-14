@@ -197,3 +197,18 @@ una dirección nueva — en esta máquina llegaron a acumularse catorce túneles
 vivos de intentos sucesivos. La dirección del Space **no cambia nunca**, aunque
 se siga desarrollando: cada subida reconstruye en un par de minutos sobre la
 misma URL, con historial y vuelta atrás.
+
+## El front estático: la meta de la API y la primera carga (14 sep 2026)
+
+`tools/desplegar_front.py` (lo escribió Codex la noche del 13) publicó una vez
+el front **sin la dirección de la API**: el build de Angular minifica la
+etiqueta a `<meta name="literalevel-api" content>` y el parser recibía `None`,
+así que el front pedía `/api/...` a su propio dominio y todo daba 404. La app
+publicada estuvo rota unos minutos. Se arregló en `f6a7942` con una prueba
+sobre el HTML minificado. Dos reglas:
+
+- Después de publicar el estático, **abrir la app publicada a 390 px y ver que
+  `/api/salud` responde desde el dominio del Space de Gradio**, no el propio.
+  Un 200 del `index.html` no dice nada.
+- La primera carga puede decir «No consigo hablar con el motor» si el Space de
+  Gradio se está despertando: recargar una vez antes de dar el fallo por bueno.
