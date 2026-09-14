@@ -151,13 +151,18 @@ type Vista = 'buscar' | 'nivel' | 'mios';
     .interruptor { display: inline-flex; align-items: center; gap: .55rem; cursor: pointer; color: var(--texto-suave); font-weight: 600; min-height: 44px; }
     .interruptor input { width: 20px; height: 20px; accent-color: var(--acento); }
     .pestanas { display: flex; gap: .3rem; padding: .3rem; border-radius: 999px; background: var(--superficie-2); width: fit-content; max-width: 100%; margin-bottom: 1.25rem; overflow-x: auto; }
-    .pestanas button { min-height: 42px; padding: 0 1.1rem; border-radius: 999px; border: 0; background: transparent; color: var(--texto-suave); font-weight: 650; cursor: pointer; white-space: nowrap; }
+    .pestanas button { min-height: 48px; padding: 0 1.1rem; border-radius: 999px; border: 0; background: transparent; color: var(--texto-suave); font-weight: 650; cursor: pointer; white-space: nowrap; }
     .pestanas button[aria-selected="true"] { background: var(--superficie); color: var(--texto); box-shadow: var(--sombra); }
     .cargando { padding: 2rem 0; }
     .recuento { margin-bottom: .75rem; }
     .nota { margin-top: 1rem; max-width: 70ch; }
     .ideas { padding: 1rem 0; }
-    .idea { min-height: 40px; cursor: pointer; font-size: .92rem; }
+    /* Una mano (investigacion/una_mano.md §3.3): pestañas a 48 px, ideas a 44 con 8 de
+       hueco, y la casilla de «Ordenar por mi nivel» es la fila entera, no los 20 px del cuadro. */
+    .idea { min-height: 44px; cursor: pointer; font-size: .92rem; }
+    .ideas { gap: .5rem; }
+    .bajo-buscador .interruptor { display: inline-flex; align-items: center; gap: .6rem; min-height: 48px; cursor: pointer; }
+    .bajo-buscador .interruptor input { width: 22px; height: 22px; accent-color: var(--seccion, var(--acento)); }
     .idea:hover { background: var(--acento-suave); color: var(--acento-texto); }
     .vacio { text-align: center; padding: 2.5rem 1.5rem; }
     .estanteria { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; gap: .75rem; }

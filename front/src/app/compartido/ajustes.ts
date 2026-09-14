@@ -99,6 +99,8 @@ import { Icono } from './icono';
       </section>
 
       <footer>
+        <!-- En el móvil, el cierre va abajo, fijo (investigacion/una_mano.md §3.8). -->
+        <button class="boton secundario cerrar-abajo" type="button" (click)="cerrar.emit()">Cerrar los ajustes</button>
         <a routerLink="/estado" (click)="cerrar.emit()">Estado del sistema</a>
         <span class="tenue pequeno">LiteraLevel no certifica niveles del MCER: orienta para elegir qué leer.</span>
       </footer>
@@ -131,8 +133,23 @@ import { Icono } from './icono';
     .muestra[data-muestra="papel"] { background: #efe7d6; }
     .entrar { margin-top: .75rem; }
     footer { display: grid; gap: .4rem; padding-top: 1rem; border-top: 1px solid var(--borde); }
+    .cerrar-abajo { display: none; }
+    /* En el móvil, hoja inferior en vez de cajón lateral: la X de arriba queda en la
+       zona que no alcanza el pulgar; el cierre de verdad va en el pie, fijo. */
+    @media (max-width: 760px) {
+      .panel {
+        top: auto; left: 0; width: 100%; max-height: 80dvh; border-left: 0; border-top: 1px solid var(--borde);
+        border-radius: 22px 22px 0 0; padding-bottom: 0; animation: subir .24s cubic-bezier(.2,.8,.2,1);
+      }
+      footer {
+        position: sticky; bottom: 0; margin: 0 -1.25rem; padding: .75rem 1.25rem max(8px, env(safe-area-inset-bottom));
+        background: var(--superficie);
+      }
+      .cerrar-abajo { display: flex; min-height: 48px; }
+    }
     @keyframes aparecer { from { opacity: 0; } }
     @keyframes entrar { from { transform: translateX(24px); opacity: 0; } }
+    @keyframes subir { from { transform: translateY(40px); opacity: 0; } }
   `,
 })
 export class Ajustes {
