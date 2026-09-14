@@ -65,13 +65,13 @@
             }
           </div>
           @if (midiendo()) {
-            <p class="tenue pequeno">Si es la primera medición desde que despertó el servidor, carga el modelo: hasta un minuto.</p>
+            <p class="tenue pequeno nota-medida">Si es la primera medición desde que despertó el servidor, carga el modelo: hasta un minuto.</p>
           }
           @if (medida(); as m) {
-            <p class="tenue pequeno">Medido ahora con el modelo sobre {{ m.bloques }} bloques de texto · confianza {{ m.confianza }}.
+            <p class="tenue pequeno nota-medida">Medido ahora con el modelo sobre {{ m.bloques }} {{ m.bloques === 1 ? 'bloque' : 'bloques' }} de texto · confianza {{ m.confianza }}.
               @if (perfil(); as p) { Tu nivel: {{ num(p.nivel) }}. }</p>
           }
-          @if (errorMedida()) { <p class="aviso error pequeno">{{ errorMedida() }}</p> }
+          @if (errorMedida()) { <p class="aviso error pequeno nota-medida">{{ errorMedida() }}</p> }
         </header>
 
         @if (pista()) {
@@ -334,7 +334,7 @@
     <header class="cab-palabra">
       <div>
         <h2>Índice</h2>
-        <p class="tenue pequeno">{{ l.capitulos.length }} capítulos
+        <p class="tenue pequeno">{{ l.capitulos.length }} {{ l.capitulos.length === 1 ? 'capítulo' : 'capítulos' }}
           @if (l.sugeridos.length) { · <span class="verde-texto">en verde, los que están a tu alcance</span> }</p>
       </div>
       <button type="button" class="boton-icono" (click)="indiceAbierto.set(false)" aria-label="Cerrar índice"><app-icono nombre="cerrar" /></button>

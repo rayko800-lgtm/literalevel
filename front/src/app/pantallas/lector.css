@@ -236,3 +236,13 @@
 @keyframes subir { from { transform: translateY(40px); opacity: 0; } }
 @keyframes deslizar-lado { from { transform: translateX(16px); opacity: 0; } }
 @keyframes deslizar-izq { from { transform: translateX(-24px); opacity: 0; } }
+
+/* El resultado de «¿Cómo de difícil es?» y sus avisos son de la interfaz, no del
+   libro (prueba de f4): con la letra del cuento y pegados al texto parecían parte
+   de él. Letra de la interfaz, tamaño pequeño y separados de la prosa. */
+.texto .cabecera-cap { padding-bottom: 1.25rem; border-bottom: 1px solid var(--borde); margin-bottom: 1.75rem; }
+.texto .cabecera-cap p.nota-medida {
+  font-family: var(--fuente-ui); font-size: .88rem; line-height: 1.45; margin: .6rem auto 0; max-width: 34rem;
+  text-align: center; color: var(--texto-suave);
+}
+.texto .cabecera-cap p.aviso.nota-medida { color: inherit; text-align: left; }
