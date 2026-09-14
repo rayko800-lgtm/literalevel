@@ -763,7 +763,10 @@ export class EscenaBoca {
     // Con la cara modelada el perfil entero no cabe a 13, pero lo que importa
     // es la boca: en el móvil a 16 quedaba pequeña. La nariz y la garganta se
     // ven enteras al girar.
-    return (this.caraModelada ? 13.5 : 13) * Math.max(1, 1 / this.camara.aspect);
+    // 14,5 es lo más cerca que el perfil entero (nariz, mentón, faringe) cabe
+    // sin tocar el borde del lienzo en un móvil (288x420): lo mide
+    // tools/probar_boca_integrada.mjs.
+    return (this.caraModelada ? 14.5 : 13) * Math.max(1, 1 / this.camara.aspect);
   }
 
   /** Con `true` el lienzo captura todos los gestos táctiles (también los
