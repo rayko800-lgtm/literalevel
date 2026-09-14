@@ -46,6 +46,11 @@ NOMBRE_TEXTOS_ABIERTOS = "corpus_abierto.parquet"
 # recomendacion por nivel: baja detras de los PRIMEROS_SIN_AVISO primeros.
 NOMBRE_AVISOS = "avisos_contenido.csv"
 PRIMEROS_SIN_AVISO = 5
+# Textos libres en la recomendacion por nivel (decision de Miguel, 14 sep 2026):
+# no tienen descargas de Gutenberg, y ordenados por popularidad salian del puesto
+# 20 en adelante en A2 y ninguno en B1. Si hay libres en la franja, uno de cada
+# CADA_CUANTOS_LIBRE puestos es suyo (el 2, el 5, el 8...); el resto, por descargas.
+CADA_CUANTOS_LIBRE = 3
 # Correcciones de filas medidas que salieron mal en el precalculo, aplicadas al
 # cargar: el CSV grande no se toca porque su huella indexa los 82 MB de
 # embeddings. Cada fila lleva su motivo. Ver la prueba final del 13 sep 2026:
@@ -589,6 +594,48 @@ class Catalogo:
             aviso = f"Se descartaron {flojos} resultados por parecido bajo."
         return libros, aviso
 
+    def _intercalar_libres(self, d: pd.DataFrame, n: int) -> pd.DataFrame:
+        """Las n primeras filas de `d`, ya ordenado, con un tercio de huecos para
+        los textos libres que se abren sin descargar: puestos 2, 5, 8...
+
+        Sin libres en la franja, `d.head(n)` tal cual. Si se acaban, los huecos
+        vuelven al orden de siempre. Un titulo con aviso de contenido tampoco
+        entra por un hueco en los PRIMEROS_SIN_AVISO primeros puestos."""
+        if getattr(self, "_ids_libres", None) is None:
+            # Un frozenset y no `isin` contra el indice: con texto de arrow, `isin`
+            # recorria en Python los 15.357 ids en cada llamada (0,22 s de 0,28).
+            self._ids_libres = frozenset(str(x).strip().upper() for x in self._textos_abiertos().index)
+        if n < CADA_CUANTOS_LIBRE or d.empty or not self._ids_libres:
+            return d.head(n)
+        libre = np.fromiter((str(x).strip().upper() in self._ids_libres for x in d["id"].to_numpy()),
+                            dtype=bool, count=len(d))
+        if not libre.any():
+            return d.head(n)
+        if "aviso_contenido" in d.columns:
+            aviso = (d["aviso_contenido"].astype(str).str.len() > 0).to_numpy()
+        else:
+            aviso = np.zeros(len(d), dtype=bool)
+        libres = np.flatnonzero(libre).tolist()
+        huecos = set(range(1, n, CADA_CUANTOS_LIBRE))
+        usados: set[int] = set()
+
+        def siguiente(candidatos, puesto):
+            for i in candidatos:
+                if i not in usados and not (puesto < PRIMEROS_SIN_AVISO and aviso[i]):
+                    return i
+            return None
+
+        elegidos = []
+        for puesto in range(min(n, len(d))):
+            i = siguiente(libres, puesto) if puesto in huecos else None
+            if i is None:
+                i = siguiente(range(len(d)), puesto)
+            if i is None:                     # solo quedan titulos con aviso
+                i = next(j for j in range(len(d)) if j not in usados)
+            usados.add(i)
+            elegidos.append(i)
+        return d.iloc[elegidos]
+
     def por_nivel(self, nivel_lector: float, holgura: float = 0.25,
                   n: int = 10) -> list[Libro]:
         """Libros cercanos al nivel del lector, ordenados por popularidad."""
@@ -604,7 +651,7 @@ class Catalogo:
             if con_aviso.any():
                 cabeza = d[~con_aviso].head(PRIMEROS_SIN_AVISO)
                 d = pd.concat([cabeza, d.drop(cabeza.index)])
-        d = d.head(n)
+        d = self._intercalar_libres(d, n)
         return [Libro(id=str(f["id"]), titulo=str(f["title"]), autor=str(f["author"]),
                       nivel=str(f["nivel_cefr"]), gancho=str(f["hook"]),
                       descargas=int(f.get("downloads", 0) or 0),

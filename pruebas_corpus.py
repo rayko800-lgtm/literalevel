@@ -306,6 +306,79 @@ def _aviso_no_encabeza_ni_desaparece():
 prueba("un titulo con aviso de contenido no encabeza pero sigue saliendo", _aviso_no_encabeza_ni_desaparece)
 
 
+def _libres_intercalados_por_nivel():
+    """Decision de Miguel, 14 sep 2026: los cuentos libres no tienen descargas de
+    Gutenberg y por popularidad no salian nunca arriba. Si hay libres en la
+    franja, ocupan los puestos 2, 5, 8...; el resto sigue por descargas."""
+    carpeta = _nuevo()
+    pg = [f"PG{100 + i}" for i in range(12)]
+    sw = [f"SWV{i}" for i in range(1, 7)]
+    pd.DataFrame({
+        "id": pg + ["PG900", "PG901"], "title": [f"Libro {i}" for i in range(14)], "author": ["a"] * 14,
+        "hook": [""] * 14, "huella_texto": [""] * 14, "nivel_cefr": [""] * 14,
+        "downloads": [1000 - i for i in range(12)] + [500, 400], "dificultad": [0.4] * 12 + [1.6, 1.6],
+        "palabras": [9000] * 14, "ventanas": [36] * 14, "capitulos": [1] * 14, "temas": ["Fiction"] * 14,
+    }).to_csv(carpeta / "catalogo_medido.csv", index=False)
+    externos = sw + ["SWV9"]                      # SWV9 sin texto: no se abre, no es libre
+    pd.DataFrame({
+        "id": externos, "title": [f"Cuento {x}" for x in externos], "author": [""] * 7,
+        "hook": [""] * 7, "huella_texto": [""] * 7, "nivel_cefr": ["A2"] * 7, "downloads": [0] * 7,
+        "dificultad": [0.4] * 7, "palabras": [400] * 7, "ventanas": [2] * 7, "capitulos": [1] * 7,
+        "temas": ["Children's stories; StoryWeaver reading level 1"] * 7, "fuente": ["storyweaver"] * 7,
+        "licencia": ["CC BY 4.0"] * 7, "atribucion": ["x"] * 7, "url": [""] * 7,
+        "nivel_editor": ["1"] * 7, "medida": ["texto"] * 7,
+    }).to_csv(carpeta / "catalogo_externo.csv", index=False)
+    pd.DataFrame({"id": sw, "title": sw, "author": [""] * 6, "licencia": ["CC BY 4.0"] * 6,
+                  "atribucion": ["x"] * 6, "url": [""] * 6,
+                  "texto": ["Manu got a red raincoat. " * 40] * 6}).to_parquet(
+        carpeta / "corpus_abierto.parquet", index=False)
+    pd.DataFrame({"id": ["SWV1"], "motivo": ["prueba"], "nota_es": ["Cuento con aviso."]}).to_csv(
+        carpeta / "avisos_contenido.csv", index=False)
+    cat = cm.Catalogo(carpeta / "catalogo_medido.csv")
+
+    orden = [l.id for l in cat.por_nivel(0.4, holgura=0.25, n=9)]
+    # Puestos 2, 5 y 8 para los libres. SWV1 lleva aviso: no entra en los 5
+    # primeros, asi que el 2 y el 5 son SWV2 y SWV3, y SWV1 espera al 8.
+    esperado = ["PG100", "SWV2", "PG101", "PG102", "SWV3", "PG103", "PG104", "SWV1", "PG105"]
+    assert orden == esperado, f"intercalado mal: {orden}"
+
+    todos = [l.id for l in cat.por_nivel(0.4, holgura=0.25, n=30)]
+    assert sorted(todos) == sorted(pg + externos), f"se pierde o se repite alguno: {todos}"
+    assert "SWV9" not in todos[:len(sw) * 3], f"un cuento sin texto ocupa un hueco de libre: {todos}"
+    assert [x for x in todos if x.startswith("PG")] == pg, f"los de Gutenberg cambian de orden: {todos}"
+
+    sin_libres = [l.id for l in cat.por_nivel(1.6, holgura=0.1, n=10)]
+    assert sin_libres == ["PG900", "PG901"], f"sin libres en la franja el orden cambia: {sin_libres}"
+    return f"por nivel: {orden}"
+
+
+prueba("los textos libres se intercalan en los primeros puestos por nivel", _libres_intercalados_por_nivel)
+
+
+def _libres_en_sorprendeme_del_catalogo_real():
+    """Lo que ve un lector A2 o B1 en «Sorprendeme» con el catalogo de verdad:
+    un tercio de las 30 tarjetas son libres, y al menos 3 en las 9 primeras."""
+    raiz = Path(__file__).resolve().parent
+    necesarios = [raiz / "catalogo_medido.csv", raiz / "catalogo_externo.csv", raiz / cm.NOMBRE_TEXTOS_ABIERTOS]
+    if not all(p.exists() for p in necesarios):
+        return "sin el catalogo real en esta carpeta, no se puede medir"
+    cat = cm.Catalogo(raiz / "catalogo_medido.csv")
+    cifras = []
+    for nombre, nivel in (("A2", 0.4), ("B1", 0.8)):
+        libros = cat.por_nivel(nivel, holgura=ui.HOLGURA_POR_NIVEL, n=30)
+        libres = [i for i, b in enumerate(libros) if not b.id.upper().startswith("PG") and cat.es_abrible(b.id)]
+        arriba = sum(1 for i in libres if i < 9)
+        assert len(libros) == 30, f"{nombre}: {len(libros)} tarjetas"
+        assert len(libres) >= 10, f"{nombre}: {len(libres)} libres entre 30"
+        assert arriba >= 3, f"{nombre}: {arriba} libres entre las 9 primeras"
+        assert not any(b.aviso_contenido for b in libros[:cm.PRIMEROS_SIN_AVISO]), f"{nombre}: aviso arriba"
+        cifras.append(f"{nombre} {len(libres)} de 30, {arriba} en las 9 primeras")
+    return "; ".join(cifras)
+
+
+prueba("sorprendeme ofrece textos libres a A2 y B1 con el catalogo real", _libres_en_sorprendeme_del_catalogo_real)
+
+
 def _correccion_se_aplica_al_cargar():
     """PG2242: la tabla de correcciones cambia la dificultad del libro, su letra
     y su curva de un capitulo, sin tocar el CSV grande."""
