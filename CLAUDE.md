@@ -4,6 +4,11 @@
 Claude Code y Codex (aquí trabajan los dos a la vez), el contrato entre módulos
 y lo que no se toca. Esto es solo el resumen.
 
+**Relevo del 13 sep por la noche:** antes de retomar portadas, Blender o las
+auditorias de `[Central]`, lee `auditoria/relevo_codex_2026-09-13_noche.md`.
+Contiene el reparto, commits locales, pruebas y pendientes; no supone permiso
+para gastar en Colab ni publicar.
+
 - El modelo v4 es **final**, no se reentrena. La fase actual es la interfaz.
 - `app/ui.py` es de Claude Code. `reader.py`, `lexicon.py` y `voz.py` los está
   auditando Codex: no los edites sin avisarlo en el commit.
