@@ -105,8 +105,45 @@ publicada, `?fps=1` mide en el dispositivo real.
 
 ## Límites conocidos
 
-- Corte esquemático: sin dientes laterales «reales», sin úvula; la lengua es
-  un tubo de seis nudos con radios fijos.
+- Corte esquemático, no anatomía clínicamente validada. Los dientes, encías y
+  velo siguen siendo piezas geométricas; no hay cara completa ni úvula.
 - El lienzo captura solo el gesto horizontal (`touch-action: pan-y`); «Girar
   libremente» lo captura todo y sobre él no hay scroll.
-- No hay aire ni vibración de cuerdas: eso sigue en el 2D.
+- Hay trazas de aire nasal y de /h/, no simulación de fluidos ni cuerdas vocales.
+
+## Muestra Blender, 13 sep 2026
+
+La demo carga lengua y cara modeladas por defecto (`?lengua=0&cara=0` permite
+comparar el respaldo geométrico). El componente Angular aún no carga estos
+assets y sigue sin integrarse en las pantallas públicas. `EscenaBoca` recibe
+`lenguaGlb` y `caraGlb` como URLs opcionales; conserva el respaldo geométrico
+si un archivo falta o no contiene las piezas esperadas.
+
+- `tools/boca3d_blender/lengua.py`: lengua con diez shape keys, exportada a
+  `tools/boca3d_demo/lengua.glb`.
+- `tools/boca3d_blender/cara.py`: labios afinados, perfil de nariz, techo nasal,
+  faringe, garganta y suelo de boca biselado, exportados a `cara.glb` (187.496 bytes).
+  Los labios se escalan con las poses existentes; no tienen un rig facial completo.
+- Las piezas se cargan en sus grupos: labio inferior y suelo siguen la mandíbula.
+  El encuadre deja margen para el perfil al girarlo.
+- La comprobación de lengua replica ahora el factor 0,3 del morfo mandibular y
+  el giro de la escena. Antes medía otra transformación. Se comprueban 53 poses
+  estáticas contra un techo aproximado y una heurística de pliegue, no todas
+  las intersecciones posibles ni la corrección anatómica de cada pose.
+
+Pruebas locales reproducibles:
+
+```powershell
+& 'C:/Program Files/Blender Foundation/Blender 2.93/blender.exe' -b --python tools/boca3d_blender/lengua.py
+& 'C:/Program Files/Blender Foundation/Blender 2.93/blender.exe' -b --python tools/boca3d_blender/cara.py
+node tools/boca3d_demo.mjs
+$env:PLAYWRIGHT_MODULE='ruta/al/playwright-core/index.mjs'
+node tools/boca3d_demo/probar_blender.mjs
+node tools/boca3d_demo/servir.mjs
+```
+
+`probar_blender.mjs` levanta y cierra un servidor local y un Chrome propio. Genera
+24 capturas a 1280 y 390 px (con tacto móvil), comprueba píxeles no vacíos,
+encuadre sin corte, movimiento real de /h/, carga/fallo del GLB y la posición
+mundial de la punta en /θ/. Resultados en `build/boca3d_pruebas/`, no versionados.
+`servir.mjs` publica solo en 127.0.0.1, elige un puerto libre e imprime URL/PID.

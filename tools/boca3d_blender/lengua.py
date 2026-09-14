@@ -6,12 +6,13 @@ marcados y la raiz bajando al suelo de la boca. Las shape keys son una por
 parametro de `animacion_articulatoria.PARAMETROS`, y el visor las mezcla
 (`morphTargetInfluences`) desde el mismo JSON de poses.
 
-SIN COLISION CON EL PALADAR, comprobado: el guion carga poses.ejemplo.json,
+Comprobacion geometrica limitada: el guion carga poses.ejemplo.json,
 calcula las influencias de cada pose con la MISMA regla que escena.ts
 (`morfosDe`), mezcla las shape keys y mide cuanto entra la lengua en el techo
-(paladar y velo, con la misma geometria que escena.ts). Cada shape key se
+(perfil aproximado del paladar y velo del visor). Cada shape key se
 recorta contra el techo y despues se reparte cada pose: si alguna entra mas
-que la tolerancia, se dice y el guion termina con error.
+que la tolerancia, se dice y el guion termina con error. Se muestrean vertices
+en 53 poses estaticas, no todas las intersecciones de triangulos/transiciones.
 
 Coordenadas del visor: -x delante (punta), +x atras (raiz), +y arriba, z lateral.
 En Blender se modela con Z arriba e Y lateral; el exportador (export_yup) lo
@@ -160,7 +161,7 @@ clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) 
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
-clave("punta_interdental", lambda x, y, z: (-0.6 * punta_w(x), 0.0, 0.45 * punta_w(x)))
+clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)))
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
@@ -178,7 +179,7 @@ def morfos_de(p):
     toca = p["punta_toca"]
     punta = p["punta"]
     return [
-        min(1.0, max(0.0, p["mandibula"])),
+        0.3 * min(1.0, max(0.0, p["mandibula"])),
         (1.0 if toca else 0.75) if punta in ("alveolar", "postalveolar") else 0.45 if punta == "dental" else 0.0,
         1.0 if punta == "retrofleja" else 0.0,
         1.0 if punta == "interdental" else 0.0,
@@ -202,6 +203,7 @@ poses["reposo"] = catalogo["reposo"]
 informe = []
 peor = 0.0
 peor_pliegue = 0.0
+interdentales = []
 ES_PUNTA = [punta_w(x) > 0.6 for x, _, _ in base]
 ES_CUERPO = [punta_w(x) < 0.15 for x, _, _ in base]
 for nombre, p in poses.items():
@@ -210,9 +212,15 @@ for nombre, p in poses.items():
     permitido = TOLERANCIA_TOQUE if toca else 0.0
     entra = 0.0
     pos = []
+    angulo = min(1.0, max(0.0, p["mandibula"])) * 0.42
+    coseno, seno = math.cos(angulo), math.sin(angulo)
     for i, (x, y, z) in enumerate(base):
         nx = x + sum(w * CLAVES[m][i][0] for w, m in zip(inf, MORFOS))
         nz = z + sum(w * CLAVES[m][i][2] for w, m in zip(inf, MORFOS))
+        # EscenaBoca monta el GLB dentro de la mandibula: comparar el techo
+        # contra coordenadas locales ocultaba el error de la punta interdental.
+        nx, nz = (2.6 + (nx - 2.6) * coseno - (nz - 0.9) * seno,
+                  0.9 + (nx - 2.6) * seno + (nz - 0.9) * coseno)
         pos.append((nx, y, nz))
         entra = max(entra, nz - techo(nx, p["velo_abierto"]))
     # La lengua no se dobla sobre si misma: ningun vertice de la punta queda
@@ -225,6 +233,12 @@ for nombre, p in poses.items():
         techo_cuerpo = max((cz for cx, cy, cz in cuerpo if abs(cx - px) < 0.1 and abs(cy - py) < 0.12), default=-9.0)
         pliegue = max(pliegue, techo_cuerpo - pz)
     exceso = entra - permitido
+    if p["punta"] == "interdental":
+        frente = min(v[0] for v in pos)
+        punta = [v for v in pos if v[0] < frente + 0.10]
+        y_min, y_max = min(v[2] for v in punta), max(v[2] for v in punta)
+        assert frente < -2.72 and y_min > -0.41 and y_max < 0.45, (nombre, frente, y_min, y_max)
+        interdentales.append((nombre, round(frente, 4), round(y_min, 4), round(y_max, 4)))
     informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3)))
     peor = max(peor, exceso)
     peor_pliegue = max(peor_pliegue, pliegue)
@@ -254,6 +268,7 @@ print("LENGUA_OK", json.dumps({
     "morph_targets": [len(p.get("targets", [])) for p in malla["primitives"]],
     "targetNames": malla.get("extras", {}).get("targetNames"),
     "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3), "peor_pliegue": round(peor_pliegue, 3),
+    "interdentales (nombre, x, ymin, ymax)": interdentales,
     "peores (nombre, entra, exceso, pliegue)": informe[:6],
 }, ensure_ascii=False))
 if peor > 0.005 or peor_pliegue > 0.005:

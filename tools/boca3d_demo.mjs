@@ -48,4 +48,6 @@ writeFileSync(resolve(salida, 'index.html'), `<!doctype html>
 // La lengua de Blender (tools/boca3d_blender/lengua.py), si se ha generado: ?lengua=glb la carga.
 const glb = resolve(RAIZ, 'tools/boca3d_demo/lengua.glb');
 if (existsSync(glb)) copyFileSync(glb, resolve(salida, 'lengua.glb'));
+const cara = resolve(RAIZ, 'tools/boca3d_demo/cara.glb');
+if (existsSync(cara)) copyFileSync(cara, resolve(salida, 'cara.glb'));
 console.log('demo en', resolve(salida, 'index.html'), existsSync(glb) ? '(con lengua.glb)' : '(sin lengua.glb)');

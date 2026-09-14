@@ -438,6 +438,8 @@ export interface OpcionesEscena {
   /** URL de una lengua modelada en Blender (.glb con las shape keys de
    *  `MORFOS_LENGUA`): sustituye al tubo cuando carga. */
   lenguaGlb?: string;
+  /** Labios y perfil seccionado de Blender; conserva las piezas simples si falla. */
+  caraGlb?: string;
 }
 
 export class EscenaBoca {
@@ -469,6 +471,9 @@ export class EscenaBoca {
   /** La lengua modelada (si se pidió y ya cargó) y sus morfos por índice. */
   private lenguaGlb: THREE.Mesh | null = null;
   private indicesMorfos: (number | undefined)[] = [];
+  private caraModelada = false;
+  private readonly cavidadesSimples: THREE.Mesh[] = [];
+  private readonly sueloSimple: THREE.Mesh;
   /** Premolares y molares: se esconden los del lado de la cámara en la vista de lado. */
   private readonly dientesLaterales: THREE.Mesh[] = [];
   private lateralesOcultos: 'ninguno' | 'z+' | 'z-' = 'ninguno';
@@ -552,6 +557,7 @@ export class EscenaBoca {
     const faringe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.6, ANCHO), material(col.faringe, { transparent: true, opacity: 0.55 }));
     faringe.position.set(FARINGE_X, -0.6, 0);
     this.escena.add(faringe);
+    this.cavidadesSimples.push(faringe);
     // Los huecos por donde va el aire, translúcidos para no tapar nada: la
     // cavidad nasal sobre el paladar, la nasofaringe detrás del velo (el velo
     // cerrado la tapa; abierto, comunica) y la garganta bajo la raíz.
@@ -563,6 +569,7 @@ export class EscenaBoca {
     const garganta = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.9, ANCHO * 0.6), mHueco);
     garganta.position.set(2.5, -2.35, 0);
     for (const h of [cavidadNasal, nasofaringe, garganta]) { h.renderOrder = 3; this.escena.add(h); }
+    this.cavidadesSimples.push(cavidadNasal, nasofaringe, garganta);
     // El aire nasal: un hilo azul que solo se ve cuando el velo está bajado.
     this.aireNasal = new THREE.Mesh(geometriaAireNasal(), material('#2f9cc0', {
       transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#2f9cc0'), emissiveIntensity: 0.4,
@@ -585,6 +592,7 @@ export class EscenaBoca {
     dentro.add(tuboArco(-0.62, 0.28, mHueso, 2.6));
     this.dientesLaterales.push(...arcoDental(dentro, 0.1, 0.5, mDientes));
     const suelo = new THREE.Mesh(new THREE.BoxGeometry(SUELO.x1 - SUELO.x0, SUELO.grosor, ANCHO * 0.8), mEncia);
+    this.sueloSimple = suelo;
     suelo.position.set((SUELO.x0 + SUELO.x1) / 2, SUELO.y, 0);
     dentro.add(suelo);
     this.mandibula.add(dentro);
@@ -614,6 +622,7 @@ export class EscenaBoca {
     this.actual = poseNumerica(REPOSO);
     this.aplicar(this.actual);
     if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua);
+    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col.labios);
 
     if (typeof ResizeObserver !== 'undefined') {
       this.observador = new ResizeObserver(() => this.redimensionar());
@@ -687,7 +696,7 @@ export class EscenaBoca {
    *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
    *  la altura de la boca. */
   vista(azimut: number, polar = 1.49): void {
-    const distancia = 10.5;
+    const distancia = this.caraModelada ? 16 : 10.5;
     this.controles.target.set(0.1, 0.05, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
@@ -747,6 +756,53 @@ export class EscenaBoca {
 
   get tieneLenguaModelada(): boolean {
     return this.lenguaGlb !== null;
+  }
+
+  private cargarCara(url: string, colorLabios: string): void {
+    new GLTFLoader().load(url, gltf => {
+      const piezas = new Map<string, THREE.Mesh>();
+      gltf.scene.updateMatrixWorld(true);
+      gltf.scene.traverse(o => { if (o instanceof THREE.Mesh) piezas.set(o.name, o); });
+      const nombres = ['labio_superior', 'labio_inferior', 'nariz', 'techo_nasal', 'faringe', 'garganta', 'suelo_boca'];
+      if (!this.vivo || nombres.some(n => !piezas.has(n))) {
+        for (const m of piezas.values()) {
+          m.geometry.dispose();
+          (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
+        }
+        return;
+      }
+      const materialAnterior = this.labioSup.material;
+      for (const [nombre, destino] of [['labio_superior', this.labioSup], ['labio_inferior', this.labioInf]] as const) {
+        const fuente = piezas.get(nombre)!;
+        destino.geometry.dispose();
+        destino.geometry = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
+        destino.userData['modelado'] = true;
+        destino.material = new THREE.MeshPhysicalMaterial({ color: colorLabios, roughness: 0.48,
+          clearcoat: 0.15, clearcoatRoughness: 0.4 });
+      }
+      (Array.isArray(materialAnterior) ? materialAnterior : [materialAnterior]).forEach(m => m.dispose());
+      for (const nombre of nombres.slice(2)) {
+        const fuente = piezas.get(nombre)!;
+        const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
+          material(nombre === 'nariz' ? '#dcb0a1' : '#c88185', { roughness: 0.68 }));
+        (nombre === 'suelo_boca' ? this.dentroMandibula : this.escena).add(pieza);
+      }
+      for (const m of piezas.values()) {
+        m.geometry.dispose();
+        (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
+      }
+      this.cavidadesSimples.forEach(m => { m.visible = false; });
+      this.sueloSimple.visible = false;
+      this.caraModelada = true;
+      const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
+      this.camara.position.copy(this.controles.target).addScaledVector(direccion, 16);
+      this.controles.update();
+      this.aplicar(this.actual);
+    }, undefined, () => { /* Las piezas simples siguen visibles. */ });
+  }
+
+  get tieneCaraModelada(): boolean {
+    return this.caraModelada;
   }
 
   destruir(): void {
@@ -814,6 +870,10 @@ export class EscenaBoca {
   }
 
   private labio(m: THREE.Mesh, largo: number, radio: number): void {
+    if (m.userData['modelado']) {
+      m.scale.set(radio / 0.3, radio / 0.3, largo / 2.3);
+      return;
+    }
     const u = m.userData as { largo: number; radio: number };
     if (Math.abs(u.largo - largo) < 1e-3 && Math.abs(u.radio - radio) < 1e-3) return;
     m.geometry.dispose();
