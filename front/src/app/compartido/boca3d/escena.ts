@@ -437,8 +437,9 @@ function geometriaMejilla(): THREE.BufferGeometry {
 }
 
 /** La piel de la media cabeza (cara.py) con los pesos con que cada vértice
- *  sigue el giro de la mandíbula: 1 en la barbilla y bajo el maxilar, 0 por
- *  encima de la línea de la boca, hacia la nuca y en el lado lejano. */
+ *  sigue el giro de la mandíbula: 1 en la barbilla y bajo el maxilar (también
+ *  en el lado lejano: la mandíbula es rígida), 0 por encima de la línea de la
+ *  boca y hacia la nuca. */
 interface PielDeformable {
   geometria: THREE.BufferGeometry;
   reposo: Float32Array;
@@ -454,10 +455,13 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry): PielDe
   const pesos = new Float32Array(pos.count);
   for (let i = 0; i < pos.count; i++) {
     const x = reposo[3 * i], y = reposo[3 * i + 1], z = reposo[3 * i + 2];
-    const bajo = suave01((0.35 - y) / 1.1);           // de la línea de la boca (0,35) a la barbilla (-0,75)
+    // Solo dos rampas, las dos en el plano del giro: la vertical estira la
+    // piel entre la boca y la barbilla, y la de delante-atrás muere hacia el
+    // pivote, donde el giro ya mueve poco. Una rampa en z (lado lejano
+    // quieto) plegaba los anillos de la piel al abrir y dejaba un rasgón.
+    const bajo = suave01((0.45 - y) / 1.35);          // de la línea de la boca (0,45) a la barbilla (-0,9)
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
-    const cerca = 1 - suave01((Math.abs(z) - 1.6) / 1.4);   // el lado lejano de la cabeza, quieto
-    pesos[i] = bajo * delante * cerca;
+    pesos[i] = bajo * delante;
   }
   return { geometria, reposo, pesos, ultimoGiro: NaN };
 }
@@ -1056,7 +1060,9 @@ export class EscenaBoca {
           : materialDe('piel', col.piel);
         const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), mat);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
-        if (nombre === 'cabeza_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry));
+        // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
+        // si la pared se quedara fija, al abrir asomaría por la piel movida.
+        if (nombre === 'cabeza_lejana' || nombre === 'pared_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry));
       }
       const cercana = piezas.get('cabeza_cercana');
       if (cercana) {

@@ -151,7 +151,7 @@ si un archivo falta o no contiene las piezas esperadas.
   las cavidades como hueco) y `pared_lejana` (el fondo claro de las cavidades).
   El corte de la mandíbula gira con ella; las dos pieles se deforman en el
   visor por pesos (`pielQueSigueLaMandibula`: barbilla y bajo el maxilar
-  siguen el giro; línea de la boca, garganta, nuca y lado lejano se quedan).
+  siguen el giro; línea de la boca, garganta y nuca se quedan).
   Guarda además `build/boca3d_modelos/cara.blend` para inspección en Blender.
   Los labios no tienen un rig facial completo (las comisuras no suben ni bajan).
 - Materiales en el visor (`materialDe`): uno físico por tejido, sin texturas
