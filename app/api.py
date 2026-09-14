@@ -1429,12 +1429,24 @@ _EXT_AUDIO = {".webm", ".ogg", ".oga", ".wav", ".mp3", ".m4a", ".mp4", ".mpeg", 
 _TOPE_AUDIO = 10 * 1024 * 1024
 
 
-def _fonema_json(simbolo) -> dict | None:
+def _fonema_json(simbolo, acento: str = "US") -> dict | None:
+    """El sonido que falla, en el acento de la corrección.
+
+    `voz` da el símbolo del inventario americano. Con acento UK se busca el RP
+    con esa clave (entrega-4e: 39 de 41 uno a uno; ɹ→r, oʊ→əʊ, i→iː…). /ɝ/ y
+    /ɚ/ no tienen equivalente en RP, que no pronuncia la r: se quedan en
+    americano, con `acento` «ga» para que el front pida su corte en «ga»."""
     f = fonemas.buscar(simbolo)
     if f is None:
         return None
-    return {"simbolo": f.simbolo, "nombre": f.nombre, "ejemplos": list(f.ejemplos),
-            "audio": _url_audio_fonema(f.ruta, "/api/fonemas/")}
+    datos = {"simbolo": f.simbolo, "nombre": f.nombre, "ejemplos": list(f.ejemplos),
+             "audio": _url_audio_fonema(f.ruta, "/api/fonemas/"), "acento": "ga"}
+    if acento == "UK":
+        rp = next((s for s in articulacion.INVENTARIO_RP if s.clave == f.simbolo), None)
+        if rp is not None:
+            datos.update(simbolo=rp.simbolo, nombre=rp.nombre, ejemplos=list(rp.ejemplos),
+                         audio=_url_audio_fonema(rp.ruta, "/api/fonemas/rp/"), acento="rp")
+    return datos
 
 
 def _audio_de_detalle(normal: list[str], audios: dict[str, str]) -> str | None:
@@ -1513,7 +1525,7 @@ async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
             detalles.append({
                 "palabra": cruda, "ipa": ipa, "variante": variante,
                 "audio": _url_audio(_audio_de_detalle(normal, audios)),
-                "fonema": _fonema_json(getattr(d, "fonema", None)),
+                "fonema": _fonema_json(getattr(d, "fonema", None), acento),
                 "sonido_que_falla": str(getattr(d, "sonido_que_falla", "") or "").strip(),
                 "como_colocar_la_boca": str(getattr(d, "como_colocar_la_boca", "") or "").strip(),
             })

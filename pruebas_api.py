@@ -428,7 +428,9 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
         corr = NS(resumen="Casi.", detalles=[NS(palabra="Raincoat,", fonema=None,
                                                  sonido_que_falla="la ei", como_colocar_la_boca="abre"),
                                               NS(palabra="war", fonema=None,
-                                                 sonido_que_falla="la w", como_colocar_la_boca="redondea")])
+                                                 sonido_que_falla="la w", como_colocar_la_boca="redondea"),
+                                              NS(palabra="red", fonema="ɹ",
+                                                 sonido_que_falla="la r", como_colocar_la_boca="atrás")])
         return NS(evaluacion=ev, transcripcion_ok=True, correccion=corr, audio_correcto=None,
                   audios_palabras={"raincoat": str(mp3), "war-chant": str(compuesto)})
 
@@ -457,7 +459,9 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
         mp3.unlink(missing_ok=True)
         compuesto.unlink(missing_ok=True)
     # Un solo acento, el pedido, para todas las palabras de la corrección.
-    assert acentos == ["UK", "UK"], acentos
+    assert acentos == ["UK", "UK", "UK"], acentos
+    # Y el sonido que falla, en británico: /ɹ/ americano es /r/ en RP.
+    assert r["detalles"][2]["fonema"]["simbolo"] == "r" and r["detalles"][2]["fonema"]["acento"] == "rp", r["detalles"][2]
     assert malo.status_code == 422, malo.status_code
     assert vistas.get("frase") == "The red raincoat.", "no llego a corregir"
     assert r["detalles"][0]["audio"] == f"/api/audio/{mp3.name}", r["detalles"]
@@ -489,6 +493,21 @@ def dudoso_coherente_con_el_aviso_de_lexicon():
     # `ui._humanizar` lo reescribe como «La acepción elegida es dudosa…».
     assert len(avisos) == 1 and not any("dudosa" in a or "provisional" in a for a in avisos), avisos
     return "provisional -> dudoso; vista previa con explicación en camino -> no"
+
+
+def fonema_de_la_correccion_en_britanico():
+    """Con acento UK, el sonido que falla y su audio son los de RP; /ɝ/ y /ɚ/,
+    sin equivalente, se quedan en americano en vez de reventar."""
+    us, uk = api._fonema_json("ɹ", "US"), api._fonema_json("ɹ", "UK")
+    assert (us["simbolo"], us["acento"]) == ("ɹ", "ga"), us
+    assert (uk["simbolo"], uk["acento"]) == ("r", "rp"), uk
+    assert uk["audio"] is None or uk["audio"].startswith("/api/fonemas/rp/"), uk
+    assert api._fonema_json("oʊ", "UK")["simbolo"] == "əʊ"
+    assert api._fonema_json("θ", "UK")["simbolo"] == "θ"
+    for sin_rp in ("ɝ", "ɚ"):     # «bird», «butter»
+        x = api._fonema_json(sin_rp, "UK")
+        assert x is not None and (x["simbolo"], x["acento"]) == (sin_rp, "ga"), x
+    return f"ɹ→r, oʊ→əʊ; ɝ ɚ en americano; audio rp {uk['audio'] and uk['audio'][:22]}"
 
 
 def corte_de_la_boca_en_svg():
@@ -536,7 +555,8 @@ if __name__ == "__main__":
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
-               dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg):
+               dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
+               fonema_de_la_correccion_en_britanico):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
