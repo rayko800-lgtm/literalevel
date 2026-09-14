@@ -284,6 +284,7 @@
     }
   </details>
 
+  @if (avisoDebiles()) { <div class="aviso ambar"><p>{{ avisoDebiles() }}</p></div> }
   @if (debiles().length) {
     <section class="tarjeta plana">
       <h2>Tus palabras difíciles</h2>

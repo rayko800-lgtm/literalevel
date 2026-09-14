@@ -222,6 +222,8 @@ export interface Palabra {
   rareza: 'muy_comun' | 'frecuente' | 'poco_frecuente' | 'rara' | null;
   desde_cache: boolean;
   oracion: string;
+  /** El trozo de la oración que se enseña (la cláusula de la palabra); «oracion» va entera. */
+  cita?: string;
   origen_oracion: 'capitulo' | 'escrita' | 'sin_contexto';
   explicacion_pendiente: boolean;
   motivo_sin_explicacion: string | null;
@@ -298,6 +300,7 @@ export interface Anotacion {
   categoria: string | null;
   sentido: string | null;
   oracion: string;
+  cita?: string;
   libro: string | null;
   capitulo: number | null;
   rareza: string | null;
@@ -306,7 +309,7 @@ export interface Anotacion {
 
 export interface Cuaderno { consultas: number; palabras: number; libros: number; entradas: Anotacion[]; }
 
-export interface Repaso { palabras: Anotacion[]; voz: { palabra: string; fallos: number }[]; }
+export interface Repaso { palabras: Anotacion[]; voz: { palabra: string; fallos: number }[]; aviso_voz?: string | null; }
 
 export interface EntradaBiblioteca {
   id: string;
@@ -420,12 +423,13 @@ export class Api {
     datos.append('audio', audio, nombre);
     return this.http.post<CorreccionVoz>(`${this.base}/voz`, datos);
   }
-  debiles(): Observable<{ palabras: { palabra: string; fallos: number }[] }> {
-    return this.http.get<{ palabras: { palabra: string; fallos: number }[] }>(`${this.base}/voz/debiles`);
+  /** `aviso`: el historial de voz existe pero no se puede leer (texto en español). */
+  debiles(): Observable<{ palabras: { palabra: string; fallos: number }[]; aviso?: string | null }> {
+    return this.http.get<{ palabras: { palabra: string; fallos: number }[]; aviso?: string | null }>(`${this.base}/voz/debiles`);
   }
   /** Las que peor pronuncias, con la frase donde fallaste. */
-  falladas(n = 15): Observable<{ palabras: PalabraFallada[] }> {
-    return this.http.get<{ palabras: PalabraFallada[] }>(`${this.base}/voz/falladas`, { params: { n } });
+  falladas(n = 15): Observable<{ palabras: PalabraFallada[]; aviso?: string | null }> {
+    return this.http.get<{ palabras: PalabraFallada[]; aviso?: string | null }>(`${this.base}/voz/falladas`, { params: { n } });
   }
 
   cuaderno(n = 60): Observable<Cuaderno> { return this.http.get<Cuaderno>(`${this.base}/cuaderno`, { params: { n } }); }

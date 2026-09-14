@@ -49,6 +49,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly elegido = signal<Fonema | null>(null);
   protected readonly visor3d = signal<string | null>(null);
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
+  protected readonly avisoDebiles = signal<string | null>(null);
 
   private grabador: MediaRecorder | null = null;
   private trozos: Blob[] = [];
@@ -271,7 +272,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   private cargarDebiles(): void {
-    this.api.debiles().subscribe({ next: r => this.debiles.set(r.palabras.slice(0, 10)), error: () => {} });
+    this.api.debiles().subscribe({
+      next: r => { this.debiles.set(r.palabras.slice(0, 10)); this.avisoDebiles.set(r.aviso ?? null); },
+      error: () => {},
+    });
   }
 
   protected abrirAjustes(): void { this.sesion.ajustesAbiertos.set(true); }

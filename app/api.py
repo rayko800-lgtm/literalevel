@@ -1414,6 +1414,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         "acepcion_elegida_por_ia": bool(getattr(r, "acepcion_elegida_por_ia", False)),
         "zipf": zipf, "rareza": rareza, "desde_cache": r.desde_cache,
         "oracion": _sin_cursiva(oracion), "origen_oracion": origen,
+        "cita": _cita(_sin_cursiva(oracion), r.palabra_superficie),
         "explicacion_pendiente": datos.etapa == "diccionario" and explicable,
         "motivo_sin_explicacion": motivo_sin_explicacion or None,
         "avisos": avisos,
@@ -1718,28 +1719,55 @@ async def practicar(pet: Lector, request: Request) -> dict:
     }
 
 
+def _historial_voz(leer) -> tuple[list, str | None]:
+    """(filas, aviso). Sin base de voz, filas vacías y sin aviso. Con la base
+    existente pero ilegible, `voz` lanza HistorialIlegible (4e, d765ee0) con un
+    mensaje en español: vacío a secas decía «no has fallado nada». Con un voz.py
+    anterior no hay esa clase y `except ()` no atrapa nada."""
+    try:
+        return leer(), None
+    except getattr(voz, "HistorialIlegible", ()) as e:
+        return [], str(e)
+
+
 @app.get("/api/voz/debiles")
 def debiles(pet: Lector) -> dict:
-    filas = voz.puntos_debiles(n=15, ruta=ui._archivo_lector("voz.db", pet))
-    return {"palabras": [{"palabra": w, "fallos": n} for w, n in filas]}
+    filas, aviso = _historial_voz(lambda: voz.puntos_debiles(n=15, ruta=ui._archivo_lector("voz.db", pet)))
+    return {"palabras": [{"palabra": w, "fallos": n} for w, n in filas], "aviso": aviso}
 
 
 @app.get("/api/voz/falladas")
 def falladas(pet: Lector, n: int = Query(15, ge=1, le=50)) -> dict:
     """Las palabras que peor pronuncia este lector, con la frase donde falló.
     Sin red y gratis: lee su `voz.db`."""
-    filas = voz.palabras_para_practicar(n=n, ruta=ui._archivo_lector("voz.db", pet))
+    filas, aviso = _historial_voz(
+        lambda: voz.palabras_para_practicar(n=n, ruta=ui._archivo_lector("voz.db", pet)))
     return {"palabras": [{"palabra": f["palabra"], "fallos": f["fallos"],
                           "ultima_vez": f.get("ultima_vez"), "frase": f.get("frase")}
-                         for f in filas]}
+                         for f in filas], "aviso": aviso}
 
 
 # --- Lo tuyo: cuaderno, repaso, biblioteca e inicio -----------------------------
 
+def _cita(oracion: str | None, palabra: str | None) -> str:
+    """Lo que se ENSEÑA de una oración larga: la cláusula donde está la palabra
+    (`ui._fragmento_para_leer`, 4e, 1a4b998). La oración entera sigue en
+    «oracion»: es el contexto de OpenAI y lo que guarda el cuaderno. Sin esa
+    función (un ui.py anterior) o si falla, la oración entera."""
+    oracion = oracion or ""
+    fragmentar = getattr(ui, "_fragmento_para_leer", None)
+    if fragmentar is None or not oracion:
+        return oracion
+    try:
+        return fragmentar(oracion, palabra or "") or oracion
+    except Exception:
+        return oracion
+
+
 def _anotacion_json(a) -> dict:
     return {"palabra": a.palabra, "lema": a.lema, "categoria": a.categoria,
-            "sentido": a.sentido, "oracion": a.oracion, "libro": a.libro,
-            "capitulo": a.capitulo, "rareza": a.rareza or None, "creado": a.creado}
+            "sentido": a.sentido, "oracion": a.oracion, "cita": _cita(a.oracion, a.palabra),
+            "libro": a.libro, "capitulo": a.capitulo, "rareza": a.rareza or None, "creado": a.creado}
 
 
 @app.get("/api/cuaderno")
@@ -1755,9 +1783,11 @@ def mis_palabras(pet: Lector, n: int = 50) -> dict:
 def repaso(pet: Lector) -> dict:
     """Sin nota y sin racha: un recordatorio, no un examen (`enganche.md` §5)."""
     anotaciones = cuaderno.para_repasar(5, ui._archivo_lector("cuaderno.db", pet))
+    # Con el historial de voz ilegible, el cuaderno se enseña igual y la parte
+    # de voz va vacía con su aviso.
+    filas, aviso = _historial_voz(lambda: voz.puntos_debiles(n=5, ruta=ui._archivo_lector("voz.db", pet)))
     return {"palabras": [_anotacion_json(a) for a in anotaciones],
-            "voz": [{"palabra": w, "fallos": n} for w, n in
-                    voz.puntos_debiles(n=5, ruta=ui._archivo_lector("voz.db", pet))]}
+            "voz": [{"palabra": w, "fallos": n} for w, n in filas], "aviso_voz": aviso}
 
 
 def _estanteria(pet: _Lector) -> list[dict]:
