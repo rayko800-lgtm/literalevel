@@ -26,7 +26,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
         <app-icono nombre="lupa" class="lupa" />
         <label class="oculto-visual" for="consulta">Qué te apetece leer</label>
         <input id="consulta" name="consulta" class="entrada" [(ngModel)]="consulta" maxlength="300"
-               placeholder="Detectives en Londres, algo de Jane Austen, dostoyevski…" autocomplete="off" enterkeyhint="search">
+               placeholder="Detectives, Jane Austen, aventuras…" autocomplete="off" enterkeyhint="search">
         <button class="boton" type="submit" [disabled]="cargando()">Buscar</button>
       </form>
       <div class="fila bajo-buscador">
@@ -56,7 +56,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
           } @else if (resultados(); as rs) {
             @if (aviso()) { <p class="aviso pequeno">{{ aviso() }}</p> }
             @if (rs.length) {
-              <p class="tenue pequeno recuento">{{ rs.length }} libros para «{{ ultima() }}»{{ ajustado() ? ', ordenados también por tu nivel' : '' }}.</p>
+              <p class="tenue pequeno recuento">{{ rs.length }} {{ rs.length === 1 ? 'libro' : 'libros' }} para «{{ ultima() }}»{{ ajustado() ? ', ordenados también por tu nivel' : '' }}.</p>
               <div class="rejilla-auto">
                 @for (l of rs; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="perfil()?.nivel ?? null" /> }
               </div>
