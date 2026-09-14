@@ -3,6 +3,7 @@
     python tools/desplegar_app.py            # compara y sube lo distinto
     python tools/desplegar_app.py --seco     # compara y no sube nada
     python tools/desplegar_app.py --estado   # en que fase va el Space, y si responde
+    python tools/desplegar_app.py --solo app/api.py  # solo esta ruta confirmada
 
 EL TOKEN
 
@@ -48,6 +49,7 @@ import argparse
 import hashlib
 import os
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -58,6 +60,7 @@ URL = "https://mikemaki1763-literalevel.hf.space"
 
 # Lo unico que este guion tiene permiso para tocar.
 LISTA_BLANCA = [
+    "app/api.py",
     "app/biblioteca.py",
     "app/catalogo.py",
     "app/config.py",
@@ -123,6 +126,37 @@ def _audios_de_fonemas():
 
 
 LISTA_BLANCA += _audios_de_fonemas()
+
+
+def seleccionar(solo=None):
+    """Rutas exactas de la lista blanca, nunca carpetas ni patrones."""
+    if solo is None:
+        return list(LISTA_BLANCA)
+    rutas = list(dict.fromkeys(str(r).replace("\\", "/") for r in solo))
+    if not rutas or any(r not in LISTA_BLANCA for r in rutas):
+        sys.exit("NO SUBO NADA: --solo admite exclusivamente rutas exactas de la lista blanca.")
+    return rutas
+
+
+def exigir_confirmados(rutas, raiz=None):
+    """No publicar un archivo ajeno a HEAD ni cambios de otra sesion."""
+    raiz = raiz or RAIZ
+    try:
+        versionados = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", *rutas], cwd=raiz,
+            capture_output=True, check=False)
+        if versionados.returncode:
+            sys.exit("NO SUBO NADA: hay archivos seleccionados sin versionar o Git no esta disponible.")
+        estado = subprocess.run(
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *rutas],
+            cwd=raiz, capture_output=True, check=False)
+    except OSError:
+        sys.exit("NO SUBO NADA: no se pudo comprobar Git.")
+    if estado.returncode:
+        sys.exit("NO SUBO NADA: no se pudo comprobar el estado de los archivos seleccionados.")
+    if estado.stdout:
+        sys.exit("NO SUBO NADA: los archivos seleccionados tienen cambios sin commit. "
+                 "Confirma solo tu trabajo o reduce la seleccion con --solo.")
 
 # Reglas de LFS que el Space tiene que tener ANTES de recibir estos binarios.
 LFS_NECESARIO = {
@@ -209,7 +243,8 @@ def revisar(ruta, rel):
     # se escanea: lleva texto plano dentro.
     if rel.endswith(".mp3"):
         return
-    texto = open(ruta, encoding="utf-8", errors="replace").read()
+    with open(ruta, encoding="utf-8", errors="replace") as f:
+        texto = f.read()
     for patron in CREDENCIALES:
         m = patron.search(texto)
         if m:
@@ -221,7 +256,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seco", action="store_true", help="comparar sin subir")
     ap.add_argument("--estado", action="store_true", help="solo mirar el Space")
+    ap.add_argument("--solo", nargs="+", action="extend", metavar="RUTA",
+                    help="limitar a rutas exactas de la lista blanca; no admite carpetas")
     args = ap.parse_args()
+    if args.estado and args.solo is not None:
+        ap.error("--estado no se combina con --solo")
+    seleccion = seleccionar(args.solo)
+    if not args.estado and not args.seco:
+        exigir_confirmados(seleccion)
 
     try:
         from huggingface_hub import CommitOperationAdd, HfApi
@@ -239,9 +281,10 @@ def main():
     if papel != "write":
         sys.exit("El token no es de escritura. Uno de lectura no sube nada.")
 
+    revision = api.repo_info(REPO, repo_type="space").sha
     remoto = {}
     for it in api.list_repo_tree(REPO, repo_type="space", recursive=True,
-                                 expand=True):
+                                 expand=True, revision=revision):
         if getattr(it, "size", None) is None:
             continue
         # En un archivo LFS el `blob_id` es el del PUNTERO, no el del
@@ -252,7 +295,7 @@ def main():
         remoto[it.path] = ("lfs", lfs.sha256) if lfs else ("git", it.blob_id)
 
     faltan, cambian, iguales = [], [], []
-    for rel in LISTA_BLANCA:
+    for rel in seleccion:
         local = os.path.join(RAIZ, rel.replace("/", os.sep))
         if not os.path.isfile(local):
             faltan.append(rel)
@@ -292,25 +335,35 @@ def main():
 
     if args.seco:
         print()
-        print("--seco: no subo nada.")
+        print("--seco: no subo nada. Comparacion del disco; no exige commit local.")
         return
+
+    # Congelar el contenido y volver a comprobarlo: otra sesion puede haber
+    # editado mientras se consultaba el Space. El SDK recibe estos bytes.
+    contenidos = {}
+    for rel in cambian:
+        with open(os.path.join(RAIZ, rel.replace("/", os.sep)), "rb") as f:
+            contenidos[rel] = f.read()
+    exigir_confirmados(seleccion)
 
     if faltan_lfs:
         nuevo = gitattributes.rstrip("\n") + "\n" + "\n".join(faltan_lfs) + "\n"
-        api.create_commit(
+        info_lfs = api.create_commit(
             repo_id=REPO, repo_type="space",
+            parent_commit=revision,
             operations=[CommitOperationAdd(path_in_repo=".gitattributes",
                                            path_or_fileobj=nuevo.lstrip("\n").encode("utf-8"))],
             commit_message="lfs para los audios de los fonemas: "
                            + ", ".join(l.split()[0] for l in faltan_lfs))
+        revision = info_lfs.oid
         print("reglas de LFS anadidas al .gitattributes del Space")
 
     ops = [CommitOperationAdd(path_in_repo=rel,
-                              path_or_fileobj=os.path.join(
-                                  RAIZ, rel.replace("/", os.sep)))
+                              path_or_fileobj=contenidos[rel])
            for rel in cambian]
     info = api.create_commit(
         repo_id=REPO, repo_type="space", operations=ops,
+        parent_commit=revision,
         commit_message="sincronizar con el arbol local: " + ", ".join(cambian))
     print()
     print("subido en un solo commit: " + str(getattr(info, "oid", "") or ""))
