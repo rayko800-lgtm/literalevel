@@ -14,7 +14,8 @@ OPENAI_API_KEY, `transcribir_audio`, `explicar_correccion` y
 que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
-import difflib, hashlib, os, re, sqlite3, tempfile
+import difflib, hashlib, os, re, sqlite3, tempfile, threading
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,6 +41,8 @@ VOZ_POR_DEFECTO = "alloy"
 # versionar la huella hace que todos se regeneren una vez y evita conservar
 # para siempre un archivo que ya llego recortado.
 VERSION_AUDIO_TTS = "v2-pausa-atomico"
+# Memoria acotada y compartida por los hilos de Gradio/API de este proceso.
+_CANDADOS_AUDIO = [threading.Lock() for _ in range(64)]
 
 _PUNTUACION_RE = re.compile(r"[^\w\s'-]", re.UNICODE)
 _GUION_SOLO_RE = re.compile(r"(^[-']+|[-']+$)")
@@ -463,29 +466,27 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
     huella del texto, el modelo y la voz, repetir una frase es gratis y
     ademas instantaneo.
     """
-    # La cache se mira ANTES de pedir el cliente: si la frase ya se genero,
-    # se devuelve aunque no haya clave ni red.
-    reutilizable = None
-    if ruta_salida is None:
-        reutilizable = _ruta_audio_cache(texto, voz)
-        if reutilizable.is_file() and reutilizable.stat().st_size > 0:
-            return str(reutilizable)
-        try:
-            reutilizable.parent.mkdir(parents=True, exist_ok=True)
-        except OSError:
-            return None
-        ruta_salida = reutilizable
-
-    cliente = _cliente()
-    if cliente is None:
-        return None
+    reutilizable = _ruta_audio_cache(texto, voz) if ruta_salida is None else None
+    candado = (_CANDADOS_AUDIO[int(hashlib.sha256(str(reutilizable).encode()).hexdigest()[:8], 16)
+                              % len(_CANDADOS_AUDIO)] if reutilizable is not None else nullcontext())
     try:
-        respuesta = cliente.audio.speech.create(model=MODELO_VOZ, voice=voz,
-                                                input=_texto_para_tts(texto),
-                                                response_format="mp3")
-        destino = Path(ruta_salida)
-        _escribir_audio_atomico(respuesta, destino)
-        return str(destino)
+        with candado:
+            # Releer DENTRO: otro lector puede haber publicado mientras esperabamos.
+            # La cache sigue disponible sin construir cliente ni tener clave.
+            if reutilizable is not None:
+                if reutilizable.is_file() and reutilizable.stat().st_size > 0:
+                    return str(reutilizable)
+                reutilizable.parent.mkdir(parents=True, exist_ok=True)
+                ruta_salida = reutilizable
+            cliente = _cliente()
+            if cliente is None:
+                return None
+            respuesta = cliente.audio.speech.create(model=MODELO_VOZ, voice=voz,
+                                                    input=_texto_para_tts(texto),
+                                                    response_format="mp3")
+            destino = Path(ruta_salida)
+            _escribir_audio_atomico(respuesta, destino)
+            return str(destino)
     except Exception:
         return None
 
@@ -495,19 +496,24 @@ def generar_audio_correcto(texto: str, ruta_salida: str | os.PathLike | None = N
 def _conectar(ruta: str = RUTA_DB_POR_DEFECTO) -> sqlite3.Connection:
     os.makedirs(os.path.dirname(ruta), exist_ok=True)
     con = sqlite3.connect(ruta)
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS palabras_debiles (
-            palabra    TEXT PRIMARY KEY,
-            fallos     INTEGER NOT NULL DEFAULT 0,
-            ultima_vez TEXT NOT NULL
-        )
-    """)
-    # La frase en la que se fallo (13 sep 2026): Miguel quiere las palabras
-    # mal pronunciadas en «Mis palabras» para practicarlas, y una palabra suelta
-    # sin su frase se practica peor. Las bases viejas no tienen la columna.
-    columnas = {fila[1] for fila in con.execute("PRAGMA table_info(palabras_debiles)")}
-    if "frase" not in columnas:
-        con.execute("ALTER TABLE palabras_debiles ADD COLUMN frase TEXT")
+    try:
+        # Serializa comprobar y migrar tambien entre procesos sobre la misma DB.
+        con.execute("BEGIN IMMEDIATE")
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS palabras_debiles (
+                palabra    TEXT PRIMARY KEY,
+                fallos     INTEGER NOT NULL DEFAULT 0,
+                ultima_vez TEXT NOT NULL
+            )
+        """)
+        # Las bases viejas no guardaban la frase en que se fallo.
+        columnas = {fila[1] for fila in con.execute("PRAGMA table_info(palabras_debiles)")}
+        if "frase" not in columnas:
+            con.execute("ALTER TABLE palabras_debiles ADD COLUMN frase TEXT")
+        con.commit()
+    except BaseException:
+        con.close()
+        raise
     return con
 
 
