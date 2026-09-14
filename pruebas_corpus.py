@@ -361,6 +361,66 @@ def _titulo_entero_gana_a_palabra_suelta():
 prueba("un titulo entero gana a los que solo comparten una palabra", _titulo_entero_gana_a_palabra_suelta)
 
 
+class _PuntuadorFalso:
+    """Sustituye al v4: rechaza como no-prosa lo que lleve «LISTA»."""
+    def __init__(self):
+        self.llamadas = 0
+
+    def puntuar(self, texto):
+        import types
+        self.llamadas += 1
+        if "LISTA" in texto:
+            raise ValueError("parece una lista")
+        n = len(texto.split())
+        return types.SimpleNamespace(puntuacion=round(min(2.0, n / 1000), 3), n_bloques=max(1, n // 250))
+
+
+def _medicion_reanudable_y_mismo_reparto():
+    """14 sep 2026: medir los ~12.600 textos de StoryWeaver ya no es de un tiron.
+    Mismo reparto que el catalogador (un rechazado por el filtro entra en un
+    bloque), shards reanudables y clave por contenido."""
+    spec = importlib.util.spec_from_file_location("medir_corpus", "tools/medir_corpus.py")
+    mc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mc)
+    carpeta = _nuevo() / "medidas"
+
+    def tabla(texto_a="a " * 400):
+        return pd.DataFrame({
+            "fuente": ["storyweaver"] * 4, "id": ["SWV1", "SWV2", "SWV3", "SWV4"],
+            "nivel_editor": ["1", "1", "1", "1"],
+            # SWV3 y SWV4 por debajo de MIN_WORDS (150): solo pueden medirse en bloque.
+            "texto": [texto_a, "LISTA " + "b " * 299, "c " * 120, "d " * 140],
+        }).assign(palabras=lambda d: d["texto"].str.split().map(len))
+
+    p1 = _PuntuadorFalso()
+    df, completo = mc.medir(tabla(), puntuador=p1, carpeta=carpeta, tope=1, salida=lambda *a: None)
+    assert not completo and p1.llamadas == 1, (completo, p1.llamadas)
+    lineas = sum(1 for r in carpeta.glob("medidas_*.jsonl") for _ in r.open(encoding="utf-8"))
+    assert lineas == 1, f"la primera unidad no quedo en disco al cortar: {lineas}"
+    with next(carpeta.glob("medidas_*.jsonl")).open("a", encoding="utf-8") as f:
+        f.write('{"clave": "cortada')                        # un corte a mitad de linea
+    p2 = _PuntuadorFalso()
+    df, completo = mc.medir(tabla(), puntuador=p2, carpeta=carpeta, salida=lambda *a: None)
+    # Unidades: SWV1 texto, SWV2 texto (rechazada), bloque [SWV2], bloque [SWV3, SWV4]
+    assert completo and p2.llamadas == 3, f"no reanudo: {p2.llamadas} llamadas"
+    fila = df.set_index("id")
+    assert fila.loc["SWV1", "medida"] == "texto"
+    assert fila.loc["SWV2", "medida"] == "" or fila.loc["SWV2", "medida"] == "bloque", fila.loc["SWV2"]
+    assert fila.loc["SWV3", "medida"] == "bloque" and fila.loc["SWV4", "medida"] == "bloque"
+    assert fila.loc["SWV3", "dificultad"] == fila.loc["SWV4", "dificultad"], "el bloque no reparte su medida"
+    p3 = _PuntuadorFalso()
+    df3, _ = mc.medir(tabla(), puntuador=p3, carpeta=carpeta, salida=lambda *a: None)
+    assert p3.llamadas == 0, f"volvio a medir lo hecho: {p3.llamadas}"
+    assert df3["dificultad"].fillna(-1).tolist() == df["dificultad"].fillna(-1).tolist()
+    p4 = _PuntuadorFalso()
+    mc.medir(tabla("otro " * 400), puntuador=p4, carpeta=carpeta, salida=lambda *a: None)
+    assert p4.llamadas == 1, f"un texto cambiado no se volvio a medir: {p4.llamadas}"
+    return "corta, reanuda sin repetir, bloque con el rechazado y clave por contenido"
+
+
+prueba("la medicion del corpus es reanudable y reparte como el catalogador", _medicion_reanudable_y_mismo_reparto)
+
+
 # --- 2. El lector ---------------------------------------------------------------
 print("\nAbrir un libro libre en el lector")
 

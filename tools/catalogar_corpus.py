@@ -115,6 +115,9 @@ def temas(fuente, f):
 
 
 def cargar(tope):
+    # Los 48 libros de StoryWeaver bajados por popularidad
+    # (auditoria/storyweaver_sesgadas_48.txt) solo se apartan al VALIDAR: son
+    # libres y entran al catalogo como los demas (central, 14 sep 2026).
     filas = []
     for fuente, ruta in FUENTES.items():
         if not ruta.exists():
@@ -167,36 +170,12 @@ def cargar(tope):
 
 
 def puntuar(df):
-    p = Puntuador(str(RAIZ / "modelo_v4"))
-    df["dificultad"], df["ventanas"], df["medida"] = float("nan"), 0, ""
-    # 1) cada texto que se pueda puntuar solo
-    for i, f in df.iterrows():
-        if f["palabras"] < scoring.MIN_WORDS:
-            continue
-        try:
-            r = p.puntuar(f["texto"])
-            df.at[i, "dificultad"] = round(float(r.puntuacion), 4)
-            df.at[i, "ventanas"] = len(scoring.fixed_blocks(scoring.normalize(f["texto"])))
-            df.at[i, "medida"] = "texto"
-        except ValueError:
-            pass
-    # 2) los que quedan, en bloques de su fuente y nivel
-    resto = df[df["medida"] == ""].sort_values("id")
-    for (_, _), g in resto.groupby(["fuente", resto["nivel_editor"].fillna("sin")]):
-        idx, trozos, cuenta = [], [], 0
-        for i, f in g.iterrows():
-            idx.append(i)
-            trozos.append(f["texto"])
-            cuenta += f["palabras"]
-            if cuenta >= BLOQUE:
-                try:
-                    r = p.puntuar("\n\n".join(trozos))
-                    for j in idx:
-                        df.at[j, "dificultad"] = round(float(r.puntuacion), 4)
-                        df.at[j, "medida"] = "bloque"
-                except ValueError:
-                    pass
-                idx, trozos, cuenta = [], [], 0
+    """Mide con tools/medir_corpus.py: el mismo reparto (textos solos y bloques de
+    cortos y rechazados por fuente y nivel), pero reanudable y reutilizando lo ya
+    medido por clave de contenido. Si falta algo, lo mide aqui mismo."""
+    sys.path.insert(0, str(RAIZ / "tools"))
+    import medir_corpus
+    df, _ = medir_corpus.medir(df)
     return df
 
 
