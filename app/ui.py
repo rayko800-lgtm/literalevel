@@ -3518,7 +3518,7 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
                 "the one you need._")
     else:
         contexto = "Contexto" if idioma == "es" else "Context"
-        cola = f"\n\n> {oracion}\n\n_{contexto}: {origen}._"
+        cola = f"\n\n> {_fragmento_para_leer(oracion, palabra)}\n\n_{contexto}: {origen}._"
     ficha = _ficha(r, idioma) + cola
     local = _local(r.audio_us) or _local(r.audio_uk)
     yield ficha, _reproductores(r), gr.update(value=local, visible=bool(local))
@@ -3824,7 +3824,8 @@ def _mal_pronunciadas(peticion: gr.Request = None) -> str:
     trozos = ['<div id="ll-malpron"><p><b>Para practicar en voz alta</b> · copia la '
               'frase en «Pronunciar» y vuelve a intentarlo.</p><ul>']
     for f in filas:
-        frase = (f" — <i>{_html.escape(str(f['frase']))}</i>" if f.get("frase") else "")
+        frase = (f" — <i>{_html.escape(_fragmento_para_leer(str(f['frase']), str(f['palabra'])))}</i>"
+                 if f.get("frase") else "")
         vez = "vez" if f["fallos"] == 1 else "veces"
         trozos.append(f"<li><b>{_html.escape(str(f['palabra']))}</b> · {int(f['fallos'])} {vez}{frase}</li>")
     trozos.append("</ul></div>")
@@ -3872,6 +3873,72 @@ def _recortar(t, n: int) -> str:
     return t if len(t) <= n else t[:n - 1] + "…"
 
 
+def _fragmento_para_leer(oracion: str, palabra: str, tope: int = 30) -> str:
+    """Lo que se ENSEÑA de una oracion larga: la clausula donde esta la palabra.
+
+    La oracion entera sigue siendo el contexto de OpenAI y lo que guarda el
+    cuaderno; esto solo decide que se cita en la ficha y en «Mis palabras». En
+    Alicia, la de «waistcoat-pocket» es UNA frase de Carroll de 107 palabras
+    -«(when she thought it over afterwards…» hasta «…under the hedge.»-, con
+    un solo punto y coma: el partidor no puede cortarla y no debe (f4, informe
+    final). Hasta `tope` palabras se devuelve tal cual. Si pasa, se toma la
+    clausula que contiene la palabra (cortada en «;», «:» o «,») y se le suman
+    las vecinas mientras quepan; si la clausula sola ya pasa, una ventana de
+    `tope` palabras centrada en la palabra. «…» donde se corta.
+    """
+    texto = " ".join(str(oracion or "").split())
+    palabras = texto.split()
+    if len(palabras) <= tope:
+        return texto
+
+    def normal(w):
+        return "".join(ch for ch in w.lower() if ch.isalnum() or ch in "'-")
+
+    clave = normal(str(palabra or "").split()[0]) if str(palabra or "").strip() else ""
+
+    def es_la_palabra(w):
+        n = normal(w)
+        return bool(clave) and (n == clave or clave in n.split("-"))
+
+    clausulas, actual = [], []
+    for w in palabras:
+        actual.append(w)
+        if w.endswith((";", ":", ",")):
+            clausulas.append(actual)
+            actual = []
+    if actual:
+        clausulas.append(actual)
+    idx = next((i for i, cl in enumerate(clausulas) if any(es_la_palabra(w) for w in cl)), None)
+    if idx is None:
+        return " ".join(palabras[:tope]).rstrip(",;:") + " …"
+    if len(clausulas[idx]) <= tope:
+        ini = fin = idx
+        total = len(clausulas[idx])
+        while True:
+            crecio = False
+            if ini > 0 and total + len(clausulas[ini - 1]) <= tope:
+                ini -= 1
+                total += len(clausulas[ini])
+                crecio = True
+            if fin < len(clausulas) - 1 and total + len(clausulas[fin + 1]) <= tope:
+                fin += 1
+                total += len(clausulas[fin])
+                crecio = True
+            if not crecio:
+                break
+        trozo = [w for cl in clausulas[ini:fin + 1] for w in cl]
+        antes, despues = ini > 0, fin < len(clausulas) - 1
+    else:
+        cl = clausulas[idx]
+        pos = next(i for i, w in enumerate(cl) if es_la_palabra(w))
+        a = max(0, min(pos - tope // 2, len(cl) - tope))
+        trozo = cl[a:a + tope]
+        antes = idx > 0 or a > 0
+        despues = idx < len(clausulas) - 1 or a + tope < len(cl)
+    frase = " ".join(trozo).strip().rstrip(",;:")
+    return ("… " if antes else "") + frase + (" …" if despues else "")
+
+
 def _mis_palabras(peticion: gr.Request = None):
     db = _archivo_lector("cuaderno.db", peticion)
     total, lemas, libros = cuaderno.contar(db)
@@ -3888,7 +3955,7 @@ def _mis_palabras(peticion: gr.Request = None):
         rareza = f" · {a.rareza}" if a.rareza else ""
         partes = [f'<div class="ll-p">{_html.escape(_recortar(a.palabra, 40))}'
                   f'<span class="ll-d">{_html.escape(rareza + donde)}</span></div>',
-                  f'<div class="ll-f">{_html.escape(_recortar(a.oracion, 220))}</div>']
+                  f'<div class="ll-f">{_html.escape(_fragmento_para_leer(a.oracion, a.palabra))}</div>']
         if a.sentido:
             partes.append(f'<div class="ll-s">'
                           f'{_html.escape(_recortar(a.sentido, 160))}</div>')
@@ -3924,7 +3991,7 @@ def _repasar(peticion: gr.Request = None):
             trozos.append(
                 f'<div class="ll-c"><div class="ll-p">'
                 f'{_html.escape(_recortar(a.palabra, 40))}</div>'
-                f'<div class="ll-f">{_html.escape(_recortar(a.oracion, 220))}'
+                f'<div class="ll-f">{_html.escape(_fragmento_para_leer(a.oracion, a.palabra))}'
                 f'</div>{sentido}</div>')
         trozos.append("</div>")
     if debiles:

@@ -5355,6 +5355,40 @@ prueba("la sinopsis no recibe el final del libro",
        _la_sinopsis_no_recibe_el_final_del_libro)
 
 
+def _la_oracion_larga_se_cita_por_su_clausula():
+    """f4: la oracion de «waistcoat-pocket» en Alicia es UNA frase de 107
+    palabras y se citaba entera en la ficha y en «Mis palabras»."""
+    larga = ("(when she thought it over afterwards, it occurred to her that she ought to have "
+             "wondered at this, but at the time it all seemed quite natural); but when the Rabbit "
+             "actually took a watch out of its waistcoat-pocket , and looked at it, and then hurried "
+             "on, Alice started to her feet, for it flashed across her mind that she had never before "
+             "seen a rabbit with either a waistcoat-pocket, or a watch to take out of it, and burning "
+             "with curiosity, she ran across the field after it, and fortunately was just in time to "
+             "see it pop down a large rabbit-hole under the hedge.")
+    assert len(larga.split()) >= 100, len(larga.split())
+    frag = ui._fragmento_para_leer(larga, "waistcoat-pocket")
+    assert len(frag.replace("…", "").split()) <= 30, frag
+    assert "waistcoat-pocket" in frag and "…" in frag, frag
+    corta = "The Rabbit took a watch out of its waistcoat-pocket."
+    assert ui._fragmento_para_leer(corta, "waistcoat-pocket") == corta
+    sin_palabra = ui._fragmento_para_leer(larga, "zzqxvj")
+    assert len(sin_palabra.replace("…", "").split()) <= 30, sin_palabra
+    # Una sola clausula de mas de 30 palabras: ventana centrada en la palabra.
+    sin_comas = " ".join(["word"] * 40 + ["bank"] + ["word"] * 40)
+    ventana = ui._fragmento_para_leer(sin_comas, "bank")
+    assert "bank" in ventana and len(ventana.replace("…", "").split()) <= 30, ventana
+    fuente = pathlib.Path(ui.__file__).read_text(encoding="utf-8")
+    assert "_fragmento_para_leer(oracion, palabra)" in fuente.split("def _consultar")[1]
+    assert "_fragmento_para_leer(a.oracion, a.palabra)" in fuente.split("def _mis_palabras")[1].split("def _repasar")[0]
+    assert "_fragmento_para_leer(a.oracion, a.palabra)" in fuente.split("def _repasar")[1]
+    assert "_fragmento_para_leer(str(f['frase'])" in fuente.split("def _mal_pronunciadas")[1]
+    return f"107 palabras -> {len(frag.replace('…', '').split())} con la palabra dentro"
+
+
+prueba("la oracion larga se cita por su clausula",
+       _la_oracion_larga_se_cita_por_su_clausula)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 
