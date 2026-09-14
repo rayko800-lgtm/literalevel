@@ -722,6 +722,11 @@ def cabeza_makehuman():
     # La pared del fondo de las cavidades: el perfil entero, encogido.
     perfil = frente + [(x, y) for x, y in reversed(nuca)]
     placa("pared_lejana", perfil, -1.3, PARED, escala=0.96)
+    # Dos paredes mas al fondo: de tres cuartos, a traves de la mitad
+    # translucida, se veia el reves oscuro de la piel lejana y la cabeza
+    # parecia hueca; con carne a varias profundidades se lee maciza.
+    placa("pared_lejana_2", perfil, -2.1, PARED, escala=0.86)
+    placa("pared_lejana_3", perfil, -2.8, PARED, escala=0.66)
     # El ojo del lado lejano: globo blanco e iris oscuro; el hueco de la cuenca
     # de MakeHuman queda cubierto.
     x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]

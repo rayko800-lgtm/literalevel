@@ -1068,7 +1068,7 @@ export class EscenaBoca {
       if (!(o instanceof THREE.Mesh)) return;
       const opaco = !(Array.isArray(o.material) ? o.material : [o.material]).some(m => m.transparent);
       o.castShadow = opaco;
-      o.receiveShadow = opaco;
+      o.receiveShadow = opaco && !o.userData['sinSombraRecibida'];
     });
   }
 
@@ -1135,6 +1135,7 @@ export class EscenaBoca {
         ['cabeza_lejana', 'piel', false],
         ['corte_craneo', 'corte', false], ['corte_nariz', 'corte', false], ['corte_maxilar', 'corte', false],
         ['corte_mandibula', 'corte', true], ['pared_lejana', 'pared', false],
+        ['pared_lejana_2', 'pared', false], ['pared_lejana_3', 'pared', false],
         ['ojo_lejano', 'ojo', false], ['iris_lejano', 'iris', false],
       ];
       for (const [nombre, tejido, enMandibula] of cabeza) {
@@ -1154,7 +1155,10 @@ export class EscenaBoca {
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
-        if (nombre === 'cabeza_lejana' || nombre === 'pared_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
+        if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
+        // El revés de la piel lejana (a dos caras) no recibe sombras: a la
+        // sombra de sí misma se veía negro por dentro desde tres cuartos.
+        if (nombre === 'cabeza_lejana' && labiosEnPiel) pieza.userData['sinSombraRecibida'] = true;
         if (nombre === 'cabeza_lejana') this.conMorfosDeLabios(pieza, fuente);
       }
       const cercana = piezas.get('cabeza_cercana');
