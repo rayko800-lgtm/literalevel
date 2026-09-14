@@ -195,6 +195,15 @@ class ResultadoLexico:
     # tradicionales, y no lo quiero».
     compuesto: str | None = None
     parte_del_diccionario: str | None = None
+    # La acepcion principal de cada entrada (etimologia) de Kaikki en la
+    # categoria, cuando la eleccion es dudosa y NO hay explicacion de OpenAI
+    # que la corrija. «bank» en «sitting by her sister on the bank» (Alicia)
+    # elegia la hucha o el tribunal por 0,002, y la orilla quedaba la 12.ª de
+    # 28: ningun ranking local medido la subia sin romper otras palabras (f4,
+    # informe final, captura 21). En vez de una acepcion equivocada, las
+    # principales. Vacia si la eleccion no es dudosa, si hubo explicacion o si
+    # queda menos de dos. Orden: el del diccionario.
+    acepciones_principales: list[str] = field(default_factory=list)
 
     @property
     def completo(self) -> bool:
@@ -1119,6 +1128,16 @@ class ConsultorLexico:
                 if alternativas and "acepcion_usada" in extra:
                     avisos = [a for a in avisos if "acepcion provisional" not in a]
 
+        acepciones_principales: list[str] = []
+        if dudoso and not (extra and str(extra.get("definicion_contextual") or "").strip()):
+            for e in candidatas:
+                limpios = _sin_marginales([(e, s) for s in e.sentidos if s.glosa])
+                glosa = limpios[0][1].glosa if limpios else None
+                if glosa and glosa not in acepciones_principales:
+                    acepciones_principales.append(glosa)
+            if len(acepciones_principales) < 2:
+                acepciones_principales = []
+
         if parte_del_diccionario and extra:
             ipa_us = _ipa_de_modelo(extra.get("ipa_us"))
             ipa_uk = _ipa_de_modelo(extra.get("ipa_uk"))
@@ -1147,6 +1166,7 @@ class ConsultorLexico:
             acepcion_elegida_por_ia=acepcion_elegida_por_ia,
             ipa_generada_por_ia=ipa_generada_por_ia,
             compuesto=compuesto, parte_del_diccionario=parte_del_diccionario,
+            acepciones_principales=acepciones_principales,
         )
 
     def cerrar(self) -> None:

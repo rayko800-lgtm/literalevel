@@ -107,6 +107,44 @@ class DesambiguacionReal(unittest.TestCase):
         finally:
             c.cerrar()
 
+    def test_bank_dudosa_sin_openai_ofrece_las_principales(self):
+        """«bank» en Alicia elegia la hucha o el tribunal por 0,002 y la orilla era
+        la 12.ª de 28 (f4, informe final). Sin explicacion de OpenAI, la ficha
+        ofrece la acepcion principal de cada entrada en vez de una equivocada."""
+        oracion = ("Alice was beginning to get very tired of sitting by her sister on the bank, "
+                   "and of having nothing to do: once or twice she had peeped into the book "
+                   "her sister was reading")
+        r = self.consultor.consultar("bank", oracion, 1.0)
+        esperadas = ["An institution where one can place and borrow money",
+                     "An edge of river, lake, or other watercourse.",
+                     "A row or panel of items stored or grouped together.",
+                     "A bench, as for rowers in a galley"]
+        self.assertEqual(len(r.acepciones_principales), len(esperadas), r.acepciones_principales)
+        for esperada, real in zip(esperadas, r.acepciones_principales):
+            self.assertIn(esperada, real)
+
+        # Con la explicacion de OpenAI no cambia nada: la lista va vacia y la
+        # acepcion es la misma.
+        c = lexicon.ConsultorLexico(ruta_cache=":memory:")
+        explicacion = {"traduccion": "orilla", "acepcion_usada": "",
+                       "definicion_contextual": "La orilla del rio.", "explicacion_gramatical": "x",
+                       "explicacion_adaptada": "x", "ejemplo_simplificado": "x"}
+        try:
+            with patch.object(c, "_cliente", return_value=object()), \
+                 patch.object(lexicon, "_pedir_explicacion_openai",
+                              side_effect=lambda *a, **kw: dict(explicacion)), \
+                 patch.object(lexicon, "_generar_audio_tts", return_value=(None, False)):
+                con = c.consultar("bank", oracion, 1.0)
+        finally:
+            c.cerrar()
+        self.assertEqual(con.acepciones_principales, [])
+        self.assertEqual(con.sentido, r.sentido)
+
+        # Una palabra con una sola entrada no ofrece lista, aunque dude.
+        w = self.consultor.consultar("waistcoat", "He buttoned his waistcoat and put on his coat.", 1.0)
+        self.assertEqual(w.acepciones_principales, [])
+        print(f"  OK bank (Alicia): {len(r.acepciones_principales)} principales")
+
     def test_sin_modelo_o_red_conserva_diccionario(self):
         with patch.object(lexicon, "_cargar_embebedor", side_effect=OSError("sin red")):
             r = self.consultor.consultar("brook", "A small brook ran behind the old cottage.", 1.0)

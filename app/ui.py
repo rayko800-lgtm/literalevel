@@ -3070,6 +3070,9 @@ _ROTULOS = {
                      "Suele acertar, pero puede equivocarse."),
         "acepcion_ia": ("La IA eligió esta acepción del diccionario porque encaja "
                         "mejor con tu frase."),
+        "puede_ser": "Puede ser",
+        "puede_ser_nota": ("Tu frase no deja claro cuál de estas es, y esta vez no hay "
+                           "explicación de contexto: quédate con la que encaje al leerla."),
         "parte": ("La entrada del diccionario es de «{parte}», una parte de «{todo}»: "
                   "el diccionario no trae el compuesto entero. La pronunciación es la de "
                   "«{todo}»."),
@@ -3095,6 +3098,10 @@ _ROTULOS = {
                      "written by an AI (OpenAI). It is usually right, but it can be wrong."),
         "acepcion_ia": ("The AI picked this dictionary sense because it fits your "
                         "sentence better."),
+        "puede_ser": "It may be",
+        "puede_ser_nota": ("Your sentence does not make clear which of these it is, and "
+                           "there is no contextual explanation this time: keep the one "
+                           "that fits when you read it."),
         "parte": ("The dictionary entry is for «{parte}», part of «{todo}»: the "
                   "dictionary does not have the whole compound. The pronunciation is "
                   "for «{todo}»."),
@@ -3231,7 +3238,15 @@ def _ficha(r, idioma: str = "es") -> str:
     if getattr(r, "traduccion", None):
         L.append(f"**{t['trad']}{ia}:** {_md(r.traduccion)}")
 
-    if r.sentido:
+    # Eleccion dudosa y sin explicacion de OpenAI: las acepciones principales
+    # en vez de una sola, que podia ser la hucha para «on the bank» (f4,
+    # informe final, captura 21). Ver `lexicon.ResultadoLexico`.
+    principales = [g for g in (getattr(r, "acepciones_principales", None) or []) if g]
+    if r.sentido and principales and not r.definicion_contextual:
+        L.append(f"**{t['dicc']}** (Wiktionary) · {t['puede_ser']}: "
+                 + " · ".join(_md(g) for g in principales))
+        L.append(f"_{t['puede_ser_nota']}_")
+    elif r.sentido:
         L.append(f"**{t['dicc']}** (Wiktionary): {_md(r.sentido)}")
         if r.etiquetas_sentido:
             L.append(f"_{_md(', '.join(r.etiquetas_sentido))}_")

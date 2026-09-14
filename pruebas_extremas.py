@@ -5299,6 +5299,40 @@ prueba("las frases no llevan comillas sueltas ni cursiva",
        _las_frases_no_llevan_comillas_sueltas_ni_cursiva)
 
 
+def _la_ficha_dudosa_sin_explicacion_ofrece_las_principales():
+    """f4, captura 21: «on the bank» salia como «A device used to store coins or
+    currency», con aviso de dudosa y sin explicacion que lo corrigiera."""
+    import lexicon as lexicon_mod   # aqui arriba del archivo aun no esta importado
+    base = dict(palabra_superficie="bank", oracion="sitting by her sister on the bank", lema="bank",
+                lema_buscado="bank", pos_spacy="NOUN", categoria="noun",
+                sentido="A device used to store coins or currency.", etiquetas_sentido=["countable"],
+                similitud=0.16, n_sentidos_candidatos=28, ipa_uk=None, ipa_us=None, audio_uk=None,
+                audio_us=None, audio_generado=False, explicacion_gramatical=None,
+                explicacion_adaptada=None, ejemplo_simplificado=None, banda_lector="intermedio",
+                frecuencia_zipf=5.0, desde_cache=False,
+                avisos=["acepcion provisional: margen bajo (0.002) frente a otra acepcion: X"])
+    principales = ["An institution where one can place and borrow money.",
+                   "An edge of river, lake, or other watercourse.",
+                   "A row or panel of items stored or grouped together.",
+                   "A bench, as for rowers in a galley; also, a tier of oars."]
+    sin = ui._ficha(lexicon_mod.ResultadoLexico(**base, definicion_contextual=None,
+                                                acepciones_principales=principales), "es")
+    assert "Puede ser:" in sin and "An edge of river" in sin, sin
+    assert "store coins" not in sin, "sigue enseñando la acepcion elegida"
+    assert "Poca confianza" not in sin, "el aviso de la acepcion elegida no aplica si no se enseña"
+    con = ui._ficha(lexicon_mod.ResultadoLexico(**base, definicion_contextual="La orilla.",
+                                                acepciones_principales=[]), "es")
+    assert "Puede ser" not in con and "store coins" in con, con
+    en = ui._ficha(lexicon_mod.ResultadoLexico(**base, definicion_contextual=None,
+                                               acepciones_principales=principales), "en")
+    assert "It may be:" in en, en
+    return "puede ser: las principales; con explicacion, la de siempre"
+
+
+prueba("la ficha dudosa sin explicacion ofrece las principales",
+       _la_ficha_dudosa_sin_explicacion_ofrece_las_principales)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 
