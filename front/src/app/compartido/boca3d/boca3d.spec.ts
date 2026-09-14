@@ -168,9 +168,33 @@ describe('Boca3d', () => {
     expect(fixture.componentInstance.modo()).toBe('2d');
     expect(raiz.querySelector('img.respaldo')).toBeNull();
     expect(raiz.querySelector('.sin')?.textContent).toContain('3D');
-    expect(raiz.querySelectorAll('.chip').length).toBe(6);    // reposo + 5 sonidos
+    expect(raiz.querySelectorAll('.chip').length).toBe(47);   // reposo + inventario completo
     fixture.componentInstance.elegir('ŋ');
     fixture.detectChanges();
     expect(raiz.querySelector('.leyenda')?.textContent).toContain('velo');
+  });
+
+  it('el catalogo completo tiene poses finitas y objetivos de diptongo', () => {
+    const fixture = TestBed.createComponent(Boca3d);
+    const catalogo = fixture.componentInstance.catalogo();
+    const revisar = (pose: typeof REPOSO) => {
+      expect(pose.cuerpo.length).toBe(2);
+      expect([...poseNumerica(pose)].every(Number.isFinite)).toBe(true);
+      if (pose.hacia) revisar(pose.hacia);
+    };
+    [catalogo.reposo, ...Object.values(catalogo.sonidos), ...Object.values(catalogo.rp ?? {})].forEach(revisar);
+    expect(poseDe(catalogo, 'θ')).not.toBeNull();
+    expect(poseDe(catalogo, 'əʊ', 'rp')?.hacia).toBeTruthy();
+  });
+
+  it('conserva el acento de la palabra aunque el fonema use el respaldo americano', () => {
+    const fixture = TestBed.createComponent(Boca3d);
+    fixture.componentRef.setInput('sonido', 'ɚ');
+    fixture.componentRef.setInput('acento', 'ga');
+    fixture.componentRef.setInput('ipa', 'əʊ');
+    fixture.componentRef.setInput('acentoIpa', 'rp');
+    const c = fixture.componentInstance;
+    expect(c.segmentos()[0].pose).toEqual(poseDe(c.catalogo(), 'əʊ', 'rp'));
+    expect(c.pose()).toEqual(poseDe(c.catalogo(), 'ɚ', 'ga'));
   });
 });

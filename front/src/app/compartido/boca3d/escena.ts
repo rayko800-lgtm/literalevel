@@ -74,6 +74,15 @@ export const MORFOS_LENGUA = [
   'cuerpo_delante', 'cuerpo_atras', 'dorso_velo', 'raiz_atras',
 ] as const;
 
+function liberarModelo(raiz: THREE.Object3D): void {
+  raiz.traverse(o => {
+    if (o instanceof THREE.Mesh) {
+      o.geometry.dispose();
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+    }
+  });
+}
+
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos, aire oral]. */
 const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, I_MORFOS = I_NUDOS + N_NUDOS * 2;
 const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
@@ -473,6 +482,7 @@ export class EscenaBoca {
   private indicesMorfos: (number | undefined)[] = [];
   private caraModelada = false;
   private readonly cavidadesSimples: THREE.Mesh[] = [];
+  private readonly dentalSimple: THREE.Object3D[] = [];
   private readonly sueloSimple: THREE.Mesh;
   /** Premolares y molares: se esconden los del lado de la cámara en la vista de lado. */
   private readonly dientesLaterales: THREE.Mesh[] = [];
@@ -493,7 +503,12 @@ export class EscenaBoca {
   reducirMovimiento: boolean;
 
   constructor(private readonly contenedor: HTMLElement, opciones: OpcionesEscena = {}) {
-    const col = { ...COLORES_POR_DEFECTO, ...opciones.colores };
+    contenedor.dataset['lengua'] = 'geometrico';
+    contenedor.dataset['cara'] = 'geometrico';
+    const col = { ...COLORES_POR_DEFECTO };
+    for (const [nombre, valor] of Object.entries(opciones.colores ?? {})) {
+      if (valor) col[nombre as keyof Colores] = valor;
+    }
     this.reducirMovimiento = !!opciones.reducirMovimiento;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -543,6 +558,7 @@ export class EscenaBoca {
     arcoSup.add(tuboArco(0.98, 0.2, mEncia));
     this.dientesLaterales.push(...arcoDental(arcoSup, 0.7, 0.5, mDientes));
     this.escena.add(arcoSup);
+    this.dentalSimple.push(paladar, arcoSup);
 
     const veloMalla = new THREE.Mesh(new THREE.CapsuleGeometry(GROSOR_PALADAR / 2, LARGO_VELO - GROSOR_PALADAR / 2, 4, 10), material(col.velo));
     veloMalla.rotation.z = -Math.PI / 2;                      // la cápsula a lo largo de +x
@@ -591,6 +607,7 @@ export class EscenaBoca {
     dentro.add(tuboArco(-0.2, 0.2, mEncia));
     dentro.add(tuboArco(-0.62, 0.28, mHueso, 2.6));
     this.dientesLaterales.push(...arcoDental(dentro, 0.1, 0.5, mDientes));
+    this.dentalSimple.push(...dentro.children);
     const suelo = new THREE.Mesh(new THREE.BoxGeometry(SUELO.x1 - SUELO.x0, SUELO.grosor, ANCHO * 0.8), mEncia);
     this.sueloSimple = suelo;
     suelo.position.set((SUELO.x0 + SUELO.x1) / 2, SUELO.y, 0);
@@ -696,7 +713,7 @@ export class EscenaBoca {
    *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
    *  la altura de la boca. */
   vista(azimut: number, polar = 1.49): void {
-    const distancia = this.caraModelada ? 16 : 10.5;
+    const distancia = this.distanciaEncuadre();
     this.controles.target.set(0.1, 0.05, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
@@ -708,6 +725,10 @@ export class EscenaBoca {
 
   restablecerVista(): void {
     this.vista(0.02);
+  }
+
+  private distanciaEncuadre(): number {
+    return (this.caraModelada ? 16 : 13) * Math.max(1, 1 / this.camara.aspect);
   }
 
   /** Con `true` el lienzo captura todos los gestos táctiles (también los
@@ -731,13 +752,17 @@ export class EscenaBoca {
    *  se queda el tubo y no pasa nada. */
   private cargarLengua(url: string, color: string): void {
     new GLTFLoader().load(url, gltf => {
-      if (!this.vivo) return;
+      if (!this.vivo) { liberarModelo(gltf.scene); return; }
       let malla: THREE.Mesh | null = null;
-      gltf.scene.traverse(o => { if (!malla && o instanceof THREE.Mesh && o.morphTargetInfluences) malla = o; });
-      if (!malla) return;
+      gltf.scene.traverse(o => {
+        if (!malla && o instanceof THREE.Mesh && o.morphTargetInfluences &&
+            MORFOS_LENGUA.every(n => Number.isInteger(o.morphTargetDictionary?.[n]))) malla = o;
+      });
+      if (!malla) { liberarModelo(gltf.scene); return; }
       const m = malla as THREE.Mesh;
       // Mucosa húmeda sin texturas: brillo de barniz fino y un velo rosado
       // (sheen) que imita algo de subsuperficie en los bordes.
+      (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
       m.material = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(color), roughness: 0.42, metalness: 0,
         clearcoat: 0.35, clearcoatRoughness: 0.3,
@@ -750,6 +775,8 @@ export class EscenaBoca {
       // La lengua va sobre el suelo de la boca: baja y gira con la mandíbula
       // (consejo de entrega-4e); el morfo `mandibula` solo añade un poco.
       this.dentroMandibula.add(m);
+      this.contenedor.dataset['lengua'] = 'blender';
+      liberarModelo(gltf.scene);
       this.aplicar(this.actual);
     }, undefined, () => { /* sin lengua modelada: se queda el tubo */ });
   }
@@ -787,6 +814,35 @@ export class EscenaBoca {
           material(nombre === 'nariz' ? '#dcb0a1' : '#c88185', { roughness: 0.68 }));
         (nombre === 'suelo_boca' ? this.dentroMandibula : this.escena).add(pieza);
       }
+      const menton = piezas.get('menton');
+      if (menton) this.dentroMandibula.add(new THREE.Mesh(
+        menton.geometry.clone().applyMatrix4(menton.matrixWorld), material('#dcb0a1', { roughness: 0.68 })));
+      const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
+      const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
+        ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
+      if (dentales.every(n => piezas.has(n))) {
+        this.dentalSimple.forEach(o => { o.visible = false; });
+        this.dientesLaterales.length = 0;
+        for (const nombre of dentales) {
+          const fuente = piezas.get(nombre)!;
+          const inferior = nombre.includes('_inf') || nombre === 'mandibula_modelada';
+          const pieza = new THREE.Mesh(fuente.geometry.clone(), material(
+            nombre.startsWith('diente_') ? '#f4eddf' : nombre === 'mandibula_modelada' ? '#d8c8b4' : '#d9959b',
+            { roughness: nombre.startsWith('diente_') ? 0.3 : 0.6 }));
+          fuente.matrixWorld.decompose(pieza.position, pieza.quaternion, pieza.scale);
+          (inferior ? this.dentroMandibula : this.escena).add(pieza);
+          if (nombre.startsWith('diente_') && Math.abs(pieza.position.z) > 0.42) this.dientesLaterales.push(pieza);
+        }
+        this.lateralesOcultos = 'ninguno';
+      }
+      if (piezas.has('velo_modelado') && piezas.has('uvula')) {
+        this.velo.children.forEach(o => { o.visible = false; });
+        for (const nombre of ['velo_modelado', 'uvula']) {
+          const fuente = piezas.get(nombre)!;
+          this.velo.add(new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
+            material('#d9959b', { roughness: 0.6 })));
+        }
+      }
       for (const m of piezas.values()) {
         m.geometry.dispose();
         (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
@@ -794,8 +850,9 @@ export class EscenaBoca {
       this.cavidadesSimples.forEach(m => { m.visible = false; });
       this.sueloSimple.visible = false;
       this.caraModelada = true;
+      this.contenedor.dataset['cara'] = 'blender';
       const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
-      this.camara.position.copy(this.controles.target).addScaledVector(direccion, 16);
+      this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
       this.controles.update();
       this.aplicar(this.actual);
     }, undefined, () => { /* Las piezas simples siguen visibles. */ });
@@ -826,6 +883,9 @@ export class EscenaBoca {
     this.renderer.setSize(w, h, false);
     this.camara.aspect = w / h;
     this.camara.updateProjectionMatrix();
+    const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
+    this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
+    this.controles.update();
     this.sucio = true;
   }
 

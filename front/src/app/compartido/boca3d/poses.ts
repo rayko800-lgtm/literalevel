@@ -3,8 +3,8 @@
  *  Es la misma tabla que `app/animacion_articulatoria.PARAMETROS` (46 sonidos),
  *  ya resuelta contra el reposo: ningún campo queda libre. La genera
  *  `tools/exportar_poses_boca3d.py` en `poses.ejemplo.json`, que es lo que la
- *  API podría servir después. Mientras tanto el visor lleva embebidos el reposo
- *  y los cinco sonidos del prototipo. */
+ *  API podria servir despues. El visor integrado usa ese snapshot completo;
+ *  las cinco poses del prototipo se conservan para las pruebas aisladas. */
 
 export type Movimiento = 'oclusiva' | 'fricativa' | 'africada' | 'nasal' | 'aproximante' | 'vocal' | 'diptongo';
 export type Labios = 'neutros' | 'cerrados' | 'redondeados' | 'muy_redondeados' | 'estirados' | 'labiodental';

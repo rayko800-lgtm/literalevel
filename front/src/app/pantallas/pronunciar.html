@@ -151,7 +151,7 @@
               @if (corteDelSonido(d) || corteDeLaPalabra(d)) {
                 <!-- Cerrado no descarga nada: el <img loading="lazy"> espera a que se abra.
                      Si una imagen falla, se quita en vez de dejar el icono roto. -->
-                <details class="boca">
+                <details class="boca" (toggle)="cerrarBoca($event)">
                   <summary><app-icono nombre="ojo" />Ver cómo se mueve la boca</summary>
                   <div class="cortes">
                     @if (corteDelSonido(d); as sonido) {
@@ -169,6 +169,19 @@
                       </figure>
                     }
                   </div>
+                  <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index)"
+                          [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
+                    <app-icono [nombre]="visor3d() === 'detalle-' + $index ? 'cerrar' : 'ojo'" />
+                    {{ visor3d() === 'detalle-' + $index ? 'Cerrar 3D' : 'Boca en 3D' }}
+                  </button>
+                  @if (visor3d() === 'detalle-' + $index) {
+                    @defer (on immediate) {
+                      <app-boca3d [sonido]="d.fonema?.simbolo ?? ''" [acento]="d.fonema?.acento ?? 'ga'"
+                                  [ipa]="d.ipa ?? ''" [acentoIpa]="d.variante === 'UK' ? 'rp' : 'ga'"
+                                  [svg2dUrl]="corteDelSonido(d) ?? corteDeLaPalabra(d)" />
+                    } @loading { <p role="status">Cargando modelo…</p> }
+                    @error { <p role="status">No se pudo cargar el modelo 3D.</p> }
+                  }
                 </details>
               }
               @if (d.sonido_que_falla) { <p><strong>Qué falla:</strong> {{ d.sonido_que_falla }}</p> }
@@ -223,13 +236,24 @@
                   <strong>{{ s.nombre }}</strong>
                   <span class="tenue pequeno">{{ s.ficha.rasgos }}</span>
                 </div>
-                <button type="button" class="boton-icono" (click)="elegido.set(null)" aria-label="Cerrar la ficha">
+                <button type="button" class="boton-icono" (click)="cerrarFicha()" aria-label="Cerrar la ficha">
                   <app-icono nombre="cerrar" />
                 </button>
               </header>
               <p class="tenue pequeno">Como en <em lang="en">{{ s.ejemplos.join(', ') }}</em></p>
               <img class="corte" [src]="corteSonido(s.simbolo)" width="240" height="248" loading="lazy"
                    [attr.alt]="'Corte de perfil de la boca: cómo se colocan los labios y la lengua para /' + s.simbolo + '/'" />
+              <button type="button" class="boton secundario" (click)="alternarBoca('sonido')"
+                      [attr.aria-expanded]="visor3d() === 'sonido'">
+                <app-icono [nombre]="visor3d() === 'sonido' ? 'cerrar' : 'ojo'" />
+                {{ visor3d() === 'sonido' ? 'Cerrar 3D' : 'Boca en 3D' }}
+              </button>
+              @if (visor3d() === 'sonido') {
+                @defer (on immediate) {
+                  <app-boca3d [sonido]="s.simbolo" [acento]="acento()" />
+                } @loading { <p role="status">Cargando modelo…</p> }
+                @error { <p role="status">No se pudo cargar el modelo 3D.</p> }
+              }
               <dl>
                 <div><dt>Labios</dt><dd>{{ s.ficha.labios }}</dd></div>
                 <div><dt>Lengua</dt><dd>{{ s.ficha.lengua }}</dd></div>

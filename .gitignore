@@ -33,6 +33,9 @@ entrega/*.blg
 literalevel_codigos.txt
 entrega/*.log
 
+# Compilaciones, capturas de QA y proyectos Blender reproducibles por tools/.
+/build/
+
 # Corpus graduados: los textos descargados no van a git (unos tienen derechos
 # y los libres pesan); se versionan los guiones, los manifiestos y los resultados.
 corpus_graduado/**/textos/

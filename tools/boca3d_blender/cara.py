@@ -27,6 +27,8 @@ def material(nombre, color, rugosidad=0.6):
 PIEL = material("piel", (0.84, 0.57, 0.50))
 MUCOSA = material("mucosa", (0.68, 0.34, 0.37))
 LABIOS = material("labios", (0.72, 0.32, 0.36), 0.42)
+ESMALTE = material("esmalte", (0.95, 0.92, 0.83), 0.3)
+HUESO = material("hueso", (0.83, 0.76, 0.67))
 
 
 def malla(nombre, vertices, caras, mat):
@@ -120,22 +122,99 @@ perfil("faringe", [(2.8, 2.1), (3.05, 1.55), (3.16, 0.6), (3.08, -0.55),
                    (2.95, -1.65), (2.8, -2.5), (2.75, -3.1)], 0.15, 1.0, MUCOSA)
 perfil("garganta", [(1.9, -1.9), (2.0, -2.4), (2.08, -3.1)], 0.11, 0.85, MUCOSA)
 
-# Suelo en coordenadas de reposo: el visor lo ancla al grupo mandibular.
-bpy.ops.mesh.primitive_cube_add(size=2, location=(0.15, 0, -1.55))
-suelo = bpy.context.object
-suelo.name = "suelo_boca"
-suelo.scale = (2.35, 1.08, 0.45)
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-bisel = suelo.modifiers.new("bordes_suaves", "BEVEL")
-bisel.width = 0.28
-bisel.segments = 6
-bpy.ops.object.modifier_apply(modifier=bisel.name)
-suelo.data.materials.append(PIEL)
-for p in suelo.data.polygons:
-    p.use_smooth = True
-suelo.data.use_auto_smooth = True
-normal = suelo.modifiers.new("normales", "WEIGHTED_NORMAL")
-bpy.ops.object.modifier_apply(modifier=normal.name)
+# Las superficies respetan las coordenadas del visor, incluidos los bordes
+# incisivos que usa la prueba de la lengua interdental.
+perfil("paladar_modelado", [(-2.55, 0.5), (-2.3, 0.75), (-2.05, 0.92),
+       (-1.7, 1.15), (-1.2, 1.35), (-0.6, 1.48), (0, 1.52),
+       (0.6, 1.5), (1.2, 1.42), (1.7, 1.32), (2.05, 1.22)],
+       0.13, 1.35, MUCOSA)
+
+
+def arco_encia(nombre, y, radio, retroceso, mat):
+    vertices, caras = [], []
+    pasos, lados = 96, 20
+    for i in range(pasos + 1):
+        u = -1 + 2 * i / pasos
+        x, z = -2.6 + retroceso * u*u, 1.35*u
+        nx, nz = 1.35, -2*retroceso*u
+        norma = math.hypot(nx, nz)
+        for j in range(lados):
+            a = math.tau*j/lados
+            # Seccion eliptica: encia con volumen, sin tubo circular grueso.
+            vertices.append((x + radio*math.cos(a)*nx/norma,
+                             y + radio*0.8*math.sin(a), z + radio*math.cos(a)*nz/norma))
+    for i in range(pasos):
+        for j in range(lados):
+            a, b = i*lados+j, i*lados+(j+1)%lados
+            caras.append((a, b, b+lados, a+lados))
+    caras += [tuple(reversed(range(lados))), tuple(pasos*lados+j for j in range(lados))]
+    return malla(nombre, vertices, caras, mat)
+
+
+arco_encia("encia_superior", 0.98, 0.22, 2.3, MUCOSA)
+arco_encia("encia_inferior", -0.2, 0.22, 2.3, MUCOSA)
+arco_encia("mandibula_modelada", -0.62, 0.28, 2.6, HUESO)
+
+
+def diente(nombre, u, superior):
+    incisivo = abs(u) < 0.3
+    profundidad, ancho = (0.24, 0.34) if incisivo else (0.36, 0.40)
+    y = 0.7 if superior else 0.1
+    x, z = -2.6 + 2.3*u*u, 1.35*u
+    bpy.ops.mesh.primitive_cube_add(size=2, location=(x, -z, y))
+    ob = bpy.context.object
+    ob.name = nombre
+    ob.scale = (profundidad/2, ancho/2, 0.25)
+    ob.rotation_euler.z = -math.atan2(4.6*u, 1.35)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bisel = ob.modifiers.new("corona_redondeada", "BEVEL")
+    bisel.width = 0.045 if incisivo else 0.075
+    bisel.segments = 5
+    bpy.ops.object.modifier_apply(modifier=bisel.name)
+    for v in ob.data.vertices:
+        # Corona algo mas estrecha junto a la encia; el borde no es una caja.
+        cuello = max(0, (v.co.z if superior else -v.co.z) / 0.25)
+        v.co.x *= 1 - 0.16*cuello
+        v.co.y *= 1 - 0.1*cuello
+    ob.data.materials.append(ESMALTE)
+    for p in ob.data.polygons:
+        p.use_smooth = True
+    ob.data.use_auto_smooth = True
+    normal = ob.modifiers.new("normales_corona", "WEIGHTED_NORMAL")
+    bpy.ops.object.modifier_apply(modifier=normal.name)
+
+
+for i, u in enumerate([-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92]):
+    diente("diente_sup_%02d" % i, u, True)
+    diente("diente_inf_%02d" % i, u, False)
+
+# Velo en su sistema local: el mismo pivote y rotacion que la animacion 2D.
+perfil("velo_modelado", [(0.03, 0), (0.35, 0), (0.7, -0.015), (1.12, -0.03)],
+       0.13, [0.94, 0.93, 0.76, 0.25], MUCOSA)
+perfil("uvula", [(0.95, -0.04), (1.06, -0.2), (1.1, -0.39)],
+       0.075, [0.12, 0.11, 0.035], MUCOSA)
+
+# Suelo muscular continuo y menton: coordenadas de reposo, ancladas a mandibula.
+vertices, caras = [], []
+pasos, lados = 64, 32
+for i in range(pasos + 1):
+    t = i / pasos
+    x = -2.2 + 4.7*t
+    ancho = 0.12 + 0.98*math.sin(math.pi*t)**0.48
+    altura = 0.1 + 0.32*math.sin(math.pi*t)**0.6
+    centro = -1.6 + 0.18*t
+    for j in range(lados):
+        a = math.tau*j/lados
+        vertices.append((x, centro + altura*math.cos(a), ancho*math.sin(a)))
+for i in range(pasos):
+    for j in range(lados):
+        a, b = i*lados+j, i*lados+(j+1)%lados
+        caras.append((a, b, b+lados, a+lados))
+caras += [tuple(reversed(range(lados))), tuple(pasos*lados+j for j in range(lados))]
+malla("suelo_boca", vertices, caras, MUCOSA)
+perfil("menton", [(-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45),
+       (-1.92, -1.98), (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15)],
+       0.12, [0.6, 0.7, 0.82, 0.98, 1.04, 0.97, 0.72], PIEL)
 
 for ob in bpy.context.scene.objects:
     assert all(math.isfinite(c) for v in ob.data.vertices for c in v.co)
@@ -143,5 +222,8 @@ for ob in bpy.context.scene.objects:
 
 bpy.ops.export_scene.gltf(filepath=os.path.abspath(SALIDA), export_format="GLB", export_yup=True,
                           export_materials="EXPORT")
+proyecto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "build", "boca3d_modelos", "cara.blend"))
+os.makedirs(os.path.dirname(proyecto), exist_ok=True)
+bpy.ops.wm.save_as_mainfile(filepath=proyecto)
 print("CARA_OK", json.dumps({"bytes": os.path.getsize(SALIDA), "piezas": {
     ob.name: len(ob.data.vertices) for ob in bpy.context.scene.objects}}))

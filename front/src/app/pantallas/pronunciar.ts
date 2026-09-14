@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
+import { Boca3d } from '../compartido/boca3d/boca3d';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
@@ -19,7 +20,7 @@ type Grabacion = 'lista' | 'grabando' | 'grabada';
 @Component({
   selector: 'app-pronunciar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icono],
+  imports: [FormsModule, RouterLink, Icono, Boca3d],
   templateUrl: './pronunciar.html',
   styleUrl: './pronunciar.css',
 })
@@ -46,6 +47,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly acento = this.preferencias.acento;
   private readonly inventarios = signal<Partial<Record<Acento, InventarioSonidos>>>({});
   protected readonly elegido = signal<Fonema | null>(null);
+  protected readonly visor3d = signal<string | null>(null);
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
 
   private grabador: MediaRecorder | null = null;
@@ -204,6 +206,15 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   protected verFonemas(ev: Event): void {
     if ((ev.target as HTMLDetailsElement).open) this.cargarSonidos(this.acento());
+    else this.visor3d.set(null);
+  }
+
+  protected alternarBoca(id: string): void {
+    this.visor3d.update(actual => actual === id ? null : id);
+  }
+
+  protected cerrarBoca(ev: Event): void {
+    if (!(ev.target as HTMLDetailsElement).open) this.visor3d.set(null);
   }
 
   /** «Reducir movimiento» del sistema: el corte de la boca, quieto en su posición. */
@@ -230,8 +241,13 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   protected cambiarAcento(acento: Acento): void {
     this.acento.set(acento);
-    this.elegido.set(null);
+    this.cerrarFicha();
     this.cargarSonidos(acento);
+  }
+
+  protected cerrarFicha(): void {
+    this.elegido.set(null);
+    if (this.visor3d() === 'sonido') this.visor3d.set(null);
   }
 
   /** Tocar un símbolo: suena y abre su ficha debajo de su grupo. */
