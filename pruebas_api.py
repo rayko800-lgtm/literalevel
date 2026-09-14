@@ -638,24 +638,134 @@ def palabra_que_falla_solo_devuelve_lo_cobrado():
         def consultar(self, *a, **k):
             raise RuntimeError("diccionario caído")
 
-    originales = (config.falta, ui._puede_pagar, api._va_a_costar, ui.consultor, cuentas.devolver)
+    originales = (config.falta, api._cobrar, api._va_a_costar, ui.consultor, cuentas.devolver)
     cuentas.devolver = lambda base, codigo: devueltos.append(codigo)
     ui.consultor = lambda: Roto()
     api._va_a_costar = lambda pet: False
     config.falta = lambda: False
     cuerpo = {"palabra": "house", "etapa": "completa"}
     try:
-        ui._puede_pagar = lambda pet: (False, "Entra con tu perfil.")
+        api._cobrar = lambda pet: (False, "Entra con tu perfil.", None)
         sin_cobro = cliente.post("/api/palabra", headers=A, json=cuerpo)
         devueltos_sin_cobro = len(devueltos)
-        ui._puede_pagar = lambda pet: (True, "")
+        api._cobrar = lambda pet: (True, "", "cuenta-prueba")
         con_cobro = cliente.post("/api/palabra", headers=A, json=cuerpo)
     finally:
-        config.falta, ui._puede_pagar, api._va_a_costar, ui.consultor, cuentas.devolver = originales
+        config.falta, api._cobrar, api._va_a_costar, ui.consultor, cuentas.devolver = originales
     assert (sin_cobro.status_code, con_cobro.status_code) == (503, 503), (sin_cobro.status_code, con_cobro.status_code)
     assert devueltos_sin_cobro == 0, "devolvió un uso que no se cobró"
     assert len(devueltos) == 1, devueltos
     return "sin cobro 0 devueltos, con cobro 1"
+
+
+def devolucion_va_a_la_cuenta_cobrada():
+    """Auditoría de Codex (2): se cobra a la cuenta A y, a mitad de consulta,
+    otra pestaña sale y entra con B. La devolución tiene que ir a A."""
+    import config
+    import cuentas
+    quien = {"codigo": "cuenta-A"}
+    cobros, devueltos, estados = [], [], []
+    real = ui.consultor()
+
+    class CambiaDeCuenta:
+        def __init__(self, lanzar):
+            self.lanzar = lanzar
+
+        def consultar(self, *a, **k):
+            quien["codigo"] = "cuenta-B"
+            if self.lanzar:
+                raise RuntimeError("diccionario caído")
+            return real.consultar(*a, **{**k, "usar_openai": False})
+
+    originales = (config.falta, api._va_a_costar, ui.consultor, ui._codigo_de, cuentas.consumir, cuentas.devolver)
+    config.falta = lambda: False
+    api._va_a_costar = lambda pet: False
+    ui._codigo_de = lambda pet: quien["codigo"]
+    cuentas.consumir = lambda base, codigo: (cobros.append(codigo), (True, ""))[1]
+    cuentas.devolver = lambda base, codigo: devueltos.append(codigo)
+    try:
+        # Una consulta que falla y otra sin llamadas de pago: las dos devuelven.
+        for lanzar in (True, False):
+            quien["codigo"] = "cuenta-A"
+            ui.consultor = (lambda l: (lambda: CambiaDeCuenta(l)))(lanzar)
+            estados.append(cliente.post("/api/palabra", headers=nuevo_lector(),
+                                        json={"palabra": "raincoat", "etapa": "completa"}).status_code)
+    finally:
+        config.falta, api._va_a_costar, ui.consultor, ui._codigo_de, cuentas.consumir, cuentas.devolver = originales
+    assert estados == [503, 200], estados
+    assert cobros == ["cuenta-A", "cuenta-A"], cobros
+    assert devueltos == ["cuenta-A", "cuenta-A"], devueltos
+    return "cobrado y devuelto a A aunque la sesión pasó a B"
+
+
+def sinopsis_simultaneas_una_generacion():
+    """Auditoría de Codex (1): dos peticiones a la vez del mismo libro sin
+    sinopsis guardada cobraban y generaban las dos."""
+    import tempfile
+    import threading
+    import time
+    from pathlib import Path
+    from types import SimpleNamespace as NS
+    import config
+    guardadas, generaciones, cobros, respuestas = {}, [], [], []
+
+    def generar(lib, cli):
+        time.sleep(0.4)
+        generaciones.append(1)
+        datos = {"de_que_trata": "Una historia de prueba."}
+        guardadas["sinopsis"] = datos
+        return datos, None
+
+    carpeta = Path(tempfile.mkdtemp(prefix="ll_sinopsis_"))
+    originales = (config.falta, api._va_a_costar, api._cobrar, ui.consultor, ui._sinopsis_guardada,
+                  ui.RUTA_ANALISIS, api.ficha.sinopsis)
+    config.falta = lambda: False
+    api._va_a_costar = lambda pet: False
+    api._cobrar = lambda pet: (cobros.append(1), (True, "", "cuenta-A"))[1]
+    ui.consultor = lambda: NS(_cliente=lambda: object())
+    ui._sinopsis_guardada = lambda lib: guardadas.get("sinopsis")
+    ui.RUTA_ANALISIS = carpeta
+    api.ficha.sinopsis = generar
+    try:
+        hilos = [threading.Thread(target=lambda: respuestas.append(
+            cliente.post(f"/api/libros/{LIBRE}/sinopsis", headers=A))) for _ in range(2)]
+        for h in hilos:
+            h.start()
+        for h in hilos:
+            h.join(10)
+    finally:
+        (config.falta, api._va_a_costar, api._cobrar, ui.consultor, ui._sinopsis_guardada,
+         ui.RUTA_ANALISIS, api.ficha.sinopsis) = originales
+    assert [r.status_code for r in respuestas] == [200, 200], [r.status_code for r in respuestas]
+    assert len(generaciones) == 1 and len(cobros) == 1, (generaciones, cobros)
+    return "2 peticiones, 1 generación, 1 cobro"
+
+
+def borrar_subido_libera_el_cupo():
+    """Auditoría de Codex (4): «Mis libros» quitaba la entrada pero el archivo
+    seguía contando para el tope, y el 429 no se iba nunca."""
+    texto = ("The miller's daughter walked to the market every morning. " * 50 + "\n\n") * 3
+    lector = nuevo_lector()
+    maximo = api._MAX_SUBIDOS
+    api._MAX_SUBIDOS = 1
+    try:
+        a = _ok(cliente.post("/api/libros", headers=lector, files={"archivo": ("uno.txt", texto.encode(), "text/plain")}))
+        _ok(cliente.put(f"/api/libros/{a['id']}/progreso", headers=lector, json={"capitulo": 0}))
+        lleno = cliente.post("/api/libros", headers=lector,
+                             files={"archivo": ("dos.txt", (texto + " Fin.").encode(), "text/plain")})
+        ajeno = cliente.delete(f"/api/libros/{a['id']}", headers=nuevo_lector())
+        del_catalogo = cliente.delete(f"/api/libros/{LIBRE}", headers=lector)
+        borrado = cliente.delete(f"/api/libros/{a['id']}", headers=lector)
+        estanteria = _ok(cliente.get("/api/biblioteca", headers=lector))["libros"]
+        otro = cliente.post("/api/libros", headers=lector,
+                            files={"archivo": ("dos.txt", (texto + " Fin.").encode(), "text/plain")})
+    finally:
+        api._MAX_SUBIDOS = maximo
+    estados = (lleno.status_code, ajeno.status_code, del_catalogo.status_code, borrado.status_code, otro.status_code)
+    assert estados == (429, 404, 400, 200, 200), estados
+    assert all(e["id"] != a["id"] for e in estanteria), estanteria
+    assert cliente.get(f"/api/libros/{a['id']}", headers=lector).status_code == 404
+    return "lleno 429, ajeno 404, catálogo 400, borrado 200 y cabe otro"
 
 
 def libro_subido_se_ve_con_su_nombre():
@@ -766,7 +876,8 @@ if __name__ == "__main__":
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
-               aviso_de_contenido_en_ficha_y_tarjeta):
+               aviso_de_contenido_en_ficha_y_tarjeta, devolucion_va_a_la_cuenta_cobrada,
+               sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
