@@ -588,7 +588,10 @@ def _libro_tarjeta(b) -> dict:
             "afinidad": b.afinidad, "abrible": ui._abrible(b.id),
             "url": b.url_gutenberg, "temas": _temas(b.id), "portada_ia": _portada_ia(b.id),
             # Contrato con f4 (catalogo.py de8a4a8): "" en el catalogo es sin aviso.
-            "aviso_contenido": getattr(b, "aviso_contenido", "") or None}
+            "aviso_contenido": getattr(b, "aviso_contenido", "") or None,
+            # Contrato con f4 (reinicio 14): la dificultad de un texto libre corto
+            # es la del bloque en que se midio, no la suya; el front lo dice.
+            "medido_en_bloque": getattr(b, "medida", "") == "bloque"}
 
 
 def _aviso_contenido(libro) -> str | None:
@@ -601,6 +604,18 @@ def _aviso_contenido(libro) -> str | None:
         return ui.catalogo().aviso_de(ident) or None
     except Exception:
         return None
+
+
+def _medido_en_bloque(libro) -> bool:
+    """¿La dificultad de catálogo de este libro es la de un bloque? Solo textos
+    libres cortos; False en Gutenberg, en libros subidos o si el catálogo no carga."""
+    ident = getattr(libro, "id_catalogo", None)
+    if not ident:
+        return False
+    try:
+        return ui.catalogo().medida_de(ident) == "bloque"
+    except Exception:
+        return False
 
 
 def _filas_curva(libro: reader.Libro) -> tuple[str | None, dict | None]:
@@ -654,6 +669,7 @@ def _libro_json(ident: str, libro: reader.Libro, pet: _Lector) -> dict:
         "id": ident,
         "titulo": libro.titulo_visible,
         "aviso_contenido": _aviso_contenido(libro),
+        "medido_en_bloque": _medido_en_bloque(libro),
         "temas": _temas(getattr(libro, "id_catalogo", None) or ident),
         "portada_ia": _portada_ia(getattr(libro, "id_catalogo", None) or ident),
         "autor": ui._autor_corto(libro.autor),

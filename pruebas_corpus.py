@@ -379,6 +379,88 @@ def _libres_en_sorprendeme_del_catalogo_real():
 prueba("sorprendeme ofrece textos libres a A2 y B1 con el catalogo real", _libres_en_sorprendeme_del_catalogo_real)
 
 
+def _libres_por_cercania_y_solos_antes():
+    """Prueba como persona del 14 sep 2026: los libres empataban a 0 descargas y
+    salian por id, y A2 y B1 veian los mismos tres cuentos del borde. Primero el
+    mas cercano al nivel; a igual distancia, el medido solo antes que el de bloque.
+    Y la marca de bloque llega a `Libro` y a `medida_de`."""
+    carpeta = _nuevo()
+    pg = [f"PG{100 + i}" for i in range(9)]
+    pd.DataFrame({
+        "id": pg, "title": [f"Libro {i}" for i in range(9)], "author": ["a"] * 9,
+        "hook": [""] * 9, "huella_texto": [""] * 9, "nivel_cefr": [""] * 9,
+        "downloads": [1000 - i for i in range(9)], "dificultad": [0.5] * 9,
+        "palabras": [9000] * 9, "ventanas": [36] * 9, "capitulos": [1] * 9, "temas": ["Fiction"] * 9,
+    }).to_csv(carpeta / "catalogo_medido.csv", index=False)
+    # Por id irian SWV1, SWV2, SWV3, SWV4. Por cercania a 0,5: SWV4 (0,50),
+    # luego SWV2 y SWV3 a 0,10 (SWV3 medido solo antes que SWV2 de bloque), y SWV1.
+    sw = ["SWV1", "SWV2", "SWV3", "SWV4"]
+    pd.DataFrame({
+        "id": sw, "title": sw, "author": [""] * 4, "hook": [""] * 4, "huella_texto": [""] * 4,
+        "nivel_cefr": ["A2"] * 4, "downloads": [0] * 4, "dificultad": [0.26, 0.60, 0.40, 0.50],
+        "palabras": [400] * 4, "ventanas": [2] * 4, "capitulos": [1] * 4,
+        "temas": ["Children's stories; StoryWeaver reading level 1"] * 4, "fuente": ["storyweaver"] * 4,
+        "licencia": ["CC BY 4.0"] * 4, "atribucion": ["x"] * 4, "url": [""] * 4,
+        "nivel_editor": ["1"] * 4, "medida": ["texto", "bloque", "texto", "texto"],
+    }).to_csv(carpeta / "catalogo_externo.csv", index=False)
+    pd.DataFrame({"id": sw, "title": sw, "author": [""] * 4, "licencia": ["CC BY 4.0"] * 4,
+                  "atribucion": ["x"] * 4, "url": [""] * 4,
+                  "texto": ["Manu got a red raincoat. " * 40] * 4}).to_parquet(
+        carpeta / "corpus_abierto.parquet", index=False)
+    cat = cm.Catalogo(carpeta / "catalogo_medido.csv")
+    libros = cat.por_nivel(0.5, holgura=0.25, n=12)
+    orden = [l.id for l in libros]
+    esperado = ["PG100", "SWV4", "PG101", "PG102", "SWV3", "PG103", "PG104", "SWV2", "PG105",
+                "PG106", "SWV1", "PG107"]
+    assert orden == esperado, f"libres mal ordenados: {orden}"
+    marca = {l.id: l.medido_en_bloque for l in libros}
+    assert marca["SWV2"] and not marca["SWV3"] and not marca["PG100"], marca
+    assert cat.medida_de("swv2") == "bloque" and cat.medida_de("SWV3") == "texto", "medida_de"
+    assert cat.medida_de("PG100") == "" and cat.medida_de("NO") == "", "medida_de en Gutenberg"
+    return f"por nivel: {orden[:9]}"
+
+
+prueba("los libres van por cercania al nivel y los medidos solos antes que los de bloque",
+       _libres_por_cercania_y_solos_antes)
+
+
+def _atribucion_fuera_al_medir():
+    """La atribucion de un texto libre se ensena, pero no se puntua: «Doggie is
+    Happy» daba 0,349 con ella y 0,007 sin ella (catalogo: 0,007)."""
+    import ficha
+    cuerpo = "Parul saw that the doggie had not eaten.\n\nShe asked the doggie again."
+    atribuciones = [
+        "«Doggie is Happy» de Anitha Selvanathan, publicado en StoryWeaver (StoryWeaver Community) "
+        "con licencia CC BY 4.0: https://storyweaver.org.in/en/stories/229485-doggie-is-happy",
+        "«Chicken», African Storybook Project, licencia CC BY (texto de global-asp/asp-source): "
+        "https://www.africanstorybook.org/",
+        "«A Tale» de X, ilustrado por Y, Let's Read (The Asia Foundation), licencia CC BY 4.0: https://x",
+        "«News», VOA Learning English, dominio publico. Credito: voanews.com / Voice of America. https://x",
+    ]
+    for a in atribuciones:
+        texto = cuerpo + "\n\n" + a
+        assert ficha.para_medir(texto) == cuerpo, f"no quita: {a[:40]}"
+        assert ficha.sin_licencia(texto) == texto, "sin_licencia no debe quitarla: el lector la ensena"
+    # Lo que no es la atribucion final se queda.
+    cita = cuerpo + "\n\n«Run!» she said, and StoryWeaver was never mentioned again in the tale."
+    assert ficha.para_medir(cita + "\n\nThe end.") == cita + "\n\nThe end.", "se come un parrafo que no es el ultimo"
+    gut = "CHAPTER I\n\n«Yes», said Holmes, turning to the window."
+    assert ficha.para_medir(gut) == gut, "toca un parrafo con comillas sin biblioteca"
+    raiz = Path(__file__).resolve().parent
+    if not ((raiz / cm.NOMBRE_TEXTOS_ABIERTOS).exists() and (raiz / "modelo_v4").is_dir()):
+        return "sin el parquet o el modelo aqui: solo las formas"
+    import scoring
+    t = pd.read_parquet(raiz / cm.NOMBRE_TEXTOS_ABIERTOS).set_index("id").loc["SWV229485", "texto"]
+    p = scoring.Puntuador(str(raiz / "modelo_v4"))
+    con = p.puntuar(ficha.sin_licencia(t)).puntuacion
+    sin = p.puntuar(ficha.para_medir(t)).puntuacion
+    assert sin < 0.1 < con, f"Doggie is Happy: con atribucion {con:.3f}, para_medir {sin:.3f}"
+    return f"Doggie is Happy: {con:.3f} con la atribucion, {sin:.3f} sin ella"
+
+
+prueba("la atribucion de un texto libre no se mide con el cuento", _atribucion_fuera_al_medir)
+
+
 def _correccion_se_aplica_al_cargar():
     """PG2242: la tabla de correcciones cambia la dificultad del libro, su letra
     y su curva de un capitulo, sin tocar el CSV grande."""

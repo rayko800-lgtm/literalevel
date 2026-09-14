@@ -106,6 +106,13 @@ NIVELES = ["A1", "A2", "B1", "B2", "C1", "C2"]
 NIVEL_A_PUNTUACION = {n: round(i * 0.4, 2) for i, n in enumerate(NIVELES)}
 
 
+def _medida_de_fila(f) -> str:
+    """La columna `medida` de una fila: "texto" o "bloque" en los corpus libres;
+    en Gutenberg no existe o es NaN, y eso no es ninguna de las dos."""
+    m = f.get("medida", "")
+    return m if m in ("texto", "bloque") else ""
+
+
 @dataclass
 class Libro:
     id: str
@@ -118,6 +125,13 @@ class Libro:
     afinidad: float = 0.0
     dificultad: float | None = None     # medida por el v4; None si es heredada
     aviso_contenido: str = ""           # nota de avisos_contenido.csv; "" si no hay
+    medida: str = ""                    # "texto", "bloque" (corpus libres) o "" (Gutenberg)
+
+    @property
+    def medido_en_bloque(self) -> bool:
+        """Un texto libre corto medido dentro de un bloque de su fuente y nivel:
+        su dificultad es la del bloque, no la suya (prueba como persona, 14 sep)."""
+        return self.medida == "bloque"
 
     @property
     def puntuacion_nivel(self) -> float:
@@ -409,6 +423,18 @@ class Catalogo:
                 for _, f in tabla.iterrows()
                 if str(f.get("id", "")).strip() and str(f.get("nota_es", "")).strip()}
 
+    def medida_de(self, id_libro) -> str:
+        """"texto" o "bloque" para un texto libre del catalogo; "" si no es libre
+        o no esta. Para la ficha, que se abre por id y no trae la fila."""
+        if getattr(self, "_medidas", None) is None:
+            d = getattr(self, "df", None)
+            if d is None or "medida" not in d.columns:
+                self._medidas = {}
+            else:
+                self._medidas = {str(i).strip().upper(): m for i, m in zip(d["id"], d["medida"])
+                                 if m in ("texto", "bloque")}
+        return self._medidas.get(str(id_libro or "").strip().upper(), "")
+
     def aviso_de(self, id_libro) -> str | None:
         """La nota de aviso de contenido de un libro del catalogo, o None."""
         return getattr(self, "_avisos", {}).get(str(id_libro or "").strip().upper()) or None
@@ -581,7 +607,8 @@ class Catalogo:
                                 dificultad=_dificultad_de(f),
                                 similitud=round(float(sim[i]), 3),
                                 afinidad=round(float(afin[i]), 3),
-                                aviso_contenido=str(f.get("aviso_contenido", "") or "")))
+                                aviso_contenido=str(f.get("aviso_contenido", "") or ""),
+                                medida=_medida_de_fila(f)))
 
         if not libros:
             # Nunca devolver vacio en silencio: ese era el fallo original.
@@ -594,13 +621,20 @@ class Catalogo:
             aviso = f"Se descartaron {flojos} resultados por parecido bajo."
         return libros, aviso
 
-    def _intercalar_libres(self, d: pd.DataFrame, n: int) -> pd.DataFrame:
+    def _intercalar_libres(self, d: pd.DataFrame, n: int,
+                           nivel_lector: float | None = None) -> pd.DataFrame:
         """Las n primeras filas de `d`, ya ordenado, con un tercio de huecos para
         los textos libres que se abren sin descargar: puestos 2, 5, 8...
 
         Sin libres en la franja, `d.head(n)` tal cual. Si se acaban, los huecos
         vuelven al orden de siempre. Un titulo con aviso de contenido tampoco
-        entra por un hueco en los PRIMEROS_SIN_AVISO primeros puestos."""
+        entra por un hueco en los PRIMEROS_SIN_AVISO primeros puestos.
+
+        Los libres no tienen descargas: por popularidad empataban todos y salian
+        por id, asi que A2 y B1 veian los mismos tres cuentos a 0,61, en el borde
+        de las dos franjas (prueba como persona, 14 sep 2026). Con `nivel_lector`
+        van primero los mas cercanos a su nivel y, a igual distancia, los medidos
+        solos antes que los medidos dentro de un bloque."""
         if getattr(self, "_ids_libres", None) is None:
             # Un frozenset y no `isin` contra el indice: con texto de arrow, `isin`
             # recorria en Python los 15.357 ids en cada llamada (0,22 s de 0,28).
@@ -616,6 +650,13 @@ class Catalogo:
         else:
             aviso = np.zeros(len(d), dtype=bool)
         libres = np.flatnonzero(libre).tolist()
+        if nivel_lector is not None:
+            dif = pd.to_numeric(d.get("dificultad"), errors="coerce")
+            distancia = np.round(np.abs(dif.to_numpy(dtype=float) - nivel_lector), 3)
+            distancia = np.where(np.isfinite(distancia), distancia, 9.0)
+            en_bloque = (d["medida"].astype(str).to_numpy() == "bloque") if "medida" in d.columns \
+                else np.zeros(len(d), dtype=bool)
+            libres.sort(key=lambda i: (distancia[i], en_bloque[i], i))
         huecos = set(range(1, n, CADA_CUANTOS_LIBRE))
         usados: set[int] = set()
 
@@ -651,12 +692,13 @@ class Catalogo:
             if con_aviso.any():
                 cabeza = d[~con_aviso].head(PRIMEROS_SIN_AVISO)
                 d = pd.concat([cabeza, d.drop(cabeza.index)])
-        d = self._intercalar_libres(d, n)
+        d = self._intercalar_libres(d, n, nivel_lector)
         return [Libro(id=str(f["id"]), titulo=str(f["title"]), autor=str(f["author"]),
                       nivel=str(f["nivel_cefr"]), gancho=str(f["hook"]),
                       descargas=int(f.get("downloads", 0) or 0),
                       dificultad=_dificultad_de(f),
-                      aviso_contenido=str(f.get("aviso_contenido", "") or ""))
+                      aviso_contenido=str(f.get("aviso_contenido", "") or ""),
+                      medida=_medida_de_fila(f))
                 for _, f in d.iterrows()]
 
     def resumen(self) -> str:

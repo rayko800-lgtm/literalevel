@@ -927,6 +927,30 @@ def aviso_de_contenido_en_ficha_y_tarjeta():
     return "ficha y tarjeta con nota; sin aviso, null"
 
 
+def medido_en_bloque_en_ficha_y_tarjeta():
+    """Contrato con f4 (reinicio 14): un texto libre corto medido dentro de un
+    bloque lleva «medido_en_bloque» true en la ficha y en la tarjeta; Gutenberg y
+    los medidos solos, false."""
+    from types import SimpleNamespace as NS
+    cat = ui.catalogo()
+    original = cat.medida_de
+    try:
+        cat.medida_de = lambda i: "bloque" if str(i).upper() == LIBRE else "texto"
+        con = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=A))
+        cat.medida_de = lambda i: "texto"
+        sin = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=A))
+    finally:
+        cat.medida_de = original
+    assert con["medido_en_bloque"] is True, con.get("medido_en_bloque")
+    assert sin["medido_en_bloque"] is False, sin.get("medido_en_bloque")
+    base = dict(id=LIBRE, titulo="t", autor="a", nivel="B1", dificultad=1.0, gancho="", descargas=1,
+                similitud=0.5, afinidad=0.1, url_gutenberg="u", aviso_contenido="")
+    assert api._libro_tarjeta(NS(**base, medida="bloque"))["medido_en_bloque"] is True
+    assert api._libro_tarjeta(NS(**base, medida="texto"))["medido_en_bloque"] is False
+    assert api._libro_tarjeta(NS(**base))["medido_en_bloque"] is False, "sin medida (Gutenberg) no es bloque"
+    return "ficha y tarjeta: bloque true; solo y Gutenberg false"
+
+
 def corte_de_la_boca_en_svg():
     """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
     aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
@@ -1289,7 +1313,8 @@ if __name__ == "__main__":
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
-               aviso_de_contenido_en_ficha_y_tarjeta, devolucion_va_a_la_cuenta_cobrada,
+               aviso_de_contenido_en_ficha_y_tarjeta, medido_en_bloque_en_ficha_y_tarjeta,
+               devolucion_va_a_la_cuenta_cobrada,
                sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
                historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion,
                extracto_de_seguir_leyendo_salta_la_licencia, errores_con_mensaje_propio_y_no_el_500_generico):

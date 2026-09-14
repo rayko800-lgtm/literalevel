@@ -165,6 +165,27 @@ def sin_licencia(texto: str) -> str:
     return texto.strip()
 
 
+# La atribucion que `tools/catalogar_corpus.py` pega al final de cada texto libre
+# (CC BY la exige y el lector la ensena): «Titulo» de ..., publicado en
+# StoryWeaver (...) con licencia CC BY 4.0: https://... Es un parrafo en espanol
+# con una URL, y medido con el cuento lo subia: «Doggie is Happy» (SWV229485)
+# daba 0,349 con ella y 0,007 sin ella, que es lo que dice el catalogo
+# (prueba como persona, 14 sep 2026). Solo el ULTIMO parrafo, y solo si nombra
+# una de las cuatro bibliotecas.
+_ATRIBUCION_LIBRE = re.compile(
+    r"\n\s*\n\s*«[^»\n]{1,300}»[^\n]{0,600}?"
+    r"(?:StoryWeaver|African Storybook Project|Let's Read|VOA Learning English)"
+    r"[^\n]*\s*$")
+
+
+def para_medir(texto: str) -> str:
+    """El texto que se puntua: sin la licencia de Gutenberg (`sin_licencia`) y
+    sin la atribucion final de un texto libre. Lo que se ENSENA sigue con la
+    atribucion; esto es solo para el modelo."""
+    limpio = sin_licencia(texto)
+    return _ATRIBUCION_LIBRE.sub("", limpio).strip() if limpio else limpio
+
+
 def _palabras_reales(capitulo) -> int:
     if not _BOILERPLATE_RE.search(capitulo.texto):
         return capitulo.palabras
