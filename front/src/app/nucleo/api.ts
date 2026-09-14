@@ -361,6 +361,11 @@ export class Api {
     return this.http.post<Perfil>(`${this.base}/perfil/muestra`, { texto, nombre });
   }
 
+  /** «Mídeme con un libro que ya leí»: el modelo mide unas partes del libro. */
+  perfilDesdeLibro(libro_id: string, nombre = ''): Observable<Perfil & { partes: number }> {
+    return this.http.post<Perfil & { partes: number }>(`${this.base}/perfil/libro`, { libro_id, nombre });
+  }
+
   buscar(consulta: string, ajustar = true, n = 12): Observable<ResultadoBusqueda> {
     return this.http.post<ResultadoBusqueda>(`${this.base}/buscar`, { consulta, ajustar, n });
   }

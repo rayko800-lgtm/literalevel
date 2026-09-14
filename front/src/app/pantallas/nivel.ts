@@ -3,11 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { Api, Cuestionario, Fragmento, Perfil, Pregunta, mensajeError } from '../nucleo/api';
+import { Api, Cuestionario, Fragmento, LibroTarjeta, Perfil, Pregunta, mensajeError } from '../nucleo/api';
 import { BANDAS, cefr, num } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
 
-type Vista = 'resultado' | 'preguntas' | 'listo' | 'muestra';
+type Vista = 'resultado' | 'preguntas' | 'listo' | 'muestra' | 'libro';
 
 /** El orden sube de nivel poco a poco: la primera pregunta se entiende sin
  *  saber qué es el MCER, y los textos en inglés van de Alicia a Frankenstein.
@@ -43,6 +43,13 @@ export class Nivel implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly error = signal('');
   protected muestra = '';
+  /** «Mídeme con un libro que ya leí» (paridad con Gradio). */
+  protected consultaLibro = '';
+  protected readonly librosEncontrados = signal<LibroTarjeta[] | null>(null);
+  protected readonly buscandoLibro = signal(false);
+  protected readonly midiendoLibro = signal<string | null>(null);
+  /** Título del libro con que se midió, para decirlo en el resultado. */
+  protected readonly libroMedido = signal<string | null>(null);
 
   protected readonly num = num;
   protected readonly cefr = cefr;
@@ -218,6 +225,63 @@ export class Nivel implements OnInit {
       this.error.set(mensajeError(e));
     } finally {
       this.guardando.set(false);
+    }
+  }
+
+  protected async buscarLibro(): Promise<void> {
+    const q = this.consultaLibro.trim();
+    if (!q) return;
+    this.buscandoLibro.set(true);
+    this.error.set('');
+    try {
+      // Sin ajustar al nivel: el libro que busca es uno que ya leyó, sea cual sea.
+      const r = await firstValueFrom(this.api.buscar(q, false, 8));
+      this.librosEncontrados.set(r.resultados.filter(l => l.abrible));
+    } catch (e) {
+      this.error.set(mensajeError(e));
+    } finally {
+      this.buscandoLibro.set(false);
+    }
+  }
+
+  /** Como en Gradio: sube su .epub, .pdf o .txt y se miden ocho partes de toda la obra. */
+  protected async subirYMedir(ev: Event): Promise<void> {
+    const entrada = ev.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    entrada.value = '';
+    if (!archivo) return;
+    if (archivo.size > 20 * 1024 * 1024) { this.error.set('El archivo pasa de 20 MB.'); return; }
+    this.midiendoLibro.set('subido');
+    this.error.set('');
+    try {
+      const libro = await firstValueFrom(this.api.subirLibro(archivo));
+      const p = await firstValueFrom(this.api.perfilDesdeLibro(libro.id));
+      this.sesion.fijarPerfil(p);
+      this.libroMedido.set(libro.titulo || archivo.name);
+      this.vista.set('resultado');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      this.error.set(mensajeError(e, 'No he podido medir ese libro.'));
+    } finally {
+      this.midiendoLibro.set(null);
+    }
+  }
+
+  protected async medirConLibro(libro: LibroTarjeta): Promise<void> {
+    this.midiendoLibro.set(libro.id);
+    this.error.set('');
+    try {
+      const p = await firstValueFrom(this.api.perfilDesdeLibro(libro.id));
+      this.sesion.fijarPerfil(p);
+      this.libroMedido.set(libro.titulo);
+      this.librosEncontrados.set(null);
+      this.consultaLibro = '';
+      this.vista.set('resultado');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      this.error.set(mensajeError(e));
+    } finally {
+      this.midiendoLibro.set(null);
     }
   }
 

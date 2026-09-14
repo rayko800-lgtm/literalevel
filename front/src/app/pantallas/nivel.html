@@ -9,7 +9,8 @@
         <header class="cabecera-pagina">
           <span class="antetitulo">Tu nivel de lectura</span>
           <h1>Lees en inglés a nivel <span class="letra">{{ cefr(p.nivel) }}</span></h1>
-          <p>Estimado con {{ p.origen === 'muestra' ? 'un texto que nos diste' : 'el cuestionario' }}.
+          <p>@if (libroMedido(); as t) {Estimado con «<span lang="en">{{ t }}</span>», un libro que lees cómodo.}
+            @else {Estimado con {{ p.origen === 'muestra' ? 'un texto que nos diste' : 'el cuestionario' }}.}
             Es una orientación para elegir qué leer, no un certificado.</p>
         </header>
 
@@ -51,6 +52,11 @@
             <app-icono nombre="diana" />
             <span><strong>Afinar con un texto</strong>
               <span class="suave pequeno">Pega algo que leas cómodo y el modelo lo mide</span></span>
+          </button>
+          <button type="button" class="tarjeta enlace" (click)="vista.set('libro')">
+            <app-icono nombre="libro" />
+            <span><strong>Con un libro que ya leíste</strong>
+              <span class="suave pequeno">Búscalo y el modelo mide su dificultad</span></span>
           </button>
         </div>
       }
@@ -112,6 +118,10 @@
             } @else {
               <p class="tenue pequeno">Con la primera respuesta ya verás una estimación. Puedes parar cuando quieras.</p>
             }
+            @if (paso() === 0 && !afinando()) {
+              <!-- Como en Gradio, desde la primera pantalla: quien ya sabe qué libro lee cómodo no necesita el cuestionario. -->
+              <button type="button" class="enlace-texto" (click)="vista.set('libro')">O mídete con un libro que ya leíste</button>
+            }
           </div>
         </div>
       } @else {
@@ -156,6 +166,64 @@
           <button type="button" class="boton" (click)="medirMuestra()" [disabled]="guardando() || palabrasMuestra() < 150">
             {{ guardando() ? 'Midiendo…' : 'Medir este texto' }}
           </button>
+          <button type="button" class="boton fantasma" (click)="vista.set(perfil() ? 'resultado' : 'preguntas')">Cancelar</button>
+        </div>
+        <button type="button" class="enlace-texto" (click)="vista.set('libro')">¿Mejor con un libro que ya leíste?</button>
+      </div>
+    }
+
+    @case ('libro') {
+      <header class="cabecera-pagina">
+        <span class="antetitulo">Afinar tu nivel</span>
+        <h1>Mídeme con un libro que ya leí</h1>
+        <p>Un libro en inglés que hayas leído sin esfuerzo. El modelo mide ocho partes repartidas por toda la obra, no solo el principio, y esa dificultad pasa a ser tu referencia.</p>
+      </header>
+      <div class="tarjeta pila">
+        <section class="subir-libro">
+          <div>
+            <h2>Sube tu libro</h2>
+            <p class="suave pequeno">Un .epub, un .pdf o un .txt, hasta 20 MB. Solo lo ves tú.</p>
+          </div>
+          <label class="boton" [class.desactivado]="midiendoLibro() !== null">
+            @if (midiendoLibro() === 'subido') { <span class="giro"></span>Midiendo… } @else { <app-icono nombre="subir" />Elegir el archivo }
+            <input type="file" accept=".epub,.pdf,.txt" class="oculto-visual" (change)="subirYMedir($event)" [disabled]="midiendoLibro() !== null">
+          </label>
+        </section>
+
+        <p class="separa-o"><span>o búscalo en el catálogo</span></p>
+        <form class="busca-libro" (ngSubmit)="buscarLibro()">
+          <!-- El catálogo busca por lo que trata el libro, no por título exacto: «Alice's
+               Adventures in Wonderland» no lo encontraba. Por eso subir va primero. -->
+          <label class="campo"><span>De qué trata, en pocas palabras</span>
+            <input class="entrada" name="consulta" [(ngModel)]="consultaLibro" enterkeyhint="search"
+                   placeholder="Por ejemplo: niña que cae por una madriguera" autocomplete="off" />
+          </label>
+          <button type="submit" class="boton" [disabled]="buscandoLibro() || !consultaLibro.trim()">
+            <app-icono nombre="lupa" />{{ buscandoLibro() ? 'Buscando…' : 'Buscar' }}
+          </button>
+        </form>
+
+        @if (librosEncontrados(); as lista) {
+          @if (lista.length) {
+            <ul class="libros-leidos">
+              @for (l of lista; track l.id) {
+                <li>
+                  <button type="button" class="libro-leido" (click)="medirConLibro(l)" [disabled]="midiendoLibro() !== null">
+                    <span class="datos"><strong lang="en">{{ l.titulo }}</strong><span class="suave pequeno">{{ l.autor }}</span></span>
+                    <span class="accion-libro">
+                      @if (midiendoLibro() === l.id) { <span class="giro"></span>Midiendo… } @else { Lo leí cómodo }
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+            <p class="tenue pequeno">Medir un libro que aún no está en el servidor lo descarga primero, y la primera medición carga el modelo: hasta un minuto.</p>
+          } @else {
+            <p class="suave">No encuentro ese libro en el catálogo. Prueba con el título en inglés o el apellido del autor.</p>
+          }
+        }
+
+        <div class="fila">
           <button type="button" class="boton fantasma" (click)="vista.set(perfil() ? 'resultado' : 'preguntas')">Cancelar</button>
         </div>
       </div>

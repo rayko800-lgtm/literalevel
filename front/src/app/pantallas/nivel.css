@@ -59,8 +59,32 @@
 .listo .fila { justify-content: center; margin-top: .75rem; }
 .cifra-grande strong { font-size: 3rem; font-weight: 750; }
 
+/* --- Con un libro que ya leí ------------------------------------------------------ */
+.subir-libro { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding: 1rem; border-radius: var(--radio); background: var(--superficie-2); }
+.subir-libro h2 { font-size: 1.1rem; margin: 0 0 .2rem; }
+.subir-libro p { margin: 0; }
+.subir-libro label { cursor: pointer; min-height: 48px; }
+.subir-libro label.desactivado { opacity: .6; pointer-events: none; }
+.separa-o { display: flex; align-items: center; gap: .75rem; margin: .25rem 0; color: var(--texto-tenue); font-size: .88rem; }
+.separa-o::before, .separa-o::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
+.busca-libro { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .6rem; }
+.libros-leidos { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.libro-leido { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  min-height: 56px; padding: .6rem .9rem; border-radius: var(--radio); border: 1.5px solid var(--borde);
+  background: var(--superficie); color: var(--texto); font: inherit; text-align: left; cursor: pointer; }
+.libro-leido:hover:not([disabled]) { border-color: var(--acento); background: var(--acento-suave); }
+.libro-leido[disabled] { cursor: default; opacity: .7; }
+.libro-leido .datos { display: grid; gap: .1rem; min-width: 0; }
+.libro-leido .datos strong { overflow-wrap: anywhere; }
+.accion-libro { flex: none; display: inline-flex; align-items: center; gap: .4rem; color: var(--acento-texto); font-weight: 650; font-size: .92rem; }
+.accion-libro .giro { width: 16px; height: 16px; }
+.enlace-texto { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--acento-texto);
+  font: inherit; font-weight: 600; cursor: pointer; }
+
 @media (max-width: 640px) {
   .enlaces { grid-template-columns: 1fr; }
+  .busca-libro { grid-template-columns: 1fr; }
   .fila .boton { flex: 1 1 100%; }
   .fragmento blockquote { font-size: 1.05rem; padding: .9rem 1rem; }
 }
