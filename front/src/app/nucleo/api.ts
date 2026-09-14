@@ -433,6 +433,10 @@ export class Api {
   biblioteca(): Observable<{ libros: EntradaBiblioteca[] }> {
     return this.http.get<{ libros: EntradaBiblioteca[] }>(`${this.base}/biblioteca`);
   }
+  /** Borra de verdad un libro subido (archivo, nombre y entrada): libera el cupo de subidas. */
+  borrarSubido(id: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/libros/${encodeURIComponent(id)}`);
+  }
   olvidar(id: string): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.base}/biblioteca/${encodeURIComponent(id)}`);
   }
