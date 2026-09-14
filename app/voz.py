@@ -861,6 +861,245 @@ def medir_ritmo(evaluacion: Evaluacion, tiempos_lector: dict | None,
     return ritmo
 
 
+# --- Lectura natural: enfasis, enlaces y reducciones (parte 2) ----------
+# Lo que la medicion no puede saber: que palabras llevan el acento de la frase,
+# cuales se enlazan («an apple» -> /ə.ˈnæpəl/) y que formas debiles y fusiones
+# tiene el habla rapida («don't you» -> «doncha»). Una llamada por FRASE a
+# gpt-4o-mini con salida estructurada, guardada en disco: la misma frase no se
+# vuelve a pagar, para ningun lector, y lo guardado se sirve aunque no haya clave.
+# Regla de veracidad, como en el diccionario: el modelo no toca las palabras;
+# contesta con posiciones de la lista numerada y lo que no casa se descarta.
+
+# v2: reducciones solo de la lista, enlaces comprobados con la IPA y version
+# natural reconstruida. Lo guardado en v1 pudo traer una reduccion inventada.
+VERSION_ANALISIS_NATURAL = "v2"
+TIPOS_ENLACE = frozenset({"consonante_vocal", "vocal_vocal", "r_de_enlace"})
+MAX_PALABRAS_REDUCCION = 4
+# Reducciones que se aceptan, por las palabras exactas que reducen. Lo que el
+# modelo proponga fuera de esta lista se descarta: en la primera frase real
+# («Don't you want to come with us?») propuso «to come» -> «gonna», que no existe
+# (gonna es «going to»), junto a doncha y wanna, que si. Lista corta y conocida.
+REDUCCIONES_CONOCIDAS = {
+    ("going", "to"): {"gonna"}, ("want", "to"): {"wanna"}, ("got", "to"): {"gotta"},
+    ("have", "to"): {"hafta"}, ("has", "to"): {"hasta"}, ("ought", "to"): {"oughta"},
+    ("kind", "of"): {"kinda"}, ("sort", "of"): {"sorta"}, ("out", "of"): {"outta"},
+    ("lot", "of"): {"lotta"}, ("cup", "of"): {"cuppa"},
+    ("let", "me"): {"lemme"}, ("give", "me"): {"gimme"}, ("don't", "know"): {"dunno"},
+    ("don't", "you"): {"doncha", "dontcha"}, ("won't", "you"): {"woncha", "wontcha"},
+    ("did", "you"): {"didja", "dija"}, ("would", "you"): {"wouldja", "wudja"},
+    ("could", "you"): {"couldja", "cudja"}, ("got", "you"): {"gotcha"}, ("bet", "you"): {"betcha"},
+    ("what", "are", "you"): {"whatcha", "whaddaya"}, ("what", "do", "you"): {"whaddaya", "whatcha"},
+    ("i", "am"): {"i'm"}, ("i", "would"): {"i'd"}, ("i", "had"): {"i'd"}, ("i", "will"): {"i'll"},
+    ("i", "have"): {"i've"}, ("you", "are"): {"you're"}, ("we", "are"): {"we're"},
+    ("they", "are"): {"they're"}, ("it", "is"): {"it's"}, ("that", "is"): {"that's"},
+    ("do", "not"): {"don't"}, ("does", "not"): {"doesn't"}, ("did", "not"): {"didn't"},
+    ("can", "not"): {"can't"}, ("will", "not"): {"won't"}, ("is", "not"): {"isn't"},
+    ("are", "not"): {"aren't"},
+    ("and",): {"'n'", "'n", "n"}, ("them",): {"'em", "em"}, ("you",): {"ya"},
+    ("because",): {"'cause", "cause", "cuz"},
+}
+
+
+class EnfasisPalabra(BaseModel):
+    indice: int = Field(description="Posicion de la palabra en la lista numerada.")
+    ipa: str = Field(description="IPA americana de la palabra, entre barras, con ˈ delante de la silaba tonica.")
+
+
+class EnlacePalabras(BaseModel):
+    de: int = Field(description="Posicion de la primera palabra.")
+    a: int = Field(description="Posicion de la palabra siguiente (de + 1).")
+    tipo: str = Field(description="consonante_vocal, vocal_vocal o r_de_enlace.")
+    ipa: str = Field(description="IPA americana de las dos palabras unidas, entre barras.")
+
+
+class ReduccionHabla(BaseModel):
+    desde: int = Field(description="Posicion de la primera palabra de la reduccion.")
+    hasta: int = Field(description="Posicion de la ultima palabra (igual a desde si es una sola).")
+    forma: str = Field(description="Como suena escrito de forma coloquial: doncha, wanna, gonna.")
+    ipa: str = Field(description="IPA americana de la forma rapida, entre barras.")
+
+
+class TramoRapido(BaseModel):
+    desde: int
+    hasta: int
+
+
+class AnalisisNatural(BaseModel):
+    enfasis: list[EnfasisPalabra]
+    enlaces: list[EnlacePalabras]
+    reducciones: list[ReduccionHabla]
+    tramos_rapidos: list[TramoRapido]
+    version_natural: str = Field(description="La frase escrita como suena rapido, solo para una voz sintetica.")
+
+
+_PROMPT_NATURAL = (
+    "Eres profesor de pronunciacion de ingles americano (General American) para "
+    "hispanohablantes. Recibes una frase y sus palabras numeradas. Devuelve como se "
+    "dice con naturalidad, a velocidad normal de conversacion:\n"
+    "- enfasis: las palabras que llevan el acento de la frase (normalmente las de "
+    "contenido que aportan la informacion), pocas, con su IPA americana entre barras y "
+    "ˈ delante de la silaba tonica.\n"
+    "- enlaces: pares de palabras SEGUIDAS (a = de + 1) que se pronuncian unidas: "
+    "consonante_vocal («an apple» /ə.ˈnæpəl/), vocal_vocal con una /j/ o /w/ de "
+    "transicion («go on» /ɡoʊ.wɑn/) o r_de_enlace. Con la IPA de la union.\n"
+    "- reducciones: formas debiles o fusiones del habla rapida que de verdad se dan en "
+    "esta frase (don't you -> doncha /ˈdoʊntʃə/, want to -> wanna, going to -> gonna, "
+    "and -> /ən/). desde y hasta son las posiciones de la primera y la ultima palabra.\n"
+    "- tramos_rapidos: grupos de palabras que se dicen de un tiron, sin pausa.\n"
+    "- version_natural: la frase reescrita como suena rapido, solo para una voz sintetica "
+    "(«I wanna go»). Si no hay reducciones, la frase tal cual.\n"
+    "Reglas: no cambies, anadas ni quites palabras; usa SOLO las posiciones de la lista; "
+    "no inventes fenomenos que no se dan en esta frase; si no hay nada de un tipo, lista vacia."
+)
+
+
+def _bordes_sonoros(palabra: str) -> tuple[str | None, str | None]:
+    """(tipo del primer sonido, tipo del ultimo) de la IPA de diccionario de la
+    palabra: consonante, vocal o diptongo; (None, None) si no hay IPA."""
+    try:
+        ipa, _ = fonemas.ipa_de_palabra(palabra)
+    except Exception:
+        return None, None
+    tipos = [getattr(fonemas.buscar(s), "tipo", None) for s in (fonemas.segmentar(ipa) if ipa else [])]
+    tipos = [x for x in tipos if x]
+    return (tipos[0], tipos[-1]) if tipos else (None, None)
+
+
+def _enlace_real(tipo: str, primera: str, segunda: str) -> bool:
+    """Si el tipo de enlace que dice el modelo se da con los sonidos de verdad.
+    «don't you» no es consonante+vocal («you» empieza por /j/) y «to come» no
+    se enlaza: los dos salieron asi en la primera frase real."""
+    _, fin_primera = _bordes_sonoros(primera)
+    inicio_segunda, _ = _bordes_sonoros(segunda)
+    vocales = ("vocal", "diptongo")
+    if tipo == "consonante_vocal":
+        return fin_primera == "consonante" and inicio_segunda in vocales
+    if tipo == "vocal_vocal":
+        return fin_primera in vocales and inicio_segunda in vocales
+    if tipo == "r_de_enlace":
+        return str(primera).lower().rstrip("'").endswith(("r", "re")) and inicio_segunda in vocales
+    return False
+
+
+def _ipa_corta(texto) -> str | None:
+    """IPA del modelo entre barras, o None si viene vacia o desmedida."""
+    t = str(texto or "").strip()
+    if not t or len(t) > 40:
+        return None
+    return t if t.startswith("/") and t.endswith("/") and len(t) > 2 else f"/{t.strip('/[] ')}/"
+
+
+def _validar_natural(bruto, palabras: list[str], frase: str) -> dict:
+    """Lo que devuelve el modelo, quedandose solo con lo que casa con la frase:
+    posiciones de verdad, enlaces que se dan con esos sonidos, reducciones de la
+    lista y una version natural que diga exactamente eso."""
+    datos = bruto.model_dump() if hasattr(bruto, "model_dump") else dict(bruto or {})
+    palabras = [str(w).lower() for w in palabras]
+    n_palabras = len(palabras)
+
+    def indice(valor):
+        try:
+            i = int(valor)
+        except (TypeError, ValueError):
+            return None
+        return i if 0 <= i < n_palabras else None
+
+    enfasis, vistos = [], set()
+    for e in datos.get("enfasis") or []:
+        i = indice(_campo(e, "indice"))
+        if i is not None and i not in vistos:
+            vistos.add(i)
+            enfasis.append({"indice": i, "ipa": _ipa_corta(_campo(e, "ipa"))})
+    enlaces = []
+    for e in datos.get("enlaces") or []:
+        de, a, tipo = indice(_campo(e, "de")), indice(_campo(e, "a")), str(_campo(e, "tipo", "") or "")
+        if (de is not None and a == de + 1 and tipo in TIPOS_ENLACE
+                and _enlace_real(tipo, palabras[de], palabras[a])):
+            enlaces.append({"de": de, "a": a, "tipo": tipo, "ipa": _ipa_corta(_campo(e, "ipa"))})
+    reducciones = []
+    for r in datos.get("reducciones") or []:
+        desde, hasta = indice(_campo(r, "desde")), indice(_campo(r, "hasta"))
+        forma, ipa = str(_campo(r, "forma", "") or "").strip(), _ipa_corta(_campo(r, "ipa"))
+        if not (desde is not None and hasta is not None and desde <= hasta < desde + MAX_PALABRAS_REDUCCION
+                and forma and len(forma) <= 30 and ipa):
+            continue
+        conocidas = REDUCCIONES_CONOCIDAS.get(tuple(palabras[desde:hasta + 1]), set())
+        solapa = any(desde <= r_["hasta"] and r_["desde"] <= hasta for r_ in reducciones)
+        if forma.lower() in conocidas and not solapa:
+            reducciones.append({"desde": desde, "hasta": hasta, "forma": forma, "ipa": ipa,
+                                "generado_por_ia": True})
+    tramos = []
+    for tr in datos.get("tramos_rapidos") or []:
+        desde, hasta = indice(_campo(tr, "desde")), indice(_campo(tr, "hasta"))
+        if desde is not None and hasta is not None and desde < hasta:
+            tramos.append({"desde": desde, "hasta": hasta})
+    frase = str(frase or "").strip()
+    # La version natural tiene que decir exactamente la frase con las reducciones
+    # validadas; si dice otra cosa (una reduccion descartada, una palabra de mas),
+    # se reconstruye. Sin reducciones, la frase tal cual.
+    esperadas = list(palabras)
+    for r_ in sorted(reducciones, key=lambda x: x["desde"], reverse=True):
+        esperadas[r_["desde"]:r_["hasta"] + 1] = normalizar_palabras(r_["forma"])
+    version = str(datos.get("version_natural") or "").strip()
+    if not reducciones:
+        version = frase
+    elif not version or len(version) > 2 * len(frase) + 20 or normalizar_palabras(version) != esperadas:
+        texto = " ".join(esperadas)
+        final = frase[-1] if frase and frase[-1] in ".?!" else ""
+        version = texto[:1].upper() + texto[1:] + final
+    return {"enfasis": enfasis, "enlaces": enlaces, "reducciones": reducciones,
+            "tramos_rapidos": tramos, "version_natural": version}
+
+
+def _ruta_analisis_natural(frase: str) -> Path:
+    clave = hashlib.sha256(
+        f"{VERSION_ANALISIS_NATURAL}|{MODELO_EXPLICACION}|{frase}".encode("utf-8")).hexdigest()
+    return Path(RUTA_AUDIO_GENERADO).parent / "analisis_natural" / f"{clave}.json"
+
+
+def analizar_natural(frase: str, palabras_objetivo: list[str] | None = None) -> dict | None:
+    """Enfasis, enlaces, reducciones, tramos rapidos y version natural de la frase,
+    ya validados contra sus palabras. De la cache si esta; si no, una llamada.
+    `None` si no hay nada guardado y no hay clave, o si la llamada falla."""
+    frase = str(frase or "").strip()
+    palabras = list(palabras_objetivo) if palabras_objetivo is not None else normalizar_palabras(frase)
+    if not frase or not palabras:
+        return None
+    ruta = _ruta_analisis_natural(frase)
+    try:
+        if ruta.is_file():
+            guardado = json.loads(ruta.read_text(encoding="utf-8"))
+            if isinstance(guardado, dict) and isinstance(guardado.get("enlaces"), list):
+                return guardado
+    except (OSError, ValueError):
+        pass
+    cliente = _cliente()
+    if cliente is None:
+        return None
+    numeradas = " ".join(f"{i}:{p}" for i, p in enumerate(palabras))
+    try:
+        resp = cliente.chat.completions.parse(
+            model=MODELO_EXPLICACION,
+            messages=[{"role": "system", "content": _PROMPT_NATURAL},
+                      {"role": "user", "content": f"Frase: {frase}\nPalabras numeradas: {numeradas}"}],
+            response_format=AnalisisNatural)
+        bruto = resp.choices[0].message.parsed
+    except Exception:
+        return None
+    if bruto is None:
+        return None
+    datos = _validar_natural(bruto, palabras, frase)
+    try:
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        descriptor, temporal = tempfile.mkstemp(dir=str(ruta.parent), prefix=f".{ruta.name}.", suffix=".tmp")
+        with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+            json.dump(datos, f, ensure_ascii=False)
+        os.replace(temporal, ruta)
+    except OSError:
+        pass
+    return datos
+
+
 @dataclass
 class SesionVoz:
     evaluacion: Evaluacion
@@ -947,6 +1186,16 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
 
     ritmo = medir_ritmo(evaluacion, tiempos,
                         _tiempos_de_referencia(audio_correcto) if tiempos else None, nivel)
+    # Enfasis, enlaces y reducciones de la frase (una llamada por frase, cacheada)
+    # y la frase dicha con naturalidad. Si la version natural es la misma frase,
+    # su audio es el de referencia: no se genera otro.
+    natural = analizar_natural(frase_objetivo, evaluacion.palabras_objetivo)
+    if natural is not None:
+        natural = dict(natural)
+        texto_natural = natural.get("version_natural") or frase_objetivo
+        natural["audio_natural"] = (audio_correcto if texto_natural.strip() == frase_objetivo.strip()
+                                    else generar_audio_correcto(texto_natural))
+        ritmo["natural"] = natural
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
                      audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None,
                      audios_palabras=audios, ritmo=ritmo)
