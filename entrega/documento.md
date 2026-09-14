@@ -523,7 +523,7 @@ es la del módulo 1 del diplomado: **no se transforma sin medir qué se rompió*
 | T5 | **Recorte de la licencia de Gutenberg** por las marcas START/END, dentro del capítulo | 2.900 de las 5.042 palabras del capítulo XII de *Alice* son texto legal | Sin esto, el modelo puntuaba texto jurídico como narrativa y la ficha listaba «gutenberg» entre las palabras más frecuentes del libro |
 | T6 | **Descarte de portada, índice y portadilla** por la etiqueta «Antes del primer capítulo» | 4.957 palabras de paratexto se puntuaban como novela | Se probó descartar por el filtro de prosa continua y se rechazó: eliminaba dos capítulos reales de *Alice* |
 | T7 | **Muestreo de hasta 8 bloques repartidos por el documento** para la puntuación rápida | Dar un número en segundos, no en minutos | Cuantificado: 8 bloques dan 1,784 y el recorrido completo de las 23 ventanas del mismo capítulo da 1,743. El atajo se desvía 0,041 sobre una escala de 0 a 2 |
-| T8 | **Recorte de entradas del usuario en el servidor** (40 caracteres por palabra, 400 por oración, 20 MB por fichero) | El límite del navegador es una sugerencia, no una defensa | Una cadena de 3.000 caracteres pasaba el filtro de «máximo cuatro palabras» y se pintaba como encabezado: 9.312 caracteres llenando la pantalla del móvil |
+| T8 | **Recorte de entradas del usuario en el servidor** (40 caracteres por palabra, 400 por oración, 20 MB por fichero y, desde `9eb3c91`, 100 MB descomprimidos por EPUB) | El límite del navegador es una sugerencia, no una defensa | Una cadena de 3.000 caracteres pasaba el filtro de «máximo cuatro palabras» y se pintaba como encabezado: 9.312 caracteres llenando la pantalla del móvil |
 
 *Cuadro 5. Transformaciones sobre el texto, con su justificación y su
 evidencia.*
@@ -1114,7 +1114,11 @@ intermedia, ancla B2).
    puede seleccionar otra glosa existente. Desde el 13 de septiembre, si no hay
    acepción utilizable y se autoriza la llamada, puede ofrecer una definición
    **marcada como generada por IA**, nunca atribuida al diccionario. Sin clave
-   se conserva la ficha local y el aviso de ausencia. Las salidas estructuradas
+   se conserva la ficha local y el aviso de ausencia. Y si la elección es
+   dudosa —menos de 0,05 de afinidad entre las dos acepciones más cercanas— y
+   no hay explicación de OpenAI, desde `bf3a9f2` la ficha no afirma una: dice
+   «Puede ser» y enseña la acepción principal de cada entrada del diccionario,
+   si hay al menos dos. Las salidas estructuradas
    también se usan en pronunciación y en «¿de qué trata?».
 6. Lee una frase en voz alta y recibe la corrección palabra por palabra.
 
@@ -1235,8 +1239,14 @@ después se retiró, deliberadamente. El razonamiento: esto es una plataforma de
 literatura, y la literatura es donde esas cosas aparecen. Filtrar por etiqueta
 habría eliminado también obras que son literatura por derecho propio, como
 *Fanny Hill*, perseguida judicialmente y relevante precisamente por eso. En su
-lugar se usa un mecanismo que ya existía: la ficha de cada libro trae un campo
-de aviso que se muestra como «Antes de empezar». **Se informa al lector y se le
+lugar se avisa, y el aviso ya está en la aplicación: una lista curada a mano
+(`avisos_contenido.csv`) pone en la ficha del libro un recuadro «Aviso sobre el
+contenido» antes de abrirlo, sin bloquear nada. A fecha de `db366b8` lleva 2
+títulos, las dos ediciones de *Little Black Sambo* de Helen Bannerman (PG17824
+y PG1330), por estereotipos raciales. El buscador no cambia de orden por el
+aviso; al recomendar por nivel, los 5 primeros puestos son para títulos sin
+aviso y los que lo llevan siguen detrás, sin quitar ninguno. Aparte, el resumen
+que escribe el modelo puede añadir su propio «Antes de empezar». **Se informa al lector y se le
 deja elegir; no se elige por él.** Es una decisión discutible y por eso se
 argumenta en lugar de ocultarse.
 
@@ -1246,14 +1256,24 @@ argumenta en lugar de ocultarse.
 **Estado documental al 14 de septiembre de 2026.** El enlace para el lector es
 https://mikemaki1763-literalevel-front.static.hf.space/ . Es el front Angular;
 el Space `MikeMaki1763/literalevel` aloja FastAPI y conserva Gradio como respaldo.
-La API tiene **37 rutas bajo `/api`**, contadas en el código local, y reutiliza
+La API tiene **38 rutas bajo `/api`** a fecha de `db366b8`, contadas en el
+código local, y reutiliza
 los módulos Python y ayudantes de acceso. Sus adaptadores tienen lógica propia
 y se prueban por separado: compartir funciones no garantiza por sí solo que
-ambas interfaces cobren, almacenen o respondan igual.
+ambas interfaces cobren, almacenen o respondan igual. El inicio de sesión
+frena los intentos fallidos en una hora: 15 por IP y, desde `514786b`, 20 por
+usuario, porque la IP sale de una cabecera que puede escribir el cliente. Solo
+cuentan los que fallan, y son valores por defecto que se cambian por variable
+de entorno.
 
 El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111
 capítulos**. Esto confirma el tamaño del artefacto, no repite su inferencia ni
-garantiza que toda descarga futura esté disponible.
+garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
+excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos,
+directorios), y por nivel solo se ofrecen obras literarias. Una medida del
+precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A
+Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo
+camino da 1,713 (C1).
 
 El despliegue del backend `e56cf08` fue cotejado por hash el 13 de septiembre:
 salud JSON, lectura de Alicia desde Angular, diccionario sin perfil y rechazo
@@ -1261,6 +1281,8 @@ de voz anónima. En el entorno local aislado pasaron **32 de 35 pruebas API**;
 tres quedaron sin validar por dependencias NLP ausentes. También pasaron 7
 pruebas de concurrencia de voz, 10 de despliegue y 11 de portadas, con sus
 alcances separados. No se probó OpenAI real ni micrófono físico en ese cierre.
+Recuento local a fecha de `db366b8` (14 de septiembre, árbol de `app/` limpio):
+**40 de 40 pruebas API** y las **346 pruebas extremas** del motor.
 La consulta de *house* eligió un sentido no adecuado al contexto: disponibilidad
 del diccionario no demuestra que su desambiguación sea correcta en todos los
 casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
