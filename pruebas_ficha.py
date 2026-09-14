@@ -137,8 +137,20 @@ pasajes = ficha._pasajes(seis)
 comprobar("se sacan cuatro pasajes repartidos", len(pasajes) == 4, str(len(pasajes)))
 comprobar("los pasajes son de capitulos distintos",
           len(set(pasajes)) == len(pasajes))
-comprobar("el ultimo pasaje viene del final del libro",
-          pasajes[-1].startswith("Chapter 5"), pasajes[-1][:20])
+# 7d846fa: la sinopsis ya NO recibe el ultimo capitulo, para que no pueda
+# destripar el final (informe final de f4, punto 9). El ultimo pasaje sale como
+# mucho de los dos tercios: en seis capitulos, del 4, y nunca del 5.
+comprobar("el ultimo pasaje sale de los dos tercios del libro",
+          pasajes[-1].startswith("Chapter 4"), pasajes[-1][:20])
+comprobar("ningun pasaje sale del ultimo capitulo",
+          not any(p.startswith("Chapter 5") for p in pasajes))
+for n_caps in (2, 3, 6, 9):
+    libro_n = Lib(f"L{n_caps}", "", [Cap(f"C{i}", f"Chapter {i} begins here. " + NARRACION)
+                                     for i in range(n_caps)])
+    usados = [int(p.split()[1]) for p in ficha._pasajes(libro_n)]
+    comprobar(f"{n_caps} capitulos: nunca el ultimo y como mucho a los dos tercios",
+              bool(usados) and n_caps - 1 not in usados and max(usados) <= (2 * n_caps) // 3,
+              str(usados))
 comprobar("un libro de un solo capitulo da un pasaje",
           len(ficha._pasajes(Lib("x", "", [Cap("I", NARRACION)]))) == 1)
 # Y lo que se manda a OpenAI va RECORTADO. Ninguna prueba aseveraba ese tope:
