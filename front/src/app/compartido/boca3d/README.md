@@ -175,6 +175,11 @@ si un archivo falta o no contiene las piezas esperadas.
   pinta translúcida en vez de la lámina de mejilla), `corte_craneo`,
   `corte_maxilar` y `corte_mandibula` (caras del corte, marfil mate, que dejan
   las cavidades como hueco) y `pared_lejana` (el fondo claro de las cavidades).
+  Con la cabeza de MakeHuman hay además `corte_nariz`, tres paredes del fondo
+  (`pared_lejana`, `_2`, `_3`: la sección real de la piel a z −1,3, −2,1 y −2,8,
+  sin sombras recibidas), `ojo_lejano` e `iris_lejano`, y la piel lleva las
+  shape keys `fruncir`, `estirar` y `labio_atras` (esculpido procedimental por
+  zonas: labios, orbicular y mejilla con pómulo).
   El corte de la mandíbula gira con ella; las dos pieles se deforman en el
   visor por pesos (`pielQueSigueLaMandibula`: barbilla y bajo el maxilar
   siguen el giro; línea de la boca, garganta y nuca se quedan).
