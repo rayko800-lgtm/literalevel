@@ -1047,8 +1047,43 @@ def _validar_natural(bruto, palabras: list[str], frase: str) -> dict:
         texto = " ".join(esperadas)
         final = frase[-1] if frase and frase[-1] in ".?!" else ""
         version = texto[:1].upper() + texto[1:] + final
-    return {"enfasis": enfasis, "enlaces": enlaces, "reducciones": reducciones,
-            "tramos_rapidos": tramos, "version_natural": version}
+    return _pulir_natural({"enfasis": enfasis, "enlaces": enlaces, "reducciones": reducciones,
+                           "tramos_rapidos": tramos, "version_natural": version}, palabras)
+
+
+def _ipa_enlace(primera: str, segunda: str) -> str | None:
+    """La IPA de dos palabras enlazadas, sacada del DICCIONARIO de cada una y
+    unida con ‿. La del modelo no valia: en la bateria del 14 sep daba «/ə/» para
+    «little of» o «/sɔrts.ə/» para «sorts of»."""
+    partes = []
+    for palabra in (primera, segunda):
+        try:
+            ipa, _ = fonemas.ipa_de_palabra(palabra)
+        except Exception:
+            ipa = None
+        if not ipa:
+            return None
+        partes.append(str(ipa).strip().strip("/[]"))
+    return "/" + "‿".join(partes) + "/"
+
+
+def _pulir_natural(datos: dict, palabras: list[str]) -> dict:
+    """Lo que pasa siempre, tambien a lo que ya estaba guardado: el enfasis nunca
+    cae en una palabra funcional («of», «the»), y la IPA de cada enlace sale del
+    diccionario. Asi la cache vieja se corrige al leerla, sin volver a pagar."""
+    palabras = [str(w).lower() for w in palabras]
+    n = len(palabras)
+    datos = dict(datos)
+    datos["enfasis"] = [e for e in datos.get("enfasis") or []
+                        if isinstance(e.get("indice"), int) and 0 <= e["indice"] < n
+                        and palabras[e["indice"]] not in _PALABRAS_FUNCIONALES]
+    enlaces = []
+    for e in datos.get("enlaces") or []:
+        de, a = e.get("de"), e.get("a")
+        if isinstance(de, int) and isinstance(a, int) and 0 <= de and a == de + 1 < n:
+            enlaces.append({**e, "ipa": _ipa_enlace(palabras[de], palabras[a])})
+    datos["enlaces"] = enlaces
+    return datos
 
 
 def _ruta_analisis_natural(frase: str) -> Path:
@@ -1070,7 +1105,7 @@ def analizar_natural(frase: str, palabras_objetivo: list[str] | None = None) -> 
         if ruta.is_file():
             guardado = json.loads(ruta.read_text(encoding="utf-8"))
             if isinstance(guardado, dict) and isinstance(guardado.get("enlaces"), list):
-                return guardado
+                return _pulir_natural(guardado, palabras)
     except (OSError, ValueError):
         pass
     cliente = _cliente()

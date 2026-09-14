@@ -104,7 +104,7 @@ RESPUESTA_NATURAL = {
 # «cuppa» no esta respaldada por ninguna reduccion validada: la version se reconstruye.
 NATURAL_VALIDADO = {
     "enfasis": [{"indice": 4, "ipa": "/ˈkʌp/"}, {"indice": 6, "ipa": "/ˈkɔfi/"}],
-    "enlaces": [{"de": 4, "a": 5, "tipo": "consonante_vocal", "ipa": "/ˈkʌ.pəv/"}],
+    "enlaces": [{"de": 4, "a": 5, "tipo": "consonante_vocal", "ipa": voz._ipa_enlace("cup", "of")}],
     "reducciones": [{"desde": 0, "hasta": 1, "forma": "I'd", "ipa": "/aɪd/", "generado_por_ia": True}],
     "tramos_rapidos": [{"desde": 3, "hasta": 6}],
     "version_natural": "I'd like a cup of coffee please",
@@ -221,7 +221,22 @@ class Natural(unittest.TestCase):
                          [(0, 1, "doncha"), (2, 3, "wanna")], "«to come» -> «gonna» fuera")
         self.assertEqual([(e["de"], e["a"]) for e in datos["enlaces"]], [(5, 6)], "solo «with us» se enlaza")
         self.assertEqual(datos["version_natural"], "Doncha wanna come with us?")
-        self.assertEqual(len(datos["enfasis"]), 4)
+        self.assertEqual([e["indice"] for e in datos["enfasis"]], [0, 2, 4], "«us» es funcional: sin enfasis")
+        self.assertEqual(datos["enlaces"][0]["ipa"], voz._ipa_enlace("with", "us"))
+
+    def test_enlace_con_ipa_de_diccionario_y_enfasis_sin_funcionales(self):
+        """Bateria del 14 sep: «little of» llego con IPA «/ə/» y «of» con enfasis."""
+        frase = "Would you like to see a little of it?"
+        bruto = {"enfasis": [{"indice": 0, "ipa": "/wʊd/"}, {"indice": 6, "ipa": "/ˈlɪtəl/"},
+                             {"indice": 7, "ipa": "/ʌv/"}],
+                 "enlaces": [{"de": 6, "a": 7, "tipo": "consonante_vocal", "ipa": "/ə/"},
+                             {"de": 7, "a": 8, "tipo": "consonante_vocal", "ipa": "/əv/"}],
+                 "reducciones": [], "tramos_rapidos": [], "version_natural": frase}
+        datos = voz._validar_natural(bruto, voz.normalizar_palabras(frase), frase)
+        self.assertEqual([e["indice"] for e in datos["enfasis"]], [0, 6], "«of» sin enfasis")
+        self.assertEqual([e["ipa"] for e in datos["enlaces"]],
+                         [voz._ipa_enlace("little", "of"), voz._ipa_enlace("of", "it")])
+        self.assertTrue(all("‿" in e["ipa"] and e["ipa"] != "/ə/" for e in datos["enlaces"]), datos["enlaces"])
 
     def test_reducciones_solapadas_o_de_otras_palabras_fuera(self):
         bruto = {**RESPUESTA_REAL, "reducciones": [
@@ -252,6 +267,19 @@ class Natural(unittest.TestCase):
         self.assertIsNone(otra, "sin cache y sin clave, no hay analisis")
         self.assertEqual(len(cliente.analisis), 1)
         self.assertEqual(list((self.carpeta / "analisis_natural").glob("*.tmp")), [])
+
+    def test_lo_guardado_antes_se_pule_al_leer_sin_llamar(self):
+        frase = "Would you like to see a little of it?"
+        viejo = {"enfasis": [{"indice": 7, "ipa": "/ʌv/"}, {"indice": 2, "ipa": "/laɪk/"}],
+                 "enlaces": [{"de": 6, "a": 7, "tipo": "consonante_vocal", "ipa": "/ə/"}],
+                 "reducciones": [], "tramos_rapidos": [], "version_natural": frase}
+        ruta = voz._ruta_analisis_natural(frase)
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        ruta.write_text(__import__("json").dumps(viejo, ensure_ascii=False), encoding="utf-8")
+        with mock.patch.object(voz, "_cliente", lambda: None):
+            datos = voz.analizar_natural(frase)
+        self.assertEqual([e["indice"] for e in datos["enfasis"]], [2])
+        self.assertEqual(datos["enlaces"][0]["ipa"], voz._ipa_enlace("little", "of"))
 
     def test_una_llamada_que_falla_no_rompe_ni_se_guarda(self):
         def reventar(**_kw):
