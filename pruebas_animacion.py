@@ -196,6 +196,30 @@ comprobar("la silaba con acento secundario dura un 15 % mas", abs(d[1] / d[3] - 
 comprobar("la palabra resalta cada fonema", all(f"-k{i}" in mostly for i in range(6)))
 comprobar("dos palabras con prefijos distintos", prefijo(mostly) != prefijo(aa.svg_palabra("/dʒʌdʒ/")))
 
+
+# Los rotulos de la palabra: ninguno sigue visible cuando empieza el siguiente.
+# Antes cada fonema se encendia 0,02 del ciclo antes de su tramo y se apagaba
+# 0,02 despues, y en cada cambio se leian dos rotulos uno encima del otro (f4).
+def intervalos_rotulos(svg):
+    fuera = {}
+    for m in re.finditer(r"@keyframes (ll\w+?-k(\d+))\{((?:[^{}]*\{[^{}]*\})*)\}", svg):
+        puntos = sorted((float(p.rstrip("%")), pm.group(2))
+                        for pm in re.finditer(r"([\d.%,]+)\{fill-opacity:([01])", m.group(3))
+                        for p in pm.group(1).split(","))
+        unos = [p for p, v in puntos if v == "1"]
+        if unos:
+            antes = max((p for p, v in puntos if v == "0" and p <= min(unos)), default=0.0)
+            despues = min((p for p, v in puntos if v == "0" and p >= max(unos)), default=100.0)
+            fuera[int(m.group(2))] = (antes, despues)
+    return fuera
+
+
+for ipa in ("/ˈtɹædʒɪk/", largo, "/ˈmoʊstli/"):
+    iv = intervalos_rotulos(aa.svg_palabra(ipa))
+    orden = sorted(iv)
+    solapes = [(i, j) for i, j in zip(orden, orden[1:]) if iv[i][1] > iv[j][0] + 0.11]
+    comprobar(f"los rotulos de {ipa} no se montan", len(orden) > 1 and not solapes, str(solapes))
+
 print()
 print(f"pesos de los SVG de sonido: minimo {min(pesos)}, medio {sum(pesos) // len(pesos)}, maximo {max(pesos)} bytes")
 if FALLOS:

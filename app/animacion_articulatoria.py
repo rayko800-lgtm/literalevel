@@ -995,8 +995,13 @@ def _construir_palabra(ipa: str, acento: str) -> str | None:
                   f'stroke="{_ACENTO}" stroke-width=".8"><tspan {oculto}>/</tspan>{resaltado}<tspan {oculto}>/</tspan></text>')
     for i, (s, (t0, t1)) in enumerate(zip(segs, tramos)):
         visible = 1 if i == fija_i else 0
-        puntos = [(0.0, "0"), (total, "0"), (max(0.0, t0 - 0.02), "0"), (t0 + 0.02, "1"),
-                  (t1 - 0.02, "1"), (t1 + 0.02, "0")]
+        # El rotulo y el resaltado de un sonido se apagan DENTRO de su tramo y el
+        # siguiente se enciende dentro del suyo. Antes cada uno entraba 0,02
+        # antes de empezar y salia 0,02 despues de acabar, asi que en cada cambio
+        # se veian dos rotulos a la vez, uno encima del otro (f4, via e6).
+        rampa = min(0.02, max(0.0, (t1 - t0) / 4))
+        puntos = [(0.0, "0"), (total, "0"), (t0, "0"), (t0 + rampa, "1"),
+                  (t1 - rampa, "1"), (t1, "0")]
         css.append(_kf(f"{P}-k{i}", [(t, f"{v};stroke-opacity:{v}") for t, v in puntos], total, "fill-opacity"))
         css.append(f".{P} .{P}-k{i}{{fill-opacity:{visible};stroke-opacity:{visible};"
                    f"animation:{P}-k{i} {total:.2f}s linear infinite}}")
