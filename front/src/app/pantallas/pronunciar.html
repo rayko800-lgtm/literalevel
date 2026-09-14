@@ -180,7 +180,12 @@
                                   [ipa]="d.ipa ?? ''" [acentoIpa]="d.variante === 'UK' ? 'rp' : 'ga'"
                                   [svg2dUrl]="corteDelSonido(d) ?? corteDeLaPalabra(d)" />
                     } @loading { <p role="status">Cargando modelo…</p> }
-                    @error { <p role="status">No se pudo cargar el modelo 3D.</p> }
+                    @error {
+                  <!-- Casi siempre es una pestaña con el build anterior tras publicar: el
+                       chunk del 3D ya no existe. Recargar lo trae (ver nucleo/version.ts). -->
+                  <p role="status">No se pudo cargar el modelo 3D.
+                    <button type="button" class="boton pequeno secundario" (click)="recargarPara3d()">Recargar y reintentar</button></p>
+                }
                   }
                 </details>
               }
@@ -252,7 +257,12 @@
                 @defer (on immediate) {
                   <app-boca3d [sonido]="s.simbolo" [acento]="acento()" />
                 } @loading { <p role="status">Cargando modelo…</p> }
-                @error { <p role="status">No se pudo cargar el modelo 3D.</p> }
+                @error {
+                  <!-- Casi siempre es una pestaña con el build anterior tras publicar: el
+                       chunk del 3D ya no existe. Recargar lo trae (ver nucleo/version.ts). -->
+                  <p role="status">No se pudo cargar el modelo 3D.
+                    <button type="button" class="boton pequeno secundario" (click)="recargarPara3d()">Recargar y reintentar</button></p>
+                }
               }
               <dl>
                 <div><dt>Labios</dt><dd>{{ s.ficha.labios }}</dd></div>
