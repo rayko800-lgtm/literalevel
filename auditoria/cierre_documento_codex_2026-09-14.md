@@ -67,3 +67,28 @@ cierre antes de modificar el estado documental. No se presento como terminada.
 No se reauditaron tarifas actuales, literatura cientifica ni metricas pesadas;
 las cifras historicas siguen con su contexto original. Los otros entregables
 se sincronizan por separado para no mezclar propiedad de presentacion y guion.
+
+## Ampliacion: documentos operativos y notebook
+
+Con autorizacion del coordinador se actualizaron tambien `README.md`,
+`PENDIENTES.md`, `DESPLIEGUE.md` y exclusivamente las celdas narrativas de
+`entrega/notebook_proyecto.py`, regenerando su `.ipynb` con el conversor del repo.
+
+- README distingue arranque API en 8000 + Angular con proxy en 4200 del
+  respaldo `main.py` en 7860. Las rutas y scripts se leyeron en el codigo,
+  no se lanzaron servidores para este cambio documental.
+- PENDIENTES distingue el corte actual del historial de cuotas/auditorias.
+  Corrige el comando de comparacion: sin `--seco`, desplegar_app publica.
+- DESPLIEGUE ya no declara pendiente la persistencia resuelta. Documenta
+  seleccion exacta `--solo`, revision padre, bytes escaneados, comprobacion
+  JSON y limites de publicacion del front. Conserva precios como historicos.
+- Notebook: **103 celdas, 57 de codigo**. Comparacion estructurada con HEAD
+  anterior: las 57 celdas ejecutables son identicas byte a byte en su fuente.
+  Todas pasan `ast.parse` tras excluir magias; no se ejecutaron ni entrenaron.
+  Las 103 celdas coinciden exactamente con `tools.a_notebook.celdas(py)`.
+- `tools/contar_guion.py`: 480 palabras habladas, 3:12 a 150 ppm sin pausas;
+  presentacion: 14 paginas, leida con PyMuPDF. Archivos de otro agente,
+  commit `13281a9`; no se modificaron en este encargo.
+
+La documentacion del despliegue 3D definitivo queda a cargo del cierre
+coordinado cuando haya evidencia publicada, no de una suposicion documental.

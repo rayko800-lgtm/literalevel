@@ -7,6 +7,13 @@
 # Estimar la dificultad de un texto en inglés para un lector hispanohablante, y
 # usar esa estimación para que el lector elija bien qué libro abrir.
 #
+# **Entrega web al 14 de septiembre de 2026:** Angular es la interfaz principal
+# sobre una API FastAPI; Gradio conserva el motor y la interfaz de respaldo.
+# Enlace del lector: https://mikemaki1763-literalevel-front.static.hf.space/
+# Este cuaderno explica datos, modelos e inferencia: no instala ni ejecuta la
+# aplicación Angular. Su narrativa se sincronizó con la entrega sin modificar
+# las celdas de cálculo ni reentrenar el modelo.
+#
 # ---
 #
 # ## Índice
@@ -25,7 +32,10 @@
 # ## Antes de ejecutar: qué corre y qué no
 #
 # Este cuadernillo está escrito para abrirse en **cualquier Colab y ejecutarse de
-# principio a fin sin errores**. Tres decisiones lo hacen posible:
+# principio a fin**. La revisión del 14 de septiembre comprueba sincronización
+# y sintaxis de las celdas, **no una ejecución nueva en un Colab limpio**.
+# La disponibilidad de URLs, paquetes y pesos debe comprobarse al ejecutarlo.
+# Tres decisiones reducen las dependencias:
 #
 # - **No instala nada.** Todo lo que usa (`pandas`, `numpy`, `matplotlib`,
 #   `seaborn`, `scipy`, `scikit-learn`, `openpyxl`, `xgboost`) viene ya en la
@@ -45,7 +55,8 @@
 # **El modelo v4 está publicado** en Hugging Face, en un repositorio público:
 # [`MikeMaki1763/literalevel-v4`](https://huggingface.co/MikeMaki1763/literalevel-v4).
 # La sección 6.5 lo descarga sin credenciales, de modo que este cuadernillo
-# corre entero en un Colab limpio sin depender del disco de nadie.
+# no depende del disco de la máquina de desarrollo para conseguir esos pesos.
+# La ejecución completa anterior no se presenta como una prueba nueva de hoy.
 #
 # **El cuadernillo no se rompe por eso.** Las celdas que necesitan los pesos
 # comprueban primero si están disponibles: si no lo están, imprimen qué falta y
@@ -2364,14 +2375,15 @@ plt.show()
 #    desbloquea es reproducir la parte léxica de la aplicación fuera de la
 #    máquina de desarrollo. Es el primero de la lista por relación entre coste
 #    y efecto.
-# 2. **Ejecutar el precálculo del catálogo en A100.** Unas tres horas de tarjeta
-#    —diecisiete de reloj, porque el cuello de botella es leer de Drive y no el
-#    modelo, y la descarga va aparte— convierten 61.642 libros
-#    sin medir en 61.642 libros medidos **libro entero,
-#    capítulo a capítulo**, y jubilan definitivamente las etiquetas del v1 cuyo
-#    fracaso documenta la Figura 8.
+# 2. **Precálculo completado el 12 de septiembre.** El artefacto actual contiene
+#    53.179 libros y 585.111 capítulos medidos; el recuento con pandas se repitió
+#    el 14, no la inferencia. La última tanda usó T4. La estimación anterior de
+#    A100/Drive explica una decisión histórica, no una tanda aún pendiente ni
+#    una factura actual. Las etiquetas del catálogo heredado de la Figura 8
+#    ya no son las que usa la aplicación.
 # 3. **Más lectores, ahora que los datos se conservan.** El despliegue
-#    permanente está hecho —`MikeMaki1763/literalevel` en Hugging Face Spaces,
+#    permanente está hecho —Angular en `MikeMaki1763/literalevel-front` y
+#    API/motor en `MikeMaki1763/literalevel`, en Hugging Face Spaces,
 #    público y en marcha, 7 USD/mes de cuenta Pro— y desde el 10 de septiembre
 #    de 2026 la estantería, el avance, el cuaderno y el perfil del lector viven
 #    en un bucket montado en `/data` y sobreviven a un reinicio. Lo que sigue
@@ -2379,9 +2391,11 @@ plt.show()
 #    el primero en volver paga el arranque. Consumo medido: **1,05 GB de
 #    RSS** con modelo y catálogo cargados, con pico realista de 1,2-1,5 GB, y
 #    575 MB en disco. Eso **descarta cualquier plan de 512 MB de memoria**.
-# 4. **Cerrar el ciclo de usuario con más lectores como Esmeralda.** El primero
-#    produjo nueve correcciones concretas, seis de ellas etiquetas reescritas.
-#    No hay razón para pensar que el segundo produzca menos.
+# 4. **Repetir el ciclo de usuario sobre Angular.** Esmeralda y Laura encontraron
+#    problemas de la interfaz anterior; esos ciclos no validan automáticamente
+#    los cambios posteriores. Faltan recorrido con nuevos lectores, ensayo con
+#    micrófono físico y grabación del video. Las portadas FLUX no se generaron;
+#    la demo 3D local no se cuenta como publicada sin verificar su integración.
 #
 # ## 8.5 Usabilidad: cómo se presenta el modelo al usuario
 #
@@ -2516,9 +2530,10 @@ plt.show()
 #    modelo encadene los pasos. La pieza que ya está puesta es la otra mitad:
 #    la explicación en contexto, la corrección de pronunciación y el resumen de
 #    la ficha se piden con **salidas estructuradas** (esquemas Pydantic con un
-#    campo por cada cosa que se va a pintar), y eso es lo que impide que el
-#    modelo redefina la palabra: recibe la acepción que eligió el desambiguador
-#    local y tiene prohibido inventar otra.
+#    campo por cada cosa que se va a pintar). Ese esquema garantiza forma, no
+#    veracidad. Si Kaikki tiene una acepción utilizable, se conserva; si no la
+#    tiene y la llamada está autorizada, puede darse una definición marcada
+#    como generada por IA. No se presenta como una glosa del diccionario.
 #
 # ---
 #

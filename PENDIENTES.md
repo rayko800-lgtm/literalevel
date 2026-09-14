@@ -1,14 +1,39 @@
 # Pendientes de LiteraLevel
 
-Actualizado: **12 de septiembre de 2026**, tarde. El plan de aquí al 3 de
+Actualizado: **14 de septiembre de 2026**. El plan de aquí al 3 de
 octubre está en [`PLAN_3_OCTUBRE.md`](PLAN_3_OCTUBRE.md).
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
-**Si acabas de entrar: lee primero
+## Estado actual antes de leer el histórico
+
+- **Entrega:** Angular es la interfaz principal; FastAPI adapta el motor Python
+  y Gradio queda de respaldo. Enlace:
+  <https://mikemaki1763-literalevel-front.static.hf.space/>.
+- **Primero leer:** [relevo de Codex](auditoria/relevo_codex_2026-09-13_noche.md),
+  [despliegue selectivo](auditoria/despliegue_codex_2026-09-13_noche.md) y
+  [cierre documental](auditoria/cierre_documento_codex_2026-09-14.md).
+- **Backend:** `e56cf08` cotejado por hash el 13 de septiembre; fixes de voz/API
+  publicados. Para comparar ahora sin escribir:
+  `python tools/desplegar_app.py --seco --solo app/api.py app/voz.py`.
+- **Pruebas de ese cierre:** API 32/35 en entorno aislado, tres sin validar por
+  dependencias NLP; voz concurrente 7/7, despliegue 10/10, portadas 11/11.
+  No sumar esos resultados como una prueba completa de usuario.
+- **Catálogo:** recuento local del 14 de septiembre: 53.179 IDs únicos y
+  585.111 capítulos; no se reejecutó la inferencia.
+- **Pendientes de Miguel:** ensayo de pronunciación con micrófono físico,
+  recorrido Angular con usuarios y video grabado con cámara visible.
+- **Pendientes técnicos:** auditorías abiertas indicadas en el relevo, calidad
+  de acepciones (caso `house`), integración pública 3D aún por confirmar y
+  muestras de portadas FLUX aún no generadas. No conectar GPU ni publicar
+  portadas sin saldo/tarifa, aprobación visual y permiso de subida.
+
+## Histórico de auditorías y coordinación, hasta el 12 de septiembre
+
+**El registro previo recomendaba leer primero
 [`auditoria/cierre_auditoria_17.md`](auditoria/cierre_auditoria_17.md)** —la
-última, y la más barata de todas: una pasada ESTRECHA sobre el diff del día
+última en aquel corte, y la más barata de todas: una pasada ESTRECHA sobre el diff del día
 encontró un **crítico** que la auditoría completa de unas horas antes no podía
 ver, porque el diff no existía todavía—, luego
 [`auditoria/cierre_auditoria_16.md`](auditoria/cierre_auditoria_16.md) —6
@@ -50,10 +75,11 @@ Cuatro avisos que valen para cualquiera que toque esto:
    hubiera escrito. Se vio midiendo lo mismo con el árbol de antes y el de
    después, no leyendo.
 
-**El Space está al día hasta la auditoría 17**, subida el 11 de septiembre de
+**Estado histórico: el Space estaba al día hasta la auditoría 17**, subida el 11 de septiembre de
 2026 y cotejada por hash: los catorce archivos publicados son idénticos byte a
 byte a los locales. **No te fíes de esta línea**, que es la que se queda vieja:
-`python tools/desplegar_app.py` lo compara y lo dice él mismo. La auditoría 16
+`python tools/desplegar_app.py --seco` lo compara sin publicar. Sin `--seco`
+el script puede subir cambios. La auditoría 16
 ya avisó una vez de que esta frase iba por detrás del repositorio.
 
 Son muchos commits y tocan archivos compartidos: `app/ui.py`, `app/cuentas.py`
@@ -68,11 +94,11 @@ Gutenberg y los pies de ilustración) y `app/lexicon.py` (`llamadas_de_pago` en
 `ResultadoLexico` y la clave del audio normalizada).
 
 `auditoria/estado_real.md` **está superado**: úsalo como histórico. El estado
-vivo son este archivo, `informe_fable_7.md` e `informe_codex_5.md`.
+actual se resume al principio de este archivo y enlaza sus informes de cierre.
 
 ---
 
-## Bloqueado en Miguel — nadie más puede hacerlo
+## Bloqueos registrados el 12 de septiembre (histórico)
 
 | Qué | Desbloquea | Por qué solo tú |
 |---|---|---|
@@ -154,12 +180,12 @@ un entorno de CPU gratuito mientras no haya unidades.
 
 ## Estado de la entrega
 
-- [x] **Documento** (`entrega/documento.md` y `.tex` → `documento.pdf`)
+- [x] **Documento** actualizado a Angular y corte de pruebas: `46819e7`, PDF de 52 páginas
 - [x] **Estrategia** (`entrega/estrategia.md`, absorbida en el `.tex`)
-- [x] **Cuadernillo** (`entrega/notebook_proyecto.py` → `.ipynb`, 92 celdas)
-- [x] **Guion del vídeo** (`entrega/guion_video.md` y `.tex` → PDF)
-- [x] **Presentación** (`entrega/presentacion.tex` → PDF, 13 diapositivas)
-- [x] **Apartado de competencia** — §8.5 del documento y §5 de la estrategia
+- [x] **Cuadernillo** (`entrega/notebook_proyecto.py` → `.ipynb`, 103 celdas; narrativa revisada, sin afirmar ejecución nueva en Colab)
+- [x] **Guion del vídeo** actualizado a Angular (`13281a9`), 480 palabras habladas; falta grabar
+- [x] **Presentación** actualizada a Angular (`13281a9`), 14 diapositivas
+- [x] **Apartado de competencia** — §8.6 de la copia Markdown, §8.5 del PDF y §5 de la estrategia
 - [x] **Manifiesto del corpus externo** (`entrega/manifiesto_corpus_externo.md`)
 - [ ] **Vídeo grabado** — bloqueado en el micrófono
 - [x] **Catálogo remedido** — terminado el 12 de septiembre de 2026: 53.179 libros y
@@ -194,10 +220,10 @@ un entorno de CPU gratuito mientras no haya unidades.
 
 ---
 
-## Cifras vigentes, para no volver a publicar las viejas
+## Cifras de referencia y fecha de comprobación
 
 Medidas el 9 de septiembre de 2026 salvo donde la fila diga otra fecha, y
-todas reproducibles con un guion del repo.
+con su guion de procedencia. No todas se han reejecutado en el cierre del 14.
 
 | Qué | Valor | Con qué se comprueba |
 |---|---|---|
@@ -205,7 +231,7 @@ todas reproducibles con un guion del repo.
 | Medias por nivel | 0,5040 · **0,5561** · 0,9276 · **1,2414** · 1,4952 | `validar_local.py` |
 | Cuadro 13 del `.md`, 18 del PDF (baseline) | **0,860 / 0,807 / 0,668** | `validar_local.py` |
 | Modelo contra longitud | 0,732 | `validar_local.py` |
-| Pruebas de estrés | **303** | `pruebas_extremas.py` |
+| Pruebas de estrés históricas | **303** en el corte del 12 sep; no es el total actual validado | `pruebas_extremas.py`; revisar salida de la ejecución, no esta cifra |
 | Catálogo medido (12 sep 2026) | **53.179** libros · **585.111** capítulos · A1 1 · A2 40 · B1 558 · B2 3.127 · C1 23.454 · C2 25.999 | `catalogo_medido.csv`, `capitulos_medidos.parquet` |
 | Capítulos a nivel ≤ 0,95 | **3.644** en 1.499 libros | `capitulos_medidos.parquet` |
 | *Crime and Punishment* en la app (txt) | 203.415 palabras · 40 capítulos · **836** ventanas · media 1,70 | app publicada, 12 sep 2026 |
@@ -216,7 +242,7 @@ todas reproducibles con un guion del repo.
 | Arranque en frío del Space | **31 s** hasta `RUNNING`, **32 s** hasta que responde | `medir_arranque.py` |
 | Recta de compresión | 0,7196x + 0,3760 (4 medias de Colab); 0,67x + 0,41 con las 5 locales | recalculable |
 | Textos que pasan el filtro COMPLETO | **36** (el de la app; aquí se puntúan 47) | `validar_local.py` |
-| Palabras habladas del guion | **569** = 3:48 | `tools/contar_guion.py` |
+| Palabras habladas del guion (14 sep) | **480** = 3:12 a 150 ppm, sin pausas ni acciones | `tools/contar_guion.py` |
 | Coste del despliegue | **7 USD/mes** (cuenta Pro; tarifa 9, con descuento) | API `whoami-v2` |
 | Carpeta + diccionario | 575 MB (332,1 + 243,3) | `os.path.getsize`, remedido el 10 de septiembre de 2026 |
 

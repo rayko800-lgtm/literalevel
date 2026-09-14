@@ -1,13 +1,82 @@
-# Desplegar LiteraLevel (punto 6)
+# Desplegar LiteraLevel: Angular y backend
 
-**Ya está desplegado**: `MikeMaki1763/literalevel` en Hugging Face Spaces,
-público y en marcha, sobre hardware `cpu-basic` y una cuenta Pro de 7 USD/mes.
-Arranque medido tras reiniciar: **31 s** hasta que el runtime dice `RUNNING`
-y **32 s** hasta que la página responde (`medir_arranque.py`).
+**Corte operativo del 14 de septiembre de 2026.** Son dos despliegues:
 
-Lo que sigue es el procedimiento con el que se hizo y lo que haría falta para
-repetirlo en otra plataforma. Lo que **no** está resuelto es el almacenamiento
-persistente: el Space arranca con la estantería vacía tras cada reinicio.
+- Angular: `MikeMaki1763/literalevel-front`, sitio estático en
+  <https://mikemaki1763-literalevel-front.static.hf.space/>.
+- FastAPI y motor/respaldo Gradio: `MikeMaki1763/literalevel`, hardware
+  `cpu-basic` existente. El despliegue selectivo `e56cf08` fue cotejado por
+  hash el 13 de septiembre; véase el informe enlazado abajo.
+- Persistencia: **resuelta el 10 de septiembre**, bucket privado montado en
+  `/data`. No reinstalar esa parte siguiendo un diagnóstico anterior.
+
+Los costes y tiempos de arranque del histórico son registros fechados, no
+tarifas ni garantías actuales. Este procedimiento no requiere comprar planes,
+cambiar hardware ni reescribir secretos. No hacerlo sin autorización expresa.
+
+## Procedimiento vigente: backend selectivo
+
+Un solo desplegador, rutas acordadas, revisión del diff y pruebas antes de subir.
+No usar `upload_folder` sobre el repo ni incluir archivos ajenos sin revisar.
+
+```powershell
+python -X utf8 tools/desplegar_app.py --seco --solo app/api.py app/voz.py
+```
+
+`--seco` compara sin publicar y permite inspeccionar el trabajo sin commit.
+Para publicar, **solo después de confirmar las rutas propias y recibir permiso**:
+
+```powershell
+python -X utf8 tools/desplegar_app.py --solo app/api.py app/voz.py
+python -X utf8 tools/desplegar_app.py --estado
+python -X utf8 tools/desplegar_app.py --seco --solo app/api.py app/voz.py
+```
+
+Las rutas son un ejemplo del cierre nocturno, no una lista obligatoria para
+todo cambio. `--solo` admite rutas exactas de la lista blanca; publicar rechaza
+cambios sin commit en esa selección. El script conserva los bytes revisados,
+los escanea y usa `parent_commit` para no pisar una revisión remota nueva.
+No ejecutarlo sin opciones para una simple consulta: **el modo por defecto publica**.
+Pruebas de esas guardas: `python -X utf8 pruebas_despliegue.py`, sin subir nada.
+
+No sustituir el `app.py` ni el README del Space por `main.py`/README locales.
+El montaje Gradio publicado utiliza `demo.launch(ssr_mode=False,
+app_kwargs=api.para_gradio())`. `con_gradio` con uvicorn es la alternativa
+local, no el arranque del Space.
+
+Después de `RUNNING`, comprobar **JSON de `/api/salud`**, no solo HTTP 200:
+el antiguo proxy SSR devolvía HTML con 200 para rutas API. Verificar lectura
+Angular, CORS, un recurso estático y el rechazo de operaciones sin acceso,
+sin llamar al proveedor de pago durante la comprobación básica. La segunda
+comparación debe informar iguales los archivos seleccionados. El reporte
+[del cierre selectivo](auditoria/despliegue_codex_2026-09-13_noche.md) conserva
+hashes, pruebas, límites y reversión de solo esos archivos.
+
+## Procedimiento vigente: front estático y assets
+
+El front se compila desde `front/` con `npm.cmd run build`. Publicar solo el
+resultado de `front/dist/front/browser/`, con los assets del mismo build;
+no `node_modules`, fuentes, cachés ni el repositorio completo. `index.html`
+debe conservar la meta `literalevel-api` con el origen público correcto del
+backend. Los recursos `boca3d/cara.glb` y `boca3d/lengua.glb`, si forman parte
+de la versión aprobada, deben viajar con los chunks que los cargan y su
+procedencia documentada: un build HTML correcto sin GLB
+no completa el recurso 3D.
+
+La publicación debe revisar los bytes y el diff remoto, proteger la revisión
+padre y conservar la configuración del Space estático. El coordinador prepara
+un script de despliegue dedicado; **hasta verificarlo, no se prescribe aquí una
+CLI inexistente**. Tampoco se afirma que el 3D esté publicado porque esté en local.
+Después de subir, recargar una pestaña nueva: una pestaña antigua puede pedir
+chunks eliminados y dar 404. Comprobar rutas Angular, solicitudes de assets,
+conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GLB.
+
+## Historial de infraestructura y opciones evaluadas
+
+Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
+septiembre. Los precios, cuotas y alternativas no se han reconsultado para
+recomendar una contratación. El arranque medido entonces fue 31 s hasta
+`RUNNING` y 32 s hasta responder (`medir_arranque.py`).
 
 ## Lo que hay que colocar
 > **Lo que hay desplegado NO es lo que decía este documento**, y se comprobó
@@ -256,9 +325,10 @@ del build anterior dan 404 (lo arregló e6 recargando una vez).
 fuerza con `SUBIR_TAMBIEN`. Las animaciones solo existen en `ui.py`: mientras
 `app/api.py` no exponga la URL de cada SVG, el front de Angular no las tiene.
 
-Desde `e793383` el guion de despliegue sube **todo lo que difiere en `app/` entre el
+En aquel procedimiento, desde `e793383`, el guion subía **todo lo que difería en `app/` entre el
 commit desplegado y el nuevo** (`git diff --name-only`), no solo lo que tocan los commits
-que se nombran: si entre medias hay un commit que nadie menciona, no se queda atrás.
+que se nombraban. El procedimiento selectivo actual de la cabecera sustituye esa
+instrucción: no autoriza incluir automáticamente trabajo de otras sesiones.
 
 Tras `dbd997e` el consejo de fonema salía del texto libre del modelo y cambiaba entre
 llamadas con el mismo audio (/dʒ/ y luego /tʃ/ para un error /tr/→/m/). `5029a40` lo
@@ -334,4 +404,3 @@ megas —en local, `~/.literalevel/` entero son **10,9 MB** medidos el 10 de
 septiembre de 2026—, así que la
 factura de almacenamiento es despreciable. Se monta el bucket y se apunta la
 app ahí; no hace falta tocar código, solo la ruta base.
-

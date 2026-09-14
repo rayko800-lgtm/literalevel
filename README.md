@@ -4,17 +4,31 @@ App de lectura en inglés que estima la dificultad de un texto y acompaña al
 lector mientras lee. Proyecto integrador del Módulo 5, Diplomado en Ciencia de
 Datos (Generación 34).
 
-**Está desplegada y funcionando:**
+**Entrega web: Angular + API**, con Gradio como respaldo:
 
-- Aplicación → <https://huggingface.co/spaces/MikeMaki1763/literalevel>
+- Aplicación Angular → <https://mikemaki1763-literalevel-front.static.hf.space/>
+- API y respaldo Gradio → <https://huggingface.co/spaces/MikeMaki1763/literalevel>
 - Modelo v4 → <https://huggingface.co/MikeMaki1763/literalevel-v4>
 
-Para correrla en local:
+Para correr Angular en local, en una terminal desde la raíz del proyecto:
 
 ```bash
 pip install -r requirements.txt
-python -X utf8 main.py          # la app, en http://127.0.0.1:7860
+python -X utf8 -m uvicorn app.api:app --host 127.0.0.1 --port 8000
 ```
+
+En otra terminal:
+
+```powershell
+cd front
+npm.cmd ci
+npm.cmd start -- --host 127.0.0.1 --port 4200
+```
+
+Abrir `http://127.0.0.1:4200/`. El proxy de desarrollo envía `/api` al puerto
+8000. No hace falta instalar Angular globalmente. Para el respaldo Gradio,
+`python -X utf8 main.py` usa el puerto 7860; ese comando por sí solo no arranca
+la API que espera el front. Los recursos del apartado Datos también hacen falta.
 
 ## Qué hace
 
@@ -31,8 +45,8 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
    palabras de cada obra.)
 3. **Lee.** Lector integrado de epub, pdf y txt. Los libros de Project
    Gutenberg se descargan y se abren dentro de la app, sin salir a por ellos.
-   Al abrir un libro sale su **ficha**: cuánto se tarda en leerlo al ritmo de
-   quien lo abre, cuánto es diálogo, qué palabras se repiten. Todo eso está
+   Al abrir un libro sale su **ficha**: tiempo estimado a 180 o 110 palabras por
+   minuto (no el ritmo medido del lector), cuánto es diálogo y qué palabras se repiten. Todo eso está
    contado sobre el archivo. Aparte, y detrás de un botón, un resumen de qué
    trata escrito por un modelo de lenguaje a partir de pasajes del propio
    libro, marcado como tal. Y **la curva de dificultad capítulo a capítulo**,
@@ -40,7 +54,9 @@ python -X utf8 main.py          # la app, en http://127.0.0.1:7860
 4. **Explica una palabra.** Doble clic sobre cualquier palabra del texto:
    lema, IPA británica y americana cuando Wiktionary las trae, definición, el sentido que
    tiene *en esa frase*, la gramática y el audio de pronunciación. En español
-   o en inglés, a elegir.
+   o en inglés, a elegir. Kaikki conserva la definición cuando existe una
+   acepción utilizable; si no existe y se autoriza el servicio externo, el
+   fallback aparece marcado como generado por IA.
 5. **Corrige la pronunciación.** Se lee una frase en voz alta y se marca
    palabra por palabra qué sonó bien y qué no, con el sonido concreto que
    falla y cómo colocar la boca.
@@ -62,7 +78,7 @@ porque ese corpus gradúa también por longitud de la tarea.
 
 | Validación | n | Dentro de ±1 nivel | Spearman |
 |---|---|---|---|
-| Corpus de validación (no incluido) | 144 | 97.2 % | 0.908 |
+| Validación interna ELG (predicciones en `entrenamiento_v4/`) | 144 | 97.2 % | 0.908 |
 | British Council (externo, no incluido) | 38 | 100 % | 0.829 |
 
 ### El baseline, dicho antes de que lo pregunten
@@ -131,7 +147,9 @@ No imprime ni un fragmento de los textos: el corpus tiene derechos.
 | Archivo | Qué hace |
 |---|---|
 | `main.py` | Punto de entrada en local. En el Space el mismo papel lo hace un `app.py` |
-| `app/ui.py` | La interfaz: ocho pestañas en Gradio 6 |
+| `front/` | Interfaz Angular, entregada como sitio estático |
+| `app/api.py` | API FastAPI: adapta el motor Python para Angular |
+| `app/ui.py` | Motor compartido, ayudantes de acceso e interfaz Gradio de respaldo |
 | `app/scoring.py` | Puntuación de dificultad. Port fiel del v4 |
 | `app/reader.py` | Lector de epub, pdf y txt → capítulos |
 | `app/catalogo.py` | Buscador semántico sobre el catálogo |
@@ -151,25 +169,39 @@ torch.
 
 ```bash
 python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # 303 pruebas que intentan romper la interfaz
+python -X utf8 pruebas_extremas.py     # batería de robustez del motor
 python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
 python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
 python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel
 python -X utf8 pruebas_ficha.py        # que los números de la ficha signifiquen algo
+python -X utf8 pruebas_api.py          # API; requiere dependencias NLP locales
+python -X utf8 pruebas_voz_concurrencia.py  # dobles sin red y SQLite temporal
+python -X utf8 pruebas_portadas.py     # pipeline sin GPU ni red
+python -X utf8 pruebas_despliegue.py   # guardas del despliegue, sin publicar
+```
+
+Las siguientes pueden usar un proveedor de pago; no ejecutarlas como parte de
+una revisión sin red ni sin autorización de gasto:
+
+```bash
 python -X utf8 pruebas_lexicon.py      # diccionario y caché (usa OpenAI)
 python -X utf8 pruebas_voz.py          # ciclo de voz completo (usa OpenAI)
 ```
 
-La regla que verifican las pruebas extremas es una sola: **ningún manejador
-puede lanzar una excepción hacia la interfaz**. Lo que falla vuelve como texto
-legible.
+La degradación legible es el objetivo, no una garantía que una suite pueda
+demostrar para todas las entradas. Corte verificado del 13 de septiembre:
+API 32/35 en un entorno aislado, con tres casos pendientes por dependencias
+NLP ausentes; voz concurrente 7/7, despliegue 10/10 y portadas 11/11.
+El backend `e56cf08` se cotejó por hash y se probó lectura Angular sin entrar
+con una cuenta. No se ensayó micrófono físico ni OpenAI real en ese cierre.
+Evidencia y pendientes: [relevo de Codex](auditoria/relevo_codex_2026-09-13_noche.md).
 
 ## Datos que no van en el repositorio
 
 | Qué | Tamaño | De dónde sale |
 |---|---|---|
 | `modelo_v4/` | 332 MB | Hugging Face, `MikeMaki1763/literalevel-v4` (público, sin credenciales) |
-| `kaikki_diccionario.db` | 243 MB | volcado de Kaikki/Wiktionary, 1,48 M entradas (sin publicar; copia en Drive) |
+| `kaikki_diccionario.db` | 243 MB | volcado Kaikki/Wiktionary; desplegado dentro del Space, no como dataset independiente |
 | `CLAVES.txt`, `.env` | — | claves reales |
 
 Están en `.gitignore`. La app los localiza con `LITERALEVEL_MODELO` y
@@ -192,7 +224,16 @@ tabla de arriba.
 **Sin `OPENAI_API_KEY` la app sigue funcionando**: diccionario, IPA, buscador
 y puntuación no salen a la red. El audio de Wiktionary sí: es un enlace a
 `upload.wikimedia.org` que descarga el navegador. Lo que se apaga es la
-explicación contextual y la voz.
+explicación contextual, la generación de definiciones/IPA, la corrección de voz
+y el resumen del libro. La primera descarga de recursos y de libros requiere
+conexión; disponer del diccionario local no significa que toda la app sea offline.
+
+## Avances no publicados en el corte anterior
+
+Portadas: pipeline preparado, sin nuevas imágenes FLUX; generación y subida
+requieren autorizaciones separadas. Blender: demo 3D local, sin contar su
+integración como publicada hasta verificarla en Angular. Los informes de cierre
+distinguen pruebas automatizadas, revisión visual y pendientes de usuario.
 
 ## Más
 
