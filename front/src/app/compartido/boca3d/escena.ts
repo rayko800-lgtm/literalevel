@@ -728,7 +728,10 @@ export class EscenaBoca {
   }
 
   private distanciaEncuadre(): number {
-    return (this.caraModelada ? 16 : 13) * Math.max(1, 1 / this.camara.aspect);
+    // Con la cara modelada el perfil entero no cabe a 13, pero lo que importa
+    // es la boca: en el móvil a 16 quedaba pequeña. La nariz y la garganta se
+    // ven enteras al girar.
+    return (this.caraModelada ? 13.5 : 13) * Math.max(1, 1 / this.camara.aspect);
   }
 
   /** Con `true` el lienzo captura todos los gestos táctiles (también los
