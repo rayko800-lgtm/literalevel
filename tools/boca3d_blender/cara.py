@@ -607,20 +607,35 @@ def recortar(ob, y, arriba, plano=(0, 0, 1)):
 
 def labios_en_piel(ob):
     """Shape keys de los labios sobre la piel de MakeHuman, en coordenadas del
-    visor (Blender guarda (x, -lateral, altura)): `fruncir` (los labios salen
-    hacia delante y las comisuras se juntan: /u/, /o/), `estirar` (las
-    comisuras se separan y suben un poco: /i/) y `labio_atras` (el labio de
-    abajo se mete bajo los incisivos: /f v/). El visor las mezcla desde el
-    largo de los labios de la pose, como hacia con los tubos. Los pesos caen
-    con la distancia al centro de la boca (-3,1, 0,15, 0), mas lejos a lo
-    ancho que a lo alto."""
+    visor (Blender guarda (x, -lateral, altura)): `fruncir` (/u/, /o/),
+    `estirar` (/i/) y `labio_atras` (/f v/). Esculpido procedimental con tres
+    zonas: los labios (peso al centro de la boca), el orbicular (un anillo
+    alrededor de la boca que arrastra comisuras y surco nasolabial) y la
+    mejilla con el pomulo (que se hunde al fruncir y sube y sale al
+    estirar). El visor las mezcla desde el largo de los labios de la pose,
+    como hacia con los tubos."""
     ob.shape_key_add(name="Basis", from_mix=False)
     base = [(v.co.x, v.co.z, -v.co.y) for v in ob.data.vertices]      # (x, altura, lateral) del visor
 
-    def peso_boca(x, y, z, rx=1.1, ry=0.95, rz=1.7):
-        d = math.sqrt(((x + 3.1) / rx) ** 2 + ((y - 0.15) / ry) ** 2 + (z / rz) ** 2)
-        t = max(0.0, min(1.0, 1 - d))
+    def suave(t):
+        t = max(0.0, min(1.0, t))
         return t * t * (3 - 2 * t)
+
+    def peso_boca(x, y, z, rx=1.1, ry=0.95, rz=1.7):
+        """1 en el centro de la boca, 0 a un radio (elipsoide) de distancia."""
+        d = math.sqrt(((x + 3.1) / rx) ** 2 + ((y - 0.15) / ry) ** 2 + (z / rz) ** 2)
+        return suave(1 - d)
+
+    def anillo(x, y, z, r0=1.05, ancho=0.65):
+        """El orbicular de los labios: un anillo alrededor de la boca (en el
+        plano de la cara) a distancia r0 del centro, solo en la piel de delante."""
+        d = math.sqrt(((y - 0.15) / 1.0) ** 2 + (z / 1.35) ** 2)
+        return suave(1 - abs(d - r0) / ancho) * suave((x + 1.0) / -1.2)
+
+    def mejilla(x, y, z):
+        """La mejilla y el pomulo: a los lados de la nariz, sobre la boca."""
+        d = math.sqrt(((x + 1.9) / 1.0) ** 2 + ((y - 0.7) / 1.0) ** 2 + ((abs(z) - 2.0) / 0.9) ** 2)
+        return suave(1 - d)
 
     def clave(nombre, delta):
         k = ob.shape_key_add(name=nombre, from_mix=False)
@@ -628,14 +643,33 @@ def labios_en_piel(ob):
             dx, dy, dz = delta(x, y, z)
             k.data[i].co = (x + dx, -(z + dz), y + dy)
 
-    # Fruncir: hacia delante, comisuras hacia dentro y los dos labios se
-    # separan un poco en el centro (la «o» de /u/); estirar: comisuras hacia
-    # fuera y arriba, labios algo hacia atras.
     abre = lambda y: (1.0 if y > 0.15 else -1.0) * max(0.0, 1 - abs(y - 0.15) / 0.5)
-    clave("fruncir", lambda x, y, z: (-0.75 * peso_boca(x, y, z), 0.13 * abre(y) * peso_boca(x, y, z, 0.8, 0.6, 0.9),
-                                      -0.5 * z * peso_boca(x, y, z)))
-    clave("estirar", lambda x, y, z: (0.2 * peso_boca(x, y, z), 0.1 * peso_boca(x, y, z) * min(1.0, abs(z) / 1.2),
-                                      0.45 * z * peso_boca(x, y, z)))
+    lado = lambda z: (1.0 if z > 0 else -1.0)
+
+    def fruncir(x, y, z):
+        # Los labios salen hacia delante y se separan un poco en el centro (la
+        # «o»); el orbicular tira de toda la piel de alrededor hacia el eje de
+        # la boca (comisuras y surco nasolabial hacia dentro y hacia delante);
+        # las mejillas se hunden un poco hacia la boca.
+        b = peso_boca(x, y, z)
+        a = anillo(x, y, z)
+        m = mejilla(x, y, z)
+        return (-0.75 * b - 0.3 * a + 0.1 * m,
+                0.13 * abre(y) * peso_boca(x, y, z, 0.8, 0.6, 0.9) - 0.3 * (y - 0.15) * a,
+                -0.5 * z * b - 0.35 * z * a - 0.16 * lado(z) * m)
+
+    def estirar(x, y, z):
+        # Las comisuras se separan y suben, los labios se pegan a los dientes,
+        # el orbicular se abre y las mejillas suben y salen (los pomulos de /i/).
+        b = peso_boca(x, y, z)
+        a = anillo(x, y, z)
+        m = mejilla(x, y, z)
+        return (0.2 * b + 0.05 * a - 0.2 * m,
+                0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m,
+                0.45 * z * b + 0.18 * z * a + 0.06 * lado(z) * m)
+
+    clave("fruncir", fruncir)
+    clave("estirar", estirar)
     abajo = lambda y: max(0.0, min(1.0, (0.15 - y) / 0.08))
     clave("labio_atras", lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
                                           0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0))
