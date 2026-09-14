@@ -768,6 +768,47 @@ def borrar_subido_libera_el_cupo():
     return "lleno 429, ajeno 404, catálogo 400, borrado 200 y cabe otro"
 
 
+def historial_de_voz_ilegible_avisa():
+    """4e (d765ee0): con voz.db corrupta, voz lanza HistorialIlegible. Las tres
+    rutas contestan 200 con el aviso en español, no un 500 ni una lista vacía
+    que diga «no has fallado nada». Sin base, sin aviso."""
+    from pathlib import Path
+    from types import SimpleNamespace as NS
+    lector = nuevo_lector()
+    ruta = Path(ui._archivo_lector("voz.db", NS(session_hash=lector["X-Lector"], headers={}, client=None)))
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    ruta.write_bytes(b"esto no es una base de datos sqlite\n" * 40)
+    deb = cliente.get("/api/voz/debiles", headers=lector)
+    fal = cliente.get("/api/voz/falladas", headers=lector)
+    rep = cliente.get("/api/repaso", headers=lector)
+    assert (deb.status_code, fal.status_code, rep.status_code) == (200, 200, 200), (deb.text[:200], fal.text[:200], rep.text[:200])
+    for r in (deb.json(), fal.json()):
+        assert r["palabras"] == [] and r["aviso"], r
+    assert rep.json()["voz"] == [] and rep.json()["aviso_voz"] and "palabras" in rep.json(), rep.json()
+    limpio = _ok(cliente.get("/api/voz/falladas", headers=nuevo_lector()))
+    assert limpio["palabras"] == [] and limpio["aviso"] is None, limpio
+    return deb.json()["aviso"][:60]
+
+
+def cita_recorta_sin_perder_la_oracion():
+    """4e (1a4b998) y central: «cita» es el fragmento para enseñar; «oracion»
+    sigue entera en la ficha y en el cuaderno."""
+    larga = ("The old man walked slowly along the river bank while the children followed him laughing "
+             "and the red raincoat that his wife had sewn for him many years ago shone in the rain "
+             "and the dogs barked at the geese and the baker waved from his door and nobody in the "
+             "village could remember a wetter spring than that one")
+    lector = nuevo_lector()
+    d = _ok(cliente.post("/api/palabra", headers=lector,
+                         json={"palabra": "raincoat", "oracion": larga, "etapa": "completa"}))
+    assert len(d["oracion"].split()) > 40, d["oracion"]
+    palabras_cita = len(d["cita"].split())
+    assert "raincoat" in d["cita"] and palabras_cita <= 32 and palabras_cita < len(d["oracion"].split()), d["cita"]
+    entrada = next(e for e in _ok(cliente.get("/api/cuaderno", headers=lector))["entradas"]
+                   if e["palabra"].lower() == "raincoat")
+    assert entrada["oracion"] == d["oracion"] and entrada["cita"] == d["cita"], entrada
+    return f"oración {len(d['oracion'].split())} palabras → cita {palabras_cita}"
+
+
 def libro_subido_se_ve_con_su_nombre():
     """f4: «Estimado con «d139e28e2c2f7f80.txt»», el nombre interno del archivo."""
     texto = ("The lighthouse keeper watched the storm roll over the bay. " * 50 + "\n\n") * 3
@@ -877,7 +918,8 @@ if __name__ == "__main__":
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
                aviso_de_contenido_en_ficha_y_tarjeta, devolucion_va_a_la_cuenta_cobrada,
-               sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo):
+               sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
+               historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
