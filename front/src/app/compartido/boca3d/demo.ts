@@ -42,7 +42,11 @@ function arrancar(): void {
     chips.appendChild(b);
   }
   raiz.querySelector('.reset')!.addEventListener('click', () => escena.restablecerVista());
-  ir(new URLSearchParams(location.search).get('s') ?? '');
+  const params = new URLSearchParams(location.search);
+  ir(params.get('s') ?? '');
+  // ?giro=0.9 abre la vista girada de entrada (para capturas sin tocar la pantalla).
+  const giro = Number(params.get('giro'));
+  if (giro) escena.vista(giro, Number(params.get('polar')) || 1.25);
 }
 
 arrancar();

@@ -56,8 +56,8 @@ const LABIOS: Record<Labios, FormaLabios> = {
 };
 
 /** Nudos de la lengua en reposo, de la raíz a la punta, y sus radios [lateral, vertical]. */
-const NUDOS_REPOSO: [number, number][] = [[2.3, -1.1], [2.2, -0.35], [1.3, 0.05], [0.3, 0.15], [-0.9, -0.05], [-1.9, -0.35]];
-const RADIOS: [number, number][] = [[0.55, 0.5], [0.85, 0.5], [1.0, 0.48], [1.0, 0.42], [0.85, 0.32], [0.42, 0.16]];
+const NUDOS_REPOSO: [number, number][] = [[2.1, -1.15], [2.2, -0.35], [1.3, 0.05], [0.3, 0.15], [-0.9, -0.05], [-1.9, -0.35]];
+const RADIOS: [number, number][] = [[0.5, 0.42], [0.8, 0.46], [1.0, 0.48], [1.0, 0.42], [0.85, 0.32], [0.42, 0.16]];
 const N_NUDOS = 6;
 
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y)]. */
@@ -131,13 +131,15 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   const [alt, ade] = pose.cuerpo;
   const bx = (0.5 - ade) * 1.4;                // adelantar = hacia -x
   const by = (alt - 0.45) * (alt < 0.45 ? 2.0 : 1.5);
-  for (const [i, peso] of [[2, 0.9], [3, 1.0], [4, 0.9]] as [number, number][]) {
-    J[i][0] += bx * peso; J[i][1] += by * peso;
+  // El dorso baja menos que el centro: si no, con la lengua baja y atrás el
+  // tubo se dobla sobre la raíz.
+  for (const [i, px, py] of [[2, 0.9, 0.6], [3, 1.0, 1.0], [4, 0.9, 0.9]] as [number, number, number][]) {
+    J[i][0] += bx * px; J[i][1] += by * py;
   }
   J[2][0] -= pose.dorso_alto * 0.2; J[2][1] += pose.dorso_alto * 0.6;
   // La raíz retrocede entera (las dos juntas igual) para que el tubo no se
   // doble sobre sí mismo, y baja con la mandíbula y con el cuerpo.
-  J[1][0] = Math.min(2.7, J[1][0] + bx * 0.3 + pose.raiz * 0.3); J[1][1] += by * 0.5 - abre * 0.25;
+  J[1][0] = Math.min(2.7, J[1][0] + bx * 0.3 + pose.raiz * 0.3); J[1][1] += by * 0.2 - abre * 0.25;
   J[0][0] = Math.min(2.6, J[0][0] + pose.raiz * 0.3); J[0][1] -= abre * 0.5;
 
   const separar = (i: number, holgura: number) => {
@@ -479,11 +481,21 @@ export class EscenaBoca {
     return this.hacia !== null;
   }
 
-  restablecerVista(): void {
-    this.camara.position.set(0.3, 0.9, 10.5);
+  /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
+   *  positivo gira hacia la cara; `polar` π/2 es a la altura de la boca. */
+  vista(azimut: number, polar = 1.49): void {
+    const distancia = 10.5;
     this.controles.target.set(0.1, 0.05, 0);
+    this.camara.position.set(
+      this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
+      this.controles.target.y + distancia * Math.cos(polar),
+      this.controles.target.z + distancia * Math.sin(polar) * Math.cos(azimut));
     this.controles.update();
     this.sucio = true;
+  }
+
+  restablecerVista(): void {
+    this.vista(0.02);
   }
 
   destruir(): void {
