@@ -53,6 +53,10 @@ async function medir(cdp, url, rate) {
   const r = await cdp.enviar('Runtime.evaluate', {
     expression: `window.medirFps(${Number(segundos)})`, awaitPromise: true, returnByValue: true,
   });
+  const leyenda = await cdp.enviar('Runtime.evaluate', {
+    expression: `document.querySelector('.leyenda')?.textContent ?? ''`, returnByValue: true,
+  });
+  console.log(`  cpu x${rate}: ${leyenda.result.value}`);
   return r.result.value;
 }
 

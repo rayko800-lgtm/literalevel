@@ -6,7 +6,7 @@
  *  Parámetros de la URL: ?s=ɑ (sonido), ?ciclo=0 (sin ciclo al elegir: la
  *  pose quieta, para capturas), ?palabra=ˈpɑvɚti (la reproduce),
  *  ?giro=-1.0&polar=1.2 (vista girada: negativo mira hacia la cara),
- *  ?mejilla=0 (sin mejilla), ?sombras=0 y ?entorno=0 (sin sombras, sin reflejos), ?fps=1 (mide cuadros por segundo reproduciendo
+ *  ?mejilla=0 (sin mejilla), ?sombras=0 (sin sombras), ?entorno=1 (reflejos), ?guarda=0 (sin guarda de fluidez), ?fps=1 (mide cuadros por segundo reproduciendo
  *  una palabra en bucle y lo escribe en la leyenda). */
 import { cicloSonido, giroPara, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
 import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
@@ -49,6 +49,7 @@ function arrancar(): void {
     mejilla: params.get('mejilla') !== '0',
     sombras: params.get('sombras') !== '0',
     entorno: params.get('entorno') === '1',
+    guarda: params.get('guarda') !== '0',
     // El modelado es el predeterminado en la demo, nunca en la app pública.
     lenguaGlb: params.get('lengua') !== '0' ? 'lengua.glb' : undefined,
     caraGlb: params.get('cara') !== '0' ? 'cara.glb' : undefined,
@@ -97,7 +98,10 @@ function arrancar(): void {
       if (performance.now() - t0 < segundos * 1000) requestAnimationFrame(tic);
       else {
         const fps = cuadros / ((performance.now() - t0) / 1000);
-        leyenda.textContent = `${fps.toFixed(1)} cuadros por segundo (${cuadros} en ${segundos} s)`;
+        const g = escena.estadoGuarda;
+        const guarda = g.fps === null ? 'guarda sin medir' : `guarda: ${g.fps.toFixed(1)} fps al arrancar, `
+          + ['todo encendido', 'sombras apagadas', 'sombras y mejilla apagadas'][g.etapa];
+        leyenda.textContent = `${fps.toFixed(1)} cuadros por segundo (${cuadros} en ${segundos} s) · ${guarda}`;
         resolve(fps);
       }
     };

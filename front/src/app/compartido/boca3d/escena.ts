@@ -506,8 +506,12 @@ export interface OpcionesEscena {
   reducirMovimiento?: boolean;
   /** La mejilla translúcida del lado de la cámara (por defecto, sí). */
   mejilla?: boolean;
-  /** Sombras de contacto de la luz principal (por defecto, sí). */
+  /** Sombras de contacto de la luz principal (por defecto, sí). La guarda
+   *  de fluidez las apaga sola si el aparato no llega a 30 cuadros por segundo. */
   sombras?: boolean;
+  /** La guarda de fluidez (por defecto, sí): mide dos segundos y apaga
+   *  sombras y luego la mejilla si no llega a 30 cuadros por segundo. */
+  guarda?: boolean;
   /** Reflejos de un entorno neutro precalculado (por defecto, sí). */
   entorno?: boolean;
   /** URL de una lengua modelada en Blender (.glb con las shape keys de
@@ -554,7 +558,9 @@ export class EscenaBoca {
   private readonly dientesLaterales: THREE.Mesh[] = [];
   private lateralesOcultos: 'ninguno' | 'z+' | 'z-' = 'ninguno';
   private readonly sombras: boolean;
+  private readonly luzPrincipal: THREE.DirectionalLight;
   private readonly papilas: THREE.Texture | null;
+  private readonly guarda = { midiendo: true, t0: 0, calentando: 0, cuadros: 0, fps: null as number | null, etapa: 0 };
   private readonly observador: ResizeObserver | null = null;
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
@@ -590,6 +596,7 @@ export class EscenaBoca {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.sombras = opciones.sombras !== false;
+    this.guarda.midiendo = opciones.guarda !== false;
     if (this.sombras) {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -631,6 +638,7 @@ export class EscenaBoca {
     // neutra precalculada) da los reflejos del barniz húmedo.
     this.escena.add(new THREE.HemisphereLight(0xfff4ea, 0x8a7f86, 0.55));
     const luz = new THREE.DirectionalLight(0xfff1e4, 1.9);
+    this.luzPrincipal = luz;
     luz.position.set(-4.5, 7, 7.5);
     if (this.sombras) {
       luz.castShadow = true;
@@ -1078,11 +1086,55 @@ export class EscenaBoca {
     }
     this.controles.update();
     this.ocultarLaterales();
+    // La guarda de fluidez pinta todos los cuadros mientras mide.
+    if (this.guarda.midiendo) this.sucio = true;
     if (this.sucio) {
       this.sucio = false;
       this.renderer.render(this.escena, this.camara);
+      this.medirGuarda();
     }
   };
+
+  /** Guarda automática de fluidez (criterio de Central, 14 sep): los dos
+   *  primeros segundos se pintan todos los cuadros y se cuentan; por debajo
+   *  de 30 por segundo se apagan las sombras sin recargar y se mide otra
+   *  vez; si sigue por debajo, se esconde la mejilla translúcida. */
+  private medirGuarda(): void {
+    const g = this.guarda;
+    if (!g.midiendo) return;
+    const ahora = performance.now();
+    // Los primeros cuadros compilan los shaders y cargan los modelos: no cuentan.
+    if (g.t0 === 0) { if (++g.calentando < 12) return; g.t0 = ahora; g.cuadros = 0; g.calentando = 0; return; }
+    g.cuadros++;
+    const s = (ahora - g.t0) / 1000;
+    if (s < 2) return;
+    g.fps = g.cuadros / s;
+    g.t0 = 0;
+    if (g.fps >= 30 || g.etapa >= 2) { g.midiendo = false; return; }
+    g.etapa++;
+    if (g.etapa === 1) {
+      this.apagarSombras();
+    } else {
+      this.mejilla.visible = false;
+      g.midiendo = false;
+    }
+    this.sucio = true;
+  }
+
+  private apagarSombras(): void {
+    if (!this.renderer.shadowMap.enabled) return;
+    this.renderer.shadowMap.enabled = false;
+    this.luzPrincipal.castShadow = false;
+    this.escena.traverse(o => {
+      if (o instanceof THREE.Mesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; });
+    });
+  }
+
+  /** Estado de la guarda de fluidez: los cuadros por segundo medidos y qué
+   *  se ha apagado (0 nada, 1 sombras, 2 sombras y mejilla). */
+  get estadoGuarda(): { fps: number | null; etapa: number; midiendo: boolean } {
+    return { fps: this.guarda.fps, etapa: this.guarda.etapa, midiendo: this.guarda.midiendo };
+  }
 
   /** En la vista de lado (hasta ±20° de azimut) los premolares y molares del
    *  lado de la cámara tapan la lengua: se esconden. Al girar, vuelven. */
