@@ -517,7 +517,21 @@ def _libro_tarjeta(b) -> dict:
             "gancho": " ".join(str(b.gancho or "").split()),
             "descargas": b.descargas, "similitud": b.similitud,
             "afinidad": b.afinidad, "abrible": ui._abrible(b.id),
-            "url": b.url_gutenberg}
+            "url": b.url_gutenberg,
+            # Contrato con f4 (catalogo.py de8a4a8): "" en el catalogo es sin aviso.
+            "aviso_contenido": getattr(b, "aviso_contenido", "") or None}
+
+
+def _aviso_contenido(libro) -> str | None:
+    """La nota de contenido del catálogo para la ficha. None en libros subidos,
+    sin id de catálogo o si el catálogo no carga: la ficha no se rompe por esto."""
+    ident = getattr(libro, "id_catalogo", None)
+    if not ident:
+        return None
+    try:
+        return ui.catalogo().aviso_de(ident) or None
+    except Exception:
+        return None
 
 
 def _filas_curva(libro: reader.Libro) -> tuple[str | None, dict | None]:
@@ -570,6 +584,7 @@ def _libro_json(ident: str, libro: reader.Libro, pet: _Lector) -> dict:
     return {
         "id": ident,
         "titulo": libro.titulo_visible,
+        "aviso_contenido": _aviso_contenido(libro),
         "autor": ui._autor_corto(libro.autor),
         "palabras": (c.palabras if c else libro.palabras),
         "inicial": _capitulo_inicial(libro),
@@ -1340,6 +1355,9 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         # sentido es de la parte y la IPA y el audio, del compuesto entero.
         "compuesto": getattr(r, "compuesto", None),
         "parte_del_diccionario": getattr(r, "parte_del_diccionario", None),
+        # Contrato con 4e: llena solo si la acepción es dudosa y no hubo
+        # explicación de OpenAI («bank» en «on the bank», f4 captura 21).
+        "acepciones_principales": list(getattr(r, "acepciones_principales", None) or []),
         "audio_uk": _url_audio(r.audio_uk), "audio_us": _url_audio(r.audio_us),
         "audio_generado": r.audio_generado,
         "sentido": r.sentido, "etiquetas": r.etiquetas_sentido,

@@ -231,6 +231,7 @@ def palabra_sin_clave_no_sale_a_la_red():
     assert d1["ipa_generada_por_ia"] is False and d2["ipa_generada_por_ia"] is False
     # «raincoat» está entera en el diccionario: no es la parte de un compuesto.
     assert d1["compuesto"] is None and d1["parte_del_diccionario"] is None, d1
+    assert isinstance(d1["acepciones_principales"], list) and isinstance(d2["acepciones_principales"], list), d1
     return f"{d1['lema']} · {d1['sentido'] and d1['sentido'][:30]}"
 
 
@@ -632,6 +633,31 @@ def palabra_escrita_no_se_atribuye_al_libro():
     return f"escrita sin libro; «raincoat» en {dentro['libro']}, cap. {dentro['capitulo']}"
 
 
+def aviso_de_contenido_en_ficha_y_tarjeta():
+    """Contrato con f4 (catalogo.py de8a4a8): la nota viaja en la ficha y en la
+    tarjeta; sin aviso, null."""
+    from types import SimpleNamespace as NS
+    cat = ui.catalogo()
+    # El dato real del CSV: PG17824 lleva nota; SWV369 no.
+    assert cat.aviso_de("PG17824"), "PG17824 debería llevar aviso en avisos_contenido.csv"
+    assert not cat.aviso_de(LIBRE)
+    original = cat.aviso_de
+    try:
+        cat.aviso_de = lambda i: "Nota de prueba." if str(i).upper() == LIBRE else None
+        con = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=A))
+        cat.aviso_de = lambda i: None
+        sin = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=A))
+    finally:
+        cat.aviso_de = original
+    assert con["aviso_contenido"] == "Nota de prueba.", con["aviso_contenido"]
+    assert sin["aviso_contenido"] is None, sin["aviso_contenido"]
+    base = dict(id=LIBRE, titulo="t", autor="a", nivel="B1", dificultad=1.0, gancho="", descargas=1,
+                similitud=0.5, afinidad=0.1, url_gutenberg="u")
+    assert api._libro_tarjeta(NS(**base, aviso_contenido="Nota de prueba."))["aviso_contenido"] == "Nota de prueba."
+    assert api._libro_tarjeta(NS(**base, aviso_contenido=""))["aviso_contenido"] is None
+    return "ficha y tarjeta con nota; sin aviso, null"
+
+
 def corte_de_la_boca_en_svg():
     """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
     aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
@@ -680,7 +706,8 @@ if __name__ == "__main__":
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
-               libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro):
+               libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
+               aviso_de_contenido_en_ficha_y_tarjeta):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
