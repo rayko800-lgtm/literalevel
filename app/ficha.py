@@ -336,14 +336,21 @@ def _modelo_sinopsis():
 
 
 def _pasajes(libro) -> list[str]:
-    """Principio, dos puntos del medio y el final, recortados."""
+    """El principio y tres puntos del desarrollo, recortados. NUNCA el final.
+
+    Antes iba tambien el ultimo capitulo, y la regla del prompt -«nada de
+    destripar el final»- no bastaba: el modelo tenia el final delante y lo
+    contaba. La sinopsis de *Alicia* prometia no destriparlo y hablaba del
+    juicio (f4, informe final). Lo que no se le da no lo puede contar. El
+    ultimo pasaje sale como mucho de los dos tercios del libro.
+    """
     cuerpo = [c for c in libro.capitulos
               if c.palabras >= 150 and not _es_boilerplate(c)]
     cuerpo = cuerpo or [c for c in libro.capitulos if c.palabras >= 150]
     if not cuerpo:
         return []
     n = len(cuerpo)
-    idx = sorted({0, n // 3, (2 * n) // 3, n - 1})[:_PASAJES]
+    idx = sorted({0, n // 3, n // 2, (2 * n) // 3} - ({n - 1} if n > 1 else set()))[:_PASAJES]
     return [" ".join(sin_licencia(cuerpo[i].texto).split()[:_TOPE_EXTRACTO])
             for i in idx]
 

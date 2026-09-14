@@ -5333,6 +5333,28 @@ prueba("la ficha dudosa sin explicacion ofrece las principales",
        _la_ficha_dudosa_sin_explicacion_ofrece_las_principales)
 
 
+def _la_sinopsis_no_recibe_el_final_del_libro():
+    """f4, informe final: la sinopsis de Alicia prometia «no destripar el final» y
+    hablaba del juicio. El modelo tenia el ultimo capitulo delante: `_pasajes`
+    lo mandaba. Lo que no se le da no lo puede contar."""
+    import ficha as ficha_mod
+    R = ui.reader
+    for n in (1, 2, 3, 4, 7, 12, 40):
+        caps = [R.Capitulo(f"Chapter {i + 1}", f"capitulo{i} " + "word " * 200) for i in range(n)]
+        pasajes = ficha_mod._pasajes(R.Libro("Prueba", "Autor", caps))
+        assert pasajes, (n, "sin pasajes")
+        usados = [int(p.split()[0].removeprefix("capitulo")) for p in pasajes]
+        if n > 1:
+            assert n - 1 not in usados, (n, usados, "manda el ultimo capitulo")
+        assert max(usados) <= (2 * n) // 3, (n, usados)
+        assert len(pasajes) <= ficha_mod._PASAJES, (n, len(pasajes))
+    return "principio y desarrollo, nunca el ultimo capitulo"
+
+
+prueba("la sinopsis no recibe el final del libro",
+       _la_sinopsis_no_recibe_el_final_del_libro)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 
