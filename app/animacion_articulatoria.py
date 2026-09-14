@@ -486,7 +486,11 @@ class _Linea:
 #     no siga dando vueltas desfasada cuando el audio termina.
 # Para reiniciar, el front cambia la URL (un parametro que el servidor ignora)
 # a la vez que llama a `audio.play()`: el <img> recarga y la animacion empieza.
-DURACION_MINIMA, DURACION_MAXIMA = 0.3, 10.0
+# Hasta 30 s: «Más lento» en «Escuchar y ver» pone el audio a 0,5× o 0,25×, y el
+# mp3 de un sonido dura de 3,0 a 8,4 s (a 0,25× serian 34 s; el front lo acota a
+# 30). Con el tope de 10 la duracion se ignoraba y la pasada volvia a 2,8 s,
+# desincronizada del audio lento (e6, 14 sep).
+DURACION_MINIMA, DURACION_MAXIMA = 0.3, 30.0
 
 
 def _duracion_valida(duracion) -> float | None:

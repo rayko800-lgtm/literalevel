@@ -299,7 +299,15 @@ for ipa in ("/ˈmoʊstli/", largo):
     orden = sorted(iv)
     solapes = [(i, j) for i, j in zip(orden, orden[1:]) if iv[i][1] > iv[j][0] + 0.11]
     comprobar(f"los rotulos de {ipa} no se montan a 1,35 s", len(orden) > 1 and not solapes, str(solapes))
-for mala in (0, -1, 0.1, 10.5, 1000, float("nan"), "x", None):
+# «Más lento» (0,5× y 0,25×) alarga el audio de un sonido hasta 30 s: tambien se aplica.
+for lenta, texto in ((17, "17.00"), (30, "30.00")):
+    sonido_lento, palabra_lenta = aa.svg_articulacion("t", dur=lenta, repetir=False), aa.svg_palabra("/ˈmoʊstli/", dur=lenta)
+    svg_limpio(f"sonido /t/ a {lenta} s", sonido_lento, LIMITE_SONIDO)
+    svg_limpio(f"palabra «mostly» a {lenta} s", palabra_lenta, LIMITE_PALABRA)
+    comprobar(f"a {lenta} s todo el ciclo dura lo que el audio lento",
+              duraciones(sonido_lento) == {texto} and duraciones(palabra_lenta) == {texto},
+              f"{duraciones(sonido_lento)} {duraciones(palabra_lenta)}")
+for mala in (0, -1, 0.1, 30.5, 1000, float("nan"), "x", None):
     comprobar(f"una duracion invalida ({mala!r}) se ignora",
               aa.svg_articulacion("t", dur=mala) == aa.svg_articulacion("t")
               and aa.svg_palabra("/kæt/", dur=mala) == aa.svg_palabra("/kæt/"))
