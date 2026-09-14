@@ -319,6 +319,13 @@ def _segmentos_por_pieza(texto: str) -> list[list[str]]:
     return salida
 
 
+def _es_sonido_facil(simbolo: str) -> bool:
+    """La ficha del sonido dice que casi no le falla a quien habla español."""
+    import articulacion
+    sonido = articulacion.buscar(simbolo, "ga")
+    return sonido is not None and str(sonido.ficha.trampa).strip().lower().startswith("casi ningun")
+
+
 def _comparar(esperada: str, entendida: str | None,
               pieza: str | None = None) -> tuple[str | None, str]:
     """(simbolo del primer fonema esperado que cambia, motivo si no lo hay).
@@ -346,15 +353,24 @@ def _comparar(esperada: str, entendida: str | None,
         i = claves.index(pieza)
         desde = sum(len(p) for p in por_pieza[:i])
         hasta = desde + len(por_pieza[i])
+    facil = None
     for op, i1, i2, _j1, _j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
         # Un sonido de mas en lo entendido (insert) no es un sonido esperado
         # que falle: se sigue buscando.
         if op == "equal" or i1 == i2:
             continue
-        simbolo = next((a[k] for k in range(max(i1, desde), min(i2, hasta))
-                        if fonemas.buscar(a[k])), None)
-        if simbolo:
-            return simbolo, ""
+        for k in range(max(i1, desde), min(i2, hasta)):
+            if not fonemas.buscar(a[k]):
+                continue
+            # Un sonido que la ficha da por facil (/f/, /n/, /tʃ/...) no se
+            # señala si hay otro cambio: con «for» entendido «or» salia /f/ con
+            # «Error típico: casi ninguno», que se contradice (Miguel, 14 sep).
+            if _es_sonido_facil(a[k]):
+                facil = facil or a[k]
+                continue
+            return a[k], ""
+    if facil:
+        return facil, "facil"
     return None, "igual"
 
 
@@ -362,7 +378,8 @@ def fonema_que_cambia(esperada: str, entendida: str | None) -> str | None:
     """El primer fonema de `esperada` que no esta en `entendida`, comparando sus
     IPA de diccionario: «tragic» / «magic» -> «t». `None` si falta una IPA, no
     se oyo nada o suenan igual. Determinista y sin red."""
-    return _comparar(esperada, entendida)[0]
+    simbolo, motivo = _comparar(esperada, entendida)
+    return simbolo if not motivo else None
 
 
 def _consejo_de_ficha(simbolo: str) -> tuple[str, str] | None:
@@ -410,10 +427,16 @@ def fijar_fonemas(correccion: Correccion | None,
         if padre and motivo == "igual" and padre in con_fallo:
             continue
         quedan.append(d)
-        consejo = _consejo_de_ficha(simbolo) if simbolo else None
+        consejo = _consejo_de_ficha(simbolo) if simbolo and motivo != "facil" else None
         if consejo:
             d.fonema = simbolo
             d.sonido_que_falla, d.como_colocar_la_boca = consejo
+        elif motivo == "facil":
+            # No se señala como fallo: la ficha dice que ese sonido casi no falla.
+            d.fonema = SIN_FONEMA
+            d.sonido_que_falla = (f"No se entendió la palabra, pero el sonido /{simbolo}/ no suele "
+                                  "fallarle a quien habla español, así que no te lo señalo como error")
+            d.como_colocar_la_boca = "Repítela entera, un poco más despacio y marcando cada sonido."
         else:
             d.fonema = SIN_FONEMA
             d.sonido_que_falla, d.como_colocar_la_boca = _SIN_COMPARACION[motivo or "igual"]
@@ -559,6 +582,26 @@ def _conectar(ruta: str = RUTA_DB_POR_DEFECTO) -> sqlite3.Connection:
     return con
 
 
+# Palabras que no se guardan como «difíciles» ni salen en la lista (Miguel, 14
+# sep: «Tus palabras difíciles» guardaba «but · 1» y «on · 1»). Las funcionales
+# cortas y muy frecuentes casi siempre fallan porque whisper las traga o las
+# junta con la de al lado, no por como se dijeron; y con menos de tres letras no
+# hay nada que practicar. Los sonidos que traen (la /ð/ de «the») se practican
+# en palabras de contenido («though», «brother»), que si se guardan.
+_PALABRAS_FUNCIONALES = frozenset("""
+a an the and but or nor so if as than that this then they them their there
+of on in at by for to from with into up out off
+i you he she it we me him her us my your his its our
+am is are was were be been do does did has had have will can not no yes
+""".split())
+
+
+def _cuenta_como_dificil(palabra) -> bool:
+    """Si una palabra fallada se guarda en el historial de pronunciacion."""
+    p = str(palabra or "").strip().lower().replace("’", "'")
+    return len(p.replace("'", "")) >= 3 and p not in _PALABRAS_FUNCIONALES
+
+
 def registrar_fallos(palabras: list[str], ruta: str = RUTA_DB_POR_DEFECTO,
                      frase: str | None = None) -> None:
     """Suma un fallo a cada palabra (ya normalizada) de la lista y, si se da,
@@ -567,6 +610,7 @@ def registrar_fallos(palabras: list[str], ruta: str = RUTA_DB_POR_DEFECTO,
     Nunca lanza excepcion hacia la interfaz: un fallo de disco al guardar el
     historial no debe tumbar la sesion de practica.
     """
+    palabras = [p for p in (palabras or []) if _cuenta_como_dificil(p)]
     if not palabras:
         return
     frase = (str(frase).strip()[:400] or None) if frase else None
@@ -590,6 +634,13 @@ def registrar_fallos(palabras: list[str], ruta: str = RUTA_DB_POR_DEFECTO,
         pass
 
 
+# La misma regla al leer, para lo que se guardo antes de tenerla: las filas se
+# quedan en la base y solo dejan de salir en la lista.
+_PARAMETROS_FILTRO = tuple(sorted(_PALABRAS_FUNCIONALES))
+_FILTRO_DIFICILES = ("WHERE length(replace(palabra, '''', '')) >= 3 AND palabra NOT IN ("
+                     + ",".join("?" * len(_PARAMETROS_FILTRO)) + ") ")
+
+
 def palabras_para_practicar(n: int = 15, ruta: str = RUTA_DB_POR_DEFECTO) -> list[dict]:
     """Las palabras que peor se han pronunciado, con la frase donde se fallaron.
 
@@ -607,7 +658,9 @@ def palabras_para_practicar(n: int = 15, ruta: str = RUTA_DB_POR_DEFECTO) -> lis
         try:
             cur = con.execute(
                 "SELECT palabra, fallos, ultima_vez, frase FROM palabras_debiles "
-                "ORDER BY fallos DESC, ultima_vez DESC LIMIT ?", (max(0, int(n)),))
+                + _FILTRO_DIFICILES +
+                "ORDER BY fallos DESC, ultima_vez DESC LIMIT ?",
+                (*_PARAMETROS_FILTRO, max(0, int(n))))
             return [{"palabra": p, "fallos": f, "ultima_vez": u, "frase": fr}
                     for p, f, u, fr in cur.fetchall()]
         finally:
@@ -631,7 +684,8 @@ def puntos_debiles(n: int = 10, ruta: str = RUTA_DB_POR_DEFECTO) -> list[tuple[s
         try:
             cur = con.execute(
                 "SELECT palabra, fallos FROM palabras_debiles "
-                "ORDER BY fallos DESC, ultima_vez DESC LIMIT ?", (n,))
+                + _FILTRO_DIFICILES +
+                "ORDER BY fallos DESC, ultima_vez DESC LIMIT ?", (*_PARAMETROS_FILTRO, n))
             return cur.fetchall()
         finally:
             con.close()

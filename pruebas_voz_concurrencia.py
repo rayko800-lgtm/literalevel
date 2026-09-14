@@ -27,9 +27,10 @@ RAIZ = Path(__file__).resolve().parent
 def funciones_reales(carpeta):
     nombres = {"_ahora", "_texto_para_tts", "_ruta_audio_cache", "_escribir_audio_atomico",
                "_candado_audio", "generar_audio_correcto", "_conectar", "registrar_fallos",
-               "palabras_para_practicar", "puntos_debiles"}
+               "palabras_para_practicar", "puntos_debiles", "_cuenta_como_dificil"}
     constantes = {"MODELO_VOZ", "VOZ_POR_DEFECTO", "VERSION_AUDIO_TTS", "_CANDADOS_AUDIO",
-                  "_CANDADO_TABLA_AUDIO"}
+                  "_CANDADO_TABLA_AUDIO", "_PALABRAS_FUNCIONALES", "_PARAMETROS_FILTRO",
+                  "_FILTRO_DIFICILES"}
     clases = {"HistorialIlegible"}
     arbol = ast.parse((RAIZ / "app" / "voz.py").read_text(encoding="utf-8"))
     nodos = [n for n in arbol.body if (

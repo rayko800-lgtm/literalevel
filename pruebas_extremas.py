@@ -6966,6 +6966,57 @@ prueba("voz: un historial ilegible se avisa en las tres vistas",
        _un_historial_ilegible_se_avisa_en_las_tres_vistas)
 
 
+def _las_palabras_funcionales_no_son_dificiles():
+    """«Tus palabras difíciles» guardaba «but · 1» y «on · 1» (Miguel, 14 sep):
+    las funcionales cortas y lo de menos de tres letras no se guardan, y lo que
+    ya estaba guardado deja de salir al leer. «inmostly» sí es legítima."""
+    import sqlite3
+    ruta = str(TMP / "voz_funcionales.db")
+    ui.voz.registrar_fallos(["but", "on", "a", "the", "inmostly", "war-chant", "though"], ruta=ruta,
+                            frase="But on the war-chant, though.")
+    con = sqlite3.connect(ruta)
+    guardadas = {p for (p,) in con.execute("SELECT palabra FROM palabras_debiles")}
+    # Filas de antes de la regla: siguen en la base, pero no salen en la lista.
+    con.executemany("INSERT INTO palabras_debiles (palabra, fallos, ultima_vez) VALUES (?, ?, ?)",
+                    [("but", 5, "2026-09-13T00:00:00+00:00"), ("on", 4, "2026-09-13T00:00:00+00:00"),
+                     ("ok", 3, "2026-09-13T00:00:00+00:00")])
+    con.commit()
+    con.close()
+    assert guardadas == {"inmostly", "war-chant", "though"}, guardadas
+    practicar = [f["palabra"] for f in ui.voz.palabras_para_practicar(n=10, ruta=ruta)]
+    debiles = [p for p, _n in ui.voz.puntos_debiles(10, ruta=ruta)]
+    for lista in (practicar, debiles):
+        assert set(lista) == {"inmostly", "war-chant", "though"}, lista
+    assert len(ui.voz.puntos_debiles(2, ruta=ruta)) == 2, "el LIMIT cuenta despues de filtrar"
+    return "but, on, a, the y ok fuera; inmostly, war-chant y though dentro, tambien las viejas"
+
+
+prueba("voz: las palabras funcionales no son dificiles",
+       _las_palabras_funcionales_no_son_dificiles)
+
+
+def _un_sonido_facil_no_se_senala_como_error():
+    """«for» entendido «or»: salia /f/ con «Error típico: casi ninguno; es igual
+    que la f española», que se contradice. Si el unico cambio es un sonido que
+    la ficha da por facil, no se señala: se dice que no se entendio la palabra."""
+    voz = ui.voz
+    assert voz._comparar("for", "or") == ("f", "facil"), voz._comparar("for", "or")
+    assert voz.fonema_que_cambia("for", "or") is None
+    assert voz._comparar("for", "far") == ("ɔ", ""), "un cambio que si falla se sigue señalando"
+    assert voz.fonema_que_cambia("tragic", "magic") == "t" and voz.fonema_que_cambia("fox", "fix") == "ɑ"
+    c = voz.Correccion(resumen="Casi.", detalles=[voz.DetallePalabra(
+        palabra="for", fonema="f", sonido_que_falla="x", como_colocar_la_boca="y")])
+    d = voz.fijar_fonemas(c, [("for", "or")]).detalles[0]
+    assert d.fonema == voz.SIN_FONEMA, d
+    assert "no suele" in d.sonido_que_falla and "/f/" in d.sonido_que_falla, d
+    assert "Error típico" not in d.sonido_que_falla and "Repítela entera" in d.como_colocar_la_boca, d
+    return "for/or sin /f/ señalada; for/far sigue en /ɔ/"
+
+
+prueba("voz: un sonido facil no se señala como error",
+       _un_sonido_facil_no_se_senala_como_error)
+
+
 def _cada_palabra_fallada_suena_sola():
     """audios_de_palabras pide cada palabra una vez, con tope, y el detalle de la
     correccion pinta su reproductor."""
