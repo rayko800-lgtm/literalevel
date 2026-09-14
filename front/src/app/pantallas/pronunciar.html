@@ -142,7 +142,7 @@
               </header>
               @if (d.fonema; as f) {
                 <div class="fonema">
-                  <button type="button" class="simbolo" (click)="sonar(f.audio)" [disabled]="!f.audio" [attr.aria-label]="'Escuchar el sonido ' + f.simbolo">
+                  <button type="button" class="simbolo" (click)="escucharFonemaDetalle(d, $index)" [disabled]="!f.audio" [attr.aria-label]="'Escuchar el sonido ' + f.simbolo">
                     /{{ f.simbolo }}/ <app-icono nombre="altavoz" />
                   </button>
                   <span class="suave pequeno">como en <em lang="en">{{ f.ejemplos.join(', ') }}</em></span>
@@ -151,36 +151,43 @@
               @if (corteDelSonido(d) || corteDeLaPalabra(d)) {
                 <!-- Cerrado no descarga nada: el <img loading="lazy"> espera a que se abra.
                      Si una imagen falla, se quita en vez de dejar el icono roto. -->
-                <details class="boca" (toggle)="cerrarBoca($event)">
+                <details class="boca" (toggle)="cerrarBoca($event, d, $index)">
                   <summary><app-icono nombre="ojo" />Ver cómo se mueve la boca</summary>
+                  <div class="botones-corte">
+                    <button type="button" class="boton" (click)="escucharPalabra(d, $index)"
+                            [attr.aria-label]="'Escuchar y ver cómo se mueve la boca al decir ' + d.palabra">
+                      <app-icono nombre="altavoz" />Escuchar y ver
+                    </button>
+                    @if (boca3d) {
+                    <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index)"
+                            [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
+                      <app-icono [nombre]="visor3d() === 'detalle-' + $index ? 'cerrar' : 'ojo'" />
+                      {{ visor3d() === 'detalle-' + $index ? 'Cerrar 3D' : 'Boca en 3D' }}
+                    </button>
+                    }
+                  </div>
                   <div class="cortes">
                     @if (corteDelSonido(d); as sonido) {
                       <figure>
-                        <img class="corte" [src]="sonido" width="240" height="248" loading="lazy" (error)="$any($event.target).closest('figure').hidden = true"
+                        <img class="corte" [src]="eyv.src('d' + $index + '-sonido', sonido)" width="240" height="248" loading="lazy" (error)="$any($event.target).closest('figure').hidden = true"
                              [attr.alt]="'Corte de perfil de la boca haciendo el sonido /' + d.fonema?.simbolo + '/'" />
                         <figcaption>El sonido /{{ d.fonema?.simbolo }}/</figcaption>
                       </figure>
                     }
                     @if (corteDeLaPalabra(d); as palabra) {
                       <figure>
-                        <img class="corte" [src]="palabra" width="240" height="248" loading="lazy" (error)="$any($event.target).closest('figure').hidden = true"
+                        <img class="corte" [src]="eyv.src('d' + $index + '-palabra', palabra)" width="240" height="248" loading="lazy" (error)="$any($event.target).closest('figure').hidden = true"
                              [attr.alt]="'Corte de perfil de la boca diciendo ' + d.palabra" />
                         <figcaption>La palabra entera: <span lang="en">{{ d.palabra }}</span></figcaption>
                       </figure>
                     }
                   </div>
-                  @if (boca3d) {
-                  <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index)"
-                          [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
-                    <app-icono [nombre]="visor3d() === 'detalle-' + $index ? 'cerrar' : 'ojo'" />
-                    {{ visor3d() === 'detalle-' + $index ? 'Cerrar 3D' : 'Boca en 3D' }}
-                  </button>
-                  }
                   @if (boca3d && visor3d() === 'detalle-' + $index) {
                     @defer (on immediate) {
-                      <app-boca3d [sonido]="d.fonema?.simbolo ?? ''" [acento]="d.fonema?.acento ?? 'ga'"
+                      <app-boca3d #visor [conEscuchar]="false" [sonido]="d.fonema?.simbolo ?? ''" [acento]="d.fonema?.acento ?? 'ga'"
                                   [ipa]="d.ipa ?? ''" [acentoIpa]="d.variante === 'UK' ? 'rp' : 'ga'"
-                                  [svg2dUrl]="corteDelSonido(d) ?? corteDeLaPalabra(d)" />
+                                  [svg2dUrl]="corteDelSonido(d) ?? corteDeLaPalabra(d)"
+                                  [audioSonido]="d.fonema?.audio ?? null" [audioPalabra]="d.audio ?? null" />
                     } @loading { <p role="status">Cargando modelo…</p> }
                     @error {
                   <!-- Casi siempre es una pestaña con el build anterior tras publicar: el
@@ -237,7 +244,7 @@
           @if (s.grupo === g.clave && s.ficha; as f) {
             <article class="ficha-sonido" aria-live="polite">
               <header>
-                <button type="button" class="simbolo" (click)="sonar(s.audio)" [disabled]="!s.audio"
+                <button type="button" class="simbolo" (click)="escucharSonido(s)" [disabled]="!s.audio"
                         [attr.aria-label]="'Escuchar otra vez el sonido ' + s.simbolo">/{{ s.simbolo }}/ <app-icono nombre="altavoz" /></button>
                 <div>
                   <strong>{{ s.nombre }}</strong>
@@ -248,18 +255,24 @@
                 </button>
               </header>
               <p class="tenue pequeno">Como en <em lang="en">{{ s.ejemplos.join(', ') }}</em></p>
-              <img class="corte" [src]="corteSonido(s.simbolo)" width="240" height="248" loading="lazy"
+              <img class="corte" [src]="eyv.src('ficha', corteSonido(s.simbolo))" width="240" height="248" loading="lazy"
                    [attr.alt]="'Corte de perfil de la boca: cómo se colocan los labios y la lengua para /' + s.simbolo + '/'" />
-              @if (boca3d) {
-              <button type="button" class="boton secundario" (click)="alternarBoca('sonido')"
-                      [attr.aria-expanded]="visor3d() === 'sonido'">
-                <app-icono [nombre]="visor3d() === 'sonido' ? 'cerrar' : 'ojo'" />
-                {{ visor3d() === 'sonido' ? 'Cerrar 3D' : 'Boca en 3D' }}
-              </button>
-              }
+              <div class="botones-corte">
+                <button type="button" class="boton" (click)="escucharSonido(s)" [disabled]="!s.audio"
+                        [attr.aria-label]="'Escuchar y ver cómo se mueve la boca con /' + s.simbolo + '/'">
+                  <app-icono nombre="altavoz" />Escuchar y ver
+                </button>
+                @if (boca3d) {
+                <button type="button" class="boton secundario" (click)="alternarBoca('sonido')"
+                        [attr.aria-expanded]="visor3d() === 'sonido'">
+                  <app-icono [nombre]="visor3d() === 'sonido' ? 'cerrar' : 'ojo'" />
+                  {{ visor3d() === 'sonido' ? 'Cerrar 3D' : 'Boca en 3D' }}
+                </button>
+                }
+              </div>
               @if (boca3d && visor3d() === 'sonido') {
                 @defer (on immediate) {
-                  <app-boca3d [sonido]="s.simbolo" [acento]="acento()" />
+                  <app-boca3d #visor [conEscuchar]="false" [sonido]="s.simbolo" [acento]="acento()" [audioSonido]="s.audio" />
                 } @loading { <p role="status">Cargando modelo…</p> }
                 @error {
                   <!-- Casi siempre es una pestaña con el build anterior tras publicar: el

@@ -23,13 +23,22 @@ export function urlMotor(ruta: string | null | undefined): string | null {
 
 /** El corte de la boca de un sonido (SVG de animacion_articulatoria), animado o
  *  quieto para quien pide reducir el movimiento. */
-export function urlCorteSonido(simbolo: string, acento: Acento, quieto = false): string {
-  return `${BASE_API}/api/articulacion/${acento}/${encodeURIComponent(simbolo)}.svg${quieto ? '?quieto=1' : ''}`;
+export function urlCorteSonido(simbolo: string, acento: Acento, quieto = false, pasada?: number | null): string {
+  const q = new URLSearchParams(quieto ? { quieto: '1' } : pasadaUnica(pasada));
+  return `${BASE_API}/api/articulacion/${acento}/${encodeURIComponent(simbolo)}.svg${q.size ? '?' + q : ''}`;
+}
+
+/** Con `pasada` (aunque sea null), una sola vuelta que se queda en reposo
+ *  (`una=1`), y con número, que dure esos segundos (`dur`): lo que acompaña al
+ *  audio de «Escuchar y ver». Sin `pasada`, el ciclo en bucle de siempre. */
+function pasadaUnica(pasada: number | null | undefined): Record<string, string> {
+  if (pasada === undefined) return {};
+  return pasada === null ? { una: '1' } : { dur: String(pasada), una: '1' };
 }
 
 /** La boca diciendo una palabra entera, a partir de su IPA. */
-export function urlCortePalabra(ipa: string, acento: Acento): string {
-  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento })}`;
+export function urlCortePalabra(ipa: string, acento: Acento, pasada?: number | null): string {
+  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento, ...pasadaUnica(pasada) })}`;
 }
 
 /** Lo que se le enseña al lector cuando algo falla: una frase, nunca un código. */

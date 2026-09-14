@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -9,6 +9,7 @@ import { Icono } from '../compartido/icono';
 // Pronunciar en vez de bajar al pulsar «Boca en 3D».
 import { Boca3d } from '../compartido/boca3d/boca3d';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
+import { CorteEnPantalla, EscucharYVer, PeticionEscuchar } from '../compartido/escuchar-y-ver';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
@@ -16,6 +17,7 @@ import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 
 type Grabacion = 'lista' | 'grabando' | 'grabada';
+type Detalle = CorreccionVoz['detalles'][number];
 
 /** Pronunciar: leer una frase en voz alta y saber qué sonido se escapa.
  *
@@ -62,7 +64,12 @@ export class Pronunciar implements OnInit, OnDestroy {
   private blob: Blob | null = null;
   private tipo = 'audio/webm';
   private reloj: ReturnType<typeof setInterval> | undefined;
-  private audio: HTMLAudioElement | null = null;
+  /** «Escuchar y ver»: el audio y el corte 2D arrancan juntos (compartido/escuchar-y-ver.ts). */
+  protected readonly eyv = new EscucharYVer();
+  /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
+   *  `viewChild(Boca3d)` usaría la clase como valor y el @defer dejaría de
+   *  separar three.js. */
+  private readonly visor = viewChild<Boca3d>('visor');
 
   protected readonly entrada = this.sesion.entrada;
   protected readonly bloqueada = computed(() => {
@@ -104,7 +111,7 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.pararGrabacion(true);
-    this.audio?.pause();
+    this.eyv.destruir();
     const u = this.audioUrl();
     if (u) URL.revokeObjectURL(u);
   }
@@ -204,11 +211,77 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   protected sonar(url: string | null): void {
-    const src = urlMotor(url);
-    if (!src) return;
-    this.audio?.pause();
-    this.audio = new Audio(src);
-    void this.audio.play().catch(() => {});
+    this.eyv.escuchar({ audio: urlMotor(url), cortes: [] });
+  }
+
+  /** «Escuchar y ver» de la corrección: la palabra suena (su mp3 o, si no hay,
+   *  la voz del navegador) y los dos cortes vuelven a empezar. Con el 3D
+   *  abierto, el audio lo pone el 3D (verPalabra, en este mismo clic) y aquí
+   *  solo se reinicia el 2D, para no oírlo dos veces. */
+  protected escucharPalabra(d: Detalle, i: number): void {
+    const pedido = this.pedidoPalabra(d, i);
+    const visor = this.visor();
+    if (visor && this.visor3d() === 'detalle-' + i) {
+      visor.verPalabra();
+      this.eyv.escuchar({ ...pedido, audio: null, texto: d.audio ? undefined : pedido.texto });
+    } else {
+      this.eyv.escuchar(pedido);
+    }
+  }
+
+  /** El altavoz del sonido que falla: suena y su corte vuelve a empezar. */
+  protected escucharFonemaDetalle(d: Detalle, i: number): void {
+    const pedido: PeticionEscuchar = { audio: urlMotor(d.fonema?.audio), cortes: this.cortesDelDetalle(d, i, true) };
+    const visor = this.visor();
+    if (visor && this.visor3d() === 'detalle-' + i) {
+      visor.escucharYVer();
+      this.eyv.escuchar({ ...pedido, audio: null });
+    } else {
+      this.eyv.escuchar(pedido);
+    }
+  }
+
+  private pedidoPalabra(d: Detalle, i: number): PeticionEscuchar {
+    return { audio: urlMotor(d.audio), texto: d.palabra, voz: d.variante === 'UK' ? 'en-GB' : 'en-US',
+      cortes: this.cortesDelDetalle(d, i) };
+  }
+
+  /** Con el audio del sonido, su corte dura lo que el mp3; con el de la palabra,
+   *  el sonido da su pasada normal y la palabra se estira a la duración del mp3. */
+  private cortesDelDetalle(d: Detalle, i: number, soloSonido = false): CorteEnPantalla[] {
+    const cortes: CorteEnPantalla[] = [];
+    const sonido = this.corteDelSonido(d);
+    const f = d.fonema;
+    if (sonido && f) {
+      cortes.push({ clave: `d${i}-sonido`, base: sonido,
+        animada: dur => this.sinMovimiento ? null : urlCorteSonido(f.simbolo, f.acento ?? 'ga', false, soloSonido ? dur : null) });
+    }
+    const palabra = soloSonido ? null : this.corteDeLaPalabra(d);
+    if (palabra && d.ipa) {
+      const ipa = d.ipa;
+      const acento: Acento = d.variante === 'UK' ? 'rp' : 'ga';
+      cortes.push({ clave: `d${i}-palabra`, base: palabra, animada: dur => urlCortePalabra(ipa, acento, dur) });
+    }
+    return cortes;
+  }
+
+  /** «Escuchar y ver» de la ficha y su altavoz: el mp3 del sonido y el corte a
+   *  su compás. Con el 3D abierto en el mismo sonido, el audio lo pone el 3D. */
+  protected escucharSonido(s: Fonema): void {
+    const pedido = this.pedidoSonido(s);
+    const visor = this.visor();
+    if (visor && this.visor3d() === 'sonido' && this.elegido()?.simbolo === s.simbolo) {
+      visor.escucharYVer();
+      this.eyv.escuchar({ ...pedido, audio: null });
+    } else {
+      this.eyv.escuchar(pedido);
+    }
+  }
+
+  private pedidoSonido(s: Fonema): PeticionEscuchar {
+    const acento = this.acento();
+    return { audio: urlMotor(s.audio), cortes: [{ clave: 'ficha', base: this.corteSonido(s.simbolo),
+      animada: dur => this.sinMovimiento ? null : urlCorteSonido(s.simbolo, acento, false, dur) }] };
   }
 
   protected verFonemas(ev: Event): void {
@@ -220,8 +293,14 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.visor3d.update(actual => actual === id ? null : id);
   }
 
-  protected cerrarBoca(ev: Event): void {
-    if (!(ev.target as HTMLDetailsElement).open) this.visor3d.set(null);
+  /** Al abrir «Ver cómo se mueve la boca» se adelantan el audio y el SVG, para
+   *  que «Escuchar y ver» arranque sin esperar; al cerrarla se cierra el 3D. */
+  protected cerrarBoca(ev: Event, d?: Detalle, i?: number): void {
+    if ((ev.target as HTMLDetailsElement).open) {
+      if (d && i !== undefined) this.eyv.preparar(this.pedidoPalabra(d, i));
+    } else {
+      this.visor3d.set(null);
+    }
   }
 
   /** «Reducir movimiento» del sistema: el corte de la boca, quieto en su posición. */
@@ -235,13 +314,13 @@ export class Pronunciar implements OnInit, OnDestroy {
   /** Primero el sonido que falla y luego la palabra entera (lo pidió Miguel).
    *  El corte, en el inventario del símbolo que da la API: RP con acento UK si
    *  hay equivalente; si no (/ɝ/, /ɚ/), el americano. */
-  protected corteDelSonido(d: CorreccionVoz['detalles'][number]): string | null {
+  protected corteDelSonido(d: Detalle): string | null {
     return d.fonema ? urlCorteSonido(d.fonema.simbolo, d.fonema.acento ?? 'ga', this.sinMovimiento) : null;
   }
 
   /** La palabra sale aunque no haya fonema («tragic» entendido «Mahic»); con
    *  «reducir movimiento», no: solo el sonido quieto. */
-  protected corteDeLaPalabra(d: CorreccionVoz['detalles'][number]): string | null {
+  protected corteDeLaPalabra(d: Detalle): string | null {
     if (!d.ipa || this.sinMovimiento) return null;
     return urlCortePalabra(d.ipa, d.variante === 'UK' ? 'rp' : 'ga');
   }
@@ -263,10 +342,13 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (this.visor3d() === 'sonido') this.visor3d.set(null);
   }
 
-  /** Tocar un símbolo: suena y abre su ficha debajo de su grupo. */
+  /** Tocar un símbolo: suena, abre su ficha debajo de su grupo y su corte arranca con el audio. */
   protected tocarSonido(sonido: Fonema): void {
+    const otro = this.elegido()?.simbolo !== sonido.simbolo;
     this.elegido.set(sonido);
-    this.sonar(sonido.audio);
+    // Con otro sonido, el 3D abierto aún tiene el anterior: suena por aquí.
+    if (otro) this.eyv.escuchar(this.pedidoSonido(sonido));
+    else this.escucharSonido(sonido);
   }
 
   private cargarSonidos(acento: Acento): void {
