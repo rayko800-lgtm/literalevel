@@ -57,6 +57,26 @@ import { Sesion } from '../nucleo/sesion';
           </div>
         </section>
 
+        <!-- Paridad con Gradio: la tabla de _TABLA_CEFR, junto a la dificultad del libro. -->
+        <details class="tarjeta plana niveles">
+          <summary><app-icono nombre="info" />¿Qué significa cada nivel?</summary>
+          <div class="tabla-niveles">
+            <table>
+              <thead><tr><th scope="col">LiteraLevel</th><th scope="col">MCER</th><th scope="col">Qué suele significar</th></tr></thead>
+              <tbody>
+                @for (n of niveles; track n.letra) {
+                  <tr [class.este]="l.cefr === n.letra">
+                    <td>{{ n.rango }}</td><td><strong>{{ n.letra }}</strong></td><td>{{ n.texto }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="suave pequeno"><strong>LiteraLevel no certifica ningún nivel del MCER</strong>, y esta columna no equivale a un examen.
+            El modelo aprendió a colocar un texto en una recta continua; la letra es la etiqueta más cercana.
+            Sirve para elegir qué leer, no para acreditar nada ante nadie.</p>
+        </details>
+
         <section class="veredicto tarjeta" [class.bien]="l.ficha?.exigente === false" [class.reto]="l.ficha?.exigente === true">
           @if (!perfil()) {
             <h2>¿Te va este libro?</h2>
@@ -218,6 +238,17 @@ import { Sesion } from '../nucleo/sesion';
     .chips { gap: .45rem; margin-bottom: 1.1rem; }
     .cta { margin-bottom: .4rem; }
     .veredicto { margin-bottom: 1.25rem; border-left: 5px solid var(--borde-fuerte); }
+    .niveles { margin-bottom: 1.25rem; }
+    .niveles summary { display: flex; align-items: center; gap: .5rem; min-height: 48px; cursor: pointer; font-weight: 650;
+      color: var(--acento-texto); list-style: none; }
+    .niveles summary::-webkit-details-marker { display: none; }
+    .niveles p { margin: .75rem 0 0; }
+    .tabla-niveles { overflow-x: auto; margin-top: .5rem; }
+    .tabla-niveles table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    .tabla-niveles th, .tabla-niveles td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+    .tabla-niveles th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); }
+    .tabla-niveles td:first-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .tabla-niveles tr.este td { background: var(--acento-suave); color: var(--acento-texto); }
     .veredicto.bien { border-left-color: var(--verde); }
     .veredicto.reto { border-left-color: var(--ambar); }
     .veredicto h2 { display: flex; align-items: center; gap: .4rem; margin-bottom: .3rem; }
@@ -281,6 +312,15 @@ export class FichaLibro implements OnDestroy {
   };
   protected readonly num = num;
   protected readonly cefr = cefr;
+  /** La misma tabla que `ui._TABLA_CEFR` en Gradio. */
+  protected readonly niveles = [
+    { rango: '0,00 – 0,20', letra: 'A1', texto: 'frases muy cortas, vocabulario de andar por casa' },
+    { rango: '0,20 – 0,60', letra: 'A2', texto: 'narración sencilla, poca subordinación' },
+    { rango: '0,60 – 1,00', letra: 'B1', texto: 'novela juvenil, prosa clara' },
+    { rango: '1,00 – 1,40', letra: 'B2', texto: 'novela adulta corriente' },
+    { rango: '1,40 – 1,80', letra: 'C1', texto: 'prosa literaria densa, vocabulario amplio' },
+    { rango: '1,80 – 2,00', letra: 'C2', texto: 'clásicos exigentes, sintaxis larga' },
+  ];
   protected readonly miles = miles;
   protected readonly minutosDe = minutosDe;
 
