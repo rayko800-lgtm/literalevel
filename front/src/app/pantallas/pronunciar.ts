@@ -69,7 +69,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly eyv = new EscucharYVer();
   /** «Más lento» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»):
    *  1×, 0,5× y 0,25× para el audio, el corte 2D y el 3D. */
-  protected readonly velocidad = signal(1);
+  protected readonly velocidad = signal<1 | 0.5 | 0.25>(1);   // el tipo `Velocidad` del 3D (b9, 6b2579b)
   protected readonly etiquetaVelocidad = computed(() =>
     this.velocidad() === 0.5 ? 'Lento · 0,5×' : this.velocidad() === 0.25 ? 'Muy lento · 0,25×' : 'Más lento');
   /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
