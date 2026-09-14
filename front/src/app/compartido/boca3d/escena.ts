@@ -276,6 +276,39 @@ function tuboArco(y: number, radio: number, mat: THREE.Material, retroceso = 2.3
   return new THREE.Mesh(new THREE.TubeGeometry(curva, 32, radio, 10, false), mat);
 }
 
+/** Un labio: un tubo que sigue el arco de la boca, con las comisuras hacia
+ *  atrás. `largo` es la distancia entre comisuras; los labios redondeados son
+ *  cortos y salen hacia delante, los estirados, largos y planos. */
+function geometriaLabio(largo: number, radio: number): THREE.BufferGeometry {
+  const z = largo / 2;
+  const atras = 0.45 + 0.3 * Math.max(0, z - 0.6);      // cuanto más ancho, más atrás la comisura
+  const puntos = [
+    new THREE.Vector3(atras, -0.04, -z), new THREE.Vector3(atras * 0.35, 0, -z * 0.62),
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(atras * 0.35, 0, z * 0.62), new THREE.Vector3(atras, -0.04, z),
+  ];
+  const curva = new THREE.CatmullRomCurve3(puntos, false, 'centripetal', 0.5);
+  return new THREE.TubeGeometry(curva, 24, radio, 10, false);
+}
+
+/** La mejilla: una lámina translúcida en el lado de la cámara, con las
+ *  esquinas redondeadas, para que la cabeza tenga un lado sin tapar nada. */
+function geometriaMejilla(): THREE.BufferGeometry {
+  const f = new THREE.Shape();
+  f.moveTo(-2.1, 0.7);
+  f.quadraticCurveTo(-2.5, 1.2, -1.6, 1.55);
+  f.lineTo(2.3, 1.85);
+  f.quadraticCurveTo(3.1, 1.9, 3.05, 1.1);
+  f.lineTo(3.05, -1.9);
+  f.quadraticCurveTo(3.0, -2.5, 2.3, -2.45);
+  f.lineTo(-1.3, -2.2);
+  f.quadraticCurveTo(-2.3, -2.1, -2.3, -1.2);
+  f.lineTo(-2.35, 0.2);
+  f.quadraticCurveTo(-2.4, 0.55, -2.1, 0.7);
+  const g = new THREE.ExtrudeGeometry(f, { depth: 0.05, bevelEnabled: false });
+  return g;
+}
+
 const MUESTRAS = 56, LADOS = 16;
 
 /** Geometría vacía de la lengua, con el tamaño fijo: se rellena con `deformarLengua`. */
@@ -344,6 +377,8 @@ function deformarLengua(g: THREE.BufferGeometry, n: PoseNumerica): void {
 export interface OpcionesEscena {
   colores?: Partial<Colores>;
   reducirMovimiento?: boolean;
+  /** La mejilla translúcida del lado de la cámara (por defecto, sí). */
+  mejilla?: boolean;
 }
 
 export class EscenaBoca {
@@ -367,6 +402,7 @@ export class EscenaBoca {
   private readonly labioSup: THREE.Mesh;
   private readonly labioInf: THREE.Mesh;
   private readonly lengua: THREE.Mesh;
+  private readonly mejilla: THREE.Mesh;
   private readonly observador: ResizeObserver | null = null;
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
@@ -466,15 +502,25 @@ export class EscenaBoca {
     this.mandibula.position.set(PIVOTE_MAND.x, PIVOTE_MAND.y, 0);
     this.escena.add(this.mandibula);
 
-    this.labioSup = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 2.3, 4, 14), mLabios);
-    this.labioSup.rotation.x = Math.PI / 2;                   // a lo ancho (z)
+    this.labioSup = new THREE.Mesh(geometriaLabio(2.3, 0.3), mLabios);
+    this.labioSup.userData = { largo: 2.3, radio: 0.3 };
     this.escena.add(this.labioSup);
-    this.labioInf = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 2.3, 4, 14), mLabios);
-    this.labioInf.rotation.x = Math.PI / 2;
+    this.labioInf = new THREE.Mesh(geometriaLabio(2.3, 0.3), mLabios);
+    this.labioInf.userData = { largo: 2.3, radio: 0.3 };
     this.mandibula.add(this.labioInf);
 
     this.lengua = new THREE.Mesh(geometriaLengua(), material(col.lengua, { roughness: 0.55 }));
     this.escena.add(this.lengua);
+
+    // La mejilla del lado de la cámara: translúcida, se pinta la última y no
+    // escribe profundidad, así que no tapa nada y da un lado a la cabeza.
+    this.mejilla = new THREE.Mesh(geometriaMejilla(), material('#f2cfc9', {
+      transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide, roughness: 0.9,
+    }));
+    this.mejilla.position.z = ANCHO / 2 + 0.12;
+    this.mejilla.renderOrder = 5;
+    this.mejilla.visible = opciones.mejilla !== false;
+    this.escena.add(this.mejilla);
 
     this.actual = poseNumerica(REPOSO);
     this.aplicar(this.actual);
@@ -548,7 +594,8 @@ export class EscenaBoca {
   }
 
   /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
-   *  positivo gira hacia la cara; `polar` π/2 es a la altura de la boca. */
+   *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
+   *  la altura de la boca. */
   vista(azimut: number, polar = 1.49): void {
     const distancia = 10.5;
     this.controles.target.set(0.1, 0.05, 0);
@@ -574,6 +621,11 @@ export class EscenaBoca {
 
   get giraLibre(): boolean {
     return this.libre;
+  }
+
+  mostrarMejilla(visible: boolean): void {
+    this.mejilla.visible = visible;
+    this.sucio = true;
   }
 
   destruir(): void {
@@ -623,21 +675,22 @@ export class EscenaBoca {
     }
   };
 
-  private capsula(m: THREE.Mesh, len: number, r: number): void {
-    const g = m.geometry as THREE.CapsuleGeometry;
-    if (Math.abs(g.parameters.height - len) < 1e-3 && Math.abs(g.parameters.radius - r) < 1e-3) return;
-    g.dispose();
-    m.geometry = new THREE.CapsuleGeometry(r, len, 4, 14);
+  private labio(m: THREE.Mesh, largo: number, radio: number): void {
+    const u = m.userData as { largo: number; radio: number };
+    if (Math.abs(u.largo - largo) < 1e-3 && Math.abs(u.radio - radio) < 1e-3) return;
+    m.geometry.dispose();
+    m.geometry = geometriaLabio(largo, radio);
+    m.userData = { largo, radio };
   }
 
   private aplicar(n: PoseNumerica): void {
     this.mandibula.rotation.z = n[I_MAND];
     this.velo.rotation.z = n[I_VELO];
     this.labioSup.position.set(n[I_LS], n[I_LS + 1], 0);
-    this.capsula(this.labioSup, n[I_LS + 2], n[I_LS + 3]);
+    this.labio(this.labioSup, n[I_LS + 2], n[I_LS + 3]);
     // El labio inferior vive en la mandíbula: su posición es local al pivote.
     this.labioInf.position.set(n[I_LI] - PIVOTE_MAND.x, n[I_LI + 1] - PIVOTE_MAND.y, 0);
-    this.capsula(this.labioInf, n[I_LI + 2], n[I_LI + 3]);
+    this.labio(this.labioInf, n[I_LI + 2], n[I_LI + 3]);
     deformarLengua(this.lengua.geometry, n);
     this.sucio = true;
   }

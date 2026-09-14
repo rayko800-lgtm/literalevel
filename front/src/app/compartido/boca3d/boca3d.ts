@@ -95,6 +95,9 @@ export class Boca3d {
   readonly ipa = input<string>('');
   /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
   readonly autoReproducir = input<boolean>(true);
+  /** La mejilla translúcida del lado de la cámara. Es lo que más cuesta
+   *  pintar sin GPU (medido en Chrome headless): se puede apagar. */
+  readonly mejilla = input<boolean>(true);
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
@@ -140,6 +143,7 @@ export class Boca3d {
         this.escena = new EscenaBoca(host, {
           colores: { lengua: color('--ll-lengua') as string | undefined },
           reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
+          mejilla: this.mejilla(),
         });
         this.modo.set('3d');
         const p = this.pose();
@@ -148,6 +152,7 @@ export class Boca3d {
         this.modo.set('2d');
       }
     });
+    effect(() => { this.escena?.mostrarMejilla(this.mejilla()); });
     effect(() => {
       const p = this.pose();
       const escena = this.escena;

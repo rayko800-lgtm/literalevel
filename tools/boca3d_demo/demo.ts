@@ -3,9 +3,11 @@
  *  sacar capturas. Carga el JSON completo de poses (46 sonidos), no solo los
  *  cinco del prototipo. Vive en tools/ para que `ng build` no la compile.
  *
- *  Parámetros de la URL: ?s=ɑ (sonido), ?palabra=ˈpɑvɚti (la reproduce),
- *  ?giro=0.9&polar=1.2 (vista girada), ?fps=1 (mide cuadros por segundo
- *  reproduciendo una palabra en bucle y lo escribe en la leyenda). */
+ *  Parámetros de la URL: ?s=ɑ (sonido), ?ciclo=0 (sin ciclo al elegir: la
+ *  pose quieta, para capturas), ?palabra=ˈpɑvɚti (la reproduce),
+ *  ?giro=-1.0&polar=1.2 (vista girada: negativo mira hacia la cara),
+ *  ?mejilla=0 (sin mejilla), ?fps=1 (mide cuadros por segundo reproduciendo
+ *  una palabra en bucle y lo escribe en la leyenda). */
 import { cicloSonido, lineaPalabra } from '../../front/src/app/compartido/boca3d/animacion';
 import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
 import { CatalogoPoses, PoseSonido, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
@@ -41,10 +43,13 @@ function arrancar(): void {
     visor.textContent = 'No hay WebGL: aquí iría el corte 2D.';
     return;
   }
+  const params = new URLSearchParams(location.search);
   const escena = new EscenaBoca(visor, {
     reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    mejilla: params.get('mejilla') !== '0',
   });
   window.escenaBoca = escena;
+  if (params.get('ciclo') === '0') ciclo.checked = false;
 
   const ir = (simbolo: string) => {
     const pose: PoseSonido | null = poseDe(CATALOGO, simbolo);
@@ -94,7 +99,6 @@ function arrancar(): void {
     requestAnimationFrame(tic);
   });
 
-  const params = new URLSearchParams(location.search);
   ir(params.get('s') ?? '');
   const p = params.get('palabra');
   if (p) { entradaIpa.value = p; palabra(p); }
