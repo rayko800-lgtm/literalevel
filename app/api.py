@@ -322,10 +322,9 @@ def _ruta_libro(ident: str, pet: _Lector, descargar: bool = True) -> str | None:
         # El mismo tope que el buscador de Gradio: descargar no cuesta dinero,
         # pero cada descarga ocupa un hilo hasta 45 s por intento.
         if not ui._dentro_del_limite(pet, "descargas", ui.LIMITE_DESCARGAS_HORA):
+            falta = ui._cuanto_falta(ui._minutos_para_la_siguiente('descargas', pet))[3:]
             raise _no(429, f"Has abierto {ui.LIMITE_DESCARGAS_HORA} libros nuevos "
-                           f"en esta hora. Espera "
-                           f"{ui._minutos_para_la_siguiente('descargas', pet)} "
-                           "minutos o sigue con los que ya tienes.")
+                           f"en esta hora. Espera {falta} o sigue con los que ya tienes.")
     try:
         return ui._descargar_gutenberg(ident)
     except ValueError as e:
@@ -859,8 +858,7 @@ def _mensaje_tope_medir(cubo: str, minutos: int) -> str:
     """El aviso de `ui._mensaje_limite` dice que medir un capítulo no cuesta
     nada y sigue funcionando: con estos topes ya no es verdad (f4 y Central,
     reinicio 11). Aquí se dice qué se ha acabado y que leer y buscar siguen."""
-    m = max(1, minutos)
-    cuando = "en 1 minuto" if m == 1 else f"en unos {m} minutos"
+    cuando = ui._cuanto_falta(minutos)
     return (f"Has llegado al límite de {_QUE_SE_MIDE.get(cubo, 'mediciones')} de esta hora. "
             f"Vuelve a intentarlo {cuando}. Leer y buscar siguen funcionando.")
 
@@ -1070,7 +1068,7 @@ def medir_capitulo(libro_id: str, n: int, pet: Lector) -> dict:
     c = _cap(lib, n)
     _frenar(pet, "medidas", _MEDIDAS_HORA)  # tope de medir un capítulo
     try:
-        r = _puntuar(ficha.sin_licencia(c.texto))
+        r = _puntuar(ficha.para_medir(c.texto))
     except ValueError as e:
         raise _no(422, str(e)) from e
     except Exception as e:
@@ -1162,7 +1160,7 @@ def _medir_libro(trabajo: dict, libro: reader.Libro, modo: str) -> None:
             filas, ventanas = [], 0
             for k, (i, c) in enumerate(cuerpo, 1):
                 with _CANDADO_MODELO:
-                    vs = p.perfil_de_texto(ficha.sin_licencia(c.texto),
+                    vs = p.perfil_de_texto(ficha.para_medir(c.texto),
                                            tope=ui.RAPIDO_VENTANAS if rapido else 0)
                 if vs:
                     ventanas += len(vs)

@@ -196,7 +196,7 @@ export class Curva {
     if (!f.length) return 'Sin datos';
     const min = f.reduce((a, b) => (b.dificultad < a.dificultad ? b : a));
     const max = f.reduce((a, b) => (b.dificultad > a.dificultad ? b : a));
-    return `Dificultad de ${f.length} capítulos, entre ${num(min.dificultad)} (capítulo ${min.capitulo}) y ${num(max.dificultad)} (capítulo ${max.capitulo}).`;
+    return `Dificultad de ${f.length} ${f.length === 1 ? 'capítulo' : 'capítulos'}, entre ${num(min.dificultad)} (capítulo ${min.capitulo}) y ${num(max.dificultad)} (capítulo ${max.capitulo}).`;
   });
 
   protected mover(ev: PointerEvent): void {

@@ -217,7 +217,7 @@ import { Sesion } from '../nucleo/sesion';
         </div>
 
         <details class="tarjeta indice">
-          <summary><h2>Índice · {{ l.capitulos.length }} capítulos</h2></summary>
+          <summary><h2>Índice · {{ l.capitulos.length }} {{ l.capitulos.length === 1 ? 'capítulo' : 'capítulos' }}</h2></summary>
           <ol>
             @for (c of l.capitulos; track c.indice) {
               <li><a [routerLink]="['/leer', l.id, c.indice]">

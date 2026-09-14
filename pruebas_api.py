@@ -1108,6 +1108,26 @@ def temas_para_la_portada():
     return f"PG1661 {esperados[:2]}, {LIBRE} {ficha['temas']}"
 
 
+def plurales_de_los_minutos():
+    """Prueba de f4 (1): «1 minutos». Uno en singular y sin «unos»; varios, «unos N»."""
+    assert ui._cuanto_falta(1) == "en 1 minuto" and ui._cuanto_falta(0) == "en 1 minuto"
+    assert ui._cuanto_falta(12) == "en unos 12 minutos"
+    assert ui._cuanto_falta(1, "en") == "in 1 minute" and ui._cuanto_falta(5, "en") == "in about 5 minutes"
+    assert "en 1 minuto." in ui._mensaje_limite("es", 1) and "1 minutos" not in ui._mensaje_limite("es", 1)
+    originales = (ui._dentro_del_limite, ui._minutos_para_la_siguiente, ui._descargar_gutenberg)
+    ui._dentro_del_limite = lambda pet, cubo, tope, clave=None: cubo != "descargas"
+    ui._minutos_para_la_siguiente = lambda cubo, pet, clave=None: 1
+    try:
+        r = cliente.get("/api/libros/PG999999", headers=nuevo_lector())
+    finally:
+        ui._dentro_del_limite, ui._minutos_para_la_siguiente, ui._descargar_gutenberg = originales
+    assert r.status_code == 429, (r.status_code, r.text[:200])
+    detalle = r.json()["detail"]
+    assert detalle == (f"Has abierto {ui.LIMITE_DESCARGAS_HORA} libros nuevos en esta hora. "
+                       "Espera 1 minuto o sigue con los que ya tienes."), detalle
+    return detalle[:60]
+
+
 def portada_por_ia_si_existe():
     """Punto 3 de las portadas: con PG1661.webp en la carpeta de portadas, la
     tarjeta y la ficha traen su URL versionada y la ruta la sirve con nosniff;
@@ -1252,7 +1272,7 @@ if __name__ == "__main__":
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
-               temas_para_la_portada, portada_por_ia_si_existe,
+               temas_para_la_portada, portada_por_ia_si_existe, plurales_de_los_minutos,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,

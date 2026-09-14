@@ -719,13 +719,21 @@ def _salir(peticion: gr.Request = None) -> str:
     return "Has salido. Lo gratuito sigue funcionando."
 
 
+def _cuanto_falta(minutos: int, idioma: str = "es") -> str:
+    """«en 1 minuto» / «en unos 12 minutos»: la prueba de f4 encontró «1 minutos»."""
+    m = max(1, int(minutos))
+    if idioma == "en":
+        return "in 1 minute" if m == 1 else f"in about {m} minutes"
+    return "en 1 minuto" if m == 1 else f"en unos {m} minutos"
+
+
 def _mensaje_limite(idioma: str, minutos: int) -> str:
     if idioma == "en":
         return (f"You have reached this hour's limit of paid lookups. "
-                f"Try again in about {minutos} minutes. Reading, searching and "
+                f"Try again {_cuanto_falta(minutos, 'en')}. Reading, searching and "
                 f"measuring a chapter keep working: they cost nothing.")
     return (f"Has llegado al límite de consultas de esta hora. Vuelve a "
-            f"intentarlo en unos {minutos} minutos. Leer, buscar y medir un "
+            f"intentarlo {_cuanto_falta(minutos)}. Leer, buscar y medir un "
             f"capítulo siguen funcionando: no cuestan nada.")
 
 
@@ -1052,7 +1060,7 @@ def _muestra_de_libro(libro, palabras: int = 2400) -> str:
     por_capitulo = max(260, palabras // cuantos)
     trozos = []
     for c in elegidos:
-        ws = c.texto.split()
+        ws = ficha.para_medir(c.texto).split()
         # Desde un poco despues del principio: los titulillos viven ahi.
         inicio = min(40, max(0, len(ws) - por_capitulo))
         trozos.append(" ".join(ws[inicio:inicio + por_capitulo]))
@@ -1456,7 +1464,7 @@ def _abrir_del_catalogo(id_libro, peticion: gr.Request = None):
         yield quieto[:3] + (gr.update(), gr.Tabs(), _aviso(
             f"Has abierto {LIMITE_DESCARGAS_HORA} libros nuevos en esta hora y "
             f"cada descarga tarda. Espera "
-            f"{_minutos_para_la_siguiente('descargas', peticion)} minutos, o "
+            f"{_cuanto_falta(_minutos_para_la_siguiente('descargas', peticion))[3:]}, o "
             f"sigue leyendo los que ya tienes en «Mis libros»."))
         return
     yield quieto[:3] + (gr.update(), gr.Tabs(),
@@ -2082,7 +2090,7 @@ def _medir(libro, idx, como="cifra"):
     else:
         yield "Midiendo el capítulo…"
     try:
-        r = puntuador().puntuar(ficha.sin_licencia(c.texto))
+        r = puntuador().puntuar(ficha.para_medir(c.texto))
     # OSError y no solo FileNotFoundError. La segunda solo cubre la carpeta
     # local que no existe; desplegada, `LITERALEVEL_MODELO` es un repositorio
     # del Hub y `from_pretrained` lanza OSError si el Hub no responde, si el
@@ -2382,7 +2390,7 @@ def _analizar_libro(libro, modo="completo", como="cifra", paleta=None,
         cada = 1 if total <= 30 else max(2, total // 30)
         for n, (i, c) in enumerate(cuerpo, 1):
             try:
-                vs = p.perfil_de_texto(ficha.sin_licencia(c.texto),
+                vs = p.perfil_de_texto(ficha.para_medir(c.texto),
                                        tope=RAPIDO_VENTANAS if rapido else 0)
             except Exception as e:
                 # Un capitulo que revienta no puede llevarse el libro entero:
