@@ -26,7 +26,14 @@ import subprocess
 import sys
 
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
-BASE = pathlib.Path(os.environ.get("TEMP", "/tmp")) / "literalevel_banco"
+# Las copias del arbol pesan ~2 GB (una por grupo de mutantes). En C: el disco se
+# lleno (14 sep 2026): van a D: si existe; LITERALEVEL_BANCO manda sobre todo.
+if os.environ.get("LITERALEVEL_BANCO"):
+    BASE = pathlib.Path(os.environ["LITERALEVEL_BANCO"])
+elif os.name == "nt" and pathlib.Path("D:/").exists():
+    BASE = pathlib.Path("D:/literalevel_tmp/banco")
+else:
+    BASE = pathlib.Path(os.environ.get("TEMP", "/tmp")) / "literalevel_banco"
 NL = chr(10)
 
 # `pruebas_corpus.py` y `tools` hacen falta para los mutantes C3: sin ellos, la
