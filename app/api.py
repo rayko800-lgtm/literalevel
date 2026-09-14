@@ -1612,31 +1612,44 @@ async def practicar(pet: Lector, request: Request) -> dict:
         raise _no(413, "La grabación es demasiado larga.")
     if len(contenido) < 800:
         raise _no(422, "No me ha llegado audio. Graba la frase otra vez.")
-    if _va_a_costar(pet) and not ui._dentro_del_limite(pet, "voz", ui.LIMITE_VOZ_HORA):
-        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("voz", pet)))
-    if config.falta():
-        raise _no(503, "Para corregir la pronunciación hace falta la clave de OpenAI. "
-                       "Lo demás de la aplicación no la necesita.")
-    puede, motivo = ui._puede_pagar(pet)
-    if not puede:
-        raise _no(403, motivo)
-    fd, tmp = tempfile.mkstemp(suffix=ext, prefix="ll_voz_")
+    fd, tmp = None, None
     try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(contenido)
-        # Sin devolucion del uso en ningun caso, como en `ui._practicar`: la
-        # sesion puede haber pagado gpt y tts-1 aunque falle la transcripcion.
-        s = voz.practicar(tmp, frase, guardar_fallos=False)
-        if s.evaluacion.palabras_falladas and s.transcripcion_ok:
-            voz.registrar_fallos(s.evaluacion.palabras_falladas,
-                                 ruta=ui._archivo_lector("voz.db", pet), frase=frase)
-    except Exception as e:
-        raise _no(502, f"No he podido corregir la grabación ({type(e).__name__}).") from e
-    finally:
+        # Preparar el archivo es local: si falla, no debe consumir cuota.
         try:
-            os.unlink(tmp)
-        except OSError:
-            pass
+            fd, tmp = tempfile.mkstemp(suffix=ext, prefix="ll_voz_")
+            archivo = os.fdopen(fd, "wb")
+            fd = None  # El descriptor ya pertenece al objeto archivo.
+            with archivo as f:
+                f.write(contenido)
+        except OSError as e:
+            raise _no(500, "No he podido preparar la grabación en el servidor.") from e
+        if _va_a_costar(pet) and not ui._dentro_del_limite(pet, "voz", ui.LIMITE_VOZ_HORA):
+            raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("voz", pet)))
+        if config.falta():
+            raise _no(503, "Para corregir la pronunciación hace falta la clave de OpenAI. "
+                           "Lo demás de la aplicación no la necesita.")
+        puede, motivo = ui._puede_pagar(pet)
+        if not puede:
+            raise _no(403, motivo)
+        try:
+            # Desde aqui puede haber gasto aunque falle la transcripcion.
+            s = voz.practicar(tmp, frase, guardar_fallos=False)
+            if s.evaluacion.palabras_falladas and s.transcripcion_ok:
+                voz.registrar_fallos(s.evaluacion.palabras_falladas,
+                                     ruta=ui._archivo_lector("voz.db", pet), frase=frase)
+        except Exception as e:
+            raise _no(502, f"No he podido corregir la grabación ({type(e).__name__}).") from e
+    finally:
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        if tmp is not None:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
     ev = s.evaluacion
     falladas = set(ev.palabras_falladas)
     detalles = []

@@ -473,6 +473,64 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     return f"audio {r['detalles'][0]['audio'][:24]}… · falladas 1 con frase"
 
 
+def voz_prepara_temporal_antes_de_cobrar():
+    """Un fallo local previo a voz no cobra; denegar el pago limpia el audio."""
+    from contextlib import contextmanager
+    from unittest.mock import patch
+
+    mkstemp_real, fdopen_real = tempfile.mkstemp, os.fdopen
+    creados, reservas = [], []
+
+    def reservar(pet):
+        reservas.append(1)
+        return False, "Cupo agotado."
+
+    def sin_proveedor(*a, **k):
+        raise AssertionError("no debe entrar en voz.practicar")
+
+    with tempfile.TemporaryDirectory(prefix="ll_api_audio_prueba_") as carpeta:
+        def crear(*a, **k):
+            fd, ruta = mkstemp_real(*a, dir=carpeta, **k)
+            creados.append(Path(ruta))
+            return fd, ruta
+
+        @contextmanager
+        def escritura_rota(fd, modo):
+            with fdopen_real(fd, modo):
+                class ArchivoRoto:
+                    def write(self, contenido):
+                        raise OSError("detalle privado de disco")
+                yield ArchivoRoto()
+
+        def pedir():
+            return cliente.post("/api/voz", headers=nuevo_lector(),
+                                data={"frase": "The red raincoat."},
+                                files={"audio": ("voz.webm", b"x" * 2000, "audio/webm")})
+
+        with patch.object(api.config, "falta", return_value=[]), \
+                patch.object(api, "_va_a_costar", return_value=False), \
+                patch.object(ui, "_puede_pagar", side_effect=reservar), \
+                patch.object(api.voz, "practicar", side_effect=sin_proveedor) as motor:
+            with patch.object(api.tempfile, "mkstemp", side_effect=OSError("detalle privado de disco")):
+                sin_temporal = pedir()
+            assert sin_temporal.status_code == 500 and not reservas, sin_temporal.text
+            assert "detalle privado" not in sin_temporal.text
+
+            with patch.object(api.tempfile, "mkstemp", side_effect=crear), \
+                    patch.object(api.os, "fdopen", side_effect=escritura_rota):
+                sin_escritura = pedir()
+            assert sin_escritura.status_code == 500 and not reservas, sin_escritura.text
+            assert "detalle privado" not in sin_escritura.text
+            assert creados and all(not p.exists() for p in creados), creados
+
+            with patch.object(api.tempfile, "mkstemp", side_effect=crear):
+                sin_cupo = pedir()
+            assert sin_cupo.status_code == 403 and len(reservas) == 1, sin_cupo.text
+            assert len(creados) == 2 and all(not p.exists() for p in creados), creados
+            assert motor.call_count == 0, motor.call_count
+    return "crear/escribir: 500 sin cobro; cupo: 403; temporales borrados"
+
+
 def dudoso_coherente_con_el_aviso_de_lexicon():
     """«house»: lexicon marcaba la acepción provisional y `dudoso` salía falso,
     así que la ficha decía a la vez que era dudosa y que no."""
@@ -703,6 +761,7 @@ if __name__ == "__main__":
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
+               voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
