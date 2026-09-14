@@ -510,6 +510,95 @@ def fonema_de_la_correccion_en_britanico():
     return f"ɹ→r, oʊ→əʊ; ɝ ɚ en americano; audio rp {uk['audio'] and uk['audio'][:22]}"
 
 
+def subida_grande_se_corta_antes_de_leerla_entera():
+    """Revisión de 4e (3): con File(...) Starlette leía el cuerpo entero y lo
+    volcaba a disco antes del 413. Ahora el multipart no llega a interpretarse."""
+    from starlette import formparsers
+    interpretados = []
+    original = formparsers.MultiPartParser.parse
+
+    async def espia(self):
+        interpretados.append(1)
+        return await original(self)
+
+    frontera = "limite-de-prueba"
+
+    def troceado(tamano):
+        yield (f"--{frontera}\r\nContent-Disposition: form-data; name=\"archivo\"; filename=\"enorme.txt\"\r\n"
+               "Content-Type: text/plain\r\n\r\n").encode()
+        for _ in range(tamano // (1 << 20) + 1):
+            yield b"x" * (1 << 20)
+        yield f"\r\n--{frontera}--\r\n".encode()
+
+    formparsers.MultiPartParser.parse = espia
+    try:
+        con_largo = cliente.post("/api/libros", headers=nuevo_lector(),
+                                 files={"archivo": ("enorme.txt", b"x" * (api._TOPE_SUBIDA + 200_000), "text/plain")})
+        voz_larga = cliente.post("/api/voz", headers=nuevo_lector(), data={"frase": "Hello there."},
+                                 files={"audio": ("v.webm", b"\x1a" * (api._TOPE_AUDIO + 200_000), "audio/webm")})
+        # Sin Content-Length (troceado): el tope tiene que saltar leyendo.
+        sin_largo = cliente.post("/api/libros", headers={**nuevo_lector(),
+                                 "content-type": f"multipart/form-data; boundary={frontera}"},
+                                 content=troceado(api._TOPE_SUBIDA + (2 << 20)))
+    finally:
+        formparsers.MultiPartParser.parse = original
+    estados = (con_largo.status_code, voz_larga.status_code, sin_largo.status_code)
+    assert estados == (413, 413, 413), estados
+    assert interpretados == [], f"se interpretó el multipart {len(interpretados)} veces antes del 413"
+    return "413 x3 sin interpretar el formulario"
+
+
+def topes_de_subidas_por_lector_y_por_hora():
+    texto = ("It was a quiet morning in the little town. " * 60 + "\n\n") * 3
+    lector = nuevo_lector()
+    maximo, dentro = api._MAX_SUBIDOS, ui._dentro_del_limite
+    api._MAX_SUBIDOS = 1
+    try:
+        primero = cliente.post("/api/libros", headers=lector, files={"archivo": ("a.txt", texto.encode(), "text/plain")})
+        mismo = cliente.post("/api/libros", headers=lector, files={"archivo": ("a.txt", texto.encode(), "text/plain")})
+        otro = cliente.post("/api/libros", headers=lector,
+                            files={"archivo": ("b.txt", (texto + " And then it rained.").encode(), "text/plain")})
+        ui._dentro_del_limite = lambda pet, cubo, tope: cubo != "subidas"
+        por_hora = cliente.post("/api/libros", headers=nuevo_lector(), files={"archivo": ("c.txt", texto.encode(), "text/plain")})
+    finally:
+        api._MAX_SUBIDOS, ui._dentro_del_limite = maximo, dentro
+    # Volver a subir el mismo libro no cuenta como uno más.
+    estados = (primero.status_code, mismo.status_code, otro.status_code, por_hora.status_code)
+    assert estados == (200, 200, 429, 429), estados
+    return "1.º 200, el mismo 200, otro 429, sin cubo 429"
+
+
+def palabra_que_falla_solo_devuelve_lo_cobrado():
+    """Revisión de 4e (5): si consultar lanza, se devolvía un uso aunque no se
+    hubiera cobrado."""
+    import config
+    import cuentas
+    devueltos = []
+
+    class Roto:
+        def consultar(self, *a, **k):
+            raise RuntimeError("diccionario caído")
+
+    originales = (config.falta, ui._puede_pagar, api._va_a_costar, ui.consultor, cuentas.devolver)
+    cuentas.devolver = lambda base, codigo: devueltos.append(codigo)
+    ui.consultor = lambda: Roto()
+    api._va_a_costar = lambda pet: False
+    config.falta = lambda: False
+    cuerpo = {"palabra": "house", "etapa": "completa"}
+    try:
+        ui._puede_pagar = lambda pet: (False, "Entra con tu perfil.")
+        sin_cobro = cliente.post("/api/palabra", headers=A, json=cuerpo)
+        devueltos_sin_cobro = len(devueltos)
+        ui._puede_pagar = lambda pet: (True, "")
+        con_cobro = cliente.post("/api/palabra", headers=A, json=cuerpo)
+    finally:
+        config.falta, ui._puede_pagar, api._va_a_costar, ui.consultor, cuentas.devolver = originales
+    assert (sin_cobro.status_code, con_cobro.status_code) == (503, 503), (sin_cobro.status_code, con_cobro.status_code)
+    assert devueltos_sin_cobro == 0, "devolvió un uso que no se cobró"
+    assert len(devueltos) == 1, devueltos
+    return "sin cobro 0 devueltos, con cobro 1"
+
+
 def corte_de_la_boca_en_svg():
     """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
     aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
@@ -556,7 +645,8 @@ if __name__ == "__main__":
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
-               fonema_de_la_correccion_en_britanico):
+               fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
+               topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:

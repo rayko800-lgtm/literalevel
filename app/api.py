@@ -54,9 +54,10 @@ RAIZ = APP_DIR.parent
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile  # noqa: E402
+from fastapi import Depends, FastAPI, HTTPException, Query, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, Response  # noqa: E402
+from starlette.formparsers import MultiPartParser  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 import animacion_articulatoria  # noqa: E402
@@ -201,6 +202,40 @@ _RE_CATALOGO = re.compile(r"^(?:PG\d{1,7}|(?:SWV|ASB|VOA|LRD)[0-9A-Z]{1,64})$")
 _RE_SUBIDO = re.compile(r"^u[0-9a-f]{16}$")
 _EXT_LIBRO = (".epub", ".pdf", ".txt")
 _TOPE_SUBIDA = 20 * 1024 * 1024     # el mismo que `ui.TAMANO_MAXIMO_SUBIDA`
+_MAX_SUBIDOS = 30                   # libros propios por lector
+_SUBIDAS_HORA = 12                  # intentos de subida por IP y hora
+_HOLGURA_FORMULARIO = 64 * 1024     # cabeceras multipart y campos de texto
+
+
+async def _formulario(request: Request, tope: int, mensaje: str):
+    """El multipart leído por trozos con tope ANTES de interpretarlo.
+
+    Con `File(...)` en la firma, Starlette lee el cuerpo entero -y lo vuelca a
+    un temporal pasado 1 MB- antes de llamar a la ruta: una subida de gigas
+    llegaba al disco y solo después salía el 413 (revisión de entrega-4e sobre
+    2a49bf2). Aquí se corta al pasar el tope, venga o no Content-Length."""
+    if not request.headers.get("content-type", "").startswith("multipart/form-data"):
+        raise _no(415, "Se esperaba un formulario con el archivo.")
+    limite = tope + _HOLGURA_FORMULARIO
+    largo = request.headers.get("content-length", "")
+    if largo.isdigit() and int(largo) > limite:
+        raise _no(413, mensaje)
+    trozos, leidos = [], 0
+    async for trozo in request.stream():
+        leidos += len(trozo)
+        if leidos > limite:
+            raise _no(413, mensaje)
+        trozos.append(trozo)
+    cuerpo = b"".join(trozos)
+
+    async def flujo():
+        yield cuerpo
+
+    try:
+        return await MultiPartParser(request.headers, flujo(), max_files=1, max_fields=4,
+                                     max_part_size=_HOLGURA_FORMULARIO).parse()
+    except Exception as e:
+        raise _no(422, "No entiendo ese formulario.") from e
 
 
 def _normalizar_id(crudo: str) -> str:
@@ -782,30 +817,43 @@ def libro(libro_id: str, pet: Lector) -> dict:
 
 
 @app.post("/api/libros")
-async def subir_libro(pet: Lector, archivo: UploadFile = File(...)) -> dict:
+async def subir_libro(pet: Lector, request: Request) -> dict:
     """Sube un `.epub`, `.pdf` o `.txt` propio. Solo lo ve este lector."""
-    nombre = str(archivo.filename or "").lower()
-    ext = os.path.splitext(nombre)[1]
-    if ext not in _EXT_LIBRO:
-        raise _no(415, "Sube un .epub, un .pdf o un .txt.")
-    h = hashlib.sha256()
-    trozos, total = [], 0
-    while True:
-        trozo = await archivo.read(1 << 20)
-        if not trozo:
-            break
-        total += len(trozo)
-        # Un epub es un zip: sin tope cabe una bomba de descompresion.
-        if total > _TOPE_SUBIDA:
-            raise _no(413, "El archivo pasa de 20 MB.")
-        h.update(trozo)
-        trozos.append(trozo)
+    # Antes de leer nada: el cubo cuenta intentos, no solo subidas buenas.
+    if not ui._dentro_del_limite(pet, "subidas", _SUBIDAS_HORA):
+        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("subidas", pet)))
+    formulario = await _formulario(request, _TOPE_SUBIDA, "El archivo pasa de 20 MB.")
+    try:
+        archivo = formulario.get("archivo")
+        if archivo is None or isinstance(archivo, str):
+            raise _no(422, "No me ha llegado ningún archivo.")
+        nombre = str(archivo.filename or "").lower()
+        ext = os.path.splitext(nombre)[1]
+        if ext not in _EXT_LIBRO:
+            raise _no(415, "Sube un .epub, un .pdf o un .txt.")
+        h = hashlib.sha256()
+        trozos, total = [], 0
+        while True:
+            trozo = await archivo.read(1 << 20)
+            if not trozo:
+                break
+            total += len(trozo)
+            # Este tope es el del archivo tal cual llega. Lo que ocupa
+            # descomprimido (un epub es un zip) lo vigila reader.py al abrirlo.
+            if total > _TOPE_SUBIDA:
+                raise _no(413, "El archivo pasa de 20 MB.")
+            h.update(trozo)
+            trozos.append(trozo)
+    finally:
+        await formulario.close()
     if not total:
         raise _no(422, "El archivo está vacío.")
     ident = "u" + h.hexdigest()[:16]
     carpeta = _dir_subidos(pet)
     carpeta.mkdir(parents=True, exist_ok=True)
     destino = carpeta / f"{ident[1:]}{ext}"
+    if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.is_file()) >= _MAX_SUBIDOS:
+        raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Quita alguno de «Mis libros» para subir otro.")
     if not destino.exists():
         destino.write_bytes(b"".join(trozos))
     try:
@@ -1205,15 +1253,17 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
             raise _no(429, ui._mensaje_limite(idioma,
                                               ui._minutos_para_la_siguiente("lexico", pet)))
         with _CANDADO_LEXICO:
+            puede, motivo = False, ""
             try:
-                if config.falta():
-                    puede, motivo = False, ""
-                else:
+                if not config.falta():
                     puede, motivo = ui._puede_pagar(pet)
                 r = ui.consultor().consultar(palabra_, oracion, _nivel(pet), idioma=idioma,
                                              usar_openai=puede)
             except Exception as e:
-                cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
+                # Solo se devuelve lo cobrado: sin clave, sin perfil o si el propio
+                # cobro falla no hubo uso, y devolverlo regalaba uno (revisión de 4e).
+                if puede:
+                    cuentas.devolver(ui.BASE_DATOS_LECTOR, ui._codigo_de(pet))
                 raise _no(503, f"El diccionario no está disponible ({type(e).__name__}).") from e
         if not puede and motivo:
             r.avisos = [a for a in r.avisos if "OPENAI_API_KEY" not in a] + [motivo]
@@ -1469,17 +1519,31 @@ def _audio_de_detalle(normal: list[str], audios: dict[str, str]) -> str | None:
 
 
 @app.post("/api/voz")
-async def practicar(pet: Lector, frase: str = Form(..., max_length=2000),
-                    audio: UploadFile = File(...),
-                    acento: Literal["US", "UK"] = Form("US")) -> dict:
-    """La corrección de pronunciacion, con las guardas de `ui._practicar`."""
+async def practicar(pet: Lector, request: Request) -> dict:
+    """La corrección de pronunciacion, con las guardas de `ui._practicar`.
+
+    Campos del formulario: `frase` (hasta 2000), `audio` (archivo) y `acento`
+    (US | UK). Se leen con `_formulario`, con tope antes de interpretarlo."""
+    formulario = await _formulario(request, _TOPE_AUDIO, "La grabación es demasiado larga.")
+    try:
+        frase = formulario.get("frase")
+        acento = formulario.get("acento") or "US"
+        audio = formulario.get("audio")
+        if not isinstance(frase, str) or len(frase) > 2000:
+            raise _no(422, "Escribe la frase que vas a leer en voz alta.")
+        if acento not in ("US", "UK"):
+            raise _no(422, "El acento es US o UK.")
+        if audio is None or isinstance(audio, str):
+            raise _no(422, "No me ha llegado audio. Graba la frase otra vez.")
+        ext = os.path.splitext(str(audio.filename or "").lower())[1] or ".webm"
+        contenido = await audio.read(_TOPE_AUDIO + 1)
+    finally:
+        await formulario.close()
     frase = frase.strip()[:ui.LIMITE_FRASE_VOZ]
     if not frase:
         raise _no(422, "Escribe la frase que vas a leer en voz alta.")
-    ext = os.path.splitext(str(audio.filename or "").lower())[1] or ".webm"
     if ext not in _EXT_AUDIO:
         ext = ".webm"
-    contenido = await audio.read(_TOPE_AUDIO + 1)
     if len(contenido) > _TOPE_AUDIO:
         raise _no(413, "La grabación es demasiado larga.")
     if len(contenido) < 800:
