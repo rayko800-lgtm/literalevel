@@ -1100,6 +1100,94 @@ def analizar_natural(frase: str, palabras_objetivo: list[str] | None = None) -> 
     return datos
 
 
+# --- Historial del ritmo (lectura natural, parte 3) --------------------
+# Por frase, lo medido en cada intento: palabras por segundo, pausas de mas y
+# tramos a acelerar, para enseñar si mejora. Nada de audio ni del analisis del
+# modelo, que se regenera desde su cache. Misma base que las palabras dificiles
+# (la del lector); la tabla se crea la primera vez, con la migracion serializada.
+
+def _conectar_ritmo(ruta: str = RUTA_DB_POR_DEFECTO) -> sqlite3.Connection:
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    con = sqlite3.connect(ruta)
+    try:
+        existe = con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='ritmo_intentos'").fetchone()
+        if not existe:
+            con.execute("BEGIN IMMEDIATE")
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS ritmo_intentos (
+                    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                    frase                TEXT NOT NULL,
+                    fecha                TEXT NOT NULL,
+                    palabras_por_segundo REAL,
+                    pausas_de_mas        INTEGER NOT NULL DEFAULT 0,
+                    tramos_a_acelerar    INTEGER NOT NULL DEFAULT 0
+                )
+            """)
+            con.execute("CREATE INDEX IF NOT EXISTS ritmo_intentos_frase ON ritmo_intentos (frase, fecha)")
+            con.commit()
+    except BaseException:
+        con.close()
+        raise
+    return con
+
+
+def _resumen_ritmo(ritmo: dict) -> tuple[float | None, int, int]:
+    """(palabras por segundo de todo el intento, pausas de mas, tramos a acelerar)."""
+    palabras = ritmo.get("palabras") or []
+    velocidad = None
+    if len(palabras) >= 2:
+        duracion = float(palabras[-1]["fin"]) - float(palabras[0]["inicio"])
+        if duracion > 0:
+            velocidad = round(len(palabras) / duracion, 2)
+    pausas = sum(1 for x in ritmo.get("pausas") or [] if x.get("de_mas"))
+    tramos = sum(1 for x in ritmo.get("tramos") or [] if x.get("acelerar"))
+    return velocidad, pausas, tramos
+
+
+def registrar_ritmo(ritmo: dict | None, frase: str, ruta: str = RUTA_DB_POR_DEFECTO) -> None:
+    """Guarda lo medido en un intento. Sin medicion (sin clave, sin marcas) no se
+    guarda nada: seria un intento vacio. Nunca lanza, como `registrar_fallos`."""
+    frase = str(frase or "").strip()[:400]
+    if not ritmo or not ritmo.get("medido") or not frase:
+        return
+    try:
+        velocidad, pausas, tramos = _resumen_ritmo(ritmo)
+        con = _conectar_ritmo(ruta)
+        try:
+            with con:
+                con.execute("INSERT INTO ritmo_intentos (frase, fecha, palabras_por_segundo, pausas_de_mas, "
+                            "tramos_a_acelerar) VALUES (?, ?, ?, ?, ?)",
+                            (frase, _ahora(), velocidad, pausas, tramos))
+        finally:
+            con.close()
+    except Exception:
+        pass
+
+
+def evolucion_ritmo(frase: str, n: int = 10, ruta: str = RUTA_DB_POR_DEFECTO) -> list[dict]:
+    """Los ultimos `n` intentos medidos de esa frase, del mas antiguo al mas
+    reciente: [{"fecha", "palabras_por_segundo", "pausas_de_mas", "tramos_a_acelerar"}].
+    Lista vacia sin historial; si lo hay y no se puede leer, `HistorialIlegible`."""
+    frase = str(frase or "").strip()[:400]
+    if not frase or not os.path.exists(ruta):
+        return []
+    try:
+        con = _conectar_ritmo(ruta)
+        try:
+            filas = con.execute(
+                "SELECT fecha, palabras_por_segundo, pausas_de_mas, tramos_a_acelerar FROM ritmo_intentos "
+                "WHERE frase = ? ORDER BY fecha DESC, id DESC LIMIT ?", (frase, max(0, int(n)))).fetchall()
+        finally:
+            con.close()
+    except Exception as e:
+        raise HistorialIlegible(
+            "No he podido leer tu historial de pronunciación ahora mismo "
+            f"({type(e).__name__}). Vuelve a intentarlo en un momento.") from e
+    return [{"fecha": f, "palabras_por_segundo": v, "pausas_de_mas": p, "tramos_a_acelerar": tr}
+            for f, v, p, tr in reversed(filas)]
+
+
 @dataclass
 class SesionVoz:
     evaluacion: Evaluacion
@@ -1196,6 +1284,10 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
         natural["audio_natural"] = (audio_correcto if texto_natural.strip() == frase_objetivo.strip()
                                     else generar_audio_correcto(texto_natural))
         ritmo["natural"] = natural
+    # Como los fallos: con guardar_fallos, practicar guarda el intento; la API y
+    # Gradio lo llaman con False y guardan ellos, en la base de su lector.
+    if guardar_fallos:
+        registrar_ritmo(ritmo, frase_objetivo)
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
                      audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None,
                      audios_palabras=audios, ritmo=ritmo)

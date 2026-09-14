@@ -277,6 +277,67 @@ class Natural(unittest.TestCase):
         self.assertIn("0:i 1:would 2:like", numeradas.lower(), "el modelo recibe las posiciones")
 
 
+class HistorialRitmo(unittest.TestCase):
+    """Parte 3: lo medido en cada intento, por frase, en la base del lector."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="literalevel_historial_ritmo_")
+        self.addCleanup(self.tmp.cleanup)
+        self.carpeta = Path(self.tmp.name)
+        self.db = str(self.carpeta / "voz.db")
+        self.medido = voz.medir_ritmo(voz.evaluar_pronunciacion(FRASE, FRASE), como_dict(LECTOR),
+                                      como_dict(REFERENCIA), 1.0)
+
+    def test_sin_medicion_no_se_guarda_nada(self):
+        for ritmo in (None, {"medido": False, "palabras": [], "pausas": [], "tramos": []}):
+            voz.registrar_ritmo(ritmo, FRASE, ruta=self.db)
+        voz.registrar_ritmo(self.medido, "   ", ruta=self.db)
+        self.assertEqual(voz.evolucion_ritmo(FRASE, ruta=self.db), [])
+
+    def test_un_intento_medido_guarda_velocidad_pausas_y_tramos(self):
+        voz.registrar_ritmo(self.medido, FRASE, ruta=self.db)
+        filas = voz.evolucion_ritmo(FRASE, ruta=self.db)
+        self.assertEqual(len(filas), 1)
+        # 8 palabras de 0,00 a 3,32 s; una pausa de mas; los dos tramos por debajo del 90 %.
+        self.assertEqual((filas[0]["palabras_por_segundo"], filas[0]["pausas_de_mas"],
+                          filas[0]["tramos_a_acelerar"]), (2.41, 1, 2))
+        self.assertTrue(filas[0]["fecha"])
+
+    def test_evolucion_del_mas_antiguo_al_mas_reciente_por_frase_y_con_tope(self):
+        for pausas in (3, 2, 1):
+            ritmo = {**self.medido, "pausas": [{"de_mas": True}] * pausas}
+            voz.registrar_ritmo(ritmo, FRASE, ruta=self.db)
+        voz.registrar_ritmo(self.medido, "Another sentence entirely", ruta=self.db)
+        self.assertEqual([f["pausas_de_mas"] for f in voz.evolucion_ritmo(FRASE, ruta=self.db)], [3, 2, 1])
+        self.assertEqual([f["pausas_de_mas"] for f in voz.evolucion_ritmo(FRASE, n=2, ruta=self.db)], [2, 1],
+                         "los dos ultimos, en orden")
+        self.assertEqual(len(voz.evolucion_ritmo("Another sentence entirely", ruta=self.db)), 1)
+
+    def test_sin_base_vacio_y_base_ilegible_avisa(self):
+        self.assertEqual(voz.evolucion_ritmo(FRASE, ruta=str(self.carpeta / "no" / "existe.db")), [])
+        self.assertFalse((self.carpeta / "no").exists(), "leer sin historial no crea carpetas")
+        rota = self.carpeta / "rota.db"
+        rota.write_bytes(b"esto no es una base de datos sqlite " * 50)
+        with self.assertRaises(voz.HistorialIlegible):
+            voz.evolucion_ritmo(FRASE, ruta=str(rota))
+        voz.registrar_ritmo(self.medido, FRASE, ruta=str(rota))  # no lanza
+
+    def test_practicar_guarda_el_intento_solo_con_guardar_fallos(self):
+        grabacion = self.carpeta / "lector.webm"
+        grabacion.write_bytes(b"audio del lector")
+        cliente, llamadas = ClienteSimulado(), []
+        with mock.patch.object(voz, "RUTA_AUDIO_GENERADO", self.carpeta / "audio"), \
+             mock.patch.object(voz, "_cliente", lambda: cliente), \
+             mock.patch.object(voz, "registrar_fallos", lambda *a, **k: None), \
+             mock.patch.object(voz, "registrar_ritmo", lambda ritmo, frase, *a, **k: llamadas.append((ritmo, frase))):
+            voz.practicar(str(grabacion), FRASE, guardar_fallos=False, nivel=1.0)
+            self.assertEqual(llamadas, [])
+            s = voz.practicar(str(grabacion), FRASE, guardar_fallos=True, nivel=1.0)
+        self.assertEqual(len(llamadas), 1)
+        self.assertIs(llamadas[0][0], s.ritmo)
+        self.assertEqual(llamadas[0][1], FRASE)
+
+
 class TranscribirConTiempos(unittest.TestCase):
     def test_lee_objetos_o_diccionarios_y_salta_marcas_rotas(self):
         respuesta = {"text": "hi there", "duration": 1.2,
