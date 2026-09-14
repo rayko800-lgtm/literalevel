@@ -51,6 +51,24 @@
 .palabras-voz .bien { border-bottom-color: var(--verde); }
 .palabras-voz .mal { background: var(--rojo-suave); border-bottom-color: var(--rojo); font-weight: 650; }
 .leyenda { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin: 0; }
+/* Lectura natural (ritmo de entrega-4e): énfasis, enlaces y dónde acelerar o no parar. */
+.palabras-voz li.enfasis { font-weight: 800; }
+.palabras-voz li.tramo:not(.mal) { background: var(--acento-suave); }
+.palabras-voz li.enlace { padding: 0; margin: 0 -.4rem; border: 0; align-self: flex-end; line-height: 1;
+  color: var(--acento-texto); font-weight: 800; }
+.palabras-voz li.marca { align-self: center; padding: .15em .55em; border: 0; border-radius: 999px;
+  font-size: .75rem; font-weight: 700; letter-spacing: .01em; }
+.palabras-voz li.marca.acelera { background: var(--acento-suave); color: var(--acento-texto); }
+.palabras-voz li.marca.pausa { background: var(--rojo-suave); color: var(--texto); }
+.leyenda .arco { color: var(--acento-texto); font-weight: 800; }
+.natural { display: grid; gap: .5rem; justify-items: start; padding: .9rem 1rem; border-radius: var(--radio);
+  background: var(--superficie-2); }
+.natural h3 { margin: 0; font-size: 1rem; }
+.natural p { margin: 0; }
+.version-natural { font-size: 1.1rem; }
+.reducciones { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+.chip-ia { display: inline-block; margin-left: .3rem; padding: 0 .45em; border-radius: 999px; font-size: .72rem;
+  font-weight: 700; background: var(--superficie-3); color: var(--texto-suave); }
 .muestra { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
 .muestra.bien { background: var(--verde); }
 .muestra.mal { background: var(--rojo); }

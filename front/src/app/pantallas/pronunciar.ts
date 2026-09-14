@@ -10,6 +10,7 @@ import { Icono } from '../compartido/icono';
 import { Boca3d } from '../compartido/boca3d/boca3d';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
 import { CorteEnPantalla, EscucharYVer, PeticionEscuchar } from '../compartido/escuchar-y-ver';
+import { vistaRitmo } from '../compartido/ritmo';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
@@ -90,10 +91,14 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (r.puntuacion >= 70) return 'Bien, con algún detalle';
     return 'Vamos a por ello';
   });
-  /** Solo lo que es una palabra: un signo suelto dejaba un subrayado verde
-   *  sin nada encima en una línea propia. */
-  protected readonly palabrasVisibles = computed(() =>
-    (this.resultado()?.palabras ?? []).filter(w => /\p{L}/u.test(w.palabra)));
+  /** Las palabras de la frase con el ritmo encima (énfasis, enlaces, dónde
+   *  acelerar o no parar) y la versión natural: compartido/ritmo.ts. Solo se
+   *  pintan las que son palabra: un signo suelto dejaba un subrayado verde sin
+   *  nada encima en una línea propia. */
+  protected readonly vista = computed(() => {
+    const r = this.resultado();
+    return r ? vistaRitmo(r.palabras, r.ritmo) : null;
+  });
   protected readonly grupos = computed(() => this.inventarios()[this.acento()]?.grupos ?? null);
   /** La nota propia del acento elegido, si la ficha la trae. */
   protected readonly notaAcento = computed(() => {

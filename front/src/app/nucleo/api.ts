@@ -299,6 +299,34 @@ export interface CorreccionVoz {
   }[];
   audio_correcto: string | null;
   restantes: number | null;
+  /** Lectura natural (contrato de entrega-4e, voz.py 9f5f909). Sus índices son
+   *  posiciones en `palabras` (las palabras de la frase, en orden). */
+  ritmo?: RitmoLectura | null;
+}
+
+/** El ritmo de la lectura. Con `medido` false no hay marcas de tiempo del
+ *  lector: ni «aquí aceleras» ni «aquí sin pausa», que serían adivinadas. */
+export interface RitmoLectura {
+  medido: boolean;
+  duracion_s: number | null;
+  palabras: { palabra: string; inicio: number; fin: number }[];
+  /** `de_mas`: más de 0,35 s donde la referencia no para. */
+  pausas: { despues_de: number; segundos: number; en_referencia: boolean; de_mas: boolean }[];
+  /** `hasta` es inclusivo; `acelerar`, por debajo del objetivo de su nivel. */
+  tramos: { desde: number; hasta: number; palabras_por_segundo: number; referencia: number | null;
+    objetivo: number | null; acelerar: boolean }[];
+  /** null sin análisis (sin clave y nada guardado, o si falla OpenAI). */
+  natural: {
+    enfasis: { indice: number; ipa: string | null }[];
+    /** `a` = `de` + 1; tipo consonante_vocal, vocal_vocal o r_de_enlace. */
+    enlaces: { de: number; a: number; tipo: string; ipa: string | null }[];
+    /** `desde` y `hasta` inclusivos, sin solaparse; formas de una lista conocida. */
+    reducciones: { desde: number; hasta: number; forma: string; ipa: string | null; generado_por_ia: boolean }[];
+    tramos_rapidos: { desde: number; hasta: number }[];
+    version_natural: string;
+    /** URL del mp3 (la API convierte la ruta), o null. */
+    audio_natural: string | null;
+  } | null;
 }
 
 export interface PalabraFallada { palabra: string; fallos: number; ultima_vez: string | null; frase: string | null; }
