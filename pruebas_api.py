@@ -491,6 +491,38 @@ def dudoso_coherente_con_el_aviso_de_lexicon():
     return "provisional -> dudoso; vista previa con explicación en camino -> no"
 
 
+def corte_de_la_boca_en_svg():
+    """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
+    aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
+    from urllib.parse import quote
+    theta = "/api/articulacion/ga/" + quote("θ") + ".svg"
+    r = cliente.get(theta)
+    assert r.status_code == 200, (r.status_code, r.text[:200])
+    assert r.headers["content-type"].startswith("image/svg+xml"), r.headers
+    assert "max-age=2592000" in r.headers["cache-control"], r.headers
+    assert r.headers["x-content-type-options"] == "nosniff", r.headers
+    assert "default-src 'none'" in r.headers["content-security-policy"], r.headers
+    assert r.text.lstrip().startswith("<svg"), r.text[:80]
+    q = cliente.get(theta + "?quieto=1")
+    assert q.status_code == 200 and q.text != r.text, "quieto sale igual que animado"
+    assert cliente.get("/api/articulacion/rp/" + quote("əʊ") + ".svg").status_code == 200
+    assert cliente.get("/api/articulacion/ga/zz.svg").status_code == 404
+    assert cliente.get("/api/articulacion/ga/" + quote("θ") + ".png").status_code == 404
+    assert cliente.get("/api/articulacion/fr/" + quote("θ") + ".svg").status_code == 422
+    p = cliente.get("/api/articulacion/palabra.svg", params={"ipa": "/wɔɹ/", "acento": "ga"})
+    assert p.status_code == 200 and p.headers["content-type"].startswith("image/svg+xml"), p.status_code
+    assert "default-src 'none'" in p.headers["content-security-policy"]
+    assert cliente.get("/api/articulacion/palabra.svg", params={"ipa": "x" * 61}).status_code == 422
+    # Solo IPA: ni una frase cualquiera dibujada en el dominio del Space ni marcas.
+    for raro in ("Visit evil.example NOW", "<b>hola</b>", "wɔɹ 123"):
+        assert cliente.get("/api/articulacion/palabra.svg", params={"ipa": raro}).status_code == 422, raro
+    assert cliente.get("/api/articulacion/palabra.svg", params={"ipa": "/ˈt͡ʃɑːnt/", "acento": "rp"}).status_code == 200
+    assert cliente.get("/api/articulacion/rp/" + quote("iː") + ".svg").status_code == 200
+    # Kaikki escribe paréntesis: «/ˈhæp(ə)n/» no es un texto raro.
+    assert cliente.get("/api/articulacion/palabra.svg", params={"ipa": "/ˈhæp(ə)n/"}).status_code != 422
+    return f"sonido {len(r.text)} B, quieto {len(q.text)} B, palabra {len(p.text)} B"
+
+
 if __name__ == "__main__":
     print("API de LiteraLevel\n")
     for fn in (sin_lector_no_hay_datos, lector_corto_no_vale, perfiles_aislados,
@@ -504,7 +536,7 @@ if __name__ == "__main__":
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
-               dudoso_coherente_con_el_aviso_de_lexicon):
+               dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:

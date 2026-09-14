@@ -32,6 +32,7 @@ Solo la API (lo que usa el proxy de `ng serve`):
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import math
 import os
@@ -41,6 +42,7 @@ import tempfile
 import threading
 import time
 import traceback
+import unicodedata
 import uuid
 from collections import OrderedDict
 from dataclasses import asdict
@@ -54,9 +56,10 @@ if str(APP_DIR) not in sys.path:
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
+from fastapi.responses import FileResponse, JSONResponse, Response  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
+import animacion_articulatoria  # noqa: E402
 import articulacion  # noqa: E402
 import biblioteca  # noqa: E402
 import config  # noqa: E402
@@ -1344,6 +1347,80 @@ def audio_fonema_rp(archivo: str):
 @app.get("/api/fonemas/{archivo}")
 def audio_fonema(archivo: str):
     return _servir_fonema(fonemas.DIR_AUDIO, archivo)
+
+
+# --- El corte de la boca (animacion_articulatoria, entrega-4e) --------------------
+
+_CABECERAS_SVG = {
+    "Cache-Control": "public, max-age=2592000",
+    "X-Content-Type-Options": "nosniff",
+    # Se sirve desde el dominio del Space y la IPA de la palabra la manda el
+    # cliente: aunque alguien abra el SVG suelto, no puede ejecutar ni pedir nada.
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+}
+
+
+@functools.lru_cache(maxsize=512)
+def _svg_corte(clase: str, texto: str, acento: str, quieto: bool) -> str | None:
+    """Generarlo cuesta milisegundos (85 sonidos en 0,11 s): en memoria basta,
+    sin escribir en disco lo que llega en la URL."""
+    if clase == "palabra":
+        return animacion_articulatoria.svg_palabra(texto, acento)
+    f = animacion_articulatoria.svg_articulacion_quieto if quieto else animacion_articulatoria.svg_articulacion
+    return f(texto, acento)
+
+
+# Con paréntesis, ligadura y guion: Kaikki escribe «/ˈhæp(ə)n/».
+_SIGNOS_IPA = set("ˈˌːˑ./[]()‿- ")
+
+
+def _es_ipa(texto: str) -> bool:
+    """Letras minúsculas (las de la IPA son casi todas no ASCII), diacríticos
+    combinados (el ͡ de t͡ʃ) y los signos de la transcripción. Nada más: el
+    módulo pinta escapado lo que no reconoce, y sin esto `?ipa=` cualquier texto
+    salía dibujado en un SVG del dominio del Space (entrega-4e)."""
+    for ch in texto:
+        if ch in _SIGNOS_IPA or unicodedata.category(ch).startswith("M"):
+            continue
+        if not ch.isalpha() or ch.isupper():
+            return False
+    return True
+
+
+@functools.lru_cache(maxsize=4)
+def _simbolos(acento: str) -> frozenset[str]:
+    return frozenset(s.simbolo for s in articulacion.inventario(acento))
+
+
+@app.get("/api/articulacion/palabra.svg")
+def corte_de_palabra(ipa: str = Query(..., min_length=1, max_length=60),
+                     acento: Literal["ga", "rp"] = "ga"):
+    """La boca diciendo la palabra entera, a partir de su IPA. Siempre animada:
+    con «reducir movimiento» el front pide el sonido que falla, quieto.
+
+    60 caracteres, el tope de la IPA que escribe la IA en lexicon: el módulo
+    genera una regla CSS y un <text> por fonema y no tiene tope propio."""
+    ipa = ipa.strip()
+    if not ipa or not _es_ipa(ipa):
+        raise _no(422, "Eso no es una transcripción IPA.")
+    svg = _svg_corte("palabra", ipa, acento, False)
+    if not svg:
+        raise _no(404, "No sé dibujar esa palabra.")
+    return Response(svg, media_type="image/svg+xml", headers=_CABECERAS_SVG)
+
+
+@app.get("/api/articulacion/{acento}/{archivo}")
+def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = False):
+    """Un sonido: /api/articulacion/ga/θ.svg (ciclo de 2,8 s) o ?quieto=1."""
+    simbolo = archivo[:-4] if archivo.endswith(".svg") else ""
+    # FastAPI ya decodificó la URL: «iː» llega entero. Solo el inventario del
+    # acento, antes de construir nada.
+    if simbolo not in _simbolos(acento):
+        raise _no(404, "No existe ese sonido.")
+    svg = _svg_corte("sonido", simbolo, acento, quieto)
+    if not svg:
+        raise _no(404, "No existe ese sonido.")
+    return Response(svg, media_type="image/svg+xml", headers=_CABECERAS_SVG)
 
 
 # --- Punto 5: pronunciacion ------------------------------------------------------
