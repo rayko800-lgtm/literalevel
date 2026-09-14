@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import json
 import math
 import os
 import re
@@ -255,6 +256,42 @@ def _dir_subidos(pet: _Lector) -> Path:
     return ui._dir_lector(pet) / "subidos"
 
 
+def _nombres_subidos(pet: _Lector) -> Path:
+    """{id: nombre con que el lector subió el archivo}. En disco el libro se
+    guarda con su hash, y ese era el título que se veía («d139e28e2c2f7f80.txt»)."""
+    return _dir_subidos(pet) / "nombres.json"
+
+
+def _guardar_nombre_subido(pet: _Lector, ident: str, original: str) -> None:
+    limpio = " ".join("".join(c for c in original if c.isprintable()).split())[:120]
+    if not limpio:
+        return
+    ruta = _nombres_subidos(pet)
+    try:
+        nombres = json.loads(ruta.read_text("utf-8"))
+        if not isinstance(nombres, dict):
+            nombres = {}
+    except (OSError, ValueError):
+        nombres = {}
+    nombres[ident] = limpio
+    try:
+        ruta.write_text(json.dumps(nombres, ensure_ascii=False), "utf-8")
+    except OSError:
+        pass
+
+
+def _titulo_subido(lib: reader.Libro, ident: str, pet: _Lector) -> None:
+    """Pone el nombre original solo si el título que sacó `reader` es el interno:
+    un epub con su propio título lo conserva."""
+    try:
+        nombres = json.loads(_nombres_subidos(pet).read_text("utf-8"))
+    except (OSError, ValueError):
+        return
+    original = nombres.get(ident) if isinstance(nombres, dict) else None
+    if isinstance(original, str) and original and (not lib.titulo or ident[1:] in str(lib.titulo)):
+        lib.titulo_visible = original
+
+
 def _ruta_libro(ident: str, pet: _Lector, descargar: bool = True) -> str | None:
     """La ruta local del libro, descargandolo si hace falta y se permite.
 
@@ -372,7 +409,10 @@ def _abrir(ident: str, pet: _Lector, descargar: bool = True) -> tuple[str, reade
     ruta = _ruta_libro(ident, pet, descargar=descargar)
     if ruta is None:
         raise _no(404, "Ese libro todavía no está abierto en el servidor.")
-    return ruta, _cargar_libro(ruta)
+    lib = _cargar_libro(ruta)
+    if ident.startswith("u"):
+        _titulo_subido(lib, ident, pet)
+    return ruta, lib
 
 
 # Que parte de un capitulo es licencia, creditos o portada y no la obra.
@@ -828,6 +868,7 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
         if archivo is None or isinstance(archivo, str):
             raise _no(422, "No me ha llegado ningún archivo.")
         nombre = str(archivo.filename or "").lower()
+        original = os.path.splitext(os.path.basename(str(archivo.filename or "")))[0]
         ext = os.path.splitext(nombre)[1]
         if ext not in _EXT_LIBRO:
             raise _no(415, "Sube un .epub, un .pdf o un .txt.")
@@ -852,7 +893,7 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
     carpeta = _dir_subidos(pet)
     carpeta.mkdir(parents=True, exist_ok=True)
     destino = carpeta / f"{ident[1:]}{ext}"
-    if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.is_file()) >= _MAX_SUBIDOS:
+    if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
         raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Quita alguno de «Mis libros» para subir otro.")
     if not destino.exists():
         destino.write_bytes(b"".join(trozos))
@@ -861,6 +902,8 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
     except HTTPException:
         destino.unlink(missing_ok=True)
         raise
+    _guardar_nombre_subido(pet, ident, original)
+    _titulo_subido(lib, ident, pet)
     return _libro_json(ident, lib, pet)
 
 
@@ -1276,8 +1319,11 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         cuaderno.registrar(
             palabra=r.palabra_superficie, lema=r.lema_buscado or r.lema, oracion=oracion,
             categoria=r.categoria, sentido=r.sentido,
-            libro=(getattr(lib, "titulo_visible", None) if lib is not None else None),
-            capitulo=(idx + 1 if idx is not None else None),
+            # Libro y capítulo solo si la frase salió del capítulo: una palabra
+            # escrita a mano («war-chant») se guardaba como de «Alice…, cap. 2»
+            # con la frase «war-chant» (f4, prueba final).
+            libro=(getattr(lib, "titulo_visible", None) if lib is not None and origen == "capitulo" else None),
+            capitulo=(idx + 1 if idx is not None and origen == "capitulo" else None),
             banda=r.banda_lector, zipf=r.frecuencia_zipf,
             ruta=ui._archivo_lector("cuaderno.db", pet))
 

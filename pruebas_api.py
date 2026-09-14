@@ -599,6 +599,39 @@ def palabra_que_falla_solo_devuelve_lo_cobrado():
     return "sin cobro 0 devueltos, con cobro 1"
 
 
+def libro_subido_se_ve_con_su_nombre():
+    """f4: «Estimado con «d139e28e2c2f7f80.txt»», el nombre interno del archivo."""
+    texto = ("The lighthouse keeper watched the storm roll over the bay. " * 50 + "\n\n") * 3
+    lector = nuevo_lector()
+    d = _ok(cliente.post("/api/libros", headers=lector,
+                         files={"archivo": ("Mi novela favorita.txt", texto.encode(), "text/plain")}))
+    assert d["titulo"] == "Mi novela favorita", d["titulo"]
+    # Sin la caché de memoria: volver a abrirlo tiene que leer el nombre guardado,
+    # no reutilizar el objeto que la subida ya dejó con el título puesto.
+    api._LIBROS.clear()
+    otra_vez = _ok(cliente.get(f"/api/libros/{d['id']}", headers=lector))
+    assert otra_vez["titulo"] == "Mi novela favorita", otra_vez["titulo"]
+    return d["titulo"]
+
+
+def palabra_escrita_no_se_atribuye_al_libro():
+    """f4: «war-chant» escrita en «Consultar otra palabra» quedaba en el cuaderno
+    como de «Alice…, cap. 2» con la frase «war-chant»."""
+    lector = nuevo_lector()
+    caps = _ok(cliente.get(f"/api/libros/{LIBRE}", headers=lector))
+    base = {"libro_id": LIBRE, "capitulo": caps["inicial"], "etapa": "completa"}
+    _ok(cliente.post("/api/palabra", headers=lector, json={**base, "palabra": "xylophone"}))
+    _ok(cliente.post("/api/palabra", headers=lector, json={**base, "palabra": "raincoat"}))
+    entradas = {e["palabra"].lower(): e for e in _ok(cliente.get("/api/cuaderno", headers=lector))["entradas"]}
+    assert {"xylophone", "raincoat"} <= set(entradas), list(entradas)
+    fuera = entradas["xylophone"]
+    assert fuera["libro"] is None and fuera["capitulo"] is None, fuera
+    # La que sí sale del capítulo conserva su libro: el arreglo no borra lo bueno.
+    dentro = entradas["raincoat"]
+    assert dentro["libro"] and dentro["capitulo"], dentro
+    return f"escrita sin libro; «raincoat» en {dentro['libro']}, cap. {dentro['capitulo']}"
+
+
 def corte_de_la_boca_en_svg():
     """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
     aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
@@ -646,7 +679,8 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
-               topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado):
+               topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
+               libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro):
         prueba(fn.__name__.replace("_", " "), fn)
     print(f"\n{HECHAS - len(FALLOS)} de {HECHAS} bien")
     if FALLOS:
