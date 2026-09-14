@@ -1486,6 +1486,12 @@ if URL_MODELO.strip():
         # abajo y no el registro.
         import huggingface_hub.utils.logging as _registro_hub
         _registro_hub.set_verbosity_error()
+        # Lo mismo con la barra «Loading weights 0/105 … 105/105» de transformers,
+        # que también va a stderr y en Colab sale en rojo como si fuera un fallo.
+        # Comprobado: con estas dos llamadas stderr queda vacío y la carga no cambia.
+        import transformers
+        transformers.utils.logging.set_verbosity_error()
+        transformers.utils.logging.disable_progress_bar()
 
         tokenizador_v4 = AutoTokenizer.from_pretrained(URL_MODELO)
         modelo_v4 = AutoModelForSequenceClassification.from_pretrained(URL_MODELO)
@@ -1986,6 +1992,8 @@ faltan = [(n, u) for n, u, h in MANIFIESTO_BC if h not in presentes]
 
 print(f"{len(presentes)}/{len(MANIFIESTO_BC)} PDF verificados byte a byte en {CORPUS_BC}/")
 if faltan:
+    print("Es a propósito: el material de British Council tiene derechos y no se redistribuye; "
+          "se reconstruye con su manifiesto de hashes (entrega/corpus_bc_manifiesto.csv).")
     print(f"Faltan {len(faltan)}. Ábralos en el navegador y súbalos a {CORPUS_BC}/. "
           f"Los cinco primeros:")
     for n, u in faltan[:5]:
@@ -2094,27 +2102,80 @@ def _ic_bootstrap(d, col, n=2000, semilla=20260912):
             vals.append(_spearman(m[col], m["nivel"]))
     return np.percentile(vals, [2.5, 97.5])
 
-filas_graduadas = []
-for fuente in ("storyweaver", "african_storybook", "letsread"):
-    ruta = RAIZ / "auditoria" / f"validacion_graduados_puntuaciones_{fuente}.csv"
-    if not ruta.exists():
-        print(f"(no está {ruta.name}: se genera con validar_graduados.py --fuente {fuente})")
-        continue
-    d = pd.read_csv(ruta)
+# Las cifras, tal como las guardó `validar_graduados.py` en
+# auditoria/validacion_graduados_puntuaciones_{fuente}.json («todas las
+# unidades»). Van escritas aquí porque las puntuaciones por texto no viajan con
+# el cuadernillo: en un Colab limpio no existen. Son las mismas del documento.
+GRADUADOS = [
+    {"Fuente": "StoryWeaver (1-4)", "Unidades": 467,
+     "Spearman v4 [IC 95 %]": "0.426 [0.348; 0.502]", "Spearman longitud": "0.542",
+     "v4 sin la longitud [IC 95 %]": "0.206 [0.111; 0.295]",
+     "Medias por nivel": "0.55 · 0.69 · 0.89 · 1.01", "Medias crecientes al remuestrear": "99.6 %"},
+    {"Fuente": "African Storybook (1-5)", "Unidades": 174,
+     "Spearman v4 [IC 95 %]": "0.416 [0.279; 0.537]", "Spearman longitud": "0.810",
+     "v4 sin la longitud [IC 95 %]": "0.133 [-0.029; 0.289]",
+     "Medias por nivel": "0.32 · 0.32 · 0.40 · 0.49 · 0.60", "Medias crecientes al remuestrear": "54.2 %"},
+    {"Fuente": "Let's Read (1-5)", "Unidades": 1000,
+     "Spearman v4 [IC 95 %]": "0.178 [0.118; 0.235]", "Spearman longitud": "0.620",
+     "v4 sin la longitud [IC 95 %]": "-0.083 [-0.144; -0.026]",
+     "Medias por nivel": "0.63 · 0.58 · 0.66 · 0.72 · 0.75", "Medias crecientes al remuestrear": "1.8 %"},
+]
+
+def _parcial(mod, lon, niv):
+    s_mod, s_lon, s_ml = _spearman(mod, niv), _spearman(lon, niv), _spearman(mod, lon)
+    den = (1 - s_ml ** 2) * (1 - s_lon ** 2)
+    return s_mod, s_lon, ((s_mod - s_ml * s_lon) / np.sqrt(den) if den > 0 else float("nan"))
+
+def _recalcular(d, semilla=20260912, remuestreos=2000):
+    """El mismo cálculo que `validar_graduados.metricas`, en el mismo orden de
+    números aleatorios: primero 1.000 remuestreos por nivel para la media y
+    después los de Spearman. Con otro orden salen intervalos que difieren en
+    la tercera cifra decimal."""
     d = d[d["puntuacion"].notna() & d["nivel"].notna()].copy()
-    d["nivel"] = d["nivel"].astype(int)
+    d["ordinal"] = d["nivel"].astype(int)
     d["longitud"] = np.where(d["tipo"] == "bloque", d["palabras"] / d["n_textos"].clip(lower=1),
                              d["palabras"])
-    rho = _spearman(d["puntuacion"], d["nivel"])
-    lo, hi = _ic_bootstrap(d, "puntuacion")
-    medias = d.groupby("nivel")["puntuacion"].mean().round(3).tolist()
-    filas_graduadas.append({
-        "Fuente": fuente, "Unidades": len(d),
-        "Spearman v4 [IC 95 %]": f"{rho:.3f} [{lo:.3f}; {hi:.3f}]",
-        "Spearman longitud": f"{_spearman(d['longitud'], d['nivel']):.3f}",
-        "Medias por nivel": " < ".join(f"{m:.2f}" for m in medias),
-    })
-print(pd.DataFrame(filas_graduadas).to_string(index=False))
+    rng = np.random.default_rng(semilla)
+    medias = []
+    for _, g in d.groupby("ordinal"):
+        v = g["puntuacion"].to_numpy()
+        [rng.choice(v, len(v)).mean() for _ in range(1000)]
+        medias.append(v.mean())
+    s_mod, s_lon, parcial = _parcial(d["puntuacion"], d["longitud"], d["ordinal"])
+    niveles, idx = d["ordinal"].nunique(), np.arange(len(d))
+    boot_s, boot_p, crecientes = [], [], 0
+    for _ in range(remuestreos):
+        m = d.iloc[rng.choice(idx, len(idx))]
+        if m["ordinal"].nunique() < niveles:
+            continue
+        s, _, pa = _parcial(m["puntuacion"], m["longitud"], m["ordinal"])
+        boot_s.append(s)
+        boot_p.append(pa)
+        mm = m.groupby("ordinal")["puntuacion"].mean().to_numpy()
+        crecientes += all(a < b for a, b in zip(mm, mm[1:]))
+    ls, hs = np.nanpercentile(boot_s, [2.5, 97.5])
+    lp, hp = np.nanpercentile(boot_p, [2.5, 97.5])
+    return {"Unidades": len(d),
+            "Spearman v4 [IC 95 %]": f"{s_mod:.3f} [{ls:.3f}; {hs:.3f}]",
+            "Spearman longitud": f"{s_lon:.3f}",
+            "v4 sin la longitud [IC 95 %]": f"{parcial:.3f} [{lp:.3f}; {hp:.3f}]",
+            "Medias por nivel": " · ".join(f"{m:.2f}" for m in medias),
+            "Medias crecientes al remuestrear": f"{100 * crecientes / max(1, len(boot_s)):.1f} %"}
+
+# Si el cuadernillo corre dentro del repositorio, se recalcula desde los CSV y
+# se comprueba contra lo escrito arriba. En un Colab limpio no están, y vale la tabla.
+carpeta = next((p for p in (Path("auditoria"), Path("..") / "auditoria")
+                if (p / "validacion_graduados_puntuaciones_storyweaver.csv").exists()), None)
+if carpeta is None:
+    print("Cifras guardadas por validar_graduados.py (las puntuaciones por texto no viajan con el cuadernillo):")
+else:
+    for fila, fuente in zip(GRADUADOS, ("storyweaver", "african_storybook", "letsread")):
+        nueva = _recalcular(pd.read_csv(carpeta / f"validacion_graduados_puntuaciones_{fuente}.csv"))
+        distintas = [k for k, v in nueva.items() if str(fila[k]) != str(v)]
+        print(f"{fila['Fuente']}: recalculado desde el CSV, "
+              + ("coincide con la tabla." if not distintas else f"NO coincide en {distintas}: {nueva}"))
+    print()
+print(pd.DataFrame(GRADUADOS).to_string(index=False))
 
 # %% [markdown]
 # Cómo leerlo, y qué **no** se puede decir:
