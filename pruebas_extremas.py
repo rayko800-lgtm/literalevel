@@ -5140,6 +5140,66 @@ prueba("la ip no se inventa y el freno va tambien por usuario",
        _la_ip_no_se_inventa_y_el_freno_va_tambien_por_usuario)
 
 
+def _un_epub_que_se_descomprime_a_gigas_no_se_abre():
+    """Revision de api.py en 2a49bf2, hallazgo 2: el tope de subida mide el zip
+    comprimido y `reader` descomprimia sin mirar. Sin crear una bomba de verdad:
+    se baja el tope a 64 KB y se prueba con un zip de pocos KB."""
+    import zipfile
+    r = ui.reader
+    opf = ('<package><metadata><dc:title>Prueba</dc:title></metadata>'
+           '<manifest><item id="c1" href="c1.xhtml"/></manifest>'
+           '<spine><itemref idref="c1"/></spine></package>')
+
+    def epub(ruta, cuerpo: bytes):
+        with zipfile.ZipFile(ruta, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("content.opf", opf)
+            z.writestr("c1.xhtml", cuerpo)
+
+    def no_abre(ruta, motivo):
+        try:
+            r.cargar(str(ruta))
+        except ValueError as e:
+            return str(e)
+        raise AssertionError(f"se abrio {motivo}")
+
+    viejo = r.MAX_DESCOMPRIMIDO_EPUB
+    try:
+        r.MAX_DESCOMPRIMIDO_EPUB = 64 * 1024
+        normal = TMP / "epub_normal.epub"
+        epub(normal, ("<p>" + "word " * 2000 + "</p>").encode())
+        assert r.cargar(str(normal)).capitulos, "un epub normal ya no se abre"
+
+        grande = TMP / "epub_grande.epub"
+        epub(grande, b"<p>" + b"a " * 200_000 + b"</p>")
+        assert grande.stat().st_size < 10_000, grande.stat().st_size
+        mensaje = no_abre(grande, "un epub que declara 400 KB con tope de 64 KB")
+        assert "MB" in mensaje, mensaje
+
+        # El tamaño declarado miente (100 bytes): manda lo que de verdad sale.
+        mentira = TMP / "epub_mentira.epub"
+        epub(mentira, b"<p>" + b"a " * 200_000 + b"</p>")
+        datos = bytearray(mentira.read_bytes())
+        nombre = b"c1.xhtml"
+        for firma, campo_tam, campo_nombre, inicio_nombre in ((b"PK\x03\x04", 22, 26, 30),
+                                                              (b"PK\x01\x02", 24, 28, 46)):
+            i = datos.find(firma)
+            while i != -1:
+                largo = int.from_bytes(datos[i + campo_nombre:i + campo_nombre + 2], "little")
+                if bytes(datos[i + inicio_nombre:i + inicio_nombre + largo]) == nombre:
+                    datos[i + campo_tam:i + campo_tam + 4] = (100).to_bytes(4, "little")
+                i = datos.find(firma, i + 4)
+        mentira.write_bytes(bytes(datos))
+        assert ui.reader.zipfile.ZipFile(mentira).getinfo("c1.xhtml").file_size == 100
+        no_abre(mentira, "un epub que miente sobre su tamaño")
+    finally:
+        r.MAX_DESCOMPRIMIDO_EPUB = viejo
+    return "tope por lo declarado y por lo leido de verdad"
+
+
+prueba("un epub que se descomprime a gigas no se abre",
+       _un_epub_que_se_descomprime_a_gigas_no_se_abre)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 

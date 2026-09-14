@@ -130,16 +130,53 @@ def _clave_natural(nombre: str):
                  for t in _TROZO_NUM.split(nombre) if t != "")
 
 
+# Tope de lo que se DESCOMPRIME de un epub, sumando todo lo que se lee (el OPF
+# y los xhtml del spine; las imagenes no se leen). Un epub es un zip, y el tope
+# de subida de 20 MB mide el archivo comprimido: un zip de 20 MB con texto
+# repetido se abre a varios GB, y `z.read` los cargaba enteros en memoria
+# (revision de api.py en 2a49bf2, hallazgo 2). Una novela larga en xhtml son
+# unos pocos MB; 100 MB deja margen de sobra.
+MAX_DESCOMPRIMIDO_EPUB = 100 * 1024 * 1024
+
+
+def _leer_entrada(z: zipfile.ZipFile, nombre: str, gastado: list[int]) -> bytes:
+    """Una entrada del zip, sin pasar nunca de `MAX_DESCOMPRIMIDO_EPUB` en total.
+
+    Dos comprobaciones, porque el tamaño que declara el zip se puede falsear:
+    la declarada, para fallar pronto con un mensaje claro, y la REAL, leyendo
+    como mucho lo que queda de tope mas un byte. `gastado` es un contador
+    compartido entre entradas (una lista de un elemento).
+    """
+    queda = MAX_DESCOMPRIMIDO_EPUB - gastado[0]
+    try:
+        info = z.getinfo(nombre)
+        if info.file_size > queda:
+            raise ValueError(
+                f"El epub se descomprime a más de {MAX_DESCOMPRIMIDO_EPUB // (1024 * 1024)} MB "
+                "de texto: no parece un libro, y no se abre.")
+        with z.open(info) as f:
+            datos = f.read(queda + 1)
+    except zipfile.BadZipFile as e:
+        raise ValueError("El epub está dañado y no se puede abrir.") from e
+    if len(datos) > queda:
+        raise ValueError(
+            f"El epub se descomprime a más de {MAX_DESCOMPRIMIDO_EPUB // (1024 * 1024)} MB "
+            "de texto: no parece un libro, y no se abre.")
+    gastado[0] += len(datos)
+    return datos
+
+
 def _leer_epub(ruta: str) -> Libro:
     with zipfile.ZipFile(ruta) as z:
         nombres = z.namelist()
+        gastado = [0]
 
         # El OPF declara metadatos y el orden de lectura (spine).
         opf = next((n for n in nombres if n.endswith(".opf")), None)
         titulo = autor = ""
         orden: list[str] = []
         if opf:
-            xml = z.read(opf).decode("utf-8", "replace")
+            xml = _leer_entrada(z, opf, gastado).decode("utf-8", "replace")
             base = os.path.dirname(opf)
             m = re.search(r"(?is)<dc:title[^>]*>(.*?)</dc:title>", xml)
             if m:
@@ -175,7 +212,7 @@ def _leer_epub(ruta: str) -> Libro:
 
         capitulos = []
         for n in orden:
-            bruto = z.read(n).decode("utf-8", "replace")
+            bruto = _leer_entrada(z, n, gastado).decode("utf-8", "replace")
             texto = _limpiar_html(bruto)
             if len(texto.split()) < 50:       # portadas, creditos, paginas vacias
                 continue
