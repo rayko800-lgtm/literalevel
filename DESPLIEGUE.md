@@ -239,6 +239,8 @@ Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás prepara
 
 | `5de9ab4` | `app/ui.py`, `app/voz.py`, `app/articulacion.py` y el módulo nuevo `app/animacion_articulatoria.py` | 4e, `05783c0` (animaciones 2D) | 85 SVG de la tabla en `/config`, servidos desde `/data/articulacion_svg/` como `image/svg+xml`; la voz de un compuesto ya solo detalla la pieza que falla |
 
+| `bdc0b8d` | `app/api.py` | e6, `edbcd01` | `/api/articulacion/{ga,rp}/{símbolo}.svg` y `palabra.svg` dan 200 `image/svg+xml` con caché de 30 días y `nosniff`; fuera de inventario 404; IPA inválida 422 |
+
 `app/animacion_articulatoria.py` llegó en `87f1435`, antes de la base desplegada, y
 **nunca se había subido**: un despliegue que solo compara commits no lo habría visto. Se
 fuerza con `SUBIR_TAMBIEN`. Las animaciones solo existen en `ui.py`: mientras
