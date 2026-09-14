@@ -478,8 +478,62 @@ export class Lector implements OnDestroy {
     }
   }
 
+  // --- Hojas inferiores: cerrar desde abajo (investigacion/una_mano.md §2.2) --------
+
+  /** Arrastrar el asa: hacia abajo cierra, hacia arriba expande la hoja. */
+  private arrastre: { y: number; hoja: HTMLElement; cerrar: () => void } | null = null;
+  protected readonly hojaExpandida = signal(false);
+
+  /** Al abrir el índice, el capítulo actual a la vista; al cerrarlo, la hoja vuelve a media altura. */
+  private readonly alAbrirIndice = effect(() => {
+    if (this.indiceAbierto()) {
+      setTimeout(() => document.querySelector('.lista-indice a.actual')?.scrollIntoView({ block: 'center' }), 0);
+    } else {
+      this.hojaExpandida.set(false);
+    }
+  });
+
+  protected empezarArrastre(ev: PointerEvent, cual: 'palabra' | 'indice'): void {
+    const hoja = (ev.currentTarget as HTMLElement).closest('aside') as HTMLElement | null;
+    if (!hoja) return;
+    this.arrastre = {
+      y: ev.clientY, hoja,
+      cerrar: cual === 'palabra' ? () => this.cerrarPalabra() : () => this.indiceAbierto.set(false),
+    };
+    hoja.style.transition = 'none';
+  }
+
+  @HostListener('document:pointermove', ['$event'])
+  protected moverArrastre(ev: PointerEvent): void {
+    const a = this.arrastre;
+    if (!a) return;
+    const dy = ev.clientY - a.y;
+    a.hoja.style.transform = dy > 0 ? `translateY(${dy}px)` : '';
+  }
+
+  @HostListener('document:pointerup', ['$event'])
+  protected soltarArrastre(ev: PointerEvent): void {
+    const a = this.arrastre;
+    if (!a) return;
+    this.arrastre = null;
+    a.hoja.style.transition = '';
+    a.hoja.style.transform = '';
+    const dy = ev.clientY - a.y;
+    if (dy > 80) a.cerrar();
+    else if (dy < -40) this.hojaExpandida.set(true);
+  }
+
+  @HostListener('document:pointercancel')
+  protected cancelarArrastre(): void {
+    if (!this.arrastre) return;
+    this.arrastre.hoja.style.transition = '';
+    this.arrastre.hoja.style.transform = '';
+    this.arrastre = null;
+  }
+
   protected cerrarPalabra(): void {
     this.consulta++;
+    this.hojaExpandida.set(false);
     this.panelAbierto.set(false);
     this.palabra.set(null);
     this.consultada.set('');

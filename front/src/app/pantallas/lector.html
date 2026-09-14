@@ -173,8 +173,9 @@
 
   @if (panelAbierto()) {
     <div class="velo-palabra" (click)="cerrarPalabra()"></div>
-    <aside class="panel-palabra" role="dialog" aria-label="Significado de la palabra">
-      <div class="asa" aria-hidden="true"></div>
+    <aside class="panel-palabra" role="dialog" aria-label="Significado de la palabra" [class.expandida]="hojaExpandida()">
+      <!-- Arrastrar hacia abajo cierra; hacia arriba, la hoja crece. -->
+      <div class="asa" aria-hidden="true" (pointerdown)="empezarArrastre($event, 'palabra')"><span></span></div>
       <header class="cab-palabra">
         <div>
           <h2 lang="en">{{ palabra()?.palabra || consultada() }}</h2>
@@ -301,19 +302,24 @@
         }
       }
 
-      <form class="otra" (ngSubmit)="consultarEscrita()">
-        <label class="oculto-visual" for="otra-palabra">Consultar otra palabra</label>
-        <input id="otra-palabra" name="otra" class="entrada" [(ngModel)]="otraPalabra" placeholder="Escribe otra palabra"
-               autocapitalize="none" autocomplete="off" maxlength="40" lang="en">
-        <button class="boton pequeno" type="submit">Consultar</button>
-      </form>
+      <!-- El pie, fijo abajo: cerrar al alcance del pulgar (la X de arriba queda de duplicado). -->
+      <footer class="pie-hoja">
+        <button type="button" class="boton secundario cerrar-abajo" (click)="cerrarPalabra()">Cerrar</button>
+        <form class="otra" (ngSubmit)="consultarEscrita()">
+          <label class="oculto-visual" for="otra-palabra">Consultar otra palabra</label>
+          <input id="otra-palabra" name="otra" class="entrada" [(ngModel)]="otraPalabra" placeholder="Otra palabra"
+                 autocapitalize="none" autocomplete="off" maxlength="40" lang="en" enterkeyhint="search">
+          <button class="boton pequeno" type="submit">Consultar</button>
+        </form>
+      </footer>
     </aside>
   }
 </div>
 
 @if (indiceAbierto() && libro(); as l) {
   <div class="velo-indice" (click)="indiceAbierto.set(false)"></div>
-  <aside class="indice" role="dialog" aria-label="Índice del libro">
+  <aside class="indice" role="dialog" aria-label="Índice del libro" [class.expandida]="hojaExpandida()">
+    <div class="asa" aria-hidden="true" (pointerdown)="empezarArrastre($event, 'indice')"><span></span></div>
     <header class="cab-palabra">
       <div>
         <h2>Índice</h2>
@@ -333,5 +339,8 @@
         </li>
       }
     </ol>
+    <footer class="pie-hoja">
+      <button type="button" class="boton secundario bloque" (click)="indiceAbierto.set(false)">Cerrar el índice</button>
+    </footer>
   </aside>
 }
