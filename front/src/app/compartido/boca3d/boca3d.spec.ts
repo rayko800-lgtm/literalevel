@@ -51,6 +51,18 @@ describe('poseDe', () => {
     expect(poseDe(CATALOGO_PROTOTIPO, 'x')).toBeNull();
   });
 
+  it('encuentra los diptongos tal cual (la «a» de «aɪ» no se cambia por «æ») y una «a» suelta cae en /æ/', () => {
+    const con_diptongos = {
+      ...CATALOGO_PROTOTIPO,
+      sonidos: { ...POSES_PROTOTIPO, 'aɪ': { ...POSES_PROTOTIPO['ɑ'], movimiento: 'diptongo' as const, hacia: POSES_PROTOTIPO['i'] },
+                 'oʊ': POSES_PROTOTIPO['ɑ'], 'æ': POSES_PROTOTIPO['i'] },
+    };
+    expect(poseDe(con_diptongos, 'aɪ')?.movimiento).toBe('diptongo');
+    expect(poseDe(con_diptongos, 'oʊ')).toBe(POSES_PROTOTIPO['ɑ']);
+    expect(poseDe(con_diptongos, 'a')).toBe(POSES_PROTOTIPO['i']);          // «a» suelta → /æ/
+    expect(cicloSonido(poseDe(con_diptongos, 'aɪ')!, con_diptongos).claves.length).toBe(8);
+  });
+
   it('acepta los símbolos del inventario británico de la API: «iː» y «ɑː» caen en /i/ y /ɑ/', () => {
     expect(poseDe(CATALOGO_PROTOTIPO, 'iː', 'rp')).toBe(POSES_PROTOTIPO['i']);
     expect(poseDe(CATALOGO_PROTOTIPO, 'ɑː', 'rp')).toBe(POSES_PROTOTIPO['ɑ']);

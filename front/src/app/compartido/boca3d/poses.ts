@@ -109,7 +109,8 @@ export function poseDe(catalogo: CatalogoPoses, simbolo: string, acento: 'ga' | 
   const s = normalizarSimbolo(simbolo.normalize('NFC').trim().replace(/^\/|\/$/g, ''), acento);
   if (!s) return catalogo.reposo;
   if (acento === 'rp' && catalogo.rp?.[s]) return catalogo.rp[s];
-  return catalogo.sonidos[s] ?? catalogo.sonidos[s.replace(/ː/g, '')] ?? null;
+  const corto = s.replace(/ː/g, '');
+  return catalogo.sonidos[s] ?? catalogo.sonidos[corto] ?? catalogo.sonidos[PARECIDOS[corto] ?? ''] ?? null;
 }
 
 /** Rellena los campos libres de `pose` con los del vecino (una vocal, o el
@@ -140,9 +141,12 @@ export interface Segmento {
 }
 
 const NO_SIGNIFICA = new Set([...'/[]()«»“”"`.‿ -', ...'̯̩͜͡ʰ̠̟̥̪̚ˑ']);
-const EQUIVALENTES: Record<string, string> = {
-  g: 'ɡ', r: 'ɹ', ':': 'ː', ʧ: 'tʃ', ʤ: 'dʒ', ɫ: 'l', ɾ: 't', ʔ: 't', ɐ: 'ʌ', e: 'ɛ', o: 'oʊ', a: 'æ',
-};
+/** Grafías que nunca forman parte de una clave del catálogo: se cambian
+ *  carácter a carácter. Nada de vocales aquí: «a» sí forma parte de «aɪ». */
+const EQUIVALENTES: Record<string, string> = { g: 'ɡ', r: 'ɹ', ':': 'ː', ʧ: 'tʃ', ʤ: 'dʒ' };
+/** Símbolos sueltos que no están en la tabla y caen en el más parecido; solo
+ *  cuando el símbolo entero no se encuentra (`poseDe`). */
+const PARECIDOS: Record<string, string> = { a: 'æ', e: 'ɛ', o: 'oʊ', ɐ: 'ʌ', ɫ: 'l', ɾ: 't', ʔ: 't' };
 const GA_A_RP: Record<string, string> = { ɝ: 'ɜː', ɚ: 'ə' };
 
 function normalizarSimbolo(s: string, acento: 'ga' | 'rp'): string {
