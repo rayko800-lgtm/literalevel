@@ -587,15 +587,19 @@ def malla_mh(nombre, vertices, caras, mat):
     return ob
 
 
-def recortar(ob, y, arriba):
-    """Corta la malla por el plano horizontal y (coordenadas del visor) con
-    un corte limpio (bisect), quitando lo que queda por encima (arriba) o debajo."""
+def recortar(ob, y, arriba, plano=(0, 0, 1)):
+    """Corta la malla por un plano con un corte limpio (bisect) y quita lo
+    que queda del lado positivo de la normal (`arriba`) o del negativo. Por
+    defecto el plano es horizontal a la altura y del visor (en Blender el
+    visor (x, y, z) es (x, -z, y): z_blender = y)."""
     import bmesh
     bm = bmesh.new()
     bm.from_mesh(ob.data)
-    # En Blender el visor (x, y, z) es (x, -z, y): el plano horizontal es z_blender = y.
-    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, y), plane_no=(0, 0, 1),
+    co = (0, 0, y) if plano == (0, 0, 1) else (0, y, 0)
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=co, plane_no=plano,
                            clear_outer=arriba, clear_inner=not arriba)
+    # El corte deja astillas sin area donde una cara ya tocaba el plano.
+    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges[:])
     bm.to_mesh(ob.data)
     bm.free()
     ob.data.update()
@@ -640,8 +644,14 @@ def labios_en_piel(ob):
 def cabeza_makehuman():
     vertices, caras, ojos = leer_obj_mh()
     caras = sin_boca_interior(vertices, caras)
-    lejana = [c for c in caras if all(vertices[i][2] <= 1e-4 for i in c)]
-    ob = malla_mh("cabeza_lejana", vertices, lejana, PIEL)
+    # La mitad lejana se corta por el plano sagital con bisect (quedarse solo
+    # con las caras enteras dejaba una franja sin piel por el centro de la
+    # cara, donde las caras cruzan el plano). Lateral del visor = -y en Blender.
+    ob = malla_mh("cabeza_lejana", vertices, caras, PIEL)
+    # El corte sagital pasa un poco del plano (0,08 hacia la camara): la piel
+    # tapa el canto de las caras del corte, que de frente asomaban como una
+    # raya clara por el centro de la cara (el plano se ve casi de canto).
+    recortar(ob, -0.08, arriba=True, plano=(0, -1, 0))   # fuera lo de y_blender < -0,08, es decir z_visor > 0,08
     recortar(ob, Y_CORTE_ARRIBA, arriba=True)
     recortar(ob, Y_CORTE_ABAJO, arriba=False)
     ob["labios_en_piel"] = 1                  # el visor esconde sus tubos de labios
@@ -661,7 +671,7 @@ def cabeza_makehuman():
     espejo.data.update()
     # El perfil del corte: por cada altura, el punto mas adelantado (la cara) y
     # el mas atrasado (la nuca) de los vertices que quedan en el plano.
-    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y) < 1e-3]
+    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y + 0.08) < 1e-3]
     # Dos ramas: la cara (x < 1,5) y la nuca; cada una, ordenada por altura e
     # interpolada en alturas regulares (la nuca del cuello tiene pocos vertices).
     def rama(puntos, elegir):
