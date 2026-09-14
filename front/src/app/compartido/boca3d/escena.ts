@@ -56,9 +56,13 @@ const LABIOS: Record<Labios, FormaLabios> = {
 };
 
 /** Nudos de la lengua en reposo, de la raíz a la punta, y sus radios [lateral, vertical]. */
-const NUDOS_REPOSO: [number, number][] = [[2.1, -1.15], [2.2, -0.35], [1.3, 0.05], [0.3, 0.15], [-0.9, -0.05], [-1.9, -0.35]];
-const RADIOS: [number, number][] = [[0.5, 0.42], [0.8, 0.46], [1.0, 0.48], [1.0, 0.42], [0.85, 0.32], [0.42, 0.16]];
+const NUDOS_REPOSO: [number, number][] = [[1.75, -1.7], [2.15, -0.45], [1.3, 0.05], [0.3, 0.15], [-0.9, -0.05], [-1.9, -0.35]];
+/** El suelo de la boca (dentro de la mandíbula): tapa el arranque de la lengua. */
+const SUELO = { x0: -2.2, x1: 2.5, y: -1.55, grosor: 0.9 };
+const RADIOS: [number, number][] = [[0.45, 0.32], [0.75, 0.4], [1.0, 0.48], [1.0, 0.42], [0.85, 0.32], [0.42, 0.16]];
 const N_NUDOS = 6;
+/** Mayor doblez admitido en la raíz alta (entre raíz baja → raíz alta y raíz alta → dorso). */
+const DOBLEZ_MAX = (85 * Math.PI) / 180;
 
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y)]. */
 const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, TAMANO = I_NUDOS + N_NUDOS * 2;
@@ -133,14 +137,14 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   const by = (alt - 0.45) * (alt < 0.45 ? 2.0 : 1.5);
   // El dorso baja menos que el centro: si no, con la lengua baja y atrás el
   // tubo se dobla sobre la raíz.
-  for (const [i, px, py] of [[2, 0.9, 0.6], [3, 1.0, 1.0], [4, 0.9, 0.9]] as [number, number, number][]) {
+  for (const [i, px, py] of [[2, 0.6, 0.6], [3, 1.0, 1.0], [4, 0.9, 0.9]] as [number, number, number][]) {
     J[i][0] += bx * px; J[i][1] += by * py;
   }
   J[2][0] -= pose.dorso_alto * 0.2; J[2][1] += pose.dorso_alto * 0.6;
-  // La raíz retrocede entera (las dos juntas igual) para que el tubo no se
-  // doble sobre sí mismo, y baja con la mandíbula y con el cuerpo.
-  J[1][0] = Math.min(2.7, J[1][0] + bx * 0.3 + pose.raiz * 0.3); J[1][1] += by * 0.2 - abre * 0.25;
-  J[0][0] = Math.min(2.6, J[0][0] + pose.raiz * 0.3); J[0][1] -= abre * 0.5;
+  // La raíz: la baja está anclada al suelo de la boca (baja con la mandíbula);
+  // la alta retrocede hacia la faringe con `raiz` y sigue un poco al cuerpo.
+  J[1][0] = Math.min(2.65, J[1][0] + bx * 0.25 + pose.raiz * 0.45); J[1][1] += by * 0.2 - abre * 0.2;
+  J[0][0] = Math.min(2.3, J[0][0] + pose.raiz * 0.15); J[0][1] -= abre * 0.3;
 
   const separar = (i: number, holgura: number) => {
     for (let k = 0; k < 40; k++) {
@@ -195,6 +199,16 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   } else {
     J[4] = [(J[3][0] + J[5][0]) / 2, (J[3][1] + J[5][1]) / 2 - 0.05];
     separar(4, 0.12);
+  }
+  // Si la raíz alta queda doblada en ángulo (lengua baja y atrás), se acerca
+  // a la recta raíz baja → dorso hasta que el tubo pueda seguir la curva.
+  for (let k = 0; k < 12; k++) {
+    const a = [J[1][0] - J[0][0], J[1][1] - J[0][1]], b = [J[2][0] - J[1][0], J[2][1] - J[1][1]];
+    const la = Math.hypot(a[0], a[1]) || 1, lb = Math.hypot(b[0], b[1]) || 1;
+    const doblez = Math.acos(Math.max(-1, Math.min(1, (a[0] * b[0] + a[1] * b[1]) / (la * lb))));
+    if (doblez <= DOBLEZ_MAX) break;
+    J[1][0] += ((J[0][0] + J[2][0]) / 2 - J[1][0]) * 0.3;
+    J[1][1] += ((J[0][1] + J[2][1]) / 2 - J[1][1]) * 0.3;
   }
   for (let i = 0; i < N_NUDOS; i++) {
     n[I_NUDOS + 2 * i] = J[i][0]; n[I_NUDOS + 2 * i + 1] = J[i][1];
@@ -296,8 +310,9 @@ function deformarLengua(g: THREE.BufferGeometry, n: PoseNumerica): void {
   const radioEn = (u: number, k: 0 | 1) => {
     const s = u * (N_NUDOS - 1), i = Math.min(N_NUDOS - 2, Math.floor(s)), f = s - i;
     const r = RADIOS[i][k] + (RADIOS[i + 1][k] - RADIOS[i][k]) * f;
-    // Los extremos se afinan para cerrar el tubo con un casquete suave.
-    const borde = Math.min(1, u * 8, (1 - u) * 8);
+    // La punta se afina para cerrar el tubo con un casquete suave; la raíz
+    // acaba plana, escondida bajo el suelo de la boca.
+    const borde = Math.min(1, (1 - u) * 8);
     return r * Math.sqrt(borde);
   };
   for (let i = 0; i <= MUESTRAS; i++) {
@@ -435,6 +450,9 @@ export class EscenaBoca {
     dentro.add(tuboArco(-0.2, 0.2, mEncia));
     dentro.add(tuboArco(-0.62, 0.28, mHueso, 2.6));
     arcoDental(dentro, 0.1, 0.5, mDientes);
+    const suelo = new THREE.Mesh(new THREE.BoxGeometry(SUELO.x1 - SUELO.x0, SUELO.grosor, ANCHO * 0.8), mEncia);
+    suelo.position.set((SUELO.x0 + SUELO.x1) / 2, SUELO.y, 0);
+    dentro.add(suelo);
     this.mandibula.add(dentro);
     this.mandibula.position.set(PIVOTE_MAND.x, PIVOTE_MAND.y, 0);
     this.escena.add(this.mandibula);

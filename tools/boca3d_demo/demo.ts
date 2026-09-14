@@ -1,8 +1,12 @@
-/** Demostración de la escena sin Angular ni router: la empaqueta
+/** Demostración de la escena 3D de la boca sin Angular ni router: la empaqueta
  *  `tools/boca3d_demo.mjs` con esbuild y se abre en el navegador para mirar y
- *  sacar capturas. No la importa nadie de la app. */
-import { EscenaBoca } from './escena';
-import { CATALOGO_PROTOTIPO, PoseSonido, poseDe } from './poses';
+ *  sacar capturas. Carga el JSON completo de poses (46 sonidos), no solo los
+ *  cinco del prototipo. Vive en tools/ para que `ng build` no la compile. */
+import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
+import { CatalogoPoses, PoseSonido, poseDe } from '../../front/src/app/compartido/boca3d/poses';
+import catalogoJson from '../../front/src/app/compartido/boca3d/poses.ejemplo.json';
+
+const CATALOGO = catalogoJson as unknown as CatalogoPoses;
 
 function arrancar(): void {
   const raiz = document.getElementById('boca3d-demo') ?? document.body;
@@ -27,13 +31,13 @@ function arrancar(): void {
   (window as unknown as { escenaBoca: EscenaBoca }).escenaBoca = escena;
 
   const ir = (simbolo: string) => {
-    const pose: PoseSonido | null = poseDe(CATALOGO_PROTOTIPO, simbolo);
+    const pose: PoseSonido | null = poseDe(CATALOGO, simbolo);
     if (!pose) return;
     escena.irA(pose, lento.checked ? 2.5 : 0.55);
     leyenda.textContent = (simbolo ? `/${simbolo}/ · ` : 'reposo · ') + pose.leyenda;
     chips.querySelectorAll('button').forEach(b => b.classList.toggle('elegido', b.dataset['s'] === simbolo));
   };
-  for (const s of ['', ...Object.keys(CATALOGO_PROTOTIPO.sonidos)]) {
+  for (const s of ['', ...Object.keys(CATALOGO.sonidos)]) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset['s'] = s;

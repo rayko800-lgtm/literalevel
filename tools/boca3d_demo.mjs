@@ -1,5 +1,6 @@
-// Empaqueta la demo del visor 3D de la boca (front/src/app/compartido/boca3d/demo.ts)
-// con el esbuild que trae Angular y deja un index.html para abrir en el navegador.
+// Empaqueta la demo del visor 3D de la boca (tools/boca3d_demo/demo.ts, que usa
+// la escena de front/src/app/compartido/boca3d/) con el esbuild que trae Angular
+// y deja un index.html para abrir en el navegador.
 //
 //   node tools/boca3d_demo.mjs [carpeta_de_salida]      (por defecto, build/boca3d_demo)
 //
@@ -14,7 +15,7 @@ const salida = resolve(process.argv[2] ?? resolve(RAIZ, 'build', 'boca3d_demo'))
 mkdirSync(salida, { recursive: true });
 
 await build({
-  entryPoints: [resolve(RAIZ, 'front/src/app/compartido/boca3d/demo.ts')],
+  entryPoints: [resolve(RAIZ, 'tools/boca3d_demo/demo.ts')],
   bundle: true,
   format: 'iife',
   target: 'es2022',
@@ -33,8 +34,8 @@ writeFileSync(resolve(salida, 'index.html'), `<!doctype html>
   @media (prefers-color-scheme: dark) { :root { --fondo: #0f1422; --texto: #e8edf8; --borde: #2f3b58; --acento: #7c9bff; } }
   body { margin: 0; padding: 16px; font: 16px/1.4 'Segoe UI', system-ui, sans-serif; background: var(--fondo); color: var(--texto); }
   #boca3d-demo { max-width: 560px; margin: 0 auto; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-  .chips button { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde); background: transparent; color: inherit; cursor: pointer; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .chips button { font: inherit; font-size: .85em; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--borde); background: transparent; color: inherit; cursor: pointer; }
   .chips button.elegido { background: var(--acento); color: #fff; border-color: var(--acento); }
   .visor { width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; }
   .leyenda { min-height: 1.4em; }
