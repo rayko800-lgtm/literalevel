@@ -5246,6 +5246,59 @@ prueba("la clave de analisis lleva el texto",
        _la_clave_de_analisis_lleva_el_texto)
 
 
+def _las_frases_no_llevan_comillas_sueltas_ni_cursiva():
+    """f4, informe final (captura 18): la oracion de «waistcoat-pocket» salia
+    como «” (when she thought it over afterwards…», con la comilla de cierre de
+    la frase anterior y los _guiones bajos_ de la cursiva de Gutenberg, y asi se
+    guardaba en «Mis palabras». Y en «Leer en voz alta», 107 de 306 candidatas
+    de *Alicia* abrian una comilla que no cerraban."""
+    texto = ("“Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it "
+             "occurred to her that she ought to have wondered at this, but at the time it all "
+             "seemed quite natural); but when the Rabbit actually _took a watch out of its "
+             "waistcoat-pocket_, and looked at it, and then hurried on, Alice started to her feet. "
+             "“I wonder how many miles I’ve fallen by this time?” she said aloud. “I must be "
+             "getting somewhere near the centre of the earth. Let me see: that would be four "
+             "thousand miles down, I think.” She didn’t like it.")
+    oraciones = ui._oraciones(texto)
+    for o in oraciones:
+        assert (o.count("“") + o.count("«")) == (o.count("”") + o.count("»")), o
+        assert "_" not in o, o
+        assert not o.startswith(("”", "»")), o
+    # Un parlamento de UNA oracion conserva sus comillas: la de cierre vuelve a
+    # su frase. Uno de VARIAS («“Oh dear! Oh dear! I shall be late!”») queda
+    # partido y cada trozo pierde la suya, que ya no tendria pareja.
+    assert "“I wonder how many miles I’ve fallen by this time?”" in oraciones, oraciones
+    assert "I shall be late!" in oraciones, oraciones
+    assert "didn’t" in oraciones[-1], "se toco el apostrofo"
+    contexto = ui._oracion_de(texto, "waistcoat-pocket")
+    assert contexto.startswith("(when she thought"), contexto
+    assert "_" not in contexto and "”" not in contexto, contexto
+    assert not ui._empieza_entera("(when she thought it over afterwards, it occurred to her)")
+    assert ui._empieza_entera("(It was late.) She ran.")
+
+    # Y sobre los libros de verdad, si estan descargados en esta maquina.
+    import glob
+    medidos = []
+    for nombre in ("pg11.epub", "pg1342.epub"):
+        rutas = glob.glob(os.path.expanduser(f"~/.literalevel/**/{nombre}"), recursive=True)
+        if not rutas:
+            continue
+        lib = ui.reader.cargar(rutas[0])
+        malas = total = 0
+        for c in lib.capitulos:
+            for parrafo in ui.re.split(r"\n\s*\n", c.texto):
+                for o in ui._oraciones(" ".join(parrafo.split())):
+                    total += 1
+                    malas += (o.count("“") != o.count("”")) or "_" in o.replace("__", "")
+        assert malas == 0, (nombre, malas, total)
+        medidos.append(f"{nombre} {total} oraciones")
+    return "comillas emparejadas y sin cursiva" + (f" ({'; '.join(medidos)})" if medidos else "")
+
+
+prueba("las frases no llevan comillas sueltas ni cursiva",
+       _las_frases_no_llevan_comillas_sueltas_ni_cursiva)
+
+
 def _recargar_no_borra_el_has_entrado_como():
     """La sesion de pago sobrevive a un F5, pero la caja no lo decia.
 

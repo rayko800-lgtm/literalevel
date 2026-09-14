@@ -2884,12 +2884,58 @@ def _oraciones(texto: str) -> list[str]:
     de salir a medias.
     """
     protegido = _ABREV_RE.sub(lambda m: m.group(0).replace(".", _PUNTO), texto)
-    fuera = []
+    trozos = []
     for frase in scoring.SENT_RE.findall(protegido):
         limpia = " ".join(frase.replace(_PUNTO, ".").split())
+        if not limpia:
+            continue
+        # La comilla de cierre que `SENT_RE` deja al principio del trozo
+        # siguiente es de la frase ANTERIOR: «“… I shall be late!”» se partia en
+        # «“… I shall be late!» y «” (when she thought it over…». Se le
+        # devuelve a la anterior antes de limpiar.
+        m = re.match(r"[”»]+", limpia)
+        if m and trozos:
+            trozos[-1] += m.group(0)
+            limpia = limpia[m.end():].strip()
+            if not limpia:
+                continue
+        trozos.append(limpia)
+    fuera = []
+    for trozo in trozos:
+        limpia = _sin_comillas_sueltas(_sin_cursiva_gutenberg(trozo))
         if limpia:
             fuera.append(limpia)
     return fuera
+
+
+def _sin_cursiva_gutenberg(frase: str) -> str:
+    """«something _to do_» -> «something to do»: la cursiva de Gutenberg.
+
+    Se colaba en la oracion que guarda «Mis palabras» y en la frase para leer en
+    voz alta (f4, informe final, captura 18). La API ya la quitaba al responder,
+    pero no en lo que se guarda.
+    """
+    return re.sub(r"(?<![\w_])_([^_\n]+)_(?![\w_])", r"\1", frase)
+
+
+def _sin_comillas_sueltas(frase: str) -> str:
+    """La frase sin comillas DOBLES si no van emparejadas.
+
+    `SENT_RE` corta dentro de un parlamento de varias oraciones, y la comilla de
+    cierre se queda en el trozo siguiente: «“I wonder how many miles I’ve fallen
+    by this time?» salia para leer en voz alta con la comilla abierta, y la
+    siguiente empezaba por «”». Medido: 107 de 306 candidatas en *Alicia* y 378
+    de 2.742 en *Orgullo y prejuicio*. Las simples no se tocan: «’» es tambien
+    el apostrofo de «don’t». Para leer en voz alta la comilla sobra, y la
+    evaluacion de voz ignora la puntuacion.
+    """
+    abre = frase.count("“") + frase.count("«")
+    cierra = frase.count("”") + frase.count("»")
+    if abre != cierra:
+        frase = re.sub(r"[“”«»]", "", frase)
+    if frase.count('"') % 2:
+        frase = frase.replace('"', "")
+    return " ".join(frase.split())
 
 
 def _sin_encabezado(parrafo: str) -> str:
@@ -2960,7 +3006,11 @@ def _empieza_entera(frase: str) -> bool:
         return False
     if f[0] in "”’'" + chr(34) + "»)]-–—,;:.!?":
         return False
-    return not f[0].islower()
+    # Y si la primera LETRA va en minuscula aunque delante haya un parentesis:
+    # «(when she thought it over afterwards…» es la continuacion de «“Oh dear!
+    # I shall be late!”» (f4, informe final, captura 18).
+    primera = next((ch for ch in f if ch.isalpha()), "")
+    return not primera.islower()
 
 
 def _oracion_de(texto: str, palabra: str) -> str:
