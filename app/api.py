@@ -1530,14 +1530,28 @@ _CABECERAS_SVG = {
 }
 
 
-@functools.lru_cache(maxsize=512)
-def _svg_corte(clase: str, texto: str, acento: str, quieto: bool) -> str | None:
+@functools.lru_cache(maxsize=1024)
+def _svg_corte(clase: str, texto: str, acento: str, quieto: bool,
+               dur: float | None = None, repetir: bool = True) -> str | None:
     """Generarlo cuesta milisegundos (85 sonidos en 0,11 s): en memoria basta,
     sin escribir en disco lo que llega en la URL."""
     if clase == "palabra":
-        return animacion_articulatoria.svg_palabra(texto, acento)
-    f = animacion_articulatoria.svg_articulacion_quieto if quieto else animacion_articulatoria.svg_articulacion
-    return f(texto, acento)
+        return animacion_articulatoria.svg_palabra(texto, acento, dur=dur, repetir=repetir)
+    if quieto:
+        return animacion_articulatoria.svg_articulacion_quieto(texto, acento)
+    return animacion_articulatoria.svg_articulacion(texto, acento, dur=dur, repetir=repetir)
+
+
+def _pasada(dur: float | None, una: bool, quieto: bool = False) -> tuple[float | None, bool]:
+    """«Escuchar y ver»: `dur` (segundos del audio) y `una=1` (una sola pasada,
+    sin bucle), contrato de entrega-4e. Redondeado a 0,1 s y fuera de 0,3..10
+    se ignora, para que la caché no guarde una copia por cada milisegundo. El
+    quieto no se mueve: ni lo uno ni lo otro."""
+    if quieto:
+        return None, True
+    if dur is not None and not (math.isfinite(dur) and 0.3 <= dur <= 10):
+        dur = None
+    return (round(dur, 1) if dur is not None else None), not una
 
 
 # Con paréntesis, ligadura y guion: Kaikki escribe «/ˈhæp(ə)n/».
@@ -1564,7 +1578,7 @@ def _simbolos(acento: str) -> frozenset[str]:
 
 @app.get("/api/articulacion/palabra.svg")
 def corte_de_palabra(ipa: str = Query(..., min_length=1, max_length=60),
-                     acento: Literal["ga", "rp"] = "ga"):
+                     acento: Literal["ga", "rp"] = "ga", dur: float | None = None, una: bool = False):
     """La boca diciendo la palabra entera, a partir de su IPA. Siempre animada:
     con «reducir movimiento» el front pide el sonido que falla, quieto.
 
@@ -1573,21 +1587,23 @@ def corte_de_palabra(ipa: str = Query(..., min_length=1, max_length=60),
     ipa = ipa.strip()
     if not ipa or not _es_ipa(ipa):
         raise _no(422, "Eso no es una transcripción IPA.")
-    svg = _svg_corte("palabra", ipa, acento, False)
+    svg = _svg_corte("palabra", ipa, acento, False, *_pasada(dur, una))
     if not svg:
         raise _no(404, "No sé dibujar esa palabra.")
     return Response(svg, media_type="image/svg+xml", headers=_CABECERAS_SVG)
 
 
 @app.get("/api/articulacion/{acento}/{archivo}")
-def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = False):
-    """Un sonido: /api/articulacion/ga/θ.svg (ciclo de 2,8 s) o ?quieto=1."""
+def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = False,
+                    dur: float | None = None, una: bool = False):
+    """Un sonido: /api/articulacion/ga/θ.svg (ciclo de 2,8 s), ?quieto=1, o
+    ?dur=1.4&una=1 (una pasada del largo del audio de «Escuchar y ver»)."""
     simbolo = archivo[:-4] if archivo.endswith(".svg") else ""
     # FastAPI ya decodificó la URL: «iː» llega entero. Solo el inventario del
     # acento, antes de construir nada.
     if simbolo not in _simbolos(acento):
         raise _no(404, "No existe ese sonido.")
-    svg = _svg_corte("sonido", simbolo, acento, quieto)
+    svg = _svg_corte("sonido", simbolo, acento, quieto, *_pasada(dur, una, quieto))
     if not svg:
         raise _no(404, "No existe ese sonido.")
     return Response(svg, media_type="image/svg+xml", headers=_CABECERAS_SVG)

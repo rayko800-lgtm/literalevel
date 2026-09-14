@@ -959,6 +959,39 @@ def corte_de_la_boca_en_svg():
     return f"sonido {len(r.text)} B, quieto {len(q.text)} B, palabra {len(p.text)} B"
 
 
+def corte_de_una_pasada_con_la_duracion_del_audio():
+    """«Escuchar y ver»: ?dur= (redondeado a 0,1 s, 0,3..10) y ?una=1 llegan al
+    módulo de 4e; fuera de rango se ignora; el quieto no cambia; sin nada, el
+    SVG de siempre."""
+    from urllib.parse import quote
+    from app import animacion_articulatoria as aa
+    theta = "/api/articulacion/ga/" + quote("θ") + ".svg"
+    corta = cliente.get(theta, params={"dur": "1.43", "una": "1"})
+    assert corta.status_code == 200, (corta.status_code, corta.text[:200])
+    assert corta.text == aa.svg_articulacion("θ", "ga", dur=1.4, repetir=False), "dur o una no llegan como tocan"
+    assert corta.text != aa.svg_articulacion("θ", "ga", dur=1.4), "una=1 no quita el bucle"
+    en_bucle = cliente.get(theta, params={"dur": "1.4"})
+    assert en_bucle.text == aa.svg_articulacion("θ", "ga", dur=1.4, repetir=True)
+    assert cliente.get(theta).text == aa.svg_articulacion("θ", "ga")
+    # Fuera de rango el módulo también lo ignora: lo que guarda la API es que no
+    # ocupe otra entrada de la caché (una por cada dur raro que manden).
+    api._svg_corte.cache_clear()
+    fuera = cliente.get(theta, params={"dur": "50", "una": "1"})
+    assert fuera.text == aa.svg_articulacion("θ", "ga", dur=None, repetir=False), "dur fuera de rango no se ignora"
+    cliente.get(theta, params={"una": "1"})
+    cliente.get(theta, params={"dur": "nan", "una": "1"})
+    assert api._svg_corte.cache_info().currsize == 1, api._svg_corte.cache_info()
+    quieto = cliente.get(theta, params={"quieto": "1", "dur": "2", "una": "1"})
+    assert quieto.text == aa.svg_articulacion_quieto("θ", "ga")
+    assert cliente.get(theta, params={"dur": "abc"}).status_code == 422
+    palabra = cliente.get("/api/articulacion/palabra.svg",
+                          params={"ipa": "/wɔɹ/", "acento": "rp", "dur": "0.84", "una": "1"})
+    assert palabra.status_code == 200, palabra.status_code
+    assert palabra.text == aa.svg_palabra("/wɔɹ/", "rp", dur=0.8, repetir=False), "la palabra no recibe dur o una"
+    assert palabra.headers["x-content-type-options"] == "nosniff"
+    return f"sonido 1,4 s de una pasada {len(corta.text)} B, palabra 0,8 s {len(palabra.text)} B"
+
+
 if __name__ == "__main__":
     print("API de LiteraLevel\n")
     for fn in (sin_lector_no_hay_datos, lector_corto_no_vale, perfiles_aislados,
@@ -974,6 +1007,7 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
+               corte_de_una_pasada_con_la_duracion_del_audio,
                fonema_de_la_correccion_en_britanico, subida_grande_se_corta_antes_de_leerla_entera,
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
