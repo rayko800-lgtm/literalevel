@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -197,6 +197,16 @@ export class Encontrar implements OnInit {
   protected readonly mios = signal<EntradaBiblioteca[] | null>(null);
   protected readonly subiendo = signal(false);
   protected readonly perfil = this.sesion.perfil;
+
+  /** Al entrar o recargar en ?vista=nivel, el perfil llega después de montar la
+   *  pantalla (lo trae `Sesion` por red): `cambiar` no lo veía, «A mi nivel»
+   *  quedaba vacía y no se pedía /api/recomendar (f4, prueba final). */
+  private readonly alLlegarPerfil = effect(() => {
+    const p = this.perfil();
+    untracked(() => {
+      if (p && this.vista() === 'nivel' && !this.recomendacion() && !this.cargando()) void this.recomendar();
+    });
+  });
 
   protected readonly ideas = [
     'Detectives en Londres', 'Aventuras en el mar', 'Una historia de amor del siglo XIX',
