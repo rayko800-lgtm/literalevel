@@ -39,6 +39,20 @@ NOMBRE_CAPITULOS = "capitulos_medidos.parquet"
 NOMBRE_EXTERNO = "catalogo_externo.csv"
 NOMBRE_TEXTOS_ABIERTOS = "corpus_abierto.parquet"
 
+# El catalogo NO se filtra por contenido: se avisa en la ficha (documento.md,
+# «uso responsable»). La lista es curada a mano y la revisa Miguel; nada
+# automatico, que una lista de palabras senalaria obras por su vocabulario y no
+# por lo que dicen. Un titulo con aviso sigue saliendo, pero no encabeza la
+# recomendacion por nivel: baja detras de los PRIMEROS_SIN_AVISO primeros.
+NOMBRE_AVISOS = "avisos_contenido.csv"
+PRIMEROS_SIN_AVISO = 5
+# Correcciones de filas medidas que salieron mal en el precalculo, aplicadas al
+# cargar: el CSV grande no se toca porque su huella indexa los 82 MB de
+# embeddings. Cada fila lleva su motivo. Ver la prueba final del 13 sep 2026:
+# PG2242 (A Midsummer Night's Dream, First Folio) media 0,697 en el catalogo y
+# 1,8 releida por el mismo camino; las otras 32 obras del Folio, 1,54-1,81.
+NOMBRE_CORRECCIONES = "correcciones_catalogo.csv"
+
 # Lo que no es un libro para leer, aunque venga de Gutenberg: indices,
 # catalogos, bibliografias, directorios. Medido el 12 de septiembre de 2026: 79
 # de los 599 libros A1-B1 del catalogo medido eran esto -los *CIA World
@@ -48,8 +62,15 @@ NOMBRE_TEXTOS_ABIERTOS = "corpus_abierto.parquet"
 # Se excluyen al recomendar y al buscar.
 _NO_ES_LECTURA_TEMAS = re.compile(
     r"(?i)\bindexes\b|\bcatalogs\b|bibliograph|\bdirectories\b|gazetteers|almanacs")
+# Los indices enlazados de Gutenberg no siempre llevan el tema «Indexes»: *The
+# Fairy Books of Andrew Lang: A Project Gutenberg Linked Index to All Stories*
+# viene con «Fairy tales; Folklore», puntua A2 por ser una lista de titulos y
+# salia recomendado por nivel (prueba final del 13 de septiembre de 2026). «an
+# index to all» y no «an index to the»: la segunda tumbaba *History of the Jews,
+# Vol. 6*, que es un libro con su indice al final.
 _NO_ES_LECTURA_TITULO = re.compile(
     r"(?i)index of the project gutenberg|project gutenberg (?:works|index|catalog)"
+    r"|linked index|index for works of|\ban index to all\b|hyperlinks to all chapters"
     r"|world factbook|^list of |\bdirectory\b|\bconstants\b")
 
 # Y para RECOMENDAR por nivel, ademas, que sea literatura segun sus temas de
@@ -91,6 +112,7 @@ class Libro:
     similitud: float = 0.0
     afinidad: float = 0.0
     dificultad: float | None = None     # medida por el v4; None si es heredada
+    aviso_contenido: str = ""           # nota de avisos_contenido.csv; "" si no hay
 
     @property
     def puntuacion_nivel(self) -> float:
@@ -235,6 +257,10 @@ class Catalogo:
                 self.ruta_externo = None        # un externo roto no tumba el catalogo
         else:
             self.ruta_externo = None
+        self._correcciones = self._aplicar_correcciones()
+        self._avisos = self._leer_avisos()
+        self.df["aviso_contenido"] = (self.df["id"].astype(str).str.upper()
+                                      .map(self._avisos).fillna(""))
         # El catalogo MEDIDO trae `dificultad`: la escala publica 0..2 del v4
         # sobre el libro entero. El heredado solo trae `nivel_cefr`, una letra
         # que predijo un modelo v1 sobre ~190 palabras. Si hay medida, manda la
@@ -323,6 +349,57 @@ class Catalogo:
             self._modelo = SentenceTransformer(_ruta_local(MODELO_EMB))
         return self._modelo
 
+    def _aplicar_correcciones(self) -> dict[str, dict]:
+        """Lee correcciones_catalogo.csv y fija su dificultad en `df`.
+
+        Devuelve {id: {dificultad, min, max, motivo}} para `capitulos_de`. Sin
+        archivo, o con uno roto, no cambia nada: una correccion mala no puede
+        tumbar el catalogo."""
+        ruta = Path(self.ruta).with_name(NOMBRE_CORRECCIONES)
+        if not ruta.exists() or "dificultad" not in self.df.columns:
+            return {}
+        try:
+            tabla = pd.read_csv(ruta, dtype={"id": str})
+        except Exception:
+            return {}
+        arreglos = {}
+        ids = self.df["id"].astype(str).str.upper()
+        for _, f in tabla.iterrows():
+            pid = str(f.get("id", "")).strip().upper()
+            try:
+                dif = float(f["dificultad"])
+            except (TypeError, ValueError, KeyError):
+                continue
+            if not pid or np.isnan(dif) or not (0.0 <= dif <= 2.0):
+                continue
+            def _num(k):
+                try:
+                    v = float(f.get(k))
+                    return None if np.isnan(v) else round(v, 3)
+                except (TypeError, ValueError):
+                    return None
+            arreglos[pid] = {"dificultad": round(dif, 3), "min": _num("min"), "max": _num("max"),
+                             "motivo": str(f.get("motivo", "") or "")}
+            self.df.loc[ids == pid, "dificultad"] = round(dif, 3)
+        return arreglos
+
+    def _leer_avisos(self) -> dict[str, str]:
+        """{id en mayusculas: nota en espanol} de avisos_contenido.csv, o {}."""
+        ruta = Path(self.ruta).with_name(NOMBRE_AVISOS)
+        if not ruta.exists():
+            return {}
+        try:
+            tabla = pd.read_csv(ruta, dtype=str).fillna("")
+        except Exception:
+            return {}
+        return {str(f["id"]).strip().upper(): str(f["nota_es"]).strip()
+                for _, f in tabla.iterrows()
+                if str(f.get("id", "")).strip() and str(f.get("nota_es", "")).strip()}
+
+    def aviso_de(self, id_libro) -> str | None:
+        """La nota de aviso de contenido de un libro del catalogo, o None."""
+        return getattr(self, "_avisos", {}).get(str(id_libro or "").strip().upper()) or None
+
     @property
     def medido(self) -> bool:
         """¿Trae este catalogo dificultad medida por el v4?
@@ -381,8 +458,15 @@ class Catalogo:
         pid = str(id_libro or "").upper()
         if self._caps.empty or pid not in self._caps.index:
             return []
-        filas = self._caps.loc[[pid]].reset_index()
-        return filas.sort_values("capitulo").to_dict("records")
+        filas = self._caps.loc[[pid]].reset_index().sort_values("capitulo").to_dict("records")
+        arreglo = getattr(self, "_correcciones", {}).get(pid)
+        # La correccion es del libro entero: solo se puede trasladar a la curva
+        # cuando la curva ES el libro entero (un capitulo). Con varios, la curva
+        # medida se deja como esta antes que inventar un reparto por capitulos.
+        if arreglo and len(filas) == 1:
+            filas[0].update({k: arreglo[k] for k in ("dificultad", "min", "max")
+                             if arreglo.get(k) is not None})
+        return filas
 
     def _textos_abiertos(self) -> pd.DataFrame:
         if getattr(self, "_abiertos", None) is None:
@@ -480,7 +564,8 @@ class Catalogo:
                                 gancho=str(f["hook"]), descargas=int(f.get("downloads", 0) or 0),
                                 dificultad=_dificultad_de(f),
                                 similitud=round(float(sim[i]), 3),
-                                afinidad=round(float(afin[i]), 3)))
+                                afinidad=round(float(afin[i]), 3),
+                                aviso_contenido=str(f.get("aviso_contenido", "") or "")))
 
         if not libros:
             # Nunca devolver vacio en silencio: ese era el fallo original.
@@ -499,11 +584,21 @@ class Catalogo:
         obj = self._puntuaciones()
         d = self.df[(np.abs(obj - nivel_lector) <= holgura) & ~self._excluidos
                     & self._literarios]
-        d = d.sort_values("downloads", ascending=False).head(n)
+        d = d.sort_values("downloads", ascending=False, kind="stable")
+        # Un titulo con aviso de contenido no encabeza la lista: los
+        # PRIMEROS_SIN_AVISO primeros puestos son para los que no lo llevan, y
+        # detras sigue el orden de popularidad de siempre. No se quita ninguno.
+        if "aviso_contenido" in d.columns:
+            con_aviso = d["aviso_contenido"].astype(str).str.len() > 0
+            if con_aviso.any():
+                cabeza = d[~con_aviso].head(PRIMEROS_SIN_AVISO)
+                d = pd.concat([cabeza, d.drop(cabeza.index)])
+        d = d.head(n)
         return [Libro(id=str(f["id"]), titulo=str(f["title"]), autor=str(f["author"]),
                       nivel=str(f["nivel_cefr"]), gancho=str(f["hook"]),
                       descargas=int(f.get("downloads", 0) or 0),
-                      dificultad=_dificultad_de(f))
+                      dificultad=_dificultad_de(f),
+                      aviso_contenido=str(f.get("aviso_contenido", "") or ""))
                 for _, f in d.iterrows()]
 
     def resumen(self) -> str:

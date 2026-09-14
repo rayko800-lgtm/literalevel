@@ -232,6 +232,112 @@ def _abribles():
 prueba("que se puede abrir y que no", _abribles)
 
 
+def _indices_enlazados_fuera_de_nivel():
+    """Prueba final del 13 sep 2026: el indice enlazado de Andrew Lang, con temas
+    literarios, salia recomendado a un B1. Un libro real con indice al final no."""
+    carpeta = _nuevo()
+    pd.DataFrame({
+        "id": ["PG30580", "PG46752", "PG57485", "PG11"],
+        "title": ["The Fairy Books of Andrew Lang A Project Gutenberg Linked Index to All Stories in the 12 Volumes",
+                  "History of the Jews, Vol. 6 (of 6) Containing a Memoir of the Author and an Index to the Complete Work",
+                  "Index for Works of Andrew Barton 'Banjo' Paterson Hyperlinks to all Chapters of all Individual Ebooks",
+                  "Alice's Adventures in Wonderland"],
+        "author": ["Lang", "Graetz", "Paterson", "Carroll"], "hook": ["", "", "", ""],
+        "huella_texto": ["", "", "", ""], "nivel_cefr": ["", "", "", ""],
+        "downloads": [900, 800, 700, 600], "dificultad": [0.60, 0.62, 0.61, 0.63],
+        "palabras": [6189, 183791, 184, 26426], "ventanas": [24, 700, 1, 100], "capitulos": [1, 1, 1, 12],
+        "temas": ["Fairy tales; Folklore", "Jews -- History; Fiction", "Poetry", "Fantasy fiction"],
+    }).to_csv(carpeta / "catalogo_medido.csv", index=False)
+    cat = cm.Catalogo(carpeta / "catalogo_medido.csv")
+    excl = dict(zip(cat.df["id"].astype(str), cat._excluidos))
+    assert excl["PG30580"], "el indice enlazado de Andrew Lang no se excluye"
+    assert excl["PG57485"], "un «Index for Works of … Hyperlinks to all Chapters» no se excluye"
+    assert not excl["PG46752"], "un libro real con «an Index to the Complete Work» se excluye"
+    assert not excl["PG11"], "Alice se excluye"
+    ids = [l.id for l in cat.por_nivel(0.61, holgura=0.25, n=10)]
+    assert "PG30580" not in ids and "PG57485" not in ids, f"se recomiendan indices: {ids}"
+    assert "PG46752" in ids and "PG11" in ids, f"faltan libros de verdad: {ids}"
+    return f"por nivel: {ids}"
+
+
+prueba("los indices enlazados de Gutenberg no se recomiendan por nivel", _indices_enlazados_fuera_de_nivel)
+
+
+def _catalogo_de_nivel(carpeta: Path, n: int = 8):
+    """n libros literarios en la misma franja, del mas al menos descargado."""
+    ids = [f"PG{100 + i}" for i in range(n)]
+    pd.DataFrame({
+        "id": ids, "title": [f"Libro {i}" for i in range(n)], "author": ["a"] * n,
+        "hook": [""] * n, "huella_texto": [""] * n, "nivel_cefr": [""] * n,
+        "downloads": [1000 - i for i in range(n)], "dificultad": [0.7] * n,
+        "palabras": [9000] * n, "ventanas": [36] * n, "capitulos": [1] * n,
+        "temas": ["Fiction"] * n,
+    }).to_csv(carpeta / "catalogo_medido.csv", index=False)
+    return ids
+
+
+def _aviso_no_encabeza_ni_desaparece():
+    """Regla del proyecto: no se filtra por contenido, se avisa. Un titulo con
+    aviso sigue saliendo, pero no en los primeros puestos por nivel."""
+    carpeta = _nuevo()
+    ids = _catalogo_de_nivel(carpeta)
+    pd.DataFrame({"id": [ids[0], "PG999999"], "motivo": ["prueba", "no esta"],
+                  "nota_es": ["Obra con estereotipos de su época.", "x"]}).to_csv(
+        carpeta / "avisos_contenido.csv", index=False)
+    cat = cm.Catalogo(carpeta / "catalogo_medido.csv")
+    libros = cat.por_nivel(0.7, holgura=0.25, n=8)
+    orden = [l.id for l in libros]
+    assert ids[0] in orden, f"el titulo con aviso desaparecio: {orden}"
+    pos = orden.index(ids[0])
+    assert pos >= cm.PRIMEROS_SIN_AVISO, f"el titulo con aviso sigue en el puesto {pos + 1}: {orden}"
+    assert orden[:cm.PRIMEROS_SIN_AVISO] == ids[1:1 + cm.PRIMEROS_SIN_AVISO], f"el resto cambio de orden: {orden}"
+    con = next(l for l in libros if l.id == ids[0])
+    assert con.aviso_contenido.startswith("Obra con estereotipos"), con
+    assert all(not l.aviso_contenido for l in libros if l.id != ids[0])
+    assert cat.aviso_de(ids[0].lower()) and cat.aviso_de(ids[1]) is None
+    # Sin archivo de avisos, el orden es el de siempre.
+    carpeta2 = _nuevo()
+    _catalogo_de_nivel(carpeta2)
+    sin = [l.id for l in cm.Catalogo(carpeta2 / "catalogo_medido.csv").por_nivel(0.7, holgura=0.25, n=8)]
+    assert sin == ids, f"sin avisos el orden cambia: {sin}"
+    return f"con aviso en el puesto {pos + 1} de {len(orden)}"
+
+
+prueba("un titulo con aviso de contenido no encabeza pero sigue saliendo", _aviso_no_encabeza_ni_desaparece)
+
+
+def _correccion_se_aplica_al_cargar():
+    """PG2242: la tabla de correcciones cambia la dificultad del libro, su letra
+    y su curva de un capitulo, sin tocar el CSV grande."""
+    carpeta = _nuevo()
+    ids = _catalogo_de_nivel(carpeta, n=3)
+    pd.DataFrame({"id": [ids[0], ids[1]] * 1 + [ids[1]], "indice": [0, 0, 1], "capitulo": [1, 1, 2],
+                  "titulo": ["Texto completo", "Uno", "Dos"], "dificultad": [0.7, 0.7, 0.7],
+                  "min": [0.4, 0.5, 0.5], "max": [0.9, 0.9, 0.9], "ventanas": [36, 18, 18],
+                  "palabras": [9000, 4500, 4500]}).to_parquet(carpeta / cm.NOMBRE_CAPITULOS, index=False)
+    antes = (carpeta / "catalogo_medido.csv").read_bytes()
+    pd.DataFrame({"id": [ids[0], ids[1], "PG5", ids[2]], "dificultad": [1.713, 1.5, 1.0, "nada"],
+                  "min": [1.083, None, None, None], "max": [1.989, None, None, None],
+                  "motivo": ["remedido", "varios capitulos", "no esta", "roto"]}).to_csv(
+        carpeta / cm.NOMBRE_CORRECCIONES, index=False)
+    cat = cm.Catalogo(carpeta / "catalogo_medido.csv")
+    fila = cat.df[cat.df["id"] == ids[0]].iloc[0]
+    assert abs(float(fila["dificultad"]) - 1.713) < 1e-9, fila["dificultad"]
+    assert fila["nivel_cefr"] == "C1", f"la letra no sale de la cifra corregida: {fila['nivel_cefr']}"
+    assert abs(float(cat.df[cat.df["id"] == ids[2]].iloc[0]["dificultad"]) - 0.7) < 1e-9, "una fila rota cambio el libro"
+    curva = cat.capitulos_de(ids[0])
+    assert len(curva) == 1 and curva[0]["dificultad"] == 1.713 and curva[0]["min"] == 1.083 and curva[0]["max"] == 1.989, curva
+    varios = cat.capitulos_de(ids[1])
+    assert [c["dificultad"] for c in varios] == [0.7, 0.7], f"se invento un reparto por capitulos: {varios}"
+    assert (carpeta / "catalogo_medido.csv").read_bytes() == antes, "se escribio el CSV grande"
+    (carpeta / cm.NOMBRE_CORRECCIONES).write_text("esto no es un csv\x00\x00", encoding="utf-8")
+    assert len(cm.Catalogo(carpeta / "catalogo_medido.csv").df) == 3, "un archivo de correcciones roto tumba el catalogo"
+    return "1,713 C1 en el libro y en su curva; varios capitulos intactos; CSV grande sin tocar"
+
+
+prueba("la tabla de correcciones se aplica al cargar sin tocar el CSV", _correccion_se_aplica_al_cargar)
+
+
 # --- 2. El lector ---------------------------------------------------------------
 print("\nAbrir un libro libre en el lector")
 

@@ -99,6 +99,11 @@ LISTA_BLANCA = [
     # cae pero no hay animaciones. Los SVG no viajan: se escriben la primera vez
     # en config.dir_datos()/articulacion_svg, que ya esta en allowed_paths.
     "app/animacion_articulatoria.py",
+    # Junto al CSV grande y leidos por app/catalogo.py al cargar: la lista curada
+    # de avisos de contenido (no se filtra, se avisa) y las correcciones de filas
+    # mal medidas en el precalculo (PG2242), sin tocar la huella de los embeddings.
+    "avisos_contenido.csv",
+    "correcciones_catalogo.csv",
 ]
 
 

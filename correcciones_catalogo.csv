@@ -1,0 +1,2 @@
+id,dificultad,min,max,motivo
+PG2242,1.713,1.083,1.989,"Prueba final del 13 sep 2026: el precalculo guardo 0,697 (293 ventanas) y el mismo camino (ficha.capitulos_de_cuerpo + fixed_blocks + v4 en escala publica) sobre pg2242.txt de Gutenberg da 1,713 en 71 ventanas. Las ediciones modernas PG1514 y PG1113 miden 1,713 y las otras 32 obras del First Folio 1,54-1,81."
