@@ -247,7 +247,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     const visor = this.visor();
     if (visor && this.visor3d() === 'detalle-' + i) {
       visor.escucharYVer();
-      this.eyv.escuchar({ ...pedido, audio: null });
+      this.eyv.escuchar({ ...pedido, audio: null, cortes: this.alCompasDelCiclo(pedido.cortes) });
     } else {
       this.eyv.escuchar(pedido);
     }
@@ -273,7 +273,9 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (!blanco || typeof window === 'undefined') return;
     const r = blanco.getBoundingClientRect();
     const arriba = 64;                                   // la cabecera fija
-    const abajo = boton?.closest('.botones-corte')?.getBoundingClientRect().top ?? window.innerHeight;
+    // La barra tapa lo de debajo solo si está en pantalla.
+    const barra = boton?.closest('.botones-corte')?.getBoundingClientRect().top ?? window.innerHeight;
+    const abajo = barra > arriba && barra < window.innerHeight ? barra : window.innerHeight;
     if (r.top >= arriba && r.bottom <= abajo) return;
     window.scrollBy({ top: r.top + r.height / 2 - (arriba + abajo) / 2, behavior: this.sinMovimiento ? 'auto' : 'smooth' });
   }
@@ -298,6 +300,12 @@ export class Pronunciar implements OnInit, OnDestroy {
     return cortes;
   }
 
+  /** Con el audio en el 3D, el 2D no sabe cuánto dura el mp3: da su pasada de
+   *  2,8 s, estirada por la velocidad, como el ciclo del 3D. */
+  private alCompasDelCiclo(cortes: CorteEnPantalla[]): CorteEnPantalla[] {
+    return cortes.map(c => ({ ...c, animada: () => c.animada(this.cicloDelSonido()) }));
+  }
+
   /** Con el audio de la palabra, el corte del sonido da su pasada de 2,8 s,
    *  estirada si va más lento. */
   private cicloDelSonido(): number | null {
@@ -313,7 +321,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     const visor = this.visor();
     if (visor && this.visor3d() === 'sonido' && this.elegido()?.simbolo === s.simbolo) {
       visor.escucharYVer();
-      this.eyv.escuchar({ ...pedido, audio: null });
+      this.eyv.escuchar({ ...pedido, audio: null, cortes: this.alCompasDelCiclo(pedido.cortes) });
     } else {
       this.eyv.escuchar(pedido);
     }
