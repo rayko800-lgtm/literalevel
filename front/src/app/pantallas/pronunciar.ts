@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { Boca3d } from '../compartido/boca3d/boca3d';
+import { BOCA3D_ACTIVO, Boca3dVisor } from '../compartido/boca3d/interruptor';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
@@ -20,7 +20,7 @@ type Grabacion = 'lista' | 'grabando' | 'grabada';
 @Component({
   selector: 'app-pronunciar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icono, Boca3d],
+  imports: [FormsModule, RouterLink, Icono, Boca3dVisor],
   templateUrl: './pronunciar.html',
   styleUrl: './pronunciar.css',
 })
@@ -48,6 +48,8 @@ export class Pronunciar implements OnInit, OnDestroy {
   private readonly inventarios = signal<Partial<Record<Acento, InventarioSonidos>>>({});
   protected readonly elegido = signal<Fonema | null>(null);
   protected readonly visor3d = signal<string | null>(null);
+  /** Interruptor de compilación (compartido/boca3d/interruptor.ts): apagado, sin botones ni three.js. */
+  protected readonly boca3d = BOCA3D_ACTIVO;
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
   protected readonly avisoDebiles = signal<string | null>(null);
 
