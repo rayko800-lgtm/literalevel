@@ -44,12 +44,18 @@ def malla(nombre, vertices, caras, mat):
     return ob
 
 
-def puntos_labio(superior, fruncir=0.0, estirar=0.0):
+def puntos_labio(superior, fruncir=0.0, estirar=0.0, comisura=0.0):
     """Los vertices de un labio: arco cerrado, comisuras afinadas y borde
     humedo plano para el sellado. `fruncir` (0..1) junta las comisuras, saca
     el centro hacia delante y engorda; `estirar` (0..1) separa las comisuras,
     afina y retrae un poco. Son las dos shape keys que el visor mezcla desde
     `labios` de la pose (redondeados, muy_redondeados, estirados).
+
+    `comisura` sube (+) o baja (-) los extremos del labio esa distancia, con
+    el centro quieto: es la shape key con la que el visor junta las comisuras
+    de los dos labios cuando la mandibula baja (el labio de abajo va con ella
+    y, sin esto, los labios se separaban del todo en las esquinas). Estirar
+    sube un poco las comisuras (sonrisa) y fruncir las baja.
 
     Base 2.3 de ancho y radio 0.3, igual al contrato de geometriaLabio.
     La cara de contacto conserva y=+/-0.3 en el centro: /p b m/ sellan.
@@ -68,6 +74,9 @@ def puntos_labio(superior, fruncir=0.0, estirar=0.0):
         # Fruncir saca el centro hacia delante (mas que las comisuras) y
         # estirar lo retrae.
         adelante = -0.5 * fruncir * (1 - 0.5 * t * t) + 0.12 * estirar
+        peso = min(1.0, max(0.0, (abs(t) - 0.25) / 0.75))
+        peso = peso * peso * (3 - 2 * peso)
+        subida = (comisura + 0.08 * estirar - 0.04 * fruncir) * peso
         for j in range(lados):
             a = 2 * math.pi * j / lados
             c, s = math.cos(a), math.sin(a)
@@ -77,7 +86,7 @@ def puntos_labio(superior, fruncir=0.0, estirar=0.0):
             # El borde humedo es ancho y plano, no una seccion circular que
             # deja una rendija aparente al ver /p/ ligeramente desde arriba.
             perfil_y = math.copysign(abs(s) ** 0.28, s) if contacto else s
-            y = alto * perfil_y * (fin ** 0.16 if contacto else fin) + (cupido * max(0, s) if superior else 0)
+            y = alto * perfil_y * (fin ** 0.16 if contacto else fin) + (cupido * max(0, s) if superior else 0) + subida
             x = arco + grosor * c * fin + adelante
             vertices.append((x, y, ancho * t))
     return vertices
@@ -112,15 +121,18 @@ def labio(nombre, superior):
                                                 piel[1] + (rojo[1] - piel[1]) * f,
                                                 piel[2] + (rojo[2] - piel[2]) * f, 1.0)
     ob.shape_key_add(name="Basis", from_mix=False)
-    for clave, kw in (("fruncir", {"fruncir": 1.0}), ("estirar", {"estirar": 1.0})):
+    comisura = ("comisura_abajo", {"comisura": -1.0}) if superior else ("comisura_arriba", {"comisura": 1.0})
+    for clave, kw in (("fruncir", {"fruncir": 1.0}), ("estirar", {"estirar": 1.0}), comisura):
         k = ob.shape_key_add(name=clave, from_mix=False)
         for i, (x, y, z) in enumerate(puntos_labio(superior, **kw)):
             k.data[i].co = (x, -z, y)          # la misma conversion de ejes que malla()
     return ob
 
 
-def perfil(nombre, puntos, grosor, ancho, mat):
-    """Banda curva de seccion eliptica: conserva abierto el corte sagital."""
+def perfil(nombre, puntos, grosor, ancho, mat, lejos=1.0):
+    """Banda curva de seccion eliptica: conserva abierto el corte sagital.
+    `lejos` escala la mitad de la banda del lado contrario a la camara (z<0):
+    el menton, que va sobre el borde de la piel lejana, no debe asomar por ella."""
     vertices, caras = [], []
     lados = 16
     # Catmull-Rom con extremos repetidos, para unir nariz y garganta sin cajas.
@@ -140,8 +152,9 @@ def perfil(nombre, puntos, grosor, ancho, mat):
         largo = math.hypot(dx, dy)
         for j in range(lados):
             a = j / lados * math.tau
+            lateral = anchos[i]*math.sin(a)
             vertices.append((x - dy/largo*grosor*math.cos(a),
-                             y + dx/largo*grosor*math.cos(a), anchos[i]*math.sin(a)))
+                             y + dx/largo*grosor*math.cos(a), lateral * (lejos if lateral < 0 else 1.0)))
     for i in range(len(muestras)-1):
         for j in range(lados):
             a, b = i*lados+j, i*lados+(j+1)%lados
@@ -333,7 +346,7 @@ malla("suelo_boca", vertices, caras, MUCOSA)
 # encoge al alejarse del corte.
 perfil("menton", [(-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45),
        (-1.92, -1.98), (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15)],
-       0.12, [0.3, 0.36, 0.42, 0.46, 0.48, 0.46, 0.4], PIEL)
+       0.12, [0.3, 0.36, 0.42, 0.46, 0.48, 0.46, 0.4], PIEL, lejos=0.3)
 
 # --- La media cabeza --------------------------------------------------------
 # Lo que cierra la cara de perfil sin cajas: una piel lejana (del lado
@@ -375,7 +388,7 @@ def piel(nombre, perfil, lado, cerrado, anillos=14, encoger=1.0, tapa=False, exc
     n = len(perfil)
     anillos_total = 14                # los anillos de la cabeza entera: una pieza parcial usa los mismos
     for k in range(anillos + 1):
-        th = (math.pi / 2) * (min(k, anillos_total) / anillos_total) * 0.97
+        th = (math.pi / 2) * (min(k, anillos_total) / anillos_total) * 0.995   # el ultimo anillo, casi en el fondo: la tapa es pequeña y no hace pliegue
         f = math.cos(th) ** EXP_CABEZA * encoger
         z = lado * W_CABEZA * math.sin(th)
         for x, y in perfil:

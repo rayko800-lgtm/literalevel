@@ -1020,6 +1020,11 @@ export class EscenaBoca {
         // Las shape keys del labio (fruncir, estirar): el visor las mezcla
         // desde el largo entre comisuras de la pose. Sin ellas, se escala.
         destino.updateMorphTargets();
+        // Los nombres de las shape keys viven en la malla cargada (extras
+        // targetNames), no en la geometría: sin copiarlos el diccionario queda
+        // «0, 1, 2» y el visor caía en el respaldo de escalar (así estuvo
+        // desde dffece4 hasta el 14 sep).
+        if (fuente.morphTargetDictionary) destino.morphTargetDictionary = { ...fuente.morphTargetDictionary };
         destino.scale.set(1, 1, 1);
       }
       (Array.isArray(materialAnterior) ? materialAnterior : [materialAnterior]).forEach(m => m.dispose());
@@ -1243,13 +1248,18 @@ export class EscenaBoca {
     this.sucio = true;
   }
 
-  private labio(m: THREE.Mesh, largo: number, radio: number): void {
+  /** `comisura`: cuánto se acercan los extremos de este labio al otro (la
+   *  shape key `comisura_abajo` del superior / `comisura_arriba` del inferior
+   *  mueve el extremo una unidad por unidad de influencia). */
+  private labio(m: THREE.Mesh, largo: number, radio: number, comisura = 0): void {
     if (m.userData['modelado']) {
       const dic = m.morphTargetDictionary, inf = m.morphTargetInfluences;
       if (dic && inf && 'fruncir' in dic && 'estirar' in dic) {
         // 2,3 es el largo neutro; 1,05 el de «muy redondeados»; 2,9 el de «estirados».
         inf[dic['fruncir']] = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05)));
         inf[dic['estirar']] = Math.min(1, Math.max(0, (largo - 2.3) / (2.9 - 2.3)));
+        const clave = m === this.labioSup ? 'comisura_abajo' : 'comisura_arriba';
+        if (clave in dic) inf[dic[clave]] = comisura;
       } else {
         m.scale.set(radio / 0.3, radio / 0.3, largo / 2.3);
       }
@@ -1270,11 +1280,22 @@ export class EscenaBoca {
     const abierto = (n[I_VELO] - VELO_CERRADO) / (VELO_ABIERTO - VELO_CERRADO);
     (this.aireNasal.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, abierto));
     (this.aireOral.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, n[I_AIRE_ORAL]));
-    this.labioSup.position.set(n[I_LS], n[I_LS + 1], 0);
-    this.labio(this.labioSup, n[I_LS + 2], n[I_LS + 3]);
+    // Las comisuras: el labio de abajo baja con la mandíbula y el de arriba
+    // no; lo que se separan sus extremos más de lo normal (0,6 entre los
+    // centros de los dos tubos) lo cubren a medias las shape keys de comisura,
+    // para que los labios sigan unidos en las esquinas con la boca abierta.
+    const finInf = mundo(new THREE.Vector2(n[I_LI] + 0.615, n[I_LI + 1]), n[I_MAND]);
+    const hueco = Math.max(0, (n[I_LS + 1] - finInf.y) - 0.6);
+    // Los labios modelados ya sacan el centro hacia delante con la shape key
+    // «fruncir»: del adelanto de la pose (pensado para el tubo geométrico)
+    // solo se conserva un tercio, o los labios se despegan de la cara en /u/.
+    // Los retrocesos (labiodental, cerrados) se conservan enteros.
+    const avance = (x: number) => (this.labioSup.userData['modelado'] && x < LABIO_X ? LABIO_X + (x - LABIO_X) * 0.35 : x);
+    this.labioSup.position.set(avance(n[I_LS]), n[I_LS + 1], 0);
+    this.labio(this.labioSup, n[I_LS + 2], n[I_LS + 3], hueco / 2);
     // El labio inferior vive en la mandíbula: su posición es local al pivote.
-    this.labioInf.position.set(n[I_LI] - PIVOTE_MAND.x, n[I_LI + 1] - PIVOTE_MAND.y, 0);
-    this.labio(this.labioInf, n[I_LI + 2], n[I_LI + 3]);
+    this.labioInf.position.set(avance(n[I_LI]) - PIVOTE_MAND.x, n[I_LI + 1] - PIVOTE_MAND.y, 0);
+    this.labio(this.labioInf, n[I_LI + 2], n[I_LI + 3], hueco / 2);
     if (this.lenguaGlb?.morphTargetInfluences) {
       const inf = this.lenguaGlb.morphTargetInfluences;
       this.indicesMorfos.forEach((idx, i) => { if (idx !== undefined) inf[idx] = n[I_MORFOS + i]; });
