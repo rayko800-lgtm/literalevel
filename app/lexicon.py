@@ -421,6 +421,41 @@ def _mejor_fonetica(
     return ipa_uk, ipa_us, audio_uk, audio_us
 
 
+def _fonetica_de_la_forma(
+    diccionario, superficie: str, lema_buscado: str,
+    entradas: list[EntradaDiccionario], categoria: str | None,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    """IPA y audio de la palabra TAL COMO ESTA ESCRITA, no de su lema.
+
+    Antes la ficha usaba la fonetica de la entrada del lema: «went» salia
+    /ɡoʊ/ con el audio de Wiktionary diciendo «go», «thought» /ˈθɪŋk/ y
+    «books» /bʊk/ (14 sep 2026, al reproducir «eclipses» de Miguel). Orden:
+
+      1. Si la forma es el lema, la entrada del lema, como siempre.
+      2. Si no, solo las entradas de Kaikki de ESA forma («thought» trae la
+         suya); el audio del lema nunca, porque dice otra palabra.
+      3. Si falta la americana, la de CMUdict para esa forma, que trae las
+         flexionadas («eclipses», «went»). CMUdict es americano: la britanica
+         no se deduce de ella; si falta, la pide OpenAI y se marca como IA.
+    """
+    forma = str(superficie or "").strip().lower()
+    if not forma or forma == str(lema_buscado or "").strip().lower():
+        ipa_uk, ipa_us, audio_uk, audio_us = _mejor_fonetica(entradas, categoria)
+    else:
+        try:
+            propias = diccionario.buscar(forma)
+        except Exception:
+            propias = []
+        ipa_uk, ipa_us, audio_uk, audio_us = _mejor_fonetica(propias, categoria)
+    if not ipa_us and forma:
+        try:
+            import fonemas
+            ipa_us = fonemas._ipa_cmu(forma)
+        except Exception:
+            ipa_us = None
+    return ipa_uk, ipa_us, audio_uk, audio_us
+
+
 # --- Diccionario (Kaikki/Wiktionary en SQLite) -----------------------------
 class Diccionario:
     """Envoltorio de solo lectura sobre `kaikki_diccionario.db`."""
@@ -540,7 +575,8 @@ def _modelo_respuesta_contextual(compuesto: bool = False):
     """Construye el modelo Pydantic de Structured Outputs de forma perezosa,
     para no exigir `pydantic` a quien solo use diccionario + IPA.
 
-    Con `compuesto`, pide ademas la IPA del compuesto ENTERO: el diccionario
+    Con `compuesto`, pide ademas la IPA (del compuesto ENTERO, o de la palabra
+    tal como esta escrita cuando los diccionarios no la traen): el diccionario
     solo trae una de sus partes («war» de «war-chant») y su IPA no es la de
     la palabra que se esta leyendo."""
     from pydantic import BaseModel
@@ -660,6 +696,7 @@ def _pedir_explicacion_openai(
     categoria: str | None, banda: str, modelo: str, idioma: str = "es",
     alternativas: list[str] | None = None,
     compuesto_de: str | None = None,
+    pedir_ipa: bool = False,
 ) -> dict:
     """Pide a OpenAI lo contextual/gramatical. Prohibe explicitamente
     inventar la definicion: debe usar la glosa que se le pasa, tal cual, o,
@@ -672,8 +709,13 @@ def _pedir_explicacion_openai(
     `compuesto_de`: `palabra` es un compuesto que el diccionario no trae entero
     («war-chant») y la glosa es solo de esa parte («war»). Se explica el
     compuesto sin presentar la glosa como suya, y se pide su IPA entera.
+
+    `pedir_ipa`: ni Kaikki ni CMUdict traen la IPA americana o la britanica de la
+    palabra tal como esta escrita («eclipses»). Se pide en la misma llamada, sin
+    coste aparte, y `consultar` solo rellena con ella lo que falta, marcado.
     """
-    RespuestaContextual = _modelo_respuesta_contextual(compuesto=bool(compuesto_de))
+    RespuestaContextual = _modelo_respuesta_contextual(
+        compuesto=bool(compuesto_de) or pedir_ipa)
     lengua = _lengua(idioma)
     regla_compuesto = (
         f"La palabra del texto es el compuesto «{palabra}», que el diccionario no trae "
@@ -687,7 +729,13 @@ def _pedir_explicacion_openai(
         "americano (General American), entre barras, con la marca de acento primario ˈ "
         "y la secundaria ˌ delante de la silaba: por ejemplo /ˈwɔɹˌtʃænt/. Usa ɹ para la r.\n"
         "- ipa_uk: lo mismo en britanico (RP). Si no puedes transcribirlo con seguridad, "
-        "deja los dos vacios.") if compuesto_de else ""
+        "deja los dos vacios.") if compuesto_de else (
+        "\n- ipa_us: transcripcion fonemica en AFI (IPA) de la palabra TAL COMO APARECE "
+        "en la oracion (la forma escrita, no su lema: «eclipses», no «eclipse») en ingles "
+        "americano (General American), entre barras, con la marca de acento primario ˈ "
+        "y la secundaria ˌ delante de la silaba: por ejemplo /ɪˈklɪpsɪz/. Usa ɹ para la r.\n"
+        "- ipa_uk: lo mismo en britanico (RP). Si no puedes transcribirla con seguridad, "
+        "deja los dos vacios.") if pedir_ipa else ""
     otras = [a for a in (alternativas or []) if a and a != glosa]
     regla_alternativas = (
         "La eleccion de la acepcion fue DUDOSA. Si la definicion dada no encaja con "
@@ -928,9 +976,14 @@ class ConsultorLexico:
         # cualquier palabra nueva necesita las dos, y en serie eso eran unos
         # tres segundos regalados. Las escrituras a SQLite se quedan en el
         # hilo principal: la cache es un fichero, no un servicio.
-        ipa_uk, ipa_us, audio_uk, audio_us = _mejor_fonetica(entradas, categoria)
+        ipa_uk, ipa_us, audio_uk, audio_us = _fonetica_de_la_forma(
+            self.diccionario, superficie, lema_buscado, entradas, categoria)
         if parte_del_diccionario:
             ipa_uk = ipa_us = audio_uk = audio_us = None
+        # Si falta alguna de las dos IPA de la forma, la explicacion la pide
+        # (Miguel, 14 sep: «si no estan en el diccionario, OpenAI tiene que
+        # entrar para darmelo»). Los compuestos ya la piden por su camino.
+        pedir_ipa = sentido is not None and not parte_del_diccionario and not (ipa_us and ipa_uk)
         audio_generado = False
         # `usar_openai=False` reutiliza el camino de "no hay clave", que ya
         # estaba escrito y probado: el diccionario, la IPA, la desambiguacion y
@@ -979,7 +1032,9 @@ class ConsultorLexico:
                     "contextual-v2", lema_buscado, categoria or "", sentido.glosa,
                     oracion, banda, self.modelo_openai, idioma,
                     "alt" if alternativas else "",
-                ) + (("compuesto",) if parte_del_diccionario else ())
+                ) + (("compuesto",) if parte_del_diccionario else ()) + (
+                    # Una respuesta guardada sin IPA no sirve cuando hay que pedirla.
+                    ("ipa",) if pedir_ipa else ())
                 extra = self.cache.obtener_respuesta(*partes_clave)
                 if extra is not None:
                     desde_cache = True
@@ -1037,6 +1092,8 @@ class ConsultorLexico:
                         extra_kw = {"alternativas": alternativas} if alternativas else {}
                         if parte_del_diccionario:
                             extra_kw["compuesto_de"] = parte_del_diccionario
+                        if pedir_ipa:
+                            extra_kw["pedir_ipa"] = True
                         f_expl = grupo.submit(
                             _pedir_explicacion_openai, cliente,
                             palabra=palabra_superficie, oracion=oracion,
@@ -1138,10 +1195,15 @@ class ConsultorLexico:
             if len(acepciones_principales) < 2:
                 acepciones_principales = []
 
-        if parte_del_diccionario and extra:
-            ipa_us = _ipa_de_modelo(extra.get("ipa_us"))
-            ipa_uk = _ipa_de_modelo(extra.get("ipa_uk"))
-            ipa_generada_por_ia = bool(ipa_us or ipa_uk)
+        if extra and not modo_ia and (parte_del_diccionario or pedir_ipa):
+            # Solo rellena lo que los diccionarios no traen, y se marca. En un
+            # compuesto las dos estan vacias y las pone enteras, como antes.
+            ia_us = _ipa_de_modelo(extra.get("ipa_us"))
+            ia_uk = _ipa_de_modelo(extra.get("ipa_uk"))
+            if not ipa_us and ia_us:
+                ipa_us, ipa_generada_por_ia = ia_us, True
+            if not ipa_uk and ia_uk:
+                ipa_uk, ipa_generada_por_ia = ia_uk, True
 
         return ResultadoLexico(
             palabra_superficie=palabra_superficie, oracion=oracion,

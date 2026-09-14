@@ -7328,6 +7328,91 @@ prueba("lexico: la ficha de un compuesto no es la de su parte",
        _la_ficha_de_un_compuesto_no_es_la_de_su_parte)
 
 
+def _la_ipa_y_el_audio_son_de_la_forma_escrita():
+    """«eclipses» salia con los botones US y UK sin IPA (Miguel, 14 sep), y al
+    reproducirlo aparecio algo peor: la forma flexionada heredaba la fonetica
+    del lema, «went» /ɡoʊ/ con el audio de «go». Orden: Kaikki de la forma, CMU
+    de la forma (americano), el lema solo si coincide, y lo que falte, OpenAI
+    marcado como IA. La britanica nunca se deduce de CMU."""
+    from unittest.mock import patch
+    E, S = lexicon_mod.EntradaDiccionario, lexicon_mod.Sentido
+
+    def entrada(palabra, pos, uk=None, us=None, audio=None):
+        return E(palabra, pos, [S(f"Sentido de {palabra}.", pos, [])], uk, us, None, audio)
+
+    dicc = {
+        "go": [entrada("go", "verb", "/ɡəʊ/", "/ɡoʊ/", "https://upload.wikimedia.org/go.ogg")],
+        "think": [entrada("think", "verb", "/θɪŋk/", "/θɪŋk/", "https://upload.wikimedia.org/think.ogg")],
+        "thought": [entrada("thought", "noun", "/θɔːt/", "/θɔt/")],
+        "book": [entrada("book", "noun", "/bʊk/", "/bʊk/", "https://upload.wikimedia.org/book.ogg")],
+        "run": [entrada("run", "verb", "/ɹʌn/", "/ɹʌn/")],
+        "eclipse": [entrada("eclipse", "verb")],
+    }
+    lemas = {"went": ("go", "verb"), "go": ("go", "verb"), "thought": ("think", "verb"),
+             "books": ("book", "noun"), "running": ("run", "verb"), "eclipses": ("eclipse", "verb")}
+    pedidas = []
+
+    class _Dicc:
+        def buscar(self, p):
+            return list(dicc.get(p, []))
+
+        def cerrar(self):
+            pass
+
+    def _explicar(_cliente, **kw):
+        pedidas.append(kw)
+        base = {"traduccion": "eclipsa", "acepcion_usada": "", "definicion_contextual": "Eclipsa.",
+                "explicacion_gramatical": "Verbo.", "explicacion_adaptada": "Hace sombra.",
+                "ejemplo_simplificado": "She eclipses them."}
+        # La americana del modelo es otra a proposito: no puede pisar la de CMU.
+        return {**base, "ipa_us": "/ɪˈklɪpsɪz/", "ipa_uk": "/ɪˈklɪpsɪz/"} if kw.get("pedir_ipa") else base
+
+    def _consultor(con_clave):
+        c = lexicon_mod.ConsultorLexico.__new__(lexicon_mod.ConsultorLexico)
+        c.diccionario, c.cache = _Dicc(), lexicon_mod.CacheLexico(":memory:")
+        c.modelo_openai, c._sin_clave, c._cliente_openai = "modelo-prueba", not con_clave, (object() if con_clave else None)
+        return c
+
+    oracion = "In his eyes she eclipses the whole of her sex."
+    resolver = lambda _o, w: (lemas[w][0], lemas[w][0], lemas[w][1], lemas[w][1].upper())
+    with patch.object(lexicon_mod, "_resolver_lema_y_categoria", side_effect=resolver), \
+         patch.object(lexicon_mod, "_pedir_explicacion_openai", _explicar), \
+         patch.object(lexicon_mod, "_generar_audio_tts", lambda *a, **k: (None, False)):
+        c = _consultor(con_clave=False)
+        try:
+            sin = {w: c.consultar(w, oracion, 1.0, usar_openai=False) for w in lemas}
+        finally:
+            c.cerrar()
+        c = _consultor(con_clave=True)
+        try:
+            con = {w: c.consultar(w, oracion, 1.0) for w in ("eclipses", "go")}
+        finally:
+            c.cerrar()
+
+    # Sin clave: diccionarios solos, nada de IA.
+    assert (sin["went"].ipa_us, sin["went"].ipa_uk) == ("/wɛnt/", None), sin["went"]
+    assert sin["went"].audio_us is None and sin["went"].audio_uk is None, "el audio de «go» no es el de «went»"
+    assert (sin["thought"].ipa_us, sin["thought"].ipa_uk) == ("/θɔt/", "/θɔːt/"), "la entrada propia de la forma"
+    assert sin["thought"].audio_us is None, "el audio de «think» no es el de «thought»"
+    assert (sin["books"].ipa_us, sin["books"].audio_us) == ("/bʊks/", None), sin["books"]
+    assert sin["running"].ipa_us == "/ˈɹʌnɪŋ/" and sin["running"].ipa_uk is None, sin["running"]
+    assert (sin["eclipses"].ipa_us, sin["eclipses"].ipa_uk) == ("/ɪkˈlɪpsɪz/", None), sin["eclipses"]
+    assert (sin["go"].ipa_us, sin["go"].audio_us) == ("/ɡoʊ/", "https://upload.wikimedia.org/go.ogg"), "forma = lema, igual que antes"
+    assert not any(r.ipa_generada_por_ia for r in sin.values())
+
+    # Con clave: la britanica que falta la pone OpenAI, marcada; la americana de CMU se queda.
+    e = con["eclipses"]
+    assert (e.ipa_us, e.ipa_uk, e.ipa_generada_por_ia) == ("/ɪkˈlɪpsɪz/", "/ɪˈklɪpsɪz/", True), e
+    assert pedidas[0].get("pedir_ipa") is True and "pedir_ipa" not in pedidas[1], pedidas
+    assert not con["go"].ipa_generada_por_ia and con["go"].ipa_uk == "/ɡəʊ/", con["go"]
+    assert "IPA generada por IA" in ui._ficha(e, "es")
+    return "went, thought, books, running y eclipses con su forma; la britanica que falta, de la ia y marcada"
+
+
+prueba("lexico: la ipa y el audio son de la forma escrita, no del lema",
+       _la_ipa_y_el_audio_son_de_la_forma_escrita)
+
+
 def _el_aviso_de_acepcion_dudosa_se_va_cuando_openai_la_revisa():
     """f4: «house» traia «La acepción elegida es dudosa» con dudoso=false. Con
     OpenAI revisando las alternativas, el aviso ya no aplica; sin OpenAI, si."""
