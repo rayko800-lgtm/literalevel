@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 import unicodedata
 from dataclasses import dataclass, replace
 from xml.sax.saxutils import escape
@@ -474,6 +475,40 @@ class _Linea:
     golpe: dict          # lugar -> [t]
 
 
+# ---------------------------------------------------------------------------
+# Al compas del audio
+# ---------------------------------------------------------------------------
+# Miguel (14 sep): quiere ver el movimiento mientras oye el sonido. El front
+# pone el SVG en un <img> y no puede tocar su animacion por dentro, asi que:
+#   - `duracion`: el ciclo dura lo mismo que el audio (el mp3 del fonema o el
+#     TTS de la palabra); todos los tiempos se escalan en proporcion.
+#   - `repetir=False`: una sola pasada que acaba en reposo («1 both»), para que
+#     no siga dando vueltas desfasada cuando el audio termina.
+# Para reiniciar, el front cambia la URL (un parametro que el servidor ignora)
+# a la vez que llama a `audio.play()`: el <img> recarga y la animacion empieza.
+DURACION_MINIMA, DURACION_MAXIMA = 0.3, 10.0
+
+
+def _duracion_valida(duracion) -> float | None:
+    """`duracion` en segundos si es un numero razonable; si no, None (se ignora)."""
+    try:
+        d = float(duracion)
+    except (TypeError, ValueError):
+        return None
+    return d if DURACION_MINIMA <= d <= DURACION_MAXIMA else None
+
+
+def _escalar(linea: _Linea, factor: float) -> _Linea:
+    """La misma linea de tiempo, con todos los instantes multiplicados."""
+    def tramos(lista):
+        return [(a * factor, b * factor) for a, b in lista]
+    return _Linea(linea.total * factor,
+                  [(t * factor, pose) for t, pose in linea.poses],
+                  tramos(linea.vib), tramos(linea.boca), tramos(linea.nariz),
+                  {k: tramos(v) for k, v in linea.ruido.items()},
+                  {k: [t * factor for t in v] for k, v in linea.golpe.items()})
+
+
 def _nueva_linea(total):
     return _Linea(total, [], [], [], [], {}, {})
 
@@ -767,7 +802,7 @@ def _golpes(instantes: list[float], total: float) -> list[tuple[float, str]]:
 def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
          marcas_fijas: dict, leyenda: list[str], simbolo_grande: str,
          extra_estilo: str = "", extra_cuerpo: str = "", fantasma: dict | None = None,
-         alto_texto: int = 0) -> str:
+         alto_texto: int = 0, repetir: bool = True) -> str:
     P = prefijo
     alto = 222 + alto_texto
     css = [f".{P} .{P}-p{{transform-box:view-box;transform-origin:0 0}}"]
@@ -896,7 +931,15 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 {alto}" role="img" '
             f'aria-labelledby="{P}-t {P}-d" class="{P}" font-family="{_FUENTE}">'
             f'<title id="{P}-t">{escape(titulo)}</title><desc id="{P}-d">{escape(desc)}</desc>'
-            f'<style>{"".join(css)}</style>{"".join(partes)}</svg>')
+            f'<style>{_estilo_ciclo("".join(css), repetir)}</style>{"".join(partes)}</svg>')
+
+
+def _estilo_ciclo(css: str, repetir: bool) -> str:
+    """Con `repetir=False`, las animaciones del ciclo (las de «N.NNs») dan una sola
+    pasada y se quedan en su ultimo fotograma, que es el reposo."""
+    if repetir:
+        return css
+    return re.sub(r"(\d+\.\d\ds (?:ease-in-out|linear)) infinite", r"\1 1 both", css)
 
 
 def _partir(texto: str, ancho: int = 46) -> list[str]:
@@ -935,7 +978,8 @@ def _cuerdas(art: Articulacion) -> str:
     return "con vibración" if art.sonora else "sin vibración"
 
 
-def _construir(simbolo: str, acento: str, animado: bool) -> str | None:
+def _construir(simbolo: str, acento: str, animado: bool,
+               duracion: float | None = None, repetir: bool = True) -> str | None:
     if not isinstance(simbolo, str) or not isinstance(acento, str):
         return None
     art = parametros(simbolo, acento)
@@ -953,6 +997,10 @@ def _construir(simbolo: str, acento: str, animado: bool) -> str | None:
     if m == "fricativa":
         marcas["ruido"] = (art.lugar,)
     linea = _linea_sonido(art) if animado else None
+    duracion = _duracion_valida(duracion) if animado else None
+    if linea is not None and duracion is not None:
+        linea = _escalar(linea, duracion / linea.total)
+    repetir = repetir or not animado
     fantasma = _pose(b) if (b is not None and m == "diptongo") else None
     texto = f"/{sonido.simbolo}/ {art.leyenda} · {_cuerdas(art)}"
     leyenda = _partir(texto)
@@ -965,7 +1013,8 @@ def _construir(simbolo: str, acento: str, animado: bool) -> str | None:
         desc += " La animación va del reposo a la posición del sonido y vuelve."
     if fantasma:
         desc += " La línea discontinua marca adónde llega la lengua al final del deslizamiento."
-    P = _prefijo(acento, sonido.simbolo, "a" if animado else "q")
+    P = _prefijo(acento, sonido.simbolo, "a" if animado else "q",
+                 *(() if duracion is None and repetir else (f"{duracion}", f"{repetir}")))
     estilo_toca = cuerpo_toca = ""
     punto = _contacto(a)
     if punto is not None:
@@ -984,13 +1033,18 @@ def _construir(simbolo: str, acento: str, animado: bool) -> str | None:
         desc += " Un aro marca dónde toca."
     return _svg(P, titulo, desc, linea, fija, marcas, leyenda, f"/{sonido.simbolo}/",
                 extra_estilo=estilo_toca, extra_cuerpo=cuerpo_toca,
-                fantasma=fantasma, alto_texto=12 * len(leyenda) + 2)
+                fantasma=fantasma, alto_texto=12 * len(leyenda) + 2, repetir=repetir)
 
 
-def svg_articulacion(simbolo: str, acento: str = "ga") -> str | None:
-    """SVG animado (reposo -> sonido -> reposo) o `None` si el simbolo no esta en ese acento."""
+def svg_articulacion(simbolo: str, acento: str = "ga", dur: float | None = None,
+                     repetir: bool = True) -> str | None:
+    """SVG animado (reposo -> sonido -> reposo) o `None` si el simbolo no esta en ese acento.
+
+    `dur`: segundos del ciclo, para que dure lo que el mp3 del fonema
+    (entre `DURACION_MINIMA` y `DURACION_MAXIMA`; fuera, se ignora y son 2,8 s).
+    `repetir=False`: una sola pasada que acaba en reposo."""
     try:
-        return _construir(simbolo, acento, True)
+        return _construir(simbolo, acento, True, dur, repetir)
     except Exception:
         return None
 
@@ -1003,7 +1057,8 @@ def svg_articulacion_quieto(simbolo: str, acento: str = "ga") -> str | None:
         return None
 
 
-def svg_palabra(ipa: str, acento: str = "ga") -> str | None:
+def svg_palabra(ipa: str, acento: str = "ga", dur: float | None = None,
+                repetir: bool = True) -> str | None:
     """Un SVG que recorre las posiciones de los fonemas de una transcripcion.
 
     Acepta «/ˈmoʊstli/» o «[ˈwɔːtə]». Trocea con prioridad a lo mas largo
@@ -1012,20 +1067,29 @@ def svg_palabra(ipa: str, acento: str = "ga") -> str | None:
     mas largas que consonantes; la silaba acentuada (ˈ) dura un 40 % mas y la
     secundaria (ˌ) un 15 %. Debajo, la transcripcion con el fonema en curso
     resaltado y su leyenda.
+
+    `dur` y `repetir`, como en `svg_articulacion`: el recorrido dura lo que
+    el audio de la palabra y, sin repetir, se queda en reposo al acabar.
     """
     try:
-        return _construir_palabra(ipa, acento)
+        return _construir_palabra(ipa, acento, dur, repetir)
     except Exception:
         return None
 
 
-def _construir_palabra(ipa: str, acento: str) -> str | None:
+def _construir_palabra(ipa: str, acento: str, duracion: float | None = None,
+                       repetir: bool = True) -> str | None:
     if acento not in articulacion.ACENTOS:
         return None
     texto, segs = trocear(ipa, acento)
     if not segs:
         return None
     linea, tramos, fija_i = _linea_palabra(segs)
+    duracion = _duracion_valida(duracion)
+    if duracion is not None:
+        factor = duracion / linea.total
+        linea = _escalar(linea, factor)
+        tramos = [(a * factor, b * factor) for a, b in tramos]
     arts = [s.articulacion for s in segs]
     seg_fijo = segs[fija_i]
     a, _ = _objetivos(seg_fijo.articulacion, REPOSO)
@@ -1033,7 +1097,8 @@ def _construir_palabra(ipa: str, acento: str) -> str | None:
     marcas = {"vi": 1 if seg_fijo.articulacion.sonora else 0,
               "ab": 1 if seg_fijo.articulacion.movimiento != "nasal" else 0,
               "an": 1 if seg_fijo.articulacion.movimiento == "nasal" else 0}
-    P = _prefijo(acento, "palabra", texto)
+    P = _prefijo(acento, "palabra", texto,
+                 *(() if duracion is None and repetir else (f"{duracion}", f"{repetir}")))
     total = linea.total
 
     # Transcripcion: una capa base y otra de resaltado por fonema (fill-opacity
@@ -1078,4 +1143,4 @@ def _construir_palabra(ipa: str, acento: str) -> str | None:
     desc = ("Corte lateral de la cabeza animado que recorre los sonidos de la palabra: "
             + "; ".join(f"/{s.simbolo}/ {s.articulacion.leyenda}" for s in segs) + ".")
     return _svg(P, titulo, desc, linea, fija, marcas, [], "", extra_estilo="".join(css),
-                extra_cuerpo="".join(cuerpo), alto_texto=52)
+                extra_cuerpo="".join(cuerpo), alto_texto=52, repetir=repetir)

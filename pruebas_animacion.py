@@ -247,6 +247,67 @@ comprobar("el aro se enciende solo con la posicion del sonido",
           re.search(r"@keyframes ll[0-9a-f]+-ct\{", t_animado) is not None)
 comprobar("el aro quieto no se anima", "@keyframes" not in t_quieto)
 
+# --- 7. Al compas del audio ------------------------------------------------------
+# Miguel (14 sep): ver el movimiento mientras suena. El ciclo dura lo que el audio
+# (`dur`) y puede dar una sola pasada (`repetir=False`).
+def sin_prefijo(svg):
+    return svg.replace(prefijo(svg), "P")
+
+
+def keyframes(svg):
+    """{nombre: cuerpo} de cada @keyframes, sin el prefijo."""
+    return dict((m.group(1), m.group(2)) for m in re.finditer(
+        r"@keyframes (P[\w-]*)\{((?:[^{}]*\{[^{}]*\})*)\}", sin_prefijo(svg)))
+
+
+def duraciones(svg):
+    return set(re.findall(r"animation:[\w-]+ (\d+\.\d\d)s", svg))
+
+
+# Las POSES (transform) se escalan en proporcion y quedan identicas. Las capas de
+# opacidad no: sus fundidos (0,05 s), el destello de la explosion y las rampas de
+# los rotulos son de segundos fijos, para que en un audio corto no se vuelvan
+# lentos; en «mostly» a 1,35 s dos tramos de aire casi pegados pasan a ser uno.
+for nombre, normal, escalado, suelto in (
+        ("sonido /t/", aa.svg_articulacion("t"), aa.svg_articulacion("t", dur=5.2),
+         aa.svg_articulacion("t", dur=5.2, repetir=False)),
+        ("palabra «mostly»", aa.svg_palabra("/ˈmoʊstli/"), aa.svg_palabra("/ˈmoʊstli/", dur=1.35),
+         aa.svg_palabra("/ˈmoʊstli/", dur=1.35, repetir=False))):
+    limite = LIMITE_SONIDO if nombre.startswith("sonido") else LIMITE_PALABRA
+    svg_limpio(f"{nombre} con duracion", escalado, limite)
+    svg_limpio(f"{nombre} sin repetir", suelto, limite)
+    esperada = "5.20" if nombre.startswith("sonido") else "1.35"
+    comprobar(f"{nombre}: todo el ciclo dura lo que el audio", duraciones(escalado) == {esperada},
+              str(duraciones(escalado)))
+    k_normal, k_escalado = keyframes(normal), keyframes(escalado)
+    poses_normal = {k: v for k, v in k_normal.items() if "transform:" in v}
+    poses_escalado = {k: v for k, v in k_escalado.items() if "transform:" in v}
+    comprobar(f"{nombre}: las poses son las mismas, solo cambia el tiempo",
+              bool(poses_normal) and poses_escalado == poses_normal,
+              str([k for k in poses_normal if poses_normal[k] != poses_escalado.get(k)]))
+    comprobar(f"{nombre}: se animan las mismas piezas", set(k_escalado) == set(k_normal))
+    comprobar(f"{nombre}: sin repetir da una pasada y se queda en reposo",
+              re.search(r"\d\.\d\ds (?:ease-in-out|linear) infinite", suelto) is None
+              and " 1 both" in suelto)
+    comprobar(f"{nombre}: repitiendo sigue en bucle", "1 both" not in escalado and " infinite" in escalado)
+    comprobar(f"{nombre}: otra duracion, otro prefijo", prefijo(escalado) != prefijo(normal))
+comprobar("sin duracion ni repetir, el SVG no cambia",
+          aa.svg_articulacion("t") == aa.svg_articulacion("t", "ga", None, True)
+          and aa.svg_palabra("/dʒʌdʒ/") == aa.svg_palabra("/dʒʌdʒ/", "ga", None, True))
+for ipa in ("/ˈmoʊstli/", largo):
+    iv = intervalos_rotulos(aa.svg_palabra(ipa, dur=1.35))
+    orden = sorted(iv)
+    solapes = [(i, j) for i, j in zip(orden, orden[1:]) if iv[i][1] > iv[j][0] + 0.11]
+    comprobar(f"los rotulos de {ipa} no se montan a 1,35 s", len(orden) > 1 and not solapes, str(solapes))
+for mala in (0, -1, 0.1, 10.5, 1000, float("nan"), "x", None):
+    comprobar(f"una duracion invalida ({mala!r}) se ignora",
+              aa.svg_articulacion("t", dur=mala) == aa.svg_articulacion("t")
+              and aa.svg_palabra("/kæt/", dur=mala) == aa.svg_palabra("/kæt/"))
+comprobar("el quieto ignora duracion y repetir",
+          aa.svg_articulacion_quieto("t") == aa._construir("t", "ga", False, 4.0, False))
+comprobar("la vibracion sigue en bucle aunque no se repita",
+          ".09s linear infinite alternate" in aa.svg_articulacion("d", dur=3.0, repetir=False))
+
 print()
 print(f"pesos de los SVG de sonido: minimo {min(pesos)}, medio {sum(pesos) // len(pesos)}, maximo {max(pesos)} bytes")
 if FALLOS:
