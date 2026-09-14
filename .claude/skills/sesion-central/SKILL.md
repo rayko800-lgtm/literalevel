@@ -226,3 +226,17 @@ Qué hacer la central cuando pase:
 - [ ] Hash desplegado confirmado por la desplegadora, no por la tabla.
 - [ ] Informe de Codex entregado a la sesión dueña, no corregido aquí.
 - [ ] Fila en `AGENTS.md` y esta skill actualizada.
+
+## 7. El commit que se lleva líneas ajenas
+
+El 14 sep a las 15:15, e6 hizo commit de `app/api.py` y `app/ui.py` enteros
+para unos plurales y arrastró cinco llamadas de f4 a una función que aún no
+existía en ningún commit (`ficha.para_medir`). HEAD dejó de poder medir. La
+regla ya estaba en `trabajar-en-equipo` (rutas explícitas y `git apply
+--cached` solo con los bloques propios); lo que faltaba era la red de la
+central: **después de cada commit sobre un archivo compartido, la central
+comprueba que HEAD importa y pasa la suite corta** (`python -X utf8
+tests_smoke.py`), o se lo pide a f4 antes de cualquier reinicio. Y cuando
+dos sesiones editan el mismo archivo a la vez, la central lo sabe (lo dijo
+f4 media hora antes): en ese momento hay que avisar a las dos de que solo
+suban sus hunks.
