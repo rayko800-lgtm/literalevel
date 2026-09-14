@@ -3,8 +3,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { urlCorteSonido } from '../../nucleo/api';
+import { cicloSonido, lineaPalabra } from './animacion';
 import { EscenaBoca } from './escena';
-import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe } from './poses';
+import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
 
 /** La boca en 3D esquemático, girable con el dedo.
  *
@@ -39,6 +40,12 @@ import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe } fro
       <div class="pie">
         <span class="pista">{{ giroLibre() ? 'Arrastra en cualquier dirección' : 'Arrastra de lado para girar la boca' }}</span>
         <span class="botones">
+          @if (pose() && elegido()) {
+            <button type="button" class="boton" (click)="verMovimiento()">Ver el movimiento</button>
+          }
+          @if (segmentos().length) {
+            <button type="button" class="boton" (click)="verPalabra()">Ver la palabra <span class="ipa">/{{ textoIpa() }}/</span></button>
+          }
           <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
                   (click)="alternarGiro()">Girar libremente</button>
           <button type="button" class="boton" (click)="restablecer()">Vista de lado</button>
@@ -64,7 +71,7 @@ import { CATALOGO_PROTOTIPO, CatalogoPoses, DURACION_S, PoseSonido, poseDe } fro
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }
     .pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
       margin-top: 8px; font-size: .9em; color: var(--texto-tenue, #647189); }
-    .botones { display: flex; gap: 6px; }
+    .botones { display: flex; flex-wrap: wrap; gap: 6px; }
     .boton { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde, #d6deeb);
       background: transparent; color: inherit; cursor: pointer; min-height: 36px; }
     .boton.activo { background: var(--acento-suave, #e6ecff); border-color: var(--acento, #2f5bea);
@@ -84,6 +91,10 @@ export class Boca3d {
   readonly svg2dUrl = input<string | null>(null);
   readonly leyenda = input<boolean>(true);
   readonly conSelector = input<boolean>(false);
+  /** Una transcripción IPA: «Ver la palabra» la reproduce entera. */
+  readonly ipa = input<string>('');
+  /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
+  readonly autoReproducir = input<boolean>(true);
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
@@ -93,6 +104,9 @@ export class Boca3d {
   readonly elegido = computed(() => this.elegidoPorChip() ?? this.sonido());
   readonly simbolos = computed(() => Object.keys(this.catalogo().sonidos));
   readonly pose = computed<PoseSonido | null>(() => poseDe(this.catalogo(), this.elegido(), this.acento()));
+  private readonly troceada = computed(() => trocearIpa(this.ipa(), this.catalogo(), this.acento()));
+  readonly segmentos = computed(() => this.troceada().segmentos);
+  readonly textoIpa = computed(() => this.troceada().texto);
   readonly urlRespaldo = computed(() => {
     const dada = this.svg2dUrl();
     if (dada !== null) return dada || null;
@@ -136,9 +150,24 @@ export class Boca3d {
     });
     effect(() => {
       const p = this.pose();
-      if (p && this.escena) this.escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6));
+      const escena = this.escena;
+      if (!p || !escena) return;
+      if (this.autoReproducir() && this.elegido()) escena.reproducir(cicloSonido(p, this.catalogo()));
+      else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6));
     });
     destruir.onDestroy(() => this.escena?.destruir());
+  }
+
+  /** Reposo → sonido → reposo, una vez. */
+  verMovimiento(): void {
+    const p = this.pose();
+    if (p && this.escena) this.escena.reproducir(cicloSonido(p, this.catalogo()));
+  }
+
+  /** La palabra de `ipa` entera, con las duraciones del catálogo. */
+  verPalabra(): void {
+    const segs = this.segmentos();
+    if (segs.length && this.escena) this.escena.reproducir(lineaPalabra(segs, this.catalogo()));
   }
 
   elegir(simbolo: string): void {

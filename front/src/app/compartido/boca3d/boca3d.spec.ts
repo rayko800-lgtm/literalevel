@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { cicloSonido, lineaPalabra } from './animacion';
 import { Boca3d } from './boca3d';
 import { poseNumerica } from './escena';
-import { POSES_PROTOTIPO, REPOSO, poseDe, CATALOGO_PROTOTIPO } from './poses';
+import { POSES_PROTOTIPO, REPOSO, poseDe, resolver, trocearIpa, CATALOGO_PROTOTIPO } from './poses';
 
 // Distribución de la pose numérica (ver escena.ts): mandíbula, velo, labio
 // superior (x, y, largo, radio), labio inferior (x, y, largo, radio), 6 nudos.
@@ -48,6 +49,49 @@ describe('poseDe', () => {
     expect(poseDe(CATALOGO_PROTOTIPO, '/s/')).toBe(POSES_PROTOTIPO['s']);
     expect(poseDe(CATALOGO_PROTOTIPO, '')).toBe(REPOSO);
     expect(poseDe(CATALOGO_PROTOTIPO, 'x')).toBeNull();
+  });
+});
+
+describe('trocearIpa y resolver', () => {
+  it('reconoce los sonidos del catálogo, salta lo que no conoce y apunta el acento a la vocal', () => {
+    const { texto, segmentos } = trocearIpa('/ˈspɑŋk/', CATALOGO_PROTOTIPO);
+    expect(texto).toBe('ˈspɑŋk');
+    expect(segmentos.map(s => s.simbolo)).toEqual(['s', 'p', 'ɑ', 'ŋ']);   // la k no está en el prototipo
+    expect(segmentos.map(s => s.acento_silaba)).toEqual([1, 1, 1, 0]);
+  });
+
+  it('coarticula: /p/ toma el cuerpo de la vocal que sigue y no la punta de una consonante', () => {
+    const p = resolver(POSES_PROTOTIPO['p'], POSES_PROTOTIPO['i']);
+    expect(p.cuerpo).toEqual([1, 1]);
+    expect(p.labios).toBe('cerrados');                  // lo suyo no se toca
+    const p2 = resolver(POSES_PROTOTIPO['p'], POSES_PROTOTIPO['s']);
+    expect(p2.punta).toBe('reposo');                    // una consonante no presta la punta
+    expect(p2.cuerpo).toEqual([0.62, 0.65]);
+  });
+});
+
+describe('líneas de tiempo', () => {
+  it('el ciclo de un sonido dura 2,8 s, empieza y acaba en reposo y pasa por el sonido', () => {
+    const l = cicloSonido(POSES_PROTOTIPO['p'], CATALOGO_PROTOTIPO);
+    expect(l.total).toBe(2.8);
+    expect(l.claves[0].pose).toBe(REPOSO);
+    expect(l.claves[l.claves.length - 1].pose).toBe(REPOSO);
+    expect(l.claves.some(c => c.pose.labios === 'cerrados')).toBe(true);
+    expect(l.claves.some(c => c.hacia === REPOSO && c.f === 0.5)).toBe(true);   // la suelta
+    expect(l.quieta.labios).toBe('cerrados');
+    for (let i = 1; i < l.claves.length; i++) expect(l.claves[i].t).toBeGreaterThanOrEqual(l.claves[i - 1].t);
+  });
+
+  it('la palabra suma las duraciones del catálogo (larga ×1,25, acento ×1,4, ×1,6) más el reposo', () => {
+    const { segmentos } = trocearIpa('ˈsi', CATALOGO_PROTOTIPO);
+    const l = lineaPalabra(segmentos, CATALOGO_PROTOTIPO);
+    // La marca ˈ afecta a la sílaba entera: la /s/ de delante también va ×1,4, como en el 2D.
+    const esperado = 0.45 + (0.22 * 1.4 * 1.6) + (0.34 * 1.25 * 1.4 * 1.6) + 1.0;
+    expect(l.total).toBeCloseTo(esperado, 6);
+    expect(l.quieta.cuerpo).toEqual([1, 1]);           // la vocal acentuada
+    const s = l.claves.find(c => c.pose.punta === 'alveolar')!;
+    expect(s.pose.cuerpo).toEqual([0.62, 0.65]);       // la /s/ tiene cuerpo propio
+    for (let i = 1; i < l.claves.length; i++) expect(l.claves[i].t).toBeGreaterThanOrEqual(l.claves[i - 1].t);
   });
 });
 

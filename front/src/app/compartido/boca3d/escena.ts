@@ -15,6 +15,7 @@
  *  hay interpolación: se salta a la pose. */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Linea } from './animacion';
 import { Labios, PoseSonido, REPOSO } from './poses';
 
 export interface Colores {
@@ -372,6 +373,9 @@ export class EscenaBoca {
   private hacia: PoseNumerica | null = null;
   private t0 = 0;
   private duracion = 0;
+  /** La línea de tiempo en marcha (ciclo de un sonido o palabra entera). */
+  private linea: { claves: { t: number; n: PoseNumerica }[]; total: number } | null = null;
+  private lineaT0 = 0;
   private sucio = true;
   private vivo = true;
   private rafId = 0;
@@ -485,6 +489,7 @@ export class EscenaBoca {
 
   /** Va a la pose con una transición de `duracionS` segundos (0 = de golpe). */
   irA(pose: PoseSonido, duracionS = 0.5): void {
+    this.linea = null;
     const objetivo = poseNumerica(pose);
     if (this.reducirMovimiento || duracionS <= 0) {
       this.desde = this.hacia = null;
@@ -499,9 +504,47 @@ export class EscenaBoca {
     this.sucio = true;
   }
 
-  /** Está a medio camino entre dos poses. */
+  /** Está a medio camino entre dos poses, o reproduciendo una línea. */
   get enTransicion(): boolean {
-    return this.hacia !== null;
+    return this.hacia !== null || this.linea !== null;
+  }
+
+  /** Reproduce una línea de tiempo (`cicloSonido` o `lineaPalabra`) desde el
+   *  principio; al acabar se queda en su última clave. Con reducir movimiento
+   *  no se mueve nada: va de golpe a la pose quieta de la línea. */
+  reproducir(linea: Linea): void {
+    this.desde = this.hacia = null;
+    if (this.reducirMovimiento || linea.claves.length < 2) {
+      this.linea = null;
+      this.actual = poseNumerica(linea.quieta);
+      this.aplicar(this.actual);
+      return;
+    }
+    const claves = linea.claves.map(c => {
+      const n = poseNumerica(c.pose);
+      return { t: c.t, n: c.hacia ? mezclar(n, poseNumerica(c.hacia), c.f ?? 0.5) : n };
+    });
+    this.linea = { claves, total: linea.total };
+    this.lineaT0 = performance.now();
+    this.sucio = true;
+  }
+
+  /** Corta la línea en marcha y se queda donde está. */
+  detener(): void {
+    this.linea = null;
+  }
+
+  private poseDeLinea(t: number): PoseNumerica {
+    const { claves } = this.linea!;
+    if (t <= claves[0].t) return claves[0].n;
+    for (let i = 0; i < claves.length - 1; i++) {
+      const a = claves[i], b = claves[i + 1];
+      if (t < b.t) {
+        const f = b.t > a.t ? (t - a.t) / (b.t - a.t) : 1;
+        return mezclar(a.n, b.n, suavizar(f));
+      }
+    }
+    return claves[claves.length - 1].n;
   }
 
   /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
@@ -560,7 +603,13 @@ export class EscenaBoca {
   private bucle = (): void => {
     if (!this.vivo) return;
     this.rafId = requestAnimationFrame(this.bucle);
-    if (this.hacia && this.desde) {
+    if (this.linea) {
+      const t = (performance.now() - this.lineaT0) / 1000;
+      this.actual = this.poseDeLinea(t);
+      this.aplicar(this.actual);
+      if (t >= this.linea.total) this.linea = null;
+      this.sucio = true;
+    } else if (this.hacia && this.desde) {
       const t = Math.min(1, (performance.now() - this.t0) / this.duracion);
       this.actual = mezclar(this.desde, this.hacia, suavizar(t));
       this.aplicar(this.actual);

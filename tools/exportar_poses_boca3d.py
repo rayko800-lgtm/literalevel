@@ -28,6 +28,9 @@ def _pose(art: anim.Articulacion, vecino: anim.Articulacion = anim.REPOSO) -> di
     a = anim._resolver(art, vecino)
     d = {
         "movimiento": a.movimiento,
+        # Campos que PARAMETROS deja libres (None): en una palabra los pone la
+        # vocal vecina, no el reposo. `cuerpo` libre arrastra raiz y dorso_alto.
+        "libres": [c for c in ("mandibula", "labios", "punta", "cuerpo") if getattr(art, c) is None],
         "mandibula": round(float(a.mandibula), 3),
         "labios": a.labios,
         "punta": a.punta,
