@@ -219,6 +219,56 @@ def sha256_de(ruta):
     return h.hexdigest()
 
 
+# Los finales de linea: con `core.autocrlf=true` el disco de Windows tiene CRLF y
+# el repositorio LF. Comparar o subir los bytes del disco dejaba el Space mezclado
+# (lo subido con `git show` en LF, lo subido desde el disco en CRLF) y hacia que
+# `--seco` pidiera subir archivos identicos en contenido (13-14 sep 2026). Desde
+# entonces se compara y se sube lo que dice el commit, con el texto en LF.
+BINARIOS = {".mp3", ".parquet", ".npy", ".db", ".png", ".jpg", ".webp", ".gz", ".zip"}
+
+
+def es_texto(rel):
+    return os.path.splitext(rel)[1].lower() not in BINARIOS
+
+
+def resolver_commit(ref, raiz=None):
+    """El sha completo del commit, resuelto UNA vez: si otra sesion hace commit a
+    mitad del despliegue, lo que se sube no cambia."""
+    r = subprocess.run(["git", "rev-parse", "--verify", f"{ref}^{{commit}}"],
+                       cwd=raiz or RAIZ, capture_output=True, text=True)
+    if r.returncode:
+        sys.exit(f"NO SUBO NADA: «{ref}» no es un commit de este repositorio.")
+    return r.stdout.strip()
+
+
+def bytes_del_commit(rel, commit, raiz=None):
+    """Los bytes de `rel` en `commit`; el texto, normalizado a LF."""
+    r = subprocess.run(["git", "show", f"{commit}:{rel}"], cwd=raiz or RAIZ, capture_output=True)
+    if r.returncode:
+        sys.exit(f"NO SUBO NADA: {rel} no existe en el commit {commit[:7]}.")
+    datos = r.stdout
+    return datos.replace(b"\r\n", b"\n") if es_texto(rel) else datos
+
+
+def huella(tipo, datos):
+    """sha1 de blob de git o sha256 de LFS, sobre bytes en memoria."""
+    if tipo == "lfs":
+        return hashlib.sha256(datos).hexdigest()
+    return hashlib.sha1(b"blob " + str(len(datos)).encode() + b"\0" + datos).hexdigest()
+
+
+def comparar(rel, datos, remoto):
+    """'igual', 'nuevo', 'fin_de_linea' (mismo texto, otros finales) o 'distinto'."""
+    if rel not in remoto:
+        return "nuevo"
+    tipo, h = remoto[rel]
+    if huella(tipo, datos) == h:
+        return "igual"
+    if es_texto(rel) and huella(tipo, datos.replace(b"\n", b"\r\n")) == h:
+        return "fin_de_linea"
+    return "distinto"
+
+
 def reglas_lfs_que_faltan(api, cambian):
     """Las lineas de `LFS_NECESARIO` que hacen falta y el Space no tiene."""
     extensiones = {os.path.splitext(rel)[1] for rel in cambian}
@@ -261,6 +311,8 @@ def main():
     ap.add_argument("--estado", action="store_true", help="solo mirar el Space")
     ap.add_argument("--solo", nargs="+", action="extend", metavar="RUTA",
                     help="limitar a rutas exactas de la lista blanca; no admite carpetas")
+    ap.add_argument("--commit", default="HEAD", metavar="REF",
+                    help="commit cuyo contenido se compara y se sube (por defecto HEAD)")
     args = ap.parse_args()
     if args.estado and args.solo is not None:
         ap.error("--estado no se combina con --solo")
@@ -297,25 +349,30 @@ def main():
         lfs = getattr(it, "lfs", None)
         remoto[it.path] = ("lfs", lfs.sha256) if lfs else ("git", it.blob_id)
 
-    faltan, cambian, iguales = [], [], []
+    commit = resolver_commit(args.commit)
+    print("contenido del commit " + commit[:7] + " (texto en LF)")
+    contenidos, motivos, cambian, iguales = {}, {}, [], []
     for rel in seleccion:
-        local = os.path.join(RAIZ, rel.replace("/", os.sep))
-        if not os.path.isfile(local):
-            faltan.append(rel)
-            continue
-        revisar(local, rel)
-        if rel not in remoto:
-            cambian.append(rel)
-        elif remoto[rel][0] == "lfs" and sha256_de(local) != remoto[rel][1]:
-            cambian.append(rel)
-        elif remoto[rel][0] == "git" and sha_git(local) != remoto[rel][1]:
-            cambian.append(rel)
-        else:
+        datos = bytes_del_commit(rel, commit)
+        revisar(None, rel, contenido=datos)
+        motivo = comparar(rel, datos, remoto)
+        if motivo == "distinto" and es_texto(rel) and remoto[rel][0] == "git":
+            # Con finales MEZCLADOS (parte CRLF, parte LF) ninguna de las dos
+            # huellas casa: se mira el texto del Space para no dar por cambiado
+            # lo que solo tiene otros finales de linea.
+            try:
+                from huggingface_hub import hf_hub_download
+                texto_space = open(hf_hub_download(REPO, rel, repo_type="space", revision=revision,
+                                                   token=api.token), "rb").read()
+                if texto_space.replace(b"\r\n", b"\n") == datos:
+                    motivo = "fin_de_linea"
+            except Exception:
+                pass
+        if motivo == "igual":
             iguales.append(rel)
-
-    if faltan:
-        sys.exit("NO SUBO NADA: en la lista blanca hay archivos que no existen: "
-                 + ", ".join(faltan))
+        else:
+            cambian.append(rel)
+            contenidos[rel], motivos[rel] = datos, motivo
 
     print()
     print("iguales (" + str(len(iguales)) + "): " + ", ".join(iguales))
@@ -325,8 +382,8 @@ def main():
         return
     print("A subir (" + str(len(cambian)) + "):")
     for rel in cambian:
-        n = os.path.getsize(os.path.join(RAIZ, rel.replace("/", os.sep)))
-        print("   " + rel + "   " + str(n) + " bytes")
+        nota = {"nuevo": "  (no esta en el Space)", "fin_de_linea": "  (solo fin de linea: pasa a LF)"}.get(motivos[rel], "")
+        print("   " + rel + "   " + str(len(contenidos[rel])) + " bytes" + nota)
 
     faltan_lfs, gitattributes = reglas_lfs_que_faltan(api, cambian)
     if faltan_lfs:
@@ -338,17 +395,14 @@ def main():
 
     if args.seco:
         print()
-        print("--seco: no subo nada. Comparacion del disco; no exige commit local.")
+        print("--seco: no subo nada. Comparacion del commit " + commit[:7] + " con el Space.")
         return
 
-    # Congelar el contenido y volver a comprobarlo: otra sesion puede haber
-    # editado mientras se consultaba el Space. El SDK recibe estos bytes.
-    contenidos = {}
+    # Los bytes son los del commit, ya congelados en `contenidos`; se vuelven a
+    # escanear justo antes del SDK y se exige otra vez que el disco no tenga
+    # cambios sin commit en la seleccion (otra sesion puede haber editado).
     for rel in cambian:
-        local = os.path.join(RAIZ, rel.replace("/", os.sep))
-        with open(local, "rb") as f:
-            contenidos[rel] = f.read()
-        revisar(local, rel, contenido=contenidos[rel])
+        revisar(None, rel, contenido=contenidos[rel])
     exigir_confirmados(seleccion)
 
     if faltan_lfs:
