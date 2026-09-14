@@ -42,6 +42,10 @@ import { Sesion } from '../nucleo/sesion';
               <span class="chip">{{ miles(l.palabras) }} palabras</span>
               @if (l.ficha) { <span class="chip"><app-icono nombre="reloj" />{{ l.ficha.tiempo }}</span> }
             </div>
+            @if (l.medido_en_bloque) {
+              <!-- Contrato de f4 (8ee42f0): los cuentos cortos no se miden solos. -->
+              <p class="tenue pequeno nota-bloque">Nivel medido en un bloque con otros cuentos de su misma fuente y nivel: es el del grupo, no el de este cuento solo. Para medir este cuento solo, ábrelo y pulsa «¿Cómo de difícil es?».</p>
+            }
             <!-- Aviso de contenido (contrato con f4): informa antes de abrir, no bloquea nada. -->
             @if (l.aviso_contenido) {
               <aside class="aviso-contenido" role="note">

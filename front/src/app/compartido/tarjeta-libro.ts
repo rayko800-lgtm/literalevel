@@ -21,6 +21,10 @@ import { cefr, encaje, miles, num } from '../nucleo/formato';
         <div class="pie">
           @if (libro().dificultad !== null) {
             <span class="chip">{{ letra() }} · {{ num(libro().dificultad) }}</span>
+            <!-- En bloque (f4, 8ee42f0): el número es el del grupo de cuentos de su fuente y nivel. -->
+            @if (libro().medido_en_bloque) {
+              <span class="tenue pequeno en-bloque">medido en bloque con otros cuentos</span>
+            }
           }
           @if (encaje(); as e) {
             <span class="chip" [class]="'chip ' + e.clase">{{ e.texto }}</span>

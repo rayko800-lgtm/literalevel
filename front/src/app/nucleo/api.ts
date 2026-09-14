@@ -105,6 +105,8 @@ export interface LibroTarjeta {
   temas?: string[];
   /** URL de una portada ilustrada por IA en /data/portadas, si la hay; si no, null y va la tipográfica. */
   portada_ia?: string | null;
+  /** Cuento libre corto medido en un bloque con otros de su fuente y nivel (f4, 8ee42f0), no solo. */
+  medido_en_bloque?: boolean;
 }
 
 export interface ResultadoBusqueda {
@@ -138,6 +140,8 @@ export interface Libro {
   temas?: string[];
   /** URL de una portada ilustrada por IA, si la hay. */
   portada_ia?: string | null;
+  /** Su nivel sale de un bloque con otros cuentos de su fuente y nivel, no de medirlo solo. */
+  medido_en_bloque?: boolean;
   autor: string;
   palabras: number;
   inicial: number;
