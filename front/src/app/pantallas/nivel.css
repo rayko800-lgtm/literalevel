@@ -82,6 +82,25 @@
 .enlace-texto { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--acento-texto);
   font: inherit; font-weight: 600; cursor: pointer; }
 
+/* --- Una mano: barra fija del cuestionario (solo en el móvil) ------------------- */
+.barra-cuestionario { display: none; }
+@media (max-width: 760px) {
+  :host { display: block; padding-bottom: 9rem; }
+  .barra-cuestionario {
+    display: grid; gap: .5rem; position: fixed; z-index: 45; left: 0; right: 0; bottom: var(--barra-inf);
+    padding: .6rem max(1rem, env(safe-area-inset-left)); background: var(--superficie);
+    border-top: 1px solid var(--borde); box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, .5); transition: bottom .25s ease;
+  }
+  :host-context(body:has(.nav-movil.oculta)) .barra-cuestionario {
+    bottom: 0; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .barra-cuestionario .pasos { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .barra-cuestionario .pasos .boton { min-height: 56px; }
+  .guardar-abajo { min-height: 48px; width: 100%; }
+  /* Arriba y en el pie ya no hacen falta a la vista: los duplicados se quedan
+     para escritorio. */
+  .pie-cuestionario .boton { display: none; }
+}
+
 @media (max-width: 640px) {
   .enlaces { grid-template-columns: 1fr; }
   .busca-libro { grid-template-columns: 1fr; }

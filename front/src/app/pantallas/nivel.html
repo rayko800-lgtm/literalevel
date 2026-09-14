@@ -105,6 +105,24 @@
             <button type="button" class="boton bloque" (click)="avanzar()">Siguiente</button>
           }
 
+          <!-- Una mano (investigacion/una_mano.md §3.7): en el móvil, Atrás y Siguiente fijos
+               abajo a 56 px y «Me vale así» encima; el botón de atrás de arriba queda de duplicado. -->
+          <div class="barra-cuestionario">
+            @if (estimacion(); as e) {
+              <button type="button" class="boton fantasma guardar-abajo" (click)="guardar()" [disabled]="guardando()">
+                Me vale así ({{ num(e.nivel) }} · {{ cefr(e.nivel) }}), guardar
+              </button>
+            }
+            <div class="pasos">
+              <button type="button" class="boton secundario" (click)="atras()" [disabled]="paso() === 0">
+                <app-icono nombre="izq" />Atrás
+              </button>
+              <button type="button" class="boton" (click)="avanzar()" [disabled]="!respondida()">
+                Siguiente<app-icono nombre="der" />
+              </button>
+            </div>
+          </div>
+
           <div class="pie-cuestionario">
             @if (estimacion(); as e) {
               <div class="provisional" aria-live="polite">

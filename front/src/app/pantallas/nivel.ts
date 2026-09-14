@@ -72,6 +72,12 @@ export class Nivel implements OnInit {
 
   protected readonly respondidas = computed(() => Object.keys(this.respuestas()).length);
 
+  /** La pregunta actual ya tiene respuesta: «Siguiente» de la barra de abajo se puede pulsar. */
+  protected readonly respondida = computed(() => {
+    const a = this.actual();
+    return !!a && this.respuestas()[a.clave] !== undefined;
+  });
+
   /** Si el lector pulsa «Volver a medirme», que el perfil guardado no le saque. */
   private quiereMedirse = false;
 
