@@ -37,8 +37,10 @@ visual y los mensajes pertinentes del chat central. No se modificaron sus chats.
   del canvas; canvas no vacio; poses distintas; /h/ cambia pixeles durante
   el ciclo y muestra aire; GLB roto conserva respaldo. Prueba tambien la
   posicion de la punta con `Mesh.getVertexPosition` y su matriz mundial.
-- Revision humana de las capturas por Codex y por el coordinador: encuadre,
-  sello /p/, lengua visible de lado, punta /theta/ y suelo menos angular.
+- Revision visual de capturas por el agente y el coordinador. El agente reviso
+  encuadre, sello /p/, lengua visible de lado, punta /theta/ y suelo menos
+  angular; el coordinador reviso /ng/ lateral y /theta/ movil. No hubo revision
+  humana de Miguel.
 
 Capturas y metricas no versionadas: `build/boca3d_pruebas/`. Destacan
 `desktop_p_frente.png`, `desktop_ng_lado.png`, `movil_theta_lado.png`.
