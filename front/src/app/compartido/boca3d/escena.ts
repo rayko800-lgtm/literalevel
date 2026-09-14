@@ -497,7 +497,7 @@ interface PielDeformable {
 
 const suave01 = (t: number) => { const s = Math.min(1, Math.max(0, t)); return s * s * (3 - 2 * s); };
 
-export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry): PielDeformable {
+export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosEnPiel = false): PielDeformable {
   const pos = geometria.getAttribute('position') as THREE.BufferAttribute;
   const reposo = new Float32Array(pos.array as Float32Array);
   const pesos = new Float32Array(pos.count);
@@ -507,7 +507,16 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry): PielDe
     // piel entre la boca y la barbilla, y la de delante-atrás muere hacia el
     // pivote, donde el giro ya mueve poco. Una rampa en z (lado lejano
     // quieto) plegaba los anillos de la piel al abrir y dejaba un rasgón.
-    const bajo = suave01((0.45 - y) / 1.35);          // de la línea de la boca (0,45) a la barbilla (-0,9)
+    let bajo = suave01((0.45 - y) / 1.35);            // de la línea de la boca (0,45) a la barbilla (-0,9)
+    if (labiosEnPiel) {
+      // Con los labios en la piel (MakeHuman), por delante el corte es seco
+      // en la línea de la boca: el labio de abajo entero va con la mandíbula
+      // y el de arriba se queda; los labios son una ranura, así que no se
+      // rasga nada. Hacia las mejillas vuelve la rampa suave.
+      const frente = suave01((-1.6 - x) / 0.8);
+      const bajoLabio = suave01((0.2 - y) / 0.1);
+      bajo = bajo + (bajoLabio - bajo) * frente;
+    }
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
     pesos[i] = bajo * delante;
   }
@@ -649,6 +658,8 @@ export class EscenaBoca {
   private lenguaGlb: THREE.Mesh | null = null;
   private indicesMorfos: (number | undefined)[] = [];
   private caraModelada = false;
+  /** La cabeza de MakeHuman (entera, con sus labios): encuadre más lejano. */
+  private cabezaEntera = false;
   private readonly cavidadesSimples: THREE.Mesh[] = [];
   private readonly dentalSimple: THREE.Object3D[] = [];
   private readonly sueloSimple: THREE.Mesh;
@@ -961,7 +972,7 @@ export class EscenaBoca {
    *  la altura de la boca. */
   vista(azimut: number, polar = 1.49): void {
     const distancia = this.distanciaEncuadre();
-    this.controles.target.set(0.1, 0.05, 0);
+    this.controles.target.set(this.cabezaEntera ? 0.9 : 0.1, 0.05, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
       this.controles.target.y + distancia * Math.cos(polar),
@@ -981,7 +992,7 @@ export class EscenaBoca {
     // 14,5 es lo más cerca que el perfil entero (nariz, mentón, faringe) cabe
     // sin tocar el borde del lienzo en un móvil (288x420): lo mide
     // tools/probar_boca_integrada.mjs.
-    return (this.caraModelada ? 14.5 : 13) * Math.max(1, 1 / this.camara.aspect);
+    return (this.cabezaEntera ? 17.5 : this.caraModelada ? 14.5 : 13) * Math.max(1, 1 / this.camara.aspect);
   }
 
   /** Con `true` el lienzo captura todos los gestos táctiles (también los
@@ -1053,7 +1064,7 @@ export class EscenaBoca {
       const piezas = new Map<string, THREE.Mesh>();
       gltf.scene.updateMatrixWorld(true);
       gltf.scene.traverse(o => { if (o instanceof THREE.Mesh) piezas.set(o.name, o); });
-      const nombres = ['labio_superior', 'labio_inferior', 'nariz', 'techo_nasal', 'faringe', 'garganta', 'suelo_boca'];
+      const nombres = ['labio_superior', 'labio_inferior', 'techo_nasal', 'faringe', 'garganta', 'suelo_boca'];
       if (!this.vivo || nombres.some(n => !piezas.has(n))) {
         for (const m of piezas.values()) {
           m.geometry.dispose();
@@ -1082,11 +1093,23 @@ export class EscenaBoca {
         destino.scale.set(1, 1, 1);
       }
       (Array.isArray(materialAnterior) ? materialAnterior : [materialAnterior]).forEach(m => m.dispose());
-      for (const nombre of nombres.slice(2)) {
+      for (const nombre of [...nombres.slice(2), ...(piezas.has('nariz') ? ['nariz'] : [])]) {
         const fuente = piezas.get(nombre)!;
         const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
           nombre === 'nariz' ? materialDe('piel', col.piel) : materialDe('mucosa', col.mucosa));
         (nombre === 'suelo_boca' ? this.dentroMandibula : this.escena).add(pieza);
+      }
+      // La cabeza de MakeHuman trae sus propios labios en la piel: los tubos
+      // se esconden (hasta que la piel tenga sus shape keys, el labio de abajo
+      // se mueve con la mandíbula por pesos y el de arriba se queda).
+      const labiosEnPiel = piezas.get('cabeza_lejana')?.userData?.['labios_en_piel'] === 1;
+      if (labiosEnPiel) {
+        this.labioSup.visible = false; this.labioInf.visible = false;
+        // Una cabeza entera es más grande que el loft: la cámara se aleja y
+        // mira un poco más atrás, y la piel translúcida se aclara.
+        this.cabezaEntera = true;
+        this.controles.target.x = 0.9;
+        (this.mejilla.material as THREE.MeshStandardMaterial).opacity = 0.1;
       }
       const menton = piezas.get('menton');
       if (menton) this.dentroMandibula.add(new THREE.Mesh(
@@ -1095,10 +1118,11 @@ export class EscenaBoca {
       // mandíbula gira con ella), caras del corte (tejido mate) y pared del
       // fondo de las cavidades. La piel del lado de la cámara sustituye a la
       // lámina de la mejilla, con el mismo material translúcido.
-      const cabeza: [string, Tejido | 'corte' | 'pared', boolean][] = [
+      const cabeza: [string, Tejido | 'corte' | 'pared' | 'ojo' | 'iris', boolean][] = [
         ['cabeza_lejana', 'piel', false],
-        ['corte_craneo', 'corte', false], ['corte_maxilar', 'corte', false], ['corte_mandibula', 'corte', true],
-        ['pared_lejana', 'pared', false],
+        ['corte_craneo', 'corte', false], ['corte_nariz', 'corte', false], ['corte_maxilar', 'corte', false],
+        ['corte_mandibula', 'corte', true], ['pared_lejana', 'pared', false],
+        ['ojo_lejano', 'ojo', false], ['iris_lejano', 'iris', false],
       ];
       for (const [nombre, tejido, enMandibula] of cabeza) {
         const fuente = piezas.get(nombre);
@@ -1112,19 +1136,21 @@ export class EscenaBoca {
             // mitad de los cuadros en SwiftShader (10 -> 4 fps) y apenas se veia.
             ...(this.hueso ? { map: this.hueso } : {}) })
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0 })
-          : materialDe('piel', col.piel);
+          : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
+          : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
+          : materialDe('piel', col.piel, nombre === 'cabeza_lejana' && labiosEnPiel ? { side: THREE.DoubleSide } : {});
         const pieza = new THREE.Mesh(geometria, mat);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
-        if (nombre === 'cabeza_lejana' || nombre === 'pared_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry));
+        if (nombre === 'cabeza_lejana' || nombre === 'pared_lejana') this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
       }
       const cercana = piezas.get('cabeza_cercana');
       if (cercana) {
         this.mejilla.geometry.dispose();
         this.mejilla.geometry = cercana.geometry.clone().applyMatrix4(cercana.matrixWorld);
         this.mejilla.position.z = 0;
-        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry));
+        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel));
       }
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
       for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
@@ -1302,7 +1328,8 @@ export class EscenaBoca {
     // La piel translúcida del lado de la cámara se aclara al pasar de 45° de
     // giro: de frente, media cara sólida y media de cristal quedaba rara.
     const giro = Math.min(Math.abs(azimut), Math.abs(Math.abs(azimut) - Math.PI));
-    const opacidad = 0.14 - 0.1 * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
+    const base = this.cabezaEntera ? 0.1 : 0.14;
+    const opacidad = base - (base - 0.04) * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
     const matMejilla = this.mejilla.material as THREE.MeshStandardMaterial;
     if (Math.abs(matMejilla.opacity - opacidad) > 0.002) { matMejilla.opacity = opacidad; this.sucio = true; }
     if (ahora === this.lateralesOcultos) return;

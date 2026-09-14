@@ -120,6 +120,30 @@ debajo, esconde la piel translúcida del lado de la cámara. `estadoGuarda` da
 los fps medidos y la etapa (0 nada, 1 sombras, 2 sombras y mejilla). El mapa de
 entorno para reflejos (`entorno: true`) queda apagado: en SwiftShader baja a 4 fps.
 
+## La cabeza de MakeHuman (14 sep 2026)
+
+La piel de la media cabeza sale de la malla base de **MakeHuman 1.3.0**
+(`makehuman/data/3dobjs/base.obj` de la etiqueta v1.3.0 del repositorio oficial
+github.com/makehumancommunity/makehuman), recortada por
+`tools/boca3d_blender/recortar_makehuman.py` a `makehuman_cabeza.obj` (cabeza y
+cuello, 4.418 vértices) y encajada por `cara.py`: 4,4 unidades por decímetro, la
+línea de los labios en y = 0,15 y su frente en x = −3,25 (donde estaban los
+tubos), corte sagital limpio (bisect), saco de la boca fuera, ojo del lado
+lejano añadido, y las caras del corte (cráneo, nariz, maxilar, mandíbula) con
+el perfil real de la cabeza. Nuestro paladar, velo, encías, dientes y lengua
+siguen donde estaban y las 53 poses se validan contra ellos como antes. Con los
+labios en la piel, el visor esconde sus tubos; el labio de abajo baja con la
+mandíbula por pesos (corte seco en la línea de la boca por delante).
+
+**Licencia: CC0 1.0 Universal.** La cabecera del propio `base.obj`: «This asset
+was explicitly released as CC0 in september 2020». `LICENSE.md` del repositorio,
+apartado C: «The base mesh and proxies [...] have been released under CC0 1.0
+Universal». Y la FAQ de MakeHuman
+(static.makehumancommunity.org/makehuman/faq/are_makehuman_files_free.html):
+«The asset license is CC0. In practice this imposes no restriction on your use
+of the core assets, be they used through MakeHuman or copied through some other
+means.» No hace falta atribución; se deja esta nota por cortesía y trazabilidad.
+
 ## Límites conocidos
 
 - Corte esquemático, no anatomía clínicamente validada. No es una cara humana

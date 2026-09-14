@@ -13,6 +13,10 @@ import bpy
 SALIDA = os.environ.get("SALIDA_CARA_GLB", os.path.join(
     os.path.dirname(__file__), "..", "boca3d_demo", "cara.glb"))
 bpy.ops.wm.read_factory_settings(use_empty=True)
+# La cabeza de MakeHuman (CC0, ver recortar_makehuman.py): si esta el OBJ, la
+# piel, la nariz y el menton salen de ella; si no, del loft y las bandas de antes.
+CABEZA_MH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "makehuman_cabeza.obj")
+CON_MH = os.path.exists(CABEZA_MH)
 
 
 def material(nombre, color, rugosidad=0.6):
@@ -211,7 +215,8 @@ def nariz(nombre):
     return malla(nombre, vertices, orientar(vertices, caras, lambda c: (-1.0, 0.2, c[2])), PIEL)
 
 
-nariz("nariz")
+if not CON_MH:
+    nariz("nariz")
 
 
 def elipsoide(nombre, centro, escala, mat, segmentos=32):
@@ -398,9 +403,10 @@ malla("suelo_boca", vertices, caras, MUCOSA)
 # El menton: la banda va sobre el borde del perfil de la media cabeza y
 # redondea ese borde; estrecha, para no asomar por la piel lejana, que se
 # encoge al alejarse del corte.
-perfil("menton", [(-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45),
-       (-1.92, -1.98), (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15)],
-       0.12, [0.3, 0.36, 0.42, 0.46, 0.48, 0.46, 0.4], PIEL, lejos=0.3)
+if not CON_MH:
+    perfil("menton", [(-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45),
+           (-1.92, -1.98), (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15)],
+           0.12, [0.3, 0.36, 0.42, 0.46, 0.48, 0.46, 0.4], PIEL, lejos=0.3)
 
 # --- La media cabeza --------------------------------------------------------
 # Lo que cierra la cara de perfil sin cajas: una piel lejana (del lado
@@ -476,50 +482,214 @@ def piel(nombre, perfil, lado, cerrado, anillos=14, encoger=1.0, tapa=False, exc
 
 
 def placa(nombre, poligono, z, mat, escala=1.0):
-    """Una cara plana en el corte (z), mirando a la camara (+z)."""
-    puntos = [(C_CABEZA[0] + (x - C_CABEZA[0]) * escala, C_CABEZA[1] + (y - C_CABEZA[1]) * escala, z) for x, y in poligono]
+    """Una cara plana en el corte (z), mirando a la camara (+z). Los puntos
+    repetidos y los triangulos sin area (perfiles muestreados) se descartan."""
+    limpio = []
+    for x, y in poligono:
+        if not limpio or math.hypot(x - limpio[-1][0], y - limpio[-1][1]) > 1e-4:
+            limpio.append((x, y))
+    if len(limpio) > 2 and math.hypot(limpio[0][0] - limpio[-1][0], limpio[0][1] - limpio[-1][1]) <= 1e-4:
+        limpio.pop()
+    puntos = [(C_CABEZA[0] + (x - C_CABEZA[0]) * escala, C_CABEZA[1] + (y - C_CABEZA[1]) * escala, z) for x, y in limpio]
     triangulos = mathutils.geometry.tessellate_polygon([[(x, y, 0.0) for x, y, _ in puntos]])
-    caras = orientar(puntos, [tuple(tri) for tri in triangulos], lambda c: (0, 0, 1))
+    def area(tri):
+        (ax, ay, _), (bx, by, _), (cx, cy, _) = (puntos[i] for i in tri)
+        return abs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay)) / 2
+    caras = orientar(puntos, [tuple(tri) for tri in triangulos if area(tri) > 1e-8], lambda c: (0, 0, 1))
     return malla(nombre, puntos, caras, mat)
 
 
-# El perfil exterior, en el sentido de las agujas del reloj visto desde la
-# camara: corte de arriba, nuca, corte del cuello, garganta, menton (la banda
-# «menton» va justo en este borde), detras de los labios y al lado de la nariz.
-PERFIL = [(-2.45, 3.25), (3.55, 3.25), (3.55, -2.55), (2.04, -2.55), (2.0, -2.15), (0.8, -2.06), (-0.8, -2.14),
-          (-1.92, -1.98), (-2.64, -1.45), (-2.94, -0.95), (-2.9, -0.55), (-2.62, -0.42), (-2.62, 0.9),
-          (-2.62, 1.6), (-2.5, 2.4), (-2.45, 3.25)]
-perfil = muestrear(PERFIL)
-# El craneo es el perfil entero cerrado (con su tapa al fondo) menos el
-# tramo de la mandibula.
-# La piel es una sola pieza por lado: el visor la deforma (escena.ts,
-# `pielQueSigueLaMandibula`) para que el menton y la barbilla acompañen a la
-# mandibula sin costuras; una pieza partida dejaba un escalon al abrir.
-piel("cabeza_lejana", perfil[:-1], -1, cerrado=True, tapa=True)
-piel("cabeza_cercana", perfil[:-1], +1, cerrado=True, tapa=True)
-
-# Las caras del corte: tejido entre la piel y las cavidades.
-CORTE_CRANEO = [(-2.45, 3.25), (3.55, 3.25), (3.55, -2.55), (2.78, -2.55), (2.8, -2.5), (2.95, -1.65), (3.08, -0.55),
-                (3.16, 0.6), (3.05, 1.55), (2.8, 2.1), (1.8, 2.6), (0.4, 2.8), (-1.4, 2.85), (-2.45, 3.1)]
-CORTE_MAXILAR = [(-2.62, 0.45), (-2.62, 1.72), (2.35, 1.72), (2.35, 1.05), (2.05, 1.22), (1.7, 1.32), (1.2, 1.42),
+# Las cavidades del corte sagital (las mismas con las dos cabezas): el techo
+# de la boca (paladar y nasofaringe), el suelo y la garganta.
+PALADAR_CORTE = [(2.35, 1.72), (2.35, 1.05), (2.05, 1.22), (1.7, 1.32), (1.2, 1.42),
                  (0.6, 1.5), (0.0, 1.52), (-0.6, 1.48), (-1.2, 1.35), (-1.7, 1.15), (-2.05, 0.92), (-2.3, 0.75), (-2.55, 0.5)]
-CORTE_MANDIBULA = [(-2.55, -0.05), (-2.62, -0.42), (-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45), (-1.92, -1.98),
-                   (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15), (2.04, -2.5), (2.1, -2.3), (2.2, -1.9), (2.4, -1.5),
-                   (2.5, -1.42), (1.32, -1.47), (0.15, -1.51), (-1.02, -1.56), (-2.2, -1.6), (-2.45, -1.3),
-                   (-2.5, -0.8), (-2.55, -0.35)]
-placa("corte_craneo", CORTE_CRANEO, -0.01, CORTE, escala=0.992)
-placa("corte_maxilar", CORTE_MAXILAR, -0.01, CORTE, escala=0.992)
-placa("corte_mandibula", CORTE_MANDIBULA, -0.01, CORTE, escala=0.992)
-# La pared del fondo de las cavidades (la mejilla por dentro), algo encogida
-# para quedar dentro de la piel a esa profundidad.
-placa("pared_lejana", PERFIL[:-1], -1.4, PARED, escala=0.9)
+FARINGE_CORTE = [(2.78, -2.55), (2.8, -2.5), (2.95, -1.65), (3.08, -0.55), (3.16, 0.6), (3.05, 1.55), (2.8, 2.1),
+                 (1.8, 2.6), (0.4, 2.8), (-1.4, 2.85)]
+SUELO_CORTE = [(2.04, -2.5), (2.1, -2.3), (2.2, -1.9), (2.4, -1.5), (2.5, -1.42), (1.32, -1.47), (0.15, -1.51),
+               (-1.02, -1.56), (-2.2, -1.6), (-2.45, -1.3), (-2.5, -0.8), (-2.55, -0.35), (-2.55, -0.05)]
+
+
+def cabeza_loft():
+    """La media cabeza lofteada desde el perfil del corte (sin MakeHuman)."""
+    # El perfil exterior, en el sentido de las agujas del reloj visto desde la
+    # camara: corte de arriba, nuca, corte del cuello, garganta, menton (la banda
+    # «menton» va justo en este borde), detras de los labios y al lado de la nariz.
+    PERFIL = [(-2.45, 3.25), (3.55, 3.25), (3.55, -2.55), (2.04, -2.55), (2.0, -2.15), (0.8, -2.06), (-0.8, -2.14),
+              (-1.92, -1.98), (-2.64, -1.45), (-2.94, -0.95), (-2.9, -0.55), (-2.62, -0.42), (-2.62, 0.9),
+              (-2.62, 1.6), (-2.5, 2.4), (-2.45, 3.25)]
+    perfil = muestrear(PERFIL)
+    # La piel es una sola pieza por lado: el visor la deforma (escena.ts,
+    # `pielQueSigueLaMandibula`) para que el menton y la barbilla acompañen a la
+    # mandibula sin costuras; una pieza partida dejaba un escalon al abrir.
+    piel("cabeza_lejana", perfil[:-1], -1, cerrado=True, tapa=True)
+    piel("cabeza_cercana", perfil[:-1], +1, cerrado=True, tapa=True)
+    # Las caras del corte: tejido entre la piel y las cavidades.
+    placa("corte_craneo", [(-2.45, 3.25), (3.55, 3.25), (3.55, -2.55)] + FARINGE_CORTE + [(-2.45, 3.1)], -0.01, CORTE, escala=0.992)
+    placa("corte_maxilar", [(-2.62, 0.45), (-2.62, 1.72)] + PALADAR_CORTE, -0.01, CORTE, escala=0.992)
+    placa("corte_mandibula", [(-2.55, -0.05), (-2.62, -0.42), (-2.9, -0.55), (-2.94, -0.95), (-2.64, -1.45), (-1.92, -1.98),
+                              (-0.8, -2.14), (0.8, -2.06), (2.0, -2.15)] + SUELO_CORTE[:-1], -0.01, CORTE, escala=0.992)
+    # La pared del fondo de las cavidades (la mejilla por dentro), algo encogida
+    # para quedar dentro de la piel a esa profundidad.
+    placa("pared_lejana", PERFIL[:-1], -1.4, PARED, escala=0.9)
+
+
+# --- La cabeza de MakeHuman ----------------------------------------------------
+# Escala y encaje: la linea de los labios de MakeHuman (y 6,63 dm) va a la de
+# nuestros labios (y 0,15) y el frente de los labios (z 1,60) al de nuestros
+# tubos (x -3,25); 4,4 unidades por decimetro deja la boca con el mismo ancho
+# que la arcada. La cara mira a -x, como todo el visor.
+ESCALA_MH, MH_BOCA_Y, MH_LABIO_Z = 4.4, 6.63, 1.60
+Y_CORTE_ARRIBA, Y_CORTE_ABAJO = 4.0, -2.55
+
+
+def a_visor(x, y, z):
+    return (-(z - MH_LABIO_Z) * ESCALA_MH - 3.25, (y - MH_BOCA_Y) * ESCALA_MH + 0.15, x * ESCALA_MH)
+
+
+def leer_obj_mh():
+    vertices, caras, ojos = [], [], {}
+    with open(CABEZA_MH, encoding="utf-8") as f:
+        for linea in f:
+            if linea.startswith("v "):
+                vertices.append(a_visor(*map(float, linea.split()[1:4])))
+            elif linea.startswith("f "):
+                caras.append([int(p.split("/")[0]) - 1 for p in linea.split()[1:]])
+            elif linea.startswith("# joint-"):
+                partes = linea[2:].split()
+                ojos[partes[0]] = a_visor(*map(float, partes[1:4]))
+    return vertices, caras, ojos
+
+
+def sin_boca_interior(vertices, caras):
+    """Quita el saco de la boca de MakeHuman (la cara interior de los labios y
+    la cavidad): un vertice es interior si, en su celda (lateral, altura),
+    queda claramente por detras de la piel mas adelantada."""
+    celda = 0.22
+    delante = {}
+    for x, y, z in vertices:
+        k = (round(z / celda), round(y / celda))
+        delante[k] = min(delante.get(k, 9.0), x)
+    def interior(i):
+        x, y, z = vertices[i]
+        if not (abs(z) < 2.7 and -1.4 < y < 1.6 and x < 1.4):
+            return False
+        k = (round(z / celda), round(y / celda))
+        return x > delante[k] + 0.35
+    return [c for c in caras if sum(interior(i) for i in c) < 3]
+
+
+def malla_mh(nombre, vertices, caras, mat):
+    """Una malla en coordenadas del visor (como `malla`), con las caras que
+    usa `caras` y los vertices renumerados."""
+    usados = sorted({i for c in caras for i in c})
+    indice = {v: k for k, v in enumerate(usados)}
+    ob = malla(nombre, [vertices[i] for i in usados], [tuple(indice[i] for i in c) for c in caras], mat)
+    return ob
+
+
+def recortar(ob, y, arriba):
+    """Corta la malla por el plano horizontal y (coordenadas del visor) con
+    un corte limpio (bisect), quitando lo que queda por encima (arriba) o debajo."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    # En Blender el visor (x, y, z) es (x, -z, y): el plano horizontal es z_blender = y.
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, y), plane_no=(0, 0, 1),
+                           clear_outer=arriba, clear_inner=not arriba)
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.update()
+
+
+def cabeza_makehuman():
+    vertices, caras, ojos = leer_obj_mh()
+    caras = sin_boca_interior(vertices, caras)
+    lejana = [c for c in caras if all(vertices[i][2] <= 1e-4 for i in c)]
+    ob = malla_mh("cabeza_lejana", vertices, lejana, PIEL)
+    recortar(ob, Y_CORTE_ARRIBA, arriba=True)
+    recortar(ob, Y_CORTE_ABAJO, arriba=False)
+    ob["labios_en_piel"] = 1                  # el visor esconde sus tubos de labios
+    # La piel cercana: la misma, reflejada (MakeHuman es simetrica).
+    espejo = ob.copy()
+    espejo.data = ob.data.copy()
+    espejo.name = "cabeza_cercana"
+    bpy.context.collection.objects.link(espejo)
+    for v in espejo.data.vertices:
+        v.co.y = -v.co.y                       # el lateral del visor es -y en Blender
+    espejo.data.flip_normals()
+    espejo.data.update()
+    # El perfil del corte: por cada altura, el punto mas adelantado (la cara) y
+    # el mas atrasado (la nuca) de los vertices que quedan en el plano.
+    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y) < 1e-3]
+    # Dos ramas: la cara (x < 1,5) y la nuca; cada una, ordenada por altura e
+    # interpolada en alturas regulares (la nuca del cuello tiene pocos vertices).
+    def rama(puntos, elegir):
+        por_y = {}
+        for x, y in puntos:
+            k = round(y, 2)
+            por_y[k] = elegir(por_y.get(k, x), x)
+        return sorted(por_y.items())
+    cara_ = rama([(x, y) for x, y in seam if x < 1.5], min)
+    nuca_ = rama([(x, y) for x, y in seam if x >= 1.5], max)
+    def en(ramita, y):
+        if y <= ramita[0][0]:
+            return ramita[0][1]
+        for (y0, x0), (y1, x1) in zip(ramita, ramita[1:]):
+            if y <= y1:
+                return x0 + (x1 - x0) * (y - y0) / (y1 - y0) if y1 > y0 else x1
+        return ramita[-1][1]
+    pasos = 66
+    frente, nuca = [], []
+    for k in range(pasos + 1):
+        y = Y_CORTE_ABAJO + (Y_CORTE_ARRIBA - Y_CORTE_ABAJO) * k / pasos
+        frente.append((en(cara_, y), y))
+        nuca.append((en(nuca_, y), y))
+    def frente_entre(y0, y1):
+        """Puntos del frente con y0 <= y <= y1, de abajo arriba."""
+        return [(x, y) for x, y in frente if y0 - 1e-6 <= y <= y1 + 1e-6]
+    def x_frente(y):
+        i = min(range(len(frente)), key=lambda k: abs(frente[k][1] - y))
+        return frente[i][0]
+    Y_BOCA, Y_NARIZ, Y_PUENTE = 0.15, 1.55, 3.35
+    # Craneo y nuca: de la frente arriba, por la nuca abajo hasta el cuello, y
+    # por dentro la pared de la faringe y el techo nasal hasta el puente.
+    # Un solo lazo sin cruces: nuca de arriba abajo -> faringe de abajo arriba
+    # -> techo nasal -> la frente subiendo del puente al corte de arriba.
+    craneo = list(reversed(nuca)) + FARINGE_CORTE + [(-2.5, 3.0), (x_frente(Y_PUENTE), Y_PUENTE)] + frente_entre(Y_PUENTE, Y_CORTE_ARRIBA)
+    # La nariz: su perfil entre la base y el puente, cerrada por detras.
+    nariz_corte = [(x_frente(Y_NARIZ), Y_NARIZ)] + frente_entre(Y_NARIZ, Y_PUENTE) + [(-2.5, 3.0), (-2.5, 1.72), (-2.55, 1.6)]
+    # Maxilar: del labio superior (linea de la boca) a la base de la nariz por
+    # delante; el paladar y la nasofaringe por dentro.
+    maxilar = [(x_frente(Y_BOCA), Y_BOCA)] + frente_entre(Y_BOCA, Y_NARIZ) + [(-2.55, 1.6), (-2.5, 1.72)] + PALADAR_CORTE + [(-2.6, 0.45)]
+    # Mandibula: del labio inferior al cuello por delante, el corte del cuello,
+    # la garganta y el suelo de la boca por dentro.
+    mandibula = list(reversed(frente_entre(Y_CORTE_ABAJO, Y_BOCA))) + [(2.04, Y_CORTE_ABAJO)] + SUELO_CORTE
+    placa("corte_craneo", craneo, -0.01, CORTE)
+    placa("corte_nariz", nariz_corte, -0.01, CORTE)
+    placa("corte_maxilar", maxilar, -0.01, CORTE)
+    placa("corte_mandibula", mandibula, -0.01, CORTE)
+    # La pared del fondo de las cavidades: el perfil entero, encogido.
+    perfil = frente + [(x, y) for x, y in reversed(nuca)]
+    placa("pared_lejana", perfil, -1.4, PARED, escala=0.85)
+    # El ojo del lado lejano: globo blanco e iris oscuro; el hueco de la cuenca
+    # de MakeHuman queda cubierto.
+    x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]
+    elipsoide("ojo_lejano", (x, y, z), (0.62, 0.62, 0.62), ESMALTE, segmentos=20)
+    elipsoide("iris_lejano", (x - 0.42, y, z), (0.22, 0.27, 0.27), HUESO, segmentos=16)
+    print("MH_OK", {"vertices_lejana": len(ob.data.vertices), "caras_quitadas": len(caras), "frente": frente[::11], "nuca": nuca[::11]})
+
+
+if CON_MH:
+    cabeza_makehuman()
+else:
+    cabeza_loft()
 
 for ob in bpy.context.scene.objects:
     assert all(math.isfinite(c) for v in ob.data.vertices for c in v.co)
     assert all(p.area > 1e-10 for p in ob.data.polygons), ob.name
 
 bpy.ops.export_scene.gltf(filepath=os.path.abspath(SALIDA), export_format="GLB", export_yup=True,
-                          export_materials="EXPORT", export_morph=True, export_morph_normal=True)
+                          export_materials="EXPORT", export_morph=True, export_morph_normal=True, export_extras=True)
 # El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
 # dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
 PUBLICO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "front", "public", "boca3d", "cara.glb"))
