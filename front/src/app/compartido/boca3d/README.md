@@ -104,12 +104,20 @@ pose con `poseDe` y dárselo a `lineaPalabra`.
 
 ## Rendimiento
 
-`node tools/boca3d_demo/medir_fps.mjs build/boca3d_demo/index.html 4` mide en
-Chrome headless con `Emulation.setCPUThrottlingRate` a 390 px. Headless dibuja
-con SwiftShader (software), así que es una cota pesimista: 27 fps con mejilla y
-50 sin ella sin freno; 25 y 37 con CPU ×4. El freno apenas cambia la cifra: el
-coste está en el relleno de la lámina translúcida, no en JavaScript. En la demo
-publicada, `?fps=1` mide en el dispositivo real.
+`node tools/boca3d_demo/medir_fps.mjs <url de la demo> 4` mide en Chrome
+headless con `Emulation.setCPUThrottlingRate` a 390 px (escala 2). Headless
+dibuja con SwiftShader (software), así que es una cota muy pesimista: con el
+acabado del 14 sep (materiales físicos, sombras, media cabeza translúcida) da
+unos 10 fps sin freno; sin sombras 14, sin la piel translúcida 11. La cifra que
+manda es la del móvil real: en la demo publicada, `?fps=1` la mide y dice qué
+apagó la guarda.
+
+**Guarda de fluidez** (`EscenaBoca`, opción `guarda`, encendida por defecto):
+los dos primeros segundos pinta todos los cuadros y los cuenta; por debajo de
+30 por segundo apaga las sombras sin recargar y vuelve a medir; si sigue por
+debajo, esconde la piel translúcida del lado de la cámara. `estadoGuarda` da
+los fps medidos y la etapa (0 nada, 1 sombras, 2 sombras y mejilla). El mapa de
+entorno para reflejos (`entorno: true`) queda apagado: en SwiftShader baja a 4 fps.
 
 ## Límites conocidos
 
@@ -130,11 +138,28 @@ si un archivo falta o no contiene las piezas esperadas.
 
 - `tools/boca3d_blender/lengua.py`: lengua con diez shape keys, exportada a
   `tools/boca3d_demo/lengua.glb`.
-- `tools/boca3d_blender/cara.py`: labios, nariz, techo nasal, faringe, garganta,
-  paladar, encias, 24 coronas dentales, velo, uvula, suelo curvo y menton;
-  38 piezas exportadas a `cara.glb` (772.800 bytes en la tanda de integracion).
-  Guarda ademas `build/boca3d_modelos/cara.blend` para inspeccion en Blender.
-  Los labios se escalan con las poses existentes; no tienen un rig facial completo.
+- `tools/boca3d_blender/cara.py`: labios (con shape keys fruncir/estirar y
+  colores por vértice: bermellón delante, piel hacia la cara), nariz (medio
+  cono del caballete a la mejilla), techo nasal, faringe, garganta, paladar,
+  encías (gruesas hacia los labios, finas hacia la lengua) con borde gingival,
+  24 coronas redondeadas, velo, úvula, suelo curvo, mentón y la **media cabeza**
+  del acabado del 14 sep: `cabeza_lejana` (piel del lado contrario a la cámara,
+  lofteada desde el perfil del corte y encogida hacia un centro al alejarse del
+  plano), `cabeza_cercana` (la misma piel del lado de la cámara, que el visor
+  pinta translúcida en vez de la lámina de mejilla), `corte_craneo`,
+  `corte_maxilar` y `corte_mandibula` (caras del corte, marfil mate, que dejan
+  las cavidades como hueco) y `pared_lejana` (el fondo claro de las cavidades).
+  El corte de la mandíbula gira con ella; las dos pieles se deforman en el
+  visor por pesos (`pielQueSigueLaMandibula`: barbilla y bajo el maxilar
+  siguen el giro; línea de la boca, garganta, nuca y lado lejano se quedan).
+  Guarda además `build/boca3d_modelos/cara.blend` para inspección en Blender.
+  Los labios no tienen un rig facial completo (las comisuras no suben ni bajan).
+- Materiales en el visor (`materialDe`): uno físico por tejido, sin texturas
+  descargadas: piel y mucosa con velo de subsuperficie (sheen) y barniz húmedo,
+  dientes marfil con velo cálido, lengua con papilas de relieve procedimentales
+  (canvas). Luz de tres puntos con sombras de contacto (PCF 512), tono ACES y
+  fondo neutro con viñeta en el propio lienzo. `tools/boca3d_demo/capturar.mjs`
+  saca las cinco vistas de cada paso a 390 px.
 - Las piezas se cargan en sus grupos: labio inferior y suelo siguen la mandíbula.
   El encuadre depende de la relacion de aspecto, tambien al girar/restablecer.
 - Una lengua sin los diez morfos se rechaza antes de esconder el respaldo.
