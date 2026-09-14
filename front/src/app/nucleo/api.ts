@@ -250,6 +250,8 @@ export interface Fonema {
   grupo?: string;
   audio: string | null;
   ficha?: FichaSonido;
+  /** En la corrección: de qué inventario es el símbolo (RP si el lector eligió UK y hay equivalente). */
+  acento?: Acento;
 }
 
 export type Acento = 'ga' | 'rp';

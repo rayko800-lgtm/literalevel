@@ -215,9 +215,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   /** Primero el sonido que falla y luego la palabra entera (lo pidió Miguel).
-   *  El símbolo del fonema es del inventario americano: en «rp» daría 404. */
+   *  El corte, en el inventario del símbolo que da la API: RP con acento UK si
+   *  hay equivalente; si no (/ɝ/, /ɚ/), el americano. */
   protected corteDelSonido(d: CorreccionVoz['detalles'][number]): string | null {
-    return d.fonema ? urlCorteSonido(d.fonema.simbolo, 'ga', this.sinMovimiento) : null;
+    return d.fonema ? urlCorteSonido(d.fonema.simbolo, d.fonema.acento ?? 'ga', this.sinMovimiento) : null;
   }
 
   /** La palabra sale aunque no haya fonema («tragic» entendido «Mahic»); con
