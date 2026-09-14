@@ -253,8 +253,11 @@ function arco(u: number, retroceso = 2.3): THREE.Vector2 {
   return new THREE.Vector2(-2.6 + retroceso * u * u, (ANCHO / 2) * u);   // (x, z)
 }
 
-function arcoDental(grupo: THREE.Group, y: number, alto: number, mat: THREE.Material): void {
+/** Los dientes de un arco. Devuelve los laterales (premolares y molares),
+ *  que en la vista de lado tapan la lengua y se esconden. */
+function arcoDental(grupo: THREE.Group, y: number, alto: number, mat: THREE.Material): THREE.Mesh[] {
   const posiciones = [-0.92, -0.76, -0.6, -0.44, -0.28, -0.1, 0.1, 0.28, 0.44, 0.6, 0.76, 0.92];
+  const laterales: THREE.Mesh[] = [];
   for (const u of posiciones) {
     const p = arco(u);
     const incisivo = Math.abs(u) < 0.3;
@@ -263,7 +266,18 @@ function arcoDental(grupo: THREE.Group, y: number, alto: number, mat: THREE.Mate
     diente.position.set(p.x, y, p.y);
     diente.rotation.y = -Math.atan2(2 * 2.3 * u, ANCHO / 2);   // mirando a la tangente del arco
     grupo.add(diente);
+    if (!incisivo) laterales.push(diente);
   }
+  return laterales;
+}
+
+/** El aire nasal: de la faringe, por detrás del velo, sube a la nariz y sale. */
+function geometriaAireNasal(): THREE.BufferGeometry {
+  const curva = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(2.6, -0.6, 0), new THREE.Vector3(2.7, 0.6, 0), new THREE.Vector3(2.6, 1.7, 0),
+    new THREE.Vector3(1.5, 2.05, 0), new THREE.Vector3(-1.0, 2.05, 0), new THREE.Vector3(-3.0, 1.95, 0),
+  ]);
+  return new THREE.TubeGeometry(curva, 40, 0.09, 8, false);
 }
 
 function tuboArco(y: number, radio: number, mat: THREE.Material, retroceso = 2.3): THREE.Mesh {
@@ -403,6 +417,10 @@ export class EscenaBoca {
   private readonly labioInf: THREE.Mesh;
   private readonly lengua: THREE.Mesh;
   private readonly mejilla: THREE.Mesh;
+  private readonly aireNasal: THREE.Mesh;
+  /** Premolares y molares: se esconden los del lado de la cámara en la vista de lado. */
+  private readonly dientesLaterales: THREE.Mesh[] = [];
+  private lateralesOcultos: 'ninguno' | 'z+' | 'z-' = 'ninguno';
   private readonly observador: ResizeObserver | null = null;
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
@@ -467,7 +485,7 @@ export class EscenaBoca {
     this.escena.add(paladar);
     const arcoSup = new THREE.Group();
     arcoSup.add(tuboArco(0.98, 0.2, mEncia));
-    arcoDental(arcoSup, 0.7, 0.5, mDientes);
+    this.dientesLaterales.push(...arcoDental(arcoSup, 0.7, 0.5, mDientes));
     this.escena.add(arcoSup);
 
     const veloMalla = new THREE.Mesh(new THREE.CapsuleGeometry(GROSOR_PALADAR / 2, LARGO_VELO - GROSOR_PALADAR / 2, 4, 10), material(col.velo));
@@ -479,13 +497,27 @@ export class EscenaBoca {
     this.velo.position.set(PIVOTE_VELO.x, PIVOTE_VELO.y, 0);
     this.escena.add(this.velo);
 
-    const faringe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, ANCHO), material(col.faringe, { transparent: true, opacity: 0.55 }));
-    faringe.position.set(FARINGE_X, -0.5, 0);
+    // La pared de la faringe, de la nasofaringe a la garganta.
+    const faringe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.6, ANCHO), material(col.faringe, { transparent: true, opacity: 0.55 }));
+    faringe.position.set(FARINGE_X, -0.6, 0);
     this.escena.add(faringe);
-    // La nariz: un hueco insinuado sobre el velo, para que se vea por dónde sale el aire nasal.
-    const nariz = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, ANCHO * 0.7), material(col.faringe, { transparent: true, opacity: 0.25 }));
-    nariz.position.set(2.5, 1.95, 0);
-    this.escena.add(nariz);
+    // Los huecos por donde va el aire, translúcidos para no tapar nada: la
+    // cavidad nasal sobre el paladar, la nasofaringe detrás del velo (el velo
+    // cerrado la tapa; abierto, comunica) y la garganta bajo la raíz.
+    const mHueco = material('#b9c6d6', { transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide });
+    const cavidadNasal = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.75, ANCHO * 0.6), mHueco);
+    cavidadNasal.position.set(-0.2, 2.05, 0);
+    const nasofaringe = new THREE.Mesh(new THREE.BoxGeometry(0.75, 2.2, ANCHO * 0.6), mHueco);
+    nasofaringe.position.set(2.62, 1.1, 0);
+    const garganta = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.9, ANCHO * 0.6), mHueco);
+    garganta.position.set(2.5, -2.35, 0);
+    for (const h of [cavidadNasal, nasofaringe, garganta]) { h.renderOrder = 3; this.escena.add(h); }
+    // El aire nasal: un hilo azul que solo se ve cuando el velo está bajado.
+    this.aireNasal = new THREE.Mesh(geometriaAireNasal(), material('#2f9cc0', {
+      transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#2f9cc0'), emissiveIntensity: 0.4,
+    }));
+    this.aireNasal.renderOrder = 4;
+    this.escena.add(this.aireNasal);
 
     // Mandíbula: gira en el pivote y arrastra hueso, dientes inferiores y labio
     // inferior. `dentro` deshace el desplazamiento del pivote para que las
@@ -494,7 +526,7 @@ export class EscenaBoca {
     dentro.position.set(-PIVOTE_MAND.x, -PIVOTE_MAND.y, 0);
     dentro.add(tuboArco(-0.2, 0.2, mEncia));
     dentro.add(tuboArco(-0.62, 0.28, mHueso, 2.6));
-    arcoDental(dentro, 0.1, 0.5, mDientes);
+    this.dientesLaterales.push(...arcoDental(dentro, 0.1, 0.5, mDientes));
     const suelo = new THREE.Mesh(new THREE.BoxGeometry(SUELO.x1 - SUELO.x0, SUELO.grosor, ANCHO * 0.8), mEncia);
     suelo.position.set((SUELO.x0 + SUELO.x1) / 2, SUELO.y, 0);
     dentro.add(suelo);
@@ -669,11 +701,28 @@ export class EscenaBoca {
       this.sucio = true;
     }
     this.controles.update();
+    this.ocultarLaterales();
     if (this.sucio) {
       this.sucio = false;
       this.renderer.render(this.escena, this.camara);
     }
   };
+
+  /** En la vista de lado (hasta ±20° de azimut) los premolares y molares del
+   *  lado de la cámara tapan la lengua: se esconden. Al girar, vuelven. */
+  private ocultarLaterales(): void {
+    const d = this.camara.position.clone().sub(this.controles.target);
+    const azimut = Math.atan2(d.x, d.z);          // 0 = de lado, ±π/2 = cara o nuca
+    const deLado = Math.abs(azimut) < (20 * Math.PI) / 180 || Math.abs(Math.abs(azimut) - Math.PI) < (20 * Math.PI) / 180;
+    const ahora: 'ninguno' | 'z+' | 'z-' = !deLado ? 'ninguno' : d.z >= 0 ? 'z+' : 'z-';
+    if (ahora === this.lateralesOcultos) return;
+    this.lateralesOcultos = ahora;
+    for (const diente of this.dientesLaterales) {
+      const lado = diente.position.z >= 0 ? 'z+' : 'z-';
+      diente.visible = ahora !== lado;
+    }
+    this.sucio = true;
+  }
 
   private labio(m: THREE.Mesh, largo: number, radio: number): void {
     const u = m.userData as { largo: number; radio: number };
@@ -686,6 +735,9 @@ export class EscenaBoca {
   private aplicar(n: PoseNumerica): void {
     this.mandibula.rotation.z = n[I_MAND];
     this.velo.rotation.z = n[I_VELO];
+    // El aire nasal aparece a medida que el velo baja.
+    const abierto = (n[I_VELO] - VELO_CERRADO) / (VELO_ABIERTO - VELO_CERRADO);
+    (this.aireNasal.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, abierto));
     this.labioSup.position.set(n[I_LS], n[I_LS + 1], 0);
     this.labio(this.labioSup, n[I_LS + 2], n[I_LS + 3]);
     // El labio inferior vive en la mandíbula: su posición es local al pivote.
