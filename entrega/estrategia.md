@@ -576,8 +576,9 @@ porque ese editor gradúa sobre todo por extensión. Y Let's Read no valida: má
 la mitad son traducciones que heredan el nivel del libro original en otro idioma.
 Si alguien pregunta «¿y por qué no promediáis las tres?», la respuesta es esa:
 cada una mide una cosa distinta, y promediarlas escondería justo lo que se
-aprendió. Además, 1.812 de esos libros —los de licencia libre— ya están en el
-catálogo de la aplicación, con la dificultad que mide el modelo.
+aprendió. Además, a fecha de `377a650`, el catálogo de la aplicación suma 15.357 textos de licencia
+libre de esas bibliotecas y de VOA (14.500 de StoryWeaver, 326 de Let's Read, 278 de
+African Storybook y 253 de VOA), con la dificultad que mide el modelo.
 
 ---
 

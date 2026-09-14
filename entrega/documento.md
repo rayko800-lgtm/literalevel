@@ -354,6 +354,8 @@ es orientativa, porque la escala del modelo sale comprimida y desplazada hacia
 arriba (7.5), y el reparto describe el catálogo de Gutenberg, no la dificultad
 de la lectura en inglés en general.
 
+**Y fuera de Gutenberg.** A fecha de `377a650`, el catálogo suma además **15.357 textos de licencia libre** medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 599 libros.
+
 **(c) De aquellos 1.197 libros, solo 148 se podían abrir.** Eran los de Project
 Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero
 descargable, de modo que aparecían en el desplegable de lectura como opciones
@@ -1266,8 +1268,7 @@ usuario, porque la IP sale de una cabecera que puede escribir el cliente. Solo
 cuentan los que fallan, y son valores por defecto que se cambian por variable
 de entorno.
 
-El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111
-capítulos**. Esto confirma el tamaño del artefacto, no repite su inferencia ni
+El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `377a650`, el catálogo externo de textos libres tiene 15.357 filas y los vectores de búsqueda suman 68.536 (53.179 + 15.357). El Space publicado (reinicio del 14 de septiembre, `26b303c`) cuenta los mismos 68.536 libros en `/api/estado`. Esto confirma el tamaño del artefacto, no repite su inferencia ni
 garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
 excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos,
 directorios), y por nivel solo se ofrecen obras literarias. Una medida del

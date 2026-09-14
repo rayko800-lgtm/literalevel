@@ -1011,8 +1011,7 @@ La selección local de 1.200 libros contiene 746 motivos temáticos y 454 genér
 Su calidad visual sigue sin comprobarse. El enlace del lector es
 \url{https://mikemaki1763-literalevel-front.static.hf.space/}.
 
-El 14 de septiembre se volvieron a contar con pandas \textbf{53.179 IDs únicos y
-585.111 capítulos} en el catálogo local. Es una comprobación del artefacto, no una
+El 14 de septiembre se volvieron a contar con pandas \textbf{53.179 IDs únicos y 585.111 capítulos} en el catálogo local. A fecha de \cod{377a650}, el catálogo externo de textos libres tiene 15.357 filas y los vectores de búsqueda suman 68.536 (53.179 + 15.357). El Space publicado (reinicio del 14 de septiembre, \cod{26b303c}) cuenta los mismos 68.536 libros en \cod{/api/estado}. Es una comprobación del artefacto, no una
 nueva inferencia. Las 38 rutas API se contaron en el código a fecha de \cod{db366b8}. En el cierre remoto
 anterior, \emph{house} eligió un sentido no adecuado para una frase sobre la ubicación
 de un edificio: disponibilidad del diccionario no demuestra desambiguación correcta
@@ -1318,6 +1317,8 @@ su medida. Lo que sí tiene son \textbf{capítulos}: 3.644 en 1.499 libros queda
 alcance, y la aplicación se los ofrece. Dos cautelas: la letra es orientativa, porque la
 escala del modelo sale comprimida y desplazada hacia arriba, y el reparto describe el
 catálogo de Gutenberg, no la dificultad de la lectura en inglés en general.
+
+\textbf{Y fuera de Gutenberg.} A fecha de \cod{377a650}, el catálogo suma además \textbf{15.357 textos de licencia libre} medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de \cod{cerrar\_corpus.py} dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 599 libros.
 
 \paragraph{(c) De aquellos 1.197 libros, solo 148 se podían abrir.} Eran los de Project
 Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero descargable, de
