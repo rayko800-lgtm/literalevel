@@ -14,20 +14,44 @@ puntos en juego, no por comodidad.
 - **Primero leer:** [relevo de Codex](auditoria/relevo_codex_2026-09-13_noche.md),
   [despliegue selectivo](auditoria/despliegue_codex_2026-09-13_noche.md) y
   [cierre documental](auditoria/cierre_documento_codex_2026-09-14.md).
-- **Backend:** `e56cf08` cotejado por hash el 13 de septiembre; fixes de voz/API
-  publicados. Para comparar ahora sin escribir:
-  `python tools/desplegar_app.py --seco --solo app/api.py app/voz.py`.
-- **Pruebas de ese cierre:** API 32/35 en entorno aislado, tres sin validar por
-  dependencias NLP; voz concurrente 7/7, despliegue 10/10, portadas 11/11.
-  No sumar esos resultados como una prueba completa de usuario.
-- **Catálogo:** recuento local del 14 de septiembre: 53.179 IDs únicos y
-  585.111 capítulos; no se reejecutó la inferencia.
+- **Backend (14 sep 2026, 11:40):** Space `MikeMaki1763/literalevel` en
+  `71f6a1d` (reinicio 12). La segunda pasada de `--seco` desde `32557f4` no
+  tenía nada que subir. Cada reinicio, con lo que subió y lo que se comprobó,
+  está en [`DESPLIEGUE.md`](DESPLIEGUE.md). Para comparar sin escribir:
+  `python tools/desplegar_app.py --seco`.
+- **Pruebas en árbol limpio de `d5ed4b5` (14 sep):** corpus 22, API 46/46,
+  voz temporal, integración 27, smoke, ficha y extremas 349. Antes, en
+  `dc340a4` y `0ba8219`: voz, ritmo de voz, léxico, animación y voz
+  concurrente. No son una prueba de usuario: la de persona está abajo.
+- **Catálogo (14 sep):** 68.536 libros = 53.179 de Gutenberg + 15.357 textos
+  libres (StoryWeaver 14.500, Let's Read 326, African Storybook 278, VOA 253),
+  medidos con el v4 en CPU local. Recuentos, los 894 que quedan fuera y el
+  intercalado de libres en la recomendación por nivel: nota en `DESPLIEGUE.md`.
+- **Cerrado esta noche y comprobado en el Space:** sinopsis simultáneas con un
+  solo cobro (reinicio 8), lectura natural en la voz y su historial de ritmo
+  (reinicio 9), topes por hora de medidas y curvas con aviso propio (reinicios
+  11 y 12), libres intercalados (reinicio 12).
 - **Pendientes de Miguel:** ensayo de pronunciación con micrófono físico,
-  recorrido Angular con usuarios y video grabado con cámara visible.
-- **Pendientes técnicos:** auditorías abiertas indicadas en el relevo, calidad
-  de acepciones (caso `house`), integración pública 3D aún por confirmar y
-  muestras de portadas FLUX aún no generadas. No conectar GPU ni publicar
-  portadas sin saldo/tarifa, aprobación visual y permiso de subida.
+  recorrido Angular con usuarios y vídeo grabado con cámara visible.
+- **Abierto tras la prueba como persona del 14 sep** (capturas 01–12 en el
+  scratchpad de f4; informe a Central, que reparte):
+  1. La atribución en español de los textos libres se mide con el cuento.
+     «¿Cómo de difícil es?» y la curva lo suben: SWV229485 pasa de 0,007 a
+     0,35. `ficha.sin_licencia` no la quita.
+  2. Los libres intercalados se desempatan por id, así que A2 y B1 ven los
+     mismos tres cuentos arriba. Propuesta: ordenarlos por cercanía al nivel
+     (`app/catalogo.py`, de f4).
+  3. Las tarjetas de textos medidos en bloque enseñan la dificultad del bloque.
+  4. Un 0,7 % de StoryWeaver repite párrafos enteros; hay textos con U+FEFF.
+  5. Plurales «1 minutos», «1 capítulos», «1 bloques», y el resultado de
+     «¿Cómo de difícil es?» con la letra del libro.
+  6. El texto «La letra de cada libro sale de medirlo entero» no vale para
+     los textos medidos en bloque.
+- **Pendientes técnicos que siguen:** calidad de acepciones (caso `house`) y
+  muestras de portadas FLUX sin generar. No conectar GPU ni publicar portadas
+  sin aprobación visual y permiso de subida; desde el 14 sep no hay presupuesto
+  (solo Colab gratis). f4 no ha verificado en el Space la integración pública
+  de la boca 3D.
 
 ## Histórico de auditorías y coordinación, hasta el 12 de septiembre
 
