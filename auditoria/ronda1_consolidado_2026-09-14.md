@@ -381,3 +381,9 @@ Visto bueno de 4e al reinicio 22 (f79b562, ronda3_2026-09-15_reinicio22.md): ok.
   - «the call of the wild by jack london»: de 4 a 10.
 - **Batería:** sin cambios en lo demás. no_lectura queda en 203, sin cuentos.
 - **Menores para el 24:** un nombre de pila corto o con iniciales convierte al autor en seudónimo («fu manchu sax rohmer» baja de 10 a 3). Un apellido que es palabra corriente vuelve a rescatar a quien no es («little dorrit dickens» con B1 trae a Burt Little).
+
+**Reinicio 22 en producción y comprobado (f4):** Space 62a5373, fila de DESPLIEGUE en 5a61b19.
+- **Autor en los 10 primeros sin perfil, del 21 al 22:** treasure island stevenson de 2 a 8; love poems by browning de 0 a 9; the secret garden frances hodgson burnett de 0 a 8; white fang jack london de 0 a 2, igual que antes de la regresión; the call of the wild by jack london de 4 a 10.
+- **Sin regresiones:** «amor» con B1 sin Fenn, «rosa» con los títulos de Rosa primero y los anuncios de drogas fuera. La batería da lo mismo que en local.
+- **Único fallo del comprobador:** «Jane Austen» con B1 abre con la adaptación de MacKaye, en la que Austen es coautora. Es el caso conocido del 24.
+- **Siguiente, el 23:** el segundo top-k solo se activa desde /api/buscar; la búsqueda de Gradio no cambia.

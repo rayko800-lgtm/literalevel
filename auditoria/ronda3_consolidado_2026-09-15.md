@@ -17,7 +17,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
-| Motor (Space de Gradio) | reinicio 21, 384a206 | «amor» con B1 da 12 de 12 sobre amor, pero todos C1–C2, y los cuentos de su nivel no salen (reinicio 23); «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
+| Motor (Space de Gradio) | reinicio 22, 62a5373 (autor más título arreglado, anuncios de drogas fuera) | «amor» con B1 da 12 de 12 sobre amor, pero todos C1–C2, y los cuentos de su nivel no salen (reinicio 23); «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | ec957d0 | boca 3D sin fuga de memoria y con una sola descarga; «Primero lo de tu nivel» se cumple; ocho sugerencias que dan resultados con A2 y B1 |
 | Documentos y guiones | 8856030 | coste de cómputo real, cifras del reinicio 21, diez arreglos del ensayo y la sección «Antes de la demo» |
 
@@ -42,7 +42,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
    island o white. **Llegó a producción** porque 4e avisó a la central antes de
    la subida y la central no se lo pasó a tiempo a quien desplegaba. Desde
    entonces, el aviso de parar va directo a quien despliega. Arreglo en el
-   reinicio 22, probado en local: las cinco búsquedas pasan de 2, 0, 0, 0 y 4
+   reinicio 22, **ya en producción**: en el Space, las cinco búsquedas pasan de 2, 0, 0, 0 y 4
    resultados del autor a 8, 9, 8, 2 y 10.
 2. **Autores clásicos por apellido.** «cervantes», «dante», «moliere» y
    «agatha christie» no encuentran sus libros, efecto del endurecimiento del
@@ -80,8 +80,8 @@ el reinicio 23.
 
 | Qué | Quién | Cuándo |
 |---|---|---|
-| Reinicio 22: autor más título, anuncios de drogas, tres menores de subidas | f4, con visto bueno de 4e y e6 | esta madrugada |
+| ~~Reinicio 22: autor más título, anuncios de drogas, tres menores de subidas~~ | hecho, Space 62a5373, comprobado | 04:05 |
 | Reinicio 23: **recuperación dentro de la franja del lector (caso Esmeralda)**, autores clásicos, obras antes que biografías, «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras» | f4 | después del 22 |
-| Auditoría de voz de la ronda 3 | f4 | después del 22 |
+| Auditoría de voz de la ronda 3 | e6 | en curso |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
