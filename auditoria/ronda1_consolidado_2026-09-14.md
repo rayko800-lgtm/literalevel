@@ -1103,3 +1103,9 @@ f4 revierte i4 en el repositorio (3345ba9): el Space volvió al 28, pero HEAD se
 - **Línea «api precarga»:** catálogo 5,9 s y modelo con títulos y primera búsqueda 17,2 s. Antes eran 11,9 s y 44,4 s.
 - **Descargas en el log:** ninguna, aunque el log se leyó solo 20 s.
 - **Segunda medida:** no se reinicia a propósito, porque Ismael puede estar probando. Se mide al subir el 30b.
+
+Reinicio 30b medido (f4, 545 listas contra el 28): solo cambian empates y ningún top 10.
+- **Qué cambia:** 18 listas cambian el orden entre ids de parecido idéntico. Otras 12 están en la cola de la franja, entre copias con el mismo título.
+- **Casos con efecto:** en 4, en el corte de K entra otra copia del mismo título con otra dificultad. Por ejemplo, «family» A2 pasa de SWV345576 (0,68) a SWV100912 (0,25).
+- **Decisión de la central:** en la franja, el empate lo decide primero la cercanía al nivel del lector y después la fila. Sin nivel, la fila. Así nunca entra una copia más lejana por azar ni por orden de fila. Se vuelve a medir antes del commit.
+- **DESPLIEGUE:** la fila del 30a está en ef8b743.
