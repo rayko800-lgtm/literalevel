@@ -110,3 +110,78 @@ Palabras entre comillas en los «Dice:» de la demo, a 150 y a 130 palabras por 
 - **`guion_video.md:73`** cita `b76ca59`, que es el commit del Space del front, no del repositorio (`88b3a83`). Lo publicado ahora es `ec957d0` / `4e6276e`, con la misma boca.
 
 **Fuera de los guiones** (no se pidió): `documento.md:1305`, `estrategia.md:445` y `documento.tex:1009` siguen con «front `45d9999`».
+
+## Anexo 2: segundo ensayo completo sobre lo publicado el 15 sep por la tarde
+
+- **Quién:** entrega-e6 (811c22), por encargo de la Central.
+- **Sobre qué:** el front `bdfa418` (`main-4E3B2GGO.js`; en código es `3662e57`, con el mismo bundle) y la API del Space `74f1484` (RUNNING, reinicio 28). El guion es `entrega/guion_demo_en_vivo.md` en `800060e`, igual en HEAD.
+- **Lo que no existía en el primer ensayo** (front `73a34dd`, Space `af72fb0`): las pantallas A de *Tu nivel* y *Pronunciar*, la franja de nivel en *Encontrar*, la precarga del buscador, el aviso de silencio y los reinicios 26, 27 y 28.
+- **Cómo:** tres contextos aislados de Chrome, sin datos previos y **sin cuenta** (la norma de Miguel sigue: ni contraseñas ni `literalevel_codigos.txt`):
+  - 390 × 844 `mobile` y `touch`;
+  - 1280 × 800 de escritorio;
+  - otro a 390 para probar búsquedas alternativas al paso 3.
+
+  Antes de medir hubo una búsqueda de calentamiento («animales de la granja»: 0,92 s a 390 y 0,77 s a 1280). Los tiempos son de extremo a extremo en el navegador. Al acabar, las tres pestañas cerradas.
+- **Qué no se pudo probar:** el micrófono, porque sin permiso la app dice «No tengo permiso para usar el micrófono…». Tampoco lo que necesita cuenta: la explicación de la IA, «Corrígeme», «Para sonar más natural» y el aviso de silencio.
+
+### Resumen para quien presenta
+
+- **SERIO, paso 3.** «dostoyevski» con el perfil de 1,20 ya no enseña lo que dice el guion. No hay aviso de «no hay libros en tu nivel ni un poco por encima». «En tu nivel» abre con 9 tarjetas, 7 de ellas cuentos libres que no tienen que ver con el autor (*Tanaji Malusare*, *Story Chikkappa*, *Books*…). *Crime and Punishment* solo aparece tras «Ver también los de otros niveles (21)», segundo en «De otros niveles», a 3.789 px en el móvil (unas 4,5 pantallas) y a 1.681 px a 1280. f4 ya está midiendo la causa.
+- **Todo lo demás que se ve sin cuenta cuadra con el guion,** en las dos anchuras:
+  - la receta del 1,20;
+  - «cuentos de dragones» (19 libres de 20);
+  - los detectives (3 de Gutenberg);
+  - la ficha de *Crime and Punishment*;
+  - *poverty* por el Índice;
+  - los botones de *Pronunciar*;
+  - «Mis palabras» con «cap. 1».
+- **Tiempo.** Con el buscador caliente, cada búsqueda tarda entre 0,49 y 0,77 s, y la ficha, el lector y la boca, menos de 3 s. La estimación del primer ensayo (3:40–4:10) se mantiene: no ha cambiado ningún «Dice:» que alargue un tramo.
+
+### Paso a paso
+
+| Paso del guion | 390 táctil | 1280 escritorio | ¿Coincide? |
+|---|---|---|---|
+| **Antes: motor despierto** | `/api/estado` en 0,28 y 0,30 s, «68.546 libros», `funciones_openai.disponibles: true`. `/api/salud`, `buscador_listo: true`. | igual | Sí. |
+| **Antes: perfil 1,20 (receta de seis)** | Cada opción avanza sola, con «1 de 6»… «6 de 6». Al contestar la sexta se guarda en 0,21 s: «Lees en inglés a nivel B2». En «Ver el detalle»: «1,20 de 2 · Intermedio. Busco lecturas entre 0,95 y 1,45». Pie: «¿No te convence? Afínalo con un libro que ya leíste · con un texto · volver a medirme». | se guarda en 0,49 s; textos iguales | **Sí**, palabra por palabra. No he vuelto a comprobar las cifras de los despistes (1,07–1,27, y 1,46 con «Capto bien la idea»). |
+| **Antes: boca 3D abierta una vez** | Primera vez: lienzo en 1,6 s y `cara.glb` servida a los 2,95 s. Segunda vez: 0,63 s. | lienzo en 0,5 s, cara a los 1,76 s | El consejo vale. **La cifra no:** el guion dice 2,1 s y 0,5 s «en el front `ec957d0`»; hoy, 2,9 s en el móvil. |
+| **Antes: frase de voz ensayada** | Sin cuenta ni micrófono, no se puede. | — | **Sin probar.** El guion la da por «verificada en el Space publicado a fecha de `7c09d90`» (14 sep), anterior a la pantalla A de *Pronunciar*: hoy «Para sonar más natural» va plegado y, detrás de la reducción, añade «de corrido aquí». |
+| **1. Entrar y el nivel** | Resultado preparado: «Lees en inglés a nivel B2», escala A1–C2, «Ver libros de mi nivel», «Ver el detalle» con el 1,20 y el pie de afinar. | igual | Sí. |
+| **2. Encontrar, «cuentos de dragones»** | 0,61 s. «En tu nivel»: 20 tarjetas, **19 libres**. La primera es *The Dragon Hunter* (B2 · 1,20, «A tu medida»). «Un poco por encima»: 1. «Ver también los de otros niveles (9)». | 0,68 s; 20 (19 libres) y 1 | **Sí.** La cifra «19 de sus 20» sigue exacta, pero el guion la atribuye al «reinicio 25»; hoy es el 28. |
+| **2. «una novela de detectives victoriana»** | 0,56 s. «En tu nivel»: 3, todos de Gutenberg (*A Little Bit of Fluff*, *A Bullet for Cinderella*, *The Thirteenth Chair*). «Un poco por encima»: 23, ninguno libre. | 0,56 s; igual | Sí. |
+| **3. «dostoyevski»** | 0,49 s. **Sin aviso.** «En tu nivel»: 9. Son *Verotchka's Tales* y *More Russian Picture Tales*, y 7 cuentos libres ajenos: *Tanaji Malusare*, *Story Chikkappa*, *Books* dos veces, *TARA - PRINCESS OF BARRACKPORE*, *The Story of M.S.Dhoni* y *Adhuri Betiyaan*. «Un poco por encima»: 6. *Crime and Punishment* sale tras «Ver también los de otros niveles (21)», **2.º de «De otros niveles», a 3.789 px**. | 0,62 s; igual, a 1.681 px | **No.** El guion dice que primero sale el aviso y que el libro aparece segundo en «De otros niveles» sin pulsar nada más. Alternativas en la tabla de abajo. |
+| **3. La ficha** | Primera apertura en frío: 2,3 s hasta el título y 2,6 s con la curva. «C1 · 1,70 de 2», «40 capítulos», «203.415 palabras», «30 h 49 min», «Va por encima de tu nivel», curva «Medido entero» ya calculada, «Empieza en el capítulo 2: los anteriores son portadilla». | 1,5 s con la curva | Sí: «de media, 1,70». |
+| **4. *poverty* por el Índice** | «Índice · 40 capítulos» a 2.075 px (unas 2,5 pantallas). Entrada «1 · Antes del primer capítulo · 5 min», que abre en 0,4 s («CAPÍTULO 1 DE 40»). El lector tiene «Índice» arriba. *poverty*: **primera consulta de la sesión, 4,5 s**; en caliente, 0,64–0,67 s. Hoja: «noun · frecuente», US /ˈpɑːvɚti/, UK /ˈpɒvəti/, «Sin grabación para esta palabra: suena con la voz de tu navegador», la definición y la frase. Sin cuenta: «Esta parte necesita que entres con tu perfil…». *religious* y *acclamations* dicen «No estoy seguro de que sea esta acepción». *Mihail*: «Esta palabra no está en el diccionario», sin marca IA. | 0,69 s en caliente; la hoja sale a la derecha (380 × 693) | Sí. La primera consulta en frío tarda más que en el primer ensayo (4,5 s frente a 3,8 s): la preparación que ya pide el guion lo evita. |
+| **5. Pronunciar (sin cuenta)** | Banda: «La corrección usa OpenAI, así que necesita que entres con tu perfil. Entrar». «Una frase de mi libro», 0,21 s («Dostoevsky was the son of a doctor.»). Micrófono abajo, a y = 696. Al pulsarlo: «No tengo permiso para usar el micrófono…». AFI en 0,41 s. En /ʌ/: «Escuchar y ver», «🐢 Despacio» (que pasa a «🐢 Despacio · activado») y «Boca en 3D» (que pasa a «Cerrar 3D»). | frase en 0,18 s; micrófono a y = 759 | Los botones que nombra el guion existen con ese texto. **Sin probar:** grabar, «Corrígeme» y «Practica esta palabra» con la boca abierta. |
+| **6. Que no suene robótico** | Sin cuenta ni micrófono, no se puede. | — | **Sin probar.** |
+| **7. Mis palabras** | 0,35 s. «3 palabras distintas · 5 consultas · 1 libro», «Repasa cinco» y «Últimas consultas» con «Crime and Punishment, cap. 1». | igual, con *poverty* | Sí. |
+| **Plan B: motor dormido** | No se provocó. El texto existe: «Despertando el motor de LiteraLevel. Si llevaba rato sin usarse tarda unos 30 segundos…». | — | Coherente con el guion. |
+| **Extra: libro de un solo capítulo** (*The Indigo Fairy and the Lizard*, SWV4008) | 0,5 s. «B1 · 0,96 de 2 · 1 capítulo · 252 palabras». Tarjeta: «Es un texto de un solo capítulo, así que no hay curva que dibujar: su dificultad es 0,96 (B1).». Sin gráfica y sin «Lo que más se repite». | igual | Sí. El guion no lo usa. |
+
+### Búsquedas para el paso 3, con el perfil de 1,20 a 390
+
+| Consulta | ¿Aviso? | «En tu nivel» | Dónde sale *Crime and Punishment* |
+|---|---|---|---|
+| «dostoyevski» | no | 9 (7 libres ajenos) | tras «Ver también (21)», 2.º de «De otros niveles», 3.789 px |
+| «dostoievski» | no | 11 | tras «Ver también (20)», 3.º de «De otros niveles», 4.411 px |
+| «dostoyevsky» | no | 4 (*Verotchka's Tales*, *More Russian Picture Tales*, *TARA…*, *Savva…*) | tras «Ver también (23)», 2.º de «De otros niveles», 3.316 px |
+| «crime and punishment» | no | 1 (*justice and injustice*, libre) | tras «Ver también (24)», **1.º de «De otros niveles», 949 px** |
+| «crimen y castigo» | no | 3 libres (*justice and injustice*, *VIOLENCE*, *Legal and Law*) | tras «Ver también (24)», 6.º de «Menos parecidos a lo que buscas», 3.842 px |
+
+Ninguna consulta reproduce el guion tal como está. Con «crime and punishment» el libro queda a una pantalla, pero sigue haciendo falta pulsar «Ver también».
+
+### Qué cambiar en el guion (para 4e, vía la Central)
+
+1. **Paso 3 (SERIO).** Depende de lo que decida f4 con el buscador. Si no cambia antes de grabar, hay tres opciones:
+   - buscar «crime and punishment» y pulsar «Ver también los de otros niveles». Sale el primero, a una pantalla. Hay que quitar la frase del aviso;
+   - abrir el libro desde la estantería o desde «Leer», que ya es lo que propone el Plan B;
+   - mantener «dostoyevski», pero decir que hay que pulsar «Ver también…» y bajar cuatro pantallas.
+
+   En cualquier caso, **quitar** «sale primero el aviso de que no hay libros en tu nivel ni un poco por encima».
+2. **«Boca 3D abierta una vez»:** la cifra ya no vale. Hoy, a 390 con la caché vacía, la cara tarda 2,9 s la primera vez y 0,6 s después; a 1280, 1,8 s. Mejor quitar el hash `ec957d0` o poner el de hoy.
+3. **«Frase de voz ensayada»:** la verificación citada (`7c09d90`, 14 sep) es anterior a la pantalla A de *Pronunciar*. Que Miguel la repita con cuenta (ya está en «Antes de la demo», punto 4), y que el guion no la dé por verificada.
+4. **Paso 2:** «en la página publicada con el reinicio 25» puede pasar a «con el reinicio 28 (15 de septiembre)». La cifra, 19 de 20, sigue exacta.
+5. **«Antes de la demo», punto 7 (voz baja):** cuando el aviso sale con cuenta, termina en «Este intento no cuenta.». Conviene que Miguel no se sorprenda: no gasta cupo.
+
+### Lo que sigue pendiente para Miguel, con cuenta y micrófono
+
+Sin cambios respecto a «Antes de la demo, con cuenta y micrófono» (puntos 1–8 del guion). Además, **repetir el paso 3** con la búsqueda que se decida, después de lo que suba f4.
