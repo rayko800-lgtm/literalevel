@@ -619,3 +619,8 @@ Visto bueno de 4e a cuentas.py del 26 (41e7e6d): ok.
 Pasada de documentos de 4e sobre 83520e2, en curso:
 - la receta B2, los textos de las pantallas A, el punto 7 y el calentamiento de la búsqueda;
 - la frase del amor, recontada con el catálogo de la app. En la franja de B1 hay 114 textos libres con love o romance en el título y 4 de Gutenberg. Sin la franja, la búsqueda traía 24 de 24 de Gutenberg; con la del 25 se marcan 12, 8 con el amor en el título.
+
+Comprobación del reinicio 26, autorizada por la central: dos llamadas de pago de silencio con invitado8.
+- **Primero /api/voz:** tiene que salir `uso_devuelto` true y los usos quedarse en 17.
+- **Después Gradio, con gradio_client** (`/_entrar` y `/_practicar` en la misma sesión): tiene que decir «No te oí» y devolver el uso. Solo se hace si /api/voz sale bien.
+- **Coste:** solo whisper, unos céntimos. La contraseña va en una variable y no se imprime nada del archivo. Los usos de antes y después quedan en DESPLIEGUE.md.
