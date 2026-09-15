@@ -163,7 +163,8 @@
               <button type="button" class="boton secundario" (click)="sonar(v.audioNatural)"><app-icono nombre="play" />Escúchalo natural</button>
             }
           </div>
-        } @else if (!v.natural) {
+        } @else if (!v.natural && r.transcripcion_ok) {
+          <!-- Sin voz ya está el aviso «No te oí»: este otro despistaba (Central, reinicio 26). -->
           <p class="tenue pequeno">Esta vez no llegaron el énfasis ni los enlaces de la frase: los prepara OpenAI. Vuelve a probar en un rato.</p>
         }
       }

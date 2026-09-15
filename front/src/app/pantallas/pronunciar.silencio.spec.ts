@@ -23,7 +23,9 @@ describe('Pronunciar sin voz', () => {
     c.resultado.set({
       puntuacion: transcripcion_ok ? 64 : 0, transcripcion_ok, transcripcion: transcripcion_ok ? 'the war' : '',
       palabras: [{ palabra: 'the', bien: transcripcion_ok }, { palabra: 'war', bien: false }],
-      entendidas: [], resumen: null, detalles: [], audio_correcto: null, restantes: null, ritmo: null,
+      entendidas: [], resumen: null, detalles: [], audio_correcto: null, restantes: null,
+      // Sin análisis natural: con voz sale «no llegaron el énfasis…»; sin voz, no.
+      ritmo: { medido: false, duracion_s: null, palabras: [], pausas: [], tramos: [], natural: null },
     });
     fixture.detectChanges();
     await fixture.whenStable();
@@ -38,6 +40,7 @@ describe('Pronunciar sin voz', () => {
     expect(resultado.querySelector('.anillo')?.textContent?.trim()).toBe('—');
     expect(resultado.querySelector('.nota h2')).toBeNull();
     expect(resultado.querySelector('.palabras-voz')).toBeNull();
+    expect(resultado.textContent).not.toContain('no llegaron el énfasis');
   });
 
   it('con voz: la puntuación, la nota y lo que se entendió, sin el aviso', async () => {
@@ -47,5 +50,6 @@ describe('Pronunciar sin voz', () => {
     expect(resultado.querySelector('.nota h2')?.textContent).toBe('Vamos a por ello');
     expect(resultado.textContent).toContain('«the war»');
     expect(resultado.textContent).not.toContain('No te oí');
+    expect(resultado.textContent).toContain('no llegaron el énfasis');
   });
 });
