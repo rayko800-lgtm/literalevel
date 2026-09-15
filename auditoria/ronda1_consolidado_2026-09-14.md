@@ -212,3 +212,12 @@ Ronda 3 de búsqueda (4e, 036a207), sobre el Space del reinicio 19 y 20:
   - 89 libros de Gutenberg sin título quedan invisibles, y son libros reales: van al 22.
 - **Duda:** «luna» sola trae títulos con Luna.
 - **Ronda 3 del front:** pasa de f4 a 4e.
+
+Ronda 3 del front (4e, 7ecc2b1), sobre el margen de Encontrar:
+- **Cerrado y verificado a 390 px:** con B1, «historias de la luna» sube los cinco cuentos, cuando antes no subía ninguno. «amor», «detectives», «Terror gótico» y «Jane Austen» no cambian, y las 60 tarjetas de «Menos parecidos» van sin etiqueta. Los bordes de las guardas cortan exactos.
+- **Menor:** las pruebas no fijan el parecido mínimo ni el margen. Van casos de borde (e6).
+- **Menor nuevo:** el chip de sugerencia «Detectives en Londres» deja a una lectora B1 sin nada de su nivel. Se cambia por uno que dé resultados en todos los niveles, y se revisan los demás chips (e6).
+
+Anuncios del reinicio 21 (f4): 8 de 9 salen del catálogo. «The Ant and the Dove» se queda porque es un cuento de verdad. «emily bronte» queda resuelto con el 21; «agatha christie» sigue sin rescate y va con cervantes al 22.
+
+4e audita el código del reinicio 21 (7c9c289) antes de que suba.
