@@ -648,3 +648,14 @@ Reinicio 26, a punto de subir desde 49a8e4d (f4):
   4. la comprobación de la precarga;
   5. las dos pruebas de pago de silencio, primero /api/voz y después Gradio;
   6. el registro del Space, el segundo --seco y la fila de DESPLIEGUE.
+
+Visto bueno de 4e a ui.py de 49a8e4d: ok, así que el 26 ya puede subir. También ok a 51cda13, el front de «Este intento no cuenta.».
+- **Menores para el 27:** un comentario viejo contradice el código nuevo, y el código de la cuenta se lee dos veces.
+
+Pasada de documentos de 4e (2a44731), sobre el front 83520e2 y el reinicio 25:
+- **Receta B2** en los guiones, con el aviso de la sexta pregunta.
+- **Textos de las pantallas A** y capturas del vídeo al día.
+- **«Antes de la demo»:** punto 7, voz baja desde el móvil; punto 8, calentar el buscador.
+- **La frase del amor** reescrita en documento y estrategia: no faltaba catálogo, fallaba la búsqueda. 114 cuentos libres frente a 4 de Gutenberg.
+- **Barrido:** ya no quedan «Me vale así», «Más lento» ni «hueco de composición». PDF recompilados.
+- **Pendiente:** cambiar el 18,6 s por la cifra de la precarga, y volver a medir el paso 2 («cuentos de dragones») con la franja.
