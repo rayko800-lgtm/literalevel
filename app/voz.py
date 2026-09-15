@@ -764,6 +764,30 @@ def transcribir_con_tiempos(ruta_audio: str | os.PathLike) -> dict | None:
 _RECHAZADA_SIN_PROCESAR = (400, 415, 422)
 
 
+# Con casi silencio whisper inventa texto: «you» con silencio puro, «Thank you for
+# watching.» con ruido o un zumbido. Contaba como oído y lanzaba la explicación de pago
+# con una corrección de palabras que nadie dijo (e6 y la Central, ronda 3). La regla
+# de whisper (no_speech_prob > 0,6 y avg_logprob < -1,0) no cazaba ninguno: los
+# inventos traen avg_logprob de -0,5 a -0,8. Fijado ANTES de validar: sin voz si TODOS
+# los segmentos pasan de este no_speech_prob. Validado con whisper-1 el 15 sep 2026
+# sobre un conjunto aparte: 30 de 30 frases reales (normales, muy bajas y con ruido)
+# cuentan como oídas, la más alta en 0,503, y 4 de 4 audios sin voz se cazan
+# (0,866 a 0,943). La voz de la validación es TTS, no un micrófono.
+UMBRAL_SIN_VOZ = 0.6
+
+
+def _sin_voz(segmentos) -> bool:
+    """Si whisper dice que no hay voz en ningún segmento. Sin segmentos (una respuesta
+    sin ellos), no se sabe y la transcripción cuenta como antes."""
+    probs = []
+    for s in segmentos or []:
+        try:
+            probs.append(float(_campo(s, "no_speech_prob")))
+        except (TypeError, ValueError):
+            return False
+    return bool(probs) and all(p > UMBRAL_SIN_VOZ for p in probs)
+
+
 def _transcribir_con_tiempos(ruta_audio) -> tuple[dict | None, bool]:
     """(datos o None, si se puede pedir la transcripcion sin marcas sin pagar el
     audio dos veces): cuando OpenAI rechazo la peticion, o sin clave, que no
@@ -777,7 +801,7 @@ def _transcribir_con_tiempos(ruta_audio) -> tuple[dict | None, bool]:
         with open(ruta_audio, "rb") as f:
             r = cliente.audio.transcriptions.create(
                 model=MODELO_TRANSCRIPCION, file=f, response_format="verbose_json",
-                timestamp_granularities=["word"])
+                timestamp_granularities=["word", "segment"])
         palabras = []
         for w in _campo(r, "words") or []:
             try:
@@ -786,7 +810,10 @@ def _transcribir_con_tiempos(ruta_audio) -> tuple[dict | None, bool]:
             except (TypeError, ValueError):
                 continue
         duracion = _campo(r, "duration")
-        return {"texto": str(_campo(r, "text", "") or ""),
+        texto = str(_campo(r, "text", "") or "")
+        if _sin_voz(_campo(r, "segments")):
+            texto, palabras = "", []
+        return {"texto": texto,
                 "duracion": float(duracion) if duracion is not None else None,
                 "palabras": palabras}, False
     except Exception as e:

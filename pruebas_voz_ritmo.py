@@ -204,6 +204,30 @@ class Practicar(unittest.TestCase):
             self.assertIsNone(s.correccion, texto)
             self.assertEqual(s.audios_palabras, {}, f"{texto!r}: sin palabras oidas, los audios de cada palabra son gasto")
 
+    def test_lo_que_whisper_inventa_sin_voz_no_cuenta_como_oido(self):
+        """Central y e6, ronda 3: con casi silencio whisper escribe «Thank you for watching.»
+        con palabras y todo; se pagaba la explicacion de una frase que nadie dijo."""
+        for no_voz, oida in ((0.897, False), (0.503, True)):
+            cliente = ClienteSimulado()
+
+            def inventa(no_voz=no_voz, cliente=cliente, **kw):
+                cliente.transcripciones.append((Path(kw["file"].name).name, kw.get("response_format"), kw.get("timestamp_granularities")))
+                marcas = [("Thank", 1.6, 1.9), ("you", 1.9, 2.1), ("for", 2.1, 2.3), ("watching.", 2.3, 3.0)]
+                return SimpleNamespace(text="Thank you for watching.", duration=3.0,
+                                       words=[SimpleNamespace(word=w, start=a, end=b) for w, a, b in marcas],
+                                       segments=[SimpleNamespace(start=1.58, end=2.98, text=" Thank you for watching.",
+                                                                 no_speech_prob=no_voz, avg_logprob=-0.82)])
+            cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=inventa), speech=cliente.audio.speech)
+            with mock.patch.object(voz, "_cliente", lambda cliente=cliente: cliente), \
+                    mock.patch.object(voz, "explicar_correccion") as explicar, \
+                    mock.patch.object(voz, "registrar_fallos") as registrar, \
+                    mock.patch.object(voz, "registrar_ritmo"):
+                s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
+            self.assertEqual(s.transcripcion_ok, oida, no_voz)
+            self.assertEqual(explicar.called, oida, f"no_speech_prob {no_voz}: explicacion de pago")
+            self.assertEqual(registrar.called, oida, no_voz)
+            self.assertIn("segment", cliente.transcripciones[0][2], "sin pedir segmentos whisper no los manda")
+
     def test_si_rechazan_las_marcas_se_transcribe_sin_ellas_y_si_no_no(self):
         """e6, 14 sep (M5): con un plazo agotado el audio pudo cobrarse; no se sube otra vez."""
         class Rechazo(Exception):
@@ -264,7 +288,8 @@ class Practicar(unittest.TestCase):
         self.assertTrue(s1.ritmo["tramos"][0]["acelerar"])
         self.assertFalse(s2.ritmo["tramos"][0]["acelerar"], "el nivel del segundo intento es basico")
         formatos = {(f, g and tuple(g)) for _n, f, g in cliente.transcripciones}
-        self.assertEqual(formatos, {("verbose_json", ("word",))}, "siempre con marcas por palabra")
+        self.assertEqual(formatos, {("verbose_json", ("word", "segment"))},
+                         "siempre con marcas por palabra, y con segmentos para saber si hubo voz")
         referencia = [n for n, _f, _g in cliente.transcripciones if n.endswith(".mp3")]
         self.assertEqual(len(referencia), 1, "la frase bien leida se transcribe una sola vez")
         self.assertTrue(Path(str(s1.audio_correcto) + ".tiempos.json").is_file())
