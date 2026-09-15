@@ -167,3 +167,21 @@ Reinicio 21 en preparación (f4):
 - **Bloques con un texto raro:** margen de 0,5 fijado antes de medir. El texto raro se marca en la columna raro_en_bloque, y APOCALYPTO pasa a no_lectura.
 - **«Jane Austen»:** nombre de pila y apellido juntos cuentan como coincidencia completa. Sus obras ya salen primero, sin Sidney Austen ni Calamity Jane.
 - Las pruebas cazaron antes de subir que un nombre de pila solo volvía a traer «Fenn, Amor» con «amor». Ahora se exige el apellido, y una prueba lo vigila.
+
+Arreglo del serio de Encontrar (e6): commit ec5bb75, publicado como front 73a34dd.
+- **Regla:** lo que cae en la franja de la lectora tiene un margen de 0,10.
+- **Dos guardas:** parecido mínimo de 0,65, y no se cruza un hueco de más de 0,05.
+- Sin la primera guarda subía un cuento de terroristas en «Terror gótico». Sin la segunda subía «Calamity Jane».
+- Con B1, «historias de la luna» trae cuatro cuentos a «En tu nivel» y uno a «Un poco por encima».
+- En «amor», «detectives» y «Jane Austen» no sube nada fuera de tema.
+
+Ronda 3, informes recibidos:
+- **API (e6, e1cc109):**
+  - Cerrados y verificados en el Space: el error de entrar sin la contraseña, las dos subidas simultáneas y la prueba de concurrencia.
+  - Siguen abiertos: el uso de CPU durante una subida grande y el grupo de hilos compartido.
+  - Tres menores nuevos: borrar un libro subido queda fuera del candado; el candado se retiene mientras se abre el libro; un error al escribir el archivo de nombres se ignora sin avisar.
+- **Documentos (e6, 1092a46):**
+  - Cerrados: el serio del coste, los cinco menores de la ronda 2 y la duda de _cefr.
+  - Cifras recontadas: 15.367, 68.546, 11.881 y 14,5 h.
+  - Menor nuevo: las 1,9 unidades son del 9 de septiembre, no del 10.
+- **Aparte, para f4:** desde el reinicio 19, «detectives en Londres» con B1 ya no trae los cuentos de detectives de StoryWeaver en «En tu nivel».
