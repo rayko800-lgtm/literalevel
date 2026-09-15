@@ -21,9 +21,14 @@ con love/romance/courtship, letra por dificultad pública):
 | C1 | 23.454 | 884 | 794 | 0 |
 | C2 | 25.999 | 1.107 | 113 | 0 |
 
-En la franja de recomendación de B1 (0,55 a 1,05) hay **3** títulos con amor:
-*A Midsummer Night's Dream*, *The Princess Nobody* y *Gentlemen Prefer
-Blondes*. En la de B2 (0,95 a 1,45), **60**.
+En la franja de recomendación de B1 (0,55 a 1,05) salían **3** títulos con amor y
+en la de B2 **60**, pero **esa primera medida era mía y estaba mal**: usaba el CSV
+crudo, donde *A Midsummer Night's Dream* guarda 0,697, y buscaba las palabras
+como subcadena. f4 lo midió bien sobre el catálogo que carga la app (con
+`correcciones_catalogo.csv`, sin índices, love/romance/courtship como palabra
+en temas o gancho, franja ±0,25): **1 en B1** (*The Princess Nobody*) y **28 en
+B2**. Van las cifras de f4 en el documento; la tabla de arriba sirve solo como
+forma del reparto.
 
 **Lectura:** su experiencia coincide con los datos. La novela romántica de
 Gutenberg (Austen, Brontë, Hardy) está casi toda en C1 y C2, y los cuentos
@@ -34,3 +39,10 @@ no lo arregla**: el hueco es de composición, no de tamaño.
 propone cómo debería responder la pantalla cuando un tema tiene pocos libros en
 la franja (por ejemplo, ofrecer los más cercanos por encima, marcados «un poco
 por encima de tu nivel»). La decisión es de Miguel.
+
+
+## Lo que se hizo (14 sep, noche)
+
+- e6 lo reprodujo en el Space: `auditoria/diagnostico_encontrar_amor_b1_2026-09-14.md`. Además del hueco, dos fallos: con «Ordenar por mi nivel» el nivel pesaba más que el tema, y textos sin contenido («edws», «bumbumyj,jc», un cuento en coreano titulado «Love story») se colaban arriba.
+- f4 los arregló en el reinicio 16 (Space `484b83b`): el nivel ordena solo dentro de lo relevante, un título acertado va siempre delante, y 163 textos libres que no son lectura en inglés quedan fuera del buscador y de recomendar (`no_lectura_externo.csv`).
+- Miguel aprobó la pantalla nueva de Encontrar: dos bloques «En tu nivel» y «Un poco por encima de tu nivel», sin «A tu medida» para lo que no es lo pedido, y un botón «Ver también los de otros niveles». La hace e6.
