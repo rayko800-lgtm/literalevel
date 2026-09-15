@@ -743,3 +743,6 @@ Alcance del reinicio 27, cerrado por la central para no retrasarlo:
   - de e6: ae4c8d8 (ui.py), 3151f51 (ficha.py) y 4a265f6 (menores de ui.py).
 - **Pasa al 28:** el rescate por título con erratas, que necesita una señal nueva medida porque el diccionario no sirve, y el título en consultas largas («Terror gótico», «Historias de amor»).
 - **Vistos buenos:** 4e para catalogo.py, cuentas.py y 4a265f6, y e6 para api.py.
+
+Visto bueno de 4e a 4a265f6 y 5985e8e (menores de ui.py del 27): ok. `_practicar` cobra y devuelve a la misma cuenta.
+- **Acoplamiento:** el api.py del 27 ya usa la firma nueva de `_puede_pagar`, así que api.py y ui.py suben juntos o no sube ninguno.
