@@ -75,8 +75,8 @@ persona del front `45d9999` (f4).
   que no son lectura en inglés quedan fuera.
 - **Frase de la demo**: «Don't you want to come with us?» no produce el enlace
   «with us»; se quitó la promesa del guion y la presentación.
-- **Cifras de libros de amor**: mi primera medida estaba mal; queda por fijar la
-  regla exacta (4e y f4 difieren en uno y tres títulos según cómo se cuente).
+- **Cifras de libros de amor**: mi primera medida estaba mal. Con la regla de la
+  app escrita en el documento quedan 1 en B1 y 31 en B2 (29 títulos distintos).
 
 ## Lo que está en marcha
 
