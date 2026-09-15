@@ -1011,3 +1011,5 @@ i7 en preparación (f4, sobre el catalogo.py del 28): el título no cuenta si ca
 - **Márgenes a medir:** 0,00, 0,05 y 0,10, más la variante i7b de 4e.
 - **Criterio:** el completo con A2, B1 y 1,20.
 - **Aviso:** «Jane Austen» tiene dos palabras y sus marcas vienen del índice, así que i7 no las quitará.
+
+Menor del micrófono cerrado (e6, e3f80e4, con el ok de 4e): si alguien sale de Pronunciar con el permiso pendiente y lo concede después, el micrófono se suelta y no graba. Prueba y mutante, ng test 105/105. Se publica ya, sin esperar a otra publicación.
