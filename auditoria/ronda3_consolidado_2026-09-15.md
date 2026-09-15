@@ -117,6 +117,9 @@ dar el permiso en una sesión.
   principales · fragmento difícil «Entiendo algunas partes, pero necesitaría el
   diccionario». En la sexta, **no** «Capto bien la idea» (sube a C1). Se guarda
   sola al contestar la sexta.
+- **Paso 3:** buscar «Crimen y castigo de Dostoyevski» (no «dostoyevski» a
+  secas, que hoy enseña cuentos sin relación). Repetirlo con tu cuenta antes de
+  grabar.
 - **Antes de compartir pantalla:** una búsqueda con el perfil guardado (si el Space acaba de
   reiniciarse, esperar medio minuto; después cada búsqueda tarda menos de 1 s), abrir una vez la
   boca 3D, y grabar una frase en voz baja desde el móvil para ver que no sale
@@ -134,8 +137,17 @@ dar el permiso en una sesión.
   buscar un autor como «dostoyevski» enseña primero cuentos libres sin
   relación («Books», «Story Chikkappa») en «En tu nivel», y ya no el aviso de
   que no hay libros de su nivel. Parece un efecto de la búsqueda por franja
-  (reinicio 25) en consultas de autor. f4 lo mide con prioridad; si no llega
-  antes del fin de semana, 4e cambia el paso 3 por otra consulta.
+  (reinicio 25) en consultas de autor: con una sola palabra, títulos genéricos
+  como «Books» o «The Story of Stories» casan con «libros sobre X». f4 lo mide
+  con prioridad. **El guion ya no depende de ello:** el paso 3 pasa a buscar
+  «Crimen y castigo de Dostoyevski», que da el aviso de que no hay libros de su
+  nivel y Crime and Punishment como primera tarjeta de «De otros niveles»
+  (comprobado por 4e en la página publicada con el perfil B2).
+- **Segundo ensayo de la demo (e6):** todo lo demás cuadra con el guion a 390 px
+  y a 1280 (receta B2, «cuentos de dragones», detectives, ficha de Crime and
+  Punishment, poverty, Pronunciar, «Mis palabras», libro de un capítulo, plan
+  B). Búsquedas de 0,5 a 0,8 s; la boca 3D tarda 2,9 s la primera vez en el
+  móvil; la demo sigue en 3:40–4:10.
 - **Límites declarados, sin cambio de código:** «Historias de amor» y «Terror
   gótico» (título en consultas largas), «rosa» y «luna» con B1 (el arreglo
   rompía 70 de 200 listas), «tolstoy» sin perfil, y «emma» con B1, «hamlet» y
