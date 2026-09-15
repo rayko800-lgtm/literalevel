@@ -16,12 +16,12 @@ describe('Pronunciar sin voz', () => {
     }).compileComponents();
   });
 
-  async function pintar(transcripcion_ok: boolean) {
+  async function pintar(transcripcion_ok: boolean, uso_devuelto?: boolean) {
     const fixture = TestBed.createComponent(Pronunciar);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const c = fixture.componentInstance as any;
     c.resultado.set({
-      puntuacion: transcripcion_ok ? 64 : 0, transcripcion_ok, transcripcion: transcripcion_ok ? 'the war' : '',
+      puntuacion: transcripcion_ok ? 64 : 0, transcripcion_ok, uso_devuelto, transcripcion: transcripcion_ok ? 'the war' : '',
       palabras: [{ palabra: 'the', bien: transcripcion_ok }, { palabra: 'war', bien: false }],
       entendidas: [], resumen: null, detalles: [], audio_correcto: null, restantes: null,
       // Sin análisis natural: con voz sale «no llegaron el énfasis…»; sin voz, no.
@@ -41,6 +41,18 @@ describe('Pronunciar sin voz', () => {
     expect(resultado.querySelector('.nota h2')).toBeNull();
     expect(resultado.querySelector('.palabras-voz')).toBeNull();
     expect(resultado.textContent).not.toContain('no llegaron el énfasis');
+  });
+
+  it('sin voz y con el uso devuelto (reinicio 26): «Este intento no cuenta.»; sin el campo, no lo dice', async () => {
+    const devuelto = await pintar(false, true);
+    expect(devuelto.querySelector('.resultado .aviso')?.textContent).toContain('No te oí. Acércate al micrófono y vuelve a grabar. Este intento no cuenta.');
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [Pronunciar],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+    const sinCampo = await pintar(false);
+    expect(sinCampo.querySelector('.resultado .aviso')?.textContent).not.toContain('no cuenta');
   });
 
   it('con voz: la puntuación, la nota y lo que se entendió, sin el aviso', async () => {

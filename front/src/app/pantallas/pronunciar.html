@@ -120,7 +120,7 @@
           @if (!r.transcripcion_ok) {
             <!-- Con silencio o con lo que whisper inventa sin voz (reinicio 24), la API manda
                  transcripcion_ok false: un 0/100 y «Vamos a por ello» no decían qué pasó. -->
-            <p class="aviso error pequeno">No te oí. Acércate al micrófono y vuelve a grabar.</p>
+            <p class="aviso error pequeno">No te oí. Acércate al micrófono y vuelve a grabar.@if (r.uso_devuelto) { Este intento no cuenta.}</p>
           } @else {
             <p class="suave">Se te entendió: <em lang="en">«{{ r.transcripcion || '(nada)' }}»</em></p>
           }

@@ -301,6 +301,8 @@ export interface InventarioSonidos {
 export interface CorreccionVoz {
   puntuacion: number;
   transcripcion_ok: boolean;
+  /** Sin voz, la API devuelve el uso (reinicio 26, f4; tope de 10 al día por cuenta). La del 25 no lo manda. */
+  uso_devuelto?: boolean;
   transcripcion: string;
   palabras: { palabra: string; bien: boolean }[];
   entendidas: [string, string][];
