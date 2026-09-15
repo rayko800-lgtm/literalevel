@@ -107,7 +107,7 @@ que dice el **Plan B** para ese paso.
    comprobar que sale el aviso de que no hay libros en tu nivel ni un poco por
    encima, y *Crime and Punishment* el primero en «De otros niveles».
 10. **La bienvenida:** en un navegador limpio o en incógnito, al abrir Inicio sale
-    una tarjeta de tres pasos («1 de 3 · Libros en inglés a tu nivel»). Pulsa
+    una tarjeta de tres pasos («1 de 3» y, debajo, «Libros en inglés a tu nivel»). Pulsa
     «Saltar», arriba a la derecha de la tarjeta, o recórrela una vez antes de
     grabar: después ya no vuelve. Quien ya usaba la aplicación también la verá una
     vez. Un enlace directo al lector o a una ficha no la muestra, y se puede volver
@@ -172,7 +172,7 @@ un poco por encima, y el libro aparece el primero en «De otros niveles», que y
 se ve sin pulsar nada: es lo esperado. Enseña la ficha y la curva. No escribas
 solo «dostoyevski»: con el perfil de 1,20, «En tu nivel» se llena de cuentos que
 no son suyos y el libro queda detrás de «Ver también» (ensayo del 15 de septiembre
-sobre el reinicio 28, a 390 px: con la consulta larga el libro queda a 679 px sin
+sobre los reinicios 28 y 30b, a 390 px: con la consulta larga el libro queda a 679 px sin
 pulsar nada; con «dostoyevski», a 3.789 px).
 
 **Dice:** «Abro *Crimen y castigo*. La ficha está contada sobre el texto, no
