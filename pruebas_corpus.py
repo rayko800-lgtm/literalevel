@@ -616,6 +616,12 @@ def _nombre_parecido_sin_tema_no_rescata():
     for nivel in (None, 0.8):
         ids = [l.id for l in cat.buscar("amor", nivel_lector=nivel, n=5)[0]]
         assert ids == ["PG2", "PG3", "PG0", "PG1", "PG4"], f"«amor» con nivel {nivel}: {ids}"
+    # Dos palabras que son nombres de pila del mismo autor, sin su apellido, tampoco
+    # son su nombre entero (mutante C8-autor-entero-sin-apellido, 15 sep 2026).
+    pila = _catalogo_de_mentira([0.62, 0.76], ["Design and tradition", "A Dozen Ways Of Love"],
+                                ["Fenn, Amor Grace, 1863-1933", "Dougall, L."])
+    ids = [l.id for l in pila.buscar("amor grace", n=2)[0]]
+    assert ids == ["PG1", "PG0"], f"«amor grace» rescata a «Fenn, Amor Grace» sin apellido: {ids}"
     chejov = _catalogo_de_mentira([0.60, 0.65], ["The Bet, and other stories", "Russian Tales"],
                                   ["Chekhov, Anton Pavlovich, 1860-1904", "Smith, John"])
     ids = [l.id for l in chejov.buscar("chejov", n=2)[0]]
