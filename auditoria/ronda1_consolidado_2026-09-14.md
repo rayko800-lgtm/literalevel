@@ -724,3 +724,9 @@ Arreglo de mayúsculas de ficha.py (e6, 3151f51), a falta del visto bueno corto 
 Visto bueno de 4e a 3151f51 (ficha.py): ok, entra en el 27.
 - **Caso Title Case, medido:** 22 textos de 15.367. Se vacían 5 listas, y en dos o tres se pierden palabras corrientes.
 - **Decisión:** es aislado y se deja así. Solo oculta una sección y no muestra nada falso.
+
+Reinicio 27, clásicos medidos en el catálogo real (f4, sin commit, corpus 45/45):
+- **Clásicos:** cervantes, dante, moliere y agatha christie abren con sus obras. tolstoy abre con sus obras y no con «My Visit to Tolstoy».
+- **Palabras de riesgo:** «london», «hope» y «king» dan el mismo top 10 que antes. «amor» no trae a Fenn, y «rosa» y «luna» salen como antes.
+- **Lo que falla:** «Jane Austen» con B1 sigue abriendo con la adaptación de MacKaye, que es C1 y tiene a Austen como coautora. Empata en rescate con sus novelas, y con nivel ordena el encaje.
+- **Arreglo aprobado:** dentro de la ventana de nombres van primero las filas cuyo primer autor contiene todas las palabras de la consulta. Lleva una prueba inventada y el mutante C20.
