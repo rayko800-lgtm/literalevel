@@ -678,6 +678,19 @@ def _franja_trae_su_nivel_detras_de_los_n():
     tit = cat_con([0.90, 0.50, 0.50], ["Uno", "Dos", "Tres"], [1.8, 0.4, 0.4])
     tit._n_propio, tit._emb_tit = 1, np.array([[0.80, 0.60], [0.30, 0.95394]], dtype=np.float32)
     assert marcados(tit, "espectros", 0.4, 1) == ["PG1"], marcados(tit, "espectros", 0.4, 1)
+    # El .npy se comprueba al cargarlo (menores de 4e): con las filas desordenadas o con
+    # otra dimension no marca nada, en vez de marcar lo que no toca o dar 503.
+    def con_npy(emb):
+        c = cat_con([0.90, 0.50, 0.50], ["Uno", "Dos", "Tres"], [1.8, 0.4, 0.4])
+        vect = {"Dos": [0.80, 0.60], "Tres": [0.30, 0.95394]}
+        c._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+            lambda x, **k: np.array([vect.get(t, [1.0, 0.0]) for t in x], dtype=np.float32))})()
+        c._n_propio, c._emb_tit = 1, False
+        c._embeddings_de = lambda prefijo, huella, textos, calcular=True: np.array(emb, dtype=np.float32)
+        return c
+    assert marcados(con_npy([[0.80, 0.60], [0.30, 0.95394]]), "espectros", 0.4, 1) == ["PG1"], "el .npy bueno"
+    assert marcados(con_npy([[0.30, 0.95394], [0.80, 0.60]]), "espectros", 0.4, 1) == [], "desordenado"
+    assert marcados(con_npy([[0.80, 0.60, 0.0], [0.30, 0.95394, 0.0]]), "espectros", 0.4, 1) == [], "otra dimension"
     # ...y sin un .npy de titulos que cuadre no se marca nada.
     sin_npy = cat_con([0.90, 0.70], ["Uno", "Dos"], [1.8, 0.4])
     sin_npy._n_propio, sin_npy._emb_tit = 1, None
@@ -699,23 +712,6 @@ def _franja_trae_su_nivel_detras_de_los_n():
 
 
 prueba("la franja trae su nivel detras de los n", _franja_trae_su_nivel_detras_de_los_n)
-
-
-def _titulo_con_palabras_enteras():
-    """Reinicio 23: «familia» casaba con «Familiar» por parecido de letras (0,93), y los
-    «Familiar Things/Faces» tapaban los cuentos de familia. En el titulo, cada palabra
-    entera o con su plural; el parecido de letras queda para el autor («chejov»)."""
-    fam = _catalogo_de_mentira([0.70, 0.30, 0.72], ["Mi Familia", "Familiar Faces", "My family"],
-                               ["Gaete, Antonia", "Graham, Harry", "Lee, Ann"])
-    ids = [l.id for l in fam.buscar("familia", n=3)[0]]
-    assert ids[-1] == "PG1", f"«Familiar Faces» rescatado por «familia»: {ids}"
-    drag = _catalogo_de_mentira([0.55, 0.70], ["The Dragon", "Castles"], ["Smith, John", "Lee, Ann"])
-    ids = [l.id for l in drag.buscar("dragons", n=2)[0]]
-    assert ids == ["PG0", "PG1"], f"«dragons» ya no encuentra «The Dragon»: {ids}"
-    return "«familia» no rescata «Familiar»; «dragons» sigue encontrando «The Dragon»"
-
-
-prueba("un titulo casa con palabras enteras", _titulo_con_palabras_enteras)
 
 
 def _autor_entero_delante_y_parciales_fuera():

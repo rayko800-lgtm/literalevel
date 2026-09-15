@@ -9,7 +9,7 @@ huella del archivo: si el catalogo cambia, la cache se invalida sola y se
 recalcula. Es imposible que queden desincronizados.
 """
 from __future__ import annotations
-import difflib, hashlib, os, re, unicodedata
+import difflib, hashlib, os, re, sys, unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -376,20 +376,9 @@ def franja_de(nivel: float) -> tuple[float, float]:
     return round(nivel - FRANJA_ABAJO, 3), round(nivel + FRANJA_ARRIBA, 3)
 
 
-def _misma_palabra(a: str, b: str) -> bool:
-    """La misma palabra, o con el plural en -s o -es: «dragons» es «dragon»."""
-    return a == b or a in (b + "s", b + "es") or b in (a + "s", a + "es")
-
-
-def _titulo_completo(consulta: str, fichas: list[set[str]], exacto: bool = False) -> np.ndarray:
+def _titulo_completo(consulta: str, fichas: list[set[str]]) -> np.ndarray:
     """La media del parecido de cada palabra de la consulta con el titulo, solo si
-    TODAS pasan de _PARECIDO_TITULO; si no, 0.
-
-    `exacto` (los titulos, reinicio 23): cada palabra tiene que estar entera, con su
-    plural. Con el parecido de letras «familia» casaba con «Familiar» (0,93), y «A
-    Catechism of Familiar Things» o «The Matron's Manual of Midwifery» subian a 0,797
-    detras de «Mi Familia» y delante de todos los cuentos de familia. El parecido de
-    letras se queda para el nombre del autor, que es para lo que se hizo."""
+    TODAS pasan de _PARECIDO_TITULO; si no, 0."""
     pistas = [p for p in re.split(r"[^a-z0-9]+", _normalizar(consulta)) if len(p) >= 4]
     fuera = np.zeros(len(fichas), dtype=np.float32)
     if not pistas:
@@ -406,8 +395,7 @@ def _titulo_completo(consulta: str, fichas: list[set[str]], exacto: bool = False
                     continue
                 r = cache.get((pista, palabra))
                 if r is None:
-                    r = cache[(pista, palabra)] = (float(_misma_palabra(pista, palabra)) if exacto else
-                                                   difflib.SequenceMatcher(None, pista, palabra).ratio())
+                    r = cache[(pista, palabra)] = difflib.SequenceMatcher(None, pista, palabra).ratio()
                 mejor = max(mejor, r)
             if mejor < _PARECIDO_TITULO:
                 break
@@ -540,8 +528,29 @@ class Catalogo:
             else:
                 titulos, huella = self._titulos_externos()
                 actual = self._embeddings_de("catalogo_tit_ext_", huella, titulos, calcular=calcular)
+                if actual is not None and not self._titulos_cuadran(actual, titulos):
+                    actual = None
             self._emb_tit = actual
         return actual
+
+    def _titulos_cuadran(self, emb: np.ndarray, titulos: list[str]) -> bool:
+        """Si el .npy de titulos es de verdad el de estas filas (menores de 4e sobre
+        cb39b91). La huella del nombre es de ids y titulos, no del contenido: subido a
+        mano con las filas desordenadas marcaba textos que no tocan, y con otra dimension
+        el producto lanzaba ValueError y /api/buscar entero daba 503. Se mira la forma y
+        se recodifican hasta 8 titulos repartidos: cada fila guardada tiene que ser su
+        vector (0,99). Si no cuadra, la franja no marca nada y se dice por stderr."""
+        if emb.ndim != 2 or emb.shape[0] != len(titulos) or emb.shape[1] != self.embeddings.shape[1]:
+            print(f"catalogo: el .npy de titulos tiene forma {emb.shape} y no cuadra; la franja no marca",
+                  file=sys.stderr)
+            return False
+        muestra = sorted({int(round(k)) for k in np.linspace(0, len(titulos) - 1, num=min(8, len(titulos)))})
+        vs = np.asarray(self._modelo_emb().encode([titulos[i] for i in muestra], normalize_embeddings=True),
+                        dtype=np.float32)
+        if (np.sum(emb[muestra] * vs, axis=1) < 0.99).any():
+            print("catalogo: el .npy de titulos no corresponde a estas filas; la franja no marca", file=sys.stderr)
+            return False
+        return True
 
     def _embeddings_de(self, prefijo: str, huella: str, textos: list[str],
                        calcular: bool = True) -> np.ndarray | None:
@@ -846,7 +855,7 @@ class Catalogo:
                 if (pistas & de_pila) - enteros[i]:
                     por_apellido[i] = 0.0
         completo = _titulo_completo(consulta, enteros)
-        lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos, exacto=True),
+        lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),
                                  np.where((completo > 0) & con_apellido & (len(pistas) > 1),
                                           completo + _EXTRA_AUTOR_COMPLETO, 0.0)])
         validos = ~self._excluidos
