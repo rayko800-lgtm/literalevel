@@ -1243,3 +1243,17 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - **Matiz:** la primera consulta de palabra en frío tarda 5,0 s; el guion ya pide consultar una antes.
 - **Sin probar** (hace falta cuenta o micrófono): explicación IA, «Corrígeme», «Practica esta palabra», paso 6 y «Este intento no cuenta». Quedan en la lista de Miguel.
 - Guiones 657a640 (4e): boca 3D «unos 3–4 s la primera vez» y el Índice «unas 2 pantallas por debajo de «Empezar a leer»». La Central barrió todo entrega/ (md y tex): no queda «2,9 s», «0,6 s después» ni «2,5 pantallas».
+
+**30b: código 2 por un error de referencia** (f4). En «magic» B1, el Space marca SWV537780 (0,39) y el local SWV522867 (0,73).
+- Los dos volcados del Space 28 (74f1484 y 62e5a06) ya marcaban SWV537780, así que frente al 28 real de producción no cambia nada.
+- La referencia era r30_28.json (local). Tenía 13 diferencias con el Space 28, «magic» B1 entre ellas. El «257/257» se había informado mal: era Space contra Space.
+- **Decisión de la Central: no volver al 28 por este código 2**, porque volver atrás no cambiaría esa lista. El 30b queda sin dar por bueno.
+- **Criterio nuevo, escrito antes del resultado:** Space 30b contra el volcado del Space 28, en las 257 listas que tiene.
+  - Se vuelve si cambia la longitud o el número de marcas, o si entra una copia más lejos del nivel.
+  - Código 3, con ids, si cambian ids marcados fuera de la lista cerrada.
+  - Solo se informa si cambia el orden.
+  - Las 288 listas sin volcado del 28 se informan frente al candidato local.
+- Resto, ya comprobado: 541 listas idénticas al candidato local, 3 solo en orden (cola desde el puesto 24) y 1 con conjunto distinto («magic» B1); paso 3 bien; buscador_listo a los 14 s.
+- **Límite declarado del 30b:** el redondeo a 6 no iguala el Space y el local en todas las parejas.
+- Skill buscador-encontrar: la referencia de la marcha atrás también es el volcado del Space anterior.
+- Guion: e6 da el visto bueno a 657a640 y lo da por cerrado.

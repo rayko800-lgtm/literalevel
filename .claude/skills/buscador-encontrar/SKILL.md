@@ -316,6 +316,21 @@ nuevo con un volcado del Space anterior**, no con lo local. Y conviene un
 desempate determinista (por id) para que las comparaciones dejen de dar falsos
 positivos.
 
+**El redondeo no lo arregla del todo (reinicio 30b, 15 sep).** Se redondeó el
+parecido a 6 decimales con desempate por cercanía al nivel y por fila. En local,
+las dos copias de «The Magical World» en «magic» con B1 empataban y ganaba la de
+0,73. En el Space no empataban a 6 decimales y ganaba la de 0,39, como en el 28.
+Así que no se puede prometer «ordena igual en cualquier máquina». Solo actúa
+donde hay empate de verdad en cada entorno.
+
+**La referencia de la marcha atrás también es el volcado del Space anterior.**
+En el 30b, el guion de comprobación usaba la medida local del 28. Dio código 2
+por una lista que ya era distinta entre local y Space antes del cambio, y volver
+atrás no la habría arreglado. Además, se había dicho «coincide 257/257» cuando
+ese número era Space contra Space, no local contra Space. Reglas:
+- en el criterio escrito, di qué fichero es la referencia y de qué entorno sale;
+- antes de subir, comprueba que la referencia coincide con la producción.
+
 ### Límite declarado: autores a secas con perfil (15 sep)
 
 Tras cuatro variantes medidas (no marcar si hay autor rescatado; solo si el
