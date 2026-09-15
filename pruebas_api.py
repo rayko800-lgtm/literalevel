@@ -951,6 +951,89 @@ def medido_en_bloque_en_ficha_y_tarjeta():
     return "ficha y tarjeta: bloque true; solo y Gutenberg false"
 
 
+def voz_subida_y_palabra_no_bloquean_a_los_demas():
+    """Auditoría cruzada de 4e (14 sep 2026). /api/voz y la subida eran `async` y
+    llamaban a voz y al lector en el bucle de eventos: mientras corregían, nada más
+    se atendía. Y la etapa completa de /api/palabra retenía el candado léxico durante
+    OpenAI, así que la vista previa de otro lector esperaba detrás. Con un solo
+    bucle compartido (TestClient en `with`), una petición lenta en un hilo y una
+    rápida en otro: la rápida no puede tardar lo que la lenta."""
+    import threading
+    import time
+    from types import SimpleNamespace as NS
+
+    import config
+    import voz
+
+    duerme = 1.5
+    tope = duerme / 2
+
+    def durante(lenta, rapida):
+        hilo = threading.Thread(target=lenta)
+        hilo.start()
+        time.sleep(0.4)
+        t = time.time()
+        r = rapida()
+        dt = time.time() - t
+        hilo.join()
+        return r, dt
+
+    def practicar_lento(ruta, frase, guardar_fallos=True, nivel=None):
+        time.sleep(duerme)
+        ev = NS(puntuacion=100, transcripcion=frase, palabras_falladas=[], palabras_objetivo=["hola"], entendidas=[])
+        return NS(evaluacion=ev, transcripcion_ok=True, correccion=None, audio_correcto=None)
+
+    def cargar_lento(ruta):
+        time.sleep(duerme)
+        raise api._no(422, "Libro de prueba que no se abre.")
+
+    real = ui.consultor()
+    llamadas = []
+
+    class ConsultorLento:
+        def consultar(self, *a, **k):
+            llamadas.append(1)
+            if len(llamadas) == 1:
+                time.sleep(duerme)
+            return real.consultar(*a, **k)
+
+    lento = ConsultorLento()
+    originales = (voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar, api._cargar_libro, ui.consultor,
+                  ui._dentro_del_limite)
+    # Sin gastar el cupo de subidas por IP y hora: las pruebas de despues lo usan.
+    ui._dentro_del_limite = lambda *a, **k: True
+    config.falta = lambda: False
+    ui._puede_pagar = lambda pet: (True, "")
+    api._va_a_costar = lambda pet: False
+    voz.practicar = practicar_lento
+    api._cargar_libro = cargar_lento
+    try:
+        with TestClient(api.app, raise_server_exceptions=False) as c:
+            h1, h2 = nuevo_lector(), nuevo_lector()
+            cuerpo = {"palabra": "raincoat", "oracion": "Manu got a red raincoat.", "etapa": "diccionario"}
+            _ok(c.post("/api/palabra", headers=h2, json=cuerpo))          # calienta spaCy y el diccionario
+            _, t_voz = durante(
+                lambda: c.post("/api/voz", headers=h1, data={"frase": "Hola."},
+                               files={"audio": ("voz.webm", b"\x1a" * 2000, "audio/webm")}),
+                lambda: _ok(c.get("/api/salud")))
+            _, t_subida = durante(
+                lambda: c.post("/api/libros", headers=nuevo_lector(),
+                               files={"archivo": ("lento.txt", b"Once upon a time. " * 200, "text/plain")}),
+                lambda: _ok(c.get("/api/salud")))
+            ui.consultor = lambda: lento
+            config.falta = lambda: True          # la completa no cobra: basta con que sea lenta
+            _, t_palabra = durante(
+                lambda: c.post("/api/palabra", headers=h1, json={**cuerpo, "etapa": "completa"}),
+                lambda: _ok(c.post("/api/palabra", headers=h2, json=cuerpo)))
+    finally:
+        (voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar, api._cargar_libro, ui.consultor,
+         ui._dentro_del_limite) = originales
+    assert t_voz < tope, f"/api/salud tardó {t_voz:.2f} s mientras se corregía una voz"
+    assert t_subida < tope, f"/api/salud tardó {t_subida:.2f} s mientras se abría una subida"
+    assert t_palabra < tope, f"la vista previa del diccionario tardó {t_palabra:.2f} s detrás de una explicación"
+    return f"salud {t_voz:.2f} s con voz, {t_subida:.2f} s con subida; diccionario {t_palabra:.2f} s con explicación"
+
+
 def corte_de_la_boca_en_svg():
     """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
     aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
@@ -1314,6 +1397,7 @@ if __name__ == "__main__":
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
                aviso_de_contenido_en_ficha_y_tarjeta, medido_en_bloque_en_ficha_y_tarjeta,
+               voz_subida_y_palabra_no_bloquean_a_los_demas,
                devolucion_va_a_la_cuenta_cobrada,
                sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
                historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion,

@@ -32,6 +32,7 @@ Solo la API (lo que usa el proxy de `ng serve`):
 """
 from __future__ import annotations
 
+import contextlib
 import functools
 import hashlib
 import json
@@ -58,6 +59,7 @@ if str(APP_DIR) not in sys.path:
 from fastapi import Depends, FastAPI, HTTPException, Query, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, Response  # noqa: E402
+from starlette.concurrency import run_in_threadpool  # noqa: E402
 from starlette.formparsers import MultiPartParser  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
@@ -1020,6 +1022,15 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
             trozos.append(trozo)
     finally:
         await formulario.close()
+    return await run_in_threadpool(_guardar_subido, pet, original, ext, h, trozos, total)
+
+
+def _guardar_subido(pet: _Lector, original: str, ext: str, h, trozos: list[bytes], total: int) -> dict:
+    """Lo que sigue a leer la subida, EN UN HILO: escribir hasta 20 MB y abrir el
+    PDF o el epub. La ruta es `async` para leer el formulario por trozos, y en una
+    ruta `async` lo síncrono corre en el bucle de eventos: mientras tanto el proceso
+    entero -la API y el Gradio montado en él- no atendía a nadie (auditoría
+    cruzada de 4e, 14 sep 2026)."""
     if not total:
         raise _no(422, "El archivo está vacío.")
     ident = "u" + h.hexdigest()[:16]
@@ -1361,6 +1372,19 @@ _DIR_AUDIO = config.dir_datos() / "audio"
 _CANDADO_LEXICO = threading.Lock()
 
 
+def _candado_etapa(etapa: str):
+    """El candado de cada etapa de /api/palabra.
+
+    La completa lo retenía durante la llamada a OpenAI (unos 15 s), y la vista
+    previa del diccionario de cualquier lector, la de «40 ms», esperaba detrás:
+    medido 3,41 s con un doble de 4 s (auditoría cruzada de 4e, 14 sep 2026). La
+    completa ya no lo necesita: `ConsultorLexico` tiene candados por clave
+    alrededor de lo que se paga y relee la caché dentro, el diccionario es SQLite
+    de solo lectura con `check_same_thread=False`, Gradio lo llama con 8 eventos a
+    la vez, y el cobro es atómico en `cuentas`."""
+    return _CANDADO_LEXICO if etapa == "diccionario" else contextlib.nullcontext()
+
+
 def _url_audio(ruta) -> str | None:
     """Wiktionary se sirve desde su dominio; lo generado, por `/api/audio`."""
     if not ruta:
@@ -1466,7 +1490,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
                                                         ui._codigo_de(pet))[1])
 
     if datos.etapa == "diccionario":
-        with _CANDADO_LEXICO:
+        with _candado_etapa("diccionario"):
             try:
                 r = ui.consultor().consultar(palabra_, oracion, _nivel(pet), idioma=idioma,
                                              usar_openai=False)
@@ -1481,7 +1505,7 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
         if explicable and not ui._dentro_del_limite(pet, "lexico", ui.LIMITE_CONSULTAS_HORA):
             raise _no(429, ui._mensaje_limite(idioma,
                                               ui._minutos_para_la_siguiente("lexico", pet)))
-        with _CANDADO_LEXICO:
+        with _candado_etapa("completa"):
             puede, motivo, cobrado = False, "", None
             try:
                 if not config.falta():
@@ -1809,6 +1833,14 @@ async def practicar(pet: Lector, request: Request) -> dict:
         contenido = await audio.read(_TOPE_AUDIO + 1)
     finally:
         await formulario.close()
+    return await run_in_threadpool(_corregir_voz, pet, frase, acento, ext, contenido)
+
+
+def _corregir_voz(pet: _Lector, frase: str, acento: str, ext: str, contenido: bytes) -> dict:
+    """Lo que sigue a leer la grabación, EN UN HILO: whisper, gpt y tts-1 tardan
+    segundos, y en el bucle de eventos congelaban el proceso entero. Medido con un
+    doble de `voz.practicar` de 4 s: /api/salud tardó 3,41 s (auditoría cruzada de
+    4e, 14 sep 2026)."""
     frase = frase.strip()[:ui.LIMITE_FRASE_VOZ]
     if not frase:
         raise _no(422, "Escribe la frase que vas a leer en voz alta.")

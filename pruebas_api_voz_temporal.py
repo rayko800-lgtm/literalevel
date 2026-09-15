@@ -22,6 +22,7 @@ import uuid
 from pathlib import Path
 
 from starlette.applications import Starlette
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.formparsers import MultiPartParser
 from starlette.requests import Request
@@ -59,6 +60,7 @@ def comprobar(comparar: str | None = None) -> None:
     api.__dict__.update(
         os=os, re=re, tempfile=tempfile, Request=Request, Lector=object,
         HTTPException=HTTPException, MultiPartParser=MultiPartParser, ui=ui,
+        run_in_threadpool=run_in_threadpool, _Lector=object,
         config=types.SimpleNamespace(falta=lambda: ["sin clave"]),
         voz=types.SimpleNamespace(practicar=sin_proveedor),
         _va_a_costar=lambda pet: False)
@@ -72,7 +74,7 @@ def comprobar(comparar: str | None = None) -> None:
                  api.__dict__)
     if not constantes <= api.__dict__.keys():
         raise AssertionError("Han cambiado las constantes de la API.")
-    _extraer(fuente, {"_llano", "_no", "_formulario", "practicar"}, api.__dict__)
+    _extraer(fuente, {"_llano", "_no", "_formulario", "practicar", "_corregir_voz"}, api.__dict__)
 
     async def endpoint(request):
         pet = types.SimpleNamespace(session_hash=request.headers.get("x-lector"))
