@@ -951,3 +951,12 @@ Reinicio 29 (f4): las 13 diferencias entre local y Space son empates entre parec
 - **Paso 3 del guion:** sin cambio, con el aviso y el libro primero.
 - **Palabras de control y school:** iguales al 28.
 - **Tiempos:** ninguna búsqueda llega a 2 s. `buscador_listo` sale a los 16-19 s.
+
+**Posible regresión del 29 con perfil 1,20** (vista por e6, sin confirmar).
+- **Qué se vio:** «animales de la granja» con 1,20 se queda sin «En tu nivel». En el 28 salían 9 cuentos libres en ese bloque y 6 en «Un poco por encima»; en el 29, solo 3 libros de Gutenberg en «Un poco por encima».
+- **Sospecha:** un rescate por apellido parecido («granja» ≈ «Grange») activa la regla y apaga la franja.
+- **El hueco de la medida:** las 100 palabras se midieron sin perfil y con B1, pero ningún tema con 1,20.
+- **Decisión de la central:**
+  - primero, «cuentos de dragones» con 1,20, que es el paso 2 del guion. Si cambió, f4 vuelve el Space al catalogo.py del 28 sin esperar.
+  - después, el alcance con las 100 palabras y los chips con A2 y 1,20. Si más de 3 palabras de tema pierden marcas, también se vuelve al 28.
+- **Regla nueva:** el perfil 1,20 entra en el criterio de toda regla de la franja.

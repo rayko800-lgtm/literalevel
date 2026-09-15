@@ -160,7 +160,7 @@ dar el permiso en una sesión.
 - **Front:** bdfa418, con Tu nivel y Pronunciar nuevos, la ficha de un capítulo
   arreglada y el aviso «No te oí · Este intento no cuenta».
 - **Guion de la demo:** 800060e, con la receta B2 y «Antes de la demo».
-- **~~Serio que afectaba a la demo (paso 3)~~, cerrado en el reinicio 29:** con el perfil B2 de la receta,
+- **Serio que afectaba a la demo (paso 3), arreglado en el reinicio 29 pero con una posible regresión en temas con el perfil 1,20, en diagnóstico:** con el perfil B2 de la receta,
   buscar un autor como «dostoyevski» enseña primero cuentos libres sin
   relación («Books», «Story Chikkappa») en «En tu nivel», y ya no el aviso de
   que no hay libros de su nivel. Parece un efecto de la búsqueda por franja
@@ -191,6 +191,6 @@ dar el permiso en una sesión.
 | ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
 | ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
-| ~~Reinicio 29: consultas de autor con perfil que marcaban cuentos sin relación~~ | hecho, Space 5ab6832 | verificado por 4e: top 10 igual en 33 de 33 listas; cervantes y dickens sin cuentos colados; paso 3 del guion sin cambio. Consultas largas y «rosa»/«luna» con B1 quedan como límite declarado |
+| Reinicio 29: consultas de autor con perfil que marcaban cuentos sin relación | subido, Space 5ab6832 | los autores quedan bien, pero **posible regresión con el perfil 1,20** en temas («animales de la granja» pierde «En tu nivel»); en diagnóstico, con vuelta al 28 si toca el paso 2 del guion o más de 3 temas |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
