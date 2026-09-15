@@ -1118,3 +1118,14 @@ Reinicio 30b medido (f4, 545 listas contra el 28): solo cambian empates y ningú
 - «animales de la granja» da 9 libres; «dragones» da 19 de 20; los detectives dan 3 de Gutenberg.
 - Bienvenida con el texto nuevo.
 f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cuando acabe el banco C24. Añadido al criterio de paro: el paso 3 tiene que seguir saliendo primero.
+
+**Guiones tras la tanda 3** (4e, 5ee4949):
+- Archivos: guion_demo_en_vivo.md, guion_video.md, .tex y .pdf (9 páginas).
+- Textos comprobados en c73bbcc a 390 px.
+- «Antes de la demo»:
+  - punto 10: bienvenida y «Saltar»;
+  - punto 11: ayudas de la primera vez, que se cierran con ✕.
+- Paso 4: «mantén presionada».
+- Paso 3: con posiciones fechadas (ensayo del 15 sep sobre el 28).
+- Revisión encargada a e6.
+- MENOR para e6: el aria-label de la figura de Inicio aún dice «tocar… ahí». Se corrige con visto bueno de 4e y se publica tras el banco de f4.
