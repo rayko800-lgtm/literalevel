@@ -17,7 +17,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
-| Motor (Space de Gradio) | reinicio 22, 62a5373 (autor más título arreglado, anuncios de drogas fuera) | «amor» con B1 da 12 de 12 sobre amor, pero todos C1–C2, y los cuentos de su nivel no salen (reinicio 24); «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
+| Motor (Space de Gradio) | reinicio 22, 62a5373 (autor más título arreglado, anuncios de drogas fuera) | «amor» con B1 da 12 de 12 sobre amor, pero todos C1–C2, y los cuentos de su nivel no salen (reinicio 25); «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | ec957d0 | boca 3D sin fuga de memoria y con una sola descarga; «Primero lo de tu nivel» se cumple; ocho sugerencias que dan resultados con A2 y B1 |
 | Documentos y guiones | 8856030 | coste de cómputo real, cifras del reinicio 21, diez arreglos del ensayo y la sección «Antes de la demo» |
 
@@ -47,7 +47,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
    resultados del autor a 8, 9, 8, 2 y 10.
 2. **Autores clásicos por apellido.** «cervantes», «dante», «moliere» y
    «agatha christie» no encuentran sus libros, efecto del endurecimiento del
-   nombre del reinicio 19. Va al reinicio 25.
+   nombre del reinicio 19. Va al reinicio 26.
 
 Y un hallazgo de datos que no es de código: StoryWeaver acepta textos de
 cualquiera, y seguían visibles un anuncio de venta de GHB y otro de
@@ -74,15 +74,26 @@ amigos. La búsqueda no los devuelve, porque los libros de Gutenberg copan los
 primeros puestos antes de repartir por nivel. **Es la causa de fondo del caso
 de Esmeralda**, y ampliar el catálogo no lo arreglaría: en las fuentes libres
 que usamos solo quedan unos pocos cuentos nuevos, casi todos en StoryWeaver.
-El arreglo es buscar también dentro del nivel del lector, en el reinicio 24.
+El arreglo es buscar también dentro del nivel del lector, en el reinicio 25.
+
+## Un incidente con una contraseña
+
+A las 04:30, al preparar la prueba con invitado8, una sesión miró el formato
+del archivo local de contraseñas con las claves enmascaradas, y la línea de
+«profesor» no quedó oculta. La contraseña salió en la salida de una
+herramienta local. No fue a ningún mensaje, commit ni archivo, pero la salida
+de las herramientas forma parte del contexto de esa sesión. **Miguel decide si
+la cambia.** Cambiarla es escribir en el bucket, así que tiene que hacerlo él o
+dar el permiso en una sesión.
 
 ## Lo que queda
 
 | Qué | Quién | Cuándo |
 |---|---|---|
 | ~~Reinicio 22: autor más título, anuncios de drogas, tres menores de subidas~~ | hecho, Space 62a5373, comprobado | 04:05 |
-| Reinicio 23: arreglos de voz de la ronda 3 (4e, 86e6e1d, ok de e6): el silencio ya no llama a OpenAI, «...» no cuenta como oída, «St.» corta la frase | f4 | subiendo ahora, solo |
-| Reinicio 24: **recuperación dentro de la franja del lector (caso Esmeralda)**, con el front de e6. Frenado antes de commit: títulos de una palabra entraban marcados solo por el título | f4, visto bueno de 4e y e6 | cuando se elija el arreglo |
-| Reinicio 25: autores clásicos, obras antes que biografías, «Jane Austen» y «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras», muletillas de whisper con silencio | f4 y 4e | después del 24 |
+| Reinicio 23: arreglos de voz (86e6e1d): «St.» corta la frase, «...» no cuenta como oída | f4 | subido, Space d854649. **La prueba de pago falló:** 2,5 s de silencio dan «you» en whisper y siguen lanzando la corrección de pago |
+| Reinicio 24: regla de silencio de whisper (4e, 0a759a5), para que esa grabación no cueste ni guarde fallos falsos | f4, con visto bueno de e6 | en cuanto llegue el ok; se repite la prueba con invitado8 |
+| Reinicio 25: **recuperación dentro de la franja del lector (caso Esmeralda)**, con el front de e6. Frenado antes de commit: títulos de una palabra entraban marcados solo por el título | f4, visto bueno de 4e y e6 | cuando se elija el arreglo |
+| Reinicio 26: autores clásicos, obras antes que biografías, «Jane Austen» y «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras» | f4 y 4e | después del 24 |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
