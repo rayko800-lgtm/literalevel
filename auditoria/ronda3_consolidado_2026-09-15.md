@@ -100,6 +100,17 @@ paletas, las portadas, los ajustes y poder subir su libro. Tres cosas no:
 e6 recorre esas dos pantallas como alguien que llega sin saber nada y prepara
 propuestas con esquema para que Miguel elija antes de programar.
 
+## Ismael probó la app
+
+Nota de voz del 15 de septiembre: la probó el 14 y el 15, y «cuesta un poquito
+entenderle»; pide que sea más intuitiva o que tenga «cuadros de diálogo que te
+digan qué hace cada cosa». Es la segunda persona, después de Esmeralda, que no
+entiende sola para qué sirve cada pantalla. e6 recorre el front publicado como
+alguien que llega por primera vez y propone dos formas de ayuda con esquema (una
+bienvenida de pocos pasos que se puede saltar, o una frase de ayuda por
+pantalla) para que Miguel elija antes de programar. Falta saber en qué pantalla
+se perdió Ismael.
+
 ## Un incidente con una contraseña
 
 A las 04:30, al preparar la prueba con invitado8, una sesión miró el formato
