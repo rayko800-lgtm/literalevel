@@ -794,3 +794,9 @@ Arreglo del 28 en curso (f4, sin commit):
   - `primero` solo con dos palabras o más;
   - prueba de «london» y mutantes C22.
 - **Criterio:** las 200 listas iguales al 26.
+
+Arreglo del 28, primera medida contra el 26 (f4, 198 listas):
+- **Con la regla de proporción, (b) todavía cambiaba 6 listas:** brown, grey y hope, porque tienen más obras de autor que títulos con la palabra.
+- **Quedan iguales:** london, king, school, rose y castle. Los clásicos, Austen con B1, «amor» y «rosa» siguen bien.
+- **Decisión:** (b) sale entera. «tolstoy» sin perfil vuelve a abrir con «My Visit to Tolstoy», como en el 26. Se quedan (a), `primero` solo con dos palabras o más, `buscador_listo`, la curva de un capítulo y cuentas.
+- **Pendiente:** repetir las 198 listas cuando haya RAM, con 1,3 GB libres. Si alguna sigue distinta, se decide antes de tocar nada.
