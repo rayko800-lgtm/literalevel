@@ -65,6 +65,11 @@ ANUNCIOS_REVISADOS = {
     "SWV687758", "SWV580747", "SWV625403", "SWV625495", "SWV628150", "SWV639823",
     "SWV643473", "SWV663506", "SWV676868", "SWV700851", "SWV700942",
 }
+# Textos que no son lectura para su nivel aunque pasen las reglas, revisados a mano
+# entre los raros de sus bloques (MARGEN_RARO en tools/medir_corpus.py), con su motivo.
+NO_LECTURA_REVISADOS = {
+    "SWV98807": "sinopsis de una película violenta (Apocalypto) con etiqueta de nivel 1",
+}
 
 
 # Solo en StoryWeaver, donde cualquiera sube un libro: Let's Read, African Storybook y
@@ -88,6 +93,8 @@ def motivo_no_lectura(texto: str, diccionario: set[str], pid: str = "",
                       fuente: str = "storyweaver") -> str | None:
     """Por qué un texto servido no es lectura en inglés, o None si lo es.
     `texto` es el de corpus_abierto.parquet: la atribución final no cuenta."""
+    if str(pid or "").strip().upper() in NO_LECTURA_REVISADOS:
+        return NO_LECTURA_REVISADOS[str(pid).strip().upper()]
     if str(pid or "").strip().upper() in ANUNCIOS_REVISADOS:
         return "anuncio (revisado a mano)"
     cuerpo = ficha.para_medir(str(texto or ""))

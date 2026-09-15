@@ -226,6 +226,15 @@ FRASES_PALABRA_SUELTA = ("historias de {}", "libros sobre {}")
 # «amor») ya no rescata nada; los apellidos si admiten el parecido de
 # _PARECIDO_NOMBRE, que es lo que encuentra a Chekhov escribiendo «chejov».
 _PARECIDO_TITULO = 0.9
+# Con el nombre ENTERO de un autor (apellido y nombre de pila), sus obras van delante
+# de los libros SOBRE él: «Jane Austen» sacaba primero «Jane Austen and her works» y
+# «Memoir of Jane Austen» (título entero, 0,857), y Emma, Persuasion y Pride and
+# Prejudice quedaban detrás (solo el apellido, 0,793), empatadas con Sidney Austen y
+# con «Calamity Jane» (prueba como persona de e6, 15 sep 2026).
+_EXTRA_AUTOR_COMPLETO = 0.02
+# Palabras de rol del campo de autor de Gutenberg, que no son nombres.
+_NO_SON_NOMBRES = frozenset({"illustrator", "editor", "translator", "contributor", "various",
+                             "anonymous", "unknown", "compiler", "commentator", "author"})
 # Los textos libres que no son lectura en ingles (tools/marcar_no_lectura.py).
 NOMBRE_NO_LECTURA = "no_lectura_externo.csv"
 
@@ -291,6 +300,21 @@ def _apellidos(autor) -> str:
     if autor is None or (isinstance(autor, float) and np.isnan(autor)):
         return ""
     return " ".join(a.split(",")[0] for a in str(autor).split(";"))
+
+
+def _nombre_entero(autor) -> str:
+    """Apellidos y nombres de pila de todos los autores del campo, sin las fechas."""
+    if autor is None or (isinstance(autor, float) and np.isnan(autor)):
+        return ""
+    return re.sub(r"[\d?]+", " ", str(autor))
+
+
+def _vocabulario_de_nombres(autores) -> set[str]:
+    """Todas las palabras de nombre (apellidos y de pila) que hay en el campo de autor."""
+    vocabulario: set[str] = set()
+    for ficha in _fichas([_nombre_entero(a) for a in autores]):
+        vocabulario |= ficha
+    return {p for p in vocabulario if p.isalpha()} - _NO_SON_NOMBRES
 
 
 def _titulo_completo(consulta: str, fichas: list[set[str]]) -> np.ndarray:
@@ -685,10 +709,27 @@ class Catalogo:
         # En su propio atributo y no en `_fichas`: hay montajes de prueba que
         # rellenan `_fichas` con la forma de antes (una lista por fila).
         if getattr(self, "_nombres", None) is None:
+            autores = self.df["author"].tolist()
             self._nombres = (_fichas(self.df["title"].astype(str).tolist()),
-                             _fichas([_apellidos(a) for a in self.df["author"]]))
-        titulos, apellidos = self._nombres
-        lex = np.maximum(_similitud_nombres(consulta, apellidos), _titulo_completo(consulta, titulos))
+                             _fichas([_apellidos(a) for a in autores]),
+                             _fichas([_nombre_entero(a) for a in autores]),
+                             _vocabulario_de_nombres(autores))
+        titulos, apellidos, enteros, vocabulario = self._nombres
+        por_apellido = _similitud_nombres(consulta, apellidos)
+        # El nombre entero solo cuenta si incluye el apellido: «amor» es todo «Fenn, Amor»,
+        # pero es su nombre de pila, y un nombre de pila suelto no rescata.
+        con_apellido = por_apellido >= _PARECIDO_NOMBRE
+        # Un apellido suelto no puntúa si la consulta trae otro nombre que ese autor no
+        # tiene: «Jane Austen» no es Sidney Austen ni «Calamity Jane».
+        pistas = {p for p in re.split(r"[^a-z0-9]+", _normalizar(consulta)) if len(p) >= 4}
+        nombres_de_la_consulta = pistas & vocabulario
+        if len(pistas) > 1 and nombres_de_la_consulta:
+            for i in np.flatnonzero(por_apellido >= _PARECIDO_NOMBRE):
+                if nombres_de_la_consulta - enteros[i]:
+                    por_apellido[i] = 0.0
+        completo = _titulo_completo(consulta, enteros)
+        lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),
+                                 np.where((completo > 0) & con_apellido, completo + _EXTRA_AUTOR_COMPLETO, 0.0)])
         validos = ~self._excluidos
         con_nombre = (lex >= _PARECIDO_NOMBRE) & validos
         if con_nombre.any() and validos.any() and \

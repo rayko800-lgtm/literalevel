@@ -47,6 +47,14 @@ DIR_MEDIDAS = RAIZ / "corpus_graduado" / "medidas"
 SHARD = 250
 CADA = 100
 BLOQUE = 250
+# Un bloque de 3 o más textos se mide también sin cada uno de ellos. Si quitar uno
+# solo mueve la medida más de MARGEN_RARO, ese texto es raro: los demás se quedan
+# con la medida sin él, y el raro conserva la del bloque entero (no puede bajar de
+# nivel) y se marca en `raro_en_bloque`. Fijado ANTES de medir la tanda (Central,
+# 15 sep 2026): «APOCALYPTO», una sinopsis de 131 palabras, llevaba su bloque de
+# cuentos de nivel 1 de 0,27 a 1,29; en una muestra al azar de 30 bloques, quitar
+# un solo texto movía la medida más de 0,5 en 3.
+MARGEN_RARO = 0.5
 
 
 # La del modelo_v4 final (config.json y model.safetensors del 6 sep 2026), con
@@ -129,7 +137,7 @@ def _medir_una(p, texto):
 
 
 def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, salida=print,
-          modelo=None):
+          modelo=None, margen=MARGEN_RARO):
     """Rellena `dificultad`, `ventanas` y `medida` de `df` y devuelve (df, completo).
 
     `tope` limita las unidades NUEVAS medidas en esta llamada; con el tope
@@ -142,7 +150,9 @@ def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, sal
     hechas = leer_hechas(carpeta)
     escritor = _Escritor(carpeta)
     df["dificultad"], df["ventanas"], df["medida"] = float("nan"), 0, ""
+    df["raro_en_bloque"] = False
     df.attrs["cola_sin_medir"] = []
+    df.attrs["bloques_con_raro"] = []
     estado = {"p": puntuador, "nuevas": 0, "ventanas": 0, "t0": time.time(), "completo": True}
 
     def obtener(tipo, ids, texto):
@@ -172,6 +182,38 @@ def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, sal
                    f"{estado['nuevas'] / dt * 60:.1f} unidades/min | hechas en total {len(hechas)}")
         return r
 
+    def asignar(idx, ids, trozos):
+        """Mide el bloque y reparte su medida; con un texto raro, ver MARGEN_RARO.
+        Devuelve False si el tope cortó la medición."""
+        r = obtener("bloque", ids, "\n\n".join(trozos))
+        if r is None:
+            return False
+        if r["dificultad"] is None:
+            return True
+        completo = r["dificultad"]
+        raro, sin_raro = None, None
+        if margen is not None and len(ids) >= 3:
+            mayor = 0.0
+            for k in range(len(ids)):
+                resto = idx[:k] + idx[k + 1:]
+                if sum(int(df.at[j, "palabras"]) for j in resto) < scoring.MIN_WORDS:
+                    continue
+                rr = obtener("bloque", ids[:k] + ids[k + 1:], "\n\n".join(trozos[:k] + trozos[k + 1:]))
+                if rr is None:
+                    return False
+                if rr["dificultad"] is not None and abs(rr["dificultad"] - completo) > mayor:
+                    mayor, raro, sin_raro = abs(rr["dificultad"] - completo), k, rr["dificultad"]
+            if mayor <= margen:
+                raro, sin_raro = None, None
+        for k, j in enumerate(idx):
+            df.at[j, "dificultad"] = sin_raro if raro is not None and k != raro else completo
+            df.at[j, "medida"] = "bloque"
+        if raro is not None:
+            df.at[idx[raro], "raro_en_bloque"] = True
+            df.attrs["bloques_con_raro"].append({"ids": list(ids), "raro": ids[raro],
+                                                 "completo": completo, "sin_raro": sin_raro})
+        return True
+
     try:
         # 1) cada texto que se pueda puntuar solo
         for i, f in df.sort_values("id").iterrows():
@@ -195,13 +237,8 @@ def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, sal
                 trozos.append(f["texto"])
                 cuenta += f["palabras"]
                 if cuenta >= bloque:
-                    r = obtener("bloque", ids, "\n\n".join(trozos))
-                    if r is None:
+                    if not asignar(idx, ids, trozos):
                         return df, False
-                    if r["dificultad"] is not None:
-                        for j in idx:
-                            df.at[j, "dificultad"] = r["dificultad"]
-                            df.at[j, "medida"] = "bloque"
                     previo = (idx, ids, trozos)
                     idx, ids, trozos, cuenta = [], [], [], 0
             if not idx:
@@ -212,13 +249,8 @@ def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, sal
                 continue
             if cuenta < scoring.MIN_WORDS:
                 idx, ids, trozos = previo[0] + idx, previo[1] + ids, previo[2] + trozos
-            r = obtener("bloque", ids, "\n\n".join(trozos))
-            if r is None:
+            if not asignar(idx, ids, trozos):
                 return df, False
-            if r["dificultad"] is not None:
-                for j in idx:
-                    df.at[j, "dificultad"] = r["dificultad"]
-                    df.at[j, "medida"] = "bloque"
     finally:
         escritor.volcar()
     return df, estado["completo"]

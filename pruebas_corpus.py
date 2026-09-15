@@ -626,6 +626,24 @@ def _nombre_parecido_sin_tema_no_rescata():
 prueba("un nombre parecido sin tema no rescata", _nombre_parecido_sin_tema_no_rescata)
 
 
+def _autor_entero_delante_y_parciales_fuera():
+    """Prueba como persona de e6 (15 sep 2026): con «Jane Austen», Emma y Pride and
+    Prejudice quedaban detras de los libros sobre ella y empatadas con Sidney Austen y
+    «Calamity Jane», que solo comparten una parte del nombre."""
+    cat = _catalogo_de_mentira(
+        [0.74, 0.64, 0.30, 0.60, 0.62, 0.70],
+        ["Jane Austen and her works", "Emma", "The Frightened Planet", "Life and Adventures of Calamity Jane",
+         "Pride and Prejudice", "Detective Stories"],
+        ["Tytler, Sarah, 1827-1914", "Austen, Jane, 1775-1817", "Austen, Sidney", "Calamity Jane, 1856-1903",
+         "Austen, Jane, 1775-1817", "Smith, John"])
+    ids = [l.id for l in cat.buscar("Jane Austen", n=6)[0]]
+    assert ids == ["PG1", "PG4", "PG0", "PG5", "PG3", "PG2"], f"«Jane Austen»: {ids}"
+    return "sus obras primero, el libro sobre ella despues; Sidney Austen y Calamity Jane solo por tema"
+
+
+prueba("con el nombre entero del autor sus obras van delante", _autor_entero_delante_y_parciales_fuera)
+
+
 def _palabra_suelta_con_frases():
     """Una palabra suelta en espanol casi no se parece a su tema: se incrusta tambien
     en «historias de» y «libros sobre», y vale el mejor parecido (15 sep 2026)."""
@@ -692,6 +710,10 @@ def _busquedas_reales_en_espanol():
         r = top("Jane Austen", nivel)
         assert sum("Austen" in l.titulo + l.autor for l in r[:5]) >= 4, lista(r)
         assert not any("Austin" in l.autor for l in r[:5]), f"Jane G. Austin delante con nivel {nivel}: {lista(r)}"
+        parciales = [l.titulo for l in r if "Austen, Sidney" in l.autor or "Calamity Jane" in l.autor]
+        assert not parciales, f"coincidencias parciales del nombre con nivel {nivel}: {parciales}"
+    r = top("Jane Austen")
+    assert r[0].autor.startswith("Austen, Jane"), f"con el nombre entero, sus obras no van primero: {lista(r)}"
     r = top("amor", 0.8)
     amor = sum(bool(re.search(r"(?i)\blov(e|ed|er|ers|es|ing)\b|romance", l.titulo + " " + l.gancho)) for l in r)
     assert amor >= 6, f"«amor» con B1: {amor} de 12 sobre amor: {lista(r)}"
@@ -860,6 +882,43 @@ def _cola_de_grupo_medida_o_contada():
 prueba("la cola de cada grupo se mide o se cuenta aparte", _cola_de_grupo_medida_o_contada)
 
 
+class _PuntuadorConRaro(_PuntuadorFalso):
+    """Como el falso, pero un texto con «RARO» dispara la medida a 1,5, como la sinopsis
+    de APOCALYPTO dentro de un bloque de cuentos de nivel 1."""
+    def puntuar(self, texto):
+        import types
+        r = super().puntuar(texto)
+        return types.SimpleNamespace(puntuacion=1.5, n_bloques=r.n_bloques) if "RARO" in texto else r
+
+
+def _bloque_con_un_texto_raro():
+    """Central, 15 sep 2026: un solo texto raro arrastraba la medida de todo su bloque
+    (SWV991, un poema de nivel 1, salia B2). Si quitar uno mueve la medida mas de
+    MARGEN_RARO, los demas se quedan con la medida sin el; el raro conserva la del
+    bloque entero y se marca."""
+    mc = _cargar_medidor()
+    ids = ["SWV1", "SWV2", "SWV3", "SWV4", "SWV5", "SWV6", "SWV7"]
+    textos = ["uno " * 70, "dos " * 70, "tres " * 70, "RARO " + "cuatro " * 69,
+              "cinco " * 90, "seis " * 90, "siete " * 90]
+    df = pd.DataFrame({"fuente": ["storyweaver"] * 7, "id": ids, "nivel_editor": ["1"] * 4 + ["2"] * 3,
+                       "texto": textos, "palabras": [70, 70, 70, 70, 90, 90, 90]})
+    df, completo = mc.medir(df, puntuador=_PuntuadorConRaro(), carpeta=_nuevo() / "medidas",
+                            salida=lambda *a: None)
+    fila = df.set_index("id")
+    assert completo
+    # Nivel 1: bloque de 280 palabras con el raro (1,5); sin el, 210 palabras (0,21).
+    assert [fila.loc[i, "dificultad"] for i in ids[:3]] == [0.21] * 3, fila["dificultad"].tolist()
+    assert fila.loc["SWV4", "dificultad"] == 1.5 and bool(fila.loc["SWV4", "raro_en_bloque"]), fila.loc["SWV4"].to_dict()
+    # Nivel 2: sin raro; quitar uno mueve 0,09 y nadie cambia.
+    assert [fila.loc[i, "dificultad"] for i in ids[4:]] == [0.27] * 3, fila["dificultad"].tolist()
+    assert fila["raro_en_bloque"].sum() == 1, fila["raro_en_bloque"].tolist()
+    assert [b["raro"] for b in df.attrs["bloques_con_raro"]] == ["SWV4"], df.attrs["bloques_con_raro"]
+    return "el raro conserva 1,5 y queda marcado; sus tres vecinos pasan a 0,21; el bloque sin raro no cambia"
+
+
+prueba("un bloque con un texto raro no arrastra a los demas", _bloque_con_un_texto_raro)
+
+
 def _clave_de_medida_con_modelo():
     """Auditoria cruzada de e6: con otro modelo, lo medido no puede reutilizarse.
     Lo medido antes de meter la huella en la clave vale solo con el v4."""
@@ -967,6 +1026,7 @@ def _anuncios_fuera_y_enlaces_fuera_del_gancho():
     cupon = cuento + " For more information visit https://www.ritecoupons.com/stores/x"
     assert "anuncio" in (mod.motivo_no_lectura(cupon, dic) or ""), "no marca un cupon con llamada"
     assert (mod.motivo_no_lectura(cuento, dic, "swv687758") or "").startswith("anuncio"), "no mira la lista revisada"
+    assert (mod.motivo_no_lectura(cuento, dic, "SWV98807") or "").startswith("sinopsis"), "APOCALYPTO no va a no_lectura"
 
     cc = _catalogador_aqui()
     df = pd.DataFrame({"texto": ["Introduction Manufacturing in Australia( https://forgelabs.com.au/blogs/x ) is "

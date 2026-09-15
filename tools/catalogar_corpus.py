@@ -330,6 +330,9 @@ def main():
     df = puntuar(df)
     fuera = df[df["dificultad"].isna()]
     cola = len(df.attrs.get("cola_sin_medir", []))
+    raros = df.attrs.get("bloques_con_raro", [])
+    print(f"bloques con un texto raro (MARGEN_RARO): {len(raros)} | textos que cambian de medida: "
+          f"{sum(len(b['ids']) - 1 for b in raros)} | raros: {[b['raro'] for b in raros][:20]}")
     df = df[df["dificultad"].notna()].copy()
     print(f"medidos: {len(df)} (texto {int((df['medida'] == 'texto').sum())}, "
           f"bloque {int((df['medida'] == 'bloque').sum())}) | sin medida, fuera: {len(fuera)} "
@@ -341,7 +344,7 @@ def main():
     pistas_de_busqueda(df)
     columnas = ["id", "title", "author", "hook", "huella_texto", "nivel_cefr", "downloads",
                 "dificultad", "palabras", "ventanas", "capitulos", "temas",
-                "fuente", "licencia", "atribucion", "url", "nivel_editor", "medida"]
+                "fuente", "licencia", "atribucion", "url", "nivel_editor", "medida", "raro_en_bloque"]
     # LF siempre: en Windows pandas escribia CRLF, y la huella del archivo (y con
     # ella el nombre del .npy de embeddings) cambiaba segun la maquina.
     df[columnas].to_csv(CSV_SALIDA, index=False, lineterminator="\n")
