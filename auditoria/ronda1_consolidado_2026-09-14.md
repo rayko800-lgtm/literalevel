@@ -368,3 +368,7 @@ Reinicio 22 con commit (f4): código 8b259c5 y datos 9dcd867.
 - **Datos:** no_lectura pasa a 203, con GHB, metanfetamina y un artículo SEO, tras revisar 29 cuentas de StoryWeaver.
 - **Pendiente:** el visto bueno de 4e (catalogo.py y datos) y de e6 (api.py), y el árbol limpio en D:.
 - **Front del 23 (e6):** cde661b recibió el «ok» de 4e.
+
+e6 dio el visto bueno de api.py del reinicio 22 (8b259c5).
+- **Pruebas:** pruebas_api 58/58, y el banco C9 detecta sus 3 mutantes.
+- **Menor sin daño, para el 24:** si una subida y un borrado del mismo libro coinciden, pueden quedar su nombre y su título en el archivo de nombres. La estantería salta los archivos que no existen.
