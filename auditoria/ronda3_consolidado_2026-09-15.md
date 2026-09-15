@@ -120,7 +120,12 @@ qué hacer; entra en las propuestas de ayuda. **Usó Android y abrió el enlace
 desde WhatsApp**, que en Android puede abrirlo en su navegador interno, donde el
 micrófono no suele estar disponible. Mientras e6 lo confirma y, si hace falta,
 añade un aviso para abrir la app en Chrome, conviene que Miguel pida a quien
-reciba el enlace que lo abra en Chrome (Android) o Safari (iPhone).
+reciba el enlace que lo abra en Chrome (Android) o Safari (iPhone). **e6 lo confirmó:** los avisos de
+Pronunciar se pintaban debajo de la barra fija del micrófono, así que en el
+móvil no se veía ni «este navegador no deja grabar», ni «no tengo permiso», ni
+siquiera «Grabando…». El arreglo pone una línea de estado dentro de la barra
+(«Grabando: habla ahora»), un mensaje para cada error y, en el navegador de
+WhatsApp, un aviso antes de pulsar para abrir la app en Chrome.
 
 ## Un incidente con una contraseña
 

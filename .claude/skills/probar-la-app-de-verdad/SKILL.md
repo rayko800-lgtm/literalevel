@@ -554,3 +554,24 @@ archivos ajenos, y un commit con rutas explícitas se llevó cinco líneas sin
 commit de otra sesión que dependían de una función aún no confirmada (HEAD
 rompió al medir). Publica desde un worktree limpio de HEAD y, antes de `git
 add` de un archivo compartido, mira `git diff -- ruta`.
+
+
+## Un aviso que existe en el DOM puede no verse (Pronunciar, 15 sep)
+
+Ismael tocó el micrófono en su Android y «no pasó nada». El código sí escribía
+un aviso («Este navegador no deja grabar audio»), pero a 390 px se pintaba en
+y = 750-849, **debajo de la barra fija del micrófono**, que empieza en y = 687.
+Lo mismo pasaba con «No tengo permiso…» y hasta con «Grabando…». Ninguna
+prueba lo vio porque todas miraban que el texto estuviera en la página, no que
+se viera.
+
+- Para cada estado de una pantalla con barra fija (esperando permiso, grabando,
+  cada error), comprueba con `getBoundingClientRect()` que el texto queda por
+  encima de la barra, no solo que exista.
+- **Los enlaces que se mandan por WhatsApp** se abren en Android dentro de su
+  navegador interno (WebView, «; wv)» en el user agent), donde
+  `navigator.mediaDevices` no existe o `getUserMedia` falla sin preguntar. Hay
+  que probar ese caso borrando `navigator.mediaDevices` en la página, y la app
+  tiene que decir **antes de pulsar** cómo abrirla en Chrome.
+- A quien reciba el enlace, dile que lo abra en Chrome (Android) o Safari
+  (iPhone), no dentro de WhatsApp.

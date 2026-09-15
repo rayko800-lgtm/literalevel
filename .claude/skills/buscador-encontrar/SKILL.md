@@ -291,6 +291,16 @@ porque entran en la lista general cuentos rusos («Verotchka's Tales», «Makar'
 Dream») que la franja marca donde ya están. No son cuentos añadidos por título y
 se aceptan, pero la cifra buena es la de `n=24`.
 
+### Los empates se ordenan distinto en cada máquina
+
+Con `n=24`, el Space y la medida local del mismo catalogo.py difirieron en 13 de
+257 listas, y todas eran empates exactos: tres ediciones de «Torwood's trust» a
+0,855, o dos copias de «The Magic Paintbrush» con el mismo parecido, cuyo orden
+depende del entorno. Consecuencia práctica: **tras subir, se compara el Space
+nuevo con un volcado del Space anterior**, no con lo local. Y conviene un
+desempate determinista (por id) para que las comparaciones dejen de dar falsos
+positivos.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
