@@ -67,10 +67,13 @@ export class Sonador {
   private ctx: AudioContext | null = null;
   private readonly cache = new Map<string, Promise<AudioListo | null>>();
   private parando: (() => void) | null = null;
+  /** Tras `destruir`, nada vuelve a sonar: ni lo que se estaba preparando ni un `tocar` tardío. */
+  private destruido = false;
 
   /** Llamar dentro del gesto del usuario (clic): iOS solo deja crear y
    *  reanudar el contexto de audio ahí. */
   despertar(): void {
+    if (this.destruido) return;
     try {
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!this.ctx && Ctx) this.ctx = new Ctx();
@@ -79,6 +82,7 @@ export class Sonador {
   }
 
   preparar(url: string): Promise<AudioListo | null> {
+    if (this.destruido) return Promise.resolve(null);
     let p = this.cache.get(url);
     if (!p) {
       p = this.decodificar(url).catch(() => this.conElemento(url)).catch(() => null);
@@ -94,6 +98,7 @@ export class Sonador {
   }
 
   destruir(): void {
+    this.destruido = true;
     this.parar();
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
@@ -112,6 +117,7 @@ export class Sonador {
       silencio,
       tocar: (retrasoS, velocidad = 1) => {
         this.parar();
+        if (this.destruido) return { parar: () => {}, velocidad };
         if (velocidad !== 1) {
           // Despacio: un <audio> con preservesPitch; Web Audio cambiaría el tono.
           const a = new Audio(url);
@@ -144,6 +150,7 @@ export class Sonador {
           silencio: SILENCIO_FIJO,
           tocar: (retrasoS, velocidad = 1) => {
             this.parar();
+            if (this.destruido) return { parar: () => {}, velocidad };
             const r = tocarElemento(a, retrasoS, velocidad);
             this.parando = r.parar;
             return r;

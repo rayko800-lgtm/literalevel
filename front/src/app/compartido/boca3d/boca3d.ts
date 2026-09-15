@@ -210,7 +210,14 @@ export class Boca3d {
       if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
     });
-    destruir.onDestroy(() => { this.sonador.destruir(); this.escena?.destruir(); });
+    destruir.onDestroy(() => {
+      // Invalida la petición en curso: un mp3 que termina de prepararse después de
+      // cerrar ya no arranca (sonaba con el visor desmontado, auditoría de 4e).
+      this.peticion++;
+      this.sonador.destruir();
+      this.escena?.destruir();
+      this.escena = null;
+    });
   }
 
   /** La línea a la velocidad elegida. */
