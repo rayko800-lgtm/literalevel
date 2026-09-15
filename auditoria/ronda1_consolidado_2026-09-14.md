@@ -349,3 +349,8 @@ Contrato del reinicio 23 entre f4 y e6, cerrado:
 - **Pruebas fijas:** ACTION PART-1 con B1, Familia C1 y rosa.
 - **Front hecho (e6, 5e4421c), sin publicar:** usa `franja` si viene y, si no, se comporta como hoy. Pruebas 77/77.
 - **Visto bueno previo:** 4e lo audita antes de publicar, junto con el catalogo.py del 23.
+
+Visto bueno del front del reinicio 23 (4e sobre e6 5e4421c): ok, con dos condiciones para la API, ya enviadas a f4.
+- **Qué se comprobó:** sin `franja`, las 57 respuestas reales del Space dan los mismos bloques que el front publicado. Una marca fuera de la franja no sube, y los bordes son exactos.
+- **Condición 1:** `franja` redondeada a tres decimales, porque un borde de 1,2499999999999998 deja fuera el 1,25.
+- **Condición 2:** anchura exacta de ±0,45, porque las etiquetas de encaje del front dependen de esas distancias.
