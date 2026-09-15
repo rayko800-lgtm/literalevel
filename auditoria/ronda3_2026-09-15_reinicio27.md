@@ -131,3 +131,21 @@ Sondeo de `/api/salud` cada ~3 s durante 90 s desde que la API de Hugging Face d
 - **«school» y las de control** (books, library, grade, public, team, children), con B1 y con 1,20: mismas marcas que en el 28 (de 7 a 18 cada una) y los mismos bloques. La regla no toca las consultas que no abren con un libro de Gutenberg rescatado por su autor, y «school» sigue abriendo con «The Polymath School».
 - **Tiempos:** entre 378 y 1.039 ms; solo «public» pasa de 1 s (1.005 y 1.039 ms), y ninguna llega a 2 s.
 - **`buscador_listo`:** `true` entre los 15,8 y los 19,0 s tras RUNNING.
+
+**Regresión del 29, vista después (f4 y e6):** con 1,20, «león», «brown», «hope» y «animales de la granja» perdían marcas. La regla tomaba por consulta de autor un nombre parecido a la palabra: Cieza de León, Brown, Laura Lee Hope, «Bureau of Animal Industry». Miguel autorizó volver al 28.
+
+## Vuelta atrás al 28 (`62e5a06`, catalogo.py de `b896b1f`)
+
+**Cómo se midió:** las mismas 33 listas que en el 29, desde fuera y contra mi línea base del Space del 28 (`i4_base28.json`), más las cuatro palabras de la regresión frente a las cifras del 28 que dio f4. Guion `r28b_space_vigia.mjs`, con salida en `r28b_space.json` y `.log`.
+
+**Resultados:**
+- **Las 33 listas vuelven exactamente al 28:** mismo top 10 en el mismo orden, mismas marcas y *Crime and Punishment* en el mismo bloque.
+- **Paso 3 de la demo:** «Crimen y castigo de Dostoyevski» con 1,20 da 0 marcas, «En tu nivel» y «Un poco por encima» vacíos y el libro el primero de «De otros niveles». Con B1 vuelven sus 4 marcas, como en el 28.
+- **«dostoyevski» con 1,20:** vuelven a colarse 15 marcas y 9 tarjetas en «En tu nivel», lo esperado en el 28. El guion ya no usa esa consulta.
+- **Las cuatro palabras recuperan sus marcas, igual que las cifras del 28 de f4:**
+  - «león», 12 con 1,20;
+  - «brown», 12 con 1,20;
+  - «hope», 9 con 1,20;
+  - «animales de la granja», 15 con 1,20, 16 con A2 y 13 con B1.
+- **Tiempos:** entre 521 y 1.533 ms, más lentos que en el 29 (hasta 1.039 ms) pero ninguno llega a 2 s. Se midió nada más quedar listo el buscador.
+- **`buscador_listo`:** `true` entre los 43,1 y los 46,2 s tras RUNNING. Es más tarde que en los arranques anteriores (14-26 s), y el «medio minuto» del punto 8 del guion se queda corto para este arranque. No sé si fue un arranque lento puntual o si pasa siempre: hay que volver a medirlo en el próximo reinicio.
