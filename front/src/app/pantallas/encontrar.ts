@@ -80,31 +80,35 @@ type Vista = 'buscar' | 'nivel' | 'mios';
                 </section>
               }
               @if (b.otrosNiveles.length || b.menosParecidos.length) {
-                @if (sinBloques || verOtros()) {
-                  @if (b.otrosNiveles.length) {
-                    <section class="bloque" aria-labelledby="b-otros">
-                      <h2 id="b-otros">De otros niveles</h2>
-                      <div class="rejilla-auto">
-                        @for (l of b.otrosNiveles; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="nivelBusqueda()" /> }
-                      </div>
-                    </section>
-                  }
-                  @if (b.menosParecidos.length) {
-                    <!-- Sin nivel del lector: la etiqueta «A tu medida» no puede sugerir que esto es lo que se pidió. -->
-                    <section class="bloque" aria-labelledby="b-menos">
-                      <h2 id="b-menos">Menos parecidos a lo que buscas</h2>
-                      <div class="rejilla-auto">
-                        @for (l of b.menosParecidos; track l.id) { <app-tarjeta-libro [libro]="l" /> }
-                      </div>
-                    </section>
-                  }
-                  @if (!sinBloques) {
-                    <button type="button" class="boton secundario ver-otros" (click)="verOtros.set(false)" aria-controls="b-otros b-menos">Ocultar los de otros niveles</button>
-                  }
-                } @else {
-                  <button type="button" class="boton secundario ver-otros" (click)="verOtros.set(true)" [attr.aria-expanded]="false">
-                    Ver también los de otros niveles ({{ b.otrosNiveles.length + b.menosParecidos.length }})</button>
+                <!-- Un solo botón que alterna, con aria-expanded y aria-controls hacia un
+                     contenedor que existe siempre (ronda 2 del front, 4e): antes «Ver» llevaba
+                     aria-expanded sin aria-controls y «Ocultar» apuntaba a ids que no siempre se pintaban. -->
+                @if (!sinBloques) {
+                  <button type="button" class="boton secundario ver-otros" (click)="verOtros.set(!verOtros())"
+                          [attr.aria-expanded]="verOtros()" aria-controls="otros-niveles">
+                    {{ verOtros() ? 'Ocultar los de otros niveles' : 'Ver también los de otros niveles (' + (b.otrosNiveles.length + b.menosParecidos.length) + ')' }}</button>
                 }
+                <div id="otros-niveles" [hidden]="!(sinBloques || verOtros())">
+                  @if (sinBloques || verOtros()) {
+                    @if (b.otrosNiveles.length) {
+                      <section class="bloque" aria-labelledby="b-otros">
+                        <h2 id="b-otros">De otros niveles</h2>
+                        <div class="rejilla-auto">
+                          @for (l of b.otrosNiveles; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="nivelBusqueda()" /> }
+                        </div>
+                      </section>
+                    }
+                    @if (b.menosParecidos.length) {
+                      <!-- Sin nivel del lector: la etiqueta «A tu medida» no puede sugerir que esto es lo que se pidió. -->
+                      <section class="bloque" aria-labelledby="b-menos">
+                        <h2 id="b-menos">Menos parecidos a lo que buscas</h2>
+                        <div class="rejilla-auto">
+                          @for (l of b.menosParecidos; track l.id) { <app-tarjeta-libro [libro]="l" /> }
+                        </div>
+                      </section>
+                    }
+                  }
+                </div>
               }
               @if (nota()) { <p class="tenue pequeno nota">{{ nota() }}</p> }
             } @else if (rs.length) {
