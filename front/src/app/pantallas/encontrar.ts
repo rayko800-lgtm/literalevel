@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, i
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { bloquesBusqueda } from '../compartido/bloques-busqueda';
 import { Icono } from '../compartido/icono';
 import { TarjetaLibro } from '../compartido/tarjeta-libro';
 import { Api, EntradaBiblioteca, LibroTarjeta, Recomendacion, mensajeError } from '../nucleo/api';
@@ -31,10 +32,9 @@ type Vista = 'buscar' | 'nivel' | 'mios';
       </form>
       <div class="fila bajo-buscador">
         @if (perfil(); as p) {
-          <label class="interruptor">
-            <input type="checkbox" name="ajustar" [(ngModel)]="ajustar">
-            <span>Ordenar por mi nivel ({{ num(p.nivel) }} · {{ cefr(p.nivel) }})</span>
-          </label>
+          <!-- Sin interruptor escondido: primero lo de tu nivel y, junto a los resultados,
+               «Ver también los de otros niveles» (propuesta aprobada por Miguel, 14 sep). -->
+          <span class="tenue pequeno">Primero lo de tu nivel ({{ num(p.nivel) }} · {{ cefr(p.nivel) }}) y un poco por encima.</span>
         } @else {
           <span class="tenue pequeno">¿No sabes tu nivel? <a routerLink="/nivel">Mídelo en un minuto</a> y ordenaré los libros por lo que te va.</span>
         }
@@ -55,8 +55,60 @@ type Vista = 'buscar' | 'nivel' | 'mios';
               <span>{{ lento() ? 'Despertando el buscador: la primera búsqueda tarda unos 20 segundos. Después va al momento.' : 'Buscando…' }}</span></div>
           } @else if (resultados(); as rs) {
             @if (aviso()) { <p class="aviso pequeno">{{ aviso() }}</p> }
-            @if (rs.length) {
-              <p class="tenue pequeno recuento">{{ rs.length }} {{ rs.length === 1 ? 'libro' : 'libros' }} para «{{ ultima() }}»{{ ajustado() ? ', ordenados también por tu nivel' : '' }}.</p>
+            @if (rs.length && bloques(); as b) {
+              @let sinBloques = !b.enTuNivel.length && !b.porEncima.length;
+              @if (sinBloques) {
+                <p class="aviso pequeno">De «{{ ultima() }}» no hay libros en tu nivel ni un poco por encima entre los resultados. Estos son los de otros niveles.</p>
+              }
+              @if (b.enTuNivel.length) {
+                <section class="bloque" aria-labelledby="b-nivel">
+                  <h2 id="b-nivel">En tu nivel</h2>
+                  <div class="rejilla-auto">
+                    @for (l of b.enTuNivel; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="nivelBusqueda()" /> }
+                  </div>
+                </section>
+              }
+              @if (b.porEncima.length) {
+                <section class="bloque" aria-labelledby="b-encima">
+                  <h2 id="b-encima">Un poco por encima de tu nivel</h2>
+                  @if (b.enTuNivel.length < 4) {
+                    <p class="tenue pequeno">De esto hay pocos en tu nivel. Estos se pueden leer tocando las palabras que no conozcas.</p>
+                  }
+                  <div class="rejilla-auto">
+                    @for (l of b.porEncima; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="nivelBusqueda()" /> }
+                  </div>
+                </section>
+              }
+              @if (b.otrosNiveles.length || b.menosParecidos.length) {
+                @if (sinBloques || verOtros()) {
+                  @if (b.otrosNiveles.length) {
+                    <section class="bloque" aria-labelledby="b-otros">
+                      <h2 id="b-otros">De otros niveles</h2>
+                      <div class="rejilla-auto">
+                        @for (l of b.otrosNiveles; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="nivelBusqueda()" /> }
+                      </div>
+                    </section>
+                  }
+                  @if (b.menosParecidos.length) {
+                    <!-- Sin nivel del lector: la etiqueta «A tu medida» no puede sugerir que esto es lo que se pidió. -->
+                    <section class="bloque" aria-labelledby="b-menos">
+                      <h2 id="b-menos">Menos parecidos a lo que buscas</h2>
+                      <div class="rejilla-auto">
+                        @for (l of b.menosParecidos; track l.id) { <app-tarjeta-libro [libro]="l" /> }
+                      </div>
+                    </section>
+                  }
+                  @if (!sinBloques) {
+                    <button type="button" class="boton secundario ver-otros" (click)="verOtros.set(false)" aria-controls="b-otros b-menos">Ocultar los de otros niveles</button>
+                  }
+                } @else {
+                  <button type="button" class="boton secundario ver-otros" (click)="verOtros.set(true)" [attr.aria-expanded]="false">
+                    Ver también los de otros niveles ({{ b.otrosNiveles.length + b.menosParecidos.length }})</button>
+                }
+              }
+              @if (nota()) { <p class="tenue pequeno nota">{{ nota() }}</p> }
+            } @else if (rs.length) {
+              <p class="tenue pequeno recuento">{{ rs.length }} {{ rs.length === 1 ? 'libro' : 'libros' }} para «{{ ultima() }}».</p>
               <div class="rejilla-auto">
                 @for (l of rs; track l.id) { <app-tarjeta-libro [libro]="l" [nivelLector]="perfil()?.nivel ?? null" /> }
               </div>
@@ -159,6 +211,10 @@ type Vista = 'buscar' | 'nivel' | 'mios';
     .pestanas button[aria-selected="true"] { background: var(--superficie); color: var(--texto); box-shadow: var(--sombra); }
     .cargando { padding: 2rem 0; }
     .recuento { margin-bottom: .75rem; }
+    .bloque { margin-bottom: 1.5rem; }
+    .bloque h2 { font-size: 1.15rem; margin: 0 0 .6rem; }
+    .bloque > p { margin: -.2rem 0 .75rem; }
+    .ver-otros { min-height: 48px; width: 100%; max-width: 26rem; margin: .25rem 0 1rem; }
     .nota { margin-top: 1rem; max-width: 70ch; }
     .ideas { padding: 1rem 0; }
     /* Una mano (investigacion/una_mano.md §3.3): pestañas a 48 px, ideas a 44 con 8 de
@@ -193,8 +249,9 @@ export class Encontrar implements OnInit {
   private readonly router = inject(Router);
 
   protected consulta = '';
-  protected ajustar = true;
   protected readonly vista = signal<Vista>('buscar');
+  /** «Ver también los de otros niveles»: vuelve a cerrarse con cada búsqueda nueva. */
+  protected readonly verOtros = signal(false);
   protected readonly cargando = signal(false);
   protected readonly lento = signal(false);
   protected readonly error = signal('');
@@ -225,6 +282,13 @@ export class Encontrar implements OnInit {
   protected readonly num = num;
   protected readonly cefr = cefr;
   protected readonly hayResultados = computed(() => (this.resultados()?.length ?? 0) > 0);
+  /** El nivel con el que el motor ordenó; sin él (sin perfil) no hay bloques. */
+  protected readonly nivelBusqueda = signal<number | null>(null);
+  protected readonly bloques = computed(() => {
+    const rs = this.resultados();
+    const nivel = this.nivelBusqueda();
+    return rs && nivel !== null ? bloquesBusqueda(rs, nivel) : null;
+  });
 
   ngOnInit(): void {
     const v = this.vista_();
@@ -262,7 +326,11 @@ export class Encontrar implements OnInit {
     const reloj = setTimeout(() => this.lento.set(true), 3000);
     if (navegar) void this.router.navigate([], { queryParams: { q, vista: null }, replaceUrl: true });
     try {
-      const r = await firstValueFrom(this.api.buscar(q, this.ajustar));
+      // 24 y no 12: con los bloques, lo de otros niveles va detrás de un botón y sin
+      // candidatos de sobra «En tu nivel» se quedaba corto.
+      const r = await firstValueFrom(this.api.buscar(q, true, 24));
+      this.verOtros.set(false);
+      this.nivelBusqueda.set(r.ajustado ? r.nivel : null);
       this.resultados.set(r.resultados);
       this.aviso.set(r.aviso);
       this.nota.set(r.nota);
