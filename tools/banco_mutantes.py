@@ -656,6 +656,15 @@ MUTANTES = [
      "        if modelo == HUELLA_V4:",
      "        if True:",
      "la clave de medida cambia con el modelo", "pruebas_corpus.py"),
+    # Reinicio 27: el codigo se lee una vez; _puede_pagar cobra al que le pasan (e6 y f4).
+    ("C15-puede-pagar-relee-la-sesion", "app/ui.py",
+     "    if codigo is _LEER_DE_LA_SESION:" + NL + "        codigo = _codigo_de(peticion)",
+     "    codigo = _codigo_de(peticion)",
+     "puede pagar con codigo no relee la sesion", "pruebas_extremas.py"),
+    ("C15-practicar-no-pasa-el-codigo", "app/ui.py",
+     "    puede, motivo_pago = _puede_pagar(peticion, codigo_cobrado)",
+     "    puede, motivo_pago = _puede_pagar(peticion)",
+     "practica sin voz devuelve el uso", "pruebas_extremas.py"),
     # Reinicio 26: Gradio devuelve el uso sin voz (e6), como /api/voz (f4, C12/C13).
     ("C14-gradio-devuelve-sin-mirar-sin-voz", "app/ui.py",
      '        devuelto = bool(getattr(s, "sin_voz", False)) and cuentas.devolver_por_silencio(',

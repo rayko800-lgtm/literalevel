@@ -607,15 +607,26 @@ def _codigo_de(peticion) -> str | None:
         return _CODIGO_SESION.get(_sesion_de(peticion))
 
 
-def _puede_pagar(peticion) -> tuple[bool, str]:
+# Centinela de `_puede_pagar`: «lee el codigo de la sesion». No es None, que ya
+# significa «sin entrar», ni `cuentas._SIN_CODIGO`, que es un texto (f4, reinicio 27).
+_LEER_DE_LA_SESION = object()
+
+
+def _puede_pagar(peticion, codigo=_LEER_DE_LA_SESION) -> tuple[bool, str]:
     """Comprueba el cupo Y lo consume, en una sola operacion.
 
     Antes esto solo preguntaba, y quien llamaba apuntaba el uso despues con
     `_apuntar_uso`. Entre las dos cosas cabia una condicion de carrera, y esta
     reproducida: con un codigo de tope 2 y veinte peticiones simultaneas
     pasaban las veinte. `cuentas.consumir` hace las dos bajo el mismo candado.
+
+    Con `codigo`, cobra a ese (incluido None) y no vuelve a leer la sesion: quien
+    luego devuelve el uso (la voz sin voz) cobra y devuelve a la misma cuenta aunque
+    la sesion cambie entre medias (reinicio 27).
     """
-    return cuentas.consumir(BASE_DATOS_LECTOR, _codigo_de(peticion))
+    if codigo is _LEER_DE_LA_SESION:
+        codigo = _codigo_de(peticion)
+    return cuentas.consumir(BASE_DATOS_LECTOR, codigo)
 
 
 def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
@@ -3777,7 +3788,7 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     # El codigo que se cobra, leido ANTES de cobrar: la devolucion por silencio va a esa
     # cuenta aunque la sesion cambie durante whisper (reinicio 26, como `_corregir_voz`).
     codigo_cobrado = _codigo_de(peticion)
-    puede, motivo_pago = _puede_pagar(peticion)
+    puede, motivo_pago = _puede_pagar(peticion, codigo_cobrado)
     if not puede:
         return "", motivo_pago, gr.update(visible=False)
     try:
@@ -3802,29 +3813,20 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     ev = s.evaluacion
     L = [f"## {ev.puntuacion:.0f} / 100"]
     if not s.transcripcion_ok:
-        # AQUI NO SE DEVUELVE EL USO, aunque lo parezca. Durante unas horas si
-        # se devolvia, con un comentario que decia "sin transcripcion no hubo
-        # whisper, o sea que no se gasto nada". Era FALSO y abria un agujero:
-        # `voz.practicar` sigue adelante sin transcripcion, `evaluar_pronunciacion`
-        # contra "" marca TODAS las palabras como falladas, y eso GARANTIZA la
-        # llamada a `explicar_correccion` (gpt); `generar_audio_correcto` (tts-1)
-        # se llama siempre. Medido con un espia: cada pulsacion son dos llamadas
-        # de pago. Devolviendo el uso, un perfil de tope 3 podia gastar sin
-        # limite mandando audio que whisper no pudiera transcribir.
+        # Sin transcripcion, el uso se devuelve SOLO si whisper respondio sin ninguna
+        # palabra (`sin_voz`), y dentro del tope diario de `cuentas.devolver_por_silencio`
+        # (`devuelto`, arriba; reinicio 26). Con la red o la clave caidas no se sabe que se
+        # gasto, y se cobra.
         #
-        # Whisper no se factura, pero las otras dos si. Se cobra. (Desde 0a759a5, sin
-        # voz ya no se llama a `explicar_correccion`, y desde 681544f tampoco a
-        # `generar_audio_correcto` ni a `analizar_natural`: sin voz solo queda la
-        # transcripcion. Si se devuelve el uso en ese caso es decision aparte.)
+        # Por que no se devuelve siempre: hubo unas horas en que se devolvia con cualquier
+        # transcripcion fallida («sin transcripcion no hubo whisper, no se gasto nada»), y
+        # era FALSO: `evaluar_pronunciacion` contra "" marcaba todas las palabras como
+        # falladas, eso llamaba a `explicar_correccion` (gpt) y `generar_audio_correcto`
+        # (tts-1) iba siempre. Un perfil de tope 3 podia gastar sin limite. Desde 0a759a5 y
+        # 681544f, sin voz ya no hay gpt ni tts-1, y el tope diario cierra lo que queda.
         #
-        # Y el aviso es el de la grabacion sin voz: sin `OPENAI_API_KEY` se sale arriba
-        # con su propio aviso, asi que aqui la causa es silencio, ruido o un fallo de red
-        # que `voz.practicar` no distingue (reinicio 26).
-        #
-        # Reinicio 26: ahora SI se devuelve, pero solo cuando whisper respondio sin ninguna
-        # palabra (`sin_voz`) y dentro del tope diario de `cuentas.devolver_por_silencio`: sin
-        # voz ya no hay gpt ni tts-1 (0a759a5, 681544f), y el tope cierra el agujero de arriba.
-        # Con la red o la clave caidas no se sabe que se gasto, y se sigue cobrando.
+        # El aviso es el de la grabacion sin voz: sin `OPENAI_API_KEY` se sale arriba con
+        # su propio aviso, asi que aqui la causa es silencio, ruido o un fallo de red.
         L = [L[0].replace(f"{ev.puntuacion:.0f} / 100", "— / 100")]
         L.append("[!] No te oí. Acércate al micrófono y vuelve a grabar."
                  + (" Este intento no cuenta." if devuelto else ""))

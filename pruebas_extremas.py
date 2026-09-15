@@ -6722,8 +6722,12 @@ def _practica_sin_voz_devuelve_el_uso():
         orden.append("codigo")
         return "OTRA-CUENTA" if "cobro" in orden else "CODIGO-COBRADO"
 
-    def puede_pagar(pet):
+    cobrados = []
+
+    def puede_pagar(pet, codigo=None):
+        # Reinicio 27: `_practicar` le pasa el codigo ya leido; cobra a ese, no relee la sesion.
         orden.append("cobro")
+        cobrados.append(codigo)
         return True, ""
 
     salidas = {}
@@ -6732,18 +6736,39 @@ def _practica_sin_voz_devuelve_el_uso():
         ui._puede_pagar, ui._codigo_de = puede_pagar, codigo_de
         ui.cuentas.devolver_por_silencio = lambda base, codigo: llamadas.append((base, codigo)) or True
         for nombre, sin_voz in (("sin_voz", True), ("red_caida", False)):
+            orden.clear()                  # cada pulsacion empieza sin cobro previo
             ui.voz.practicar = practicar_con(sin_voz)
             _, veredicto, _ = ui._practicar(str(audio), "Hello there")
             salidas[nombre] = str(veredicto)
     finally:
         (ui.voz.practicar, ui.config.falta, ui._puede_pagar, ui._codigo_de, ui.cuentas.devolver_por_silencio) = viejos
     assert llamadas == [(ui.BASE_DATOS_LECTOR, "CODIGO-COBRADO")], f"devoluciones: {llamadas}"
+    assert cobrados == ["CODIGO-COBRADO", "CODIGO-COBRADO"], f"cobros: {cobrados} (reinicio 27: el mismo codigo)"
     assert "No te oí" in salidas["sin_voz"] and "Este intento no cuenta" in salidas["sin_voz"], salidas["sin_voz"][:300]
     assert "No te oí" in salidas["red_caida"] and "no cuenta" not in salidas["red_caida"], salidas["red_caida"][:300]
     return "sin voz devuelve a la cuenta cobrada y lo dice; con la red caida, no"
 
 
 prueba("practica sin voz devuelve el uso", _practica_sin_voz_devuelve_el_uso)
+
+
+def _puede_pagar_con_codigo_no_relee_la_sesion():
+    """Reinicio 27 (e6 y f4): `_puede_pagar(peticion, codigo)` cobra a ese codigo, tambien a
+    None («sin entrar»), sin volver a leer la sesion; sin el argumento, lee la sesion como antes."""
+    vistos, viejos = [], (ui.cuentas.consumir, ui._codigo_de)
+    try:
+        ui.cuentas.consumir = lambda base, codigo: vistos.append(codigo) or (True, "")
+        ui._codigo_de = lambda pet: "DE-LA-SESION"
+        ui._puede_pagar(None, "COBRADO")
+        ui._puede_pagar(None, None)
+        ui._puede_pagar(None)
+    finally:
+        ui.cuentas.consumir, ui._codigo_de = viejos
+    assert vistos == ["COBRADO", None, "DE-LA-SESION"], vistos
+    return "con codigo cobra a ese (tambien None) y sin el lee la sesion"
+
+
+prueba("puede pagar con codigo no relee la sesion", _puede_pagar_con_codigo_no_relee_la_sesion)
 
 
 # --- La tabla del AFI (13 sep 2026) -----------------------------------------
