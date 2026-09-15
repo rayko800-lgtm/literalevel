@@ -906,3 +906,14 @@ i4 con la lista de control (f4, n=10):
 - **Autores y paso 3:** los autores con 1,20 y «Crimen y castigo de Dostoyevski», como en la pasada anterior.
 - **Decisión de la central:** se acepta el cambio de «institute» (opción a).
 - **Condición antes del commit:** una pasada final con n=24, que es lo que pide el front, con todos los grupos. Después, visto bueno de 4e, árbol limpio y subida como reinicio 29.
+
+Pasada final de i4 con n=24 (f4): cumple los cuatro criterios, y un assert confirma que las filas propias son exactamente las de Gutenberg.
+- **Las 100 palabras:** 0 de 198 listas distintas del Space.
+- **Control:** 1 de 40 distinta, «institute» con B1, que ya se aceptó.
+- **Temas A2 y B1:** iguales.
+- **Autores con 1,20:**
+  - tolstoy, cervantes, Jane Austen y oscar wilde pasan de 12 marcas a 0;
+  - dickens se queda en 5, todas suyas;
+  - dostoyevski y sus variantes se quedan con 1 a 4 marcas de cuentos rusos que ya estaban entre los 24 generales, no añadidos por título.
+- **«Crimen y castigo de Dostoyevski» con 1,20:** 0 marcas.
+- **Siguiente:** parche, prueba y mutantes C23, banco, commit, visto bueno corto de 4e, árbol limpio y subida como reinicio 29.
