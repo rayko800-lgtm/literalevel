@@ -730,3 +730,5 @@ Reinicio 27, clásicos medidos en el catálogo real (f4, sin commit, corpus 45/4
 - **Palabras de riesgo:** «london», «hope» y «king» dan el mismo top 10 que antes. «amor» no trae a Fenn, y «rosa» y «luna» salen como antes.
 - **Lo que falla:** «Jane Austen» con B1 sigue abriendo con la adaptación de MacKaye, que es C1 y tiene a Austen como coautora. Empata en rescate con sus novelas, y con nivel ordena el encaje.
 - **Arreglo aprobado:** dentro de la ventana de nombres van primero las filas cuyo primer autor contiene todas las palabras de la consulta. Lleva una prueba inventada y el mutante C20.
+
+Menores de ui.py para el 27 (e6, 4a265f6 y el banco en 5985e8e): el código de la cuenta se lee una sola vez y el comentario viejo está reescrito. Extremas 351 y C14 + C15 6 de 6. Falta el visto bueno corto de 4e, y los hashes ya los tiene f4.
