@@ -975,3 +975,11 @@ Causa probable de «animales de la granja» en el 29 (4e):
 - **Variantes a medir si la medida de f4 no manda volver al 28:**
   - i5, que la central prefiere: la regla solo actúa si casan con el autor al menos la mitad de las palabras de contenido de la consulta;
   - i6: excluir autores corporativos.
+
+Arreglo del micrófono de Pronunciar (e6, 601788b), con el ok de 4e:
+- **Línea de estado:** va dentro de la barra fija y ya no la tapa nada. Muestra «Acepta el permiso…», a los 5 s la sugerencia de abrir en Chrome o Safari, y «Grabando: habla ahora».
+- **Errores:** un mensaje distinto para cada tipo de fallo.
+- **WebView de WhatsApp en Android:** aparece «Abrir en Chrome» antes de tocar nada.
+- **Robustez:** el doble toque no hace nada, y si falla después del permiso se suelta el micrófono.
+- **Menor, que e6 cierra en un commit aparte:** si se sale de la pantalla con el permiso pendiente y se concede después, el micrófono queda encendido.
+- **Falta:** que Ismael lo pruebe en su Android desde WhatsApp.
