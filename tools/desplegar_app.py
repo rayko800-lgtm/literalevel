@@ -107,6 +107,9 @@ LISTA_BLANCA = [
     # mal medidas en el precalculo (PG2242), sin tocar la huella de los embeddings.
     "avisos_contenido.csv",
     "correcciones_catalogo.csv",
+    # Los textos libres que no son lectura en ingles (tools/marcar_no_lectura.py):
+    # se excluyen al buscar y recomendar sin tocar el CSV externo ni su .npy.
+    "no_lectura_externo.csv",
 ]
 
 

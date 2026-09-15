@@ -197,6 +197,15 @@ def _huella(ruta: Path) -> str:
 _PARECIDO_NOMBRE = 0.75     # "chejov" vs "chekhov" da 0.77: por debajo
                             # de esto ya son nombres distintos
 _PESO_NOMBRE = 0.85         # cuanto vale un nombre acertado frente al tema
+# Al buscar con «Ordenar por mi nivel», el nivel ordena solo DENTRO de lo
+# relevante: lo que queda a MARGEN_RELEVANCIA del mejor parecido. Medido el 14
+# sep 2026 sobre el catalogo real: «amor» deja 3 filas dentro de 0,05, «love»
+# 469, «detectives en Londres» 109. Y un titulo acertado (a MARGEN_NOMBRE del
+# mejor acierto de nombre) va siempre delante, este del nivel que este.
+MARGEN_RELEVANCIA = 0.05
+MARGEN_NOMBRE = 0.02
+# Los textos libres que no son lectura en ingles (tools/marcar_no_lectura.py).
+NOMBRE_NO_LECTURA = "no_lectura_externo.csv"
 
 
 def _normalizar(t: str) -> str:
@@ -465,7 +474,25 @@ class Catalogo:
                               | s.str.contains(_NO_ES_LECTURA_TEMAS)).to_numpy()
             else:
                 self._excl = np.zeros(len(d), dtype=bool)
+            # Y los textos libres que no son lectura en ingles (relleno, otra
+            # lengua): los marca tools/marcar_no_lectura.py y no se borran del CSV.
+            fuera = self._leer_no_lectura()
+            if fuera:
+                self._excl = self._excl | d["id"].astype(str).str.strip().str.upper().isin(fuera).to_numpy()
         return self._excl
+
+    def _leer_no_lectura(self) -> set[str]:
+        """Los ids de no_lectura_externo.csv, o un conjunto vacio."""
+        ruta = getattr(self, "ruta", None)
+        if ruta is None:
+            return set()
+        ruta = Path(ruta).with_name(NOMBRE_NO_LECTURA)
+        if not ruta.exists():
+            return set()
+        try:
+            return {str(i).strip().upper() for i in pd.read_csv(ruta, dtype=str)["id"].dropna()}
+        except Exception:
+            return set()
 
     @property
     def _literarios(self) -> np.ndarray:
@@ -584,13 +611,24 @@ class Catalogo:
         if nivel_lector is None:
             total = sim
             afin = np.zeros_like(sim)
+            orden = np.argsort(-total)
         else:
             objetivo = self._puntuaciones()
             # Afinidad 1 = mismo nivel, 0 = en el extremo opuesto de la escala.
             afin = 1.0 - np.abs(objetivo - nivel_lector) / 2.0
             total = (1 - peso_nivel) * sim + peso_nivel * afin
-
-        orden = np.argsort(-total)
+            # El nivel ordena DENTRO de lo relevante y no adelanta lo que no es
+            # de lo que se pidio; un titulo acertado va siempre delante
+            # (diagnostico de e6, 14 sep 2026: con perfil B1, «amor» sacaba
+            # primero cuentos de su nivel que no eran de amor, y «A Midsummer
+            # Night's Dream» buscado por titulo solo salia sin el ajuste).
+            validos = ~self._excluidos
+            techo = float(sim[validos].max()) if validos.any() else 0.0
+            relevante = sim >= techo - MARGEN_RELEVANCIA
+            mejor_nombre = float(lex[validos].max()) if validos.any() else 0.0
+            nombre = (lex >= _PARECIDO_NOMBRE) & (lex >= mejor_nombre - MARGEN_NOMBRE)
+            clave = np.where(nombre | relevante, total, sim)
+            orden = np.lexsort((-clave, ~(relevante | nombre), ~nombre))
         libros, flojos = [], 0
         for i in orden[:n * 3]:
             if len(libros) >= n:

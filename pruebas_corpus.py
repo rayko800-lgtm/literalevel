@@ -489,6 +489,71 @@ def _texto_servido_limpio_sin_tocar_lo_medido():
 prueba("el texto servido sale limpio sin tocar el que se mide", _texto_servido_limpio_sin_tocar_lo_medido)
 
 
+def _textos_que_no_son_lectura_fuera():
+    """Diagnostico de e6 (14 sep 2026): buscando «amor» con perfil B1 salian
+    primero «edws» (texto: «hrrr»), cuentos en coreano o turco y «bumbumyj,jc».
+    Se marcan y se excluyen al buscar y recomendar, sin borrarlos del CSV."""
+    spec = importlib.util.spec_from_file_location("marcar_no_lectura", "tools/marcar_no_lectura.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    dic = {"the", "girl", "went", "to", "school", "and", "her", "mother", "made", "lunch", "she",
+           "was", "happy", "after", "they", "home", "for", "dinner", "played", "with", "friends"}
+    ingles = ("The girl went to school and her mother made lunch. She was happy. After school "
+              "they went home for dinner and she played with her friends.")
+    atribucion = "\n\n«The Girl» de X, publicado en StoryWeaver (X) con licencia CC BY 4.0: https://x"
+    assert mod.motivo_no_lectura(ingles + atribucion, dic) is None, "marca un cuento ingles"
+    assert "distintas" in (mod.motivo_no_lectura("hrrr" + atribucion, dic) or ""), "no marca «hrrr»"
+    coreano = "한 남자아이와 여자아이가 비행기가 고장나서 정글에 불시착을 했어요. 그런데 호랑이가 나타나서"
+    assert "distintas" in (mod.motivo_no_lectura(coreano, dic) or ""), "no marca un cuento en coreano"
+    turco = ("Anne Ben Hasta Elif konusmayi ve okumayi seven oldukca hareketli bir cocuktu Elif hasta "
+             "oldugundan dolayi birkac gun okula gidememisti the girl")
+    assert "diccionario" in (mod.motivo_no_lectura(turco, dic) or ""), "no marca un cuento en turco"
+
+    carpeta = _nuevo()
+    _montar(carpeta)
+    pd.DataFrame({"id": ["ASB0141"], "motivo": ["prueba"]}).to_csv(carpeta / "no_lectura_externo.csv", index=False)
+    cat = cm.Catalogo(carpeta / "catalogo_medido.csv")
+    excl = dict(zip(cat.df["id"].astype(str), cat._excluidos))
+    assert excl["ASB0141"] and not excl["SWV369"], f"exclusion mal aplicada: {excl}"
+    ids = [l.id for l in cat.por_nivel(0.45, holgura=0.2, n=10)]
+    assert "ASB0141" not in ids and "SWV369" in ids, f"por nivel: {ids}"
+    assert "ASB0141" in set(cat.df["id"].astype(str)), "se borro del catalogo en vez de excluirse"
+    return "hrrr, coreano y turco marcados; el cuento ingles no; ASB0141 fuera de por nivel y dentro del CSV"
+
+
+prueba("los textos que no son lectura en ingles no salen al buscar ni al recomendar",
+       _textos_que_no_son_lectura_fuera)
+
+
+def _busqueda_relevancia_antes_que_nivel():
+    """Diagnostico de e6 (14 sep 2026): con «Ordenar por mi nivel» el nivel pesaba
+    mas que el tema, y «A Midsummer Night's Dream» buscado por titulo solo salia
+    sin el ajuste. El titulo gana siempre; el nivel ordena dentro de lo relevante."""
+    s = [0.20, 0.85, 0.84, 0.70]          # parecido por tema de cada fila con la consulta
+    emb = np.array([[x, (1 - x * x) ** 0.5] for x in s], dtype=np.float32)
+    df = pd.DataFrame({
+        "id": ["PG1", "PG2", "PG3", "PG4"],
+        "title": ["A Midsummer Night's Dream", "Relevante lejos", "Relevante cerca", "Irrelevante a mi nivel"],
+        "author": ["Shakespeare, William", "Uno, Autor", "Dos, Autor", "Tres, Autor"],
+        "nivel_cefr": ["C1", "C1", "B2", "B1"], "hook": [""] * 4, "downloads": [1] * 4,
+        "dificultad": [1.7, 1.7, 1.6, 0.95]})
+    cat = object.__new__(cm.Catalogo)
+    cat.df = df
+    cat._emb = emb
+    cat._fichas = None
+    cat._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+        lambda x, **k: np.array([[1.0, 0.0]], dtype=np.float32))})()
+    con = [l.id for l in cat.buscar("A Midsummer Night's Dream", nivel_lector=0.95, n=4)[0]]
+    assert con[0] == "PG1", f"el titulo exacto no gana con el ajuste de nivel: {con}"
+    assert con == ["PG1", "PG3", "PG2", "PG4"], f"el nivel adelanta lo irrelevante o no ordena lo relevante: {con}"
+    sin = [l.id for l in cat.buscar("A Midsummer Night's Dream", n=4)[0]]
+    assert sin == ["PG1", "PG2", "PG3", "PG4"], f"sin ajuste cambia el orden por parecido: {sin}"
+    return f"con nivel {con}; sin nivel {sin}"
+
+
+prueba("al buscar, el titulo gana y el nivel solo ordena lo relevante", _busqueda_relevancia_antes_que_nivel)
+
+
 def _correccion_se_aplica_al_cargar():
     """PG2242: la tabla de correcciones cambia la dificultad del libro, su letra
     y su curva de un capitulo, sin tocar el CSV grande."""
