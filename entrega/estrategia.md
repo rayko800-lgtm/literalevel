@@ -386,7 +386,7 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   ajustes (paleta, tamaño de letra, idioma de las explicaciones) y el estado del
   servicio salen de la navegación, que es lo que Laura y el profesor habían
   pedido por separado.
-- **La API** es un servicio FastAPI (`app/api.py`, 38 rutas bajo `/api` a fecha de `db366b8`)
+- **La API** es un servicio FastAPI (`app/api.py`, 40 rutas bajo `/api` a fecha de `8ee42f0`, el `app/` que publica el Space en `7c09d90`)
   **montado en el mismo Space de Gradio** que ya existía, con Gradio en la raíz
   como motor y respaldo. **Reutiliza el motor y ayudantes de Gradio**, pero sus
   adaptadores contienen lógica propia: topes, cobro, aislamiento y degradación
@@ -394,7 +394,7 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   demostrar equivalencia. El inicio de sesión frena los intentos fallidos en una hora: 15 por IP y,
   desde `514786b`, 20 por usuario, porque la IP sale de una cabecera que puede
   escribir el cliente. Solo cuentan los que fallan, y son valores por defecto
-  que se cambian por variable de entorno. La identidad del lector
+  que se cambian por variable de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora —40 medidas de nivel o de capítulo y 6 curvas nuevas— y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, a fecha de `2bb1276`, la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo. La identidad del lector
   viaja en una cabecera (`X-Lector`) y sus datos siguen en el bucket montado en
   `/data`. El primer montaje falló —el proxy de renderizado en servidor de
   Gradio no dejaba pasar `/api`— y el segundo, sin ese proxy, es el que está en
@@ -410,8 +410,8 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   lectura de Alicia en Angular, diccionario sin perfil y rechazo de voz anónima.
   No se probó OpenAI real ni micrófono físico en ese cierre. Evidencia:
   `auditoria/despliegue_codex_2026-09-13_noche.md`.
-  Recuento local a fecha de `db366b8` (14 de septiembre, árbol de `app/`
-  limpio): 40 de 40 pruebas API y las 346 pruebas extremas del motor.
+  Recuento en árbol limpio a fecha de `8ee42f0` (14 de septiembre, el `app/`
+  que publica `7c09d90`): 51 de 51 pruebas API, 349 pruebas extremas y 24 de corpus.
 
 **Lo que el front añadió a la usabilidad en un día.** Tres cosas, y las tres
 salieron de mirar cómo se usa un teléfono:
@@ -440,12 +440,11 @@ salieron de mirar cómo se usa un teléfono:
   en la ficha de cada sonido y en la corrección —primero el sonido que falla y
   después la palabra—, y con «reducir movimiento» del sistema los deja quietos.
 
-**No confundir el avance local con la entrega publicada.** Al corte anterior,
-Blender tenía una demo local del corte 3D, pendiente de integración pública y
-revisión anatómica; el respaldo publicado seguía siendo 2D. Las portadas FLUX
-no se generaron: el pipeline exige saldo, tarifa actual, aprobación de muestras
-y permiso separado para publicar. La selección local de 1.200 libros contiene
-746 motivos temáticos y 454 genéricos. Su calidad visual sigue sin comprobarse.
+**Boca 3D y portadas, a fecha del front `45d9999`.** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
+
+**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. El validador garantiza la precisión de lo que se enseña, no que se enseñe todo. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
+
+**Primeros usuarios.** Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un hueco: una lectora B1 buscó libros de amor y encontró pocos. El catálogo le da la razón: con *love*, *romance* o *courtship* en los temas o el gancho, la franja de recomendación de B1 (0,55 a 1,05) tiene 1 título y la de B2, 28, porque la novela romántica de Gutenberg está casi toda en C1 y C2 y los cuentos libres no tratan de amor. Es un hueco de composición del catálogo, no de tamaño.
 El enlace del lector es https://mikemaki1763-literalevel-front.static.hf.space/ .
 
 ---
@@ -578,7 +577,7 @@ Si alguien pregunta «¿y por qué no promediáis las tres?», la respuesta es e
 cada una mide una cosa distinta, y promediarlas escondería justo lo que se
 aprendió. Además, a fecha de `377a650`, el catálogo de la aplicación suma 15.357 textos de licencia
 libre de esas bibliotecas y de VOA (14.500 de StoryWeaver, 326 de Let's Read, 278 de
-African Storybook y 253 de VOA), con la dificultad que mide el modelo.
+African Storybook y 253 de VOA), con la dificultad que mide el modelo. Un cuento corto medido dentro de un bloque lo dice (`medido_en_bloque`); la atribución que exige su licencia se enseña pero no se puntúa («Doggie is Happy», 0,349 con ella y 0,007 sin ella); el texto servido sale sin páginas repetidas ni U+FEFF sin cambiar lo medido; y al recomendar por nivel ocupan un tercio de las tarjetas, por cercanía al nivel del lector (a fecha de `7c09d90`).
 
 ---
 

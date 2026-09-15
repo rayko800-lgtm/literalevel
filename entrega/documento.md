@@ -354,7 +354,7 @@ es orientativa, porque la escala del modelo sale comprimida y desplazada hacia
 arriba (7.5), y el reparto describe el catálogo de Gutenberg, no la dificultad
 de la lectura en inglés en general.
 
-**Y fuera de Gutenberg.** A fecha de `377a650`, el catálogo suma además **15.357 textos de licencia libre** medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 599 libros.
+**Y fuera de Gutenberg.** A fecha de `377a650`, el catálogo suma además **15.357 textos de licencia libre** medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 599 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
 
 **(c) De aquellos 1.197 libros, solo 148 se podían abrir.** Eran los de Project
 Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero
@@ -1258,7 +1258,7 @@ argumenta en lugar de ocultarse.
 **Estado documental al 14 de septiembre de 2026.** El enlace para el lector es
 https://mikemaki1763-literalevel-front.static.hf.space/ . Es el front Angular;
 el Space `MikeMaki1763/literalevel` aloja FastAPI y conserva Gradio como respaldo.
-La API tiene **38 rutas bajo `/api`** a fecha de `db366b8`, contadas en el
+La API tiene **40 rutas bajo `/api`** a fecha de `8ee42f0` (el `app/` que publica el Space en `7c09d90`), contadas en el
 código local, y reutiliza
 los módulos Python y ayudantes de acceso. Sus adaptadores tienen lógica propia
 y se prueban por separado: compartir funciones no garantiza por sí solo que
@@ -1266,9 +1266,9 @@ ambas interfaces cobren, almacenen o respondan igual. El inicio de sesión
 frena los intentos fallidos en una hora: 15 por IP y, desde `514786b`, 20 por
 usuario, porque la IP sale de una cabecera que puede escribir el cliente. Solo
 cuentan los que fallan, y son valores por defecto que se cambian por variable
-de entorno.
+de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora —40 medidas de nivel o de capítulo y 6 curvas nuevas— y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, a fecha de `2bb1276`, la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo.
 
-El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `377a650`, el catálogo externo de textos libres tiene 15.357 filas y los vectores de búsqueda suman 68.536 (53.179 + 15.357). El Space publicado (reinicio del 14 de septiembre, `26b303c`) cuenta los mismos 68.536 libros en `/api/estado`. Esto confirma el tamaño del artefacto, no repite su inferencia ni
+El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `377a650`, el catálogo externo de textos libres tiene 15.357 filas y los vectores de búsqueda suman 68.536 (53.179 + 15.357). El Space publicado cuenta los mismos 68.536 libros en `/api/estado` a fecha de `7c09d90`. Esto confirma el tamaño del artefacto, no repite su inferencia ni
 garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
 excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos,
 directorios), y por nivel solo se ofrecen obras literarias. Una medida del
@@ -1282,18 +1282,15 @@ de voz anónima. En el entorno local aislado pasaron **32 de 35 pruebas API**;
 tres quedaron sin validar por dependencias NLP ausentes. También pasaron 7
 pruebas de concurrencia de voz, 10 de despliegue y 11 de portadas, con sus
 alcances separados. No se probó OpenAI real ni micrófono físico en ese cierre.
-Recuento local a fecha de `db366b8` (14 de septiembre, árbol de `app/` limpio):
-**40 de 40 pruebas API** y las **346 pruebas extremas** del motor.
+Recuento en árbol limpio a fecha de `8ee42f0` (14 de septiembre, el `app/` que publica
+`7c09d90`): **51 de 51 pruebas API**, las **349 pruebas extremas** del motor y 24 de corpus.
 La consulta de *house* eligió un sentido no adecuado al contexto: disponibilidad
 del diccionario no demuestra que su desambiguación sea correcta en todos los
 casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
 
-**Portadas y Blender no se cuentan como producto publicado en ese corte.** El
-pipeline de portadas está bloqueado por defecto; no generó imágenes nuevas con
-FLUX ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454
-genéricos, pendientes de muestra y revisión visual. El corte de boca 3D tiene
-una demo local validada, pero su integración pública no se da por terminada
-hasta comprobarla en Angular. Se mantiene el recurso 2D existente como respaldo.
+**Boca 3D y portadas, a fecha del front `45d9999`.** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
+
+**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. El validador garantiza la precisión de lo que se enseña, no que se enseñe todo. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
 
 ### 8.6 Contra quién compite esto
 
@@ -1440,7 +1437,7 @@ repetirlo en cada párrafo corregido.
 13. **La prueba de usuario tiene n = 2.** Esmeralda y Laura son dos lectoras.
     Su valor es cualitativo y de diagnóstico, no estadístico: sirve para
     encontrar fallos de usabilidad graves —y encontraron varios—, no para
-    estimar satisfacción media.
+    estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un hueco: una lectora B1 buscó libros de amor y encontró pocos. El catálogo le da la razón: con *love*, *romance* o *courtship* en los temas o el gancho, la franja de recomendación de B1 (0,55 a 1,05) tiene 1 título y la de B2, 28, porque la novela romántica de Gutenberg está casi toda en C1 y C2 y los cuentos libres no tratan de amor. Es un hueco de composición del catálogo, no de tamaño.
 14. **La explicación contextual depende de un servicio externo de pago.** Sin
     clave, la aplicación sigue funcionando en todo lo que no sale a la red
     desde el servidor: diccionario, fonética, buscador y puntuación. Los

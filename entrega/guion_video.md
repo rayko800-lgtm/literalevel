@@ -70,10 +70,9 @@ del profesor.
 - **Grabación de respaldo.** Graba antes el mismo recorrido. Si en directo algo
   falla y se usa, va rotulada en pantalla como **grabación previa**: nunca se
   presenta una reproducción como respuesta en vivo.
-- **La boca en 3D, de lejos.** Hasta que el front desplegado lleve los `.glb`
-  corregidos (rama `boca3d`, 75f334a), la lengua que carga es la anterior y roza
-  los dientes en seis sonidos, entre ellos las dos *th*. Si se abre el 3D, no
-  acercar la cámara a la lengua; para enseñar el movimiento basta el corte 2D.
+- **La boca en 3D.** El front publicado (`45d9999`) ya lleva la cabeza de MakeHuman
+  y la lengua corregida de la rama `boca3d` (75f334a está en `master`). Aun así,
+  comprobarla en el móvil antes de grabar; si no carga, basta el corte 2D.
 
 ---
 

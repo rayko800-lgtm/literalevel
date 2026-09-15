@@ -43,8 +43,9 @@ Una por una, y marcando:
 - [ ] **Frase de voz ensayada:** «Don't you want to come with us?». Leerla
       **una vez antes** en *Pronunciar*, para que su análisis quede guardado y en
       directo salga sin esperar. Verificada en el Space publicado a fecha de
-      `de36496` (reinicio 9, comprobado por f4): salen *doncha* y *wanna*
+      `7c09d90` (14 de septiembre, comprobado por f4): salen *doncha* y *wanna*
       marcadas IA, el audio natural y el intento en el historial del ritmo.
+      **No sale ningún enlace**: no prometer el arco de *with us*.
 - [ ] **Auriculares con micrófono** conectados y probados. Nivel de entrada
       comprobado en el sistema.
 - [ ] **«Reducir movimiento» apagado** en el sistema: con él encendido, la boca
@@ -125,12 +126,12 @@ bien dicho y veo a la vez cómo se mueve la boca, también más despacio.»
 **6. Que no suene robótico (2:50 – 3:20)**
 
 **Hace:** escribe «Don't you want to come with us?», graba, corrige. Señala el
-«aquí sin pausa», el arco entre *with* y *us*, y las reducciones. Pulsa
+«aquí sin pausa» y las reducciones. Pulsa
 «Escúchalo natural».
 
 **Dice:** «Cuando se lee palabra a palabra suena cortado. La aplicación mide
 dónde me paré y me enseña cómo se dice de corrido: *don't you* suena
-*doncha*, *want to* suena *wanna*, y *with us* va unido. Y así suena natural.»
+*doncha* y *want to* suena *wanna*. Y así suena natural.»
 
 **7. Mis palabras (3:20 – 3:40)**
 
