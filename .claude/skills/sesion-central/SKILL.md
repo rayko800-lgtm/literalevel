@@ -288,3 +288,24 @@ por corrida, y el banco de mutantes corre la suite una vez por mutante. Había
 carpeta temporal con un helper que la borre al salir (`atexit`) y que acepte
 `LITERALEVEL_TMP` para mandarla a D:, y una comprobación de que tras correr
 no queda carpeta nueva.
+
+## 9. Un despliegue bloqueado por cambios sin commit de otra sesión
+
+La madrugada del 15 de septiembre el reinicio 19 se paró a medias: el
+desplegador sube desde el commit, pero su guarda exige que los archivos
+seleccionados estén limpios en el disco, y `app/voz.py` y `app/lexicon.py`
+tenían los arreglos en curso de 4e para el reinicio siguiente. La desplegadora
+hizo bien en no esquivar la guarda. Opciones y cuál elegir:
+
+- **Partir el reinicio** (subir ya lo que no depende de esos archivos):
+  solo si esa mezcla pasó por un árbol limpio. Aquí no, así que no.
+- **Esperar al commit de la otra sesión**: cambia lo que se sube y obliga a
+  rehacer el árbol limpio. Solo si ya está a punto.
+- **Lo que se hizo:** la dueña de los cambios los guarda un momento con
+  `git stash push -m <nombre> -- <solo sus archivos>`, avisa a la
+  desplegadora, esta sube lo probado y avisa «subido», y la dueña hace
+  `git stash pop`. Nadie toca cambios ajenos, y lo que llega al Space es
+  exactamente lo que se probó.
+
+Para no repetirlo: antes de pedir un reinicio, la central pregunta a las
+sesiones que tocan esos archivos si tienen cambios sin commit.
