@@ -632,6 +632,67 @@ def _nombre_parecido_sin_tema_no_rescata():
 prueba("un nombre parecido sin tema no rescata", _nombre_parecido_sin_tema_no_rescata)
 
 
+def _autor_gana_al_titulo_a_igual_rescate():
+    """Reinicio 27 (Central): «tolstoy» traia primero «My Visit to Tolstoy» y «The Life of Tolstoy», que casan
+    el titulo entero, empatados con sus obras, que casan el apellido; desempataba el tema. A igual rescate, gana
+    el autor, con y sin nivel."""
+    cat = _catalogo_de_mentira([0.30, 0.20, 0.40], ["My Visit to Tolstoy", "The Cossacks", "Uno"],
+                               ["Krauskopf, Joseph", "Tolstoy, Leo, graf", "Smith, John"])
+    for nivel in (None, 0.8):
+        ids = [l.id for l in cat.buscar("tolstoy", nivel_lector=nivel, n=3)[0]]
+        assert ids[:2] == ["PG1", "PG0"], f"«tolstoy» con nivel {nivel}: {ids}"
+    # Un colaborador no es el autor: «Tolstoy» como segundo autor no gana a su propia obra.
+    colab = _catalogo_de_mentira([0.30, 0.20, 0.40], ["Tolstoy on Art", "The Cossacks", "Uno"],
+                                 ["Maude, Aylmer; Tolstoy, Leo, graf [Contributor]", "Tolstoy, Leo, graf", "Smith, John"])
+    ids = [l.id for l in colab.buscar("tolstoy", n=3)[0]]
+    assert ids[0] == "PG1", f"«tolstoy»: el libro donde colabora pasa delante de su obra: {ids}"
+    return "sus obras delante de los libros sobre el, con y sin nivel"
+
+
+prueba("a igual rescate el autor gana al titulo", _autor_gana_al_titulo_a_igual_rescate)
+
+
+def _autor_con_obra_pasa_la_compuerta():
+    """Reinicio 27 (Central, regla a con N=5): «cervantes» no traia ninguna obra suya, porque MiniLM casi no une el
+    apellido con sus libros y la compuerta de tema apagaba el rescate. Con al menos 5 obras, el apellido exacto del
+    primer autor pasa; con 4, la compuerta sigue mandando. «amor» (nombre de pila de «Fenn, Amor») sigue fuera."""
+    def con(obras):
+        s = [0.72, 0.70] + [0.30] * obras
+        titulos = ["History of Beasts", "Heads and Tales"] + [f"Novela {i}" for i in range(obras)]
+        autores = ["Unknown", "White, Adam"] + ["Cervantes Saavedra, Miguel de, 1547-1616"] * obras
+        return _catalogo_de_mentira(s, titulos, autores)
+    ids = [l.id for l in con(5).buscar("cervantes", n=3)[0]]
+    assert ids[0] not in ("PG0", "PG1"), f"con 5 obras la compuerta apaga a Cervantes: {ids}"
+    ids = [l.id for l in con(4).buscar("cervantes", n=3)[0]]
+    assert ids[:2] == ["PG0", "PG1"], f"con 4 obras la compuerta tendria que mandar: {ids}"
+    fenn = _catalogo_de_mentira([0.62, 0.76] + [0.20] * 5, ["Design and tradition", "A Dozen Ways Of Love"]
+                                + [f"Otro {i}" for i in range(5)],
+                                ["Fenn, Amor, 1863-1933", "Dougall, L."] + ["Fenn, Amor, 1863-1933"] * 5)
+    ids = [l.id for l in fenn.buscar("amor", n=2)[0]]
+    assert ids[0] == "PG1", f"«amor» vuelve a traer a Fenn, Amor: {ids}"
+    return "5 obras pasan la compuerta; 4 no; «amor» sigue sin Fenn aunque tenga obra"
+
+
+prueba("un autor con obra pasa la compuerta de tema", _autor_con_obra_pasa_la_compuerta)
+
+
+def _primer_autor_antes_que_el_nivel_en_los_nombres():
+    """Reinicio 27, punto 2: «Jane Austen» con B1 abria con «Pride and Prejudice, a play» de MacKaye, coautora
+    Austen, porque dentro de la ventana de nombres ordenaba el nivel (la obra de teatro C1, las novelas C2). Con
+    nivel, primero el primer autor que lleva todo el nombre pedido; sin nivel, igual que siempre."""
+    cat = _catalogo_de_mentira([0.40, 0.35, 0.30], ["Pride and Prejudice, a play", "Emma", "Uno"],
+                               ["MacKaye, Steele, Mrs., 1845-1924; Austen, Jane, 1775-1817", "Austen, Jane, 1775-1817",
+                                "Smith, John"])
+    cat.df["dificultad"] = [0.9, 1.9, 0.8]
+    ids = [l.id for l in cat.buscar("Jane Austen", nivel_lector=0.8, n=3)[0]]
+    assert ids[0] == "PG1", f"«Jane Austen» con B1 abre con la adaptacion de la coautora: {ids}"
+    # Sin nivel no cambia nada: esa rama ordena por puntuacion (en el catalogo real, sus obras ya iban primero).
+    return "con B1, la novela de Austen antes que la adaptacion de su coautora"
+
+
+prueba("el primer autor va antes que el nivel entre los nombres", _primer_autor_antes_que_el_nivel_en_los_nombres)
+
+
 def _franja_trae_su_nivel_detras_de_los_n():
     """Reinicio 23 (e6, 4db6ea3): con A2, «Fantasmas» no traia ninguno de los 40 cuentos
     de fantasmas de A2-B1, porque el techo lo ponia «True Ghost Stories» y la ventana de
@@ -712,6 +773,28 @@ def _franja_trae_su_nivel_detras_de_los_n():
 
 
 prueba("la franja trae su nivel detras de los n", _franja_trae_su_nivel_detras_de_los_n)
+
+
+def _buscador_listo_solo_con_todo_cargado():
+    """Reinicio 27: `listo_para_buscar` es false hasta que una busqueda ha dejado cargados el modelo, los
+    titulos comprobados y los indices de nombres, y true despues. Sin atributos (un Catalogo a medio
+    construir) tambien false, sin lanzar."""
+    cat = _catalogo_de_mentira([0.7, 0.5], ["Uno", "Dos"], ["Smith, John", "Lee, Ann"])
+    assert cat.listo_para_buscar() is False, "antes de buscar no esta listo"
+    cat.buscar("espectros", nivel_lector=0.4, n=1, franja=True)     # deja embeddings, titulos e indices
+    cat._modelo = object()                                          # el de mentira no lo guarda en _modelo
+    assert cat.listo_para_buscar() is True, "con todo cargado tendria que estar listo"
+    for atributo, falta in (("_modelo", None), ("_emb_tit", False), ("_nombres", None), ("_emb", None)):
+        guardado = getattr(cat, atributo)
+        setattr(cat, atributo, falta)
+        assert cat.listo_para_buscar() is False, f"listo sin {atributo}"
+        setattr(cat, atributo, guardado)
+    vacio = object.__new__(cm.Catalogo)
+    assert vacio.listo_para_buscar() is False
+    return "true con todo cargado; false si falta el modelo, los titulos, los indices o los embeddings"
+
+
+prueba("el buscador esta listo solo con todo cargado", _buscador_listo_solo_con_todo_cargado)
 
 
 def _autor_entero_delante_y_parciales_fuera():

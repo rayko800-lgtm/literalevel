@@ -233,6 +233,18 @@ _PARECIDO_TITULO = 0.9
 # Prejudice quedaban detrás (solo el apellido, 0,793), empatadas con Sidney Austen y
 # con «Calamity Jane» (prueba como persona de e6, 15 sep 2026).
 _EXTRA_AUTOR_COMPLETO = 0.02
+# A igual rescate, el autor gana al titulo (Central, reinicio 27): «tolstoy» empataba a 0,856 sus obras
+# (apellido exacto) con «My Visit to Tolstoy» o «The Life of Tolstoy» (titulo exacto), y desempataba el tema,
+# que MiniLM da mas alto a los libros SOBRE el. Pequeno a proposito: menor que MARGEN_NOMBRE (0,02), asi que no
+# saca a nadie de la ventana de nombres, y menor que _EXTRA_AUTOR_COMPLETO, asi que el nombre entero sigue mandando.
+_EXTRA_AUTOR_SOBRE_TITULO = 0.005      # solo al primer autor del campo, no a colaboradores ni traductores
+# La compuerta de tema (MARGEN_SEMANTICO_NOMBRE) no apaga a un autor con al menos este numero de obras cuando la
+# consulta trae su apellido exacto (Central, reinicio 27). MiniLM casi no une «cervantes», «dante», «moliere» o
+# «agatha christie» con sus libros (tema 0,24-0,52 frente a techos de 0,57-0,75 de libros de animales o
+# dentistas), y la compuerta apagaba todo el rescate. Riesgo medido antes de escribirlo con 100 palabras de tema
+# (auditoria/palabras_de_tema_2026-09-15.txt, 50 en espanol y 50 en ingles): 7 coinciden con el apellido de un
+# autor de 5 obras o mas (school, brown, grey, castle, king, hope, london) y en ninguna cambia el top 10.
+MIN_OBRAS_AUTOR_SIN_COMPUERTA = 5
 # Reinicio 23: los cuentos de la franja del lector que el techo global dejaba fuera.
 # «Fantasmas», «amor» o «Navidad» con A2 no traian ninguno de sus 40, 71 o 32 cuentos
 # de A2-B1: el techo lo ponia un Gutenberg de titulo exacto y la ventana de
@@ -513,6 +525,30 @@ class Catalogo:
         titulos = self.df["title"].fillna("").astype(str).tolist()[n:]
         h = hashlib.sha256("\x1f".join(ids + titulos).encode("utf-8"))
         return titulos, h.hexdigest()[:16]
+
+    def _autor_con_obra(self, pistas: set[str]) -> np.ndarray:
+        """Filas cuyo PRIMER autor tiene una de `pistas` como apellido exacto y al menos
+        MIN_OBRAS_AUTOR_SIN_COMPUERTA obras en el catalogo (contadas por su primer autor)."""
+        if getattr(self, "_obras_primer_autor", None) is None:
+            primeros = [str(a).split(";")[0].strip() for a in self.df["author"].tolist()]
+            cuenta: dict[str, int] = {}
+            for p in primeros:
+                cuenta[p] = cuenta.get(p, 0) + 1
+            self._obras_primer_autor = np.array([cuenta[p] if p else 0 for p in primeros])
+        if getattr(self, "_primeros", None) is None:
+            self._primeros = _fichas([_apellidos(str(a).split(";")[0]) for a in self.df["author"].tolist()])
+        con_obra = self._obras_primer_autor >= MIN_OBRAS_AUTOR_SIN_COMPUERTA
+        return np.array([bool(con_obra[i] and pistas & self._primeros[i]) for i in range(len(self.df))])
+
+    def listo_para_buscar(self) -> bool:
+        """Si una busqueda con nivel ya no espera a cargar nada: embeddings en memoria, modelo MiniLM,
+        el .npy de titulos comprobado (cargado o sabido que no hay) y los indices de nombres. Es lo que
+        deja la precarga (reinicio 26). Solo mira atributos: /api/salud tiene que seguir siendo barata
+        (reinicio 27; /api/salud decia `catalogo: true` 25 s antes de que acabara el modelo)."""
+        return (getattr(self, "_emb", None) is not None
+                and getattr(self, "_modelo", None) is not None
+                and getattr(self, "_emb_tit", False) is not False
+                and getattr(self, "_nombres", None) is not None)
 
     def emb_titulos(self, calcular: bool = False) -> np.ndarray | None:
         """El vector del titulo solo de cada texto externo, para el parecido de la franja:
@@ -854,6 +890,13 @@ class Catalogo:
                 de_pila = set().union(*(pila_de.get(a, set()) for a in apellidos[i]))
                 if (pistas & de_pila) - enteros[i]:
                     por_apellido[i] = 0.0
+        # Solo si la palabra es apellido del PRIMER autor del campo: «rosa» como apellido de un colaborador
+        # («Kennedy, James; Martinez de la Rosa, Francisco») no puede pasar delante de los titulos con «Rosa».
+        if getattr(self, "_primeros", None) is None:
+            self._primeros = _fichas([_apellidos(str(a).split(";")[0]) for a in self.df["author"].tolist()])
+        for i in np.flatnonzero(por_apellido >= _PARECIDO_NOMBRE):
+            if pistas & self._primeros[i]:
+                por_apellido[i] += _EXTRA_AUTOR_SOBRE_TITULO
         completo = _titulo_completo(consulta, enteros)
         lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),
                                  np.where((completo > 0) & con_apellido & (len(pistas) > 1),
@@ -862,7 +905,8 @@ class Catalogo:
         con_nombre = (lex >= _PARECIDO_NOMBRE) & validos
         if con_nombre.any() and validos.any() and \
                 float(sem[con_nombre].max()) < float(sem[validos].max()) - MARGEN_SEMANTICO_NOMBRE:
-            lex = np.zeros_like(lex)          # se escribe parecido y no tiene que ver con lo pedido
+            # se escribe parecido y no tiene que ver con lo pedido; salvo el apellido exacto de un autor con obra
+            lex = np.where(self._autor_con_obra(pistas), lex, 0.0)
         # Entre libros con el mismo acierto de nombre (dos ediciones del mismo
         # titulo) desempata el tema, con un peso que no puede adelantar a un
         # nombre mas completo.
@@ -889,7 +933,16 @@ class Catalogo:
             mejor_nombre = float(lex[validos].max()) if validos.any() else 0.0
             nombre = (lex >= _PARECIDO_NOMBRE) & (lex >= mejor_nombre - MARGEN_NOMBRE)
             clave = np.where(nombre | relevante, total, sim)
-            orden = np.lexsort((-clave, ~(relevante | nombre), ~nombre))
+            # Dentro de la ventana de nombres, primero el PRIMER autor con todas las palabras de la consulta en su
+            # nombre entero; despues el nivel (Central, reinicio 27): «Jane Austen» con B1 abria con la adaptacion
+            # de MacKaye, coautora Austen, por estar mas cerca de B1 que las novelas.
+            if getattr(self, "_enteros_primero", None) is None:
+                self._enteros_primero = _fichas([_nombre_entero(str(a).split(";")[0]) for a in self.df["author"].tolist()])
+            primero = np.zeros(len(lex), dtype=bool)
+            if pistas:
+                for i in np.flatnonzero(nombre):
+                    primero[i] = pistas <= self._enteros_primero[i]
+            orden = np.lexsort((-clave, ~primero, ~(relevante | nombre), ~nombre))
         libros, flojos = [], 0
         # El orden entero hasta llenar n: con `orden[:n * 3]`, si en esos puestos
         # habia mas de 2n excluidos o flojos, la lista salia corta aunque hubiera

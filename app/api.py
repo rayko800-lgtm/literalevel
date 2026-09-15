@@ -745,7 +745,10 @@ def salud() -> dict:
     return {"estado": "ok", "api": VERSION,
             "cargado": {"puntuador": ui._puntuador is not None,
                         "catalogo": ui._catalogo is not None,
-                        "consultor": ui._consultor is not None}}
+                        "consultor": ui._consultor is not None},
+            # Reinicio 27: true solo si una busqueda con nivel no espera a cargar nada (modelo, titulos
+            # e indices de nombres). `catalogo` era true 25 s antes; el guion del video espera a este.
+            "buscador_listo": bool(ui._catalogo is not None and ui._catalogo.listo_para_buscar())}
 
 
 @app.get("/api/estado")
@@ -1207,6 +1210,10 @@ def _resumen_curva(fuente: str | None, datos: dict | None) -> dict:
              "se_suelta" if principio - final > 0.12 else "pareja")
     facil = min(filas, key=lambda f: f["dificultad"])
     dificil = max(filas, key=lambda f: f["dificultad"])
+    if len(filas) == 1:
+        # Un cuento de un solo capitulo no tiene forma ni capitulo mas facil o mas dificil: con una fila,
+        # `final` era sum([]) / 1 = 0 y salia «se va soltando», y facil y dificil eran la misma (e6, reinicio 27).
+        forma = facil = dificil = None
     return {
         "fuente": fuente, "global": round(global_, 3), "cefr": ui._cefr(global_),
         "banda": scoring.public_band(global_), "forma": forma,
@@ -1919,10 +1926,11 @@ def _corregir_voz(pet: _Lector, frase: str, acento: str, ext: str, contenido: by
         if config.falta():
             raise _no(503, "Para corregir la pronunciación hace falta la clave de OpenAI. "
                            "Lo demás de la aplicación no la necesita.")
-        # El codigo que se va a cobrar, leido antes: la devolucion por silencio va a esa cuenta
-        # aunque la sesion cambie durante whisper (reinicio 26; ver `_cobrar`).
+        # El codigo se lee UNA vez y va al cobro y a la devolucion por silencio: si la sesion cambia de
+        # cuenta a mitad, se cobra y se devuelve a la misma (reinicio 27, con e6: `ui._puede_pagar`
+        # cobra al codigo que se le pasa sin releer la sesion).
         codigo = ui._codigo_de(pet)
-        puede, motivo = ui._puede_pagar(pet)
+        puede, motivo = ui._puede_pagar(pet, codigo)
         if not puede:
             raise _no(403, motivo)
         devuelto = False

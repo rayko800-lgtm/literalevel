@@ -337,16 +337,26 @@ def devolver_por_silencio(base: Path, codigo: str | None, hoy: str | None = None
             except Exception:
                 todas = {}
             dia = todas.get(hoy) if isinstance(todas, dict) and isinstance(todas.get(hoy), dict) else {}
-            n = int(dia.get(cuenta.nombre, 0)) + 1
+            try:
+                previas = int(dia.get(cuenta.nombre, 0))
+            except (TypeError, ValueError):
+                previas = 0      # una entrada rara no deja sin devoluciones el resto del dia (4e, reinicio 27)
+            n = previas + 1
             tmp = _ruta_devoluciones(b).with_suffix(".tmp")
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump({hoy: {**dia, cuenta.nombre: n}}, f)      # solo el dia de hoy
-            os.replace(tmp, _ruta_devoluciones(b))
             if n > MAX_DEVOLUCIONES_SILENCIO:
+                os.replace(tmp, _ruta_devoluciones(b))
                 print(f"cuentas: {cuenta.nombre} lleva {n} grabaciones sin voz hoy; no se devuelve",
                       file=sys.stderr)
                 return False
-            return _restar_ya_con_candado(b, cuenta)
+            # Solo cuenta si de verdad se devuelve: con el contador a 0 (nada cobrado) o si restar lanza, el
+            # intento no gasta un hueco de los del dia (4e, reinicio 27).
+            if not _restar_ya_con_candado(b, cuenta):
+                tmp.unlink(missing_ok=True)
+                return False
+            os.replace(tmp, _ruta_devoluciones(b))
+            return True
     except Exception:
         return False
 

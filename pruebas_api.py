@@ -511,7 +511,7 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     voz.practicar = practicar_doble
     fonemas.ipa_de_palabra = ipa_espia
     config.falta = lambda: False
-    ui._puede_pagar = lambda pet: (True, "")
+    ui._puede_pagar = lambda pet, *a, **k: (True, "")
     api._va_a_costar = lambda pet: False
     try:
         r = _ok(cliente.post("/api/voz", headers=lector, data={"frase": "The red raincoat.", "acento": "UK"},
@@ -545,7 +545,7 @@ def voz_prepara_temporal_antes_de_cobrar():
     mkstemp_real, fdopen_real = tempfile.mkstemp, os.fdopen
     creados, reservas = [], []
 
-    def reservar(pet):
+    def reservar(pet, *a, **k):
         reservas.append(1)
         return False, "Cupo agotado."
 
@@ -1110,7 +1110,7 @@ def voz_sin_voz_devuelve_a_la_cuenta_cobrada():
         with patch.object(api.config, "falta", return_value=[]), \
                 patch.object(api, "_va_a_costar", return_value=False), \
                 patch.object(ui, "_codigo_de", lambda pet: "invitado:LLAVE-B"), \
-                patch.object(ui, "_puede_pagar", lambda pet: (True, "")), \
+                patch.object(ui, "_puede_pagar", lambda pet, *a, **k: (True, "")), \
                 patch.object(api.voz, "practicar", practicar), \
                 patch.object(api.cuentas, "devolver_por_silencio",
                              lambda base, codigo, hoy=None: (llamadas.append((caso, codigo)), True)[1]):
@@ -1122,6 +1122,96 @@ def voz_sin_voz_devuelve_a_la_cuenta_cobrada():
     assert resultados == {"silencio": True, "red": False, "voz": False}, resultados
     assert origenes == ["api", "api", "api"], origenes
     return "silencio devuelve a la cuenta cobrada; red y voz no; origen api"
+
+
+def salud_dice_si_el_buscador_esta_listo():
+    """Reinicio 27: /api/salud lleva `buscador_listo`, siempre presente. False sin catalogo cargado o con uno
+    a medias; true solo si el catalogo dice que ya no espera a nada."""
+    from types import SimpleNamespace as NS
+    viejo = ui._catalogo
+    vistos = []
+    try:
+        for cat, esperado in ((None, False), (NS(listo_para_buscar=lambda: False), False),
+                              (NS(listo_para_buscar=lambda: True), True)):
+            ui._catalogo = cat
+            j = _ok(cliente.get("/api/salud"))
+            vistos.append(j.get("buscador_listo"))
+            assert j.get("buscador_listo") is esperado, (cat, j)
+    finally:
+        ui._catalogo = viejo
+    return f"buscador_listo {vistos}"
+
+
+def voz_cobra_y_devuelve_a_la_misma_cuenta():
+    """Reinicio 27 (menor de 4e sobre 49a8e4d): el codigo se leia dos veces, antes de cobrar y otra vez
+    dentro de `_puede_pagar`. Con una sesion que cambia de A a B justo ahi, se cobraba a una y se devolvia
+    a otra. Ahora /api/voz lee el codigo una vez y lo pasa al cobro y a la devolucion."""
+    from types import SimpleNamespace as NS
+    from unittest.mock import patch
+
+    lecturas, cobros, devueltos = [], [], []
+
+    def codigo_de(pet):
+        lecturas.append(1)
+        return "cuenta-A" if len(lecturas) == 1 else "cuenta-B"
+
+    ev = NS(palabras_falladas=[], puntuacion=0, transcripcion="", palabras_objetivo=["the"], entendidas=[])
+    sesion = NS(evaluacion=ev, transcripcion_ok=False, correccion=None, audio_correcto=None,
+                audios_palabras={}, ritmo=None, sin_voz=True)
+    with patch.object(api.config, "falta", return_value=[]),             patch.object(api, "_va_a_costar", return_value=False),             patch.object(ui, "_codigo_de", codigo_de),             patch.object(ui, "_puede_pagar", lambda pet, codigo=None: (cobros.append(codigo), (True, ""))[1]),             patch.object(api.voz, "practicar", lambda *a, **k: sesion),             patch.object(api.cuentas, "devolver_por_silencio",
+                         lambda base, codigo, hoy=None: (devueltos.append(codigo), True)[1]):
+        r = cliente.post("/api/voz", headers=nuevo_lector(), data={"frase": "The cat."},
+                         files={"audio": ("voz.webm", b"x" * 2000, "audio/webm")})
+    assert r.status_code == 200, r.text[:200]
+    assert cobros == ["cuenta-A"], f"se cobro a {cobros}"
+    assert devueltos == ["cuenta-A"], f"se devolvio a {devueltos}"
+    return "cobro y devolucion a la cuenta A aunque la sesion paso a B"
+
+
+def curva_de_un_solo_capitulo_sin_forma():
+    """Reinicio 27 (e6): con una sola fila, `_resumen_curva` no dice «se va soltando» ni pone el mismo capitulo
+    como facil y dificil: forma, facil y dificil van a None. Con dos filas sigue como siempre, y sin filas igual."""
+    una = api._resumen_curva("completo", {"filas": [{"capitulo": 1, "indice": 0, "dificultad": 0.8}]})
+    assert (una["forma"], una["facil"], una["dificil"]) == (None, None, None), una
+    assert una["filas"] and una["global"] is not None, una
+    dos = api._resumen_curva("completo", {"filas": [{"capitulo": 1, "indice": 0, "dificultad": 0.4},
+                                                    {"capitulo": 2, "indice": 1, "dificultad": 0.8}]})
+    assert dos["forma"] == "se_complica", dos["forma"]
+    assert dos["facil"]["capitulo"] == 1 and dos["dificil"]["capitulo"] == 2, (dos["facil"], dos["dificil"])
+    assert api._resumen_curva("completo", {"filas": []}) == {"fuente": None, "filas": []}
+    return "una fila sin forma ni extremos; dos filas se complica; sin filas igual"
+
+
+def devolucion_sin_cobro_ni_registro_raro():
+    """Reinicio 27 (menores de 4e): sin nada cobrado, `devolver_por_silencio` da False y no gasta un hueco del
+    dia; si restar lanza, tampoco; y una entrada no numerica en el registro cuenta como 0 en vez de dejar sin
+    devolucion el resto del dia."""
+    import json
+    from unittest.mock import patch
+    import cuentas
+
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "invitado:LLAVE-B:40"
+    try:
+        with tempfile.TemporaryDirectory(prefix="ll_devol_menores_") as carpeta:
+            base = Path(carpeta)
+            registro = base / "devoluciones_silencio.json"
+            assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") is False, "sin cobro"
+            assert not registro.exists(), f"sin cobro se apunto: {registro.read_text(encoding='utf-8')}"
+            cuentas.consumir(base, "invitado:LLAVE-B")
+            with patch.object(cuentas, "_restar_ya_con_candado", side_effect=OSError("disco")):
+                assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") is False
+            assert not registro.exists(), "si restar lanza, no se apunta"
+            registro.write_text(json.dumps({"2026-09-15": {"invitado": "abc"}}), encoding="utf-8")
+            assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") is True, "entrada rara"
+            assert json.loads(registro.read_text(encoding="utf-8")) == {"2026-09-15": {"invitado": 1}}
+            assert cuentas.gastado(base, "invitado") == 0
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+    return "sin cobro y con restar roto no apunta; una entrada rara cuenta como 0 y devuelve"
 
 
 def voz_subida_y_palabra_no_bloquean_a_los_demas():
@@ -1187,7 +1277,7 @@ def voz_subida_y_palabra_no_bloquean_a_los_demas():
     # Sin gastar el cupo de subidas por IP y hora: las pruebas de despues lo usan.
     ui._dentro_del_limite = lambda *a, **k: True
     config.falta = lambda: False
-    ui._puede_pagar = lambda pet: (True, "")
+    ui._puede_pagar = lambda pet, *a, **k: (True, "")
     api._va_a_costar = lambda pet: False
     voz.practicar = practicar_lento
     api._cargar_libro = cargar_lento
@@ -1565,7 +1655,7 @@ def ritmo_de_la_lectura_con_nivel_y_audio_natural():
     voz.registrar_ritmo = lambda r, frase, ruta=None: guardados.append((r, frase, Path(ruta).name))
     voz.evolucion_ritmo = evolucion_doble
     config.falta = lambda: False
-    ui._puede_pagar = lambda pet: (True, "")
+    ui._puede_pagar = lambda pet, *a, **k: (True, "")
     api._va_a_costar = lambda pet: False
     api._perfil_de = lambda pet: NS(nivel=1.6) if pet.session_hash == lector["X-Lector"] else None
     try:
@@ -1804,6 +1894,8 @@ if __name__ == "__main__":
                aviso_de_contenido_en_ficha_y_tarjeta, medido_en_bloque_en_ficha_y_tarjeta,
                buscar_devuelve_la_franja_y_la_marca, precarga_y_peticion_comparten_el_catalogo,
                silencio_devuelve_el_uso_con_tope_diario, voz_sin_voz_devuelve_a_la_cuenta_cobrada,
+               salud_dice_si_el_buscador_esta_listo, voz_cobra_y_devuelve_a_la_misma_cuenta,
+               curva_de_un_solo_capitulo_sin_forma, devolucion_sin_cobro_ni_registro_raro,
                voz_subida_y_palabra_no_bloquean_a_los_demas,
                validacion_sin_eco_de_la_entrada, dos_subidas_a_la_vez_no_pasan_el_tope_ni_rompen_los_nombres,
                cache_lexica_serializa_la_conexion_entre_hilos,
