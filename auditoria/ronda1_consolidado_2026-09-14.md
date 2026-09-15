@@ -467,3 +467,14 @@ Prueba de dos segmentos (4e, bf6aa0a, solo pruebas):
 - **Casos:** «you» con 0,943 queda como no oído; «Thank you for watching.» con 0,897, no oído; 0,503, oído; dos segmentos de 0,9 y 0,2, oído.
 - **Mutantes:** 10 de 10, incluido el cambio de `all` por `any`.
 - **Límite:** una respuesta sin segments cuenta como oída. whisper-1 siempre los trajo al pedirlos.
+
+Reinicio 25 con commit (f4, cb39b91): búsqueda por franja con la variante E.
+- **Datos del commit:** tablas de calibración y batería, límites declarados y MARGEN_TECHO_FRANJA, que corta 0 de 811 marcados.
+- **Batería completa en local:** 16 fallos, exactamente los mismos que en el Space de hoy. Ningún marcado es excluido, anuncio ni Fenn, y «ghost stories» sin perfil sale idéntico.
+- **Plan de subida:**
+  1. el .npy de títulos a mano (23,6 MB);
+  2. catalogo.py y api.py con --commit cb39b91;
+  3. el comprobador del contrato franja y por_franja;
+  4. la batería en el Space.
+- **Pendiente:** el visto bueno de 4e y de e6.
+- **Si el código sube antes que el .npy:** no se marca nada, así que es seguro.
