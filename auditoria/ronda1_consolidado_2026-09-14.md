@@ -764,3 +764,13 @@ Visto bueno de 4e a 9e51c18:
 - **Después de subir:** 4e mide en el Space los clásicos, Austen, london, hope y king, los tiempos de las búsquedas que hacen saltar la compuerta y `buscador_listo`.
 
 Visto bueno de e6 a api.py de 9e51c18: ok, solo por lectura por la RAM. Revisó `buscador_listo`, `_resumen_curva` con una fila y /api/voz con la firma nueva. Con esto el 27 tiene todos los vistos buenos y solo espera al banco y al árbol limpio de f4. 4e ya tiene la línea base del 26 y un vigía para medir el 27 en el Space.
+
+**Reinicio 27 en producción y comprobado (f4):** Space 1708cb1, desde 9e51c18.
+- **Antes de subir:** banco 12 de 12; árbol limpio con api 66/66, corpus 46/46, extremas 351 y ficha en verde.
+- **`buscador_listo`:** pasa a true a los 29,2 s. `catalogo` ya decía true a los 0,6 s.
+- **SWV4008 (Kian):** sin lista de repetidas, y la curva de una fila sin forma.
+- **Clásicos, sin perfil y con B1:** tolstoy, cervantes, dante, moliere y agatha christie abren con obra suya.
+- **«Jane Austen» con B1:** abre con The Watsons y Emma, sin MacKaye.
+- **Tiempos:** cada búsqueda tarda de 0,6 a 0,7 s.
+- **Batería en el Space:** de 16 fallos a 3. Quedan «rosa» con A2 y con B1, y «luna» con B1.
+- **Orden del 28:** primero el título en consultas largas («Historias de amor» es un chip), después «rosa» y «luna» junto con las erratas, y al final los menores.
