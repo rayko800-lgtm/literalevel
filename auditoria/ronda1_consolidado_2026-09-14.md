@@ -506,3 +506,9 @@ Prueba local de la franja del 25 (cb39b91 con el .npy de títulos) con los bloqu
   - Detectives B1 pasa de 11 a 13.
 - **Sin perfil:** «ghost stories» no marca nada.
 - **Para mirar, sin ajustar sobre la batería:** «Terror gótico» con B1 mete 5 cuentos con índice de 0,33 a 0,49, entre ellos «The Enemy» y «The terror of the lion», que no son terror gótico. ACTION PART-1 no entra. «Historias de amor» con A2 trae tres «My story», que es el límite ya declarado.
+
+Reinicio 25, antes de subir (f4):
+- **Tercer límite declarado:** «Terror gótico» con B1 marca 5 cuentos solo por una palabra del título: tres «terror», un «ghost» y «The Enemy». Es la misma clase que «Historias de amor», una consulta de varias palabras que E no toca.
+- **Propuesta para el 26, detrás de clásicos y «Jane Austen»:** en consultas largas, el título tiene que casar con más de una palabra. Se calibra con consultas de varias palabras escritas antes de medir.
+- **Árbol limpio:** corpus y extremas fallaron por falta de memoria, con 3,4 de 16 GB libres y las copias del banco cargadas. No es un fallo del código. Se repiten solos cuando acabe el banco.
+- **Pendiente:** el ok de 4e a catalogo.py, con plazo hasta las 05:14.
