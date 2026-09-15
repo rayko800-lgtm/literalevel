@@ -83,6 +83,13 @@ del profesor.
   seguirlo». Se guarda solo al contestar la sexta. El titular dirá «Lees en
   inglés a nivel B2», y el 1,20 está en «Ver el detalle». En la sexta no elijas
   «Capto bien la idea»: da 1,46, que es C1.
+- **La primera vez salen tres ayudas.** En un navegador limpio, al abrir Inicio
+  sale la bienvenida («1 de 3 · Libros en inglés a tu nivel»): pulsa «Saltar»,
+  arriba a la derecha de la tarjeta, antes de grabar. Al abrir el lector sale
+  arriba «Mantén presionada una palabra para ver qué significa; desliza para
+  cambiar de página.», y en *Pronunciar*, en lugar del subtítulo, «Escribe o trae
+  una frase, grábate leyéndola y te digo qué sonido corregir…». Ciérralas con ✕
+  antes de grabar (vuelven con «?»).
 
 ---
 
@@ -173,8 +180,8 @@ capítulo.»
 >   castigo de Dostoyevski» no hay libros en tu nivel ni un poco por encima
 >   entre los resultados. Estos son los de otros niveles.» y debajo, en **De
 >   otros niveles**, **el nuestro, primero**, y detrás *Best Russian Short
->   Stories* y *The Brothers Karamazov* (página publicada a 390 px con el
->   reinicio 28, 15 de septiembre de 2026). El aviso es lo esperado: no lo leas
+>   Stories* y *The Brothers Karamazov* (ensayo del 15 de septiembre de 2026
+>   sobre el reinicio 28, a 390 px: el libro a 679 px, sin pulsar nada). El aviso es lo esperado: no lo leas
 >   como un fallo. Sin perfil también sale el primero; con un perfil de 1,34
 >   pasa a «Un poco por encima», segundo. **No escribas solo «dostoyevski»**:
 >   con el perfil de 1,20, «En tu nivel» se llena de cuentos que no son suyos y
@@ -285,7 +292,7 @@ lo encuentra.
 dificultad capítulo a capítulo**. Media **1,70**. Mi perfil es 1,20: me queda
 por encima, y lo sé antes de la primera página.
 
-**Cuatro.** *(tocar* poverty*)* Toco una palabra y **al instante**
+**Cuatro.** *(mantener presionada* poverty*)* Mantengo el dedo sobre una palabra y **al instante**
 tengo el diccionario y la fonética. Unos segundos después llega lo que pone
 la IA: la traducción y qué significa **en esta frase**. Y si el diccionario no la
 trae, la define un modelo y lo marca: **IA**.

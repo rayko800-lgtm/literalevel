@@ -106,6 +106,18 @@ que dice el **Plan B** para ese paso.
 9. **Paso 3:** con el perfil de 1,20, buscar «Crimen y castigo de Dostoyevski» y
    comprobar que sale el aviso de que no hay libros en tu nivel ni un poco por
    encima, y *Crime and Punishment* el primero en «De otros niveles».
+10. **La bienvenida:** en un navegador limpio o en incógnito, al abrir Inicio sale
+    una tarjeta de tres pasos («1 de 3 · Libros en inglés a tu nivel»). Pulsa
+    «Saltar», arriba a la derecha de la tarjeta, o recórrela una vez antes de
+    grabar: después ya no vuelve. Quien ya usaba la aplicación también la verá una
+    vez. Un enlace directo al lector o a una ficha no la muestra, y se puede volver
+    a ver desde *Ajustes* → «Ver la bienvenida otra vez».
+11. **Las ayudas de la primera vez:** al abrir el lector sale arriba «Mantén
+    presionada una palabra para ver qué significa; desliza para cambiar de
+    página.», y en *Pronunciar*, en lugar del subtítulo, «Escribe o trae una frase,
+    grábate leyéndola y te digo qué sonido corregir…». Ciérralas con ✕ antes de
+    compartir pantalla (vuelven con el «?» de la barra del lector y el del título de
+    *Pronunciar*), para que no tapen el libro ni la frase.
 
 ---
 
@@ -159,8 +171,9 @@ Con el perfil de 1,20 sale primero el aviso de que no hay libros en tu nivel ni
 un poco por encima, y el libro aparece el primero en «De otros niveles», que ya
 se ve sin pulsar nada: es lo esperado. Enseña la ficha y la curva. No escribas
 solo «dostoyevski»: con el perfil de 1,20, «En tu nivel» se llena de cuentos que
-no son suyos y el libro queda detrás de «Ver también» (página publicada con el
-reinicio 28, 15 de septiembre).
+no son suyos y el libro queda detrás de «Ver también» (ensayo del 15 de septiembre
+sobre el reinicio 28, a 390 px: con la consulta larga el libro queda a 679 px sin
+pulsar nada; con «dostoyevski», a 3.789 px).
 
 **Dice:** «Abro *Crimen y castigo*. La ficha está contada sobre el texto, no
 escrita por un modelo, y la curva dice cómo se complica capítulo a capítulo. De
@@ -168,15 +181,16 @@ media, 1,70: me queda por encima, y lo sé antes de la primera página.»
 
 **4. Una palabra en su frase (1:50 – 2:20)**
 
-**Hace:** en el lector, toca la palabra ensayada. La de siempre, *poverty*, está
+**Hace:** en el lector, mantén presionada la palabra ensayada (con ratón, doble
+clic). La de siempre, *poverty*, está
 en «Antes del primer capítulo»: se abre desde el **Índice**, no con «Empezar a
 leer», que lleva al capítulo 2. En la ficha, el Índice queda unas 2,5 pantallas
 por debajo de «Empezar a leer»: baja hasta él, o usa «Índice» arriba del lector. Si suena, es la **voz del navegador** («Sin
 grabación para esta palabra»). **Sigue hablando mientras llega la explicación**,
-que tarda unos segundos (unos 15 según la API, sin medir con cuenta). Luego toca
-la palabra que el diccionario no trae; si el tiempo aprieta, sáltala.
+que tarda unos segundos (unos 15 según la API, sin medir con cuenta). Luego mantén
+presionada la palabra que el diccionario no trae; si el tiempo aprieta, sáltala.
 
-**Dice:** «Toco una palabra. El diccionario y la pronunciación salen al
+**Dice:** «Mantengo el dedo sobre una palabra. El diccionario y la pronunciación salen al
 instante; la explicación de qué significa en esta frase llega unos segundos
 después, porque esa parte la hace la IA. Y cuando el diccionario no la trae o no
 está claro qué acepción es, la aplicación lo dice: esto lo ha escrito una IA, o
