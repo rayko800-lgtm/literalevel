@@ -1242,3 +1242,4 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - Índice: unas 2 pantallas por debajo de «Empezar a leer», no 2,5.
 - **Matiz:** la primera consulta de palabra en frío tarda 5,0 s; el guion ya pide consultar una antes.
 - **Sin probar** (hace falta cuenta o micrófono): explicación IA, «Corrígeme», «Practica esta palabra», paso 6 y «Este intento no cuenta». Quedan en la lista de Miguel.
+- Guiones 657a640 (4e): boca 3D «unos 3–4 s la primera vez» y el Índice «unas 2 pantallas por debajo de «Empezar a leer»». La Central barrió todo entrega/ (md y tex): no queda «2,9 s», «0,6 s después» ni «2,5 pantallas».
