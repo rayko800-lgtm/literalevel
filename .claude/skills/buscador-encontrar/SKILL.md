@@ -175,6 +175,26 @@ con «terror»). **La primera búsqueda con nivel tras un reinicio tarda 18,6 s*
 (modelo + comprobación); las siguientes 0,6 s. Antes de una demo, calentar con
 una búsqueda; la precarga en el arranque va en el reinicio 26.
 
+### Autores clásicos por apellido (diagnóstico del 27)
+
+«cervantes», «dante», «moliere» o «agatha christie» no traían al autor aunque
+el apellido casa exacto (1,0). La causa es la **compuerta de tema** que se puso
+para «amor» → «Fenn, Amor»: si el mejor parecido de tema entre las filas con
+nombre queda más de 0,20 por debajo del techo, se anula el rescate. MiniLM casi
+no relaciona un apellido con sus libros (0,24–0,52 frente a techos de
+0,57–0,75), así que la compuerta apaga justo a los clásicos. «tolstoy» es otro
+caso: sus obras y los libros sobre él empatan a 0,856.
+
+**El diccionario local no sirve para distinguir autores de palabras:** Kaikki es
+inglés y marca «rosa», «paz», «cervantes» o «austen» igual (`name`), y «amor»,
+«luna» o «christie» como `name` + `noun`.
+
+La señal que sí separa, medida: cuántas obras tiene en el catálogo el autor
+con ese apellido exacto (cervantes 53, moliere 21, christie 16; rosa 2, amor
+0). Antes de usarla hay que medir las colisiones con palabras de tema que son
+apellidos de autores prolíficos («london», «hope», «grey», «vega», «paz»…),
+con la lista escrita antes de mirar.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
