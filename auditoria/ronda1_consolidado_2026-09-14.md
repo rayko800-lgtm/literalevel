@@ -451,3 +451,8 @@ Visto bueno de e6 a 0a759a5: ok, y sube como reinicio 24.
 - **Límites declarados:** «Monstruos» se queda en 1/12 con cualquier variante, porque el MiniLM no lo acerca a «monster». «Historias de amor» tiene varias palabras, E no la toca y sigue trayendo los «My story».
 
 e6 comprobó el caso exacto del silencio del Space con whisper simulado. Con 0a759a5 no hay corrección de pago ni se guardan fallos, así que el reinicio 24 puede subir.
+
+Aviso «No te oí» en Pronunciar (e6, b9773bd, sin publicar, ng test 80/80):
+- **Qué cambia:** con transcripcion_ok false, el front muestra «No te oí. Acércate al micrófono y vuelve a grabar.», con una raya en vez de «0/100» y sin la nota de ánimo. «Una frase de mi libro» usa la misma corrección.
+- **Publicación:** HEAD entero tras el reinicio 24. Los commits de la franja son inertes sin los campos de la API, según la comparación de 4e.
+- **Gradio (ui.py):** los mensajes de silencio se cambian en el reinicio 26.
