@@ -842,6 +842,17 @@ MUTANTES = [
     ("C13-devolucion-valor-raro-lanza", "app/cuentas.py",
      "            except (TypeError, ValueError):", "            except ():", "devolucion sin cobro ni registro raro", "pruebas_api.py"),
     # Reinicio 28: la regresion del 27 (palabra corriente que es apellido).
+    # Reinicio 30b: orden determinista ante empates.
+    ("C24-sin-redondeo-sin-nivel", "app/catalogo.py",
+     '            orden = np.argsort(-np.round(total, 6), kind="stable")', "            orden = np.argsort(-total)",
+     "los empates de parecido van en orden de fila", "pruebas_corpus.py"),
+    ("C24-sin-redondeo-con-nivel", "app/catalogo.py",
+     "            orden = np.lexsort((-np.round(clave, 6), ~primero, ~(relevante | nombre), ~nombre))",
+     "            orden = np.lexsort((-clave, ~primero, ~(relevante | nombre), ~nombre))",
+     "los empates de parecido van en orden de fila", "pruebas_corpus.py"),
+    ("C24-franja-empate-sin-cercania", "app/catalogo.py",
+     '        orden = orden[np.lexsort((np.abs(d[orden] - nivel), -np.round(s[orden], 6)))]', '        orden = orden[np.argsort(-np.round(s[orden], 6), kind="stable")]',
+     "en la franja a igual parecido va la copia mas cercana al nivel", "pruebas_corpus.py"),
     ("C22-primero-con-una-palabra", "app/catalogo.py",
      "            if len(pistas) >= 2:", "            if pistas:",
      "una palabra corriente que es apellido no trae al autor", "pruebas_corpus.py"),

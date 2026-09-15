@@ -904,7 +904,9 @@ class Catalogo:
         if nivel_lector is None:
             total = sim
             afin = np.zeros_like(sim)
-            orden = np.argsort(-total)
+            # Redondeo y orden estable (reinicio 30b): el ruido de coma flotante entre maquinas (tres ediciones de
+            # «Torwood's trust» a 0,855) no reordena empates; a igual parecido, gana la fila anterior.
+            orden = np.argsort(-np.round(total, 6), kind="stable")
         else:
             objetivo = self._puntuaciones()
             # Afinidad 1 = mismo nivel, 0 = en el extremo opuesto de la escala.
@@ -932,7 +934,7 @@ class Catalogo:
             if len(pistas) >= 2:
                 for i in np.flatnonzero(nombre):
                     primero[i] = pistas <= self._enteros_primero[i]
-            orden = np.lexsort((-clave, ~primero, ~(relevante | nombre), ~nombre))
+            orden = np.lexsort((-np.round(clave, 6), ~primero, ~(relevante | nombre), ~nombre))
         libros, flojos = [], 0
         # El orden entero hasta llenar n: con `orden[:n * 3]`, si en esos puestos
         # habia mas de 2n excluidos o flojos, la lista salia corta aunque hubiera
@@ -999,7 +1001,9 @@ class Catalogo:
         dentro = (banda & (s >= SUELO_FRANJA) & (s >= mejor - MARGEN_FRANJA)
                   & (s >= techo - MARGEN_TECHO_FRANJA))
         orden = np.flatnonzero(dentro)
-        orden = orden[np.argsort(-s[orden], kind="stable")]
+        # A igual parecido en la franja, primero la copia mas cercana al nivel del lector y despues la fila (Central,
+        # reinicio 30b): «family» con B1 elegia por fila una copia de «My Family» a 0,36 en vez de la de 0,44.
+        orden = orden[np.lexsort((np.abs(d[orden] - nivel), -np.round(s[orden], 6)))]
         por_id = {l.id: l for l in libros}
         extra = 0
         for i in orden:

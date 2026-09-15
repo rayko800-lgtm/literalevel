@@ -691,6 +691,42 @@ def _palabra_corriente_que_es_apellido_no_trae_al_autor():
 prueba("una palabra corriente que es apellido no trae al autor", _palabra_corriente_que_es_apellido_no_trae_al_autor)
 
 
+def _empates_de_parecido_en_orden_de_fila():
+    """Reinicio 30b (Central): con parecidos iguales el orden dependia de la maquina. Tres ediciones de «Torwood's trust»
+    a 0,855 salian en otro orden en local y en el Space, y las comparaciones daban falsos distintos. Ahora las
+    puntuaciones se redondean a 6 decimales y a igual parecido gana la fila anterior, con y sin nivel, aunque una
+    edicion lleve 1e-7 de mas por coma flotante."""
+    s = [0.8550000, 0.8550001, 0.8549999, 0.40]
+    titulos = ["Torwood's trust", "Torwood's trust", "Torwood's trust", "Otra cosa"]
+    autores = ["Smith, John", "Smith, John", "Smith, John", "Lee, Ann"]
+    for nivel in (None, 0.8):
+        cat = _catalogo_de_mentira(s, titulos, autores)
+        ids = [l.id for l in cat.buscar("espectros", nivel_lector=nivel, n=4)[0]]
+        assert ids[:3] == ["PG0", "PG1", "PG2"], f"empates fuera del orden de fila con nivel {nivel}: {ids}"
+    return "a igual parecido (con ruido de 1e-7), el orden de fila, con y sin nivel"
+
+
+prueba("los empates de parecido van en orden de fila", _empates_de_parecido_en_orden_de_fila)
+
+
+def _empate_en_la_franja_entra_la_copia_mas_cercana_al_nivel():
+    """Reinicio 30b (Central): en la franja, dos copias con el mismo titulo tienen el mismo parecido. A igual parecido va
+    primero la mas cercana al nivel del lector, y solo si tambien empata ahi, la fila anterior."""
+    s = [0.90, 0.70, 0.70, 0.40]
+    titulos = ["Algo muy parecido", "My Family", "My Family", "Otra cosa"]
+    autores = ["Smith, John", "Lee, Ann", "Roe, Mary", "Doe, Jim"]
+    cat = _catalogo_de_mentira(s, titulos, autores)
+    cat.df["dificultad"] = [1.80, 0.40, 0.75, 1.80]
+    cat._n_propio, cat._emb_tit = len(s), np.zeros((0, 2), dtype=np.float32)
+    res = cat.buscar("espectros", nivel_lector=0.8, n=1, franja=True)[0]
+    marcados = [l.id for l in res if l.por_franja]
+    assert marcados[:2] == ["PG2", "PG1"], f"a igual parecido no va primero la copia mas cercana al nivel: {marcados}"
+    return "a igual parecido en la franja, la copia a 0,05 del nivel antes que la de 0,40"
+
+
+prueba("en la franja a igual parecido va la copia mas cercana al nivel", _empate_en_la_franja_entra_la_copia_mas_cercana_al_nivel)
+
+
 def _franja_trae_su_nivel_detras_de_los_n():
     """Reinicio 23 (e6, 4db6ea3): con A2, «Fantasmas» no traia ninguno de los 40 cuentos
     de fantasmas de A2-B1, porque el techo lo ponia «True Ghost Stories» y la ventana de
