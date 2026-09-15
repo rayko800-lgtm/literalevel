@@ -604,3 +604,8 @@ Reinicio 26 en preparación (f4, sin commit):
   - Se parte en dos:
     - **26:** precarga, devolución y los commits de voz y Gradio.
     - **27:** clásicos, «Jane Austen» con B1, rescate por título con la regla del diccionario, título en consultas largas y los menores de búsqueda.
+
+Reinicio 26 con commit (f4, 41e7e6d): precarga y devolución por silencio, con api 62/62.
+- **Vistos buenos pedidos:** 4e para cuentas.py y e6 para api.py.
+- **Hueco que vio f4 antes de subir:** Gradio decía «No te oí», pero no llamaba a `devolver_por_silencio`. La comprobación prevista habría fallado. e6 lo cablea en ui.py con prueba y mutante, y el 26 no sube sin eso.
+- **Front:** 41bd2af tiene el ok de 4e (Despacio visible, «de corrido aquí», chips de amor y fantasmas). e6 lo publica ahora.
