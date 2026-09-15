@@ -244,6 +244,28 @@ apellido. La señal que se mide es decidir ese rescate fila a fila; su riesgo so
 los títulos de una palabra buscados por título (emma, dracula, hamlet) y las
 erratas de una palabra (dracul, frankenstien).
 
+### Autores con perfil: la franja marca cuentos por el marco de la frase (medido, 15 sep)
+
+El segundo ensayo de la demo vio que «dostoyevski» con perfil B2 llenaba «En tu
+nivel» de cuentos sin relación. Causa, medida por tarjeta: con un autor de UNA
+palabra, la variante E compara los títulos con «historias de X» y «libros sobre
+X», y cualquier cuento titulado «Story…», «Books», «A new book», «The Beast» o
+«The Mysterious Narratives» casa con el marco de la frase, no con el autor
+(0,61–0,84). En «dostoyevski» manda el SUELO 0,60; en «tolstoy» y «cervantes»
+el techo lo pone uno de esos títulos. Las obras del autor suelen quedar fuera
+de la franja (C2) y no pueden frenarlo. Con dos palabras («Jane Austen») entra
+por el índice, por el nombre de pila.
+
+Arreglos medidos contra el Space: no marcar nada nuevo cuando se rescata a un
+autor arregla los autores, pero **quita marcas a 50 de 198 listas de palabras de
+tema** («love» B1 de 15 a 3, porque existe un autor Love); quitar solo los
+títulos genéricos no arregla ningún autor. Lección: en la franja, el criterio de
+riesgo no es solo el top 10, **también las marcas** de las palabras de tema,
+porque son las que le enseñan a una lectora B1 los cuentos de su nivel.
+
+Para la demo se evitó sin tocar código: «Crimen y castigo de Dostoyevski» da 0
+marcas y el libro primero en «De otros niveles».
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
