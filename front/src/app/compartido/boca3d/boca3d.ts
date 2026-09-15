@@ -25,7 +25,7 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
   template: `
     @if (conSelector()) {
       <div class="chips" role="group" aria-label="Sonido">
-        <button type="button" class="chip" [class.elegido]="!elegido()" (click)="elegir('')">reposo</button>
+        <button type="button" class="chip" [class.elegido]="!elegido()" [attr.aria-pressed]="!elegido()" (click)="elegir('')">reposo</button>
         @for (s of simbolos(); track s) {
           <button type="button" class="chip ipa" [class.elegido]="elegido() === s" [attr.aria-pressed]="elegido() === s"
                   (click)="elegir(s)">/{{ s }}/</button>
@@ -33,7 +33,11 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
       </div>
     }
     <div class="visor" [class.tres]="modo() === '3d'" [attr.data-modo]="modo()">
-      <div #lienzo class="lienzo" [hidden]="modo() !== '3d'" role="img" [attr.aria-label]="descripcion()"
+      <!-- Con el teclado: foco en el lienzo y flechas izquierda y derecha para girar
+           (auditoría de 4e, ronda 2: antes solo se giraba con el puntero). -->
+      <div #lienzo class="lienzo" [hidden]="modo() !== '3d'" role="img" tabindex="0"
+           [attr.aria-label]="descripcion() + '. Flechas izquierda y derecha para girar.'"
+           aria-keyshortcuts="ArrowLeft ArrowRight" (keydown)="teclaGiro($event)"
            [attr.data-acento-sonido]="acento()" [attr.data-acento-palabra]="acentoIpa() ?? acento()"></div>
       @if (modo() === '2d' && urlRespaldo(); as url) {
         <img class="respaldo" [src]="url" [alt]="descripcion()" />
@@ -57,7 +61,7 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
               <span class="ipa">/{{ textoIpa() }}/</span></button>
           }
           <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
-                  (click)="alternarGiro()" title="Giro libre" aria-label="Giro libre"><app-icono nombre="ajustes" /></button>
+                  (click)="alternarGiro()" title="Giro libre" aria-label="Giro libre"><app-icono nombre="girar" /></button>
           <button type="button" class="boton" (click)="restablecer()" title="Restablecer vista de lado" aria-label="Restablecer vista de lado"><app-icono nombre="recargar" /></button>
         </span>
       </div>
@@ -293,5 +297,14 @@ export class Boca3d {
   alternarGiro(): void {
     this.giroLibre.update(v => !v);
     this.escena?.girarLibre(this.giroLibre());
+  }
+
+  /** Flechas izquierda y derecha con el foco en el lienzo: un cuarto de vuelta
+   *  entre cuatro pulsaciones (22,5° cada una). */
+  teclaGiro(ev: KeyboardEvent): void {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    if (!this.escena) return;
+    ev.preventDefault();
+    this.escena.girar((ev.key === 'ArrowLeft' ? -1 : 1) * Math.PI / 8);
   }
 }

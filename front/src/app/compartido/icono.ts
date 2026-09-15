@@ -18,6 +18,8 @@ const RUTAS: Record<string, string> = {
   check: 'M5 12.5l4.5 4.5L19 7.5',
   subir: 'M12 16V4M7 9l5-5 5 5M4 16v3.5h16V16',
   recargar: 'M20 11.5A8 8 0 1 0 17.7 17M20 5v6.5h-6.5',
+  // Giro alrededor de un eje: una elipse con flecha, para «Giro libre» de la boca 3D.
+  girar: 'M12 9.5c4.7 0 8.5 1.3 8.5 2.9 0 1.4-2.7 2.5-6.4 2.8M9.5 15.3C5.9 15 3.5 13.9 3.5 12.4c0-1 1.4-1.9 3.6-2.4M12.5 13l2.2 2.2-2.2 2.2M12 3.5v17',
   palabras: 'M6 3.5h11.5v17H6A1.5 1.5 0 0 1 4.5 19V5A1.5 1.5 0 0 1 6 3.5ZM8.5 8h6M8.5 11.5h6',
   rayo: 'M13 3 5 13.5h6L10 21l8-10.5h-6L13 3Z',
   ojo: 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',

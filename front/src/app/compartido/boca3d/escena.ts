@@ -988,6 +988,18 @@ export class EscenaBoca {
     this.camara.lookAt(o);
   }
 
+  /** Gira la vista `delta` radianes de azimut alrededor de la boca, para el
+   *  teclado (flechas izquierda y derecha): antes solo se giraba con el puntero. */
+  girar(delta: number): void {
+    const o = this.controles.target;
+    const dx = this.camara.position.x - o.x, dz = this.camara.position.z - o.z;
+    const polar = Math.acos(Math.max(-1, Math.min(1, (this.camara.position.y - o.y) / Math.max(1e-6, this.camara.position.distanceTo(o)))));
+    this.giroBase = { ...this.giroBase, azimut: Math.atan2(dx, dz) + delta, polar, distancia: this.camara.position.distanceTo(o) };
+    this.colocarAzimut(this.giroBase.azimut);
+    this.controles.update();
+    this.sucio = true;
+  }
+
   /** Corta la línea en marcha y se queda donde está. */
   detener(): void {
     this.linea = null;
