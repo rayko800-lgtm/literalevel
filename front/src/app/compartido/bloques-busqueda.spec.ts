@@ -28,8 +28,8 @@ describe('Los bloques de Encontrar', () => {
     expect(ids(b.menosParecidos)).toEqual(['my-future']);
   });
 
-  it('el borde de la relevancia aguanta el redondeo a tres decimales', () => {
-    const b = bloquesBusqueda([libro('mejor', 0.6, 1), libro('justo', 0.55, 1), libro('fuera', 0.548, 1)], nivel);
+  it('el borde de la relevancia es exacto en milésimas: a 0,050 del techo entra y a 0,051 no', () => {
+    const b = bloquesBusqueda([libro('mejor', 0.6, 1), libro('justo', 0.55, 1), libro('fuera', 0.549, 1)], nivel);
     expect(ids(b.enTuNivel)).toEqual(['mejor', 'justo']);
     expect(ids(b.menosParecidos)).toEqual(['fuera']);
   });
@@ -87,5 +87,34 @@ describe('Los bloques de Encontrar', () => {
     expect(ids(b.porEncima)).toEqual([]);
     expect(ids(b.enTuNivel)).toEqual([]);
     expect(b.menosParecidos.map(l => l.id)).toContain('calamity-jane');
+  });
+
+  // Bordes de la regla de la franja (ronda 3 del front de 4e): cada caso cae de un
+  // lado u otro por una milésima, así que mover una constante o cambiar un >= por >
+  // pone la prueba en rojo. Los de 1,9 son C2 para ella y solo hacen de techo y escalera.
+  it('el parecido mínimo en la franja es 0,650: 0,650 sube y 0,649 no', () => {
+    const b = bloquesBusqueda([
+      libro('techo', 0.72, 1.9), libro('medio', 0.68, 1.9),
+      libro('justo-650', 0.65, 0.8), libro('corto-649', 0.649, 0.8),
+    ], b1);
+    expect(ids(b.enTuNivel)).toEqual(['justo-650']);
+    expect(ids(b.menosParecidos)).toEqual(['corto-649']);
+  });
+
+  it('un hueco de 0,050 entre parecidos seguidos se cruza y uno de 0,051 no', () => {
+    const cruza = bloquesBusqueda([libro('techo', 0.8, 1.9), libro('medio', 0.78, 1.9), libro('tras-050', 0.73, 0.8)], b1);
+    expect(ids(cruza.enTuNivel)).toEqual(['tras-050']);
+    const corta = bloquesBusqueda([libro('techo', 0.8, 1.9), libro('medio', 0.78, 1.9), libro('tras-051', 0.729, 0.8)], b1);
+    expect(ids(corta.enTuNivel)).toEqual([]);
+    expect(ids(corta.menosParecidos)).toEqual(['tras-051']);
+  });
+
+  it('con franja, a 0,100 del techo sube y a 0,101 no', () => {
+    const b = bloquesBusqueda([
+      libro('techo', 0.8, 1.9), libro('escalon-1', 0.76, 1.9), libro('escalon-2', 0.72, 1.9),
+      libro('a-100', 0.7, 0.8), libro('a-101', 0.699, 0.8),
+    ], b1);
+    expect(ids(b.enTuNivel)).toEqual(['a-100']);
+    expect(ids(b.menosParecidos)).toEqual(['escalon-2', 'a-101']);
   });
 });

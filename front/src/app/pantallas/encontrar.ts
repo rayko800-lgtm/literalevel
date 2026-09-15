@@ -279,8 +279,11 @@ export class Encontrar implements OnInit {
     });
   });
 
+  /** «Detectives en Londres» dejaba a A1–B2 sin nada de su nivel ni un poco por
+   *  encima (1 en otros niveles y 23 menos parecidos; ronda 3 del front de 4e):
+   *  «Detectives» da 9 a la medida de B1 y algo en la franja de A1 a C1. */
   protected readonly ideas = [
-    'Detectives en Londres', 'Aventuras en el mar', 'Una historia de amor del siglo XIX',
+    'Detectives', 'Aventuras en el mar', 'Una historia de amor del siglo XIX',
     'Cuentos cortos para empezar', 'Ciencia ficción', 'Jane Austen', 'Terror gótico', 'Fábulas con animales',
   ];
   protected readonly num = num;

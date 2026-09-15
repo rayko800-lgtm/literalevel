@@ -1,10 +1,8 @@
 import { LibroTarjeta } from '../nucleo/api';
 
 /** Lo que el motor da por relevante: a esta distancia del mejor parecido
- *  (`catalogo.MARGEN_RELEVANCIA`, f4 3524357). `similitud` llega redondeada a
- *  tres decimales, de ahí la holgura. */
+ *  (`catalogo.MARGEN_RELEVANCIA`, f4 3524357). */
 export const MARGEN_RELEVANCIA = 0.05;
-const HOLGURA = 0.001;
 /** Lo que cae en la franja del lector (de «Fácil» a «Un poco por encima») se da por
  *  relevante con un margen más ancho: con 0,05, en «historias de la luna» los cinco
  *  cuentos A2–B1 (0,704 a 0,738 frente a un techo de 0,802) quedaban en «Menos
@@ -27,6 +25,12 @@ const FACIL = -0.45;
 const RETO = 0.15;
 const POR_ENCIMA = 0.45;
 
+/** `similitud` llega redondeada a tres decimales: todo se compara en milésimas
+ *  enteras, para que los bordes sean exactos (a 0,050 del techo entra y a 0,051 no;
+ *  0,650 sube y 0,649 no) y no dependan de cómo resta la coma flotante (ronda 3 del
+ *  front de 4e: con la holgura de 0,001 que había, 0,051 también entraba). */
+const milesimas = (x: number) => Math.round(x * 1000);
+
 export interface BloquesBusqueda {
   /** De lo que se pidió y a su medida. */
   enTuNivel: LibroTarjeta[];
@@ -44,19 +48,20 @@ export interface BloquesBusqueda {
 export function bloquesBusqueda(libros: LibroTarjeta[], nivel: number): BloquesBusqueda {
   const b: BloquesBusqueda = { enTuNivel: [], porEncima: [], otrosNiveles: [], menosParecidos: [] };
   if (!libros.length) return b;
-  const techo = Math.max(...libros.map(l => l.similitud));
+  const techo = milesimas(Math.max(...libros.map(l => l.similitud)));
   // Hasta dónde bajan los parecidos desde el techo sin un hueco mayor que SALTO.
   let suelo = techo;
-  for (const s of libros.map(l => l.similitud).sort((x, y) => y - x)) {
-    if (suelo - s > SALTO + HOLGURA) break;
+  for (const s of libros.map(l => milesimas(l.similitud)).sort((x, y) => y - x)) {
+    if (suelo - s > milesimas(SALTO)) break;
     suelo = s;
   }
   for (const l of libros) {
+    const sim = milesimas(l.similitud);
     const d = l.dificultad == null ? null : l.dificultad - nivel;
     const enFranja = d !== null && d > FACIL && d <= POR_ENCIMA;
-    const relevante = l.similitud >= techo - MARGEN_RELEVANCIA - HOLGURA;
-    const subePorFranja = enFranja && l.similitud >= techo - MARGEN_EN_FRANJA - HOLGURA
-      && l.similitud >= PARECIDO_MINIMO_EN_FRANJA && l.similitud >= suelo - HOLGURA;
+    const relevante = techo - sim <= milesimas(MARGEN_RELEVANCIA);
+    const subePorFranja = enFranja && techo - sim <= milesimas(MARGEN_EN_FRANJA)
+      && sim >= milesimas(PARECIDO_MINIMO_EN_FRANJA) && sim >= suelo;
     if (!relevante && !subePorFranja) { b.menosParecidos.push(l); continue; }
     if (d !== null && d > FACIL && d <= RETO) b.enTuNivel.push(l);
     else if (d !== null && d > RETO && d <= POR_ENCIMA) b.porEncima.push(l);

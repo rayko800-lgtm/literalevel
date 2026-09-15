@@ -15,7 +15,34 @@
  *  hay interpolación: se salta a la pose. */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+
+/** Los .glb se bajan una vez por página. El Space los sirve tras una URL firmada
+ *  que cambia en cada petición, así que la caché del navegador no los reutilizaba
+ *  y cada apertura volvía a bajar cara.glb y lengua.glb, 2,7 MB (4e, ronda 3: 26 y
+ *  27 peticiones en 27 aperturas). Se guardan los bytes y no el modelo: `destruir`
+ *  suelta geometrías y materiales, y `parse` los rehace sin tocar el buffer. Un
+ *  fallo no se queda guardado: la siguiente apertura lo vuelve a intentar. */
+const glbs = new Map<string, Promise<ArrayBuffer>>();
+
+export function bajarGlb(url: string): Promise<ArrayBuffer> {
+  let bytes = glbs.get(url);
+  if (!bytes) {
+    bytes = fetch(url).then(r => {
+      if (!r.ok) throw new Error(`${r.status} ${url}`);
+      return r.arrayBuffer();
+    });
+    glbs.set(url, bytes);
+    bytes.catch(() => glbs.delete(url));
+  }
+  return bytes;
+}
+
+function cargarGlb(url: string, alLlegar: (gltf: GLTF) => void, alFallar: () => void): void {
+  bajarGlb(url).then(
+    bytes => new GLTFLoader().parse(bytes, url.slice(0, url.lastIndexOf('/') + 1), alLlegar, alFallar),
+    alFallar);
+}
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Linea } from './animacion';
 import { Labios, PoseSonido, REPOSO } from './poses';
@@ -1074,7 +1101,7 @@ export class EscenaBoca {
   /** Carga la lengua de Blender y, cuando llega, esconde el tubo. Si falla,
    *  se queda el tubo y no pasa nada. */
   private cargarLengua(url: string, color: string): void {
-    new GLTFLoader().load(url, gltf => {
+    cargarGlb(url, gltf => {
       if (!this.vivo) { liberarModelo(gltf.scene); return; }
       let malla: THREE.Mesh | null = null;
       gltf.scene.traverse(o => {
@@ -1099,7 +1126,7 @@ export class EscenaBoca {
       liberarModelo(gltf.scene);
       this.sombrear();
       this.aplicar(this.actual);
-    }, undefined, () => { /* sin lengua modelada: se queda el tubo */ });
+    }, () => { /* sin lengua modelada: se queda el tubo */ });
   }
 
   get tieneLenguaModelada(): boolean {
@@ -1130,7 +1157,7 @@ export class EscenaBoca {
   }
 
   private cargarCara(url: string, col: Colores): void {
-    new GLTFLoader().load(url, gltf => {
+    cargarGlb(url, gltf => {
       const piezas = new Map<string, THREE.Mesh>();
       gltf.scene.updateMatrixWorld(true);
       gltf.scene.traverse(o => { if (o instanceof THREE.Mesh) piezas.set(o.name, o); });
@@ -1280,7 +1307,7 @@ export class EscenaBoca {
       this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
       this.controles.update();
       this.aplicar(this.actual);
-    }, undefined, () => { /* Las piezas simples siguen visibles. */ });
+    }, () => { /* Las piezas simples siguen visibles. */ });
   }
 
   get tieneCaraModelada(): boolean {
@@ -1295,6 +1322,9 @@ export class EscenaBoca {
     // El keydown de OrbitControls, quitado de la raíz donde se puso: `dispose` lo
     // busca en `getRootNode()`, que con el visor ya fuera del documento es otro nodo,
     // y el document retenía la escena entera (10 cierres, 10 escenas vivas; 4e, ronda 2).
+    // `_interceptControlDown` es un campo privado de OrbitControls en three 0.186: si
+    // una versión lo renombra o lo quita, la guarda deja pasar sin quitar nada y
+    // `dispose` hace lo suyo; no se rompe el cierre, solo vuelve la fuga (4e, ronda 3).
     const tecla = (this.controles as unknown as { _interceptControlDown?: EventListener })._interceptControlDown;
     if (tecla) this.raiz.removeEventListener('keydown', tecla, { capture: true });
     this.controles.dispose();
