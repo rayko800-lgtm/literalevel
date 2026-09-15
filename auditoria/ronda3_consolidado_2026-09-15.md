@@ -116,8 +116,11 @@ un fallo, por ejemplo si abrió el enlace desde WhatsApp, cuyo navegador interno
 no suele permitir el micrófono; e6 revisa qué ve el usuario en cada caso
 (permiso negado, navegador sin micrófono, grabación sin audio) y propone el
 aviso que falte. **La saturación:** textos largos y mucho scroll antes de saber
-qué hacer; entra en las propuestas de ayuda. Falta saber qué teléfono y qué
-navegador usó.
+qué hacer; entra en las propuestas de ayuda. **Usó Android y abrió el enlace
+desde WhatsApp**, que en Android puede abrirlo en su navegador interno, donde el
+micrófono no suele estar disponible. Mientras e6 lo confirma y, si hace falta,
+añade un aviso para abrir la app en Chrome, conviene que Miguel pida a quien
+reciba el enlace que lo abra en Chrome (Android) o Safari (iPhone).
 
 ## Un incidente con una contraseña
 
