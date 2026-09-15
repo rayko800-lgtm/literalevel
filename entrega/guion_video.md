@@ -70,10 +70,10 @@ del profesor.
 - **Grabación de respaldo.** Graba antes el mismo recorrido. Si en directo algo
   falla y se usa, va rotulada en pantalla como **grabación previa**: nunca se
   presenta una reproducción como respuesta en vivo.
-- **La boca en 3D.** El front publicado (`b76ca59`, 15 de septiembre) lleva la
-  cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
-  `master`). **Ábrela una vez antes de grabar**: la primera carga en el móvil
-  tardó 4,4 s. Si no carga, basta el corte 2D.
+- **La boca en 3D.** El front publicado (`ec957d0`, repositorio `4e6276e`, 15 de
+  septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
+  `boca3d` (75f334a está en `master`). **Ábrela una vez antes de grabar**: la cara
+  tarda 2,1 s la primera vez y 0,5 s después. Si no carga, basta el corte 2D.
 - **El perfil 1,20, receta** (ensayo de e6, 15 de septiembre): *Tu nivel* →
   primera pregunta «Varias veces por semana» → «Me vale así (1,20 · B2),
   guardar». El titular dirá «nivel B2».
@@ -144,18 +144,16 @@ capítulo.»
 > **Entra antes de grabar, y úsala.** Entrar es *Ajustes → Tu perfil*
 > (usuario y contraseña), fuera de plano: sin entrar, la explicación en
 > contexto y la corrección de pronunciación no salen, porque son lo que cuesta
-> dinero. Y tres cosas de la primera vez, medidas el 11 de septiembre de 2026 y
-> que siguen igual, porque el motor es el mismo:
+> dinero. Y tres cosas de la primera vez, medidas el 11 de septiembre de 2026 (la
+> primera, otra vez el 15, en el ensayo de e6):
 >
-> - La **primera consulta léxica de la sesión tarda unos 55 segundos**:
->   carga el diccionario de 243 MB, spaCy y el modelo de similitud. Los
->   **40 milisegundos** que dices a cámara son **en caliente** y cubren **solo
->   lo local**: lema, diccionario, acepción y fonética (§8.2 del documento).
+> - La **primera consulta léxica de la sesión tardó 3,8 s** hasta ver el
+>   diccionario el 15 de septiembre (el 11 eran unos 55 s): carga el
+>   diccionario de 243 MB, spaCy y el modelo de similitud. **En caliente se ven
+>   0,3–0,4 s**, y a cámara dices «al instante».
 >   **La traducción y el «Aquí significa» salen de la IA** y llegan unos
 >   segundos después, en la segunda etapa de la hoja: no los atribuyas al
->   diccionario ni a los 40 ms. Y los 40 ms son del servidor: **en pantalla se
->   ven 0,3–0,4 s en caliente y 3,8 s la primera vez** (ensayo de e6), así que
->   a cámara di «al instante». **Consulta una palabra cualquiera antes de
+>   diccionario. **Consulta una palabra cualquiera antes de
 >   grabar** y el paso Cuatro va fluido. Si el motor llevaba horas sin
 >   visitas, la primera llamada tarda además medio minuto en despertarlo; el
 >   front lo dice en pantalla. Despiértalo antes.
@@ -204,7 +202,8 @@ capítulo.»
 > se oye. Está en *«He was in terrible poverty, yet he took upon himself
 > the payment of his brother's debts»*, y encima es el tema del libro. Está en
 > **«Antes del primer capítulo»**: ábrelo desde el Índice, porque «Empezar a
-> leer» lleva al capítulo 2. Si
+> leer» lleva al capítulo 2. En la ficha, el Índice queda unas 2,5 pantallas
+> más abajo; o usa «Índice» arriba del lector. Si
 > quieres otra: **torture** (0,504) o **cruelty** (0,502). En la hoja de la
 > palabra se ve **«En español»** (la traducción) y **«Aquí significa»**; la
 > marca **IA** solo sale cuando la definición no viene del diccionario, así

@@ -39,7 +39,8 @@ Una por una, y marcando:
       «Me vale así (1,20 · B2), guardar», sin contestar el resto. El titular dirá
       «nivel B2»: que no sorprenda al decir «banda intermedia».
 - [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
-      sonido → «Boca en 3D»): la primera carga en el móvil tardó 4,4 s.
+      sonido → «Boca en 3D»): la cara tarda 2,1 s la primera vez y 0,5 s
+      después (ensayo de e6 a 390 px en el front `ec957d0`).
 - [ ] **_Crime and Punishment_ abierto una vez** y con su **curva ya
       calculada**: queda guardada y en directo sale al momento.
 - [ ] **Una palabra ensayada** del capítulo abierto y **otra que el diccionario
@@ -59,13 +60,15 @@ Una por una, y marcando:
       reproductor y **rotulada en pantalla como «Grabación previa»**. Solo se usa
       si falla algo del plan B, y se dice que es una grabación.
 
-## Antes de grabar, con cuenta y micrófono
+## Antes de la demo, con cuenta y micrófono
 
 Lo que el ensayo de e6 (`auditoria/ensayo_demo_2026-09-15.md`) no pudo probar
-sin cuenta ni micrófono. Miguel lo ensaya en su teléfono antes de la demo:
+sin cuenta ni micrófono. Miguel lo ensaya en su teléfono antes de la demo,
+**habiendo entrado en *Ajustes → Tu perfil***. Si un punto falla, se ensaya lo
+que dice el **Plan B** para ese paso.
 
 1. **Paso 4:** cuánto tardan en llegar «En español» y «Aquí significa» con
-   *poverty*.
+   *poverty* (se llega por *Índice → «Antes del primer capítulo»*).
 2. **Paso 4, la marca IA:** con qué palabra sale. Sin cuenta, *Mihail* solo
    dice «no está en el diccionario».
 3. **Paso 5:** grabar «Una frase de mi libro» con una palabra mal dicha a
@@ -135,7 +138,8 @@ media, 1,70: me queda por encima, y lo sé antes de la primera página.»
 
 **Hace:** en el lector, toca la palabra ensayada. La de siempre, *poverty*, está
 en «Antes del primer capítulo»: se abre desde el **Índice**, no con «Empezar a
-leer», que lleva al capítulo 2. Si suena, es la **voz del navegador** («Sin
+leer», que lleva al capítulo 2. En la ficha, el Índice queda unas 2,5 pantallas
+por debajo de «Empezar a leer»: baja hasta él, o usa «Índice» arriba del lector. Si suena, es la **voz del navegador** («Sin
 grabación para esta palabra»). **Sigue hablando mientras llega la explicación**,
 que tarda unos segundos (unos 15 según la API, sin medir con cuenta). Luego toca
 la palabra que el diccionario no trae; si el tiempo aprieta, sáltala.
