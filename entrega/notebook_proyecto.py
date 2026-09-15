@@ -7,7 +7,7 @@
 # Estimar la dificultad de un texto en inglés para un lector hispanohablante, y
 # usar esa estimación para que el lector elija bien qué libro abrir.
 #
-# **Entrega web al 14 de septiembre de 2026:** Angular es la interfaz principal
+# **Entrega web al 15 de septiembre de 2026:** Angular es la interfaz principal
 # sobre una API FastAPI; Gradio conserva el motor y la interfaz de respaldo.
 # Enlace del lector: https://mikemaki1763-literalevel-front.static.hf.space/
 # Este cuaderno explica datos, modelos e inferencia: no instala ni ejecuta la
@@ -32,9 +32,9 @@
 # ## Antes de ejecutar: qué corre y qué no
 #
 # Este cuadernillo está escrito para abrirse en **cualquier Colab y ejecutarse de
-# principio a fin**. La revisión del 14 de septiembre comprueba sincronización
-# y sintaxis de las celdas, **no una ejecución nueva en un Colab limpio**.
-# La disponibilidad de URLs, paquetes y pesos debe comprobarse al ejecutarlo.
+# principio a fin**. La fecha de la última ejecución completa está en §9.3, y
+# sus salidas quedan guardadas en el `.ipynb`. La disponibilidad de URLs,
+# paquetes y pesos puede cambiar después de esa fecha.
 # Tres decisiones reducen las dependencias:
 #
 # - **No instala nada.** Todo lo que usa (`pandas`, `numpy`, `matplotlib`,
@@ -56,12 +56,12 @@
 # [`MikeMaki1763/literalevel-v4`](https://huggingface.co/MikeMaki1763/literalevel-v4).
 # La sección 6.5 lo descarga sin credenciales, de modo que este cuadernillo
 # no depende del disco de la máquina de desarrollo para conseguir esos pesos.
-# La ejecución completa anterior no se presenta como una prueba nueva de hoy.
+# La fecha de la última ejecución completa está en §9.3.
 #
 # **El cuadernillo no se rompe por eso.** Las celdas que necesitan los pesos
 # comprueban primero si están disponibles: si no lo están, imprimen qué falta y
-# siguen adelante. Todo lo demás —las 4.724 filas del corpus, las 79.337
-# entradas del catálogo, el EDA completo, la ingeniería de variables, los siete
+# siguen adelante. Todo lo demás —las 4.724 filas del corpus, el catálogo de
+# Gutenberg (79.337 entradas el 7 de septiembre de 2026), el EDA completo, la ingeniería de variables, los siete
 # modelos de referencia y las tablas comparativas— se calcula de verdad, aquí,
 # en cada ejecución.
 #
@@ -124,13 +124,83 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, accuracy_score, classification_report
 
 # =========================
-# 9. Manejo de advertencias
+# 9. Advertencias
 # =========================
-import warnings
-warnings.filterwarnings("ignore")
+# No hay un filtro global de avisos: esconderlos todos taparía también los que
+# importan. El único que salía era un PendingDeprecationWarning de `vert` en
+# los diagramas de caja (seaborn 0.13 con matplotlib 3.10), que no se arregla
+# desde fuera de seaborn. Por eso esas cajas se dibujan con matplotlib, que
+# acepta `orientation` desde la 3.10 y `vert` en las anteriores.
+import time
+import matplotlib
+
+_MPL_310 = tuple(int(p) for p in matplotlib.__version__.split(".")[:2]) >= (3, 10)
+
+
+def caja(ax, grupos, etiquetas=None, horizontal=False, color="#4C72B0"):
+    """Diagrama de caja con matplotlib, sin avisos de versión."""
+    if _MPL_310:
+        orientacion = {"orientation": "horizontal" if horizontal else "vertical"}
+    else:
+        orientacion = {"vert": not horizontal}
+    grafico = ax.boxplot([pd.Series(g).dropna() for g in grupos], patch_artist=True,
+                         widths=0.6, medianprops={"color": "black"},
+                         flierprops={"marker": "d", "markersize": 3,
+                                     "markerfacecolor": "#555555",
+                                     "markeredgecolor": "#555555"},
+                         **orientacion)
+    for rectangulo in grafico["boxes"]:
+        rectangulo.set_facecolor(color)
+    if etiquetas is not None:
+        posiciones = list(range(1, len(etiquetas) + 1))
+        if horizontal:
+            ax.set_yticks(posiciones, etiquetas)
+        else:
+            ax.set_xticks(posiciones, etiquetas)
+    elif horizontal:
+        ax.set_yticks([])
+    return grafico
 
 # =========================
-# 10. Reproducibilidad
+# 10. Descargas
+# =========================
+def descargar(url, ruta, minimo_bytes, intentos=3):
+    """Baja `url` a `ruta` con tiempo de espera y reintentos.
+
+    Un archivo que ya existe solo se da por bueno si pesa al menos
+    `minimo_bytes`, así que una descarga cortada a medias no se reutiliza. Si
+    no hay manera, el error dice qué falló y qué hacer.
+    """
+    if os.path.exists(ruta) and os.path.getsize(ruta) >= minimo_bytes:
+        return ruta
+    parcial = ruta + ".parcial"
+    ultimo = None
+    for intento in range(1, intentos + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as respuesta, open(parcial, "wb") as destino:
+                while True:
+                    trozo = respuesta.read(1 << 20)
+                    if not trozo:
+                        break
+                    destino.write(trozo)
+            recibidos = os.path.getsize(parcial)
+            if recibidos < minimo_bytes:
+                raise IOError(f"llegaron {recibidos:,} bytes y se esperaban al menos {minimo_bytes:,}")
+            os.replace(parcial, ruta)
+            return ruta
+        except Exception as error:
+            ultimo = error
+            print(f"Descarga de {ruta}: intento {intento} de {intentos} fallido "
+                  f"({type(error).__name__}: {error})")
+            if intento < intentos:
+                time.sleep(3 * intento)
+    raise RuntimeError(
+        f"No se pudo descargar {url} tras {intentos} intentos ({ultimo}). Compruebe la "
+        f"conexión de Colab y vuelva a ejecutar la celda; si sigue fallando, descargue el "
+        f"archivo a mano y súbalo con el nombre {ruta}.")
+
+# =========================
+# 11. Reproducibilidad
 # =========================
 # Una sola semilla, repetida después en cada partición y en cada modelo que
 # tenga componente aleatoria. No se usa ninguna otra en todo el cuadernillo.
@@ -288,8 +358,7 @@ URL_CLEAR = ("https://raw.githubusercontent.com/scrosseye/CLEAR-Corpus/"
              "main/CLEAR_corpus_final.xlsx")
 RUTA_CLEAR = "CLEAR_corpus_final.xlsx"
 
-if not os.path.exists(RUTA_CLEAR):
-    urllib.request.urlretrieve(URL_CLEAR, RUTA_CLEAR)
+descargar(URL_CLEAR, RUTA_CLEAR, minimo_bytes=3_000_000)  # 3,3 MB el 15 de septiembre de 2026
 
 clear = pd.read_excel(RUTA_CLEAR)
 print("CLEAR Corpus descargado:", clear.shape[0], "filas x", clear.shape[1], "columnas")
@@ -361,14 +430,13 @@ print("Ausentes en las columnas que sí se usan:",
 
 # %%
 # --- El catálogo que la aplicación tiene que ordenar ---------------------
-# Feed oficial de Project Gutenberg. Es un archivo vivo: crece cada semana,
-# así que las cifras que imprima esta celda pueden ser algo mayores que las
-# comentadas debajo, medidas el 8 de septiembre de 2026.
+# Feed oficial de Project Gutenberg. Es un archivo vivo que cambia con el
+# tiempo, así que las cifras que imprima esta celda pueden no coincidir con las
+# comentadas debajo, que son de la instantánea del 7 de septiembre de 2026.
 URL_CATALOGO = "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv"
 RUTA_CATALOGO = "pg_catalog.csv"
 
-if not os.path.exists(RUTA_CATALOGO):
-    urllib.request.urlretrieve(URL_CATALOGO, RUTA_CATALOGO)
+descargar(URL_CATALOGO, RUTA_CATALOGO, minimo_bytes=15_000_000)  # 21,2 MB el 15 de septiembre de 2026
 
 catalogo = pd.read_csv(RUTA_CATALOGO)
 print("Entradas del catálogo completo:", f"{len(catalogo):,}")
@@ -390,9 +458,10 @@ print(temas.value_counts().head(10))
 # %% [markdown]
 # ### Interpretación: relevancia de los datos para el problema
 #
-# El catálogo tiene **79.337 entradas**, de las cuales solo **61.642 son libros
-# de texto en inglés** (el resto son grabaciones, imágenes, datasets y obras en
-# otros idiomas). Ese es el universo real del producto, y es también el
+# En la instantánea del 7 de septiembre de 2026, el catálogo tenía **79.337
+# entradas**, de las cuales solo **61.642 eran libros de texto en inglés** (el
+# resto son grabaciones, imágenes, datasets y obras en otros idiomas). El feed
+# cambia con el tiempo, así que la celda de arriba imprime las cifras del día. Ese es el universo real del producto, y es también el
 # argumento de negocio: **61.642 libros gratuitos y ninguna medida de dificultad
 # fiable para ninguno de ellos**.
 #
@@ -434,7 +503,7 @@ ejes[0].set_title("Distribución de BT_easiness")
 ejes[0].set_xlabel("BT_easiness (alto = más fácil)")
 ejes[0].set_ylabel("Extractos")
 ejes[0].legend()
-sns.boxplot(x=clear["BT_easiness"], ax=ejes[1], color="#4C72B0")
+caja(ejes[1], [clear["BT_easiness"]], horizontal=True, color="#4C72B0")
 ejes[1].set_title("Dispersión y valores extremos")
 ejes[1].set_xlabel("BT_easiness")
 plt.tight_layout()
@@ -643,8 +712,10 @@ print("   U =", f"{estadistico:,.0f}", "| p-value =", f"{p_valor:.3g}")
 print("   Decisión con alpha = 0.05:", "se RECHAZA H0" if p_valor < 0.05 else "no se rechaza H0")
 
 # %%
+dominios = list(clear["Categ"].dropna().unique())
 plt.figure(figsize=(6.5, 4))
-sns.boxplot(data=clear, x="Categ", y="BT_easiness", color="#4C72B0")
+caja(plt.gca(), [clear.loc[clear["Categ"] == d, "BT_easiness"] for d in dominios],
+     etiquetas=dominios, color="#4C72B0")
 plt.title("Facilidad por dominio")
 plt.xlabel("Dominio (Lit = literario, Info = informativo)")
 plt.ylabel("BT_easiness (alto = más fácil)")
@@ -671,7 +742,7 @@ plt.show()
 #   lectores porque la carga conceptual es distinta. Esto acota lo que el sistema
 #   puede prometer.
 # - **Favorece al caso de uso real.** El catálogo que LiteraLevel ordena es
-#   literatura —las materias más frecuentes de la §3.3 son ciencia ficción,
+#   literatura —las materias más frecuentes del catálogo (§3) son ciencia ficción,
 #   relatos y aventuras—, es decir, el subconjunto donde el modelo está mejor
 #   calibrado.
 
@@ -705,8 +776,9 @@ print("Spearman(banda Lexile, BT_easiness):",
 # %%
 orden_lexile = [str(b) for b in sorted(clear["lexile"].unique())]
 plt.figure(figsize=(9, 4))
-sns.boxplot(data=clear.assign(banda=clear["lexile"].astype(str)),
-            x="banda", y="BT_easiness", order=orden_lexile, color="#55A868")
+bandas = clear["lexile"].astype(str)
+caja(plt.gca(), [clear.loc[bandas == b, "BT_easiness"] for b in orden_lexile],
+     etiquetas=orden_lexile, color="#55A868")
 plt.title("Facilidad medida por lectores frente a banda Lexile editorial")
 plt.xlabel("Banda Lexile (mayor = el editor la considera más difícil)")
 plt.ylabel("BT_easiness (alto = más fácil)")
@@ -802,11 +874,17 @@ print("Proporción C1-C2:", round(float(medido_v4[["C1", "C2"]].sum() / medido_v
 # comprimida y desplazada hacia arriba (§7.2). Y entre los libros «fáciles» había
 # índices, anuarios, mapas y tablas de números, que puntúan bajo porque son
 # listas: al recomendar por nivel, la aplicación solo ofrece lecturas literarias
-# (290 entre A1 y B1).
+# (288 entre A1 y B1).
 #
 # La consecuencia de producto es la importante: un lector B1 apenas tiene libros
 # enteros a su medida, pero sí **3.644 capítulos en 1.499 libros**. Por eso la
 # aplicación recomienda capítulos, no solo libros.
+#
+# Además de estos libros, la aplicación ofrece **15.367 textos de licencia
+# libre** medidos con el v4 (StoryWeaver, Let's Read, African Storybook y VOA):
+# **68.546 lecturas en total** a fecha del 15 de septiembre de 2026. Este
+# cuadernillo no los carga; los corpus graduados de esas fuentes se contrastan
+# más abajo, en su propia tabla.
 
 # %% [markdown]
 # ## 4.3 Análisis multivariado
@@ -861,7 +939,10 @@ plt.show()
 # --- Rasgos propios calculados sobre el texto crudo ---------------------
 # Se usan las MISMAS expresiones regulares que `app/scoring.py`, no otras
 # parecidas: si el troceado del cuadernillo divergiera del de la aplicación,
-# los números dejarían de significar lo mismo.
+# los números dejarían de significar lo mismo. Una diferencia, a sabiendas: la
+# aplicación descarta las frases de menos de 3 palabras y aquí cuenta toda
+# frase con al menos una, así que `palabras_por_frase` no es exactamente la de
+# la app. El v4 no usa estos rasgos.
 PALABRA_RE = re.compile(r"[A-Za-z]+(?:['’-][A-Za-z]+)*")
 FRASE_RE = re.compile(r"[^.!?]+[.!?]+|[^.!?]+$")
 
@@ -1121,8 +1202,8 @@ plt.show()
 # | **Conservar los atípicos** de `BT_easiness` | Son los extremos legítimos del fenómeno, no errores de captura | Asimetría −0,13: no hay cola anómala (Figura 1) |
 # | **No transformar** la variable objetivo | Distribución casi simétrica y curtosis negativa | Un logaritmo no arreglaría nada y añadiría un paso inverso |
 # | **Reparar** `Lexile Band` en vez de tirar las filas | 32 filas (0,7 %) usan otra notación; es formato, no contenido | Tras la reparación, medianas monótonas salvo el tramo 1500-1700 (n = 58) |
-# | **Rasgos propios** con las regex de `app/scoring.py` | Que el cuadernillo y la aplicación troceen igual | Si divergieran, las métricas dejarían de describir el sistema desplegado |
-# | **Discretizar** en 6 niveles con `qcut` | Poder comparar contra clasificadores y contra el MCER | Clases balanceadas (787-788 cada una) por construcción |
+# | **Rasgos propios** con las regex de `app/scoring.py` | Que el cuadernillo y la aplicación troceen igual | Si divergieran, las métricas dejarían de describir el sistema desplegado. La app descarta además las frases de menos de 3 palabras; aquí no |
+# | **Discretizar** en 6 niveles con `qcut` | Poder comparar clasificadores entre sí (sextiles relativos a CLEAR, no niveles MCER) | Clases balanceadas (787-788 cada una) por construcción |
 # | **Partición por título**, no por fila | 4.724 extractos salen de 4.658 títulos: hay obras repetidas | Intersección train/test verificada = 0 |
 # | **Escalar solo lo numérico y ajustar solo en train** | Evitar que la media y la varianza del test se filtren al ajuste | `fit` en entrenamiento, `transform` en prueba |
 # | **No escalar** para el modelo neuronal | Un transformador recibe texto, no vectores numéricos | El escalado afecta únicamente a la línea base |
@@ -1710,7 +1791,7 @@ tabla_reportada = pd.DataFrame([
      "Error ordinal": "0,91",
      "Observación": "Hipótesis descartada: no aporta sobre el embedding"},
     {"Modelo": "roberta-base afinado (regresión)",
-     "Métrica principal": "RMSE 0,560 · Pearson 0,89",
+     "Métrica principal": "RMSE 0,560 · Pearson 0,89 · exactitud 0,46",
      "Error ordinal": "0,67",
      "Observación": "Mejor época 3; de la 4 en adelante, sobreajuste"},
     {"Modelo": "v4 · distilroberta-base + ventanas",
@@ -1777,6 +1858,11 @@ print("Orden estrictamente creciente de A1 a C1:",
       all(a < b for a, b in zip(medias, medias[1:])))
 
 # %%
+# La recta de compresión, contra el ancla de cada nivel (A1 = 0 … C1 = 1,6).
+ancla_nivel = [0.0, 0.4, 0.8, 1.2, 1.6]
+pendiente, ordenada = np.polyfit(ancla_nivel, validacion_externa["Media v4 (escala 0-2)"], 1)
+print(f"Recta por mínimos cuadrados: predicho ≈ {pendiente:.3f} × real + {ordenada:.3f}")
+
 plt.figure(figsize=(6.5, 4))
 plt.plot(validacion_externa["Nivel oficial"],
          validacion_externa["Media v4 (escala 0-2)"],
@@ -1810,7 +1896,10 @@ plt.show()
 # limitaciones que hay que enunciar antes de que las señale otro**:
 #
 # 1. **La escala está comprimida.** Contra el ancla real, el ajuste ronda
-#    `predicho ≈ 0,72 × real + 0,38`. Los cinco niveles ocupan de 0,50 a 1,50
+#    `predicho ≈ 0,67 × real + 0,41` (0,667 y 0,411 sin redondear: mínimos
+#    cuadrados de las cinco medias de la tabla, que imprime la celda de la
+#    figura; el 0,72 × real + 0,38 de versiones anteriores salía de cuatro
+#    medias de otra tanda en Colab). Los cinco niveles ocupan de 0,50 a 1,50
 #    en una escala de 0 a 2: el modelo **ordena bien y estima corto**. Un texto
 #    A2 puntúa cerca de donde debería puntuar un B1. Por eso el producto muestra
 #    bandas y no una letra.
@@ -1852,7 +1941,8 @@ plt.show()
 # El reparto, por tanto:
 #
 # 1. **Descargue los PDF** desde las URLs del manifiesto
-#    (`entrega/corpus_bc_manifiesto.csv`; la celda de abajo lista las que faltan).
+#    (la celda de abajo imprime todas las que faltan; en el repositorio están
+#    también en `entrega/corpus_bc_manifiesto.csv`, que no viaja con el cuadernillo).
 # 2. **Súbalos a la carpeta `corpus_bc/`** (en Colab, panel de archivos → subir).
 # 3. **Ejecute la celda.** Empareja cada PDF con el manifiesto **por su hash**,
 #    no por su nombre, así que da igual que el navegador añada «(1)».
@@ -2004,12 +2094,10 @@ faltan = [(n, u) for n, u, h in MANIFIESTO_BC if h not in presentes]
 print(f"{len(presentes)}/{len(MANIFIESTO_BC)} PDF verificados byte a byte en {CORPUS_BC}/")
 if faltan:
     print("Es a propósito: el material de British Council tiene derechos y no se redistribuye; "
-          "se reconstruye con su manifiesto de hashes (entrega/corpus_bc_manifiesto.csv).")
-    print(f"Faltan {len(faltan)}. Ábralos en el navegador y súbalos a {CORPUS_BC}/. "
-          f"Los cinco primeros:")
-    for n, u in faltan[:5]:
+          "se reconstruye con el manifiesto de hashes que lleva esta celda.")
+    print(f"Faltan {len(faltan)}. Ábralos en el navegador y súbalos a {CORPUS_BC}/:")
+    for n, u in faltan:
         print(f"  {n}  {u}")
-    print("  (la lista completa, en entrega/corpus_bc_manifiesto.csv)")
 else:
     print("Corpus completo. Desde la raíz del repositorio:")
     print(f"  python -X utf8 validar_local.py {CORPUS_BC}")
@@ -2427,14 +2515,17 @@ plt.show()
 # representación del texto.**
 #
 # **2. Cada vez que se enriqueció la representación, el resultado subió.**
-# Conteos → embeddings → transformador que lee el texto: exactitud 0,29 → 0,37 →
-# 0,46; error ordinal 1,39 → 0,93 → 0,67 niveles; RMSE 0,748 → 0,560. La
+# Conteos → embeddings → transformador que lee el texto: exactitud 0,313 →
+# 0,37 → 0,46; error ordinal 1,295 → 0,93 → 0,67 niveles; RMSE 0,748 → 0,560.
+# Los conteos con tres variables (0,313 y 1,295) y el RMSE 0,748 se recalculan
+# aquí; embeddings y transformador son cifras medidas en su momento (bloque B).
+# La primera medida de los conteos, con otra ejecución, dio 0,29 y 1,39. La
 # progresión es monótona y cada escalón tiene una explicación.
 #
 # **3. El modelo desplegado ordena bien y estima corto.** Spearman 0,908 en
 # validación y, sobre todo, **medias estrictamente crecientes de A1 a C1 en un
 # corpus externo con nivel oficial**. Pero la escala está comprimida
-# (`predicho ≈ 0,72 × real + 0,38`) y los dos niveles más bajos casi no se
+# (`predicho ≈ 0,67 × real + 0,41`, Figura 13) y los dos niveles más bajos casi no se
 # distinguen. **Sirve para ordenar un catálogo; no sirve para certificar a
 # nadie**, y el producto lo dice en pantalla.
 #
@@ -2469,20 +2560,22 @@ plt.show()
 #    documentos. Sí son verificables: se recalcularon idénticas (§9.3).
 # 6. **El corpus de anclaje es de una sola fuente** (ELG CEFR English, 654
 #    documentos). Por eso UniversalCEFR no sirve para validar el v4 (§7.2).
-# 7. **Este cuadernillo corre entero en un Colab limpio**, con el matiz que se
-#    explica abajo: correr no es lo mismo que recalcular.
+# 7. **Ejecutado de principio a fin en Colab el <fecha> (CPU), con las salidas
+#    guardadas.** Con el matiz que se explica abajo: correr no es lo mismo que
+#    recalcular.
 #
 # ## 9.3 Qué se reproduce aquí y qué no
 #
 # Conviene separar cinco cosas que suelen mezclarse bajo la palabra
-# «reproducible», y hoy son ciertas las cinco:
+# «reproducible». Las cinco se pueden hacer, dos de ellas fuera de este
+# cuadernillo:
 #
 # | | ¿Se hace? |
 # |---|---|
-# | **Ejecutarse de principio a fin sin errores** en un Colab limpio | **Sí** |
+# | **Ejecutarse de principio a fin** en Colab | **Sí**: ejecutado de principio a fin en Colab el <fecha> (CPU), con las salidas guardadas |
 # | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
 # | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
-# | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí**, reconstruyendo el corpus con su manifiesto de hashes (§7.2) |
+# | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí, fuera del cuadernillo**: descarga manual de los 59 PDF, verificación de hashes aquí (§7.2) y recálculo con `validar_local.py` desde el repositorio |
 # | **Recalcular las métricas internas del v4** (0,908, 97,2 %) | **Sí**, fuera de este cuadernillo: `entrenamiento_v4/` con los datos públicos de ELG, idénticas a cuatro decimales |
 #
 # Hasta el 12 de septiembre de 2026 la última fila decía «No», y este párrafo lo
