@@ -823,3 +823,5 @@ Visto bueno de 4e a b896b1f, el arreglo del 28: ok.
 - **Tiempos:** la búsqueda más lenta tardó 1,05 s.
 - **`buscador_listo`:** true a los 14-17 s de RUNNING.
 - **Pendiente:** «rose» contra el 26, y la comprobación de f4 con las 198 listas en el Space.
+
+Reinicio 28 cerrado del todo (4e, anexo 68b7cf3): «rose» también da el mismo top 10 que el 26, con la línea base de f4 en 5a2fc04. Son 14 de 14 listas iguales y en el mismo orden. `buscador_listo` sale a los 14-20 s. Falta la batería de f4.
