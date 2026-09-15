@@ -960,3 +960,11 @@ Reinicio 29 (f4): las 13 diferencias entre local y Space son empates entre parec
   - primero, «cuentos de dragones» con 1,20, que es el paso 2 del guion. Si cambió, f4 vuelve el Space al catalogo.py del 28 sin esperar.
   - después, el alcance con las 100 palabras y los chips con A2 y 1,20. Si más de 3 palabras de tema pierden marcas, también se vuelve al 28.
 - **Regla nueva:** el perfil 1,20 entra en el criterio de toda regla de la franja.
+
+Reinicio 29, comprobación de f4 contra el volcado del Space 28:
+- **Sin cambio esperado:** 0 de 247 listas distintas.
+- **Con cambio esperado:** 0 de 10 distintas de lo medido en local.
+- **«Crimen y castigo de Dostoyevski»:** 0 marcas con 1,20 y con B1.
+- **Batería:** los mismos 4 fallos que en el 28.
+- **Paso 2 del guion:** «cuentos de dragones» con 1,20 no cambia. Abre con un texto libre, así que la regla no puede activarse. No se vuelve al 28 por esto.
+- **En curso:** el diagnóstico de «animales de la granja» con 1,20, y el alcance con las 100 palabras, los chips y la reserva con A2, B1 y 1,20.
