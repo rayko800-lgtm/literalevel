@@ -621,11 +621,32 @@ def _es_compuesto(texto: str) -> bool:
     return len(piezas) >= 2 and all(p and p.replace("'", "").isalpha() for p in piezas)
 
 
-def _ipa_de_modelo(texto) -> str | None:
-    """La IPA que devuelve OpenAI, entre barras, o None si viene vacia o
-    desmedida."""
+_SIGNOS_IPA = frozenset("ˈˌːˑ.‿-() ")
+
+
+def _ipa_de_modelo(texto, palabra: str | None = None) -> str | None:
+    """La IPA que devuelve OpenAI, entre barras, o None si viene vacia,
+    desmedida o no es IPA.
+
+    Antes valia cualquier texto: «no sé, quizá» salia como /no sé, quizá/ con la
+    marca de IPA por IA (e6, 14 sep, M6). Ahora solo pasan letras minusculas sin
+    acento precompuesto (las de la IPA, æ, ʃ, ɑ, no se descomponen; ʰ es una
+    descomposicion de compatibilidad y vale), diacriticos combinados, los signos
+    de la transcripcion y, con `palabra`, como mucho un trozo por palabra."""
+    import unicodedata
     texto = str(texto or "").strip()
     if not texto or len(texto) > 60:
+        return None
+    interior = texto.strip("/[]").strip()
+    if not interior:
+        return None
+    for ch in interior:
+        if ch in _SIGNOS_IPA or unicodedata.category(ch).startswith("M"):
+            continue
+        descompuesta = unicodedata.decomposition(ch)
+        if not ch.isalpha() or ch.isupper() or (descompuesta and not descompuesta.startswith("<")):
+            return None
+    if palabra is not None and len(interior.split()) > max(1, len(str(palabra).split())):
         return None
     return texto if texto.startswith(("/", "[")) else f"/{texto.strip('/')}/"
 
@@ -1159,8 +1180,8 @@ class ConsultorLexico:
                 # La IPA de la IA solo rellena lo que el diccionario no trae, y
                 # se marca. Miguel: «si ya lo esta generando OpenAI, que tambien
                 # de la transcripcion en IPA con la correcta acentuacion».
-                ia_us = _ipa_de_modelo(extra.get("ipa_us"))
-                ia_uk = _ipa_de_modelo(extra.get("ipa_uk"))
+                ia_us = _ipa_de_modelo(extra.get("ipa_us"), palabra_superficie)
+                ia_uk = _ipa_de_modelo(extra.get("ipa_uk"), palabra_superficie)
                 if not ipa_us and ia_us:
                     ipa_us, ipa_generada_por_ia = ia_us, True
                 if not ipa_uk and ia_uk:
@@ -1198,8 +1219,8 @@ class ConsultorLexico:
         if extra and not modo_ia and (parte_del_diccionario or pedir_ipa):
             # Solo rellena lo que los diccionarios no traen, y se marca. En un
             # compuesto las dos estan vacias y las pone enteras, como antes.
-            ia_us = _ipa_de_modelo(extra.get("ipa_us"))
-            ia_uk = _ipa_de_modelo(extra.get("ipa_uk"))
+            ia_us = _ipa_de_modelo(extra.get("ipa_us"), palabra_superficie)
+            ia_uk = _ipa_de_modelo(extra.get("ipa_uk"), palabra_superficie)
             if not ipa_us and ia_us:
                 ipa_us, ipa_generada_por_ia = ia_us, True
             if not ipa_uk and ia_uk:

@@ -751,9 +751,23 @@ def _campo(obj, nombre, defecto=None):
 def transcribir_con_tiempos(ruta_audio: str | os.PathLike) -> dict | None:
     """{"texto", "duracion", "palabras": [{"palabra", "inicio", "fin"}]} con
     whisper-1 y marcas por palabra, o `None` sin clave o si falla. Nunca lanza."""
+    return _transcribir_con_tiempos(ruta_audio)[0]
+
+
+# OpenAI rechaza sin procesar (y sin cobrar) con estos codigos; un plazo agotado o
+# un corte de red no dicen si el audio llego a procesarse.
+_RECHAZADA_SIN_PROCESAR = (400, 415, 422)
+
+
+def _transcribir_con_tiempos(ruta_audio) -> tuple[dict | None, bool]:
+    """(datos o None, si se puede pedir la transcripcion sin marcas sin pagar el
+    audio dos veces): cuando OpenAI rechazo la peticion, o sin clave, que no
+    sube nada ni aqui ni en `transcribir_audio`."""
     cliente = _cliente()
     if cliente is None:
-        return None
+        # Sin clave no se sube nada, asi que pedir la de antes no cuesta: y es por
+        # donde entran las pruebas que simulan solo `transcribir_audio`.
+        return None, True
     try:
         with open(ruta_audio, "rb") as f:
             r = cliente.audio.transcriptions.create(
@@ -769,9 +783,9 @@ def transcribir_con_tiempos(ruta_audio: str | os.PathLike) -> dict | None:
         duracion = _campo(r, "duration")
         return {"texto": str(_campo(r, "text", "") or ""),
                 "duracion": float(duracion) if duracion is not None else None,
-                "palabras": palabras}
-    except Exception:
-        return None
+                "palabras": palabras}, False
+    except Exception as e:
+        return None, getattr(e, "status_code", None) in _RECHAZADA_SIN_PROCESAR
 
 
 def _tiempos_de_referencia(ruta_mp3) -> dict | None:
@@ -780,23 +794,36 @@ def _tiempos_de_referencia(ruta_mp3) -> dict | None:
     if not ruta_mp3:
         return None
     lado = Path(str(ruta_mp3) + ".tiempos.json")
-    try:
-        if lado.is_file():
-            datos = json.loads(lado.read_text(encoding="utf-8"))
-            if isinstance(datos, dict) and isinstance(datos.get("palabras"), list):
-                return datos
-    except (OSError, ValueError):
-        pass
-    datos = transcribir_con_tiempos(ruta_mp3)
-    if datos and datos["palabras"]:
+
+    def guardado():
         try:
-            descriptor, temporal = tempfile.mkstemp(dir=str(lado.parent), prefix=f".{lado.name}.", suffix=".tmp")
-            with os.fdopen(descriptor, "w", encoding="utf-8") as f:
-                json.dump(datos, f, ensure_ascii=False)
-            os.replace(temporal, lado)
-        except OSError:
+            if lado.is_file():
+                leidos = json.loads(lado.read_text(encoding="utf-8"))
+                if isinstance(leidos, dict) and isinstance(leidos.get("palabras"), list):
+                    return leidos
+        except (OSError, ValueError):
             pass
-    return datos
+        return None
+
+    ya = guardado()
+    if ya is not None:
+        return ya
+    # Dos lectores con la misma frase nueva a la vez pagaban dos whisper: el
+    # segundo espera al primero y lee lo que dejo, como el TTS (e6, 14 sep, M4).
+    with _candado_audio(f"tiempos|{lado}"):
+        ya = guardado()
+        if ya is not None:
+            return ya
+        datos = transcribir_con_tiempos(ruta_mp3)
+        if datos and datos["palabras"]:
+            try:
+                descriptor, temporal = tempfile.mkstemp(dir=str(lado.parent), prefix=f".{lado.name}.", suffix=".tmp")
+                with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+                    json.dump(datos, f, ensure_ascii=False)
+                os.replace(temporal, lado)
+            except OSError:
+                pass
+        return datos
 
 
 def _tiempos_por_indice(objetivo: list[str], tiempos: dict | None) -> dict[int, tuple[float, float]]:
@@ -1044,6 +1071,25 @@ def _enlace_real(tipo: str, primera: str, segunda: str) -> bool:
     return False
 
 
+_FIN_DE_FRASE_RE = re.compile(r"[.?!;:…]+[\"'»”’)\]]*$")
+
+
+def _fronteras_de_frase(frase: str | None, palabras: list[str]) -> set[int]:
+    """Posiciones de `palabras` tras las que la frase lleva punto, interrogacion,
+    exclamacion, punto y coma o dos puntos. Ahi no hay enlace: las palabras llegan
+    sin puntuacion y «Stop. Eat it.» aceptaba stop‿eat (e6, 14 sep, M2). Si el
+    recuento no casa con `palabras`, ninguna: mejor no saberlo que marcarlo mal."""
+    if not frase:
+        return set()
+    fronteras, i = set(), 0
+    for trozo in str(frase).split():
+        n = len(normalizar_palabras(trozo))
+        i += n
+        if n and _FIN_DE_FRASE_RE.search(trozo):
+            fronteras.add(i - 1)
+    return fronteras if i == len(palabras) else set()
+
+
 def _ipa_corta(texto) -> str | None:
     """IPA del modelo entre barras, o None si viene vacia o desmedida."""
     t = str(texto or "").strip()
@@ -1073,6 +1119,7 @@ def _validar_natural(bruto, palabras: list[str], frase: str) -> dict:
         if i is not None and i not in vistos:
             vistos.add(i)
             enfasis.append({"indice": i, "ipa": _ipa_corta(_campo(e, "ipa"))})
+    # Los que cruzan un punto los quita `_pulir_natural`, que pasa tambien por aqui.
     enlaces = []
     for e in datos.get("enlaces") or []:
         de, a, tipo = indice(_campo(e, "de")), indice(_campo(e, "a")), str(_campo(e, "tipo", "") or "")
@@ -1124,16 +1171,20 @@ def _ipa_enlace(primera: str, segunda: str) -> str | None:
     """La IPA de dos palabras enlazadas, sacada del DICCIONARIO de cada una y
     unida con ‿. La del modelo no valia: en la bateria del 14 sep daba «/ə/» para
     «little of» o «/sɔrts.ə/» para «sorts of»."""
-    partes = []
-    for palabra in (primera, segunda):
-        try:
-            ipa, _ = fonemas.ipa_de_palabra(palabra)
-        except Exception:
-            ipa = None
-        if not ipa:
-            return None
-        partes.append(str(ipa).strip().strip("/[]"))
-    return "/" + "‿".join(partes) + "/"
+    partes = [_ipa_de_diccionario(palabra) for palabra in (primera, segunda)]
+    if not all(partes):
+        return None
+    return "/" + "‿".join(p.strip("/") for p in partes) + "/"
+
+
+def _ipa_de_diccionario(palabra: str) -> str | None:
+    """La IPA de una palabra entre barras, de Kaikki o CMUdict (`fonemas`), o None."""
+    try:
+        ipa, _ = fonemas.ipa_de_palabra(palabra)
+    except Exception:
+        return None
+    ipa = str(ipa or "").strip().strip("/[]")
+    return f"/{ipa}/" if ipa else None
 
 
 def _pulir_natural(datos: dict, palabras: list[str], frase: str | None = None) -> dict:
@@ -1153,13 +1204,19 @@ def _pulir_natural(datos: dict, palabras: list[str], frase: str | None = None) -
     if len(reducciones) != len(guardadas):
         datos["reducciones"] = reducciones
         datos["version_natural"] = _version_natural(datos.get("version_natural"), palabras, reducciones, frase)
-    datos["enfasis"] = [e for e in datos.get("enfasis") or []
-                        if isinstance(e.get("indice"), int) and 0 <= e["indice"] < n
+    # La IPA del enfasis sale del diccionario, como la de los enlaces: la del
+    # modelo no se validaba ni se marcaba y «cualquier cosa» salia como
+    # /cualquier cosa/ (e6, 14 sep, M3). Si el diccionario no la trae, sin IPA.
+    datos["enfasis"] = [{**e, "ipa": _ipa_de_diccionario(palabras[e["indice"]])}
+                        for e in datos.get("enfasis") or []
+                        if isinstance(e, dict) and isinstance(e.get("indice"), int) and 0 <= e["indice"] < n
                         and palabras[e["indice"]] not in _PALABRAS_FUNCIONALES]
+    fronteras = _fronteras_de_frase(frase, palabras)
     enlaces = []
     for e in datos.get("enlaces") or []:
         de, a = e.get("de"), e.get("a")
-        if isinstance(de, int) and isinstance(a, int) and 0 <= de and a == de + 1 < n:
+        if (isinstance(de, int) and isinstance(a, int) and 0 <= de and a == de + 1 < n
+                and de not in fronteras):
             enlaces.append({**e, "ipa": _ipa_enlace(palabras[de], palabras[a])})
     datos["enlaces"] = enlaces
     return datos
@@ -1180,38 +1237,51 @@ def analizar_natural(frase: str, palabras_objetivo: list[str] | None = None) -> 
     if not frase or not palabras:
         return None
     ruta = _ruta_analisis_natural(frase)
-    try:
-        if ruta.is_file():
-            guardado = json.loads(ruta.read_text(encoding="utf-8"))
-            if isinstance(guardado, dict) and isinstance(guardado.get("enlaces"), list):
-                return _pulir_natural(guardado, palabras, frase)
-    except (OSError, ValueError):
-        pass
+
+    def guardado():
+        try:
+            if ruta.is_file():
+                leido = json.loads(ruta.read_text(encoding="utf-8"))
+                if isinstance(leido, dict) and isinstance(leido.get("enlaces"), list):
+                    return _pulir_natural(leido, palabras, frase)
+        except (OSError, ValueError):
+            pass
+        return None
+
+    ya = guardado()
+    if ya is not None:
+        return ya
     cliente = _cliente()
     if cliente is None:
         return None
-    numeradas = " ".join(f"{i}:{p}" for i, p in enumerate(palabras))
-    try:
-        resp = cliente.chat.completions.parse(
-            model=MODELO_EXPLICACION,
-            messages=[{"role": "system", "content": _PROMPT_NATURAL},
-                      {"role": "user", "content": f"Frase: {frase}\nPalabras numeradas: {numeradas}"}],
-            response_format=AnalisisNatural)
-        bruto = resp.choices[0].message.parsed
-    except Exception:
-        return None
-    if bruto is None:
-        return None
-    datos = _validar_natural(bruto, palabras, frase)
-    try:
-        ruta.parent.mkdir(parents=True, exist_ok=True)
-        descriptor, temporal = tempfile.mkstemp(dir=str(ruta.parent), prefix=f".{ruta.name}.", suffix=".tmp")
-        with os.fdopen(descriptor, "w", encoding="utf-8") as f:
-            json.dump(datos, f, ensure_ascii=False)
-        os.replace(temporal, ruta)
-    except OSError:
-        pass
-    return datos
+    # Dos lectores con la misma frase nueva a la vez pagaban dos analisis: el
+    # segundo espera al primero y lee lo que dejo, como el TTS (e6, 14 sep, M4).
+    with _candado_audio(f"natural|{ruta}"):
+        ya = guardado()
+        if ya is not None:
+            return ya
+        numeradas = " ".join(f"{i}:{p}" for i, p in enumerate(palabras))
+        try:
+            resp = cliente.chat.completions.parse(
+                model=MODELO_EXPLICACION,
+                messages=[{"role": "system", "content": _PROMPT_NATURAL},
+                          {"role": "user", "content": f"Frase: {frase}\nPalabras numeradas: {numeradas}"}],
+                response_format=AnalisisNatural)
+            bruto = resp.choices[0].message.parsed
+        except Exception:
+            return None
+        if bruto is None:
+            return None
+        datos = _validar_natural(bruto, palabras, frase)
+        try:
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            descriptor, temporal = tempfile.mkstemp(dir=str(ruta.parent), prefix=f".{ruta.name}.", suffix=".tmp")
+            with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+                json.dump(datos, f, ensure_ascii=False)
+            os.replace(temporal, ruta)
+        except OSError:
+            pass
+        return datos
 
 
 # --- Historial del ritmo (lectura natural, parte 3) --------------------
@@ -1346,15 +1416,20 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     que la funcion lance ninguna excepcion.
     """
     # Con marcas por palabra para medir el ritmo; es la misma llamada de siempre
-    # con otro formato. Si no llegan, la transcripcion de antes: sin clave no
-    # sale ninguna llamada y, si fallo el formato con marcas, sale una sola.
-    tiempos = transcribir_con_tiempos(ruta_audio)
+    # con otro formato. La transcripcion de antes solo si OpenAI RECHAZO ese
+    # formato (400, 415 o 422: no se proceso). Con un plazo agotado o un corte de
+    # red el audio pudo procesarse y cobrarse, y subirlo otra vez lo pagaba dos
+    # veces (e6, 14 sep, M5). Sin clave no sale ninguna llamada.
+    tiempos, reintentar = _transcribir_con_tiempos(ruta_audio)
     transcripcion = tiempos["texto"] if tiempos is not None else None
-    if tiempos is None:
+    if tiempos is None and reintentar:
         transcripcion = transcribir_audio(ruta_audio)
     evaluacion = evaluar_pronunciacion(frase_objetivo, transcripcion or "")
 
-    if guardar_fallos and evaluacion.palabras_falladas:
+    # Sin transcripcion todo cuenta como fallado: con guardar_fallos, que es el
+    # valor por defecto, se guardaba la frase entera como palabras dificiles (e6,
+    # 14 sep, M1). La API y Gradio ya lo miraban; el valor por defecto no.
+    if guardar_fallos and transcripcion is not None and evaluacion.palabras_falladas:
         registrar_fallos(evaluacion.palabras_falladas, frase=frase_objetivo)
 
     correccion = None

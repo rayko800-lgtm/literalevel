@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -103,7 +105,9 @@ RESPUESTA_NATURAL = {
 }
 # «cuppa» no esta respaldada por ninguna reduccion validada: la version se reconstruye.
 NATURAL_VALIDADO = {
-    "enfasis": [{"indice": 4, "ipa": "/ˈkʌp/"}, {"indice": 6, "ipa": "/ˈkɔfi/"}],
+    # La IPA del enfasis sale del diccionario, no del modelo (M3).
+    "enfasis": [{"indice": 4, "ipa": voz._ipa_de_diccionario("cup")},
+                {"indice": 6, "ipa": voz._ipa_de_diccionario("coffee")}],
     "enlaces": [{"de": 4, "a": 5, "tipo": "consonante_vocal", "ipa": voz._ipa_enlace("cup", "of")}],
     "reducciones": [{"desde": 0, "hasta": 1, "forma": "I'd", "ipa": "/aɪd/", "generado_por_ia": True}],
     "tramos_rapidos": [{"desde": 3, "hasta": 6}],
@@ -169,6 +173,58 @@ class Practicar(unittest.TestCase):
         for p in parches:
             p.start()
             self.addCleanup(p.stop)
+
+    def test_sin_transcripcion_no_se_guardan_fallos_aunque_se_pida(self):
+        """e6, 14 sep (M1): con guardar_fallos=True y sin transcripcion guardaba la frase entera."""
+        with mock.patch.object(voz, "_cliente", lambda: None), \
+                mock.patch.object(voz, "registrar_fallos") as registrar, \
+                mock.patch.object(voz, "registrar_ritmo"):
+            s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
+        self.assertFalse(s.transcripcion_ok)
+        registrar.assert_not_called()
+
+    def test_si_rechazan_las_marcas_se_transcribe_sin_ellas_y_si_no_no(self):
+        """e6, 14 sep (M5): con un plazo agotado el audio pudo cobrarse; no se sube otra vez."""
+        class Rechazo(Exception):
+            status_code = 400
+        for error, esperadas, ok in ((Rechazo("formato"), 2, True), (TimeoutError("plazo"), 1, False)):
+            llamadas = []
+
+            def crear(error=error, llamadas=llamadas, **kw):
+                llamadas.append(kw.get("response_format"))
+                if kw.get("response_format") == "verbose_json":
+                    raise error
+                return SimpleNamespace(text=FRASE)
+            cliente = ClienteSimulado()
+            cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=crear),
+                                            speech=cliente.audio.speech)
+            with mock.patch.object(voz, "_cliente", lambda: cliente), \
+                    mock.patch.object(voz, "explicar_correccion", lambda *a, **k: None):
+                s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=False, nivel=1.0)
+            self.assertEqual(len(llamadas), esperadas, (error, llamadas))
+            self.assertEqual(s.transcripcion_ok, ok)
+
+    def test_la_referencia_pedida_a_la_vez_se_transcribe_una_vez(self):
+        """e6, 14 sep (M4): sin candado, dos lectores con la misma frase pagaban dos whisper."""
+        cliente = ClienteSimulado()
+        transcribir = cliente.transcribir
+
+        def lento(**kw):
+            time.sleep(0.3)
+            return transcribir(**kw)
+        cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=lento), speech=cliente.audio.speech)
+        mp3 = self.carpeta / "referencia.mp3"
+        mp3.write_bytes(b"mp3 simulado")
+        salidas = []
+        with mock.patch.object(voz, "_cliente", lambda: cliente):
+            hilos = [threading.Thread(target=lambda: salidas.append(voz._tiempos_de_referencia(mp3)))
+                     for _ in range(3)]
+            for h in hilos:
+                h.start()
+            for h in hilos:
+                h.join()
+        self.assertEqual(len(cliente.transcripciones), 1)
+        self.assertTrue(len(salidas) == 3 and all(s and s["palabras"] for s in salidas), salidas)
 
     def test_sin_clave_no_se_mide_y_no_revienta(self):
         with mock.patch.object(voz, "_cliente", lambda: None):
@@ -290,6 +346,45 @@ class Natural(unittest.TestCase):
         self.assertEqual(datos["reducciones"], [])
         self.assertEqual(datos["version_natural"], frase)
 
+    def test_sin_enlace_a_traves_de_un_punto(self):
+        """e6, 14 sep (M2): «Stop. Eat it.» aceptaba stop‿eat."""
+        frase = "Stop. Eat it."
+        bruto = {"enfasis": [], "reducciones": [], "tramos_rapidos": [], "version_natural": frase,
+                 "enlaces": [{"de": 0, "a": 1, "tipo": "consonante_vocal", "ipa": "/x/"},
+                             {"de": 1, "a": 2, "tipo": "consonante_vocal", "ipa": "/x/"}]}
+        datos = voz._validar_natural(bruto, voz.normalizar_palabras(frase), frase)
+        self.assertEqual([(e["de"], e["a"]) for e in datos["enlaces"]], [(1, 2)])
+        otra = "Wait, stop! Are you sure? Yes."
+        self.assertEqual(voz._fronteras_de_frase(otra, voz.normalizar_palabras(otra)), {1, 4, 5},
+                         "la coma no corta; el signo de fin de frase si")
+
+    def test_ipa_del_enfasis_del_diccionario_y_no_del_modelo(self):
+        """e6, 14 sep (M3): «cualquier cosa» salia como /cualquier cosa/."""
+        bruto = {**RESPUESTA_NATURAL, "enfasis": [{"indice": 4, "ipa": "cualquier cosa"}]}
+        datos = voz._validar_natural(bruto, PALABRAS, FRASE)
+        self.assertEqual(datos["enfasis"], [{"indice": 4, "ipa": voz._ipa_de_diccionario("cup")}])
+        self.assertTrue(str(datos["enfasis"][0]["ipa"]).startswith("/") and "cualquier" not in str(datos))
+
+    def test_dos_lectores_a_la_vez_pagan_un_solo_analisis(self):
+        """e6, 14 sep (M4): sin candado, la misma frase nueva a la vez pagaba dos analisis."""
+        cliente = ClienteSimulado()
+        analizar = cliente.analizar
+
+        def lento(**kw):
+            time.sleep(0.3)
+            return analizar(**kw)
+        cliente.chat = SimpleNamespace(completions=SimpleNamespace(parse=lento))
+        resultados = []
+        with mock.patch.object(voz, "_cliente", lambda: cliente):
+            hilos = [threading.Thread(target=lambda: resultados.append(voz.analizar_natural(FRASE)))
+                     for _ in range(3)]
+            for h in hilos:
+                h.start()
+            for h in hilos:
+                h.join()
+        self.assertEqual(len(cliente.analisis), 1)
+        self.assertEqual(resultados, [NATURAL_VALIDADO] * 3)
+
     def test_version_natural_vacia_o_desmedida_vuelve_a_la_frase(self):
         for version in ("", "   ", "x" * 500):
             datos = voz._validar_natural({**RESPUESTA_NATURAL, "version_natural": version}, PALABRAS, FRASE)
@@ -363,6 +458,21 @@ class FonemaDeUnaPalabraRepetida(unittest.TestCase):
             for _ in range(3)])
         self.assertEqual([d.fonema for d in voz.fijar_fonemas(c3, [("cat", "cut"), ("cat", "cap")]).detalles],
                          por_separado + [por_separado[1]])
+
+
+class IpaDeLaIA(unittest.TestCase):
+    """e6, 14 sep (M6), en `lexicon`: la IPA que escribe el modelo tiene que ser IPA."""
+
+    def test_solo_pasa_lo_que_es_una_transcripcion(self):
+        import lexicon
+        self.assertIsNone(lexicon._ipa_de_modelo("no sé, quizá"))
+        self.assertIsNone(lexicon._ipa_de_modelo("cualquier cosa", "house"))
+        self.assertIsNone(lexicon._ipa_de_modelo("HOUSE"))
+        self.assertIsNone(lexicon._ipa_de_modelo("//"))
+        self.assertEqual(lexicon._ipa_de_modelo("ˈhæp(ə)n"), "/ˈhæp(ə)n/")
+        self.assertEqual(lexicon._ipa_de_modelo("/sɛt ˈɔf/", "set off"), "/sɛt ˈɔf/")
+        self.assertEqual(lexicon._ipa_de_modelo("[tʰɒp]", "top"), "[tʰɒp]")
+        self.assertEqual(lexicon._ipa_de_modelo("t͡ʃɪp", "chip"), "/t͡ʃɪp/")
 
 
 class HistorialRitmo(unittest.TestCase):

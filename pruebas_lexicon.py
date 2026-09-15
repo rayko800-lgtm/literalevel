@@ -128,7 +128,10 @@ def main() -> int:
     # --- 2b) Phrasal verb "set off" ----------------------------------
     print("=== 2b) Phrasal verb: 'set off' ===")
     r_set_off = consultor.consultar(
-        "set off", "The fireworks will set off at midnight over the bay.", nivel=1.0)
+        # Transitiva, que es el uso de «hacer explotar»: con «The fireworks will set
+        # off», intransitiva, OpenAI elegia «To begin; to cause; to initiate» y la
+        # prueba solo pasaba sin clave (e6, 14 sep, D1; repetido con clave el 15).
+        "set off", "They will set off the fireworks at midnight over the bay.", nivel=1.0)
     mostrar(r_set_off)
     linea()
     if r_set_off.lema_buscado != "set off":
