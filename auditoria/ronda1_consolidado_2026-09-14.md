@@ -631,3 +631,8 @@ Prueba final a 390 px del front publicado 83520e2 (e6):
 - **api.py del 26 (41e7e6d):** e6 le dio el ok.
 - **Gradio:** la devolución está escrita, con prueba y 3 mutantes C14, a falta del hash.
 - **Front para después del 26:** 51cda13, «Este intento no cuenta.», con visto bueno corto de 4e.
+
+Corrección de 4e a la receta B2 de la demo: la sexta respuesta no aguanta un despiste hacia arriba.
+- **El fallo:** «Capto bien la idea» en la sexta da 1,46, que ya es C1. B2 llega hasta 1,399, porque la letra es floor(nivel × 2,5 + 0,5).
+- **Resto de despistes:** cualquier otra respuesta cambiada a la opción de al lado da entre 1,07 y 1,27, que sigue siendo B2.
+- **En los guiones:** la receta dirá «en la sexta no elijas "Capto bien la idea"».
