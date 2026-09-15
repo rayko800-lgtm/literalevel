@@ -993,3 +993,9 @@ Arreglo del micrófono de Pronunciar (e6, 601788b), con el ok de 4e:
 - **Qué vuelve al Space:** el catalogo.py de b896b1f.
 - **Qué se pierde:** las consultas de autor con perfil vuelven a colar cuentos como «Books». El paso 3 del guion no depende de ello, porque «Crimen y castigo de Dostoyevski» ya daba el aviso en el 28.
 - **Siguiente:** i5 e i6 no arreglarían «león», «brown» ni «hope», porque ninguna distingue autor de tema en una palabra. Se sustituyen por i7, que ataca la causa: el título no cuenta si casa igual con el marco «libros sobre» sin la palabra. Se mide sin prisa de demo.
+
+**Corrección: la vuelta atrás al 28 NO se hizo.** El clasificador de permisos de la sesión de f4 denegó la subida («Production Deploy»). f4 no la rodea ni la pide a otra sesión, y la central tampoco: la tiene que autorizar Miguel en el chat de f4 o hacerla él.
+- **Estado del Space:** sigue en el 29 (5ab6832). Con 1,20 pierden marcas «león», «brown», «hope» y «animales de la granja», y esta última también con A2 y B1.
+- **Comando listo:** `python -X utf8 tools/desplegar_app.py --solo app/catalogo.py --commit b896b1f`. Solo sube catalogo.py.
+
+**Micrófono publicado (e6):** 601788b, en el Space del front 0cfa382. Con el aviso de abrir en Chrome en el navegador de WhatsApp, «Acepta el permiso del micrófono», «Grabando: habla ahora» y un mensaje para cada error. Falta que lo pruebe Ismael.
