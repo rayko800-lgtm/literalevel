@@ -1201,3 +1201,8 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - «family» con nivel 0,80 por API (`nivel` directo, api.py:981): 36 resultados y 18 marcadas.
   - Predicción del 30b: sale SWV19641 (0,382) y entra LRD5DCD10D6C1764DFD9540DC0B3E15D25C (0,656); el resto de marcadas, igual.
   - Nota: el perfil B1 del cuestionario de e6 da 0,953, no 0,80. Las predicciones de f4 son con 0,80.
+
+**Despliegue 30b:** Space 0319290, con app/catalogo.py de 1643c4b.
+- Árbol limpio en D:: corpus 48/48, api 66/66, extremas 351. C24 3/3. Ok de 4e. --seco: solo catalogo.py.
+- En marcha: comprobar_r30b.py y la segunda medida del arranque del 30a.
+- Ensayo de e6 encargado: family 0,80, mystery, paso 3, granja, dragones y perfil 0,953.
