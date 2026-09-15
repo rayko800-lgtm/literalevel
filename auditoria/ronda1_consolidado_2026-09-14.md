@@ -1069,3 +1069,11 @@ Tanda 2 de ayuda publicada (e6, 6f4e01f, con el ok de 4e): Space del front 898a6
 - **Lector:** la primera vez sale un solo aviso con ✕, «Mantén presionada una palabra para ver qué significa; desliza para cambiar de página.», y un «?» en la barra lo vuelve a mostrar. A 390 px se ven cuatro renglones del libro donde antes eran dos.
 - **Pronunciar:** la línea de ayuda sustituye al subtítulo la primera vez, con ✕ y «?».
 - **Siguiente:** la tanda 3, la bienvenida. 4e revisa los guiones cuando esté publicada.
+
+Límites declarados de la búsqueda ya en el documento y la estrategia (4e, f829d60, documento.pdf recompilado).
+- **Documento:** limitación 15, con tres límites medidos sobre el Space del 28:
+  - un autor de una sola palabra con perfil;
+  - las consultas de varias palabras, como «Historias de amor» o «Terror gótico»;
+  - una sola palabra que coincide con un título, como «rosa» o «luna» con B1.
+  Cada uno lleva su cifra y el arreglo descartado.
+- **Estrategia:** un párrafo con los tres, detrás de «Primeros usuarios».
