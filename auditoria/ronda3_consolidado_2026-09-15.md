@@ -125,6 +125,7 @@ dar el permiso en una sesión.
 | Reinicio 23: arreglos de voz (86e6e1d): «St.» corta la frase, «...» no cuenta como oída | f4 | subido, Space d854649. **La prueba de pago falló:** 2,5 s de silencio dan «you» en whisper y siguen lanzando la corrección de pago |
 | ~~Reinicio 24: regla de silencio de whisper (4e, 0a759a5)~~ | hecho, Space 0c09197 | prueba de pago repetida: sin corrección ni fallos guardados |
 | ~~Reinicio 25: recuperación dentro de la franja del lector (caso Esmeralda)~~ | hecho, Space 4ba66f9 | «Fantasmas» A2 pasa de 1 a 9 cuentos del tema en su nivel; primera búsqueda con nivel tras reiniciar tarda 18,6 s (precarga en el 26) |
+| ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | batería de 16 fallos a 3 |
 | Reinicio 28: título en consultas largas («Historias de amor», «Terror gótico»), «rosa» y «luna» con B1, erratas en títulos | f4, con visto bueno de 4e y e6 | en curso |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
