@@ -112,6 +112,7 @@ import { Icono } from './icono';
       <footer>
         <!-- En el móvil, el cierre va abajo, fijo (investigacion/una_mano.md §3.8). -->
         <button class="boton secundario cerrar-abajo" type="button" (click)="cerrar.emit()">Cerrar los ajustes</button>
+        <a routerLink="/" (click)="verBienvenida()">Ver la bienvenida otra vez</a>
         <a routerLink="/estado" (click)="cerrar.emit()">Estado del sistema</a>
         <span class="tenue pequeno">LiteraLevel no certifica niveles del MCER: orienta para elegir qué leer.</span>
       </footer>
@@ -217,6 +218,11 @@ export class Ajustes {
     } finally {
       this.entrando.set(false);
     }
+  }
+
+  protected verBienvenida(): void {
+    this.sesion.verBienvenidaOtraVez();
+    this.cerrar.emit();
   }
 
   protected async salir(): Promise<void> {

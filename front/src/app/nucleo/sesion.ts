@@ -2,6 +2,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Api, Entrada, Inicio, Libro, Perfil } from './api';
+import { marcarVista, olvidarVista, sinVer } from './banderas';
+
+const BIENVENIDA = 'literalevel.bienvenida';
 
 export type EstadoMotor = 'comprobando' | 'listo' | 'despertando' | 'caido';
 
@@ -23,6 +26,20 @@ export class Sesion {
   abrirPerfil(): void {
     this.ajustesEnPerfil.set(true);
     this.ajustesAbiertos.set(true);
+  }
+
+  /** La bienvenida de la primera visita a Inicio (tanda 3 de la ayuda). Se guarda en el
+   *  navegador al saltarla o terminarla, y Ajustes la vuelve a pedir. */
+  readonly bienvenida = signal(sinVer(BIENVENIDA));
+
+  cerrarBienvenida(): void {
+    this.bienvenida.set(false);
+    marcarVista(BIENVENIDA);
+  }
+
+  verBienvenidaOtraVez(): void {
+    olvidarVista(BIENVENIDA);
+    this.bienvenida.set(true);
   }
 
   private intentos = 0;

@@ -71,7 +71,6 @@ export class Lector implements OnDestroy {
   protected readonly avance = signal(0);
   protected readonly indiceAbierto = signal(false);
   protected readonly pista = signal(leerBandera(PISTA));
-  protected readonly pistaPaginas = signal(leerBandera(PISTA_PAGINAS));
 
   /** Solo los «PG…» se bajan de Gutenberg; los libres salen del corpus abierto. */
   protected readonly esGutenberg = computed(() => /^pg/i.test(this.id()));
@@ -331,7 +330,6 @@ export class Lector implements OnDestroy {
     }
     this.pagina.set(destino);
     this.aplicarPagina(true);
-    if (this.pistaPaginas()) this.cerrarPistaPaginas();
   }
 
   protected alTocar(ev: PointerEvent): void {
@@ -396,10 +394,6 @@ export class Lector implements OnDestroy {
     this.irPagina(ev.deltaY > 0 ? 1 : -1);
   }
 
-  protected cerrarPistaPaginas(): void {
-    this.pistaPaginas.set(false);
-    marcarBandera(PISTA_PAGINAS);
-  }
 
   // --- Avance en modo seguido --------------------------------------------------------
 

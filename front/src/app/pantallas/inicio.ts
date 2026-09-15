@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Bienvenida } from '../compartido/bienvenida';
 import { Icono } from '../compartido/icono';
 import { cefr, miles, num } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
@@ -10,8 +11,10 @@ import { Sesion } from '../nucleo/sesion';
 @Component({
   selector: 'app-inicio',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icono],
+  imports: [RouterLink, Icono, Bienvenida],
   template: `
+    <!-- Solo aquí: la bienvenida nunca sale encima de un enlace directo a un libro o al lector. -->
+    @if (bienvenida()) { <app-bienvenida /> }
     <div class="pagina">
       <section class="heroe">
         <div class="texto-heroe">
@@ -198,6 +201,7 @@ export class Inicio {
   protected readonly inicio = this.sesion.inicio;
   protected readonly perfil = this.sesion.perfil;
   protected readonly seguir = computed(() => this.inicio()?.seguir ?? null);
+  protected readonly bienvenida = this.sesion.bienvenida;
   protected readonly num = num;
   protected readonly cefr = cefr;
   protected readonly miles = miles;
