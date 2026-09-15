@@ -101,7 +101,7 @@ Baskerville* le quedaba justo. Eso es lo que hace LiteraLevel.»
 
 > **En pantalla:** tres cifras grandes, una por línea. Nada más.
 > **1.500 millones** de personas estudian inglés · **la lectura extensiva**
-> es de los métodos con más respaldo · **68.536** libros y textos gratis, medidos.
+> es de los métodos con más respaldo · **68.546** libros y textos gratis, medidos.
 
 «La investigación es clara: leer mucho, a un nivel algo por encima del tuyo,
 es de lo que mejor funciona.
@@ -157,11 +157,15 @@ capítulo.»
 >   toma sale en segundos en vez de en dos minutos de silencio. Y hasta
 >   que no está calculada, la ficha no sabe si el libro te queda por
 >   encima y te da el rango en vez del dato.
-> - **Con tu perfil puesto, *Crime and Punishment* no sale el primero.**
->   Probado en la app publicada el 12 de septiembre de 2026 con un perfil
->   de 1,34: «dostoyevski» devuelve primero *Best Russian Short Stories* y
->   **el nuestro, segundo**, y el 15 de septiembre, con perfil 1,20, seguía
->   segundo. Sin perfil ya no sale entre los seis primeros. Con otro perfil puede moverse un puesto. Está
+> - **Con tu perfil puesto, *Crime and Punishment* sale segundo y en el bloque
+>   de otros niveles.** Todo Dostoievski queda a más de 0,45 de un perfil de
+>   1,20, así que *Encontrar* enseña primero el aviso «De «dostoyevski» no hay
+>   libros en tu nivel ni un poco por encima entre los resultados. Estos son
+>   los de otros niveles.» y debajo, en **De otros niveles**, *Best Russian
+>   Short Stories* y **el nuestro, segundo** (API del Space con el reinicio
+>   19, 15 de septiembre de 2026; con un perfil de 1,34, el 12 de septiembre,
+>   también salía segundo). El aviso es lo esperado: no lo leas como un fallo.
+>   Sin perfil ya no sale entre los seis primeros. Con otro perfil puede moverse un puesto. Está
 >   en la lista y se abre bien; **elígelo sin dudar**, que dudar delante de
 >   la cámara parece que la app no lo encuentra.
 > - **Con perfil 1,20 no esperes capítulos sugeridos para este libro.** Su

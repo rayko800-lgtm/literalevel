@@ -72,7 +72,7 @@ móvil.»
 **Dice:** «Hay decenas de miles de libros gratis, pero casi ninguno trae su
 dificultad medida, y un libro no es igual de difícil de principio a fin. Por
 eso el catálogo está medido capítulo a capítulo: 53.179 libros de Project
-Gutenberg y, además, 15.357 textos de licencia libre.»
+Gutenberg y, además, 15.367 textos de licencia libre.»
 
 ### S — Satisfacción · 0:40 – 3:40
 
@@ -96,7 +96,10 @@ la lectura de nivel bajo que Gutenberg no tiene.»
 
 **3. Abrir un libro y su ficha (1:25 – 1:50)**
 
-**Hace:** busca y abre *Crime and Punishment*. Enseña la ficha y la curva.
+**Hace:** busca «dostoyevski» y abre *Crime and Punishment*. Con el perfil de
+1,20 sale primero el aviso de que no hay libros en tu nivel ni un poco por
+encima, y el libro aparece segundo en «De otros niveles»: es lo esperado.
+Enseña la ficha y la curva.
 
 **Dice:** «Abro *Crimen y castigo*. La ficha está contada sobre el texto, no
 escrita por un modelo, y la curva dice cómo se complica capítulo a capítulo. De
@@ -204,7 +207,7 @@ dólares al mes.»
 **¿De dónde salen los datos y qué licencias tienen?**
 **Dice:** «De corpus académicos publicados y de repositorios de dominio público,
 sin Kaggle: Gutenberg es dominio público, el diccionario sale de Wiktionary y los
-15.357 textos del catálogo externo tienen licencia libre. El único corpus con
+15.367 textos del catálogo externo tienen licencia libre. El único corpus con
 derechos, el de British Council, no se redistribuye: se reconstruye con su
 manifiesto.»
 

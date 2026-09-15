@@ -27,10 +27,10 @@ puntos en juego, no por comodidad.
   C3-estribillo-fuera, C3-medidas-sin-cache). Desde `9be2c42` el banco copia
   `pruebas_api.py`; antes ningún mutante de `api.py` con esa suite podía
   cazarse.
-- **Catálogo:** 68.536 libros = 53.179 de Gutenberg + 15.357 textos libres
-  (StoryWeaver 14.500, Let's Read 326, African Storybook 278, VOA 253), medidos
-  con el v4 en CPU local; 894 quedan fuera y la nota de `DESPLIEGUE.md` explica
-  por qué.
+- **Catálogo:** 68.546 libros = 53.179 de Gutenberg + 15.367 textos libres
+  (StoryWeaver 14.506, Let's Read 328, African Storybook 280, VOA 253; `a557288`,
+  publicado en el reinicio 19), medidos con el v4 en CPU local; en `377a650`
+  quedaron 894 fuera y la nota de `DESPLIEGUE.md` explica por qué.
 - **Cuentas listas para usuarios (14 sep):** invitado1 a invitado8 con 20 usos
   cada una, profesor con 60 y miguel sin tope. Comprobado entrando en el Space.
   Las contraseñas las da Miguel desde `literalevel_codigos.txt`.
@@ -189,7 +189,7 @@ la descarga y el precalculo sigan corriendo. Sin fecha son falsas mañana.
 | Velocidad | **84 libros/min en T4 gratis** (492 ventanas/s ÷ 350 ventanas por libro), medido el 10 de septiembre de 2026. En A100 sin prefetch eran 61 de extremo a extremo, con la tarjeta parada el 80 % esperando a Drive. **La gratis con prefetch gana a la de pago sin él** |
 | Cuello de botella | **no es la GPU**: el 80 % del tiempo espera a Drive |
 | Ventanas por libro | **332,3 de media**, mediana 266 (medido sobre 5.153 el 9 de septiembre de 2026) |
-| Coste real del catálogo | **2,8 h** de cómputo A100; ~17 h de extremo a extremo |
+| Coste real del catálogo | **2,8 h** de cómputo A100; ~17 h de extremo a extremo. *Corregido el 15 de septiembre: las dos son estimaciones para los 61.642 (332,3 ventanas a 2.022 por segundo, y 61 libros por minuto), no horas gastadas; las unidades de A100 que se gastaron no quedaron registradas* |
 
 **Lo que falta ya no es medir: es DESCARGAR.** 29.875 de los ~31.974 textos que
 hay en Drive tienen perfil; quedan ~29.700 libros del catálogo oficial sin bajar.

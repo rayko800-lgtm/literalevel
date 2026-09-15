@@ -41,10 +41,10 @@ en un solo proceso, solo en local. Los recursos del apartado Datos también hace
    v4**, capítulo a capítulo (585.111 capítulos), y cuando un libro te queda
    grande la aplicación te propone los capítulos que sí están a tu alcance. La
    letra es orientativa: el modelo ordena bien los niveles, pero no certifica
-   ninguno. Además, **15.357 textos de licencia libre** (StoryWeaver, Let's
+   ninguno. Además, **15.367 textos de licencia libre** (StoryWeaver, Let's
    Read, African Storybook y VOA) medidos con el v4, que se abren sin descargar
-   nada y salen intercalados al recomendar por nivel: 68.536 textos en total
-   (commit `377a650`). Los títulos con aviso de contenido lo enseñan antes de
+   nada y salen intercalados al recomendar por nivel: 68.546 textos en total
+   (commit `a557288`, publicado en el reinicio 19). Los títulos con aviso de contenido lo enseñan antes de
    abrir y nunca encabezan la recomendación. (Hasta el 12 de septiembre de 2026
    el catálogo eran 1.197 libros con etiquetas heredadas de un modelo v1.)
 3. **Lee.** Lector integrado de epub, pdf y txt. Los libros de Project
@@ -181,23 +181,24 @@ torch.
 
 ## Pruebas
 
-Recuento del 14 de septiembre de 2026 en `74ffffc`, con `LITERALEVEL_SIN_CLAVES=1`
+Recuento del 14 de septiembre de 2026 en `74ffffc`; las filas con fecha llevan el
+commit sobre el que se corrieron. Todo con `LITERALEVEL_SIN_CLAVES=1`
 (no lee claves ni gasta):
 
 | Suite | Qué cubre | Hoy |
 |---|---|---|
 | `tests_smoke.py` | bloques y escala, sin modelo | todo ok (no imprime recuento) |
-| `pruebas_extremas.py` | robustez del motor y de Gradio | 349 de 349 |
-| `pruebas_integracion.py` | recorrido completo encadenado | 27 pasos de 27 |
+| `pruebas_extremas.py` | robustez del motor y de Gradio | 349 de 349 (15 sep, `42de4cb`) |
+| `pruebas_integracion.py` | recorrido completo encadenado | 27 pasos de 27 (15 sep, `42de4cb`) |
 | `pruebas_desambiguacion.py` | acepciones, sin red | 8 de 8 |
 | `pruebas_perfil.py` | cuestionario de nivel | todo ok (no imprime recuento) |
 | `pruebas_ficha.py` | ficha, pasajes y capítulos de cuerpo | 49 comprobaciones, 0 fallos |
-| `pruebas_corpus.py` | textos libres en catálogo y lector | 34 de 34 (15 sep) |
+| `pruebas_corpus.py` | textos libres en catálogo y lector | 39 de 39 (15 sep, `40cdcd4`) |
 | `pruebas_animacion.py` | corte 2D: SVG, duración y repetición | 2.109 comprobaciones, todo ok |
-| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 34 de 34 (15 sep) |
+| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 37 de 37 (15 sep, `2c0e681`) |
 | `pruebas_voz_concurrencia.py` | voz: candados, migración e historial | 10 de 10 |
 | `pruebas_audio_atomico.py` | caché y escritura atómica del TTS | 4 de 4 |
-| `pruebas_api.py` | frontera HTTP para Angular | 52 de 52 (15 sep) |
+| `pruebas_api.py` | frontera HTTP para Angular | 55 de 55 (15 sep, `42de4cb`) |
 | `pruebas_api_voz_temporal.py` | subida de audio a la API, por AST | pasa |
 | `pruebas_portadas.py` | pipeline de portadas, sin GPU ni red | 11 de 11 |
 | `pruebas_despliegue.py` | guardas del despliegue del Space | 13 de 13 |

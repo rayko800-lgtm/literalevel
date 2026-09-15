@@ -299,8 +299,9 @@ local y **2.022 en una A100**, con lo que los 61.642 libros en inglés de
 Project Gutenberg son **unas tres horas** de cómputo puro. De extremo a extremo
 son **unas diecisiete**, y la diferencia no la pone la tarjeta sino el disco.
 **Y se hizo**: el 12 de septiembre de 2026 quedaron medidos 53.179 libros y
-585.111 capítulos en una T4 gratuita, en tandas reanudables que guardaban en
-Hugging Face y no en Drive; la última, 9.795 libros, tardó 55 minutos.
+585.111 capítulos, en tandas reanudables que guardaban en Drive y, desde el 12,
+en Hugging Face: hasta el 10 de septiembre en una A100 de pago de Colab Pro, y
+desde entonces en una T4 gratuita; la última, 9.795 libros, tardó 55 minutos.
 
 Cuando el cómputo sí tiene que ocurrir en vivo, se ofrecen **dos velocidades y
 se dice cuál se usó**: un vistazo (30 capítulos repartidos, 2 ventanas de cada
@@ -472,10 +473,15 @@ acepta un colegio; la nuestra no.** Lo que no tiene es precio accesible. Su tari
 publicada para creadores de contenido (MetaMetrics, 2026) va de **3.824 a 54.636 USD al año** según
 el volumen, y los 53.179 libros del catálogo medido caen en el tramo más alto.
 
-Medirlos aquí **no costó cómputo de pago**: los libros de Gutenberg se midieron
-en una T4 gratuita de Colab, en tandas reanudables —la última, 9.795 libros en
-55 minutos—, y los textos libres en la CPU local. Al ritmo medido en una A100,
-61 libros por minuto, habrían sido **unas diecisiete horas de reloj**. **No es una razón
+Medirlos aquí **sí usó cómputo de pago**, sin cifra en dólares que dar porque no
+quedó registrado cuántas unidades se gastaron: hasta el 10 de septiembre de 2026
+el cuaderno de Colab corría en una A100 con unidades de la cuenta Colab Pro, y
+hasta esa tarde se midieron 27.776 libros. Desde entonces se midió en una T4
+gratuita, en tandas reanudables —la última, 9.795 libros en 55 minutos—, y los
+textos libres en la CPU local. Las «2,8 h de A100» del registro son la estimación
+de tarjeta para los 61.642 libros, no horas gastadas. Al ritmo medido en la A100,
+61 libros por minuto, los 53.179 habrían sido **unas catorce horas y media de
+reloj**. **No es una razón
 monetaria estricta** —una licencia anual y unas horas de cómputo no se dividen
 la una por la otra— y tampoco son servicios equivalentes: Lexile vende una
 escala aceptada por instituciones, no solo un número. Lo que sí se puede
@@ -578,9 +584,9 @@ porque ese editor gradúa sobre todo por extensión. Y Let's Read no valida: má
 la mitad son traducciones que heredan el nivel del libro original en otro idioma.
 Si alguien pregunta «¿y por qué no promediáis las tres?», la respuesta es esa:
 cada una mide una cosa distinta, y promediarlas escondería justo lo que se
-aprendió. Además, a fecha de `377a650`, el catálogo de la aplicación suma 15.357 textos de licencia
-libre de esas bibliotecas y de VOA (14.500 de StoryWeaver, de Pratham Books; 326 de Let's Read, de
-The Asia Foundation; 278 de African Storybook, de Saide; y 253 de VOA Learning English), con la dificultad que mide el modelo. Un cuento corto medido dentro de un bloque lo dice (`medido_en_bloque`); la atribución que exige su licencia se enseña pero no se puntúa («Doggie is Happy», 0,349 con ella y 0,007 sin ella); el texto servido sale sin páginas repetidas ni U+FEFF sin cambiar lo medido; y al recomendar por nivel ocupan un tercio de las tarjetas, por cercanía al nivel del lector (a fecha de `7c09d90`).
+aprendió. Además, a fecha de `a557288` (reinicio 19), el catálogo de la aplicación suma 15.367 textos de licencia
+libre de esas bibliotecas y de VOA (14.506 de StoryWeaver, de Pratham Books; 328 de Let's Read, de
+The Asia Foundation; 280 de African Storybook, de Saide; y 253 de VOA Learning English), con la dificultad que mide el modelo. Un cuento corto medido dentro de un bloque lo dice (`medido_en_bloque`); la atribución que exige su licencia se enseña pero no se puntúa («Doggie is Happy», 0,349 con ella y 0,007 sin ella); el texto servido sale sin páginas repetidas ni U+FEFF sin cambiar lo medido; y al recomendar por nivel ocupan un tercio de las tarjetas, por cercanía al nivel del lector (a fecha de `7c09d90`).
 
 ---
 

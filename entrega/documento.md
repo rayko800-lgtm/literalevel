@@ -232,15 +232,15 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
 | **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 (§6.4) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
 | **ELG CEFR English** | Corpus de anclaje MCER: afinado y validación interna del v4 | 712 documentos; 654 aceptados | European Language Grid, descargado de Hugging Face (Breuker, 2023) | No comercial: CC BY-NC-SA 4.0 según el guion de entrenamiento; CC BY-NC 4.0 según su ficha en UniversalCEFR |
-| **StoryWeaver** (Pratham Books) | Textos libres del catálogo, medidos con el v4 | 14.500 textos | Plataforma abierta (Pratham Books, s. f.) | CC BY 4.0 |
-| **Let's Read** (The Asia Foundation) | Textos libres del catálogo, medidos con el v4 | 326 textos | Biblioteca digital (The Asia Foundation, s. f.) | CC BY 4.0 (316) y CC BY 3.0 (10) |
-| **African Storybook** (Saide) | Textos libres del catálogo, medidos con el v4 | 278 textos | Biblioteca digital (Saide, s. f.) | CC BY |
+| **StoryWeaver** (Pratham Books) | Textos libres del catálogo, medidos con el v4 | 14.506 textos | Plataforma abierta (Pratham Books, s. f.) | CC BY 4.0 |
+| **Let's Read** (The Asia Foundation) | Textos libres del catálogo, medidos con el v4 | 328 textos | Biblioteca digital (The Asia Foundation, s. f.) | CC BY 4.0 (318) y CC BY 3.0 (10) |
+| **African Storybook** (Saide) | Textos libres del catálogo, medidos con el v4 | 280 textos | Biblioteca digital (Saide, s. f.) | CC BY |
 | **VOA Learning English** | Textos libres del catálogo, medidos con el v4 | 253 textos | Sitio de Voice of America (Voice of America, s. f.) | Dominio público |
 | **Common Pile** (`project_gutenberg`) | Texto de los libros de Gutenberg para medir el catálogo | 57.226 textos descargados | Hugging Face (Kandpal et al., 2025) | Dominio público |
 | **CMUdict** | Fonética americana donde Wiktionary no la trae (corrección de voz) | 126.052 palabras | GitHub de Carnegie Mellon University (Carnegie Mellon University, s. f.) | BSD de dos cláusulas |
-| **Catálogo heredado** (StoryWeaver / Global Digital Library) | Registros del catálogo anterior, retirado el 12 de septiembre de 2026; no son los 14.500 textos de arriba | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
+| **Catálogo heredado** (StoryWeaver / Global Digital Library) | Registros del catálogo anterior, retirado el 12 de septiembre de 2026; no son los 14.506 textos de arriba | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
 
-*Cuadro 2. Fuentes de datos, con volumen y procedencia.*
+*Cuadro 2. Fuentes de datos, con volumen y procedencia. Los recuentos de textos libres son de `a557288`, el catálogo publicado en el reinicio 19.*
 
 ### 4.2 Relevancia de cada fuente
 
@@ -364,7 +364,7 @@ es orientativa, porque la escala del modelo sale comprimida y desplazada hacia
 arriba (7.5), y el reparto describe el catálogo de Gutenberg, no la dificultad
 de la lectura en inglés en general.
 
-**Y fuera de Gutenberg.** A fecha de `377a650`, el catálogo suma además **15.357 textos de licencia libre** medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 598 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
+**Y fuera de Gutenberg.** A fecha de `a557288`, publicado en el reinicio 19, el catálogo suma además **15.367 textos de licencia libre** medidos con el v4: 14.506 de StoryWeaver, 328 de Let's Read, 280 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.589 A2, 5.543 B1, 2.583 B2, 790 C1 y 113 C2. Lo que se quedó fuera se contó en `377a650`, cuando eran 15.357: otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.881 textos entre A1 y B1, frente a 598 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
 
 **(c) De aquellos 1.197 libros, solo 148 se podían abrir.** Eran los de Project
 Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero
@@ -1052,7 +1052,7 @@ esas tres:
 | Pregunta del lector | Qué la responde | Coste para él |
 |---|---|---|
 | ¿Cuál es mi nivel? | Seis preguntas sobre hábitos observables y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo | Menos de dos minutos |
-| ¿Qué leo ahora? | Búsqueda por significado en español sobre el catálogo; con la casilla puesta, el nivel del perfil ordena lo más parecido, sin filtrar | Segundos |
+| ¿Qué leo ahora? | Búsqueda por significado en español sobre el catálogo; el nivel del perfil ordena lo más parecido y lo de otros niveles sale aparte, sin filtrar | Segundos |
 | ¿Por dónde se va a complicar? | Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear | De 12,7 s (vistazo, medido sobre Crime and Punishment) a minutos (libro completo) |
 | ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58 % de las consultas sobre un libro real, §6.4), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
@@ -1070,13 +1070,15 @@ intermedia, ancla B2).
    no busca por título sino por significado, sobre embeddings multilingües.
    Podría haber escrito en español lo que le apetece —*«una novela de
    detectives victoriana»*— y el buscador respondería igual. Medido el 11 de
-   septiembre de 2026 con su perfil de 1,20 y la casilla de acercar al nivel
-   puesta, esa frase en español devuelve *The Secret Adversary* (Christie,
+   septiembre de 2026 con su perfil de 1,20 y el ajuste al nivel puesto
+   (entonces una casilla; desde el 15 de septiembre *Encontrar* ordena siempre
+   por nivel y aparta en otro bloque lo que queda lejos de él), esa frase en
+   español devuelve *The Secret Adversary* (Christie,
    B2), un cuento infantil A1 de StoryWeaver, *Great Expectations*, *North
    and South*, *Bleak House* y, en séptimo lugar, *The Memoirs of Sherlock
    Holmes*. Que el segundo puesto sea un A1 para una lectora de 1,20 no es un
    fallo del buscador: es el libro cuyo texto más se parece a la palabra
-   «detective», la casilla **acerca y no filtra**, y su nivel va escrito al
+   «detective», el ajuste **acerca y no filtra**, y su nivel va escrito al
    lado.
 
    **Y aquí conviene decir algo que el propio recorrido enseña.** Lo que
@@ -1278,11 +1280,11 @@ usuario, porque la IP sale de una cabecera que puede escribir el cliente. Solo
 cuentan los que fallan, y son valores por defecto que se cambian por variable
 de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora —40 medidas de nivel o de capítulo y 6 curvas nuevas— y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, a fecha de `2bb1276`, la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo.
 
-El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `377a650`, el catálogo externo de textos libres tiene 15.357 filas y los vectores de búsqueda suman 68.536 (53.179 + 15.357). El Space publicado cuenta los mismos 68.536 libros en `/api/estado` a fecha de `7c09d90`. Esto confirma el tamaño del artefacto, no repite su inferencia ni
+El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `a557288`, el catálogo externo de textos libres tiene 15.367 filas y los vectores de búsqueda suman 68.546 (53.179 + 15.367). El Space publicado cuenta los mismos 68.546 libros en `/api/estado` a fecha de `053a486`, el reinicio 19. Esto confirma el tamaño del artefacto, no repite su inferencia ni
 garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
 excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos,
-directorios) y, desde `3524357`, 163 textos libres que no son lectura en inglés
-(relleno o en otra lengua), y por nivel solo se ofrecen obras literarias. Una medida del
+directorios) y 185 textos libres que no son lectura en inglés (relleno, otra
+lengua o anuncios; eran 163 en `3524357` y son 185 desde `a557288`), y por nivel solo se ofrecen obras literarias. Una medida del
 precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A
 Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo
 camino da 1,713 (C1).
@@ -1313,7 +1315,7 @@ y la cifra que resume cada una.
 |---|---|---|
 | Fórmulas clásicas (FKGL, ARI) | Pearson **0,517** en CLEAR | **0,89** |
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
-| Lexile, tarifa de creador de contenido (MetaMetrics, 2026) | **3.824–54.636 USD/año** | 0 USD de cómputo (T4 gratuita) |
+| Lexile, tarifa de creador de contenido (MetaMetrics, 2026) | **3.824–54.636 USD/año** | A100 de pago hasta el 10 sep y T4 gratuita después; sin coste en USD registrado |
 
 *Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
@@ -1321,10 +1323,16 @@ comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
 decisión de afinar un codificador; no demuestran una victoria medida.*
 
 Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa de Lexile.
-Medirlos aquí no costó cómputo de pago: los libros de Gutenberg se midieron en
-una T4 gratuita de Colab, en tandas reanudables —la última, 9.795 libros en 55
-minutos—, y los textos libres en la CPU local. Al ritmo medido en una A100, 61
-libros por minuto, habrían sido unas 17 horas de reloj (§8.3). **No es
+Medirlos aquí sí usó cómputo de pago, y no hay cifra en dólares que dar: no
+quedó registrado cuántas unidades se gastaron. Hasta el 10 de septiembre de 2026
+el cuaderno de Colab se abría con una A100, que consume unidades de pago de la
+cuenta Colab Pro, y hasta esa tarde se midieron 27.776 libros; ese día quedaban
+1,9 unidades. Desde entonces se midió en una T4 gratuita, en tandas reanudables
+—la primera, 2.099 libros; la última, 9.795 en 55 minutos—, y los textos libres
+en la CPU local. Las «2,8 h de A100» del registro del proyecto no son horas
+gastadas: son la estimación de tarjeta para los 61.642 libros (332,3 ventanas por
+libro a 2.022 por segundo). Al ritmo medido en la A100, 61 libros por minuto, los
+53.179 habrían sido unas 14,5 horas de reloj (§8.3 da 17 para los 61.642). **No es
 una razón monetaria estricta** —una licencia anual y unas horas de cómputo no se
 dividen— y tampoco son servicios equivalentes: Lexile vende una escala aceptada
 por instituciones. Lo que sí se sostiene es que el **coste de procesamiento está

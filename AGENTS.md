@@ -25,6 +25,7 @@ El afectado de una colisión es Miguel. Lee esto antes de tocar nada.
 | — | — | **13 sep, 18:00 (Claude Code, sesión central):** **decisión de Miguel: la entrega es el front Angular** (`front/`, Space estático `literalevel-front`) sobre `app/api.py`; Gradio (`app/ui.py`) queda como motor y respaldo. **Ninguna función está terminada hasta que tiene ruta en `api.py` y pantalla en `front/`**: quien añada algo en `ui.py`, `voz.py` o `lexicon.py` avisa a la sesión de la API del contrato (campos, nombres) en el mismo mensaje del commit. Esa tarde hubo cuatro sesiones coordinadas por una central (protocolo en `.claude/skills/sesion-central/`): entrega-f4 desplegó cinco veces (último reinicio con 05783c0: animaciones 2D del corte de la boca, `app/animacion_articulatoria.py` en la lista blanca), entrega-e6 publicó el front cuatro veces (último bd3b06c), entrega-4e cerró la auditoría de Codex `auditoria/codex_lexicon_5033e69.md` (4 de 4 confirmados) y el fonema determinista con CMUdict. Codex se quedó sin cupo a las 17:10; volvió a las 21:40 **desde la app de Miguel, con permiso directo**, hizo 20 commits en master entre 20:51 y 21:51 (desplegó api.py y voz.py, integró la boca 3D en Pronunciar, reescribió guion y presentación, escribió `auditoria/relevo_codex_2026-09-13_noche.md` para la central) y agotó el cupo semanal hasta el 19 sep. **Madrugada del 14 sep (central):** cada dueño verificó lo de Codex en sus archivos; reinicios 7 y 8 (Space `c9ee482`, `8107f18`: todo el backend en LF e igual a HEAD `db366b8`); `tools/desplegar_app.py` compara y sube `git show <commit>:ruta` normalizado a LF (c675b93); avisos de contenido curados en `avisos_contenido.csv` (2 títulos) y `correcciones_catalogo.csv`; rama `boca3d` fusionada en master (ea7fdf2) pero **el 3D se publica apagado** por decisión de Miguel; guion del vídeo fusionado (db366b8, 496 palabras); documento y estrategia con cifras medidas (7a7613d, 81da225). Protocolo de la central en `.claude/skills/sesion-central/`. |
 | — | — | **14 sep, mañana (central):** reinicios 9, 10 y 11 (Space `de36496` → `26b303c` → topes por hora). **Nuevo en el motor:** lectura natural en `app/voz.py` (marcas por palabra de whisper, `medir_ritmo`, análisis con OpenAI validado contra IPA de diccionario, `registrar_ritmo`/`evolucion_ritmo`, tabla `ritmo_intentos`), IPA y audio por forma escrita (Kaikki → CMU → lema si coincide → IA marcada) en `lexicon.py`, animación 2D explícita y al compás del audio (`animacion_articulatoria.py` con `dur`/`repetir`), palabras funcionales fuera de falladas, «sonido fácil» sin fonema. **API:** `/api/voz` devuelve `ritmo`, `GET /api/voz/ritmo`, `?dur=&una=` en los SVG, índice de PG1661, topes por hora en muestra/medir/curva con cola de 4 hilos. **Front:** boca 3D de Blender encendida (`boca3d/`, rig de comisuras, guarda de fps), «Escuchar y ver» pegado a la animación con «Más lento» (1×/0,5×/0,25×), pantalla de lectura natural, una mano en las cuatro pantallas. **Catálogo externo:** 3.919 → 15.357 textos libres medidos con v4 en CPU local (`tools/medir_corpus.py`, `tools/cerrar_corpus.py`; 894 sin medida por el filtro de prosa); `/api/estado` 68.536. **Sin gasto desde hoy:** Colab solo gratis, nada de compras; temporales y banco de mutantes en `D:`. |
 | — | — | **14 sep, tarde (central):** reinicios 12 a 15 (Space `7c09d90`). Catálogo: libres intercalados por cercanía al nivel (un tercio de las tarjetas), `medido_en_bloque` en tarjeta y ficha, `ficha.para_medir` quita la atribución de los textos libres antes de puntuar (Doggie 0,35 → 0,007), texto servido limpio de U+FEFF y páginas dobles sin volver a medir. Front: portadas tipográficas por 12 familias de tema y lector teñido con contraste garantizado (ajuste para apagarlo), «Escuchar y ver» pegado a la boca con «Más lento», ruta `/api/portadas` para portadas por IA futuras. 3D: **cabeza de MakeHuman 1.3.0 (CC0, `tools/boca3d_blender/makehuman_cabeza.obj`)** con corte sagital, labios y mejillas por shape keys, arcada anatómica, sombras suaves; publicada en la app. Docs: `entrega/guion_demo_en_vivo.md`, diapositiva «Lo que hace por el lector», cifras del catálogo externo en documento/estrategia/presentación, `auditoria/bateria_lectura_natural_2026-09-14.md`, `auditoria/informe_codex_para_miguel_2026-09-13.md`. Lección: un commit de e6 arrastró líneas de f4 sin commit y HEAD dejó de medir media hora (ver skill sesion-central §7). Créditos de OpenAI repuestos por Miguel a mediodía. |
+| — | — | **15 sep (Claude Code, sesión entrega-4e):** **tocados `app/voz.py` y `app/lexicon.py`, que son TUYOS** (`2c0e681`, va al reinicio 20). `SesionVoz.transcripcion_ok` es `False` también cuando whisper no oye ninguna palabra (antes solo con `None`), y entonces no se guardan fallos ni se piden audios por palabra; la API y Gradio, que guardan si `transcripcion_ok`, lo heredan. `lexicon._ipa_de_modelo` rechaza una IPA toda ASCII que sea la palabra escrita, o que llegue sin `palabra`. `voz._fronteras_de_frase` no corta en «Mr.», «Mrs.», «Ms.», «Dr.» ni «St.». Las dudas de «going to work» → gonna y del emparejado por orden en `fijar_fonemas` quedan escritas en el código, sin cambiar. **Módulo nuevo `pruebas_tmp.py` (`42de4cb`):** `carpeta(prefijo)` sustituye a `tempfile.mkdtemp` en las suites; crea bajo `LITERALEVEL_TMP` si está definida, borra al salir (lo que Windows retiene por un SQLite abierto lo borra un proceso aparte) y, al crear, borra las de su prefijo con más de 3 horas. **Quien escriba una suite nueva, que la use:** cada corrida dejaba ~100 MB en %TEMP% y C: llegó a 0 GB. |
 | `app/scoring.py`, `app/perfil.py`, `app/catalogo.py`, `app/config.py` | compartido | Quien entre, avisa en el commit. |
 | `modelo_v4/`, `kaikki_diccionario.db` | nadie | Datos. No se regeneran ni se versionan. |
 
@@ -69,8 +70,8 @@ es 0..5. `public_score(y) = clip(y,0,5)*0.4`.
 
 **Catálogo** (`catalogo.Catalogo`)
 
-- Filas: 53.179 libros de Gutenberg (`catalogo_medido.csv`) y 15.357 textos de
-  licencia libre (`catalogo_externo.csv`, commit `377a650`): 68.536, que es lo
+- Filas: 53.179 libros de Gutenberg (`catalogo_medido.csv`) y 15.367 textos de
+  licencia libre (`catalogo_externo.csv`, commit `a557288`): 68.546, que es lo
   que cuenta `/api/estado`. Cuéntalo con pandas: el campo `hook` lleva saltos de
   línea entrecomillados. El catálogo heredado de 1.197 se retiró el 12 sep.
 - `buscar(consulta, nivel_lector=None, n=...) -> (libros, aviso)` — nunca
@@ -149,23 +150,23 @@ python -X utf8 validar_local.py               # la validación externa para el p
 catálogo, diccionario 243 MB + spaCy + MiniLM) **al primer uso, no al
 arrancar**. No lo cambies a carga anticipada: la demo se vuelve inusable.
 
-**Pruebas** (recuento del 14 sep 2026 en HEAD `74ffffc`, corridas con
+**Pruebas** (recuento del 14 sep 2026 en HEAD `74ffffc`; las filas con fecha llevan el commit sobre el que se corrieron; corridas con
 `LITERALEVEL_SIN_CLAVES=1`, que no lee claves ni gasta):
 
 | Suite | Qué cubre | Hoy |
 |---|---|---|
 | `tests_smoke.py` | bloques y escala, sin modelo | todo ok (no imprime recuento) |
-| `pruebas_extremas.py` | robustez del motor y de Gradio | 349 de 349 |
-| `pruebas_integracion.py` | recorrido completo encadenado | 27 pasos de 27 |
+| `pruebas_extremas.py` | robustez del motor y de Gradio | 349 de 349 (15 sep, `42de4cb`) |
+| `pruebas_integracion.py` | recorrido completo encadenado | 27 pasos de 27 (15 sep, `42de4cb`) |
 | `pruebas_desambiguacion.py` | acepciones, sin red | 8 de 8 |
 | `pruebas_perfil.py` | cuestionario de nivel | todo ok (no imprime recuento) |
 | `pruebas_ficha.py` | ficha, pasajes y capítulos de cuerpo | 49 comprobaciones, 0 fallos |
-| `pruebas_corpus.py` | textos libres en catálogo y lector | 34 de 34 (15 sep) |
+| `pruebas_corpus.py` | textos libres en catálogo y lector | 39 de 39 (15 sep, `40cdcd4`) |
 | `pruebas_animacion.py` | corte 2D: SVG, duración y repetición | 2.109 comprobaciones, todo ok |
-| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 34 de 34 (15 sep) |
+| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 37 de 37 (15 sep, `2c0e681`) |
 | `pruebas_voz_concurrencia.py` | voz: candados, migración e historial | 10 de 10 |
 | `pruebas_audio_atomico.py` | caché y escritura atómica del TTS | 4 de 4 |
-| `pruebas_api.py` | frontera HTTP para Angular | 52 de 52 (15 sep) |
+| `pruebas_api.py` | frontera HTTP para Angular | 55 de 55 (15 sep, `42de4cb`) |
 | `pruebas_api_voz_temporal.py` | subida de audio a la API, por AST | pasa |
 | `pruebas_portadas.py` | pipeline de portadas, sin GPU ni red | 11 de 11 |
 | `pruebas_despliegue.py` | guardas del despliegue del Space | 13 de 13 |
