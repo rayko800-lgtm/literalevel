@@ -893,3 +893,9 @@ Variante i3 (f4): la franja no marca si el primer resultado general viene del re
 - **Las 100 palabras:** 197 de 198 listas iguales. La única distinta es «school» con B1, que pasa de 13 marcas a 1, porque su top 10 abre con una obra cuyo autor en StoryWeaver es «The Polymath School».
 - **«crime and punishment» y «crimen y castigo»:** 1 y 4 marcas de tema, igual que hoy. Se aceptan.
 - **Siguiente, i4:** i3 solo si esa primera obra es de Gutenberg. Se calibra con una lista de control de palabras que coinciden con autores-organización, escrita antes de medir.
+
+Variante i4 (f4, primera pasada sin la lista de control): la franja no marca si el primer resultado general es una obra de Gutenberg rescatada por autor.
+- **Las 100 palabras:** 0 de 198 listas distintas del Space en top 10 y marcas. «school» con B1 conserva sus 13 marcas.
+- **Autores con 1,20:** los clásicos de una palabra y Jane Austen pasan de 12 marcas a 0, dickens a 5 marcas suyas, y mark twain sigue en 0.
+- **«Crimen y castigo de Dostoyevski»:** 0 marcas. Los temas de A2 y B1, iguales.
+- **Falta:** la pasada con las 20 palabras de control, escritas a las 08:31.
