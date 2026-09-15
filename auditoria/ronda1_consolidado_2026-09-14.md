@@ -1189,3 +1189,9 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - ok de 4e, árbol limpio y --seco;
   - despliegue y comprobar_r30b.py / marcha_atras_r30b.py;
   - ensayo de e6 en el front: paso 3, granja, dragones, «mystery» y «family» B1.
+- **Ok de 4e a 1643c4b.** Árbol limpio en marcha: corpus, luego api y extremas.
+- **Criterio de marcha atrás simulado sin red** (marcha_atras_r30b.decidir), 8 casos:
+  - no vuelve con el candidato tal cual, con «family» B1 igual al 28 ni con «familia» A2 de 3 por 3;
+  - vuelve si «love» B1 marca otro id, si entra una copia más lejos del nivel, si entra un título distinto en «Brujas», si PG2554 queda segundo o si «dragones» da un resultado menos.
+  - La primera simulación del caso 4 estaba mal construida, y f4 la repitió.
+- **Hueco señalado por la Central:** un conjunto distinto al local con las mismas marcas no se detectaba. comprobar_r30b.py separa ahora tres salidas: idéntico, solo orden (se informa) y conjunto distinto (código propio; no se da por bueno sin mirarlo).
