@@ -425,3 +425,11 @@ Muletillas de whisper con casi silencio (4e, 0a759a5, para el reinicio 25):
 - **Regla nueva, fijada antes de validar:** no hay voz si todos los segmentos traen no_speech_prob > 0,6.
 - **Validación con whisper-1:** 30 de 30 frases reales oídas (la más alta, 0,503) y 4 de 4 audios sin voz detectados (de 0,866 a 0,943). La voz era TTS, no micrófono.
 - **Riesgo:** con el micrófono real y voz baja, el margen de 0,1 puede quedarse corto. Miguel lo comprueba en el ensayo con un punto 7 en «Antes de la demo», que añade 4e. e6 da el visto bueno buscando vías que dejen sin voz una grabación real.
+
+**Reinicio 23 (voz) subido, pero no da por bueno el silencio (f4).** Space d854649, comprobador bien y segundo --seco limpio.
+- **Prueba de pago con invitado8 (2 usos, pasa de 20 a 18):** 2,5 s de WAV a cero dan «you» en whisper. transcripcion_ok sale true, se lanza la corrección de pago y se guardan 6 palabras falladas en el lector de prueba. 86e6e1d solo paraba las transcripciones vacías o «...».
+- **«Baker St. It was late.»:** bien, sin enlace st‿it.
+- **Decisión:** 0a759a5 (regla de no_speech_prob) sube solo como reinicio 24 con el ok de e6. Después se repite la misma prueba con 1 uso.
+- **Numeración:** 25 es la búsqueda por franja y 26 lo demás.
+- **Incidente:** al mirar el formato de literalevel_codigos.txt, la contraseña de «profesor» salió en la salida de una herramienta local de f4. No fue a ningún mensaje, commit ni archivo. Miguel decide si la cambia.
+- **Búsqueda por franja:** el ruido de títulos cortos viene del vector de la palabra sola, no de las frases. f4 mide ahora la variante inversa.

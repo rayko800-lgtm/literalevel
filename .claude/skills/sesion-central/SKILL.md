@@ -342,3 +342,16 @@ Space quedó con una regresión («treasure island stevenson» sin Stevenson).
 - A la desplegadora se le dice lo mismo: «si 4e te escribe un serio, no subas».
 - Una auditoría previa y una subida en paralelo solo valen si la subida espera
   el informe o un plazo pactado **con los dos**.
+
+## 12. Las contraseñas no se miran, ni enmascaradas
+
+15 sep, 04:30: para probar una cuenta de invitado, una sesión «miró el formato»
+de `literalevel_codigos.txt` con las claves enmascaradas y una línea no quedó
+oculta. La contraseña de «profesor» salió en la salida de una herramienta. No
+fue a ningún mensaje ni commit, pero la salida de herramientas forma parte del
+contexto de la sesión, así que se avisó a Miguel para que decida si la rota.
+
+- Al autorizar una prueba con cuenta, la orden dice: «cárgala en una variable
+  dentro del mismo guion que hace la llamada, y no imprimas nada del archivo».
+- Recargar el cupo de una cuenta es escribir en el bucket: solo con permiso de
+  Miguel en esa sesión.
