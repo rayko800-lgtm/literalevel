@@ -983,3 +983,13 @@ Arreglo del micrófono de Pronunciar (e6, 601788b), con el ok de 4e:
 - **Robustez:** el doble toque no hace nada, y si falla después del permiso se suelta el micrófono.
 - **Menor, que e6 cierra en un commit aparte:** si se sale de la pantalla con el permiso pendiente y se concede después, el micrófono queda encendido.
 - **Falta:** que Ismael lo pruebe en su Android desde WhatsApp.
+
+**Vuelta atrás del 29 al 28** (f4, aplicando la regla acordada): con 1,20, 4 consultas de tema pierden marcas, más de 3.
+- **Consultas afectadas:**
+  - «león» pasa de 12 marcas a 0 (Cieza de León);
+  - «brown» de 12 a 0 (un autor Brown);
+  - «hope» de 9 a 4 (Laura Lee Hope);
+  - «animales de la granja» de 15 a 3. Con A2 y B1 también pierde marcas.
+- **Qué vuelve al Space:** el catalogo.py de b896b1f.
+- **Qué se pierde:** las consultas de autor con perfil vuelven a colar cuentos como «Books». El paso 3 del guion no depende de ello, porque «Crimen y castigo de Dostoyevski» ya daba el aviso en el 28.
+- **Siguiente:** i5 e i6 no arreglarían «león», «brown» ni «hope», porque ninguna distingue autor de tema en una palabra. Se sustituyen por i7, que ataca la causa: el título no cuenta si casa igual con el marco «libros sobre» sin la palabra. Se mide sin prisa de demo.
