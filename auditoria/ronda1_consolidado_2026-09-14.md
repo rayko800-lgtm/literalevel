@@ -756,3 +756,9 @@ Reinicio 27 con commit (f4, 9e51c18), a falta de los vistos buenos de 4e (catalo
   - london, hope y king no cambian;
   - «amor» sin Fenn.
 - **Pendiente:** el banco, el árbol limpio con los cinco commits de e6, el --seco de cinco archivos, la subida y el comprobador con clásicos, Austen, buscador_listo y SWV4008.
+
+Visto bueno de 4e a 9e51c18:
+- **cuentas.py:** ok con pruebas. Sus dos menores quedan arreglados, y los 40 hilos siguen dando 10 devoluciones.
+- **catalogo.py:** ok solo por lectura, porque no había RAM libre por el banco de f4.
+- **Menores:** el recorrido en Python de las 68.546 filas cuando salta la compuerta, las obras contadas sin las fechas del autor, y un False con el disco roto.
+- **Después de subir:** 4e mide en el Space los clásicos, Austen, london, hope y king, los tiempos de las búsquedas que hacen saltar la compuerta y `buscador_listo`.
