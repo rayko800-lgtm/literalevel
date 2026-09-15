@@ -456,3 +456,9 @@ Aviso «No te oí» en Pronunciar (e6, b9773bd, sin publicar, ng test 80/80):
 - **Qué cambia:** con transcripcion_ok false, el front muestra «No te oí. Acércate al micrófono y vuelve a grabar.», con una raya en vez de «0/100» y sin la nota de ánimo. «Una frase de mi libro» usa la misma corrección.
 - **Publicación:** HEAD entero tras el reinicio 24. Los commits de la franja son inertes sin los campos de la API, según la comparación de 4e.
 - **Gradio (ui.py):** los mensajes de silencio se cambian en el reinicio 26.
+
+**Reinicio 24 en producción y comprobado (f4):** Space 0c09197, solo app/voz.py de 0a759a5.
+- **Prueba de pago con silencio, repetida exacta** (invitado8 pasa de 18 a 17): transcripcion_ok false, sin corrección de pago y sin guardar nada.
+- **Menor para el 26 (4e):** la respuesta aún trae audio_correcto, el TTS de la frase modelo. Aquí salió de caché, pero con una frase nueva sería una llamada de pago.
+- **Front:** e6 publica HEAD con el aviso «No te oí».
+- **Reinicio 25:** f4 aplica la variante E. El banco C11 detecta 16 de 16.
