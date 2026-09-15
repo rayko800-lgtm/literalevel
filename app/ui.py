@@ -3774,6 +3774,9 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
                            "de OpenAI. Lo demás de la aplicación no la necesita "
                            "y sigue funcionando."),
                 gr.update(visible=False))
+    # El codigo que se cobra, leido ANTES de cobrar: la devolucion por silencio va a esa
+    # cuenta aunque la sesion cambie durante whisper (reinicio 26, como `_corregir_voz`).
+    codigo_cobrado = _codigo_de(peticion)
     puede, motivo_pago = _puede_pagar(peticion)
     if not puede:
         return "", motivo_pago, gr.update(visible=False)
@@ -3782,6 +3785,9 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         # palabras que a uno se le atragantan no son asunto de los demas.
         # `origen` solo va al registro de las grabaciones sin voz (4e, 06a7aac).
         s = voz.practicar(ruta_audio, frase, guardar_fallos=False, origen="gradio")
+        # Whisper respondio y no oyo ninguna palabra: el uso se devuelve, con el tope diario
+        # por cuenta de `cuentas` (Central, reinicio 26). Con la red caida `sin_voz` es False.
+        devuelto = bool(getattr(s, "sin_voz", False)) and cuentas.devolver_por_silencio(BASE_DATOS_LECTOR, codigo_cobrado)
         if s.evaluacion.palabras_falladas and s.transcripcion_ok:
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                  ruta=_archivo_lector("voz.db", peticion), frase=frase)
@@ -3814,8 +3820,14 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         # Y el aviso es el de la grabacion sin voz: sin `OPENAI_API_KEY` se sale arriba
         # con su propio aviso, asi que aqui la causa es silencio, ruido o un fallo de red
         # que `voz.practicar` no distingue (reinicio 26).
+        #
+        # Reinicio 26: ahora SI se devuelve, pero solo cuando whisper respondio sin ninguna
+        # palabra (`sin_voz`) y dentro del tope diario de `cuentas.devolver_por_silencio`: sin
+        # voz ya no hay gpt ni tts-1 (0a759a5, 681544f), y el tope cierra el agujero de arriba.
+        # Con la red o la clave caidas no se sabe que se gasto, y se sigue cobrando.
         L = [L[0].replace(f"{ev.puntuacion:.0f} / 100", "— / 100")]
-        L.append("[!] No te oí. Acércate al micrófono y vuelve a grabar.")
+        L.append("[!] No te oí. Acércate al micrófono y vuelve a grabar."
+                 + (" Este intento no cuenta." if devuelto else ""))
     elif not ev.palabras_falladas:
         L.append("Ni una palabra fallada. Sube el listón con una frase más larga.")
 

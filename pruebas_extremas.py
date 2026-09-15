@@ -6700,6 +6700,49 @@ def _la_practica_pinta_ipa_y_audio():
 prueba("fonemas: la practica pinta ipa y audio", _la_practica_pinta_ipa_y_audio)
 
 
+def _practica_sin_voz_devuelve_el_uso():
+    """Reinicio 26 (Central y f4): en Gradio, una grabacion en la que whisper respondio y no
+    oyo nada (`sin_voz`) devuelve el uso con `cuentas.devolver_por_silencio`, con el codigo
+    leido ANTES de cobrar, y lo dice; sin respuesta de whisper (red caida) no se llama."""
+    ev = ui.voz.evaluar_pronunciacion("Hello there", "")
+    audio = TMP / "sin_voz_gradio.wav"
+    audio.write_bytes(b"RIFF")
+    llamadas, orden = [], []
+    viejos = (ui.voz.practicar, ui.config.falta, ui._puede_pagar, ui._codigo_de, ui.cuentas.devolver_por_silencio)
+
+    def practicar_con(sin_voz):
+        return lambda *a, **k: ui.voz.SesionVoz(evaluacion=ev, audio_correcto=None, correccion=None,
+                                                transcripcion_ok=False, sin_voz=sin_voz)
+
+    def codigo_de(pet):
+        orden.append("codigo")
+        return "CODIGO-COBRADO"
+
+    def puede_pagar(pet):
+        orden.append("cobro")
+        return True, ""
+
+    salidas = {}
+    try:
+        ui.config.falta = lambda: []
+        ui._puede_pagar, ui._codigo_de = puede_pagar, codigo_de
+        ui.cuentas.devolver_por_silencio = lambda base, codigo: llamadas.append((base, codigo)) or True
+        for nombre, sin_voz in (("sin_voz", True), ("red_caida", False)):
+            ui.voz.practicar = practicar_con(sin_voz)
+            _, veredicto, _ = ui._practicar(str(audio), "Hello there")
+            salidas[nombre] = str(veredicto)
+    finally:
+        (ui.voz.practicar, ui.config.falta, ui._puede_pagar, ui._codigo_de, ui.cuentas.devolver_por_silencio) = viejos
+    assert llamadas == [(ui.BASE_DATOS_LECTOR, "CODIGO-COBRADO")], f"devoluciones: {llamadas}"
+    assert orden.index("codigo") < orden.index("cobro"), f"el codigo se leyo despues de cobrar: {orden}"
+    assert "No te oí" in salidas["sin_voz"] and "Este intento no cuenta" in salidas["sin_voz"], salidas["sin_voz"][:300]
+    assert "No te oí" in salidas["red_caida"] and "no cuenta" not in salidas["red_caida"], salidas["red_caida"][:300]
+    return "sin voz devuelve a la cuenta cobrada y lo dice; con la red caida, no"
+
+
+prueba("practica sin voz devuelve el uso", _practica_sin_voz_devuelve_el_uso)
+
+
 # --- La tabla del AFI (13 sep 2026) -----------------------------------------
 # Miguel: un apartado con el AFI donde cada simbolo se toca y suena, con una
 # ficha tecnica de articulacion en americano y britanico, sin coste.
