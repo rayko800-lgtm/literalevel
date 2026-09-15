@@ -853,3 +853,9 @@ Reinicio 29, «rosa» y «luna» con B1 (f4, datos sin propuesta):
 - **Hipótesis de la central:** es la franja del 25 con la variante E. En una consulta de una palabra, el título se compara con «historias de X» y «libros sobre X», y los títulos genéricos casan con ese marco, no con el autor.
 - **Encargo a f4, prioritario sobre «rosa» y «luna»:** medir la causa y dos arreglos, que la franja no marque cuando se rescata a un autor y que los títulos solo genéricos no puntúen, con el criterio de autores con perfil, temas con A2 y B1 y las 100 palabras iguales al Space. 4e prepara una alternativa para el paso 3 por si no llega.
 - **El resto del ensayo a 390 px cuadra con el guion:** la receta, «cuentos de dragones», los detectives, la ficha de Crime and Punishment, poverty, Pronunciar y «Mis palabras».
+
+«rosa» y «luna» con B1: **límite declarado, sin cambio de código** (f4, medido).
+- **Qué arreglaba la regla por fila:** «rosa» y «luna».
+- **Qué rompía:** 70 de 200 listas de palabras de tema distintas del Space, con el primer resultado cambiado en 27. «dracul» perdía Dracula en los puestos 2 y 3. Además cambiaban 17 de 40 listas de títulos y 5 de 24 de autores.
+- **Fallos que ya están en el Space y se apuntan sin tocar:** «emma» con B1, y «hamlet» y «ulysses» sin perfil. «frankenstien» no funcionaba ni antes ni con el candidato.
+- **Siguiente, con prioridad:** las consultas de autor con perfil, que afectan al paso 3 de la demo.
