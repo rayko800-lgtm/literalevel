@@ -402,3 +402,8 @@ Arreglos de voz de la ronda 3 (4e, 86e6e1d, con aviso de Codex en el commit):
 - **IPA:** una IPA toda en ASCII casi igual a la palabra escrita tampoco pasa.
 - **Pruebas:** suites en verde y mutantes 5 de 5.
 - **Pendiente:** el visto bueno de e6, y después sube con el siguiente reinicio.
+
+Visto bueno de e6 a los arreglos de voz (86e6e1d): ok, y suben en el siguiente reinicio.
+- **Casos cerrados:** con silencio o «...» ya no hay llamada de pago; «St.» corta la frase; /houses/ por house ya no pasa como IPA.
+- **Coste de la regla nueva de IPA:** rechaza 12 IPA más que antes, de 51.261 pares (0,02 %). Algunas son buenas en notación de EE. UU., como flue /flu/. Solo actúa en palabras sin IPA en el diccionario, así que la palabra queda sin IPA en vez de con una falsa.
+- **Menor para el 24 (4e):** «uh» y «Thank you.», que whisper inventa con casi silencio, siguen contando como oídas.
