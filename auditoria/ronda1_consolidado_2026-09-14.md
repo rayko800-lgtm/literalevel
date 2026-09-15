@@ -870,3 +870,9 @@ Segundo ensayo de la demo (e6, d2883bc), sobre el front bdfa418 y el Space 74f14
 - **Serio del paso 3:** resuelto en el guion con «Crimen y castigo de Dostoyevski», que midió 4e. El arreglo del buscador sigue con f4.
 - **Tiempos con el buscador caliente:** búsquedas de 0,5 a 0,8 s, primera consulta de palabra 4,5 s y boca 3D la primera vez 2,9 s en el móvil. La duración estimada sigue en 3:40–4:10.
 - **Arreglos de guion para 4e:** la cifra de la boca 3D, que la frase de voz ya no cuenta como verificada, «reinicio 28» en el paso 2, y «Este intento no cuenta» en el punto 7.
+
+Guiones al día con el segundo ensayo (4e, 5181c8f; guion_video.pdf recompilado):
+- **Paso 3:** «Crimen y castigo de Dostoyevski», con el aviso y el libro primero en «De otros niveles». No se escribe «dostoyevski» a secas.
+- **Arreglos:** boca 3D 2,9 s en el móvil, frase de voz sin verificar, «reinicio 28» y «Este intento no cuenta».
+- **Lista de Miguel:** punto 9 nuevo, repetir el paso 3 con cuenta.
+- **Documento y presentación:** sin cambios. Citan «dostoyevski» solo como rescate de un nombre mal escrito, y la API sigue poniendo Crime and Punishment en el puesto 2.
