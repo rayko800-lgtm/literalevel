@@ -762,3 +762,5 @@ Visto bueno de 4e a 9e51c18:
 - **catalogo.py:** ok solo por lectura, porque no había RAM libre por el banco de f4.
 - **Menores:** el recorrido en Python de las 68.546 filas cuando salta la compuerta, las obras contadas sin las fechas del autor, y un False con el disco roto.
 - **Después de subir:** 4e mide en el Space los clásicos, Austen, london, hope y king, los tiempos de las búsquedas que hacen saltar la compuerta y `buscador_listo`.
+
+Visto bueno de e6 a api.py de 9e51c18: ok, solo por lectura por la RAM. Revisó `buscador_listo`, `_resumen_curva` con una fila y /api/voz con la firma nueva. Con esto el 27 tiene todos los vistos buenos y solo espera al banco y al árbol limpio de f4. 4e ya tiene la línea base del 26 y un vigía para medir el 27 en el Space.
