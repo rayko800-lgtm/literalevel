@@ -294,10 +294,12 @@ export class Encontrar implements OnInit {
   protected readonly hayResultados = computed(() => (this.resultados()?.length ?? 0) > 0);
   /** El nivel con el que el motor ordenó; sin él (sin perfil) no hay bloques. */
   protected readonly nivelBusqueda = signal<number | null>(null);
+  /** La franja con la que la API marcó `por_franja` (reinicio 23); sin ella, la del front. */
+  private readonly franjaBusqueda = signal<[number, number] | null>(null);
   protected readonly bloques = computed(() => {
     const rs = this.resultados();
     const nivel = this.nivelBusqueda();
-    return rs && nivel !== null ? bloquesBusqueda(rs, nivel) : null;
+    return rs && nivel !== null ? bloquesBusqueda(rs, nivel, this.franjaBusqueda()) : null;
   });
 
   ngOnInit(): void {
@@ -341,6 +343,7 @@ export class Encontrar implements OnInit {
       const r = await firstValueFrom(this.api.buscar(q, true, 24));
       this.verOtros.set(false);
       this.nivelBusqueda.set(r.ajustado ? r.nivel : null);
+      this.franjaBusqueda.set(r.ajustado ? r.franja ?? null : null);
       this.resultados.set(r.resultados);
       this.aviso.set(r.aviso);
       this.nota.set(r.nota);

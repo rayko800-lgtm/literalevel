@@ -107,6 +107,9 @@ export interface LibroTarjeta {
   portada_ia?: string | null;
   /** Cuento libre corto medido en un bloque con otros de su fuente y nivel (f4, 8ee42f0), no solo. */
   medido_en_bloque?: boolean;
+  /** Entró por el top-k dentro de la franja del lector (reinicio 23, f4). La API del 22 no lo
+   *  manda: sin el campo, `bloquesBusqueda` reparte como antes. */
+  por_franja?: boolean;
 }
 
 export interface ResultadoBusqueda {
@@ -115,6 +118,9 @@ export interface ResultadoBusqueda {
   ajustado: boolean;
   nivel: number | null;
   nota: string;
+  /** Franja del lector en dificultad absoluta, lo < dificultad ≤ hi (reinicio 23, una sola
+   *  constante en catalogo.py); null sin nivel. La API del 22 no la manda. */
+  franja?: [number, number] | null;
 }
 
 export interface Recomendacion {

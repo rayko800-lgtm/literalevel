@@ -45,9 +45,13 @@ export interface BloquesBusqueda {
 /** Reparte los resultados de /api/buscar en los bloques de Encontrar
  *  (auditoria/diagnostico_encontrar_amor_b1_2026-09-14.md, aprobado por Miguel):
  *  «A tu medida» solo puede salir en lo que es de lo que se pidió. */
-export function bloquesBusqueda(libros: LibroTarjeta[], nivel: number): BloquesBusqueda {
+export function bloquesBusqueda(libros: LibroTarjeta[], nivel: number,
+                                franja?: readonly [number, number] | null): BloquesBusqueda {
   const b: BloquesBusqueda = { enTuNivel: [], porEncima: [], otrosNiveles: [], menosParecidos: [] };
   if (!libros.length) return b;
+  // La franja la da la API desde el reinicio 23 (`franja: [lo, hi]`, lo < dificultad ≤ hi,
+  // una sola constante en catalogo.py); sin ella, la de siempre alrededor del nivel.
+  const deLaApi = (dificultad: number) => franja ? dificultad > franja[0] && dificultad <= franja[1] : null;
   const techo = milesimas(Math.max(...libros.map(l => l.similitud)));
   // Hasta dónde bajan los parecidos desde el techo sin un hueco mayor que SALTO.
   let suelo = techo;
@@ -58,13 +62,20 @@ export function bloquesBusqueda(libros: LibroTarjeta[], nivel: number): BloquesB
   for (const l of libros) {
     const sim = milesimas(l.similitud);
     const d = l.dificultad == null ? null : l.dificultad - nivel;
-    const enFranja = d !== null && d > FACIL && d <= POR_ENCIMA;
+    // Sin franja de la API, la comparación exacta de antes (en diferencias, no en absolutos:
+    // el redondeo de la coma flotante no mueve ningún borde respecto a 88b3a83).
+    const enFranja = d !== null && (deLaApi(l.dificultad!) ?? (d > FACIL && d <= POR_ENCIMA));
     const relevante = techo - sim <= milesimas(MARGEN_RELEVANCIA);
     const subePorFranja = enFranja && techo - sim <= milesimas(MARGEN_EN_FRANJA)
       && sim >= milesimas(PARECIDO_MINIMO_EN_FRANJA) && sim >= suelo;
-    if (!relevante && !subePorFranja) { b.menosParecidos.push(l); continue; }
-    if (d !== null && d > FACIL && d <= RETO) b.enTuNivel.push(l);
-    else if (d !== null && d > RETO && d <= POR_ENCIMA) b.porEncima.push(l);
+    // Lo que la API trae por su top-k de franja (reinicio 23) va a su bloque sin margen ni
+    // SALTO, con el umbral de la API (suelo, techo general y mejor de la franja): el hueco de
+    // «Robots» (0,855 → 0,780) es mayor que el de «Familia» (0,058, basura) y ningún SALTO los
+    // separa (auditoria/salto_front_2026-09-15.md). Lo no marcado sigue la regla de antes.
+    const marcado = l.por_franja === true && enFranja;
+    if (!relevante && !subePorFranja && !marcado) { b.menosParecidos.push(l); continue; }
+    if (enFranja && d! <= RETO) b.enTuNivel.push(l);
+    else if (enFranja) b.porEncima.push(l);
     else b.otrosNiveles.push(l);
   }
   b.porEncima.sort((x, y) => (x.dificultad as number) - (y.dificultad as number));

@@ -109,6 +109,60 @@ describe('Los bloques de Encontrar', () => {
     expect(ids(corta.menosParecidos)).toEqual(['tras-051']);
   });
 
+  // Reinicio 23: la API marca con `por_franja` lo que trae su top-k de franja. «Robots» con
+  // A2 (0,40) en el Space 384a206: dos títulos arriba y una meseta de cuentos a 0,78.
+  const robotsA2 = (marcas: boolean) => [
+    { ...libro('helpful-robots', 0.858, 1.28), ...(marcas ? { por_franja: false } : {}) },
+    { ...libro('sharanya', 0.855, 0.53), ...(marcas ? { por_franja: true } : {}) },
+    { ...libro('brave-robot', 0.78, 0.57), ...(marcas ? { por_franja: true } : {}) },
+    { ...libro('anti-gravity', 0.78, 0.31), ...(marcas ? { por_franja: true } : {}) },
+    { ...libro('miserly-robot', 0.78, 1.73), ...(marcas ? { por_franja: false } : {}) },
+    { ...libro('only-robot', 0.78, 0.61), ...(marcas ? { por_franja: false } : {}) },
+  ];
+
+  it('sin la marca de franja, «Robots» reparte como antes: SALTO deja la meseta de 0,78 fuera', () => {
+    const b = bloquesBusqueda(robotsA2(false), 0.4);
+    expect(ids(b.enTuNivel)).toEqual(['sharanya']);
+    expect(ids(b.menosParecidos)).toEqual(['brave-robot', 'anti-gravity', 'miserly-robot', 'only-robot']);
+  });
+
+  it('lo marcado por la franja va a su bloque sin margen ni SALTO; lo no marcado sigue como antes', () => {
+    const b = bloquesBusqueda(robotsA2(true), 0.4);
+    expect(ids(b.enTuNivel)).toEqual(['sharanya', 'anti-gravity']);
+    expect(ids(b.porEncima)).toEqual(['brave-robot']);
+    expect(ids(b.otrosNiveles)).toEqual(['helpful-robots']);
+    expect(ids(b.menosParecidos)).toEqual(['miserly-robot', 'only-robot']);   // 1,33 fuera de franja; 0,21 sin marca
+  });
+
+  it('una marca fuera de la franja del front no sube; dentro, sube aunque su parecido sea bajo', () => {
+    // El umbral de lo marcado es de la API (suelo, techo general y mejor de la franja, f4):
+    // el front no le pone otro mínimo, porque hay cuentos de franja legítimos a 0,49–0,65.
+    const b = bloquesBusqueda([
+      libro('carmilla', 0.675, 1.8),
+      { ...libro('fuera-de-franja', 0.6, 1.3), por_franja: true },     // 0,50 por encima de B1
+      { ...libro('borde-de-franja', 0.52, 1.25), por_franja: true },   // 0,45 por encima: aún franja
+      { ...libro('sin-marca', 0.6, 1.0), por_franja: false },          // regla de antes: bajo 0,65
+    ], b1);
+    expect(ids(b.porEncima)).toEqual(['borde-de-franja']);
+    expect(ids(b.menosParecidos)).toEqual(['fuera-de-franja', 'sin-marca']);
+  });
+
+  it('con `franja` de la API, los bordes son los suyos (lo < dificultad ≤ hi) y no los ±0,45 del front', () => {
+    const libros = [
+      libro('techo', 0.8, 1.9),
+      { ...libro('dentro-front', 0.7, 1.2), por_franja: true },   // 0,40 por encima de B1
+      { ...libro('borde-api', 0.7, 1.0), por_franja: true },      // justo en hi
+      { ...libro('bajo-api', 0.7, 0.6), por_franja: true },       // justo en lo: fuera
+    ];
+    const conApi = bloquesBusqueda(libros, b1, [0.6, 1.0]);
+    expect(ids(conApi.enTuNivel)).toEqual([]);
+    expect(ids(conApi.porEncima)).toEqual(['borde-api']);                 // 0,20 por encima: «Un reto»
+    expect(ids(conApi.menosParecidos)).toEqual(['dentro-front', 'bajo-api']);
+    const sinApi = bloquesBusqueda(libros, b1);
+    expect(ids(sinApi.enTuNivel)).toEqual(['bajo-api']);
+    expect(ids(sinApi.porEncima)).toEqual(['borde-api', 'dentro-front']);
+  });
+
   it('con franja, a 0,100 del techo sube y a 0,101 no', () => {
     const b = bloquesBusqueda([
       libro('techo', 0.8, 1.9), libro('escalon-1', 0.76, 1.9), libro('escalon-2', 0.72, 1.9),
