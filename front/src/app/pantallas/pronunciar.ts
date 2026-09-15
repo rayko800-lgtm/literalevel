@@ -267,17 +267,25 @@ export class Pronunciar implements OnInit, OnDestroy {
    *  de los botones (captura de Miguel: el botón arriba y la boca abajo no se
    *  podían mirar a la vez). El 3D si está abierto; si no, los cortes 2D. */
   private mostrarAnimacion(ev?: Event): void {
-    const boton = ev?.currentTarget as HTMLElement | null;
+    this.colocarALaVista(ev?.currentTarget as HTMLElement | null);
+  }
+
+  private colocarALaVista(boton: HTMLElement | null): void {
     const grupo = boton?.closest?.('details.boca, .ficha-sonido');
     const blanco = grupo?.querySelector<HTMLElement>('app-boca3d') ?? grupo?.querySelector<HTMLElement>('.cortes, img.corte');
     if (!blanco || typeof window === 'undefined') return;
     const r = blanco.getBoundingClientRect();
     const arriba = 64;                                   // la cabecera fija
-    // La barra tapa lo de debajo solo si está en pantalla.
-    const barra = boton?.closest('.botones-corte')?.getBoundingClientRect().top ?? window.innerHeight;
-    const abajo = barra > arriba && barra < window.innerHeight ? barra : window.innerHeight;
+    // Dónde QUEDA la barra pegada, no dónde está ahora: mientras no se pega puede
+    // estar más arriba o fuera de pantalla, y medirla ahí dejaba la boca debajo.
+    const barra = boton?.closest<HTMLElement>('.botones-corte');
+    const pegada = barra ? parseFloat(getComputedStyle(barra).bottom) : NaN;
+    const abajo = barra && getComputedStyle(barra).position === 'sticky' && Number.isFinite(pegada)
+      ? window.innerHeight - pegada - barra.offsetHeight : window.innerHeight;
     if (r.top >= arriba && r.bottom <= abajo) return;
-    window.scrollBy({ top: r.top + r.height / 2 - (arriba + abajo) / 2, behavior: this.sinMovimiento ? 'auto' : 'smooth' });
+    // Si no cabe entera, arriba pegada a la cabecera: lo que se pierde es el pie, no la lengua.
+    const destino = r.height <= abajo - arriba ? r.top + r.height / 2 - (arriba + abajo) / 2 : r.top - arriba;
+    window.scrollBy({ top: destino, behavior: this.sinMovimiento ? 'auto' : 'smooth' });
   }
 
   /** Con el audio del sonido, su corte dura lo que el mp3; con el de la palabra,
@@ -339,8 +347,20 @@ export class Pronunciar implements OnInit, OnDestroy {
     else this.visor3d.set(null);
   }
 
-  protected alternarBoca(id: string): void {
+  protected alternarBoca(id: string, ev?: Event): void {
+    const abre = this.visor3d() !== id;
     this.visor3d.update(actual => actual === id ? null : id);
+    if (!abre || typeof window === 'undefined') return;
+    // Al abrir, la boca entera a la vista en cuanto el @defer la monta: antes se
+    // quedaba donde cayera y la barra pegada tapaba lengua y dientes (f4, 390 px).
+    const boton = ev?.currentTarget as HTMLElement | null;
+    const t0 = performance.now();
+    const paso = () => {
+      const lista = boton?.closest('details.boca, .ficha-sonido')?.querySelector('app-boca3d .visor');
+      if (lista) this.colocarALaVista(boton);
+      else if (performance.now() - t0 < 4000) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
   }
 
   /** Al abrir «Ver cómo se mueve la boca» se adelantan el audio y el SVG, para

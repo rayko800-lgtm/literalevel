@@ -79,7 +79,8 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
     .chip.elegido { background: var(--acento, #2f5bea); color: #fff; border-color: var(--acento, #2f5bea); }
     .ipa { font-family: 'Charis SIL', 'Doulos SIL', 'DejaVu Sans', 'Segoe UI', sans-serif; }
     .visor { position: relative; width: 100%; overflow: hidden; min-height: 220px; }
-    .lienzo { width: 100%; height: 420px; max-height: 65vh; min-height: 220px; }
+    /* --boca3d-alto la pone la pantalla que tenga barras encima (Pronunciar a 390 px). */
+    .lienzo { width: 100%; height: var(--boca3d-alto, 420px); max-height: 65vh; min-height: 220px; }
     .lienzo[hidden] { display: none; }
     .respaldo { display: block; width: 100%; height: 360px; object-fit: contain; }
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }

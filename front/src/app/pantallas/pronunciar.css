@@ -160,6 +160,11 @@
   /* Encima de la grabadora fija (72 px de micrófono y su margen) y de la navegación. */
   .botones-corte.pegada { bottom: calc(var(--barra-inf) + 6rem); }
   :host-context(body:has(.nav-movil.oculta)) .botones-corte.pegada { bottom: 6rem; }
+  /* La boca con el alto que cabe entre la cabecera (64), su pie (56) y la barra
+     pegada en dos filas (120) con lo de debajo: la barra tapaba el tercio de abajo
+     del lienzo, lengua y dientes (prueba de persona de f4 a 390 px). En una fila no
+     cabe: «Escuchar y ver», «Más lento» y «Cerrar 3D» piden 358 px y hay ~300. */
+  app-boca3d { --boca3d-alto: clamp(220px, calc(100svh - 64px - 56px - var(--barra-inf) - 6rem - 120px - 1rem), 420px); }
   /* Con el teclado abierto sobre la frase, la barra estorba: fuera. */
   :host:has(textarea:focus) .grabadora { display: none; }
   .otra { display: none; }

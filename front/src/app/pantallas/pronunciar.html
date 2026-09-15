@@ -233,7 +233,7 @@
                     <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
                             [attr.aria-label]="'Velocidad: ' + etiquetaVelocidad() + '. Pulsa para cambiarla'">{{ etiquetaVelocidad() }}</button>
                     @if (boca3d) {
-                    <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index)"
+                    <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index, $event)"
                             [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
                       <app-icono [nombre]="visor3d() === 'detalle-' + $index ? 'cerrar' : 'ojo'" />
                       {{ visor3d() === 'detalle-' + $index ? 'Cerrar 3D' : 'Boca en 3D' }}
@@ -321,7 +321,7 @@
                 <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
                         [attr.aria-label]="'Velocidad: ' + etiquetaVelocidad() + '. Pulsa para cambiarla'">{{ etiquetaVelocidad() }}</button>
                 @if (boca3d) {
-                <button type="button" class="boton secundario" (click)="alternarBoca('sonido')"
+                <button type="button" class="boton secundario" (click)="alternarBoca('sonido', $event)"
                         [attr.aria-expanded]="visor3d() === 'sonido'">
                   <app-icono [nombre]="visor3d() === 'sonido' ? 'cerrar' : 'ojo'" />
                   {{ visor3d() === 'sonido' ? 'Cerrar 3D' : 'Boca en 3D' }}
