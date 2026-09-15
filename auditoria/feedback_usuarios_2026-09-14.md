@@ -100,3 +100,11 @@ programar. La variedad va con el reinicio 25.
 - **Tu nivel, propuesta A:** seis preguntas sin «Me vale así» ni nivel provisional. Se guarda solo al terminar, con «Lees en inglés a nivel B1 · Ver libros de mi nivel». Afinar queda como enlace pequeño al final.
 - **Pronunciar, propuesta A:** primero el resumen, luego la palabra a practicar con «Escuchar y ver» y el interruptor «🐢 Despacio». El ritmo y el habla natural van plegados. «Corrígeme» lleva texto, y tras corregir aparece «Grabar otra vez» (9624b0a), para no pagar dos veces la misma grabación.
 - **Aparte:** 4e mide si el cuestionario infravalora. En el recorrido, unas respuestas sinceras de B1 dieron A2.
+
+## Miguel prueba la versión lista (15 sep, 06:48-06:51, móvil)
+
+Front dca18b4 con el motor del reinicio 26, perfil propio B1 (0,95).
+
+- **Encontrar, «Cuentos de dragones»:** «En tu nivel» abre con cuentos de dragones de su franja: DRAGON WONDERS (B1 0,98), DRAGON BEFRIENDS YOUNG GIRL (B2 1,08), When I Met a cute, fluffy and tiny dragon, THE DRAGON MYSTERY, The mouse+dragon y My Father's Dragon, todos «A tu medida». Funciona como se diseñó.
+- **Fallo en la ficha de un cuento de un solo capítulo** (el de Kian): «Dificultad capítulo a capítulo» dice «Se va soltando… Lo más llevadero, el capítulo 1; lo más exigente, el 1», y la gráfica sale sin ningún punto. «Lo que más se repite» solo muestra el nombre del personaje. Lo arregla e6.
+- **Observación de producto, sin cambio todavía:** el resumen de ese cuento dice «Para peques que disfrutan cuentos rimados». Con la franja, a una lectora B1 de 15 años le salen cuentos infantiles de su nivel. Es lo que hay en las fuentes libres. Conviene vigilar si a Esmeralda le parecen demasiado infantiles.
