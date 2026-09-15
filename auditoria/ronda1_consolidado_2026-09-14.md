@@ -1206,3 +1206,8 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - Árbol limpio en D:: corpus 48/48, api 66/66, extremas 351. C24 3/3. Ok de 4e. --seco: solo catalogo.py.
 - En marcha: comprobar_r30b.py y la segunda medida del arranque del 30a.
 - Ensayo de e6 encargado: family 0,80, mystery, paso 3, granja, dragones y perfil 0,953.
+- **Segunda medida del arranque del 30a**, en el arranque del 30b y con el log completo (44 líneas):
+  - buscador_listo a los 12 s de RUNNING. La primera medida dio 20 s; antes de la precarga, 55 s.
+  - Precarga: catálogo 3,8 s y modelo con primera búsqueda 13,7 s.
+  - 0 descargas de MiniLM en el log.
+  - Cautela resuelta con dos arranques: el modelo sale de la imagen.
