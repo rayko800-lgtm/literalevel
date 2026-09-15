@@ -114,7 +114,9 @@ persona del front `45d9999` (f4).
 | 9 | Inventario de fuentes incompleto | 72c9ee6 (4e) | Documentos |
 | 10 | Citas sin referencia APA | 72c9ee6 (4e) | Documentos |
 
-Menores cerrados: los 6 de voz y la duda de «set off» (d58b0be, 4e), los 4 del front de la prueba como persona y el rango de tiempo (e6), y los tiempos «1 minuto» en motor y front (cb799bc, f712d73). En curso: 11 menores de documentos (4e) y menores de API y catálogo (f4).
+Menores cerrados: los 6 de voz y la duda de «set off» (d58b0be, 4e), los 11 de documentos y la cifra de libros de amor (b0dac54, 4e), los 4 del front de la prueba como persona y el rango de tiempo (e6, front publicado 6cfda19), y los tiempos «1 minuto» en motor y front (cb799bc, f712d73). En curso: menores de API (f4).
+
+**Ronda 2 ya empezada.** Catálogo (4e, `ronda2_2026-09-15_catalogo.md`): serios 5 y 6 **verificados como cerrados** (15.366 de 15.367 con gancho, huella del índice comprobada recodificando 40 filas, 10 colas medidas, 4 dificultades que bajan de C1 a B2). Nuevo serio: el rescate por nombre rompe búsquedas temáticas en español («sobre» ≈ «Sombre», «historias» ≈ «Historians», «luna» ≈ «Luna: The Lost Dog»); va con el arreglo del reinicio 19. Nuevo menor: 6 ganchos con anuncios y URL. En curso: API (e6), front (4e), y en cola voz y documentos (e6).
 
 Nuevo, destapado al arreglar el 5: «amor» coincidía con un autor («Fenn, Amor») y títulos parecidos, y el modelo multilingüe apenas relaciona «amor» con «love». Decisión de la central: el nombre solo impulsa con coincidencia completa y no fija la ventana de relevancia si el tema no se parece; las búsquedas de una palabra en español se traducen con el diccionario local; fuera las filas con título «nan». Va al reinicio 19 (f4).
 
