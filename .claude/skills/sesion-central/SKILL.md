@@ -227,6 +227,19 @@ Qué hacer la central cuando pase:
 - [ ] Informe de Codex entregado a la sesión dueña, no corregido aquí.
 - [ ] Fila en `AGENTS.md` y esta skill actualizada.
 
+## 6b. Cupo por modelo: una sesión en Fable se para sola
+
+El 14 sep por la noche la central, que corría en Fable, se quedó sin cupo de
+Fable y siguió en Opus; b9 se paró a la vez y dejó de acusar órdenes sin
+decir nada. El panel «Account & Usage» tiene un límite propio para Fable
+(«Fable limit»), aparte del de sesión y el semanal. Señales: una sola sesión
+en `idle` sin acuse mientras las demás trabajan, y ningún cambio suyo en
+disco. Qué hacer: redistribuir su tarea a una sesión libre en el acto (no
+esperar) y decirle a Miguel que, si quiere recuperarla, escriba `/model opus`
+en ese chat. El límite de gasto mensual es otra cosa: se sube en
+claude.ai/settings/usage, y eso es dinero de Miguel, así que solo se le
+explica y decide él.
+
 ## 7. El commit que se lleva líneas ajenas
 
 El 14 sep a las 15:15, e6 hizo commit de `app/api.py` y `app/ui.py` enteros
