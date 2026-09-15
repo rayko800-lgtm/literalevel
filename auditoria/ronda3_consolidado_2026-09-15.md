@@ -31,6 +31,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 | Boca 3D | 4e | ronda3_2026-09-15_boca3d.md | fuga, audio, teclado, caída al 2D | 2 menores, ya corregidos |
 | Encontrar: margen de la franja | 4e | ronda3_2026-09-15_front.md | los cinco cuentos de la luna suben | chip vacío y pruebas sin bordes, ya corregidos |
 | Código del reinicio 21 | 4e | ronda3_2026-09-15_reinicio21.md | «Fenn, Amor» no vuelve; el raro no baja | **serio:** autor más título pierde al autor; anuncio de GHB; 2 menores de bloques |
+| Voz, restos de la ronda 2 | e6 | ronda3_2026-09-15_voz.md | IPA en ASCII y abreviaturas Mr., Mrs., Ms. y Dr. | silencio a medias: sigue la llamada de pago; «St.» abierto |
 | Ensayo de la demo | e6 | ensayo_demo_2026-09-15.md | — | 10 arreglos de guion y un fallo de etiqueta, ya aplicados |
 
 ## Los dos serios nuevos
@@ -82,6 +83,6 @@ el reinicio 23.
 |---|---|---|
 | ~~Reinicio 22: autor más título, anuncios de drogas, tres menores de subidas~~ | hecho, Space 62a5373, comprobado | 04:05 |
 | Reinicio 23: **recuperación dentro de la franja del lector (caso Esmeralda)**, autores clásicos, obras antes que biografías, «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras» | f4 | después del 22 |
-| Auditoría de voz de la ronda 3 | e6 | en curso |
+| Arreglos de voz de la ronda 3 (e6, b152637): una grabación en silencio aún llama a OpenAI, «...» cuenta como oída, «St.» conserva un enlace | 4e, con visto bueno de e6 | en el siguiente reinicio |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
