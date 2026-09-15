@@ -125,8 +125,8 @@ Diseño del reinicio 23 (contrato con el front):
 - Lo marcado entra en su bloque sin márgenes del front; lo no marcado sigue
   sus reglas. Ningún valor del salto del front arreglaba esto sin meter basura
   (e6 lo midió con 70 búsquedas): hacía falta la marca.
-- El rescate por título exige palabras enteras («familia» no es «familiar»);
-  el parecido de letras queda para apellidos.
+- ~~El rescate por título exige palabras enteras~~: se retiró del 25 antes de
+  subir (ver abajo).
 
 ### El vector del título y las palabras sueltas
 
@@ -142,6 +142,22 @@ marcados).
 Límites que quedan y que no se arreglan con pesos: «Monstruos» no se acerca a
 «monster» en este modelo (1 de 12 con cualquier variante), y «Historias de
 amor» trae títulos genéricos tipo «My story».
+
+### Palabras enteras frente a erratas
+
+Para que «familia» no trajera «Familiar Things», el rescate por título pasó a
+exigir palabras enteras. La auditoría previa (4e, 15 sep) midió el precio:
+«sherlok holmes» pasaba de 8 Sherlock Holmes a 0, «treasure iland» perdía
+Treasure Island y «dracul» perdía Dracula. «sherlok» ≈ «sherlock» y «familia»
+≈ «familiar» dan el mismo 0,93: **una regla de letras no distingue una errata de
+una palabra de otro idioma.** Se retiró antes de subir.
+
+La regla que se mide para el reinicio 26: el parecido de letras no vale si la
+palabra de la consulta es española y la app ya la traduce con el diccionario
+local (familia, rosa, luna); sí vale si no lo es (sherlok, iland, dracul).
+
+Añadir a la batería: sherlok holmes · treasure iland · dracul · pride and
+prejudise · moby dik · frankenstien · wuthering heigths · familia.
 
 ## 4. Márgenes y constantes
 
