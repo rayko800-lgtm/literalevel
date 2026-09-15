@@ -927,3 +927,13 @@ Reinicio 29 con commit (f4, 7e2b861): la regla i4 con `_n_propio`.
 Visto bueno de 4e a 7e2b861, el reinicio 29: ok.
 - **Qué comprobó:** «es de Gutenberg» usa la frontera `_n_propio` y no el prefijo del id, el rescate por título no activa la regla, y sin perfil no cambia nada.
 - **Tras subir:** 4e repite en el Space, contra su línea base del 28, el paso 3 con 1,20 y B1, dostoyevski, school, cervantes, dickens y las palabras de control. Compara top 10 y marcas, sin el orden de la cola.
+
+**Fallo del micrófono de Ismael, confirmado (e6, en el front publicado a 390 px).**
+- **Qué pasa:** los avisos y el estado de Pronunciar se pintan debajo de la barra fija del micrófono, así que no se ven.
+  - Sin `navigator.mediaDevices`, como en el WebView de WhatsApp en Android, el aviso «Este navegador no deja grabar audio» queda tapado. El usuario toca y no ve nada.
+  - Con el permiso negado o sin micrófono pasa lo mismo, y el texto de «sin micrófono» dice que falta el permiso, que es falso.
+  - Con el permiso concedido, «Grabando…» también queda tapado, y nunca dice «habla ahora».
+  - Sin frase, un toque no hace nada.
+- **Arreglo aprobado (e6, con visto bueno de 4e):** una línea de estado dentro de la barra fija, siempre visible, con «Acepta el permiso…», «Grabando: habla ahora · N s» y un mensaje para cada rechazo. En un WebView de Android o sin `mediaDevices`, un aviso antes de pulsar para abrir la app en Chrome. Se publica sin esperar al informe de ayuda.
+
+Reinicio 29 (f4): las 13 diferencias entre local y Space son empates entre parecidos iguales, que se ordenan distinto en cada entorno. La comprobación tras subir compara el Space 29 con el volcado del Space 28. Para el 30 queda un desempate determinista por id.
