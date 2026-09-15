@@ -57,6 +57,7 @@ if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request  # noqa: E402
+from fastapi.exceptions import RequestValidationError  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, Response  # noqa: E402
 from starlette.concurrency import run_in_threadpool  # noqa: E402
@@ -109,6 +110,16 @@ async def _error_inesperado(request: Request, exc: Exception):
     traceback.print_exc(limit=4, file=sys.stderr)
     return JSONResponse(status_code=500, content={
         "detail": "Algo ha fallado en el servidor. Vuelve a intentarlo en un momento."})
+
+
+@app.exception_handler(RequestValidationError)
+async def _validacion_sin_eco(request: Request, exc: RequestValidationError):
+    """El 422 de FastAPI devolvía en `input` lo que llegó: en /api/entrar, la
+    contraseña (ronda 2 de e6, verificado en el Space el 15 sep 2026). Solo dónde,
+    qué y de qué tipo; `ctx` tampoco, que puede llevar valores."""
+    return JSONResponse(status_code=422, content={"detail": [
+        {"loc": list(e.get("loc", ())), "msg": str(e.get("msg", "")), "type": str(e.get("type", ""))}
+        for e in exc.errors()]})
 
 
 def _llano(texto: str | None) -> str:
@@ -273,6 +284,30 @@ def _nombres_subidos(pet: _Lector) -> Path:
     return _dir_subidos(pet) / "nombres.json"
 
 
+_CANDADOS_SUBIDAS = [threading.Lock() for _ in range(64)]
+
+
+def _candado_subidas(pet: _Lector) -> threading.Lock:
+    """El de las subidas de este lector: contar el tope, escribir el libro y apuntar
+    su nombre van juntos. Con la subida en un hilo (31325a4), dos subidas del mismo
+    lector a la vez pasaban el tope y dejaban nombres.json como JSON inválido
+    (ronda 2 de e6, 15 sep 2026). 64 candados repartidos por carpeta, como los de
+    `ConsultorLexico`: memoria fija, y otro lector solo espera si le toca el mismo."""
+    h = int(hashlib.sha256(str(_dir_subidos(pet)).encode("utf-8")).hexdigest()[:8], 16)
+    return _CANDADOS_SUBIDAS[h % len(_CANDADOS_SUBIDAS)]
+
+
+def _escribir_nombres(ruta: Path, nombres: dict) -> None:
+    """nombres.json a un temporal y `os.replace`: nunca queda a medio escribir."""
+    temporal = ruta.with_name(f".{ruta.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        temporal.write_text(json.dumps(nombres, ensure_ascii=False), "utf-8")
+        os.replace(temporal, ruta)
+    except OSError:
+        with contextlib.suppress(OSError):
+            temporal.unlink()
+
+
 def _guardar_nombre_subido(pet: _Lector, ident: str, original: str) -> None:
     limpio = " ".join("".join(c for c in original if c.isprintable()).split())[:120]
     if not limpio:
@@ -285,10 +320,7 @@ def _guardar_nombre_subido(pet: _Lector, ident: str, original: str) -> None:
     except (OSError, ValueError):
         nombres = {}
     nombres[ident] = limpio
-    try:
-        ruta.write_text(json.dumps(nombres, ensure_ascii=False), "utf-8")
-    except OSError:
-        pass
+    _escribir_nombres(ruta, nombres)
 
 
 def _titulo_subido(lib: reader.Libro, ident: str, pet: _Lector) -> None:
@@ -1038,24 +1070,25 @@ def _guardar_subido(pet: _Lector, original: str, ext: str, h, trozos: list[bytes
         carpeta.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise _no(500, "No he podido guardar el libro en el servidor.") from e
-    destino = carpeta / f"{ident[1:]}{ext}"
-    if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
-        raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Borra alguno con la papelera de «Mis libros» para subir otro.")
-    if not destino.exists():
-        # Disco lleno o sin permiso: con mensaje propio, no el 500 genérico
-        # (auditoría de Codex, 7).
+    with _candado_subidas(pet):
+        destino = carpeta / f"{ident[1:]}{ext}"
+        if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
+            raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Borra alguno con la papelera de «Mis libros» para subir otro.")
+        if not destino.exists():
+            # Disco lleno o sin permiso: con mensaje propio, no el 500 genérico
+            # (auditoría de Codex, 7).
+            try:
+                destino.write_bytes(b"".join(trozos))
+            except OSError as e:
+                destino.unlink(missing_ok=True)
+                raise _no(500, "No he podido guardar el libro en el servidor.") from e
         try:
-            destino.write_bytes(b"".join(trozos))
-        except OSError as e:
+            lib = _cargar_libro(str(destino))
+        except HTTPException:
             destino.unlink(missing_ok=True)
-            raise _no(500, "No he podido guardar el libro en el servidor.") from e
-    try:
-        lib = _cargar_libro(str(destino))
-    except HTTPException:
-        destino.unlink(missing_ok=True)
-        raise
-    _guardar_nombre_subido(pet, ident, original)
-    _titulo_subido(lib, ident, pet)
+            raise
+        _guardar_nombre_subido(pet, ident, original)
+        _titulo_subido(lib, ident, pet)
     return _libro_json(ident, lib, pet)
 
 
@@ -2077,13 +2110,14 @@ def borrar_subido(libro_id: str, pet: Lector) -> dict:
         borrados += 1
     if not borrados:
         raise _no(404, "Ese libro ya no está en el servidor.")
-    try:
-        ruta = _nombres_subidos(pet)
-        nombres = json.loads(ruta.read_text("utf-8"))
-        if isinstance(nombres, dict) and nombres.pop(ident, None) is not None:
-            ruta.write_text(json.dumps(nombres, ensure_ascii=False), "utf-8")
-    except (OSError, ValueError):
-        pass
+    with _candado_subidas(pet):
+        try:
+            ruta = _nombres_subidos(pet)
+            nombres = json.loads(ruta.read_text("utf-8"))
+            if isinstance(nombres, dict) and nombres.pop(ident, None) is not None:
+                _escribir_nombres(ruta, nombres)
+        except (OSError, ValueError):
+            pass
     return {"ok": True}
 
 
@@ -2143,7 +2177,8 @@ def para_gradio() -> dict:
     cabeceras pedidas, `X-Lector` incluida.
     """
     rutas = [r for r in app.router.routes if str(getattr(r, "path", "")).startswith("/api/")]
-    return {"routes": rutas, "exception_handlers": {Exception: _error_inesperado}}
+    return {"routes": rutas, "exception_handlers": {Exception: _error_inesperado,
+                                                    RequestValidationError: _validacion_sin_eco}}
 
 
 def con_gradio(demo=None):

@@ -512,6 +512,11 @@ class CacheLexico:
         self.ruta = Path(ruta)
         self.ruta.parent.mkdir(parents=True, exist_ok=True)
         self._con = sqlite3.connect(str(self.ruta), check_same_thread=False)
+        # Una sola conexión para todos los hilos, y check_same_thread=False no
+        # serializa nada: desde 31325a4 la etapa completa de /api/palabra corre en
+        # paralelo, y Gradio la llama con 8 eventos a la vez (ronda 2 de e6, 15 sep
+        # 2026). Todo uso de la conexión después de crearla pasa por este candado.
+        self._candado = threading.Lock()
         self._con.execute(
             "CREATE TABLE IF NOT EXISTS respuestas ("
             " clave TEXT PRIMARY KEY, respuesta TEXT NOT NULL,"
@@ -529,39 +534,44 @@ class CacheLexico:
 
     def obtener_respuesta(self, *partes: str) -> dict | None:
         clave = self._clave(*partes)
-        fila = self._con.execute(
-            "SELECT respuesta FROM respuestas WHERE clave = ?", (clave,)
-        ).fetchone()
+        with self._candado:
+            fila = self._con.execute(
+                "SELECT respuesta FROM respuestas WHERE clave = ?", (clave,)
+            ).fetchone()
         return json.loads(fila[0]) if fila else None
 
     def guardar_respuesta(self, respuesta: dict, modelo: str, *partes: str) -> None:
         clave = self._clave(*partes)
-        self._con.execute(
-            "INSERT OR REPLACE INTO respuestas (clave, respuesta, modelo, creado) "
-            "VALUES (?, ?, ?, ?)",
-            (clave, json.dumps(respuesta, ensure_ascii=False), modelo, _ahora()),
-        )
-        self._con.commit()
+        with self._candado:
+            self._con.execute(
+                "INSERT OR REPLACE INTO respuestas (clave, respuesta, modelo, creado) "
+                "VALUES (?, ?, ?, ?)",
+                (clave, json.dumps(respuesta, ensure_ascii=False), modelo, _ahora()),
+            )
+            self._con.commit()
 
     def obtener_audio(self, *partes: str) -> str | None:
         clave = self._clave(*partes)
-        fila = self._con.execute(
-            "SELECT ruta FROM audios WHERE clave = ?", (clave,)
-        ).fetchone()
+        with self._candado:
+            fila = self._con.execute(
+                "SELECT ruta FROM audios WHERE clave = ?", (clave,)
+            ).fetchone()
         if fila and os.path.exists(fila[0]):
             return fila[0]
         return None
 
     def guardar_audio(self, ruta: str, *partes: str) -> None:
         clave = self._clave(*partes)
-        self._con.execute(
-            "INSERT OR REPLACE INTO audios (clave, ruta, creado) VALUES (?, ?, ?)",
-            (clave, ruta, _ahora()),
-        )
-        self._con.commit()
+        with self._candado:
+            self._con.execute(
+                "INSERT OR REPLACE INTO audios (clave, ruta, creado) VALUES (?, ?, ?)",
+                (clave, ruta, _ahora()),
+            )
+            self._con.commit()
 
     def cerrar(self) -> None:
-        self._con.close()
+        with self._candado:
+            self._con.close()
 
 
 # --- OpenAI -------------------------------------------------------------------

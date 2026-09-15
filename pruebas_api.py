@@ -965,25 +965,35 @@ def voz_subida_y_palabra_no_bloquean_a_los_demas():
     import config
     import voz
 
-    duerme = 1.5
-    tope = duerme / 2
+    # Relativo a la lenta y no un tiempo fijo: con 0,75 s fijos fallaba 1 de 52
+    # cuando corria a la vez que otras suites (Central, 15 sep 2026). Y sin dormir a
+    # ciegas: la rapida sale cuando el doble lento ya ha entrado (ronda 2 de e6), y
+    # tiene que acabar con la lenta aun viva y en menos del 60 % de lo que duerme; si
+    # esperase detras, tardaria casi `duerme` entero.
+    duerme = 2.0
+    tope = duerme * 0.6
+    dentro = threading.Event()
 
     def durante(lenta, rapida):
+        dentro.clear()
         hilo = threading.Thread(target=lenta)
         hilo.start()
-        time.sleep(0.4)
+        assert dentro.wait(30), "la peticion lenta no llego a su doble"
         t = time.time()
-        r = rapida()
+        rapida()
         dt = time.time() - t
+        viva = hilo.is_alive()
         hilo.join()
-        return r, dt
+        return viva, dt
 
     def practicar_lento(ruta, frase, guardar_fallos=True, nivel=None):
+        dentro.set()
         time.sleep(duerme)
         ev = NS(puntuacion=100, transcripcion=frase, palabras_falladas=[], palabras_objetivo=["hola"], entendidas=[])
         return NS(evaluacion=ev, transcripcion_ok=True, correccion=None, audio_correcto=None)
 
     def cargar_lento(ruta):
+        dentro.set()
         time.sleep(duerme)
         raise api._no(422, "Libro de prueba que no se abre.")
 
@@ -994,6 +1004,7 @@ def voz_subida_y_palabra_no_bloquean_a_los_demas():
         def consultar(self, *a, **k):
             llamadas.append(1)
             if len(llamadas) == 1:
+                dentro.set()
                 time.sleep(duerme)
             return real.consultar(*a, **k)
 
@@ -1012,26 +1023,139 @@ def voz_subida_y_palabra_no_bloquean_a_los_demas():
             h1, h2 = nuevo_lector(), nuevo_lector()
             cuerpo = {"palabra": "raincoat", "oracion": "Manu got a red raincoat.", "etapa": "diccionario"}
             _ok(c.post("/api/palabra", headers=h2, json=cuerpo))          # calienta spaCy y el diccionario
-            _, t_voz = durante(
+            viva_voz, t_voz = durante(
                 lambda: c.post("/api/voz", headers=h1, data={"frase": "Hola."},
                                files={"audio": ("voz.webm", b"\x1a" * 2000, "audio/webm")}),
                 lambda: _ok(c.get("/api/salud")))
-            _, t_subida = durante(
+            viva_subida, t_subida = durante(
                 lambda: c.post("/api/libros", headers=nuevo_lector(),
                                files={"archivo": ("lento.txt", b"Once upon a time. " * 200, "text/plain")}),
                 lambda: _ok(c.get("/api/salud")))
             ui.consultor = lambda: lento
             config.falta = lambda: True          # la completa no cobra: basta con que sea lenta
-            _, t_palabra = durante(
+            viva_palabra, t_palabra = durante(
                 lambda: c.post("/api/palabra", headers=h1, json={**cuerpo, "etapa": "completa"}),
                 lambda: _ok(c.post("/api/palabra", headers=h2, json=cuerpo)))
     finally:
         (voz.practicar, config.falta, ui._puede_pagar, api._va_a_costar, api._cargar_libro, ui.consultor,
          ui._dentro_del_limite) = originales
-    assert t_voz < tope, f"/api/salud tardó {t_voz:.2f} s mientras se corregía una voz"
-    assert t_subida < tope, f"/api/salud tardó {t_subida:.2f} s mientras se abría una subida"
-    assert t_palabra < tope, f"la vista previa del diccionario tardó {t_palabra:.2f} s detrás de una explicación"
-    return f"salud {t_voz:.2f} s con voz, {t_subida:.2f} s con subida; diccionario {t_palabra:.2f} s con explicación"
+    for viva, dt, que in ((viva_voz, t_voz, "/api/salud mientras se corregía una voz"),
+                          (viva_subida, t_subida, "/api/salud mientras se abría una subida"),
+                          (viva_palabra, t_palabra, "la vista previa del diccionario detrás de una explicación")):
+        assert viva and dt < tope, (f"{que}: {dt:.2f} s (tope {tope:.2f} s, el 60 % de {duerme} s) y la lenta "
+                                    f"{'seguía' if viva else 'ya había terminado'}")
+    return (f"salud {t_voz:.2f} s con voz, {t_subida:.2f} s con subida; diccionario {t_palabra:.2f} s con "
+            f"explicación; la lenta dura {duerme} s y seguía viva en los tres")
+
+
+def validacion_sin_eco_de_la_entrada():
+    """Ronda 2 de e6 (15 sep 2026, verificado en el Space): el 422 de /api/entrar
+    devolvía la contraseña en «input». Ni ahí ni en ninguna ruta, y tampoco en el
+    Space, que monta la API con `para_gradio`."""
+    from fastapi.exceptions import RequestValidationError
+    secreto = "r2-no-es-real-" + "q" * 240
+    r = cliente.post("/api/entrar", headers=nuevo_lector(), json={"usuario": "profe", "clave": secreto})
+    assert r.status_code == 422 and "no-es-real" not in r.text, r.text[:300]
+    error = r.json()["detail"][0]
+    assert set(error) == {"loc", "msg", "type"} and error["loc"][-1] == "clave", error
+    otra = cliente.post("/api/perfil/cuestionario", headers=nuevo_lector(),
+                        json={"respuestas": "NO-ES-UN-DICCIONARIO-XYZ"})
+    assert otra.status_code == 422 and "XYZ" not in otra.text, otra.text[:300]
+    manejadores = api.para_gradio()["exception_handlers"]
+    assert manejadores.get(RequestValidationError) is api._validacion_sin_eco, manejadores
+    return "422 con dónde y qué, sin la contraseña; también en el Space (para_gradio)"
+
+
+def dos_subidas_a_la_vez_no_pasan_el_tope_ni_rompen_los_nombres():
+    """Ronda 2 de e6 (15 sep 2026): con la subida en un hilo, dos subidas del mismo
+    lector a la vez daban 200 y 200 con tope 1, y nombres.json quedaba como JSON
+    inválido: el lector perdía el nombre de todos sus libros. La escritura del libro
+    va retrasada 0,8 s para ensanchar la ventana, como en su medición."""
+    import json
+    import threading
+    import time
+    from pathlib import Path as _Path
+
+    texto = ("The old lighthouse keeper climbed the stairs every evening. " * 50 + "\n\n") * 3
+    lector = nuevo_lector()
+    maximo, escribir = api._MAX_SUBIDOS, _Path.write_bytes
+
+    def escribir_lento(self, datos):
+        time.sleep(0.8)
+        return escribir(self, datos)
+
+    salida = {}
+    api._MAX_SUBIDOS = 1
+    _Path.write_bytes = escribir_lento
+    # Sin gastar el cupo de subidas por IP y hora: las pruebas de despues lo usan.
+    dentro_del_limite = ui._dentro_del_limite
+    ui._dentro_del_limite = lambda *a, **k: True
+    try:
+        with TestClient(api.app, raise_server_exceptions=False) as c:
+            barrera = threading.Barrier(2)
+
+            def subir(nombre, extra):
+                barrera.wait()
+                salida[nombre] = c.post("/api/libros", headers=lector, files={
+                    "archivo": (f"{nombre}.txt", (texto + extra).encode(), "text/plain")})
+
+            hilos = [threading.Thread(target=subir, args=("Mi primer libro", " Uno.")),
+                     threading.Thread(target=subir, args=("Mi segundo libro", " Dos."))]
+            for h in hilos:
+                h.start()
+            for h in hilos:
+                h.join()
+            _Path.write_bytes = escribir
+            estados = sorted(r.status_code for r in salida.values())
+            buenas = {n: r.json() for n, r in salida.items() if r.status_code == 200}
+            reabiertos = {n: _ok(c.get(f"/api/libros/{j['id']}", headers=lector)) for n, j in buenas.items()}
+            tercero = c.post("/api/libros", headers=lector, files={
+                "archivo": ("Mi tercer libro.txt", (texto + " Tres.").encode(), "text/plain")})
+    finally:
+        api._MAX_SUBIDOS = maximo
+        _Path.write_bytes = escribir
+        ui._dentro_del_limite = dentro_del_limite
+    assert estados == [200, 429], f"con tope 1, dos subidas a la vez: {estados}"
+    assert tercero.status_code == 429, f"quedó más de un libro en disco: {tercero.status_code}"
+    for nombre, libro in reabiertos.items():
+        assert nombre in json.dumps(libro, ensure_ascii=False), f"el libro perdió su nombre: {nombre}"
+    return f"{estados}, un solo libro en disco y con su nombre ({next(iter(reabiertos))})"
+
+
+def cache_lexica_serializa_la_conexion_entre_hilos():
+    """Ronda 2 de e6 (DUDA): la caché léxica usa una sola conexión SQLite con
+    check_same_thread=False, y desde 31325a4 la etapa completa corre en paralelo.
+    Cada uso de la conexión va con el candado de la caché."""
+    import tempfile
+    import lexicon
+
+    with tempfile.TemporaryDirectory(prefix="ll_cache_") as d:
+        cache = lexicon.CacheLexico(os.path.join(d, "cache.db"))
+        real = cache._con
+        sin_candado = []
+
+        class Vigilada:
+            def execute(self, *a, **k):
+                if not cache._candado.locked():
+                    sin_candado.append(str(a[0]).split()[0])
+                return real.execute(*a, **k)
+
+            def commit(self):
+                if not cache._candado.locked():
+                    sin_candado.append("COMMIT")
+                return real.commit()
+
+        cache._con = Vigilada()
+        cache.guardar_respuesta({"a": 1}, "m", "x")
+        assert cache.obtener_respuesta("x") == {"a": 1}
+        audio = os.path.join(d, "a.mp3")
+        open(audio, "wb").close()
+        cache.guardar_audio(audio, "y")
+        assert cache.obtener_audio("y") == audio
+        cache._con = real
+        cache.cerrar()
+    assert not sin_candado, f"usos de la conexión sin candado: {sin_candado}"
+    return "guardar y obtener, de texto y de audio, siempre con el candado"
 
 
 def corte_de_la_boca_en_svg():
@@ -1404,6 +1528,8 @@ if __name__ == "__main__":
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
                aviso_de_contenido_en_ficha_y_tarjeta, medido_en_bloque_en_ficha_y_tarjeta,
                voz_subida_y_palabra_no_bloquean_a_los_demas,
+               validacion_sin_eco_de_la_entrada, dos_subidas_a_la_vez_no_pasan_el_tope_ni_rompen_los_nombres,
+               cache_lexica_serializa_la_conexion_entre_hilos,
                devolucion_va_a_la_cuenta_cobrada,
                sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
                historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion,
