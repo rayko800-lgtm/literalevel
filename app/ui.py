@@ -3634,9 +3634,10 @@ def _palabras_html(ev, transcripcion_ok: bool) -> str:
     if not ev.palabras_objetivo:
         return ""
     if not transcripcion_ok:
+        # Sin clave no se llega aqui (`_practicar_voz` avisa antes): lo normal es una
+        # grabacion en silencio o lo que whisper inventa sin voz (reinicio 24, 0a759a5).
         return (_CSS_VOZ + '<div id="ll-voz"><span class="leyenda">'
-                'No se pudo transcribir tu audio, así que no puedo marcarte '
-                'las palabras.</span></div>')
+                'No te oí. Acércate al micrófono y vuelve a grabar.</span></div>')
     fallo = set(ev.palabras_falladas)
     trozos = [
         f'<span class="ll-w {"mal" if w in fallo else "ok"}">{_html.escape(w)}</span>'
@@ -3804,9 +3805,15 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         # de pago. Devolviendo el uso, un perfil de tope 3 podia gastar sin
         # limite mandando audio que whisper no pudiera transcribir.
         #
-        # Whisper no se factura, pero las otras dos si. Se cobra.
-        L.append("[!] No se pudo transcribir (sin `OPENAI_API_KEY` o sin red). "
-                 "La puntuación de arriba no es válida.")
+        # Whisper no se factura, pero las otras dos si. Se cobra. (Desde 0a759a5, sin
+        # voz ya no se llama a `explicar_correccion`; `generar_audio_correcto` si, y
+        # cachea por contenido.)
+        #
+        # Y el aviso es el de la grabacion sin voz: sin `OPENAI_API_KEY` se sale arriba
+        # con su propio aviso, asi que aqui la causa es silencio, ruido o un fallo de red
+        # que `voz.practicar` no distingue (reinicio 26).
+        L = [L[0].replace(f"{ev.puntuacion:.0f} / 100", "— / 100")]
+        L.append("[!] No te oí. Acércate al micrófono y vuelve a grabar.")
     elif not ev.palabras_falladas:
         L.append("Ni una palabra fallada. Sube el listón con una frase más larga.")
 

@@ -359,8 +359,9 @@ def _marca_bien_y_mal():
 
 
 prueba("marca bien y mal", _marca_bien_y_mal)
-prueba("sin transcripcion no inventa marcas",
-       lambda: "no puedo marcarte" in ui._palabras_html(_ev, False))
+prueba("sin transcripcion no inventa marcas y dice que no oyo",
+       lambda: ("No te oí" in (h := ui._palabras_html(_ev, False)) and 'class="ll-w' not in h
+                and "no inventa marcas y dice «No te oí»"))
 prueba("frase vacia",
        lambda: repr(ui._palabras_html(ui.voz.evaluar_pronunciacion("", ""), True)))
 # Esperaba encontrar "&lt;" y llevaba tiempo devolviendo False, o sea
