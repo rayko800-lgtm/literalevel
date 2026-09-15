@@ -123,3 +123,62 @@
 - **`PCFShadowMap`** en lugar de `PCFSoftShadowMap`: sin aviso de three en consola con el 3D abierto. [V]
 - **La leyenda** solo explica lo que se pinta (`hayEnfasis`, `hayEnlaces`). [L] y [V prueba]
 - **Pruebas:** `ng test` da 62 de 62. [V]
+
+---
+
+## Anexo: el reinicio 19 como persona (e6, 15 sep 2026)
+
+**Qué hay publicado:**
+- API en el Space `053a486`, en estado RUNNING.
+- Front `548ff40` (`main-D7PFOIU7.js`, con la meta apuntando a la API).
+
+**Método:**
+- Chrome en contexto aislado, 390×844, `mobile` y `touch`.
+- Perfil B1 **desde el cuestionario del front** (0,80 · B1).
+- Búsquedas escritas en el formulario, como una persona.
+- Cotejo con `/api/buscar` (n = 24, nivel 0,8) aplicando la regla de `bloquesBusqueda`: los recuentos cuadran con lo que se pinta en las cuatro búsquedas.
+- `scrollWidth` = 390 en todas.
+- Pestañas cerradas.
+
+| Búsqueda | «En tu nivel» | «Un poco por encima» | «De otros niveles» | «Menos parecidos» | Falsos positivos por nombre |
+|---|---|---|---|---|---|
+| «amor» | 0 | 0 | 13, todos de amor (C1–C2) | 11, todos de amor | **Ninguno** en los 24: ni «Fenn, Amor» ni «MY FUTURE» [V] |
+| «Jane Austen» | 0 | 0 | 8: adaptaciones y libros **sobre** ella | 16, entre ellos **sus novelas** (Emma, Persuasion, Pride and Prejudice, Mansfield Park…) | **Ni rastro de Jane G. Austin.** Se cuelan en «Menos parecidos» *The Frightened Planet* (Sidney Austen) y *Life and Adventures of Calamity Jane* [V] |
+| «historias de la luna» | 0 | 0 | 5 tratados y relatos C1–C2 | 19, con **cinco cuentos libres de su nivel** | Ninguno [V] |
+| «libros sobre detectives» | 0 | 0 | 9, con dos manuales en cabeza | 15 novelas de detectives | Ninguno: los manuales entran por tema, no por nombre [V] |
+
+En las cuatro sale el aviso «De «…» no hay libros en tu nivel ni un poco por encima entre los resultados. Estos son los de otros niveles.» y no sale botón.
+
+### [SERIO] Lo que sí es del nivel de la lectora queda escondido en «Menos parecidos», y lo arriba es C1 [V]
+
+- **Dónde:** `front/src/app/compartido/bloques-busqueda.ts` (mío), en el margen fijo de 0,05 bajo el mejor parecido.
+- **Qué dice:** `if (l.similitud < techo - MARGEN_RELEVANCIA - HOLGURA) { b.menosParecidos.push(l); continue; }`
+- **Por qué:**
+  - **«historias de la luna».** El techo es *The Moon: A Popular Treatise* (0,802), así que todo lo que queda por debajo de 0,751 es «menos parecido». Ahí caen, sin etiqueta de encaje y detrás de 14 libros C1–C2:
+    - *Aditi's Trip To Moon* (A2 · 0,46, similitud 0,738);
+    - *Journey To The Moon* (B1 · 0,78, 0,731);
+    - *CHANDU AND THE MOON* (0,62, 0,723);
+    - *moon and hockey* (0,70, 0,704);
+    - *THE MOON AND THE SUN* (0,96, 0,715).
+
+    Son justo lo que una lectora B1 busca con esa frase.
+  - **«Jane Austen».** Sus novelas (0,793) quedan bajo los libros cuyo título lleva su nombre (0,857), porque el nombre en el título sube la similitud. La primera tarjeta es la adaptación teatral de MacKaye.
+  - El arreglo del 19 funciona: ya no hay falsos positivos por nombre. Pero la pantalla sigue prometiendo «Primero lo de tu nivel y un poco por encima», y en estas cuatro búsquedas no lo cumple.
+  - El margen de 0,05 lo copié de `catalogo.MARGEN_RELEVANCIA`. El motor lo usa para ordenar, no para esconder.
+- **Arreglo, a decidir con la Central:** no mandar a «Menos parecidos» lo que cae en la franja del lector. Por ejemplo, un margen más ancho solo para los de su nivel, o un tercer bloque «De tu nivel, algo menos parecidos» encima de «De otros niveles». O que la API marque la relevancia en vez de deducirla en el front.
+
+### [NOTA] «amor» ya es honesto, pero para B1 no hay nada
+
+Los 24 resultados son de amor, y ninguno está entre 0,35 y 1,25. Es el hueco de composición del catálogo que ya cuenta la limitación 13 del documento, no un fallo de la búsqueda.
+
+### La boca 3D tras la auditoría de 4e (`5fb4d3a`), publicada en `548ff40`
+
+| Punto | Commit | Estado | Evidencia |
+|---|---|---|---|
+| Fuga al cerrar (SERIO) | `d911cc2` y `b3ed0d7` | **cerrado** | Build de producción en local, 20 aperturas y cierres de /θ/: montón tras recoger **18,1 MB** (4e midió 48,7 MB con 10); **2 contextos creados, 1 vivo y 0 perdidos**, y los 20 en 3D con la cara de Blender. En el Space, 6 ciclos: 2 contextos creados, 1 vivo, 0 perdidos, todos en 3D. Causa extra: un renderer por apertura quedaba retenido por una textura de módulo de three, así que ahora se reutiliza uno. [V] |
+| Audio tras cerrar | `bffc69d` | **cerrado** | En el Space, a 0,5×, «Escuchar y ver» y «Cerrar 3D» en el mismo turno: **ningún `play` ni `start`** en los 3 s siguientes y el visor desmontado. [V] |
+| Teclado, icono de giro y `aria-pressed` | `2bbf9ec` | **cerrado** | Lienzo con `tabindex="0"`, `aria-keyshortcuts="ArrowLeft ArrowRight"` y la instrucción en su etiqueta; cuatro flechas pasan de perfil a frente (capturas). «Giro libre» con icono de giro; «reposo» con `aria-pressed`. [V] |
+| Pérdida de contexto | `6fa33c0` | **cerrado** | Con `WEBGL_lose_context` cae al SVG de la API, sin canvas ni botones 3D; al cerrar y reabrir crea otro renderer y vuelve a pintar en 3D. [V] |
+| README al día | `5cec3ae` | **cerrado** | Comisuras, `PCFShadowMap` con `shadow.radius`, pesos reales (three 736.521 bytes, `cara.glb` 1.902.952, `lengua.glb` 769.224) y cómo se libera el visor. [V] |
+| `.glb` sin compresión y comprobación por geometría | — | **abierto** | No lo toqué. |
+| Pruebas | — | **65 de 65** | `destruir.spec.ts` y `sonador.spec.ts` nuevas. [V] |
