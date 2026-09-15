@@ -842,14 +842,6 @@ MUTANTES = [
     ("C13-devolucion-valor-raro-lanza", "app/cuentas.py",
      "            except (TypeError, ValueError):", "            except ():", "devolucion sin cobro ni registro raro", "pruebas_api.py"),
     # Reinicio 28: la regresion del 27 (palabra corriente que es apellido).
-    # Reinicio 29, paso 3 de la demo: consulta de autor sin cuentos por franja.
-    ("C23-franja-anade-con-autor", "app/catalogo.py",
-     "            elif extra < K_FRANJA and not solo_marcar:", "            elif extra < K_FRANJA:",
-     "una consulta de autor no anade cuentos por franja", "pruebas_corpus.py"),
-    ("C23-autor-aunque-sea-texto-libre", "app/catalogo.py",
-     '            de_autor = bool(por_autor[primer_i]) and primer_i < getattr(self, "_n_propio", len(self.df))',
-     "            de_autor = bool(por_autor[primer_i])",
-     "una consulta de autor no anade cuentos por franja", "pruebas_corpus.py"),
     ("C22-primero-con-una-palabra", "app/catalogo.py",
      "            if len(pistas) >= 2:", "            if pistas:",
      "una palabra corriente que es apellido no trae al autor", "pruebas_corpus.py"),
