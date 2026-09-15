@@ -419,3 +419,9 @@ Reinicio 23, solo voz (f4, --commit 86e6e1d): subiendo tras el árbol limpio.
 - **Qué sube:** solo app/voz.py y app/lexicon.py, según el primer --seco.
 - **Prueba en el Space:** la central autorizó una prueba de pago corta con invitado8, que Miguel habilitó para pruebas. Son dos llamadas a /api/voz: silencio, que no debe dar corrección ni guardar nada, y «Baker St. It was late.», que no debe tener enlace st‿it.
 - **Contraseña:** leída del archivo local y nunca escrita.
+
+Muletillas de whisper con casi silencio (4e, 0a759a5, para el reinicio 25):
+- **Regla de whisper:** no caza ningún invento, porque salen con avg_logprob alto.
+- **Regla nueva, fijada antes de validar:** no hay voz si todos los segmentos traen no_speech_prob > 0,6.
+- **Validación con whisper-1:** 30 de 30 frases reales oídas (la más alta, 0,503) y 4 de 4 audios sin voz detectados (de 0,866 a 0,943). La voz era TTS, no micrófono.
+- **Riesgo:** con el micrófono real y voz baja, el margen de 0,1 puede quedarse corto. Miguel lo comprueba en el ensayo con un punto 7 en «Antes de la demo», que añade 4e. e6 da el visto bueno buscando vías que dejen sin voz una grabación real.
