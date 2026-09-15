@@ -659,3 +659,13 @@ Pasada de documentos de 4e (2a44731), sobre el front 83520e2 y el reinicio 25:
 - **La frase del amor** reescrita en documento y estrategia: no faltaba catálogo, fallaba la búsqueda. 114 cuentos libres frente a 4 de Gutenberg.
 - **Barrido:** ya no quedan «Me vale así», «Más lento» ni «hueco de composición». PDF recompilados.
 - **Pendiente:** cambiar el 18,6 s por la cifra de la precarga, y volver a medir el paso 2 («cuentos de dragones») con la franja.
+
+**Reinicio 26 en producción y comprobado (f4):** Space 5c6f8d9, subido desde 49a8e4d. Árbol limpio con voz, api 62/62, extremas 350 y corpus 42/42.
+- **Precarga:** el catálogo carga en 4,6 s y el modelo con los títulos en 24,8 s. Una búsqueda con nivel lanzada a los 5 s de RUNNING esperó 22,1 s y respondió bien; las siguientes tardan de 0,7 a 0,9 s. La memoria del proceso es de 2.562 MB.
+  - **Matiz:** `catalogo: true` en /api/salud no significa que el buscador esté listo. En el 27 se añade `buscador_listo`.
+- **Pruebas de pago con invitado8:**
+  - /api/voz con silencio: sin corrección, `uso_devuelto` true y restantes en 17.
+  - Gradio con el mismo silencio: «No te oí» y los usos siguen en 17.
+  - Los usos quedan 17 → 17.
+- **Registro:** «voz sin_voz» con no_speech_prob 0,943, la hora y el origen (api y gradio), sin texto.
+- **Mutantes:** C12 5/5 y C13 5/5. C14 de e6 da 2 de 3, por un hueco en su prueba, que e6 está arreglando.

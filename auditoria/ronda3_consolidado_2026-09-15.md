@@ -17,7 +17,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
-| Motor (Space de Gradio) | reinicio 25, 4ba66f9 (autor más título arreglado, anuncios de drogas fuera, silencio sin coste) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
+| Motor (Space de Gradio) | reinicio 26, 5c6f8d9 (autor más título arreglado, anuncios de drogas fuera, silencio sin coste y con el uso devuelto, buscador precargado al arrancar) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | 83520e2 | Tu nivel y Pronunciar nuevos (propuestas A elegidas por Miguel); boca 3D sin fuga y con una sola descarga; «Primero lo de tu nivel» con la franja; chips con amor y fantasmas; aviso «No te oí» |
 | Documentos y guiones | 2a44731 | coste de cómputo real; la frase del caso Esmeralda reescrita (no faltaba catálogo, fallaba la búsqueda: 114 cuentos libres de amor en B1); receta del perfil B2 sin «Me vale así» (en la sexta no elegir «Capto bien la idea»); textos de las pantallas A; «Antes de la demo» con voz baja desde el móvil y calentar el buscador |
 
@@ -110,8 +110,8 @@ dar el permiso en una sesión.
   principales · fragmento difícil «Entiendo algunas partes, pero necesitaría el
   diccionario». En la sexta, **no** «Capto bien la idea» (sube a C1). Se guarda
   sola al contestar la sexta.
-- **Antes de compartir pantalla:** una búsqueda con el perfil guardado (hasta
-  que suba la precarga del 26, la primera tarda unos 18 s), abrir una vez la
+- **Antes de compartir pantalla:** una búsqueda con el perfil guardado (si el Space acaba de
+  reiniciarse, esperar medio minuto; después cada búsqueda tarda menos de 1 s), abrir una vez la
   boca 3D, y grabar una frase en voz baja desde el móvil para ver que no sale
   «No te oí».
 - **La contraseña de «profesor» se cambió** a las 05:40; la nueva está solo en
