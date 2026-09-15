@@ -71,8 +71,20 @@ no interpola: salta a la pose (en la palabra, a la vocal acentuada).
 2. **Ficha de cada sonido** (la tabla del AFI, `elegido()`): el mismo botón bajo
    el corte 2D, con `s.simbolo` y el acento elegido.
 
-Con `@defer` el chunk de three (unos 600 kB minificados) queda fuera del
-paquete inicial y del presupuesto de `angular.json`.
+Con `@defer` el chunk de three (736.521 bytes minificados en el build del
+15 sep; 4e midió 718 KB en el navegador) queda fuera del paquete inicial y del
+presupuesto de `angular.json`. Al pulsar «Boca en 3D» bajan además
+`boca3d/cara.glb` (1.902.952 bytes) y `boca3d/lengua.glb` (769.224 bytes), sin
+compresión de mallas: unos 3,4 MB la primera vez.
+
+**Al cerrar el visor** (`EscenaBoca.destruir`): se quita el `keydown` de
+OrbitControls de la raíz donde se colgó (con el visor ya fuera del documento,
+`dispose` lo buscaba en otro nodo y el `document` retenía la escena entera), se
+sueltan geometrías, materiales con sus mapas, entorno y sombra, y el renderer
+**se reutiliza** en la siguiente apertura: uno nuevo por apertura dejaba un
+contexto WebGL retenido por una textura de módulo de three. Solo si hay otro
+visor abierto a la vez se crea uno propio, que se suelta con `forceContextLoss`.
+`hayWebGL()` prueba una vez por página y suelta su contexto de prueba.
 
 ## El contrato de poses (lo que la API puede servir)
 
@@ -184,11 +196,13 @@ si un archivo falta o no contiene las piezas esperadas.
   visor por pesos (`pielQueSigueLaMandibula`: barbilla y bajo el maxilar
   siguen el giro; línea de la boca, garganta y nuca se quedan).
   Guarda además `build/boca3d_modelos/cara.blend` para inspección en Blender.
-  Los labios no tienen un rig facial completo (las comisuras no suben ni bajan).
+  Los labios no tienen un rig facial completo, pero desde `f1b4d0a` las comisuras
+  suben y bajan con las shape keys `comisura_arriba` y `comisura_abajo`, que
+  `comprobar_modelos` exige.
 - Materiales en el visor (`materialDe`): uno físico por tejido, sin texturas
   descargadas: piel y mucosa con velo de subsuperficie (sheen) y barniz húmedo,
   dientes marfil con velo cálido, lengua con papilas de relieve procedimentales
-  (canvas). Luz de tres puntos con sombras suaves (PCFSoft 1024, la guarda baja a 512), tono ACES y
+  (canvas). Luz de tres puntos con sombras suaves (`PCFShadowMap` con `shadow.radius` 6 y mapa de 1024, que la guarda baja a 512; `PCFSoftShadowMap` ya no existe en three 0.186), tono ACES y
   fondo neutro con viñeta en el propio lienzo. `tools/boca3d_demo/capturar.mjs`
   saca las cinco vistas de cada paso a 390 px.
 - Las piezas se cargan en sus grupos: labio inferior y suelo siguen la mandíbula.
