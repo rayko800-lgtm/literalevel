@@ -487,3 +487,11 @@ Reinicio 25 con commit (f4, cb39b91): búsqueda por franja con la variante E.
   - En el 26, la API no genera audio_correcto sin voz (4e), y 4e comprueba si analizar_natural llama a OpenAI con silencio.
   - El front solo muestra esos botones si llega el audio, y esconde el aviso de énfasis y enlaces sin voz (e6).
   - Gradio aab69be también va al 26.
+
+Visto bueno de e6 a api.py del reinicio 25 (cb39b91): ok, pruebas_api 59/59.
+- **franja:** redondeada, con ±0,45 exacto, y null sin nivel.
+- **por_franja:** presente en todas las tarjetas.
+- **Matiz del contrato:** los resultados generales que ya cumplen las condiciones de franja se marcan en su sitio, y los nuevos van detrás, hasta 12. El orden general no cambia.
+- **Gradio:** no pide franja.
+- **Sin el .npy:** no se marca nada.
+- **Pendiente:** el visto bueno de 4e a catalogo.py.
