@@ -57,3 +57,41 @@ por encima de tu nivel»). La decisión es de Miguel.
 - e6 lo reprodujo en el Space: `auditoria/diagnostico_encontrar_amor_b1_2026-09-14.md`. Además del hueco, dos fallos: con «Ordenar por mi nivel» el nivel pesaba más que el tema, y textos sin contenido («edws», «bumbumyj,jc», un cuento en coreano titulado «Love story») se colaban arriba.
 - f4 los arregló en el reinicio 16 (Space `484b83b`): el nivel ordena solo dentro de lo relevante, un título acertado va siempre delante, y 163 textos libres que no son lectura en inglés quedan fuera del buscador y de recomendar (`no_lectura_externo.csv`).
 - Miguel aprobó la pantalla nueva de Encontrar: dos bloques «En tu nivel» y «Un poco por encima de tu nivel», sin «A tu medida» para lo que no es lo pedido, y un botón «Ver también los de otros niveles». La hace e6.
+
+## Esmeralda, segunda prueba (nota de voz del 15 sep, madrugada)
+
+Probó la última versión publicada (front con portadas, paletas y la pantalla
+de Encontrar en dos bloques; motor del reinicio 22-24). La nota de voz dura
+2 min 43 s. Se transcribió con whisper-1 para leerla; el audio no se guarda en
+el repositorio.
+
+**Lo que le gustó:**
+
+- Las opciones de colores («wow, me encantó eso») y las portadas «tipo portadas
+  de los libros, con un encuadre».
+- Los ajustes de lectura.
+- La organización: «en ciertos aspectos ya es fácil de entender».
+- Poder subir su propio libro.
+- El cambio frente a la primera vez: «ya es más fácil de usar y aparte ya lo
+  disfrutas más… ya no siento que estoy trabajando… me hacía pensar que estaba
+  haciendo un trabajo de informática… es totalmente otra cosa».
+
+**Lo que no:**
+
+1. **Variedad en su nivel:** «no haya tanta variedad… al elegir un libro de mi
+   nivel». Es el fallo de búsqueda medido esta noche (los cuentos de su nivel
+   están en el catálogo y la búsqueda no los sacaba). Lo arregla el reinicio 25.
+2. **Las preguntas de Tu nivel:** «no me convencieron… eran como tres, cuatro
+   preguntas al principio, después se decía definir, o con otras preguntas…
+   esa opción no debería estar, porque debería definirlo de una».
+3. **Pronunciar:** «me perdí en la corrección de la pronunciación… me gustó
+   muchísimo, pero… a lo mejor yo soy muy tonta o no entendí cómo usarlo… en
+   lo de que tienes que ir como que más lento, en eso me perdí un poquito».
+
+«A lo mejor yo soy muy tonta» vuelve a aparecer, como en la primera prueba: se
+trata como fallo de diseño, no de la usuaria.
+
+**Qué se hace:** e6 recorre Tu nivel y Pronunciar a 390 px como alguien que
+llega sin saber nada y propone una o dos versiones de cada pantalla con
+esquema (`auditoria/esmeralda_ux_2026-09-15.md`). Miguel elige antes de
+programar. La variedad va con el reinicio 25.
