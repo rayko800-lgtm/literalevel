@@ -727,6 +727,19 @@ def _cuanto_falta(minutos: int, idioma: str = "es") -> str:
     return "en 1 minuto" if m == 1 else f"en unos {m} minutos"
 
 
+def _reloj_llano(minutos: int) -> str:
+    """`ficha.reloj` con «1 minuto» en singular (ficha.py es de f4 y dice «1 minutos»)."""
+    t = ficha.reloj(minutos)
+    return "1 minuto" if t == "1 minutos" else t
+
+
+def _rango_de_tiempo(comodo: int, exigente: int) -> str:
+    """«entre 12 minutos y 18 minutos», o uno solo si los dos se dicen igual:
+    un cuento corto daba «entre 1 minuto y 1 minuto» (Central, 15 sep)."""
+    a, b = _reloj_llano(comodo), _reloj_llano(exigente)
+    return a if a == b else f"entre {a} y {b}"
+
+
 def _mensaje_limite(idioma: str, minutos: int) -> str:
     if idioma == "en":
         return (f"You have reached this hour's limit of paid lookups. "
@@ -2520,8 +2533,7 @@ def _ficha_libro(libro, p=None) -> str:
     # Sin nivel del lector no se puede decir si el libro le queda cuesta
     # arriba, asi que se dan las dos velocidades en vez de elegir una al azar.
     if p is None:
-        tiempo = (f"entre {ficha.reloj(c.minutos(False))} y "
-                  f"{ficha.reloj(c.minutos(True))} de lectura")
+        tiempo = f"{_rango_de_tiempo(c.minutos(False), c.minutos(True))} de lectura"
     else:
         guardado = _analisis_guardado(libro)
         nivel_libro = (ficha.dificultad_global(guardado["filas"])
@@ -2534,16 +2546,15 @@ def _ficha_libro(libro, p=None) -> str:
             # a tu ritmo" antes de calcular la curva y "30 h 52 min (va por
             # encima de tu nivel)" despues. Doce horas de diferencia, y la
             # primera cifra afirmaba algo que la aplicacion no sabia todavia.
-            tiempo = (f"entre {ficha.reloj(c.minutos(False))} y "
-                      f"{ficha.reloj(c.minutos(True))} de lectura, según lo "
-                      f"que te cueste")
+            tiempo = (f"{_rango_de_tiempo(c.minutos(False), c.minutos(True))} de lectura, "
+                      f"según lo que te cueste")
         else:
             # `perfil.RETO` y no un 0.15 a mano: es el mismo margen con el que
             # `_capitulos_sugeridos` decide que un capitulo SI esta a tu
             # alcance. Con dos numeros, la ficha podria decir "va por encima"
             # y a la vez no sugerir nada, o al reves.
             exigente = nivel_libro > p.nivel + perfil_mod.RETO
-            tiempo = ficha.reloj(c.minutos(exigente))
+            tiempo = _reloj_llano(c.minutos(exigente))
             tiempo += (" (va por encima de tu nivel)" if exigente
                        else " a tu ritmo de lectura")
     lineas = [

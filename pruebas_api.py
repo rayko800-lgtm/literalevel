@@ -1231,6 +1231,12 @@ def plurales_de_los_minutos():
     """Prueba de f4 (1): «1 minutos». Uno en singular y sin «unos»; varios, «unos N»."""
     assert ui._cuanto_falta(1) == "en 1 minuto" and ui._cuanto_falta(0) == "en 1 minuto"
     assert ui._cuanto_falta(12) == "en unos 12 minutos"
+    # El tiempo de la ficha: un rango con los dos extremos iguales se dice una vez (Central, 15 sep).
+    assert ui._rango_de_tiempo(1, 1) == "1 minuto", ui._rango_de_tiempo(1, 1)
+    assert ui._rango_de_tiempo(12, 12) == "12 minutos"
+    assert ui._rango_de_tiempo(1, 2) == "entre 1 minuto y 2 minutos"
+    assert ui._rango_de_tiempo(40, 95) == "entre 40 minutos y 1 h 35 min"
+    assert ui._reloj_llano(1) == "1 minuto" and ui._reloj_llano(21) == "21 minutos"
     assert ui._cuanto_falta(1, "en") == "in 1 minute" and ui._cuanto_falta(5, "en") == "in about 5 minutes"
     assert "en 1 minuto." in ui._mensaje_limite("es", 1) and "1 minutos" not in ui._mensaje_limite("es", 1)
     originales = (ui._dentro_del_limite, ui._minutos_para_la_siguiente, ui._descargar_gutenberg)

@@ -687,9 +687,8 @@ def _libro_json(ident: str, libro: reader.Libro, pet: _Lector) -> dict:
             "forma_del_dialogo": c.forma_del_dialogo, "riqueza": c.riqueza,
             "distintivas": c.distintivas[:10],
             "minutos_comodo": c.minutos(False), "minutos_exigente": c.minutos(True),
-            "tiempo": (ficha.reloj(c.minutos(exigente)) if exigente is not None
-                       else f"entre {ficha.reloj(c.minutos(False))} y "
-                            f"{ficha.reloj(c.minutos(True))}"),
+            "tiempo": (ui._reloj_llano(c.minutos(exigente)) if exigente is not None
+                       else ui._rango_de_tiempo(c.minutos(False), c.minutos(True))),
             "exigente": exigente,
         },
         "sugeridos": _sugeridos(libro, p, filas),
