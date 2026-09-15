@@ -1129,3 +1129,12 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - Paso 3: con posiciones fechadas (ensayo del 15 sep sobre el 28).
 - Revisión encargada a e6.
 - MENOR para e6: el aria-label de la figura de Inicio aún dice «tocar… ahí». Se corrige con visto bueno de 4e y se publica tras el banco de f4.
+
+**f4, 30b:**
+- Banco C24 del parche por fila: 2 de 2 cazados. Corpus 47/47.
+- Medida de las 545 listas con la clave de nivel en la franja: en marcha.
+- Criterio de paro:
+  - PG2554 primero fuera de la franja en «Crimen y castigo de Dostoyevski» con 1,20;
+  - «granja» y «dragones» con 1,20, iguales o solo empates.
+- Si cuadra: clave en app/catalogo.py, con prueba y mutante C24-franja-empate-sin-cercania; después, corpus y banco.
+- e6 queda avisado de que puede publicar el aria-label antes de ese banco.
