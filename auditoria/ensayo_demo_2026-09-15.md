@@ -81,3 +81,32 @@ Palabras entre comillas en los «Dice:» de la demo, a 150 y a 130 palabras por 
    - cuánto tarda.
 5. **Paso 7:** que la palabra mal pronunciada aparezca en «Mis palabras».
 6. **El cronómetro:** la demo entera, contra los 3–5 minutos. Las ventanas de los pasos 4, 5 y 6 son las que no se han podido medir.
+
+## Anexo: los guiones corregidos por 4e en a978155
+
+- **Sobre qué:** el front publicado `ec957d0` (repositorio `4e6276e`) y la API del Space `384a206` (reinicio 21).
+- **Cómo:** a 390 px táctil, sin cuenta, en contextos aislados limpios.
+- **Qué se probó:** solo lo que cambió; al acabar, pestañas cerradas.
+
+| Lo que cambió | ¿Coincide? | Lo visto |
+|---|---|---|
+| **Receta del perfil 1,20** | Sí | «Varias veces por semana» → «Me vale así (1,20 · B2), guardar» → «Lees en inglés a nivel B2», «1,20 de 2», franja «0,95 y 1,45». |
+| **Botones de «Afinar»** | Sí | «Afinar con un texto» y «Con un libro que ya leíste». |
+| **Paso 2, «cuentos de dragones»** | Sí | 1,5 s. «En tu nivel» trae 14 tarjetas: 13 cuentos libres y *My Father's Dragon* (Gutenberg, B1 · 0,95). La primera, *The Dragon Hunter*, es libre y se ve sin deslizar (empieza a 573 px de 844). «Un poco por encima» trae 1. |
+| **Los guiones y los chips** | Sí | Ningún guion nombra un chip; «cuentos de dragones» se escribe a mano. |
+| ***poverty* por el Índice** | Sí, con un matiz | En la ficha, «Índice · 40 capítulos» queda a 2.135 px, unas 2,5 pantallas por debajo de «Empezar a leer», detrás de la curva y de «Cómo es de leer». La entrada se llama «1 · Antes del primer capítulo · 5 min». Abre en 0,5 s, y *poverty* está en «In 1864 he lost his first wife… He was in terrible poverty». El lector también tiene «Índice» arriba (lo vi, no lo probé). |
+| **«cap. 1» en Mis palabras** | Sí | El Índice y el lector («CAPÍTULO 1 DE 40») también numeran el prefacio como 1. La etiqueta es coherente con la app, y el aviso de no leerla en voz alta sigue valiendo. |
+| **Boca 3D abierta una vez** | El consejo vale; la cifra ya no | El guion dice 4,4 s. Desde `88b3a83`, a 390 y con la caché vacía: lienzo en 0,7 s y cara en 2,1 s la primera vez, 0,5–0,6 s después, y 2 bajadas de .glb. |
+
+**«Antes de grabar, con cuenta y micrófono»** se entiende: seis puntos, y cada uno dice el paso, qué mirar y qué medir. Tres cosas ayudarían a Miguel:
+
+1. **El título.** Está en el guion de la demo en vivo. «Antes de la demo…» evita confundirlo con la grabación del plan B.
+2. **Entrar y los fallos.** No dice dónde se entra (*Ajustes → Tu perfil*, como pone el guion del vídeo) ni qué hacer si un punto falla (remitir al plan B).
+3. **El punto 1.** Conviene recordar el camino de *poverty*: «Índice → Antes del primer capítulo».
+
+**Restos en el guion del vídeo:**
+
+- **`guion_video.md:150-158`** dice aún «Los 40 milisegundos que dices a cámara», pero el texto ya dice «al instante» (línea 275). En la misma nota, «la primera consulta léxica de la sesión tarda unos 55 segundos» (11 sep) no cuadra con los 3,8 s medidos hoy.
+- **`guion_video.md:73`** cita `b76ca59`, que es el commit del Space del front, no del repositorio (`88b3a83`). Lo publicado ahora es `ec957d0` / `4e6276e`, con la misma boca.
+
+**Fuera de los guiones** (no se pidió): `documento.md:1305`, `estrategia.md:445` y `documento.tex:1009` siguen con «front `45d9999`».
