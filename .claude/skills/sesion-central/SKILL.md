@@ -301,9 +301,9 @@ hizo bien en no esquivar la guarda. Opciones y cuál elegir:
   solo si esa mezcla pasó por un árbol limpio. Aquí no, así que no.
 - **Esperar al commit de la otra sesión**: cambia lo que se sube y obliga a
   rehacer el árbol limpio. Solo si ya está a punto.
-- **Guardarlos un momento** con `git stash push -m <nombre> -- <solo sus
-  archivos>`: lo hace la dueña, avisa, la desplegadora sube y la dueña hace
-  `git stash pop`. Fue la orden de la central, y no hizo falta.
+- **Guardarlos con `git stash`: NO.** Fue la orden de la central y era un
+  error: la memoria del árbol compartido lo prohíbe, porque el 14 sep un
+  stash guardó y restauró archivos de otras sesiones. Por suerte no se usó.
 - **Lo que pasó de verdad, y es lo mejor:** la dueña ya tenía sus pruebas en
   verde e hizo commit (2c0e681), y la desplegadora subió con
   `desplegar_app.py --solo ... --commit bffc69d`, es decir, desde el commit
@@ -311,5 +311,6 @@ hizo bien en no esquivar la guarda. Opciones y cuál elegir:
   053a486, byte a byte lo probado, y el commit nuevo se fue al reinicio 20.
   Subir desde un commit fijo hace innecesario que el disco esté quieto.
 
-Para no repetirlo: antes de pedir un reinicio, la central pregunta a las
+Para no repetirlo: la orden por defecto a una desplegadora bloqueada es
+«sube con `--commit <el hash que probaste>`». Y antes de pedir un reinicio, la central pregunta a las
 sesiones que tocan esos archivos si tienen cambios sin commit.
