@@ -846,3 +846,10 @@ Reinicio 29, «rosa» y «luna» con B1 (f4, datos sin propuesta):
 - **No es el mismo mecanismo que las erratas.**
 - **Señal a medir:** con una sola palabra, el rescate por palabra del título se decide fila a fila, y cada fila solo lo conserva si su índice queda a menos de 0,20 del techo.
 - **Calibración, escrita antes de medir:** títulos de una palabra (emma, dracula, hamlet…), erratas de una palabra (dracul, frankenstien) y palabras españolas que coinciden con títulos.
+
+**SERIO para la demo, del segundo ensayo de e6** (front bdfa418, Space 74f1484, perfil 1,20).
+- **Qué sale:** «dostoyevski» ya no da el aviso de «no hay libros en tu nivel». «En tu nivel» trae 9 tarjetas, 7 de ellas cuentos libres sin relación («Books» dos veces, «Story Chikkappa», «Tanaji Malusare»…). Crime and Punishment queda tras «Ver también», a 4,5 pantallas.
+- **El guion** (paso 3) describe otra pantalla.
+- **Hipótesis de la central:** es la franja del 25 con la variante E. En una consulta de una palabra, el título se compara con «historias de X» y «libros sobre X», y los títulos genéricos casan con ese marco, no con el autor.
+- **Encargo a f4, prioritario sobre «rosa» y «luna»:** medir la causa y dos arreglos, que la franja no marque cuando se rescata a un autor y que los títulos solo genéricos no puntúen, con el criterio de autores con perfil, temas con A2 y B1 y las 100 palabras iguales al Space. 4e prepara una alternativa para el paso 3 por si no llega.
+- **El resto del ensayo a 390 px cuadra con el guion:** la receta, «cuentos de dragones», los detectives, la ficha de Crime and Punishment, poverty, Pronunciar y «Mis palabras».
