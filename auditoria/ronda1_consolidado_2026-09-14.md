@@ -569,3 +569,10 @@ Cuestionario de Tu nivel (4e, 88c28d5): no infravalora de forma sistemática, as
 - **Decisiones:** Afinar no se mete en las seis, y la receta B2 de la demo sigue valiendo.
 - **Pendiente:** la prueba honesta sería con lectores medidos también con un texto o un libro.
 - **Registro del silencio para el 26 (06a7aac):** no_speech_prob, hora y origen. Mutantes 18 de 18, con el visto bueno de e6 pendiente.
+
+Precarga del reinicio 26 (f4, medido en local):
+- **Memoria y tiempo:** +1,18 GB en total, la misma RAM que hoy ocupa la primera búsqueda, pero desde el arranque. El modelo MiniLM se lleva 18,7 s de los 18,6 s que tarda hoy la primera búsqueda.
+- **Diseño aprobado por la central:**
+  - un hilo de fondo al arrancar, solo en el Space, que no retrasa RUNNING ni /api/salud;
+  - candado en ui.catalogo(), para no crear dos catálogos (2,4 GB), con prueba y mutante;
+  - una búsqueda con nivel lanzada durante la precarga tiene que esperar y responder bien.
