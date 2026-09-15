@@ -64,20 +64,24 @@ todas las cuentas que tenían algún anuncio.
 - Una orden de la central no levanta una norma que Miguel dejó a otra sesión
   (las contraseñas de perfiles).
 
-## El catálogo: dónde faltan textos
+## El catálogo: los textos están, la búsqueda no los saca
 
-Al elegir las sugerencias, e6 midió 32 temas. Con A2 y B1 no llegan a tres
-textos amor, familia, amigos, deportes, la escuela, piratas, fantasmas,
-monstruos, brujas, robots, planetas, Navidad y misterios. Es el hueco que vio
-Esmeralda, ahora medido. e6 está contando cuántos cuentos libres de esos temas
-hay en las fuentes que ya usamos, para decidir después de la demo.
+Al elegir las sugerencias parecía que con A2 y B1 faltaban textos de amor,
+familia, fantasmas o monstruos. e6 los contó y la central lo verificó: hay 74
+cuentos libres de amor en A2–B1, 47 de fantasmas, 29 de monstruos y 338 de
+amigos. La búsqueda no los devuelve, porque los libros de Gutenberg copan los
+primeros puestos antes de repartir por nivel. **Es la causa de fondo del caso
+de Esmeralda**, y ampliar el catálogo no lo arreglaría: en las fuentes libres
+que usamos solo quedan unos pocos cuentos nuevos, casi todos en StoryWeaver.
+El arreglo es buscar también dentro del nivel del lector, y va el primero en
+el reinicio 23.
 
 ## Lo que queda
 
 | Qué | Quién | Cuándo |
 |---|---|---|
 | Reinicio 22: autor más título, anuncios de drogas, tres menores de subidas | f4, con visto bueno de 4e y e6 | esta madrugada |
-| Reinicio 23: autores clásicos, obras antes que biografías, «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras» | f4 | después del 22 |
+| Reinicio 23: **recuperación dentro de la franja del lector (caso Esmeralda)**, autores clásicos, obras antes que biografías, «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras» | f4 | después del 22 |
 | Auditoría de voz de la ronda 3 | f4 | después del 22 |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |

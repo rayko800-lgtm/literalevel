@@ -309,3 +309,12 @@ Retoques de guion del anexo de e6 (4e, 8856030; PDF recompilados):
 - **Guion:** incluye el camino a poverty por el Índice y la cifra nueva de la boca 3D.
 - **Vídeo:** notas de tiempos al día.
 - **Documento y estrategia:** citan el front ec957d0, y se comprobó por SHA-256 que los modelos 3D servidos son los del repositorio.
+
+**Corrección importante (e6, 4db6ea3; verificado por la central sobre el CSV).**
+- **Lo que se dijo:** el hueco de A2–B1 era de composición del catálogo.
+- **Lo que hay de verdad:** cuentos libres con el tema en el título y dificultad entre 0,20 y 1,00. Son 74 de amor, 47 de fantasmas, 29 de monstruos y 338 de amigos.
+- **Lo que devuelve la búsqueda:** con nivel 0,40, «Historias de amor», «ghost stories» y «Monstruos» traen 24 de 24 libros de Gutenberg.
+- **Por qué importa:** es la causa de fondo del caso Esmeralda, y ampliar el catálogo no lo arregla.
+- **Fuentes libres:** en StoryWeaver hay pocos cuentos nuevos, de 0 a 23 por tema. En Let's Read y en lo comprobado de African Storybook no hay ninguno.
+- **Arreglo:** recuperar también dentro de la franja del lector. Lo diseña f4 para el reinicio 23.
+- **Front:** e6 estudia si su regla del salto deja «Robots» en «Menos parecidos».

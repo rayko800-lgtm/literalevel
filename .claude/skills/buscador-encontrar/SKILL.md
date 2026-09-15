@@ -71,25 +71,34 @@ con B1 (ronda 3, 15 sep), porque en el catálogo solo hay 2 libros así.
 trae cuentos A2–B1 arriba); ninguna tarjeta de «Menos parecidos» lleva
 etiqueta de encaje; la página no se desborda.
 
-## 3. Huecos que no son fallos
+## 3. Antes de decir «hueco del catálogo», cuenta y compara
 
-Con B1 no hay casi nada de amor ni de detectives en Londres **en el catálogo**
-(amor: 1 en B1 y 31 en B2; detectives con Londres: 2 en B1 y 87 en C1–C2). La
-búsqueda hace bien en decirlo con el aviso de otros niveles. Antes de tocar
-código por «no encontré X en mi nivel», cuenta cuántos hay con la regla de la
-app; si el hueco es de composición, se arregla añadiendo textos, no pesos.
+**Error de la noche del 14 al 15 sep:** se dio por hecho que con B1 «no hay casi
+nada de amor en el catálogo» y se aconsejó ampliar el corpus. Era falso. e6
+contó (auditoria/huecos_catalogo_2026-09-15.md) y la central lo verificó sobre
+`catalogo_externo.csv`: cuentos libres con el tema en el título y dificultad
+entre 0,20 y 1,00 hay **74 de amor, 47 de fantasmas, 29 de monstruos y 338 de
+amigos**. La búsqueda no los devolvía: con nivel 0,40 y n=24, «Historias de
+amor», «ghost stories» y «Monstruos» traían 24 de 24 libros de Gutenberg. Los
+chips que «no llegaban» con A2 y B1 medían la búsqueda, no el catálogo.
 
-**Mapa de huecos para A2 y B1** (e6, 15 sep, 32 chips medidos contra el
-reinicio 21, criterio ≥3 en «A tu medida» + «Un poco por encima»). **No llegan:**
-historias de amor, amigos inseparables, familia, robots, inventos y
-científicos, planetas y estrellas, vida en el campo, la escuela, deportes,
-fantasmas, cuentos de miedo (sin «para niños»), monstruos, brujas y magia,
-piratas, cuentos de animales, misterios, viajes en el tiempo, Navidad, la
-ciudad, naturaleza y bosques. **Sí llegan:** detectives, el océano, amistad,
+Así que, ante «no encontré X en mi nivel»:
+
+1. Cuenta en el `Catalogo` que carga la app cuántos textos de ese tema hay en
+   la franja (título, temas y gancho; sin los de `no_lectura`).
+2. Compáralo con lo que devuelve `/api/buscar` con ese perfil.
+3. Si hay muchos y no salen, **es recuperación**: el top global lo copan los
+   libros largos de Gutenberg y el reparto por bloques llega tarde.
+4. Solo si no hay, es composición. Escasean de verdad en las fuentes libres:
+   piratas, brujas y robots (y detectives con Londres en B1: 2).
+
+Mapa de chips (e6, 15 sep, contra el reinicio 21): con ≥3 en «A tu medida» +
+«Un poco por encima» con A2 y B1 salieron detectives, el océano, amistad,
 cuentos cortos, viajes al espacio (justo), dinosaurios, miedo para niños,
 animales de la selva, hadas, dragones, la luna, magia, música y baile,
-aventuras en la selva, un viaje en tren, superhéroes. Si se amplía el catálogo,
-se empieza por la primera lista: es lo que buscará una lectora de 15 años.
+aventuras en la selva, un viaje en tren y superhéroes. Los que no llegaban
+(amor, familia, fantasmas, monstruos…) hay que volver a medirlos después de
+arreglar la recuperación.
 
 ## 4. Márgenes y constantes
 
