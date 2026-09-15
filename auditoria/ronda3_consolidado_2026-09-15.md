@@ -64,6 +64,13 @@ todas las cuentas que tenían algún anuncio.
 - Un aviso de parada no puede pasar por un relevo.
 - Una orden de la central no levanta una norma que Miguel dejó a otra sesión
   (las contraseñas de perfiles).
+- Una medida de riesgo tiene que comparar el Space actual contra el cambio
+  completo que va a subir. En el 27 se midió solo una de tres reglas y subió
+  una regresión en 27 palabras de tema; la cazó la medida independiente de 4e
+  contra una línea base tomada antes, y el 28 la cerró en menos de una hora.
+- Si los archivos dependen entre sí, suben juntos o no sube ninguno.
+- Las contraseñas no se muestran nunca, ni enmascaradas; y un cambio de
+  contraseña se hace verificando antes todas las cuentas contra el Space.
 
 ## El catálogo: los textos están, la búsqueda no los saca
 
@@ -116,6 +123,14 @@ dar el permiso en una sesión.
   «No te oí».
 - **La contraseña de «profesor» se cambió** a las 05:40; la nueva está solo en
   el archivo local.
+
+## Estado al cierre de la ronda (15 sep, 08:00)
+
+- **Motor:** reinicio 28 (Space 74f1484), verificado por dos sesiones.
+- **Front:** bdfa418, con Tu nivel y Pronunciar nuevos, la ficha de un capítulo
+  arreglada y el aviso «No te oí · Este intento no cuenta».
+- **Guion de la demo:** 800060e, con la receta B2 y «Antes de la demo».
+- **Serios abiertos:** ninguno. Quedan mejoras de búsqueda para el 29.
 
 ## Lo que queda
 
