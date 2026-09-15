@@ -1270,3 +1270,5 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - f4: notebook_proyecto (reproducibilidad en Colab sin errores ni warnings; cifras contra el documento).
 - MENOR apuntado para después de la entrega: el comentario de 1643c4b en catalogo.py contradice el límite declarado del 30b.
 - **Congelación (Central, 15 sep):** buscador (catalogo.py) y cobro (cuentas.py) congelados hasta después del 20; solo se tocan por un SERIO que afecte a la demo o a los usuarios. Los tres menores de 4e (parche_menores_28.py: devoluciones con disco roto, índice apellido→filas, obras sin fechas) quedan para después de la entrega. El de las obras movería la exención de 5 obras y necesitaría medida completa.
+- Ronda 4, 4e: enlaces y recursos públicos de todos los entregables (Spaces, repos de HF del modelo y el diccionario, URLs de datos, DOI), solo lectura. Un recurso que el notebook necesita y no es público es SERIO. Informe: ronda4_enlaces_4e_2026-09-15.md.
+- Memoria: congelacion-hasta-la-entrega.

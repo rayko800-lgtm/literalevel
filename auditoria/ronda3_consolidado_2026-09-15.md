@@ -202,5 +202,6 @@ dar el permiso en una sesión.
 | Auditoría ciega del estado final | Codex | 19 de septiembre, desde las 8:56 (cupo comprobado el 15) |
 | Ronda 4, a ciegas: documento, estrategia y presentación contra la producción de hoy | e6 | 15 sep |
 | Ronda 4, a ciegas: reproducibilidad y cifras del notebook | f4 | 15 sep |
+| Ronda 4: enlaces y recursos públicos de los entregables (HF, Spaces, datos, DOI) | 4e | 15 sep |
 | Tres menores de 4e (parche_menores_28.py: devoluciones con disco roto, índice apellido→filas, obras sin fechas); buscador y cobro congelados hasta el 20 | f4 | después del 20; el de las obras mueve la exención de 5 obras y exige medida completa |
 | MENOR tras la entrega: el comentario de 1643c4b en catalogo.py promete que los empates no se reordenan entre máquinas, en contra del límite declarado | quien toque catalogo.py | después del 20 |
