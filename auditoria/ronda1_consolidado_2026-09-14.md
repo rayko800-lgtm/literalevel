@@ -1272,3 +1272,11 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - **Congelación (Central, 15 sep):** buscador (catalogo.py) y cobro (cuentas.py) congelados hasta después del 20; solo se tocan por un SERIO que afecte a la demo o a los usuarios. Los tres menores de 4e (parche_menores_28.py: devoluciones con disco roto, índice apellido→filas, obras sin fechas) quedan para después de la entrega. El de las obras movería la exención de 5 obras y necesitaría medida completa.
 - Ronda 4, 4e: enlaces y recursos públicos de todos los entregables (Spaces, repos de HF del modelo y el diccionario, URLs de datos, DOI), solo lectura. Un recurso que el notebook necesita y no es público es SERIO. Informe: ronda4_enlaces_4e_2026-09-15.md.
 - Memoria: congelacion-hasta-la-entrega.
+
+**Ronda 4, informe de e6 sobre documentos** (3d63dc3). La Central verificó los 4 SERIOS con las líneas delante:
+1. §8.2 (documento.md:1067) y presentacion.tex:367 usan «dostoyevski» con 1,20, justo el límite 15.
+2. Cuestionario descrito con diccionario y series (estrategia.md:109) y como «seis preguntas y tres fragmentos» (documento.md:1054). La app tiene 6 pasos: 3 preguntas y 3 fragmentos (nivel.ts:17).
+3. «Doble toque» y «Toca una palabra» (documento.md:1057, 1113) frente a «mantén presionada».
+4. n = 2 sin Ismael (documento.md:1461, estrategia.md:276).
+Menores: arranque sin fecha, 40 ms, silencio sin coste, recuentos de pruebas fechados y frase de Pronunciar. Comprobado y correcto: 0,908 interna; «determinista» solo del fonema; límites con las cifras de hoy; amor B1 como fallo de búsqueda.
+Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
