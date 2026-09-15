@@ -354,3 +354,11 @@ Visto bueno del front del reinicio 23 (4e sobre e6 5e4421c): ok, con dos condici
 - **Qué se comprobó:** sin `franja`, las 57 respuestas reales del Space dan los mismos bloques que el front publicado. Una marca fuera de la franja no sube, y los bordes son exactos.
 - **Condición 1:** `franja` redondeada a tres decimales, porque un borde de 1,2499999999999998 deja fuera el 1,25.
 - **Condición 2:** anchura exacta de ±0,45, porque las etiquetas de encaje del front dependen de esas distancias.
+
+Constantes del reinicio 23, aprobadas por la central (f4; calibradas con dragones, océano y dinosaurios antes de mirar la batería):
+- **Umbrales:** FRANJA (−0,45, +0,45], SUELO_FRANJA 0,60, MARGEN_FRANJA 0,15, MARGEN_TECHO 0,25 (sin calibrar, se informa lo que corta) y K 12.
+- **Parecido de franja:** el máximo entre el índice y el título, solo en el segundo top-k. El orden general no cambia.
+- **Embeddings de títulos:** van en un archivo aparte, `catalogo_titulos_emb.npy` (23,6 MB, con los ids para comprobar el orden). Si los ids no cuadran, no se marca nada.
+- **Rareza de «familia»:** era el rescate por título con parecido de letras («familia» ≈ «familiar», 0,93). Se exigen palabras enteras en el título, y el parecido de letras se queda solo para apellidos.
+- **Reparto:** se parte en dos reinicios. El 23 lleva solo la recuperación por franja y el rescate por título. El 24 lleva autores clásicos, biografías, «Jane Austen» con B1, «luna» y «rosa», los 89 títulos, los textos que no están en inglés, titulo_capitulo y los menores de bloques.
+- **Reinicio 22:** 11 de 12 mutantes detectados. no_lectura pasa a 203.
