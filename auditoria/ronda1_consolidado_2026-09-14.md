@@ -274,3 +274,9 @@ Reinicio 22 en preparación (f4). Lleva solo el arreglo del serio del vocabulari
 - **Idea:** una palabra del campo de autor cuenta como nombre solo si el diccionario la tiene únicamente como nombre propio, o no la tiene.
 - **Visto bueno previo:** 4e lo da directamente a f4 antes de subir, con sus 5 consultas y la batería entera. f4 no sube sin ese «ok».
 - **Reinicio 23:** los tres menores de subidas, que ya están probados con pruebas_api 58/58, los autores clásicos y el resto.
+
+Documentos y guiones al día con el reinicio 21 (4e, a978155; PDF recompilados):
+- **Catálogo:** reparto recontado sobre el CSV, 11.953 textos entre A1 y B1, la regla de bloques con un texto raro contada con su duda, y no_lectura en 200.
+- **Cómputo:** la fecha de las unidades corregida y el origen de los 27.776.
+- **Guiones:** los 10 arreglos del ensayo. El paso 2 usa ahora «cuentos de dragones», que con perfil 1,20 da 13 textos libres de 14 en «En tu nivel».
+- **Antes de grabar:** una sección nueva con los 6 puntos que Miguel ensaya con cuenta y micrófono.
