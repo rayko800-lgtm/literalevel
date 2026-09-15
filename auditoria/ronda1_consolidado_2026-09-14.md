@@ -1149,3 +1149,12 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - Comprobado en lo publicado: texto nuevo una vez, el viejo ausente, sha por la API de HF, meta de la API intacta.
 - Build desde un worktree limpio, con 2,89 GB libres tras la medida de f4.
 - f4 ya puede lanzar corpus y el banco del 30b.
+
+**30b medido con la clave de nivel** (f4, 545 listas contra el 28, n=24): **sin paro**.
+- «Crimen y castigo de Dostoyevski» con 1,20: PG2554 primero fuera de la franja.
+- «granja» y «dragones» con 1,20: idénticas.
+- Cortes de la franja: siempre igual de cerca del nivel o más («family» B1: 0,44 frente a 0,36; «pintura» B1: 0,78 frente a 0,99).
+- Resto: 88 cambios solo en la cola; 18 antes, todos empates a 6 decimales. Marcas y longitudes iguales. Ruido entre procesos descartado (218/218).
+- **Criterio corregido antes del commit, por escrito:** el escrito era «ningún top 10 cambia». «mystery» sin perfil intercambia los puestos 7↔8 (PG34933 y PG27722, empatados a 0,857000; en crudo, menos de 1e-6). Queda: el top 10 no cambia de conjunto y solo se admite intercambiar ids empatados a 6 decimales.
+  - Motivo: el redondeo es el objetivo del 30b, que el Space y el local ordenen igual.
+- Tras el despliegue, e6 repite en el front el paso 3, «granja», «dragones» y «mystery».
