@@ -462,3 +462,8 @@ Aviso «No te oí» en Pronunciar (e6, b9773bd, sin publicar, ng test 80/80):
 - **Menor para el 26 (4e):** la respuesta aún trae audio_correcto, el TTS de la frase modelo. Aquí salió de caché, pero con una frase nueva sería una llamada de pago.
 - **Front:** e6 publica HEAD con el aviso «No te oí».
 - **Reinicio 25:** f4 aplica la variante E. El banco C11 detecta 16 de 16.
+
+Prueba de dos segmentos (4e, bf6aa0a, solo pruebas):
+- **Casos:** «you» con 0,943 queda como no oído; «Thank you for watching.» con 0,897, no oído; 0,503, oído; dos segmentos de 0,9 y 0,2, oído.
+- **Mutantes:** 10 de 10, incluido el cambio de `all` por `any`.
+- **Límite:** una respuesta sin segments cuenta como oída. whisper-1 siempre los trajo al pedirlos.
