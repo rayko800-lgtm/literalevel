@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, afterNextRender, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, HostListener, afterNextRender, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Sesion } from '../nucleo/sesion';
 import { Icono } from './icono';
@@ -67,21 +67,49 @@ export class Bienvenida {
 
   protected readonly pasos: Paso[] = [
     { titulo: 'Libros en inglés a tu nivel',
-      texto: 'Medimos qué tan difícil es cada capítulo para que elijas uno que puedas terminar.' },
+      // Sin «que puedas terminar»: la app no lo sabe (4e, 15 sep).
+      texto: 'Medimos qué tan difícil es cada capítulo para que elijas uno a tu medida.' },
     { titulo: 'Una palabra, en su frase',
-      texto: `Mientras lees, ${this.tactil ? 'mantén presionada' : 'haz doble clic en'} una palabra: te decimos qué significa ahí y cómo se pronuncia.` },
+      // Sin «ahí»: el significado en esa frase es de OpenAI y pide entrar, y el paso 3 dice
+      // que nada de esto pide cuenta (4e, 15 sep).
+      texto: `Mientras lees, ${this.tactil ? 'mantén presionada' : 'haz doble clic en'} una palabra: te decimos qué significa y cómo se pronuncia.` },
     { titulo: '¿Por dónde empiezas?',
       texto: 'Mide tu nivel con seis preguntas o ve directo a un libro. Nada de esto pide cuenta.' },
   ];
   protected readonly paso = signal(0);
   protected readonly actual = () => this.pasos[this.paso()];
 
+  private readonly host = inject(ElementRef<HTMLElement>);
+  /** Dónde estaba el foco al abrir, para devolverlo al cerrar. */
+  private readonly focoAnterior = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
+
   constructor() {
     afterNextRender(() => this.titulo()?.nativeElement.focus());
+    inject(DestroyRef).onDestroy(() => {
+      const f = this.focoAnterior;
+      if (f && f !== document.body && document.contains(f)) f.focus();
+    });
   }
 
   @HostListener('document:keydown.escape')
   protected cerrar(): void { this.sesion.cerrarBienvenida(); }
+
+  /** Un diálogo de verdad: Tab no sale de la tarjeta a la página tapada por el velo (4e, 15 sep). */
+  @HostListener('document:keydown.tab', ['$event'])
+  @HostListener('document:keydown.shift.tab', ['$event'])
+  protected encerrarFoco(ev: Event): void {
+    const botones = [...(this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.tarjeta-bienvenida button')];
+    if (!botones.length) return;
+    const primero = botones[0];
+    const ultimo = botones[botones.length - 1];
+    const activo = document.activeElement as HTMLElement | null;
+    const atras = (ev as KeyboardEvent).shiftKey;
+    const dentro = !!activo && botones.includes(activo);
+    if (!dentro || (!atras && activo === ultimo) || (atras && activo === primero)) {
+      ev.preventDefault();
+      (atras ? ultimo : primero).focus();
+    }
+  }
 
   protected siguiente(): void {
     this.paso.update(p => Math.min(p + 1, this.pasos.length - 1));

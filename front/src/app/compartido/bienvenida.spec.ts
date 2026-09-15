@@ -56,10 +56,14 @@ describe('Bienvenida', () => {
     const { dialogo, boton, pulsar } = await en('/');
     expect(dialogo()?.textContent).toContain('1 de 3');
     expect(dialogo()?.querySelector('h2')?.textContent).toBe('Libros en inglés a tu nivel');
-    expect(dialogo()?.textContent).toContain('Medimos qué tan difícil es cada capítulo para que elijas uno que puedas terminar.');
+    expect(dialogo()?.textContent).toContain('Medimos qué tan difícil es cada capítulo para que elijas uno a tu medida.');
+    expect(dialogo()?.textContent).not.toContain('terminar');
     expect(boton('Saltar')).toBeTruthy();
     await pulsar('Siguiente');
     expect(dialogo()?.querySelector('h2')?.textContent).toBe('Una palabra, en su frase');
+    // Sin cuenta no hay «qué significa ahí» (OpenAI): no se promete.
+    expect(dialogo()?.textContent).toContain('una palabra: te decimos qué significa y cómo se pronuncia.');
+    expect(dialogo()?.textContent).not.toContain('ahí');
     expect(boton('Saltar')).toBeTruthy();
     await pulsar('Siguiente');
     expect(dialogo()?.textContent).toContain('3 de 3');
@@ -69,6 +73,22 @@ describe('Bienvenida', () => {
     expect(boton('Medir mi nivel')).toBeTruthy();
     expect(boton('Solo quiero leer')).toBeTruthy();
     expect(boton('Siguiente')).toBeUndefined();
+  });
+
+  it('Tab no sale de la tarjeta: del último botón vuelve a «Saltar», y Mayús+Tab al revés', async () => {
+    const { fixture, dialogo, boton } = await en('/');
+    document.body.appendChild(fixture.nativeElement);
+    const tab = (shiftKey = false) => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true }));
+    boton('Siguiente')!.focus();
+    tab();
+    expect(document.activeElement).toBe(boton('Saltar'));
+    tab(true);
+    expect(document.activeElement).toBe(boton('Siguiente'));
+    // Desde el título (donde se pone el foco al abrir), Tab entra en los botones de la tarjeta.
+    (dialogo()!.querySelector('h2') as HTMLElement).focus();
+    tab();
+    expect(document.activeElement).toBe(boton('Saltar'));
+    fixture.nativeElement.remove();
   });
 
   it('«Saltar» la cierra y queda guardada: no vuelve a salir', async () => {
