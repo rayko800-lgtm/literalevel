@@ -108,3 +108,16 @@ Front dca18b4 con el motor del reinicio 26, perfil propio B1 (0,95).
 - **Encontrar, «Cuentos de dragones»:** «En tu nivel» abre con cuentos de dragones de su franja: DRAGON WONDERS (B1 0,98), DRAGON BEFRIENDS YOUNG GIRL (B2 1,08), When I Met a cute, fluffy and tiny dragon, THE DRAGON MYSTERY, The mouse+dragon y My Father's Dragon, todos «A tu medida». Funciona como se diseñó.
 - **Fallo en la ficha de un cuento de un solo capítulo** (el de Kian): «Dificultad capítulo a capítulo» dice «Se va soltando… Lo más llevadero, el capítulo 1; lo más exigente, el 1», y la gráfica sale sin ningún punto. «Lo que más se repite» solo muestra el nombre del personaje. Lo arregla e6.
 - **Observación de producto, sin cambio todavía:** el resumen de ese cuento dice «Para peques que disfrutan cuentos rimados». Con la franja, a una lectora B1 de 15 años le salen cuentos infantiles de su nivel. Es lo que hay en las fuentes libres. Conviene vigilar si a Esmeralda le parecen demasiado infantiles.
+
+## Ismael (hermano de Miguel), nota de voz del 15 sep
+
+Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-1 para leerla; el audio no se guarda en el repositorio.
+
+> «Hoy y ayer estuve probando la aplicación, pero cuesta un poquito entenderle. Yo creo que le falta eso, ¿no?, hacerla más intuitiva, o a lo mejor unos cuadros de diálogo que te digan qué hace cada cosa.»
+
+**Lectura:** es la misma señal que dio Esmeralda («a lo mejor yo soy muy tonta»), ahora de un adulto: sin explicación, no se entiende para qué sirve cada pantalla. No dice en cuál se perdió.
+
+**Qué se hace:**
+- e6 recorre el front publicado como alguien que llega por primera vez y propone dos formas de ayuda con esquema: una bienvenida de 3 o 4 pasos que se puede saltar, o una ayuda de una frase por pantalla. Informe en `auditoria/ismael_ayuda_2026-09-15.md`.
+- Miguel elige antes de programar.
+- Conviene preguntarle a Ismael en qué pantalla se perdió y qué quería hacer.
