@@ -1289,3 +1289,9 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
   1. e6 corrige el notebook: S2, menores, la llamada de seaborn y el filtro estrechado, sin salidas.
   2. f4 revisa y lo ejecuta en Colab gratis (CPU), guardando salidas y fecha real. Si falla, no se tapa.
   3. 4e ajusta después documento.md:1432 con esa fecha.
+- **Notebook corregido por e6** (5c4d461, solo el .py y el .ipynb):
+  - S2: recta impresa con polyfit, 0,67x + 0,41.
+  - D1: filtro global quitado; las cajas con matplotlib (`orientation`/`vert` según versión).
+  - Menores de texto y descargas con tiempo de espera, 3 intentos y tamaño mínimo.
+  - 103/103 celdas sincronizadas, sin salidas. En local, 57 celdas de código sin error ni avisos con `-W default` (el v4 sustituido).
+  - **Riesgo abierto:** §9.3 y la limitación 7 llevan el marcador `<fecha>` hasta que f4 lo ejecute en Colab. Si la ejecución falla, hay que reescribir esas frases antes de la entrega; no pueden quedar con el marcador.
