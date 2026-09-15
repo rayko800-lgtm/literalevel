@@ -36,6 +36,16 @@ Gutenberg (Austen, Brontë, Hardy) está casi toda en C1 y C2, y los cuentos
 libres son infantiles y no tratan de amor. **Crecer el catálogo con más cuentos
 no lo arregla**: el hueco es de composición, no de tamaño.
 
+> **Corrección del 15 sep (madrugada), verificada sobre el CSV.** La cifra
+> «1 en B1» contaba solo libros literarios de Gutenberg. La frase «los cuentos
+> libres no tratan de amor» es falsa. Con love o romance en el título y
+> dificultad entre 0,20 y 1,00 hay **74 cuentos libres** (36 en A2 y 38 en B1),
+> y lo mismo pasa con fantasmas (47), monstruos (29) y amigos (338). La búsqueda
+> no los devolvía: con nivel 0,40, «Historias de amor» traía 24 de 24 libros de
+> Gutenberg (e6, `huecos_catalogo_2026-09-15.md`). **El hueco de Esmeralda era
+> de búsqueda, no de composición.** Se arregla recuperando dentro de la franja
+> del lector, en el reinicio 23.
+
 **Qué se hace:** e6 reproduce la búsqueda con un perfil B1 en el Space y
 propone cómo debería responder la pantalla cuando un tema tiene pocos libros en
 la franja (por ejemplo, ofrecer los más cercanos por encima, marcados «un poco

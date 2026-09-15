@@ -17,7 +17,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
-| Motor (Space de Gradio) | reinicio 21, 384a206 | «amor» con B1 da 12 de 12 sobre amor; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
+| Motor (Space de Gradio) | reinicio 21, 384a206 | «amor» con B1 da 12 de 12 sobre amor, pero todos C1–C2, y los cuentos de su nivel no salen (reinicio 23); «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | ec957d0 | boca 3D sin fuga de memoria y con una sola descarga; «Primero lo de tu nivel» se cumple; ocho sugerencias que dan resultados con A2 y B1 |
 | Documentos y guiones | 8856030 | coste de cómputo real, cifras del reinicio 21, diez arreglos del ensayo y la sección «Antes de la demo» |
 
