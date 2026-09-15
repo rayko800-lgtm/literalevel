@@ -899,3 +899,10 @@ Variante i4 (f4, primera pasada sin la lista de control): la franja no marca si 
 - **Autores con 1,20:** los clásicos de una palabra y Jane Austen pasan de 12 marcas a 0, dickens a 5 marcas suyas, y mark twain sigue en 0.
 - **«Crimen y castigo de Dostoyevski»:** 0 marcas. Los temas de A2 y B1, iguales.
 - **Falta:** la pasada con las 20 palabras de control, escritas a las 08:31.
+
+i4 con la lista de control (f4, n=10):
+- **Las 100 palabras:** 0 de 198 listas distintas del Space.
+- **Las 20 de control:** top 10 igual en las 40 listas. Solo cambian las marcas de «institute» con B1, de 12 a 0, porque su primer resultado es un libro de Gutenberg de un coautor institucional. Las marcas que se pierden no tienen que ver con «institute» («Books», «My School»).
+- **Autores y paso 3:** los autores con 1,20 y «Crimen y castigo de Dostoyevski», como en la pasada anterior.
+- **Decisión de la central:** se acepta el cambio de «institute» (opción a).
+- **Condición antes del commit:** una pasada final con n=24, que es lo que pide el front, con todos los grupos. Después, visto bueno de 4e, árbol limpio y subida como reinicio 29.
