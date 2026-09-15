@@ -675,7 +675,7 @@ MUTANTES = [
      "        devuelto = False and cuentas.devolver_por_silencio(",
      "practica sin voz devuelve el uso", "pruebas_extremas.py"),
     ("C14-gradio-codigo-despues-de-cobrar", "app/ui.py",
-     "    codigo_cobrado = _codigo_de(peticion)" + NL + "    puede, motivo_pago = _puede_pagar(peticion)",
+     "    codigo_cobrado = _codigo_de(peticion)" + NL + "    puede, motivo_pago = _puede_pagar(peticion, codigo_cobrado)",
      "    puede, motivo_pago = _puede_pagar(peticion)" + NL + "    codigo_cobrado = _codigo_de(peticion)",
      "practica sin voz devuelve el uso", "pruebas_extremas.py"),
     # Reinicio 22: ronda 3 de e6 sobre las subidas.
