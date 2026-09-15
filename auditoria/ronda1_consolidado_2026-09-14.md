@@ -287,3 +287,10 @@ Chips nuevos de Encontrar (e6, 4e6276e, front ec957d0):
 - **Comprobado a 390 px:** con A2 y con B1, ningún chip deja la pantalla sin nada de su nivel.
 
 **Dato para decidir si se amplía el catálogo.** Con A2 y B1 no llegan a 3 textos estos temas: amor, familia, amigos, deportes, la escuela, piratas, fantasmas, monstruos, brujas, robots, planetas, Navidad y misterios. Es el mapa de huecos de composición que vio Esmeralda, ahora medido. La lista está en la skill buscador-encontrar.
+
+Comprobación de los guiones corregidos (e6, feeb806; front ec957d0, Space 384a206):
+- **Lo que coincide con la pantalla:** la receta del perfil 1,20, los botones de «Afinar» y poverty por el Índice.
+- **Paso 2 con «cuentos de dragones»:** trae 13 cuentos libres de 14, y el primero se ve sin deslizar.
+- **La boca 3D:** ahora tarda 2,1 s la primera vez.
+- **Quedan retoques (4e):** el título y la entrada de la sección «Antes de…», dos notas viejas en guion_video.md y tres menciones a un front antiguo en el documento y la estrategia.
+- **«cap. 1» del prefacio:** es coherente con el resto de la app, que numera el prefacio como 1. Mostrar el título del capítulo es una mejora para el 23, no un arreglo urgente.
