@@ -400,8 +400,23 @@ def fijar_fonemas(correccion: Correccion | None,
     deterministas (ver arriba). Devuelve la misma `Correccion`, cambiada."""
     if correccion is None:
         return None
-    oidas = ({_clave_palabra(o): (d or "") for o, d in entendidas if o}
-             if entendidas is not None else None)
+    # Una cola por palabra y no un diccionario: con «cat» fallada dos veces
+    # («cut» y luego «cap») la segunda lectura pisaba a la primera, y los dos
+    # detalles salian con /t/ cuando el primero es /æ/ (e6, auditoria cruzada del
+    # 14 sep). Cada detalle se lleva la siguiente lectura de su palabra, en el
+    # orden de la frase; si el modelo da mas detalles que veces se fallo, se
+    # repite la ultima.
+    oidas: dict[str, list[str]] | None = None
+    if entendidas is not None:
+        oidas = {}
+        for o, dicho in entendidas:
+            if o:
+                oidas.setdefault(_clave_palabra(o), []).append(dicho or "")
+
+    def siguiente(clave: str) -> str:
+        cola = oidas[clave]
+        return cola.pop(0) if len(cola) > 1 else cola[0]
+
     resultados = []
     for d in correccion.detalles:
         clave = _clave_palabra(d.palabra)
@@ -409,11 +424,12 @@ def fijar_fonemas(correccion: Correccion | None,
         if oidas is None:
             simbolo, motivo = None, "sin_datos"
         elif clave in oidas:
-            simbolo, motivo = _comparar(clave, oidas[clave])
+            simbolo, motivo = _comparar(clave, siguiente(clave))
         else:
-            # El modelo partio un compuesto: «war» y «chant» de «war-chant».
+            # El modelo partio un compuesto: «war» y «chant» de «war-chant». Las
+            # piezas son de la misma lectura del compuesto: no se avanza la cola.
             padre = next((k for k in oidas if "-" in k and clave in piezas(k)), None)
-            simbolo, motivo = (_comparar(padre, oidas[padre], pieza=clave) if padre
+            simbolo, motivo = (_comparar(padre, oidas[padre][0], pieza=clave) if padre
                                else (None, "sin_datos"))
         resultados.append((d, simbolo, motivo, padre))
 
@@ -898,6 +914,53 @@ REDUCCIONES_CONOCIDAS = {
     ("and",): {"'n'", "'n", "n"}, ("them",): {"'em", "em"}, ("you",): {"ya"},
     ("because",): {"'cause", "cause", "cuz"},
 }
+# «gonna» es «going to» + VERBO. «I am going to school» no se reduce y «We got to
+# the station» no es «gotta»: el validador solo miraba las palabras reducidas, y
+# la version natural que se manda al TTS decia «I am gonna school» (e6, auditoria
+# cruzada del 14 sep). Estas seis se aceptan solo si lo que sigue a «to» es un
+# verbo en forma base (etiqueta VB de spaCy). Sin spaCy no se aceptan: el
+# validador prefiere dejarse una reduccion a enseñar una falsa.
+REDUCCIONES_CON_VERBO = frozenset({("going", "to"), ("want", "to"), ("got", "to"),
+                                   ("have", "to"), ("has", "to"), ("ought", "to")})
+_ETIQUETADOR = None
+_CANDADO_ETIQUETADOR = threading.Lock()
+
+
+def _etiquetador():
+    """spaCy solo con el etiquetador (medio segundo la primera vez), o None si
+    no esta instalado."""
+    global _ETIQUETADOR
+    with _CANDADO_ETIQUETADOR:
+        if _ETIQUETADOR is None:
+            try:
+                import spacy
+                _ETIQUETADOR = spacy.load("en_core_web_sm", exclude=["ner", "parser", "lemmatizer"])
+            except Exception:
+                _ETIQUETADOR = False
+    return _ETIQUETADOR or None
+
+
+def _verbo_detras(palabras: list[str], hasta: int) -> bool:
+    """Si la palabra que sigue a la posicion `hasta` es un verbo en forma base."""
+    if hasta + 1 >= len(palabras):
+        return False
+    nlp = _etiquetador()
+    if nlp is None:
+        return False
+    inicio = sum(len(p) + 1 for p in palabras[:hasta + 1])
+    try:
+        doc = nlp(" ".join(palabras))
+    except Exception:
+        return False
+    return any(t.idx == inicio and t.tag_ == "VB" for t in doc)
+
+
+def _reduccion_valida(palabras: list[str], desde: int, hasta: int, forma: str) -> bool:
+    """De la lista cerrada y, si es de las que piden verbo, con verbo detras."""
+    tramo = tuple(palabras[desde:hasta + 1])
+    if str(forma or "").lower() not in REDUCCIONES_CONOCIDAS.get(tramo, set()):
+        return False
+    return tramo not in REDUCCIONES_CON_VERBO or _verbo_detras(palabras, hasta)
 
 
 class EnfasisPalabra(BaseModel):
@@ -1023,9 +1086,8 @@ def _validar_natural(bruto, palabras: list[str], frase: str) -> dict:
         if not (desde is not None and hasta is not None and desde <= hasta < desde + MAX_PALABRAS_REDUCCION
                 and forma and len(forma) <= 30 and ipa):
             continue
-        conocidas = REDUCCIONES_CONOCIDAS.get(tuple(palabras[desde:hasta + 1]), set())
         solapa = any(desde <= r_["hasta"] and r_["desde"] <= hasta for r_ in reducciones)
-        if forma.lower() in conocidas and not solapa:
+        if not solapa and _reduccion_valida(palabras, desde, hasta, forma):
             reducciones.append({"desde": desde, "hasta": hasta, "forma": forma, "ipa": ipa,
                                 "generado_por_ia": True})
     tramos = []
@@ -1033,22 +1095,29 @@ def _validar_natural(bruto, palabras: list[str], frase: str) -> dict:
         desde, hasta = indice(_campo(tr, "desde")), indice(_campo(tr, "hasta"))
         if desde is not None and hasta is not None and desde < hasta:
             tramos.append({"desde": desde, "hasta": hasta})
+    version = _version_natural(datos.get("version_natural"), palabras, reducciones, frase)
+    return _pulir_natural({"enfasis": enfasis, "enlaces": enlaces, "reducciones": reducciones,
+                           "tramos_rapidos": tramos, "version_natural": version}, palabras, frase)
+
+
+def _version_natural(propuesta, palabras: list[str], reducciones: list[dict], frase: str | None) -> str:
+    """La version natural tiene que decir exactamente la frase con las reducciones
+    validadas; si dice otra cosa (una reduccion descartada, una palabra de mas),
+    se reconstruye. Sin reducciones, la frase tal cual. Sin la frase (lo guardado
+    antes), la propuesta si dice las palabras, y si no se reconstruye con ellas."""
     frase = str(frase or "").strip()
-    # La version natural tiene que decir exactamente la frase con las reducciones
-    # validadas; si dice otra cosa (una reduccion descartada, una palabra de mas),
-    # se reconstruye. Sin reducciones, la frase tal cual.
+    version = str(propuesta or "").strip()
     esperadas = list(palabras)
     for r_ in sorted(reducciones, key=lambda x: x["desde"], reverse=True):
         esperadas[r_["desde"]:r_["hasta"] + 1] = normalizar_palabras(r_["forma"])
-    version = str(datos.get("version_natural") or "").strip()
-    if not reducciones:
-        version = frase
-    elif not version or len(version) > 2 * len(frase) + 20 or normalizar_palabras(version) != esperadas:
+    if not reducciones and frase:
+        return frase
+    referencia = frase or version
+    if not version or len(version) > 2 * len(referencia) + 20 or normalizar_palabras(version) != esperadas:
         texto = " ".join(esperadas)
-        final = frase[-1] if frase and frase[-1] in ".?!" else ""
+        final = referencia[-1] if referencia and referencia[-1] in ".?!" else ""
         version = texto[:1].upper() + texto[1:] + final
-    return _pulir_natural({"enfasis": enfasis, "enlaces": enlaces, "reducciones": reducciones,
-                           "tramos_rapidos": tramos, "version_natural": version}, palabras)
+    return version
 
 
 def _ipa_enlace(primera: str, segunda: str) -> str | None:
@@ -1067,13 +1136,23 @@ def _ipa_enlace(primera: str, segunda: str) -> str | None:
     return "/" + "‿".join(partes) + "/"
 
 
-def _pulir_natural(datos: dict, palabras: list[str]) -> dict:
+def _pulir_natural(datos: dict, palabras: list[str], frase: str | None = None) -> dict:
     """Lo que pasa siempre, tambien a lo que ya estaba guardado: el enfasis nunca
-    cae en una palabra funcional («of», «the»), y la IPA de cada enlace sale del
-    diccionario. Asi la cache vieja se corrige al leerla, sin volver a pagar."""
+    cae en una palabra funcional («of», «the»), la IPA de cada enlace sale del
+    diccionario, y una reduccion que ya no pasa el validador («going to school»
+    -> «gonna») se quita y la version natural se rehace sin ella. Asi la cache
+    vieja se corrige al leerla, sin volver a pagar."""
     palabras = [str(w).lower() for w in palabras]
     n = len(palabras)
     datos = dict(datos)
+    guardadas = datos.get("reducciones") or []
+    reducciones = [r for r in guardadas
+                   if isinstance(r, dict) and isinstance(r.get("desde"), int) and isinstance(r.get("hasta"), int)
+                   and 0 <= r["desde"] <= r["hasta"] < n
+                   and _reduccion_valida(palabras, r["desde"], r["hasta"], r.get("forma"))]
+    if len(reducciones) != len(guardadas):
+        datos["reducciones"] = reducciones
+        datos["version_natural"] = _version_natural(datos.get("version_natural"), palabras, reducciones, frase)
     datos["enfasis"] = [e for e in datos.get("enfasis") or []
                         if isinstance(e.get("indice"), int) and 0 <= e["indice"] < n
                         and palabras[e["indice"]] not in _PALABRAS_FUNCIONALES]
@@ -1105,7 +1184,7 @@ def analizar_natural(frase: str, palabras_objetivo: list[str] | None = None) -> 
         if ruta.is_file():
             guardado = json.loads(ruta.read_text(encoding="utf-8"))
             if isinstance(guardado, dict) and isinstance(guardado.get("enlaces"), list):
-                return _pulir_natural(guardado, palabras)
+                return _pulir_natural(guardado, palabras, frase)
     except (OSError, ValueError):
         pass
     cliente = _cliente()

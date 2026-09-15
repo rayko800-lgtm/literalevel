@@ -248,6 +248,48 @@ class Natural(unittest.TestCase):
         self.assertEqual([r["forma"] for r in datos["reducciones"]], ["wanna"])
         self.assertEqual(datos["version_natural"], "Don't you wanna come with us?", "reconstruida")
 
+    def test_gonna_y_gotta_solo_con_verbo_detras(self):
+        """e6, 14 sep: «I am going to school» -> «I am gonna school» llegaba al TTS."""
+        if voz._etiquetador() is None:
+            self.skipTest("sin spaCy estas reducciones no se aceptan nunca")
+        casos = [("I am going to school.", 2, 3, "gonna", False),
+                 ("We got to the station late.", 1, 2, "gotta", False),
+                 ("She is going to London tomorrow.", 2, 3, "gonna", False),
+                 ("I am going to leave now.", 2, 3, "gonna", True),
+                 ("You have to go.", 1, 2, "hafta", True)]
+        for frase, desde, hasta, forma, vale in casos:
+            bruto = {"enfasis": [], "enlaces": [], "tramos_rapidos": [], "version_natural": "",
+                     "reducciones": [{"desde": desde, "hasta": hasta, "forma": forma, "ipa": "/x/"}]}
+            datos = voz._validar_natural(bruto, voz.normalizar_palabras(frase), frase)
+            self.assertEqual(bool(datos["reducciones"]), vale, (frase, datos["reducciones"]))
+            if not vale:
+                self.assertEqual(datos["version_natural"], frase, "sin la reduccion falsa, la frase tal cual")
+        self.assertEqual(voz._validar_natural(RESPUESTA_REAL, voz.normalizar_palabras(FRASE_REAL),
+                                              FRASE_REAL)["version_natural"],
+                         "Doncha wanna come with us?", "«want to come» si lleva verbo detras")
+
+    def test_sin_spacy_no_se_acepta_ninguna_que_pida_verbo(self):
+        frase = "I am going to leave now."
+        bruto = {"enfasis": [], "enlaces": [], "tramos_rapidos": [], "version_natural": "",
+                 "reducciones": [{"desde": 2, "hasta": 3, "forma": "gonna", "ipa": "/x/"},
+                                 {"desde": 0, "hasta": 1, "forma": "I'm", "ipa": "/aɪm/"}]}
+        with mock.patch.object(voz, "_etiquetador", lambda: None):
+            datos = voz._validar_natural(bruto, voz.normalizar_palabras(frase), frase)
+        self.assertEqual([r["forma"] for r in datos["reducciones"]], ["I'm"], "la contraccion no pide verbo")
+
+    def test_una_reduccion_falsa_ya_guardada_se_quita_al_leer(self):
+        frase = "I am going to school."
+        viejo = {"enfasis": [], "enlaces": [], "tramos_rapidos": [], "version_natural": "I am gonna school.",
+                 "reducciones": [{"desde": 2, "hasta": 3, "forma": "gonna", "ipa": "/ˈɡʌnə/",
+                                  "generado_por_ia": True}]}
+        ruta = voz._ruta_analisis_natural(frase)
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        ruta.write_text(__import__("json").dumps(viejo, ensure_ascii=False), encoding="utf-8")
+        with mock.patch.object(voz, "_cliente", lambda: None):
+            datos = voz.analizar_natural(frase)
+        self.assertEqual(datos["reducciones"], [])
+        self.assertEqual(datos["version_natural"], frase)
+
     def test_version_natural_vacia_o_desmedida_vuelve_a_la_frase(self):
         for version in ("", "   ", "x" * 500):
             datos = voz._validar_natural({**RESPUESTA_NATURAL, "version_natural": version}, PALABRAS, FRASE)
@@ -303,6 +345,24 @@ class Natural(unittest.TestCase):
         self.assertEqual(s2.ritmo["natural"]["enlaces"], NATURAL_VALIDADO["enlaces"])
         numeradas = cliente.analisis[0]["messages"][1]["content"]
         self.assertIn("0:i 1:would 2:like", numeradas.lower(), "el modelo recibe las posiciones")
+
+
+class FonemaDeUnaPalabraRepetida(unittest.TestCase):
+    def test_la_misma_palabra_fallada_de_dos_maneras(self):
+        """e6, 14 sep: con «cat» oida «cut» y luego «cap», los dos detalles salian con /t/."""
+        por_separado = [voz.fonema_que_cambia("cat", "cut"), voz.fonema_que_cambia("cat", "cap")]
+        self.assertNotEqual(por_separado[0], por_separado[1], por_separado)
+        c = voz.Correccion(resumen="Casi.", detalles=[
+            voz.DetallePalabra(palabra="cat", fonema="t", sonido_que_falla="x", como_colocar_la_boca="y")
+            for _ in range(2)])
+        detalles = voz.fijar_fonemas(c, [("cat", "cut"), ("cat", "cap")]).detalles
+        self.assertEqual([d.fonema for d in detalles], por_separado)
+        # Mas detalles que veces se fallo: el tercero repite la ultima lectura.
+        c3 = voz.Correccion(resumen="Casi.", detalles=[
+            voz.DetallePalabra(palabra="cat", fonema="t", sonido_que_falla="x", como_colocar_la_boca="y")
+            for _ in range(3)])
+        self.assertEqual([d.fonema for d in voz.fijar_fonemas(c3, [("cat", "cut"), ("cat", "cap")]).detalles],
+                         por_separado + [por_separado[1]])
 
 
 class HistorialRitmo(unittest.TestCase):
