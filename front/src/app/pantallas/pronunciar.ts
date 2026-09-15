@@ -128,6 +128,8 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destruido = true;
+    clearTimeout(this.relojPermiso);
     this.pararGrabacion(true);
     this.eyv.destruir();
     const u = this.audioUrl();
@@ -157,6 +159,9 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly pidiendo = signal(false);
   protected readonly pidiendoLento = signal(false);
   private relojPermiso: ReturnType<typeof setTimeout> | undefined;
+  /** Si se sale de la pantalla con el permiso pendiente y se concede después, las pistas se
+   *  paran al llegar: si no, el micrófono quedaba encendido sin pantalla (4e, 15 sep). */
+  private destruido = false;
   /** La línea de la barra del micrófono. Va DENTRO de la barra: en el celular la barra es
    *  fija y tapaba el aviso de error y el «Grabando…» de debajo, así que quien tocaba el
    *  micrófono no veía pasar nada (Ismael, 15 sep). */
@@ -211,6 +216,10 @@ export class Pronunciar implements OnInit, OnDestroy {
       clearTimeout(this.relojPermiso);
       this.pidiendo.set(false);
       this.pidiendoLento.set(false);
+    }
+    if (this.destruido) {
+      flujo.getTracks().forEach(t => t.stop());
+      return;
     }
     try {
       const tipos = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];

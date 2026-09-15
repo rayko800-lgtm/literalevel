@@ -136,6 +136,25 @@ describe('Pronunciar: lo que se ve al tocar el micrófono', () => {
     expect(linea()).toBeNull();
   });
 
+  it('salir con el permiso pendiente y concederlo después: las pistas se paran y no se graba', async () => {
+    let conceder: (f: MediaStream) => void = () => {};
+    const parada = vi.fn();
+    const construidos: unknown[] = [];
+    (globalThis as { MediaRecorder?: unknown }).MediaRecorder = class extends GrabadorFalso {
+      constructor(f: unknown) { super(f); construidos.push(this); }
+    };
+    ponerNavegador(UA_CHROME, () => new Promise<MediaStream>(r => { conceder = r; }));
+    const { fixture, c, micro } = await montar();
+    micro().click();
+    fixture.detectChanges();
+    expect(c.pidiendo()).toBe(true);
+    fixture.destroy();
+    conceder({ getTracks: () => [{ stop: parada }] } as unknown as MediaStream);
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(parada).toHaveBeenCalledTimes(1);
+    expect(construidos).toHaveLength(0);
+  });
+
   it('sin frase: el toque responde con qué hacer', async () => {
     ponerNavegador(UA_CHROME, () => Promise.resolve(flujoFalso()));
     const { linea, micro, tocar } = await montar(false);
