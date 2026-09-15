@@ -221,6 +221,15 @@ el catalogo.py completo que va a subir, sobre la lista fija de palabras de tema
 (`auditoria/palabras_de_tema_2026-09-15.txt`), sin perfil y con B1. Y alguien
 que no escribió el cambio toma su propia línea base antes de la subida.
 
+### Cuando ninguna variante gana en calibración, no se cambia
+
+En el 29 se midieron tres formas de tratar el título en consultas largas con 14
+consultas de calibración escritas antes de mirar. Ninguna superó a lo
+desplegado; una (G) arreglaba «Historias de amor» en la batería pero vaciaba
+«Terror gótico». Se dejó el código como estaba y los dos casos quedaron como
+límite declarado: elegir una variante porque mejora la batería es ajustar sobre
+el examen.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las

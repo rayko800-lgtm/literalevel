@@ -825,3 +825,9 @@ Visto bueno de 4e a b896b1f, el arreglo del 28: ok.
 - **Pendiente:** «rose» contra el 26, y la comprobación de f4 con las 198 listas en el Space.
 
 Reinicio 28 cerrado del todo (4e, anexo 68b7cf3): «rose» también da el mismo top 10 que el 26, con la línea base de f4 en 5a2fc04. Son 14 de 14 listas iguales y en el mismo orden. `buscador_listo` sale a los 14-20 s. Falta la batería de f4.
+
+Reinicio 29, punto 1, el título en consultas largas (f4): **sin cambio de código.**
+- **Calibración:** 14 consultas de varias palabras escritas antes de medir. Precisión de los marcados: base 85,4 %, G 84,4 %, J 80,7 % y K 81,2 %. Ninguna variante gana a lo desplegado.
+- **Batería (solo informe):** G arregla «Historias de amor», pero vacía «Terror gótico», y elegirla sería decidir con la batería.
+- **Decisión de la central:** «Historias de amor» y «Terror gótico» quedan como límite declarado. El chip «Historias de amor» sigue cumpliendo el criterio del tema (5 y 7 a mano).
+- **Otros datos:** «rose» ya está en la línea base (5a2fc04). La comprobación de f4 del 28 en el Space da 0 de 198.
