@@ -953,6 +953,14 @@ def _anuncios_fuera_y_enlaces_fuera_del_gancho():
     for a in anuncios:
         assert "anuncio" in (mod.motivo_no_lectura(a + atribucion, dic) or ""), f"no marca: {a[:40]}"
     assert mod.motivo_no_lectura(cuento + atribucion, dic) is None, "marca un cuento que da una direccion web"
+    # La primera pasada real (15 sep 2026) marco 24 libros de Bilum Books en Let's Read
+    # y cuentos de StoryWeaver que citan a la OMS o a UNICEF.
+    bilum = cuento + " For more information visit www.bilumbooks.com."
+    assert mod.motivo_no_lectura(bilum, dic, fuente="letsread") is None, "marca un libro de una coleccion editada"
+    oms = cuento + " For more information visit https://www.who.int/respiratory/asthma/definition/en/"
+    assert mod.motivo_no_lectura(oms, dic) is None, "marca un cuento que cita a la OMS"
+    cupon = cuento + " For more information visit https://www.ritecoupons.com/stores/x"
+    assert "anuncio" in (mod.motivo_no_lectura(cupon, dic) or ""), "no marca un cupon con llamada"
     assert (mod.motivo_no_lectura(cuento, dic, "swv687758") or "").startswith("anuncio"), "no mira la lista revisada"
 
     cc = _catalogador_aqui()

@@ -696,8 +696,12 @@ MUTANTES = [
      "    limpio = ficha.para_medir(limpiar_para_servir(texto))",
      "los anuncios no son lectura y los enlaces no salen en el gancho", "pruebas_corpus.py"),
     ("C6-anuncio-como-cuento", "tools/marcar_no_lectura.py",
-     '    if _URL.search(cuerpo) and (_LLAMADA.search(cuerpo) or len(_URL.sub(" ", cuerpo).split()) <= MAX_PALABRAS_ENLACE):',
+     '    if fuente == "storyweaver" and _enlace_comercial(cuerpo) and (_LLAMADA.search(cuerpo) or len(_URL.sub(" ", cuerpo).split()) <= MAX_PALABRAS_ENLACE):',
      "    if False:",
+     "los anuncios no son lectura y los enlaces no salen en el gancho", "pruebas_corpus.py"),
+    ("C6-anuncio-editorial-o-institucional", "tools/marcar_no_lectura.py",
+     '    if fuente == "storyweaver" and _enlace_comercial(cuerpo) and (',
+     "    if _URL.search(cuerpo) and (",
      "los anuncios no son lectura y los enlaces no salen en el gancho", "pruebas_corpus.py"),
     # S1, M1, M3 y D1 de la misma auditoría, y la atribución sin cuerpo (SWV137935).
     ("C5-atribucion-sin-cuerpo", "app/ficha.py",

@@ -67,13 +67,31 @@ ANUNCIOS_REVISADOS = {
 }
 
 
-def motivo_no_lectura(texto: str, diccionario: set[str], pid: str = "") -> str | None:
+# Solo en StoryWeaver, donde cualquiera sube un libro: Let's Read, African Storybook y
+# VOA son colecciones editadas, y un enlace ahí es de la editorial («www.bilumbooks.com»
+# en los libros de Bilum Books). Y un enlace institucional (.org, .int, .gov, .edu) no
+# cuenta: la OMS o UNICEF citados en un cuento sobre el asma o sobre los derechos. La
+# primera pasada del 15 sep 2026, sin estas dos condiciones, marcó 41 textos y 29 eran
+# buenos (24 de Bilum Books).
+_INSTITUCIONAL = re.compile(r"(?i)\.(org|int|gov|edu)(\.[a-z]{2})?$|\.(ac|edu|gov)\.[a-z]{2}$")
+
+
+def _enlace_comercial(cuerpo: str) -> bool:
+    for url in _URL.findall(cuerpo):
+        host = re.sub(r"(?i)^(https?://)?(www\.)?", "", url).split("/")[0].split("?")[0]
+        if not _INSTITUCIONAL.search(host.lower().rstrip(".,;:)!»\"'")):
+            return True
+    return False
+
+
+def motivo_no_lectura(texto: str, diccionario: set[str], pid: str = "",
+                      fuente: str = "storyweaver") -> str | None:
     """Por qué un texto servido no es lectura en inglés, o None si lo es.
     `texto` es el de corpus_abierto.parquet: la atribución final no cuenta."""
     if str(pid or "").strip().upper() in ANUNCIOS_REVISADOS:
         return "anuncio (revisado a mano)"
     cuerpo = ficha.para_medir(str(texto or ""))
-    if _URL.search(cuerpo) and (_LLAMADA.search(cuerpo) or len(_URL.sub(" ", cuerpo).split()) <= MAX_PALABRAS_ENLACE):
+    if fuente == "storyweaver" and _enlace_comercial(cuerpo) and (_LLAMADA.search(cuerpo) or len(_URL.sub(" ", cuerpo).split()) <= MAX_PALABRAS_ENLACE):
         return "anuncio o enlace comercial"
     palabras = [w.lower() for w in _PALABRA.findall(cuerpo)]
     distintas = len(set(palabras))
@@ -97,7 +115,7 @@ def main() -> None:
     textos = pd.read_parquet(TEXTOS).set_index("id")["texto"]
     filas = []
     for pid, fuente in zip(externo["id"], externo["fuente"]):
-        motivo = motivo_no_lectura(textos.get(pid, ""), diccionario, pid)
+        motivo = motivo_no_lectura(textos.get(pid, ""), diccionario, pid, fuente)
         if motivo:
             filas.append({"id": pid, "fuente": fuente, "motivo": motivo})
     tabla = pd.DataFrame(filas, columns=["id", "fuente", "motivo"]).sort_values("id")
