@@ -245,3 +245,27 @@ Ensayo de la demo sin cuenta (e6, faee509), front 73a34dd y API af72fb0, a 390 p
   - «Don't you want to come with us?» con la lectura natural;
   - que la palabra aparezca en «Mis palabras»;
   - la demo entera cronometrada.
+
+Reinicio 21 subido (f4): Space 384a206, --commit ef1138c.
+- **Qué entra:** 7c9c289, los datos de 740eb84 y ef1138c. Este último hace que el nombre entero del autor solo cuente con dos palabras o más, porque sin él «rosa» traía libros de un colaborador apellidado «de la Rosa». La batería lo cazó antes de subir.
+- **Comprobado:** «Jane Austen» abre con su obra, «rosa» trae los títulos con Rosa, «amor» con B1 da 12 de 12, SWV991 pasa a A2 y APOCALYPTO no sale.
+- **Queda:** con B1 y el ajuste de nivel, «Jane Austen» abre con la adaptación de MacKaye.
+
+**Serio en producción (4e, 54d6591), fallo de coordinación de la central.**
+- **El fallo:** la regla «un apellido suelto no puntúa si la consulta trae otro nombre» usa 24.296 palabras del campo de autor, como island, love, white o wild. Así apaga al autor cuando la consulta mezcla autor y título.
+- **Casos medidos:** «treasure island stevenson» baja Treasure Island al 5.º puesto. Con «love poems by browning», «the secret garden frances hodgson burnett» y «white fang jack london», el autor desaparece de los 10 primeros.
+- **Por qué subió:** 4e avisó a la central antes de la subida, pero el aviso no llegó a f4 a tiempo.
+- **Arreglo:** va en el reinicio 22, primero y solo, junto con el anuncio de venta de GHB (SWV644124) que seguía visible.
+
+**Menores de 4e para el reinicio 23:**
+- **Bloques:** un bloque de 3 con dos raros marca mal el texto normal, y la marca de raro queda obsoleta al unir la cola.
+- **Idioma:** 42 textos que no están en inglés siguen visibles.
+- **Duda sobre la formación de bloques:** dos grupos que suben de A2 a B2.
+- **Recuento corregido:** suben 42 y bajan 183.
+
+Front b76ca59 (e6, 88b3a83):
+- **Modelos 3D:** cara.glb y lengua.glb se bajan una vez por página (2 peticiones en 6 aperturas, antes 12), y la primera cara tarda 1,9 s, antes 4,3 s.
+- **Chip:** «Detectives en Londres» pasa a «Detectives».
+- **Pruebas:** casos de borde exactos, con 7 mutantes detectados.
+- **Pendiente:** otros cuatro chips no dan nada de nivel A1–B1 y se cambian (e6).
+- **«cap. 1» del prefacio:** viene de la API y va al 23 (f4).

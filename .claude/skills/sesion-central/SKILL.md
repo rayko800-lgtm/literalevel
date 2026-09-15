@@ -327,3 +327,18 @@ sesión «que sí pueda»: eso es rodear el permiso.
   a la sesión si sus normas lo permiten, o encárgalo sin esa parte.
 - Lo que solo se puede probar con cuenta lo prueba Miguel, o se le pide a él
   el permiso en un `AskUserQuestion`, para esa sesión concreta.
+
+## 11. Un aviso de parada va directo a quien despliega
+
+Madrugada del 15 sep: la central pidió a 4e que auditara el código del
+reinicio 21 antes de subirlo y que «si encuentras un serio, avísame para parar
+la subida». 4e lo encontró y avisó a la central, que estaba en medio de otras
+herramientas; la desplegadora no recibió nada, pasó sus pruebas y subió. El
+Space quedó con una regresión («treasure island stevenson» sin Stevenson).
+
+- La orden de parar la da **el auditor a la desplegadora directamente**, con
+  la central en copia. La central no puede ser un relevo en un camino urgente:
+  sus mensajes solo salen entre llamadas a herramientas.
+- A la desplegadora se le dice lo mismo: «si 4e te escribe un serio, no subas».
+- Una auditoría previa y una subida en paralelo solo valen si la subida espera
+  el informe o un plazo pactado **con los dos**.
