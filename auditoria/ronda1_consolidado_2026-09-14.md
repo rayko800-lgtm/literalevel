@@ -624,3 +624,10 @@ Comprobación del reinicio 26, autorizada por la central: dos llamadas de pago d
 - **Primero /api/voz:** tiene que salir `uso_devuelto` true y los usos quedarse en 17.
 - **Después Gradio, con gradio_client** (`/_entrar` y `/_practicar` en la misma sesión): tiene que decir «No te oí» y devolver el uso. Solo se hace si /api/voz sale bien.
 - **Coste:** solo whisper, unos céntimos. La contraseña va en una variable y no se imprime nada del archivo. Los usos de antes y después quedan en DESPLIEGUE.md.
+
+Prueba final a 390 px del front publicado 83520e2 (e6):
+- **Tu nivel:** con la receta B2 se guarda solo en 0,5 s y dice «Lees en inglés a nivel B2», sin «Me vale así».
+- **Pronunciar:** sale en el orden de la propuesta A, «🐢 Despacio · activado» se ve con estilo, y tras corregir la barra dice «Grabar otra vez».
+- **api.py del 26 (41e7e6d):** e6 le dio el ok.
+- **Gradio:** la devolución está escrita, con prueba y 3 mutantes C14, a falta del hash.
+- **Front para después del 26:** 51cda13, «Este intento no cuenta.», con visto bueno corto de 4e.
