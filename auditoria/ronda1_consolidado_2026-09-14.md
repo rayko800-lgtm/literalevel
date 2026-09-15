@@ -362,3 +362,9 @@ Constantes del reinicio 23, aprobadas por la central (f4; calibradas con dragone
 - **Rareza de «familia»:** era el rescate por título con parecido de letras («familia» ≈ «familiar», 0,93). Se exigen palabras enteras en el título, y el parecido de letras se queda solo para apellidos.
 - **Reparto:** se parte en dos reinicios. El 23 lleva solo la recuperación por franja y el rescate por título. El 24 lleva autores clásicos, biografías, «Jane Austen» con B1, «luna» y «rosa», los 89 títulos, los textos que no están en inglés, titulo_capitulo y los menores de bloques.
 - **Reinicio 22:** 11 de 12 mutantes detectados. no_lectura pasa a 203.
+
+Reinicio 22 con commit (f4): código 8b259c5 y datos 9dcd867.
+- **Pruebas:** mutantes C8, C9 y C10, 12 de 12 detectados. corpus 41/41 y api 58/58.
+- **Datos:** no_lectura pasa a 203, con GHB, metanfetamina y un artículo SEO, tras revisar 29 cuentas de StoryWeaver.
+- **Pendiente:** el visto bueno de 4e (catalogo.py y datos) y de e6 (api.py), y el árbol limpio en D:.
+- **Front del 23 (e6):** cde661b recibió el «ok» de 4e.
