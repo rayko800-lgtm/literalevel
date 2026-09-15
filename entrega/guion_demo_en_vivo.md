@@ -94,10 +94,13 @@ que dice el **Plan B** para ese paso.
    grabar la demo. La aplicación descarta la grabación cuando whisper da, en
    todos sus trozos, más de 0,6 de probabilidad de que no haya voz; la voz más
    baja que se probó, sintética, dio 0,503.
-8. **Calentar el buscador antes de compartir pantalla:** haz una búsqueda en
+8. **Calentar el buscador antes de compartir pantalla:** si el Space acaba de
+   reiniciarse, espera medio minuto; después haz una búsqueda de prueba en
    *Encontrar* con tu perfil ya guardado y espera a que salgan las tarjetas.
-   Tras un reinicio del Space, la primera búsqueda con nivel tardó 18,6 s y las
-   siguientes 0,6 s (Space del reinicio 25, 15 de septiembre).
+   Tras un reinicio, el buscador tarda unos 30 s en quedar listo (catálogo 4,6 s
+   y modelo con los títulos unos 25 s; una búsqueda lanzada a los 5 s esperó
+   22,1 s y respondió bien). Después, cada búsqueda con nivel tarda de 0,7 a
+   0,9 s (Space del reinicio 26, 15 de septiembre, medido por f4).
 
 ---
 
@@ -135,9 +138,10 @@ orientativa.»
 **2. Encontrar (1:00 – 1:25)**
 
 **Hace:** *Encontrar*. Escribe «cuentos de dragones». Con el perfil de 1,20,
-«En tu nivel» abre con cuentos de licencia libre: 13 de sus 14 tarjetas en el
-Space del reinicio 21 (15 de septiembre). Con «una novela de detectives
-victoriana» no sale ninguno.
+«En tu nivel» abre con cuentos de licencia libre: 19 de sus 20 tarjetas en la
+página publicada con el reinicio 25 (15 de septiembre, medido a 390 px). Con
+«una novela de detectives victoriana» no sale ningún cuento libre: en «En tu
+nivel» salen 3 libros, los tres de Gutenberg.
 
 **Dice:** «Busco en español y me devuelve libros por significado, con su nivel
 al lado. Y entre los clásicos salen cuentos de licencia libre, que es donde está
