@@ -636,3 +636,15 @@ Corrección de 4e a la receta B2 de la demo: la sexta respuesta no aguanta un de
 - **El fallo:** «Capto bien la idea» en la sexta da 1,46, que ya es C1. B2 llega hasta 1,399, porque la letra es floor(nivel × 2,5 + 0,5).
 - **Resto de despistes:** cualquier otra respuesta cambiada a la opción de al lado da entre 1,07 y 1,27, que sigue siendo B2.
 - **En los guiones:** la receta dirá «en la sexta no elijas "Capto bien la idea"».
+
+Reinicio 26, a punto de subir desde 49a8e4d (f4):
+- **Qué lleva:** la precarga y la devolución (41e7e6d), los seis commits de voz y Gradio, y la devolución en Gradio de e6.
+- **Qué sube, según el primer --seco:** ui.py, voz.py, cuentas.py y api.py; catalogo.py sale igual.
+- **Vistos buenos:** 4e a cuentas.py y e6 a api.py. El ui.py de e6 aún no lo había revisado nadie, así que la central pidió un visto bueno corto de 4e antes de subir.
+- **Orden:**
+  1. los bancos C12, C13 y C14;
+  2. el árbol limpio, de uno en uno por la memoria;
+  3. la subida;
+  4. la comprobación de la precarga;
+  5. las dos pruebas de pago de silencio, primero /api/voz y después Gradio;
+  6. el registro del Space, el segundo --seco y la fila de DESPLIEGUE.
