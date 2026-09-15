@@ -76,6 +76,23 @@ de Esmeralda**, y ampliar el catálogo no lo arreglaría: en las fuentes libres
 que usamos solo quedan unos pocos cuentos nuevos, casi todos en StoryWeaver.
 El arreglo es buscar también dentro del nivel del lector, en el reinicio 25.
 
+## Esmeralda probó la versión nueva
+
+Nota de voz del 15 de septiembre por la madrugada. Le gusta mucho más que la
+primera vez: «ya es más fácil de usar y aparte ya lo disfrutas más… ya no
+siento que estoy haciendo un trabajo de informática». Le encantaron las
+paletas, las portadas, los ajustes y poder subir su libro. Tres cosas no:
+
+1. **Poca variedad en su nivel.** Es el fallo de búsqueda de esta noche; lo
+   arregla el reinicio 25.
+2. **Las preguntas de Tu nivel.** Después de las preguntas se le ofrece afinar
+   con otras, y cree que debería darle el nivel directamente.
+3. **Pronunciar.** Se perdió en la corrección y en «más lento», y volvió a
+   decir «a lo mejor yo soy muy tonta».
+
+e6 recorre esas dos pantallas como alguien que llega sin saber nada y prepara
+propuestas con esquema para que Miguel elija antes de programar.
+
 ## Un incidente con una contraseña
 
 A las 04:30, al preparar la prueba con invitado8, una sesión miró el formato
