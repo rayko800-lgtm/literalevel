@@ -269,3 +269,8 @@ Front b76ca59 (e6, 88b3a83):
 - **Pruebas:** casos de borde exactos, con 7 mutantes detectados.
 - **Pendiente:** otros cuatro chips no dan nada de nivel A1–B1 y se cambian (e6).
 - **«cap. 1» del prefacio:** viene de la API y va al 23 (f4).
+
+Reinicio 22 en preparación (f4). Lleva solo el arreglo del serio del vocabulario de nombres y el anuncio SWV644124.
+- **Idea:** una palabra del campo de autor cuenta como nombre solo si el diccionario la tiene únicamente como nombre propio, o no la tiene.
+- **Visto bueno previo:** 4e lo da directamente a f4 antes de subir, con sus 5 consultas y la batería entera. f4 no sube sin ese «ok».
+- **Reinicio 23:** los tres menores de subidas, que ya están probados con pruebas_api 58/58, los autores clásicos y el resto.
