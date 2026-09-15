@@ -629,14 +629,22 @@ export interface OpcionesEscena {
 }
 
 export class EscenaBoca {
-  /** Hay WebGL en este navegador (o en este entorno de pruebas). */
+  private static webgl: boolean | null = null;
+
+  /** Hay WebGL en este navegador (o en este entorno de pruebas). Se prueba una
+   *  vez por página y el contexto de prueba se suelta: antes cada apertura del
+   *  visor abría uno más, 20 contextos en diez aperturas (auditoría de 4e, ronda 2). */
   static hayWebGL(): boolean {
+    if (EscenaBoca.webgl !== null) return EscenaBoca.webgl;
     try {
       const c = document.createElement('canvas');
-      return !!(c.getContext('webgl2') || c.getContext('webgl'));
+      const gl = (c.getContext('webgl2') || c.getContext('webgl')) as WebGLRenderingContext | null;
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      EscenaBoca.webgl = !!gl;
     } catch {
-      return false;
+      EscenaBoca.webgl = false;
     }
+    return EscenaBoca.webgl;
   }
 
   readonly canvas: HTMLCanvasElement;
@@ -644,6 +652,8 @@ export class EscenaBoca {
   private readonly escena = new THREE.Scene();
   private readonly camara: THREE.PerspectiveCamera;
   private readonly controles: OrbitControls;
+  /** La raíz donde OrbitControls colgó su keydown al construir (ver el constructor). */
+  private readonly raiz: Node;
   private readonly mandibula = new THREE.Group();
   private readonly velo = new THREE.Group();
   private readonly labioSup: THREE.Mesh;
@@ -729,6 +739,10 @@ export class EscenaBoca {
     this.camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
     this.camara.position.set(0.3, 0.9, 10.5);
     this.controles = new OrbitControls(this.camara, this.canvas);
+    // OrbitControls cuelga un keydown de `canvas.getRootNode()` (el document) y al
+    // soltarse vuelve a pedirlo; si el visor ya salió del documento, lo quita de otro
+    // sitio y el document retiene controles, canvas y escena. Se guarda aquí.
+    this.raiz = this.canvas.getRootNode();
     this.controles.target.set(0.1, 0.05, 0);
     this.controles.enableZoom = false;
     this.controles.enablePan = false;
@@ -1237,20 +1251,35 @@ export class EscenaBoca {
   }
 
   destruir(): void {
+    if (!this.vivo) return;
     this.vivo = false;
     cancelAnimationFrame(this.rafId);
     this.observador?.disconnect();
+    // El keydown de OrbitControls, quitado de la raíz donde se puso: `dispose` lo
+    // busca en `getRootNode()`, que con el visor ya fuera del documento es otro nodo,
+    // y el document retenía la escena entera (10 cierres, 10 escenas vivas; 4e, ronda 2).
+    const tecla = (this.controles as unknown as { _interceptControlDown?: EventListener })._interceptControlDown;
+    if (tecla) this.raiz.removeEventListener('keydown', tecla, { capture: true });
     this.controles.dispose();
+    const texturas = new Set<THREE.Texture>();
     this.escena.traverse(o => {
       if (o instanceof THREE.Mesh) {
         o.geometry.dispose();
-        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+          // `material.dispose` no suelta sus mapas: se recogen y se sueltan una vez.
+          for (const valor of Object.values(m)) if (valor instanceof THREE.Texture) texturas.add(valor);
+          m.dispose();
+        }
       }
     });
+    texturas.forEach(t => t.dispose());
     this.papilas?.dispose();
     this.hueso?.dispose();
     this.escena.environment?.dispose();
+    this.luzPrincipal.shadow.dispose();
+    this.escena.clear();
     this.renderer.dispose();
+    this.renderer.forceContextLoss();
     this.canvas.remove();
   }
 
