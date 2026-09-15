@@ -387,3 +387,10 @@ Visto bueno de 4e al reinicio 22 (f79b562, ronda3_2026-09-15_reinicio22.md): ok.
 - **Sin regresiones:** «amor» con B1 sin Fenn, «rosa» con los títulos de Rosa primero y los anuncios de drogas fuera. La batería da lo mismo que en local.
 - **Único fallo del comprobador:** «Jane Austen» con B1 abre con la adaptación de MacKaye, en la que Austen es coautora. Es el caso conocido del 24.
 - **Siguiente, el 23:** el segundo top-k solo se activa desde /api/buscar; la búsqueda de Gradio no cambia.
+
+Ronda 3 de voz (e6, b152637), sobre 2c0e681 en el Space 62a5373:
+- **Cerrados:** la IPA en ASCII, y las abreviaturas Mr., Mrs., Ms. y Dr.
+- **A medias: la grabación en silencio.** Ya no guarda nada, pero sigue llamando a explicar_correccion. Es una llamada de pago por grabación, con una corrección de palabras que nadie dijo. Además, «...» cuenta como oída.
+- **Abierto:** «St.» conserva un enlace entre dos frases.
+- **Dudas que siguen abiertas:** «going to work» → gonna, y el emparejado por orden.
+- **Arreglos:** los hace 4e con el visto bueno de e6. voz.py sube en el siguiente reinicio que llegue a tiempo.
