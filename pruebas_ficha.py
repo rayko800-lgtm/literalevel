@@ -82,6 +82,23 @@ comprobar("la frase media es un numero de palabras creible",
 comprobar("la riqueza esta entre 0 y 1", 0 < cn.riqueza <= 1, str(cn.riqueza))
 
 
+print("Ficha: lo que mas se repite")
+
+# El cuento de Kian (SWV4008): lo unico repetido 8 veces era el nombre del hada.
+CUENTO = ("Kian was a little fairy. Rain fell and Kian ran. Kian found a leaf. "
+          "A lizard met Kian. Kian felt warm. Glow worms greeted Kian. Kian smiled. "
+          "Morning came for Kian.")
+NOVELA = ("Kian walked to the river. The river was cold, and Kian waited by the river "
+          "until the boat came. ") * 4
+solo_nombres = ficha.caracteristicas(Lib("Kian", "A", [Cap("I", CUENTO)]))
+con_palabras = ficha.caracteristicas(Lib("Rio", "A", [Cap("I", NOVELA)]))
+comprobar("si solo se repiten nombres propios, no hay palabras que ensenar",
+          solo_nombres.distintivas == [], str(solo_nombres.distintivas))
+comprobar("un nombre junto a palabras corrientes se queda",
+          "kian" in con_palabras.distintivas and "river" in con_palabras.distintivas,
+          str(con_palabras.distintivas))
+
+
 print("Ficha: la licencia de Gutenberg")
 
 con_licencia = Lib("Con licencia", "A",

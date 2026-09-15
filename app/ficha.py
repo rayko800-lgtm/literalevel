@@ -332,6 +332,14 @@ def caracteristicas(libro) -> Caracteristicas:
     # y los lugares, que es justo lo que uno quiere ver de un vistazo.
     distintivas = [p for p, n in sorted(cuenta.items(), key=lambda kv: -kv[1])
                    if n >= 8][:12]
+    # Pero si SOLO quedan nombres, la lista no dice nada del texto: en un cuento
+    # corto de StoryWeaver salia «kian» y nada mas (Miguel, reinicio 27). Nombre
+    # es lo que nunca aparece empezando en minuscula; un nombre junto a palabras
+    # corrientes se queda, que en una novela es lo que se quiere ver.
+    en_minuscula = {t.lower().replace("’", "'") for t in _PALABRA_RE.findall(texto)
+                    if len(t) >= 3 and t[0].islower()}
+    if not any(p in en_minuscula for p in distintivas):
+        distintivas = []
 
     return Caracteristicas(
         palabras=palabras_total, capitulos=len(libro.capitulos),

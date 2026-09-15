@@ -122,7 +122,11 @@ import { Sesion } from '../nucleo/sesion';
             <div>
               <h2>Dificultad capítulo a capítulo</h2>
               @if (curva(); as cv) {
-                @if (cv.filas.length) {
+                @if (cv.filas.length === 1) {
+                  <!-- Con una sola medida no hay tendencia ni «más llevadero» que decir: la API
+                       calcula la forma con la segunda mitad vacía y salía «Se va soltando». -->
+                  <p class="suave un-capitulo">Es un texto de un solo capítulo, así que no hay curva que dibujar: su dificultad es {{ num(cv.filas[0].dificultad) }} ({{ cefr(cv.filas[0].dificultad) }}).</p>
+                } @else if (cv.filas.length) {
                   <p class="suave">
                     @switch (cv.forma) {
                       @case ('se_complica') { Se va complicando: la segunda mitad es más dura que la primera. }
@@ -152,11 +156,11 @@ import { Sesion } from '../nucleo/sesion';
               }
             </div>
           } @else if (curva(); as cv) {
-            @if (cv.filas.length) {
+            @if (cv.filas.length > 1) {
               <app-curva [filas]="cv.filas" [nivelLector]="perfil()?.nivel ?? null" [actual]="enEstanteria()?.capitulo ?? null"
                          (elegir)="leer($event)" />
               <p class="tenue pequeno">Toca un punto para leer ese capítulo.{{ perfil() ? ' La línea verde es tu nivel.' : '' }}</p>
-            } @else {
+            } @else if (!cv.filas.length) {
               <p class="suave">Este libro todavía no está medido. El modelo lo lee y dibuja cómo sube y baja la dificultad.</p>
             }
             @if (cv.fuente !== 'completo') {

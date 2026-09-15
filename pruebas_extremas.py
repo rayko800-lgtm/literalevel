@@ -1151,11 +1151,30 @@ prueba("analizar libro sin capitulos",
 prueba("analizar libro sin prosa suficiente",
        lambda: list(ui._analizar_libro(
            reader.Libro("t", "a", [reader.Capitulo("I", "corto")])))[-1][0][:40])
-prueba("resumen de un solo capitulo",
-       lambda: ui._resumen_analisis(
-           {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 1,
-            "filas": [{"capitulo": 1, "dificultad": 1.0, "titulo": "I",
-                       "ventanas": 1}]})[:40])
+def _resumen_de_uno_y_de_dos_capitulos():
+    """Reinicio 27 (Miguel en el movil, el cuento de Kian): con un capitulo la
+    segunda mitad quedaba vacia, contaba como 0 y el resumen decia «se va
+    soltando», con el capitulo 1 como el mas llevadero y el mas exigente a la
+    vez; y la grafica de lineas con un solo punto salia vacia. Con dos
+    capitulos todo sigue como antes."""
+    def datos(*difs):
+        return {"titulo": "t", "autor": "", "palabras": 100, "ventanas": len(difs),
+                "filas": [{"capitulo": i + 1, "dificultad": d, "titulo": f"C{i + 1}",
+                           "ventanas": 1} for i, d in enumerate(difs)]}
+    uno = ui._resumen_analisis(datos(1.0))
+    assert "un solo capítulo" in uno, uno
+    for sobra in ("soltando", "complicando", "parejo", "llevadero", "exigente"):
+        assert sobra not in uno, f"con un capitulo dice «{sobra}»: {uno}"
+    dos = ui._resumen_analisis(datos(1.4, 1.0))
+    assert "se va soltando" in dos and "un solo capítulo" not in dos, dos
+    assert "Lo más llevadero: **capítulo 2**" in dos and "Lo más exigente: **capítulo 1**" in dos, dos
+    trazo = ui._grafica_analisis(datos(1.0)).data[0]
+    assert trazo.mode == "markers", f"un capitulo se pinta con {trazo.mode!r}: no se ve"
+    assert ui._grafica_analisis(datos(1.4, 1.0)).data[0].mode == "lines"
+    return "uno: sin tendencia y con punto; dos: tendencia y linea"
+
+
+prueba("resumen de un solo capitulo", _resumen_de_uno_y_de_dos_capitulos)
 prueba("resumen en modo rapido lo dice",
        lambda: "vistazo rápido" in ui._resumen_analisis(
            {"titulo": "t", "autor": "", "palabras": 100, "ventanas": 60,

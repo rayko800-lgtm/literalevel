@@ -35,6 +35,10 @@ interface Punto { x: number; y: number; fila: FilaCurva; }
           } @else {
             <path class="linea" [attr.d]="linea(puntos())" />
           }
+          @if (puntos().length === 1) {
+            <!-- Un trazo de un solo punto no pinta nada: se ve el dato como un círculo. -->
+            <circle class="punto unico" [attr.cx]="puntos()[0].x" [attr.cy]="puntos()[0].y" r="5" />
+          }
           @if (nivelY() !== null) {
             <line class="tu-nivel" [attr.x1]="m.i" [attr.x2]="ancho() - m.d" [attr.y1]="nivelY()" [attr.y2]="nivelY()" />
             <text class="etiqueta-nivel" [attr.x]="ancho() - m.d" [attr.y]="nivelY()! - 6" text-anchor="end">tu nivel</text>

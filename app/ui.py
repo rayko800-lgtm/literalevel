@@ -2793,9 +2793,13 @@ def _grafica_analisis(datos, paleta: str = None):
     c_borde, c_fondo = v["--ll-borde"], v["--ll-fondo"]
 
     fig = go.Figure()
+    # Un trazo de lineas con un solo punto no pinta nada (el cuento de Kian salio
+    # con la grafica vacia): con un capitulo, el dato va como un punto visible.
+    solo = len(y) == 1
     fig.add_trace(go.Scatter(
-        x=x, y=y, mode="lines", name="capítulo a capítulo",
-        line=dict(color=c_acento, width=1), opacity=0.35,
+        x=x, y=y, mode="markers" if solo else "lines", name="capítulo a capítulo",
+        line=dict(color=c_acento, width=1), opacity=1 if solo else 0.35,
+        marker=dict(color=c_acento, size=10),
         customdata=titulos,
         hovertemplate="Capítulo %{x}<br>%{customdata}<br>"
                       "<b>%{y:.2f}</b> / 2.00<extra></extra>"))
@@ -2859,7 +2863,11 @@ def _resumen_analisis(datos, como="cifra") -> str:
     mitad = len(medias) // 2 or 1
     principio = sum(medias[:mitad]) / mitad
     final = sum(medias[mitad:]) / max(1, len(medias) - mitad)
-    if final - principio > 0.12:
+    if len(filas) == 1:
+        # Con un solo capitulo la segunda mitad esta vacia, `final` vale 0 y salia
+        # «se va soltando»; «lo mas llevadero» y «lo mas exigente» eran el mismo.
+        forma = "es un texto de **un solo capítulo**: no tiene curva que dibujar"
+    elif final - principio > 0.12:
         forma = "**se va complicando**: la segunda mitad es más dura que la primera"
     elif principio - final > 0.12:
         forma = "**se va soltando**: cuesta más al principio que al final"
@@ -2885,13 +2893,15 @@ def _resumen_analisis(datos, como="cifra") -> str:
         f"### {datos['titulo']}" + (f" — {datos['autor']}" if datos["autor"] else "")
         + f"\n\n{_nivel_dicho(global_, scoring.public_band(global_), como)} "
           f"de media, {detalle}\n\n"
-        + f"El libro {forma}.\n\n"
-        + f"- Lo más llevadero: **capítulo {facil['capitulo']}** "
-          f"({facil['titulo']}) con {facil['dificultad']:.2f}\n"
-        + f"- Lo más exigente: **capítulo {dificil['capitulo']}** "
-          f"({dificil['titulo']}) con {dificil['dificultad']:.2f}\n"
-        + f"- Recorrido de dificultad entre capítulos: "
-          f"{min(medias):.2f} a {max(medias):.2f}")
+        + f"El libro {forma}."
+        + ("" if len(filas) == 1 else
+           "\n\n"
+           + f"- Lo más llevadero: **capítulo {facil['capitulo']}** "
+             f"({facil['titulo']}) con {facil['dificultad']:.2f}\n"
+           + f"- Lo más exigente: **capítulo {dificil['capitulo']}** "
+             f"({dificil['titulo']}) con {dificil['dificultad']:.2f}\n"
+           + f"- Recorrido de dificultad entre capítulos: "
+             f"{min(medias):.2f} a {max(medias):.2f}"))
 
 
 # Abreviaturas que llevan punto y NO acaban la frase. `scoring.SENT_RE`
