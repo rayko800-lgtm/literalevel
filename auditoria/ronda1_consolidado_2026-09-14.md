@@ -1158,3 +1158,11 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - **Criterio corregido antes del commit, por escrito:** el escrito era «ningún top 10 cambia». «mystery» sin perfil intercambia los puestos 7↔8 (PG34933 y PG27722, empatados a 0,857000; en crudo, menos de 1e-6). Queda: el top 10 no cambia de conjunto y solo se admite intercambiar ids empatados a 6 decimales.
   - Motivo: el redondeo es el objetivo del 30b, que el Space y el local ordenen igual.
 - Tras el despliegue, e6 repite en el front el paso 3, «granja», «dragones» y «mystery».
+
+**30b, antes del despliegue** (escrito por la Central, pasado a f4):
+- Parche en local, corpus 48/48; banco C24 con 3 mutantes en marcha.
+- **Criterio de marcha atrás, escrito antes de desplegar.** Se vuelve al 28 (62e5a06) si en el Space:
+  - PG2554 deja de ir primero fuera de la franja en el paso 3 con 1,20;
+  - «granja» o «dragones» con 1,20 cambian de conjunto o de marcas;
+  - alguna lista cambia de marcas o de longitud frente al 28.
+- **No se vuelve atrás, se informa,** si el Space y la medida local solo difieren en el orden de empates a 6 decimales.
