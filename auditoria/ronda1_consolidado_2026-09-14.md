@@ -151,3 +151,12 @@ Prueba como persona sobre el Space nuevo (e6, 1b42172, 390 px táctil, perfil B1
   - Cuesta unos 13 minutos de CPU y no cambia el índice de búsqueda.
   - Va al reinicio 21, junto con lo de «Jane Austen».
 - Disco: se borraron 1.567 carpetas de pruebas de más de 3 horas en C:. Siguen apareciendo cuando se mata una suite antes de acabar.
+
+Pasada de documentos (4e, 13ad84a, PDF recompilados):
+- **Coste de cómputo, lo que consta:** A100 de pago en Colab Pro hasta el 10 sep, con 27.776 libros medidos. Desde entonces, T4 gratuita y textos libres en la CPU local.
+- No se da cifra en dólares porque no quedaron registradas las unidades gastadas. Las «2,8 h» eran una estimación, no horas gastadas.
+- Cerrados los menores de la ronda 2: la fila del Cuadro 10 ya dice «Validación interna», 14,5 h para los 53.179 libros, Cuadro 2 con fecha, la casilla vieja de Encontrar fuera de los guiones, cabecera del README y cita de _cefr.
+- Cifras sincronizadas: 15.367 textos libres, 68.546 en total y tablas de suites al día. El reinicio 21 cambiará el reparto por nivel de los libres, y habrá que recontarlo.
+- Carpetas huérfanas de pruebas: cb17bca borra al empezar las de más de 3 horas.
+
+Ronda 3 empezada: 4e audita la búsqueda del reinicio 19 y la boca 3D publicada.
