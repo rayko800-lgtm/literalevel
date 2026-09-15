@@ -1013,3 +1013,15 @@ i7 en preparación (f4, sobre el catalogo.py del 28): el título no cuenta si ca
 - **Aviso:** «Jane Austen» tiene dos palabras y sus marcas vienen del índice, así que i7 no las quitará.
 
 Menor del micrófono cerrado (e6, e3f80e4, con el ok de 4e): si alguien sale de Pronunciar con el permiso pendiente y lo concede después, el micrófono se suelta y no graba. Prueba y mutante, ng test 105/105. Se publica ya, sin esperar a otra publicación.
+
+Informe de ayuda para alguien nuevo (e6, ca604e4, auditoria/ismael_ayuda_2026-09-15.md).
+- **Dónde se pierde:** 11 puntos. Los más graves:
+  - «Entrar» abre Ajustes por arriba y «Tu perfil» queda fuera de la pantalla;
+  - el icono de Ajustes no tiene texto;
+  - la tarjeta «Mídeme» de Inicio promete una estimación que ya no existe.
+- **Dos formas de ayuda:**
+  - (A) una bienvenida de 4 pasos;
+  - (B) una línea de ayuda por pantalla con «?», que e6 recomienda porque no añade pasos a quien ya sabe.
+- **Saturación medida:** casi todas las pantallas enseñan la primera acción sin scroll. Satura en cuatro sitios: el lector la primera vez, con dos avisos y dos líneas de libro; Pronunciar, con 46 palabras antes de la caja; la ficha, con el Índice a 1,9 pantallas; y Ajustes, con «Tu perfil» en sexto lugar.
+- **Recortes:** una tabla con qué acortar o plegar en cada pantalla.
+- **Decide Miguel:** A, B o las dos; los tres arreglos; y los recortes.
