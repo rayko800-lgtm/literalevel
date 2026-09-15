@@ -98,7 +98,7 @@ Sondeo de `/api/salud` cada ~3 s durante 90 s desde que la API de Hugging Face d
 
 **Resultados:**
 - **Palabras corrientes:** london, hope, king, school, brown y castle, sin perfil y con B1, dan **exactamente el mismo top 10 del 26, en el mismo orden** (12 de 12 listas).
-- **«rose»:** la línea base de f4 no la trae, porque su lista usa «rosa». En el 28, sin perfil, tiene 10 de 10 con «rose» en el título y 0 de autor; con B1, 6 de título y 4 de autor (cuentos libres de autoras con ese nombre). Queda pendiente compararla con el 26 cuando f4 añada «rose|None» y «rose|0.8».
+- **«rose»:** f4 la añadió a la línea base del 26 en `5a2fc04` (200 listas). En el Space del 28, sin perfil y con B1, da **el mismo top 10 que el 26 y en el mismo orden**. Sin perfil, 10 de 10 llevan «rose» en el título; con B1, 6 son de título y 4 de autoras con ese nombre, igual que en el 26.
 - **Clásicos:** siguen bien. cervantes, dante, moliere y agatha christie abren con sus obras, sin perfil y con B1, igual que en el 27.
 - **Austen:** «Jane Austen» con B1 abre con *The Watsons*, *Emma* y *Love and Freindship*, como en el 27. Sin perfil queda igual que en el 26.
 - **tolstoy:** vuelve al top 10 del 26 (10 de 10, con y sin perfil). Sin perfil abre otra vez con «My Visit to Tolstoy», como aceptó la Central.
