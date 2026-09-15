@@ -437,3 +437,9 @@ porque el permiso es de esa sesión.
   e6 antes de hacerlo en el de f4. Las dos sesiones hicieron bien en no
   aplicarlo y en decirle dónde iba. La tercera vez, con «abre el chat
   **entrega-f4**, escribe "Vuelve el Space al 28" y aprueba el permiso», salió.
+- **Volver atrás el Space no vuelve atrás el repositorio.** Tras subir el
+  catalogo.py del 28, HEAD seguía teniendo el del 29, y el siguiente despliegue
+  desde HEAD lo habría vuelto a publicar. La desplegadora lo revirtió con un
+  commit (`git apply -R`, rutas explícitas). Tras cualquier vuelta atrás,
+  comprobar con `git diff <commit subido> HEAD -- <archivo>` que HEAD coincide
+  con lo que corre.

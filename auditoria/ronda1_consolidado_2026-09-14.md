@@ -1095,3 +1095,5 @@ Visto bueno de 4e a la bienvenida (13a730e): ok, con dos textos a cambiar antes 
 - **Paso 1:** «para que elijas uno que puedas terminar» pasa a «uno a tu medida».
 - **Lo que está bien:** solo en Inicio, nunca sobre enlaces directos, entera a 390 px, «Saltar» y Escape guardan la marca, funciona sin cuenta, y «Solo quiero leer» abre Alice.
 - **Menor:** la tarjeta no retiene el foco con Tab. e6 lo cierra si sale barato.
+
+f4 revierte i4 en el repositorio (3345ba9): el Space volvió al 28, pero HEAD seguía llevando i4 en catalogo.py, pruebas_corpus.py y banco_mutantes.py, y el siguiente despliegue lo habría subido otra vez. Los tres archivos quedan iguales a b896b1f, y el código de i4 se conserva en 7e2b861.
