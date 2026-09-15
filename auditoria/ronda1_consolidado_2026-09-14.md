@@ -99,6 +99,25 @@ persona del front `45d9999` (f4).
   diccionario y los modelos 3D cuadran.
 - Las 18 suites de pruebas pasan.
 
+## Estado de cierre (15 sep, 01:00)
+
+| Serio | Qué | Commit | En producción |
+|---|---|---|---|
+| 1 | Voz y subidas congelaban el servidor | 31325a4 (f4) | Sí, Space f237e61 |
+| 2 | Vista previa del diccionario esperaba a otro lector | 31325a4 (f4) | Sí, Space f237e61 |
+| 3 | «gonna» inventado en la lectura natural | 2661452 (4e) | Pendiente de reinicio |
+| 4 | Palabra repetida pisaba el fonema | 2661452 (4e) | Pendiente de reinicio |
+| 5 | Cuentos libres buscables solo por título y autor | 6945046 (f4) | Reinicio 18 en curso |
+| 6 | 16 colas de grupo descartadas sin medir | 6945046 (f4) | Reinicio 18 en curso |
+| 7 | 0,908 presentado como «validación ciega» | 72c9ee6 (4e) | Documentos |
+| 8 | Coste de cómputo mal contado | 72c9ee6 (4e) | Documentos |
+| 9 | Inventario de fuentes incompleto | 72c9ee6 (4e) | Documentos |
+| 10 | Citas sin referencia APA | 72c9ee6 (4e) | Documentos |
+
+Menores cerrados: los 6 de voz y la duda de «set off» (d58b0be, 4e), los 4 del front de la prueba como persona y el rango de tiempo (e6), y los tiempos «1 minuto» en motor y front (cb799bc, f712d73). En curso: 11 menores de documentos (4e) y menores de API y catálogo (f4).
+
+Nuevo, destapado al arreglar el 5: «amor» coincidía con un autor («Fenn, Amor») y títulos parecidos, y el modelo multilingüe apenas relaciona «amor» con «love». Decisión de la central: el nombre solo impulsa con coincidencia completa y no fija la ventana de relevancia si el tema no se parece; las búsquedas de una palabra en español se traducen con el diccionario local; fuera las filas con título «nan». Va al reinicio 19 (f4).
+
 ## Qué sigue
 
 Cuando las tres sesiones cierren sus correcciones: reinicio y publicación,
