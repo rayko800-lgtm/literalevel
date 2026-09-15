@@ -1109,3 +1109,5 @@ Reinicio 30b medido (f4, 545 listas contra el 28): solo cambian empates y ningú
 - **Casos con efecto:** en 4, en el corte de K entra otra copia del mismo título con otra dificultad. Por ejemplo, «family» A2 pasa de SWV345576 (0,68) a SWV100912 (0,25).
 - **Decisión de la central:** en la franja, el empate lo decide primero la cercanía al nivel del lector y después la fila. Sin nivel, la fila. Así nunca entra una copia más lejana por azar ni por orden de fila. Se vuelve a medir antes del commit.
 - **DESPLIEGUE:** la fila del 30a está en ef8b743.
+
+**Tanda 3 de ayuda publicada** (e6): Space del front c73bbcc, con 13a730e y a202a99. La bienvenida de 3 pasos ya lleva los textos de 4e («uno a tu medida», «qué significa y cómo se pronuncia») y retiene el foco con Tab. ng test 122/122. Con esto terminan las tres tandas de la ayuda, y 4e actualiza ahora los guiones.
