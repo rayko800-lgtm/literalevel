@@ -206,26 +206,31 @@ class Practicar(unittest.TestCase):
 
     def test_lo_que_whisper_inventa_sin_voz_no_cuenta_como_oido(self):
         """Central y e6, ronda 3: con casi silencio whisper escribe «Thank you for watching.»
-        con palabras y todo; se pagaba la explicacion de una frase que nadie dijo."""
-        for no_voz, oida in ((0.897, False), (0.503, True)):
+        con palabras y todo; se pagaba la explicacion de una frase que nadie dijo. f4, reinicio 23:
+        con 2,5 s de WAV a cero whisper-1 dio «you» (0,943 en la medida local). e6: con dos segmentos,
+        uno dudoso y otro con voz, la grabacion cuenta; si no, sobrevive el mutante all -> any."""
+        for texto, no_voz, oida in (("you", (0.943,), False), ("Thank you for watching.", (0.897,), False),
+                                    ("Thank you for watching.", (0.503,), True),
+                                    ("Thank you for watching.", (0.9, 0.2), True)):
             cliente = ClienteSimulado()
 
-            def inventa(no_voz=no_voz, cliente=cliente, **kw):
+            def inventa(texto=texto, no_voz=no_voz, cliente=cliente, **kw):
                 cliente.transcripciones.append((Path(kw["file"].name).name, kw.get("response_format"), kw.get("timestamp_granularities")))
-                marcas = [("Thank", 1.6, 1.9), ("you", 1.9, 2.1), ("for", 2.1, 2.3), ("watching.", 2.3, 3.0)]
-                return SimpleNamespace(text="Thank you for watching.", duration=3.0,
-                                       words=[SimpleNamespace(word=w, start=a, end=b) for w, a, b in marcas],
-                                       segments=[SimpleNamespace(start=1.58, end=2.98, text=" Thank you for watching.",
-                                                                 no_speech_prob=no_voz, avg_logprob=-0.82)])
+                return SimpleNamespace(text=texto, duration=3.0,
+                                       words=[SimpleNamespace(word=w, start=1.6 + i * 0.3, end=1.9 + i * 0.3)
+                                              for i, w in enumerate(texto.split())],
+                                       segments=[SimpleNamespace(start=1.58 + i, end=2.58 + i, text=" " + texto,
+                                                                 no_speech_prob=p, avg_logprob=-0.82)
+                                                 for i, p in enumerate(no_voz)])
             cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=inventa), speech=cliente.audio.speech)
             with mock.patch.object(voz, "_cliente", lambda cliente=cliente: cliente), \
                     mock.patch.object(voz, "explicar_correccion") as explicar, \
                     mock.patch.object(voz, "registrar_fallos") as registrar, \
                     mock.patch.object(voz, "registrar_ritmo"):
                 s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
-            self.assertEqual(s.transcripcion_ok, oida, no_voz)
-            self.assertEqual(explicar.called, oida, f"no_speech_prob {no_voz}: explicacion de pago")
-            self.assertEqual(registrar.called, oida, no_voz)
+            self.assertEqual(s.transcripcion_ok, oida, (texto, no_voz))
+            self.assertEqual(explicar.called, oida, f"{texto!r} con no_speech_prob {no_voz}: explicacion de pago")
+            self.assertEqual(registrar.called, oida, (texto, no_voz))
             self.assertIn("segment", cliente.transcripciones[0][2], "sin pedir segmentos whisper no los manda")
 
     def test_si_rechazan_las_marcas_se_transcribe_sin_ellas_y_si_no_no(self):
