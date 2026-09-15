@@ -784,3 +784,13 @@ Visto bueno de e6 a api.py de 9e51c18: ok, solo por lectura por la RAM. Revisó 
 Medida independiente del 27 (4e): el anexo está en 6c71362 y el punto 8 del guion en 800060e.
 - **Punto 8:** lo principal es hacer una búsqueda de prueba en Encontrar con el perfil guardado. Tras un reinicio, medio minuto, porque `buscador_listo` pasa a true a los 26-29 s.
 - **Línea base para el arreglo del 28:** el catalogo.py que corre en el 25 y en el 26 es el de 9132a59, idéntico al de 49a8e4d según su sha1. f4 saca de ahí el top 10 de las 100 palabras de tema, sin perfil y con B1, y se lo pasa a 4e para comparar después de subir.
+
+Ficha de Kian comprobada en el móvil con el 27 (e6, front bdfa418 y API 1708cb1): dice «Es un texto de un solo capítulo… su dificultad es 0,96 (B1)», sin gráfica vacía y sin «Lo que más se repite». La página mide 390 px.
+
+Arreglo del 28 en curso (f4, sin commit):
+- **Referencia:** el top 10 del 26 para las 100 palabras de tema, sacado con el catalogo.py de 49a8e4d, idéntico al de 9132a59, y guardado en auditoria/top10_palabras_de_tema_26.json.
+- **Candidato:**
+  - (b) solo cuando las obras de primeros autores con ese apellido superan a los títulos con la palabra;
+  - `primero` solo con dos palabras o más;
+  - prueba de «london» y mutantes C22.
+- **Criterio:** las 200 listas iguales al 26.
