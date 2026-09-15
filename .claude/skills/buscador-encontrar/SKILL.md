@@ -44,6 +44,11 @@ Sidney Austen o Calamity Jane arriba en «Jane Austen»; ningún id de
 `no_lectura_externo.csv`; ningún gancho con URL o anuncio (prueba a propósito
 «digital marketing agency», «blender», «painting contractors»).
 
+**Los chips de sugerencia:** cada uno, con perfil A2 y con B1, tiene que dar
+algo en «En tu nivel» o «Un poco por encima». Una sugerencia que ofrecemos
+nosotros no puede acabar en una pantalla vacía: «Detectives en Londres» daba 0
+con B1 (ronda 3, 15 sep), porque en el catálogo solo hay 2 libros así.
+
 **En el front, a 390 px táctil:** «Primero lo de tu nivel» se cumple (luna B1
 trae cuentos A2–B1 arriba); ninguna tarjeta de «Menos parecidos» lleva
 etiqueta de encaje; la página no se desborda.
