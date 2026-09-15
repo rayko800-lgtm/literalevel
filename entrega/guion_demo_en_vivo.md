@@ -47,8 +47,9 @@ Una por una, y marcando:
       opción en cualquier respuesta deja el perfil en B2, entre 1,07 y 1,27, salvo
       en la sexta: «Capto bien la idea» da 1,46, que ya es C1.
 - [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
-      sonido → «Boca en 3D»): la cara tarda 2,1 s la primera vez y 0,5 s
-      después (ensayo de e6 a 390 px en el front `ec957d0`).
+      sonido → «Boca en 3D»): la cara tarda 2,9 s la primera vez en el móvil
+      (1,8 s a 1280 px) y 0,6 s después (segundo ensayo de e6, front `bdfa418`
+      con el Space del reinicio 28).
 - [ ] **_Crime and Punishment_ abierto una vez** y con su **curva ya
       calculada**: queda guardada y en directo sale al momento.
 - [ ] **Una palabra ensayada** del capítulo abierto y **otra que el diccionario
@@ -56,10 +57,10 @@ Una por una, y marcando:
       «Puede ser».
 - [ ] **Frase de voz ensayada:** «Don't you want to come with us?». Leerla
       **una vez antes** en *Pronunciar*, para que su análisis quede guardado y en
-      directo salga sin esperar. Verificada en el Space publicado a fecha de
-      `7c09d90` (14 de septiembre, comprobado por f4): salen *doncha* y *wanna*
-      marcadas IA, el audio natural y el intento en el historial del ritmo.
-      **No sale ningún enlace**: no prometer el arco de *with us*.
+      directo salga sin esperar. **Ya no se da por verificada**: la comprobación
+      de f4 (Space `7c09d90`, 14 de septiembre) es anterior a la pantalla nueva de
+      *Pronunciar*. Se repite con cuenta en el punto 4 de «Antes de la demo». Si
+      entonces no sale ningún enlace, no prometer el arco de *with us*.
 - [ ] **Auriculares con micrófono** conectados y probados. Nivel de entrada
       comprobado en el sistema.
 - [ ] **«Reducir movimiento» apagado** en el sistema: con él encendido, la boca
@@ -93,7 +94,8 @@ que dice el **Plan B** para ese paso.
    que se oye y se corrige. Si sale «No te oí», apuntarlo y avisar antes de
    grabar la demo. La aplicación descarta la grabación cuando whisper da, en
    todos sus trozos, más de 0,6 de probabilidad de que no haya voz; la voz más
-   baja que se probó, sintética, dio 0,503.
+   baja que se probó, sintética, dio 0,503. Con cuenta, el aviso termina en
+   «Este intento no cuenta.» y ese intento no gasta usos.
 8. **Calentar el buscador antes de compartir pantalla:** haz una búsqueda de
    prueba en *Encontrar* con tu perfil ya guardado y espera a que salgan las
    tarjetas. Si el Space acaba de reiniciarse, espera antes medio minuto: tras un
@@ -101,6 +103,9 @@ que dice el **Plan B** para ese paso.
    `buscador_listo: true` a los 26–29 s de arrancar; medido por 4e y por f4 en el
    reinicio 27, 15 de septiembre). Después, cada búsqueda tarda menos de un
    segundo.
+9. **Paso 3:** con el perfil de 1,20, buscar «Crimen y castigo de Dostoyevski» y
+   comprobar que sale el aviso de que no hay libros en tu nivel ni un poco por
+   encima, y *Crime and Punishment* el primero en «De otros niveles».
 
 ---
 
@@ -139,7 +144,7 @@ orientativa.»
 
 **Hace:** *Encontrar*. Escribe «cuentos de dragones». Con el perfil de 1,20,
 «En tu nivel» abre con cuentos de licencia libre: 19 de sus 20 tarjetas en la
-página publicada con el reinicio 25 (15 de septiembre, medido a 390 px). Con
+página publicada con el reinicio 28 (15 de septiembre, medido a 390 px). Con
 «una novela de detectives victoriana» no sale ningún cuento libre: en «En tu
 nivel» salen 3 libros, los tres de Gutenberg.
 
@@ -149,10 +154,13 @@ la lectura de nivel bajo que Gutenberg no tiene.»
 
 **3. Abrir un libro y su ficha (1:25 – 1:50)**
 
-**Hace:** busca «dostoyevski» y abre *Crime and Punishment*. Con el perfil de
-1,20 sale primero el aviso de que no hay libros en tu nivel ni un poco por
-encima, y el libro aparece segundo en «De otros niveles»: es lo esperado.
-Enseña la ficha y la curva.
+**Hace:** busca «Crimen y castigo de Dostoyevski» y abre *Crime and Punishment*.
+Con el perfil de 1,20 sale primero el aviso de que no hay libros en tu nivel ni
+un poco por encima, y el libro aparece el primero en «De otros niveles», que ya
+se ve sin pulsar nada: es lo esperado. Enseña la ficha y la curva. No escribas
+solo «dostoyevski»: con el perfil de 1,20, «En tu nivel» se llena de cuentos que
+no son suyos y el libro queda detrás de «Ver también» (página publicada con el
+reinicio 28, 15 de septiembre).
 
 **Dice:** «Abro *Crimen y castigo*. La ficha está contada sobre el texto, no
 escrita por un modelo, y la curva dice cómo se complica capítulo a capítulo. De

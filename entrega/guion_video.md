@@ -70,10 +70,10 @@ del profesor.
 - **Grabación de respaldo.** Graba antes el mismo recorrido. Si en directo algo
   falla y se usa, va rotulada en pantalla como **grabación previa**: nunca se
   presenta una reproducción como respuesta en vivo.
-- **La boca en 3D.** El front publicado (`ec957d0`, repositorio `4e6276e`, 15 de
-  septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
+- **La boca en 3D.** El front publicado (`bdfa418`, 15 de septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
   `boca3d` (75f334a está en `master`). **Ábrela una vez antes de grabar**: la cara
-  tarda 2,1 s la primera vez y 0,5 s después. Si no carga, basta el corte 2D.
+  tarda 2,9 s la primera vez en el móvil (1,8 s a 1280 px) y 0,6 s después
+  (segundo ensayo de e6). Si no carga, basta el corte 2D.
 - **El perfil 1,20, receta** (medida por e6 contra el Space y por 4e con la
   fórmula, 15 de septiembre): en *Tu nivel*, «Varias veces por semana» →
   fragmento fácil «Lo entiendo con naturalidad, sin necesidad de releer» → «Sí,
@@ -141,8 +141,8 @@ capítulo.»
 > ventanas; el documento cita 203.699 y 840 porque aquella medida se hizo
 > sobre el EPUB: no mezclar las dos). El motor es el mismo detrás del front,
 > así que las cifras no cambian; si la ficha enseña otro valor, **di el que se
-> ve**. Y el libro **se abre desde el buscador**: escribe «dostoyevski» en
-> *Encontrar* y sale.
+> ve**. Y el libro **se abre desde el buscador**: escribe «Crimen y castigo de
+> Dostoyevski» en *Encontrar* y sale.
 >
 > **El libro del recorrido tiene que ser uno que el buscador devuelva.** Si
 > hay que subirlo a mano, el paso Dos deja de ser cierto delante de cámara.
@@ -167,17 +167,20 @@ capítulo.»
 >   toma sale en segundos en vez de en dos minutos de silencio. Y hasta
 >   que no está calculada, la ficha no sabe si el libro te queda por
 >   encima y te da el rango en vez del dato.
-> - **Con tu perfil puesto, *Crime and Punishment* sale segundo y en el bloque
->   de otros niveles.** Todo Dostoievski queda a más de 0,45 de un perfil de
->   1,20, así que *Encontrar* enseña primero el aviso «De «dostoyevski» no hay
->   libros en tu nivel ni un poco por encima entre los resultados. Estos son
->   los de otros niveles.» y debajo, en **De otros niveles**, *Best Russian
->   Short Stories* y **el nuestro, segundo** (API del Space con el reinicio
->   19, 15 de septiembre de 2026; con un perfil de 1,34, el 12 de septiembre,
->   también salía segundo). El aviso es lo esperado: no lo leas como un fallo.
->   Sin perfil ya no sale entre los seis primeros. Con otro perfil puede moverse un puesto. Está
->   en la lista y se abre bien; **elígelo sin dudar**, que dudar delante de
->   la cámara parece que la app no lo encuentra.
+> - **Con tu perfil puesto, *Crime and Punishment* sale el primero y en el
+>   bloque de otros niveles.** Todo Dostoievski queda a más de 0,45 de un
+>   perfil de 1,20, así que *Encontrar* enseña primero el aviso «De «Crimen y
+>   castigo de Dostoyevski» no hay libros en tu nivel ni un poco por encima
+>   entre los resultados. Estos son los de otros niveles.» y debajo, en **De
+>   otros niveles**, **el nuestro, primero**, y detrás *Best Russian Short
+>   Stories* y *The Brothers Karamazov* (página publicada a 390 px con el
+>   reinicio 28, 15 de septiembre de 2026). El aviso es lo esperado: no lo leas
+>   como un fallo. Sin perfil también sale el primero; con un perfil de 1,34
+>   pasa a «Un poco por encima», segundo. **No escribas solo «dostoyevski»**:
+>   con el perfil de 1,20, «En tu nivel» se llena de cuentos que no son suyos y
+>   el libro queda detrás de «Ver también». Está en la lista y se abre bien;
+>   **elígelo sin dudar**, que dudar delante de la cámara parece que la app no
+>   lo encuentra.
 > - **Con perfil 1,20 no esperes capítulos sugeridos para este libro.** Su
 >   capítulo más llevadero mide 1,52, por encima de lo que la app ofrece a
 >   ese nivel, así que la sugerencia —bien hecha— no sale. Si quieres
@@ -245,8 +248,9 @@ capítulo.»
 >   A1–C2 y «Ver el detalle» abierto: «1,20 de 2 · Intermedio» y la franja]
 > - [CAPTURA: el pie del resultado de Tu nivel: «¿No te convence? Afínalo con
 >   un libro que ya leíste · con un texto · volver a medirme»]
-> - [CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
->   con el nivel al lado de cada libro, *Crime and Punishment* visible]
+> - [CAPTURA: Encontrar con «Crimen y castigo de Dostoyevski» escrito, el
+>   aviso de otros niveles y *Crime and Punishment* el primero, con su nivel al
+>   lado]
 > - [CAPTURA: ficha de *Crime and Punishment*: 203.415 palabras, diálogo,
 >   vocabulario y la curva medida con la media 1,70 y la línea «tu nivel»]
 > - [CAPTURA: lector con la hoja de *poverty*: fonética británica y
@@ -274,7 +278,8 @@ revisión.
 Para este ejemplo, un perfil preparado: **1,20 sobre 2**. *(mostrar el resultado)*
 
 **Dos.** Describo en español lo que me apetece leer y busca por significado,
-**con mi nivel al lado de cada libro**. Escribo *dostoyevski*, y lo encuentra.
+**con mi nivel al lado de cada libro**. Escribo *Crimen y castigo de Dostoyevski*, y
+lo encuentra.
 
 **Tres.** Abro *Crimen y castigo*: **203.415 palabras**, cuánto es diálogo, qué se repite. Y la curva: **la
 dificultad capítulo a capítulo**. Media **1,70**. Mi perfil es 1,20: me queda
