@@ -67,4 +67,19 @@ describe('La vista del ritmo de la lectura', () => {
     r.natural!.version_natural = "Don't you ever call me an apple";
     expect(vistaRitmo(frase, r).versionNatural).toBeNull();
   });
+
+  it('la leyenda de énfasis y de enlaces solo sale si hay alguno que pintar', () => {
+    const v = vistaRitmo(frase, ritmo());
+    expect([v.hayEnfasis, v.hayEnlaces]).toEqual([true, true]);
+
+    // El enlace de 1 a 3 no es de palabras seguidas y el énfasis 99 cae fuera: no se pinta nada.
+    const r = ritmo();
+    r.natural!.enlaces = [{ de: 1, a: 3, tipo: 'vocal_vocal', ipa: null }];
+    r.natural!.enfasis = [{ indice: 99, ipa: null }];
+    const sinNada = vistaRitmo(frase, r);
+    expect(sinNada.natural).toBe(true);
+    expect([sinNada.hayEnfasis, sinNada.hayEnlaces]).toEqual([false, false]);
+
+    expect([vistaRitmo(frase, null).hayEnfasis, vistaRitmo(frase, null).hayEnlaces]).toEqual([false, false]);
+  });
 });

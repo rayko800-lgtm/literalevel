@@ -134,10 +134,8 @@
           <p class="tenue pequeno leyenda">
             <span><span class="muestra bien"></span> bien pronunciada</span>
             <span><span class="muestra mal"></span> no se entendió como esa palabra</span>
-            @if (v.natural) {
-              <span><strong>negrita</strong>: con énfasis</span>
-              <span><span class="arco" aria-hidden="true">‿</span> se une con la siguiente</span>
-            }
+            @if (v.hayEnfasis) { <span><strong>negrita</strong>: con énfasis</span> }
+            @if (v.hayEnlaces) { <span><span class="arco" aria-hidden="true">‿</span> se une con la siguiente</span> }
             @if (v.hayMarcasDeTiempo) { <span>«aquí aceleras» y «aquí sin pausa»: medidos en tu grabación</span> }
           </p>
         }

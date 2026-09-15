@@ -31,6 +31,9 @@ export interface VistaRitmo {
   audioNatural: string | null;
   /** Hay alguna marca de tiempo que pintar (para la leyenda). */
   hayMarcasDeTiempo: boolean;
+  /** Alguna palabra lleva énfasis o arco ‿: la leyenda solo explica lo que se pinta (f4, prueba de persona). */
+  hayEnfasis: boolean;
+  hayEnlaces: boolean;
 }
 
 const TIPOS_DE_ENLACE: Record<string, string> = {
@@ -89,5 +92,6 @@ export function vistaRitmo(palabras: { palabra: string; bien: boolean }[],
   return {
     palabras: vista, medido, natural: !!nat, reducciones, versionNatural,
     audioNatural: nat?.audio_natural ?? null, hayMarcasDeTiempo,
+    hayEnfasis: vista.some(p => p.enfasis), hayEnlaces: vista.some(p => p.enlace !== null),
   };
 }
