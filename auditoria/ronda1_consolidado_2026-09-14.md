@@ -221,3 +221,11 @@ Ronda 3 del front (4e, 7ecc2b1), sobre el margen de Encontrar:
 Anuncios del reinicio 21 (f4): 8 de 9 salen del catálogo. «The Ant and the Dove» se queda porque es un cuento de verdad. «emily bronte» queda resuelto con el 21; «agatha christie» sigue sin rescate y va con cervantes al 22.
 
 4e audita el código del reinicio 21 (7c9c289) antes de que suba.
+
+Datos del reinicio 21 (f4): código 7c9c289, datos 740eb84.
+- **Bloques con un texto raro:** 92, con 225 textos que cambian de letra. Bajan 181; suben 44 cuando el raro era el fácil de su bloque.
+- **Reparto de los libres:** A1 766, A2 5.696, B1 5.491, B2 2.524, C1 777 y C2 113. Antes eran 749, 5.589, 5.543, 2.583, 790 y 113.
+- **Revisión a mano de los 92 raros:** 7 salen del catálogo. Son APOCALYPTO, cinco textos en francés o italiano y uno que dice que no se puede reproducir.
+- **Anuncios:** salen 8.
+- **Fuera de la búsqueda:** los textos que no son lectura pasan de 185 a 200.
+- pruebas_corpus da 41 de 41. Falta el árbol limpio, los mutantes y la batería de búsqueda antes de subir.
