@@ -64,11 +64,27 @@ MAX_PALABRAS_ENLACE = 30
 ANUNCIOS_REVISADOS = {
     "SWV687758", "SWV580747", "SWV625403", "SWV625495", "SWV628150", "SWV639823",
     "SWV643473", "SWV663506", "SWV676868", "SWV700851", "SWV700942",
+    # Ronda 3 de 4e (036a207): anuncios largos sin llamada, leídos uno a uno. Pisos en
+    # Goa, pintores en Coimbatore, aceite («Visit To Buy Now»), casetas prefabricadas,
+    # ropa de bebé, correas en vietnamita, detergente al por mayor y clases de yoga
+    # («please visit»). SWV639007 no: es la fábula de la hormiga y la paloma con un
+    # enlace al final, y el enlace ya no sale en sus pistas.
+    "SWV573562", "SWV602973", "SWV616784", "SWV641941", "SWV642960", "SWV651227",
+    "SWV670926", "SWV307241",
 }
 # Textos que no son lectura para su nivel aunque pasen las reglas, revisados a mano
 # entre los raros de sus bloques (MARGEN_RARO en tools/medir_corpus.py), con su motivo.
 NO_LECTURA_REVISADOS = {
     "SWV98807": "sinopsis de una película violenta (Apocalypto) con etiqueta de nivel 1",
+    # Los otros de los 92 raros del 15 sep 2026, leídos uno a uno: textos en otra lengua
+    # que pasaron la regla del diccionario (muchas palabras cortas coinciden con el
+    # inglés) y uno que dice en su texto que no se puede reproducir.
+    "SWV127929": "texto en francés («L'anniversaire de Pip»)",
+    "SWV127603": "texto en francés («Ma personaliter»)",
+    "SWV15255": "texto en francés («Grenate et Onice»)",
+    "SWV280578": "texto en francés («Mugman versus le Diable»)",
+    "SWV61173": "texto en italiano («La mia prima storia»)",
+    "SWV254226": "el propio texto dice que no se puede reproducir (copyright del autor), aunque StoryWeaver lo publique con CC BY",
 }
 
 
