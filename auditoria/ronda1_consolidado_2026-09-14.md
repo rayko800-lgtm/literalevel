@@ -582,3 +582,15 @@ Precarga del reinicio 26 (f4, medido en local):
 - **El cambio:** una clave nueva de 16 caracteres, escrita en literalevel_codigos.txt y en el secreto LITERALEVEL_CUENTAS del Space. El Space se reinició solo y estaba RUNNING a los 50 s.
 - **Comprobado después:** profesor entra con la nueva y no con la vieja; miguel, invitado1 e invitado8 siguen entrando; los usos no cambian.
 - **Rastro:** ninguna contraseña ni el token salieron en ninguna salida. La copia de seguridad temporal se borró.
+
+Chips sobre el reinicio 25 (4e, 7333c4b), con el criterio de e6 y contando también las tarjetas del tema:
+- **Los 8 actuales:** cumplen con margen.
+- **Reserva:** «Cuentos de hadas» cumple en número pero no trae cuentos de hadas (0 y 1 del tema).
+- **Los 13 que no llegaban:** ahora cumplen 12. Amor, familia, fantasmas, amigos, escuela, brujas, robots, planetas, Navidad y misterios ya sirven. «Monstruos» cumple en número con solo 1 del tema. «Piratas» se queda en 2 con A2.
+- **A 390 px con B1:** lo marcado de Fantasmas, la luna y Robots cae en sus dos bloques.
+- **Decisión de la central:**
+  - «Historias de amor» sustituye a «Viajes al espacio», y «Fantasmas» a «Cuentos de miedo para niños».
+  - «Cuentos de hadas» sale de la reserva.
+  - El criterio pasa a ser al menos 3 del tema, revisado a mano.
+
+Visto bueno de 4e a las pantallas A (b4782a5): ok, con una condición antes de publicar. «🐢 Despacio» tiene que mostrar a la vista si está encendido. Además, «más seguido aquí» pasa a «de corrido aquí». Lo hace e6 en un commit con los chips.

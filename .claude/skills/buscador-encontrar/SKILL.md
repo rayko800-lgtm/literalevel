@@ -62,6 +62,11 @@ seguían visibles un anuncio de venta de GHB (con letra B1) y otro de
 metanfetamina, de la misma cuenta. **Un barrido por palabras no basta: cuando
 aparece un anuncio, se revisan todos los textos de esa cuenta.**
 
+**Los chips de sugerencia (criterio desde el 15 sep):** al menos 3 **del tema**
+(no solo tarjetas) entre «En tu nivel» y «Un poco por encima», con A2 y con
+B1, revisado a mano; con la franja un chip puede llenar sus bloques con cuentos
+que no son de lo que pide («Cuentos de hadas» daba 12 tarjetas y 0 hadas).
+Antes decía:
 **Los chips de sugerencia:** cada uno, con perfil A2 y con B1, tiene que dar
 algo en «En tu nivel» o «Un poco por encima». Una sugerencia que ofrecemos
 nosotros no puede acabar en una pantalla vacía: «Detectives en Londres» daba 0
