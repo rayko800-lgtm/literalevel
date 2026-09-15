@@ -1045,3 +1045,7 @@ Tanda 1 de ayuda publicada (e6, ad72c8d): Space del front 83f189d, con «Ajustes
 - **Paso 3 del guion:** sigue bien.
 - **«dostoyevski» con 1,20:** vuelve a colar 15 marcas, lo esperado.
 - **`buscador_listo`:** esta vez tardó 43-46 s. El punto 8 del guion pasa a «espera un minuto».
+
+Vuelta atrás al 28 comprobada también por f4: las 257 listas del Space 62e5a06 son iguales al volcado del 28, y el paso 3 del guion está bien.
+- **DESPLIEGUE.md:** filas del 29 y de la vuelta atrás, con el hueco de medida y el permiso denegado y luego autorizado.
+- **Arranque lento:** RUNNING a los 72 s y `buscador_listo` a los 55 s. El log muestra que MiniLM se bajó del Hub sin token. Para el 30, f4 comprueba si es la causa y propone dejar el modelo dentro del Space, porque depender del Hub en cada arranque es un riesgo.
