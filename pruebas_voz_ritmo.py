@@ -203,6 +203,12 @@ class Practicar(unittest.TestCase):
             explicar.assert_not_called()
             self.assertIsNone(s.correccion, texto)
             self.assertEqual(s.audios_palabras, {}, f"{texto!r}: sin palabras oidas, los audios de cada palabra son gasto")
+            # Central y f4, reinicio 24: la respuesta seguia trayendo el mp3 de la frase, tts-1
+            # por grabacion con una frase nueva; y el analisis natural y su audio, otros dos.
+            self.assertEqual(cliente.habladas, [], f"{texto!r}: sin voz no se llama al TTS")
+            self.assertEqual(cliente.analisis, [], f"{texto!r}: sin voz no se analiza la frase")
+            self.assertIsNone(s.audio_correcto, texto)
+            self.assertIsNone(s.ritmo["natural"], texto)
 
     def test_lo_que_whisper_inventa_sin_voz_no_cuenta_como_oido(self):
         """Central y e6, ronda 3: con casi silencio whisper escribe «Thank you for watching.»
@@ -231,6 +237,13 @@ class Practicar(unittest.TestCase):
             self.assertEqual(s.transcripcion_ok, oida, (texto, no_voz))
             self.assertEqual(explicar.called, oida, f"{texto!r} con no_speech_prob {no_voz}: explicacion de pago")
             self.assertEqual(registrar.called, oida, (texto, no_voz))
+            self.assertEqual(s.audio_correcto is not None, oida, (texto, no_voz))
+            # Los casos sin voz van primero, con la cache de audio aun vacia: si se pidiera el
+            # mp3 de la frase o sus marcas, se veria aqui. Con voz la cache ya puede tenerlos.
+            if not oida:
+                self.assertEqual(cliente.habladas, [], f"{texto!r} con {no_voz}: TTS de la frase modelo")
+                self.assertEqual(len(cliente.transcripciones), 1,
+                                 f"{texto!r} con {no_voz}: sin voz la referencia no se transcribe")
             self.assertIn("segment", cliente.transcripciones[0][2], "sin pedir segmentos whisper no los manda")
 
     def test_si_rechazan_las_marcas_se_transcribe_sin_ellas_y_si_no_no(self):

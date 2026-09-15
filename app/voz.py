@@ -1487,13 +1487,14 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
         correccion = explicar_correccion(evaluacion.palabras_falladas,
                                          entendidas=evaluacion.entendidas)
 
-    # El audio de referencia se genera SIEMPRE, no solo cuando algo falla.
-    # Antes iba dentro del `if`: quien pronunciaba bien se encontraba el
+    # El audio de referencia se genera con cualquier intento oido, no solo cuando
+    # algo falla. Antes iba dentro del `if`: quien pronunciaba bien se encontraba el
     # rotulo "Cómo debería sonar" con el reproductor vacio, que es justo
     # cuando uno quiere oirlo para confirmar que lo hizo bien. Y repetir una
     # frase ya generada no cuesta nada: `generar_audio_correcto` cachea por
-    # contenido.
-    audio_correcto = generar_audio_correcto(frase_objetivo)
+    # contenido. Sin voz, no: con una frase nueva cada grabacion en silencio pagaba
+    # tts-1, y ademas whisper para las marcas de la referencia (Central y f4, reinicio 24).
+    audio_correcto = generar_audio_correcto(frase_objetivo) if oida else None
     # Y cada palabra fallada, sola. Solo si hubo transcripcion: sin ella todas
     # cuentan como falladas y serian audios de pago para nada.
     # Tambien las piezas de cada compuesto y las palabras que nombra la
@@ -1515,8 +1516,9 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
                         _tiempos_de_referencia(audio_correcto) if tiempos else None, nivel)
     # Enfasis, enlaces y reducciones de la frase (una llamada por frase, cacheada)
     # y la frase dicha con naturalidad. Si la version natural es la misma frase,
-    # su audio es el de referencia: no se genera otro.
-    natural = analizar_natural(frase_objetivo, evaluacion.palabras_objetivo)
+    # su audio es el de referencia: no se genera otro. Sin voz tampoco: el analisis de
+    # una frase nueva es una llamada de pago y su version natural otro tts-1.
+    natural = analizar_natural(frase_objetivo, evaluacion.palabras_objetivo) if oida else None
     if natural is not None:
         natural = dict(natural)
         texto_natural = natural.get("version_natural") or frase_objetivo
