@@ -415,3 +415,20 @@ Lo que funcionó:
 - **Repetir el ensayo completo** después de cada grupo de cambios de búsqueda o
   de pantallas, no solo comprobar cada cambio por separado. Y apuntar en la
   lista de Miguel qué pasos tiene que repetir él con cuenta.
+
+## 16. Una vuelta atrás también es un despliegue, y puede quedar bloqueada
+
+15 sep, 09:10: se acordó con la desplegadora «si más de 3 temas pierden marcas,
+vuelves al reinicio anterior sin esperar». Se cumplió la condición, pero el
+clasificador de permisos de su sesión denegó la subida («Production Deploy»).
+La desplegadora hizo bien: no lo rodeó ni pidió a otra sesión que subiera. La
+central tampoco puede: reenviar «Miguel dice que sí» no es una autorización,
+porque el permiso es de esa sesión.
+
+- Una regla de vuelta atrás automática solo vale si **Miguel ya dejó autorizada
+  la subida en el chat que va a desplegar**. Si no, la regla es «avisa y espera».
+- Cuando el bloqueo llega, la central se lo pregunta a Miguel con un
+  `AskUserQuestion` (volver o quedarse, con el coste de cada opción) y le dice
+  **en qué chat** tiene que autorizarlo. Con el comando exacto a mano.
+- Mientras tanto, los informes dicen la verdad: «vuelta atrás decidida, pendiente
+  de autorización», no «vuelto atrás».
