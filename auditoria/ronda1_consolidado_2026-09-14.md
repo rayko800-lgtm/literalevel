@@ -125,3 +125,14 @@ Nuevo, destapado al arreglar el 5: «amor» coincidía con un autor («Fenn, Amo
 Cuando las tres sesiones cierren sus correcciones: reinicio y publicación,
 prueba como persona sobre lo corregido, y **ronda 2** de auditoría cruzada solo
 sobre lo que cambió, con los auditores rotados.
+
+## Estado de la ronda 2 (15 sep, 02:30)
+
+| Qué | Commit | En producción |
+|---|---|---|
+| Rescate por nombre, frases en español, anuncios fuera, subidas simultáneas, 422 sin contraseña | bffc69d (f4) | Sí, reinicio 19, Space 053a486 |
+| Fuga de memoria del 3D: un solo renderer compartido, 1 contexto vivo tras 20 aperturas | b3ed0d7, 5cec3ae (e6) | Pendiente de publicar el front |
+| Restos de voz: silencio no se guarda, IPA en ASCII rechazada, «Mr.» no corta la frase | 2c0e681 (4e, 7 mutantes muertos) | Pendiente del reinicio 20 |
+| Carpetas temporales de las suites, causa del disco lleno | 42de4cb (4e); corpus y portadas en curso (f4) | No aplica |
+
+En curso: comprobación del reinicio 19 (f4), prueba como persona de «amor» y «Jane Austen» con B1 sobre el Space nuevo (e6), pasada de documentos con el coste real de cómputo (4e). Después: reinicio 20, publicación del front con el 3D sin fuga y ronda 3 sobre lo corregido.
