@@ -630,6 +630,12 @@ export interface OpcionesEscena {
 
 export class EscenaBoca {
   private static webgl: boolean | null = null;
+  /** El renderer que reutilizan los visores sucesivos (ver el constructor). */
+  private static compartido: THREE.WebGLRenderer | null = null;
+
+  private static nuevoRenderer(): THREE.WebGLRenderer {
+    return new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
+  }
 
   /** Hay WebGL en este navegador (o en este entorno de pruebas). Se prueba una
    *  vez por página y el contexto de prueba se suelta: antes cada apertura del
@@ -654,6 +660,8 @@ export class EscenaBoca {
   private readonly controles: OrbitControls;
   /** La raíz donde OrbitControls colgó su keydown al construir (ver el constructor). */
   private readonly raiz: Node;
+  /** Renderer creado solo para este visor (ya había otro abierto): se suelta entero al cerrar. */
+  private readonly propio: boolean;
   private readonly mandibula = new THREE.Group();
   private readonly velo = new THREE.Group();
   private readonly labioSup: THREE.Mesh;
@@ -714,15 +722,24 @@ export class EscenaBoca {
     }
     this.reducirMovimiento = !!opciones.reducirMovimiento;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
+    // Un solo renderer para todos los visores que se abren y cierran: cada uno nuevo
+    // dejaba un contexto WebGL retenido por una textura de módulo de three (20 contextos
+    // perdidos tras 20 aperturas, medido). Solo si ya hay otro visor abierto se crea uno propio.
+    const previo = EscenaBoca.compartido;
+    const ocupado = !!previo?.domElement.isConnected;
+    const libre = previo && !ocupado && !previo.getContext().isContextLost() ? previo : null;
+    this.propio = ocupado;
+    this.renderer = libre ?? EscenaBoca.nuevoRenderer();
+    if (!this.propio) EscenaBoca.compartido = this.renderer;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     // Tono fotográfico (ACES): los brillos del barniz húmedo no se queman.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.sombras = opciones.sombras !== false;
     this.guarda.midiendo = opciones.guarda !== false;
+    // Con el renderer reutilizado, la guarda de fluidez de un visor anterior pudo apagarlas.
+    this.renderer.shadowMap.enabled = this.sombras;
     if (this.sombras) {
-      this.renderer.shadowMap.enabled = true;
       // PCFSoftShadowMap ya no existe en three 0.186 (avisaba «has been removed» en
       // consola y caía a PCF): PCF con `shadow.radius` (6, en la luz principal) da la suavidad.
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -1278,8 +1295,14 @@ export class EscenaBoca {
     this.escena.environment?.dispose();
     this.luzPrincipal.shadow.dispose();
     this.escena.clear();
-    this.renderer.dispose();
-    this.renderer.forceContextLoss();
+    if (this.propio) {
+      this.renderer.dispose();
+      this.renderer.forceContextLoss();
+    } else {
+      // El compartido se queda para el siguiente visor: solo se vacían sus listas.
+      this.renderer.renderLists.dispose();
+      this.renderer.setRenderTarget(null);
+    }
     this.canvas.remove();
   }
 
