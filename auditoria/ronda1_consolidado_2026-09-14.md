@@ -1257,3 +1257,9 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - **Límite declarado del 30b:** el redondeo a 6 no iguala el Space y el local en todas las parejas.
 - Skill buscador-encontrar: la referencia de la marcha atrás también es el volcado del Space anterior.
 - Guion: e6 da el visto bueno a 657a640 y lo da por cerrado.
+- **Space 30b contra el volcado del Space 28**, 257 listas:
+  - volver: 0;
+  - iguales: 198;
+  - solo orden: 58 (53 en la cola; 5 con marcados y longitud iguales). «mystery» sin perfil además intercambia 11↔12 en el Space, cosa que no pasaba en local: otro ejemplo del límite;
+  - código 3: 1, «pintura» B1. Sale SWV494921 (0,99, a 0,19 del nivel) y entra SWV661856 (0,775, a 0,025). Mismo título, 36 resultados y 17 marcas. El Space 28 elegía la de 0,99 y el local ya elegía la de 0,78.
+- **Decisión de la Central:** «pintura» B1 aceptada como excepción revisada. 30b bueno si en las 5 listas de solo orden el conjunto del top 10 no cambia y PG2554 sigue primero en «Crimen y castigo de Dostoyevski» B1. f4 escribe la fila de DESPLIEGUE con el error de referencia, el 257/257 mal informado y el límite del redondeo.
