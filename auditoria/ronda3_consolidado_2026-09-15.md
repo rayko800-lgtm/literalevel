@@ -81,8 +81,8 @@ El arreglo es buscar también dentro del nivel del lector, en el reinicio 24.
 | Qué | Quién | Cuándo |
 |---|---|---|
 | ~~Reinicio 22: autor más título, anuncios de drogas, tres menores de subidas~~ | hecho, Space 62a5373, comprobado | 04:05 |
+| Reinicio 23: arreglos de voz de la ronda 3 (4e, 86e6e1d, ok de e6): el silencio ya no llama a OpenAI, «...» no cuenta como oída, «St.» corta la frase | f4 | subiendo ahora, solo |
 | Reinicio 24: **recuperación dentro de la franja del lector (caso Esmeralda)**, con el front de e6. Frenado antes de commit: títulos de una palabra entraban marcados solo por el título | f4, visto bueno de 4e y e6 | cuando se elija el arreglo |
 | Reinicio 25: autores clásicos, obras antes que biografías, «Jane Austen» y «luna» y «rosa» con B1, 89 libros sin título, 42 textos que no están en inglés, título del capítulo en «Mis palabras», muletillas de whisper con silencio | f4 y 4e | después del 24 |
-| Reinicio 23: arreglos de voz de la ronda 3 (4e, 86e6e1d, ok de e6): el silencio ya no llama a OpenAI, «...» no cuenta como oída, «St.» corta la frase | f4 | subiendo ahora, solo |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
