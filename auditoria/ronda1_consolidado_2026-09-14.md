@@ -341,3 +341,11 @@ La regla SALTO del front y «Robots» (e6, 94a1078; 70 búsquedas por 5 niveles 
 - **Marca de la API:** e6 propone `por_franja`, siempre true o false, para que sin el campo el front se comporte igual que hoy.
 - **Pendiente entre f4 y e6:** una sola definición de la franja, ±0,25 o −0,45 a +0,45.
 - **Riesgos a medir en el 23:** ACTION PART-1 como mejor de la franja con B1, la meseta «Familiar» en Familia C1 y «rosa» de A1 a B1. Hace falta un suelo absoluto.
+
+Contrato del reinicio 23 entre f4 y e6, cerrado:
+- **Franja:** una sola definición, −0,45 < dificultad − nivel ≤ 0,45. La API la devuelve como `franja: [lo, hi]`.
+- **Marca:** `por_franja` va en todos los resultados. Los n generales no cambian, y detrás van hasta K textos de la franja.
+- **Umbral de lo marcado:** tres condiciones: un suelo absoluto, cercanía al techo general y cercanía al mejor de la franja. Se calibra con dragones, océano y dinosaurios.
+- **Pruebas fijas:** ACTION PART-1 con B1, Familia C1 y rosa.
+- **Front hecho (e6, 5e4421c), sin publicar:** usa `franja` si viene y, si no, se comporta como hoy. Pruebas 77/77.
+- **Visto bueno previo:** 4e lo audita antes de publicar, junto con el catalogo.py del 23.
