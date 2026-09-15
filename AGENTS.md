@@ -71,7 +71,7 @@ es 0..5. `public_score(y) = clip(y,0,5)*0.4`.
 **Catálogo** (`catalogo.Catalogo`)
 
 - Filas: 53.179 libros de Gutenberg (`catalogo_medido.csv`) y 15.367 textos de
-  licencia libre (`catalogo_externo.csv`, commit `a557288`): 68.546, que es lo
+  licencia libre (`catalogo_externo.csv`, commit `740eb84`): 68.546, que es lo
   que cuenta `/api/estado`. Cuéntalo con pandas: el campo `hook` lleva saltos de
   línea entrecomillados. El catálogo heredado de 1.197 se retiró el 12 sep.
 - `buscar(consulta, nivel_lector=None, n=...) -> (libros, aviso)` — nunca

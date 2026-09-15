@@ -70,9 +70,13 @@ del profesor.
 - **Grabación de respaldo.** Graba antes el mismo recorrido. Si en directo algo
   falla y se usa, va rotulada en pantalla como **grabación previa**: nunca se
   presenta una reproducción como respuesta en vivo.
-- **La boca en 3D.** El front publicado (`45d9999`) ya lleva la cabeza de MakeHuman
-  y la lengua corregida de la rama `boca3d` (75f334a está en `master`). Aun así,
-  comprobarla en el móvil antes de grabar; si no carga, basta el corte 2D.
+- **La boca en 3D.** El front publicado (`b76ca59`, 15 de septiembre) lleva la
+  cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
+  `master`). **Ábrela una vez antes de grabar**: la primera carga en el móvil
+  tardó 4,4 s. Si no carga, basta el corte 2D.
+- **El perfil 1,20, receta** (ensayo de e6, 15 de septiembre): *Tu nivel* →
+  primera pregunta «Varias veces por semana» → «Me vale así (1,20 · B2),
+  guardar». El titular dirá «nivel B2».
 
 ---
 
@@ -149,7 +153,9 @@ capítulo.»
 >   lo local**: lema, diccionario, acepción y fonética (§8.2 del documento).
 >   **La traducción y el «Aquí significa» salen de la IA** y llegan unos
 >   segundos después, en la segunda etapa de la hoja: no los atribuyas al
->   diccionario ni a los 40 ms. **Consulta una palabra cualquiera antes de
+>   diccionario ni a los 40 ms. Y los 40 ms son del servidor: **en pantalla se
+>   ven 0,3–0,4 s en caliente y 3,8 s la primera vez** (ensayo de e6), así que
+>   a cámara di «al instante». **Consulta una palabra cualquiera antes de
 >   grabar** y el paso Cuatro va fluido. Si el motor llevaba horas sin
 >   visitas, la primera llamada tarda además medio minuto en despertarlo; el
 >   front lo dice en pantalla. Despiértalo antes.
@@ -178,7 +184,7 @@ capítulo.»
 > **El perfil 1,20 se prepara antes y se dice como preparado.** El
 > cuestionario no garantiza ese número: responderlo en directo puede dar otro.
 > Deja puesto el perfil de 1,20 y, en el paso Uno, enseña el resultado.
-> *Mídeme con un texto*, que nombras, y *Mídeme con un libro que ya leí* están
+> *Afinar con un texto*, que nombras, y *Con un libro que ya leíste* están
 > en *Tu nivel*, bajo «Afinar»: no las hagas en directo, que el libro tarda en
 > medirse.
 >
@@ -196,7 +202,9 @@ capítulo.»
 > **poverty**, afinidad **0,505** —por encima del umbral de duda, así que
 > sale sin aviso—, acepción correcta, y */ˈpɒvəti/* frente a */ˈpɑːvɚti/*
 > se oye. Está en *«He was in terrible poverty, yet he took upon himself
-> the payment of his brother's debts»*, y encima es el tema del libro. Si
+> the payment of his brother's debts»*, y encima es el tema del libro. Está en
+> **«Antes del primer capítulo»**: ábrelo desde el Índice, porque «Empezar a
+> leer» lleva al capítulo 2. Si
 > quieres otra: **torture** (0,504) o **cruelty** (0,502). En la hoja de la
 > palabra se ve **«En español»** (la traducción) y **«Aquí significa»**; la
 > marca **IA** solo sale cuando la definición no viene del diccionario, así
@@ -228,14 +236,15 @@ capítulo.»
 >   botón «Entrar», sin nada escrito]
 > - [CAPTURA: Tu nivel, resultado «1,20 de 2 · intermedio» con la escala
 >   y la franja de lecturas recomendadas]
-> - [CAPTURA: Tu nivel → «Afinar»: «Mídeme con un texto» y «Mídeme con un
->   libro que ya leí»]
+> - [CAPTURA: Tu nivel → «Afinar»: «Afinar con un texto» y «Con un libro que
+>   ya leíste»]
 > - [CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
 >   con el nivel al lado de cada libro, *Crime and Punishment* visible]
 > - [CAPTURA: ficha de *Crime and Punishment*: 203.415 palabras, diálogo,
 >   vocabulario y la curva medida con la media 1,70 y la línea «tu nivel»]
-> - [CAPTURA: lector con la hoja de *poverty*: fonética con audio, «En
->   español» y «Aquí significa»]
+> - [CAPTURA: lector con la hoja de *poverty*: fonética británica y
+>   americana, el botón de la voz del navegador («Sin grabación para esta
+>   palabra»), «En español» y «Aquí significa»]
 > - [CAPTURA: hoja de una palabra que el diccionario no trae, con la marca
 >   «IA» en la definición]
 > - [CAPTURA: Pronunciar, con la frase del libro escrita y la barra de
@@ -245,7 +254,8 @@ capítulo.»
 > - [CAPTURA: «Ver cómo se mueve la boca» abierto: el corte del sonido y
 >   el de la palabra entera]
 > - [CAPTURA: Mis palabras, con la lista de palabras consultadas y su
->   frase, y «Repasa cinco»]
+>   frase, y «Repasa cinco». La tarjeta de *poverty* dice «cap. 1» aunque es
+>   del prefacio: no leerlo en voz alta]
 > - [CAPTURA: para el cierre, la dirección del front grande sobre la
 >   portada: `mikemaki1763-literalevel-front.static.hf.space`]
 
@@ -262,7 +272,7 @@ Para este ejemplo, un perfil preparado: **1,20 sobre 2**. *(mostrar el resultado
 dificultad capítulo a capítulo**. Media **1,70**. Mi perfil es 1,20: me queda
 por encima, y lo sé antes de la primera página.
 
-**Cuatro.** *(tocar* poverty*)* Toco una palabra y en **40 milisegundos**
+**Cuatro.** *(tocar* poverty*)* Toco una palabra y **al instante**
 tengo el diccionario y la fonética. Unos segundos después llega lo que pone
 la IA: la traducción y qué significa **en esta frase**. Y si el diccionario no la
 trae, la define un modelo y lo marca: **IA**.

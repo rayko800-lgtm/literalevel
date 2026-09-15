@@ -240,7 +240,7 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | **CMUdict** | Fonética americana donde Wiktionary no la trae (corrección de voz) | 126.052 palabras | GitHub de Carnegie Mellon University (Carnegie Mellon University, s. f.) | BSD de dos cláusulas |
 | **Catálogo heredado** (StoryWeaver / Global Digital Library) | Registros del catálogo anterior, retirado el 12 de septiembre de 2026; no son los 14.506 textos de arriba | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
 
-*Cuadro 2. Fuentes de datos, con volumen y procedencia. Los recuentos de textos libres son de `a557288`, el catálogo publicado en el reinicio 19.*
+*Cuadro 2. Fuentes de datos, con volumen y procedencia. Los recuentos de textos libres son de `740eb84`, el catálogo publicado en el reinicio 21.*
 
 ### 4.2 Relevancia de cada fuente
 
@@ -364,7 +364,7 @@ es orientativa, porque la escala del modelo sale comprimida y desplazada hacia
 arriba (7.5), y el reparto describe el catálogo de Gutenberg, no la dificultad
 de la lectura en inglés en general.
 
-**Y fuera de Gutenberg.** A fecha de `a557288`, publicado en el reinicio 19, el catálogo suma además **15.367 textos de licencia libre** medidos con el v4: 14.506 de StoryWeaver, 328 de Let's Read, 280 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.589 A2, 5.543 B1, 2.583 B2, 790 C1 y 113 C2. Lo que se quedó fuera se contó en `377a650`, cuando eran 15.357: otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.881 textos entre A1 y B1, frente a 598 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
+**Y fuera de Gutenberg.** A fecha de `740eb84`, publicado en el reinicio 21, el catálogo suma además **15.367 textos de licencia libre** medidos con el v4: 14.506 de StoryWeaver, 328 de Let's Read, 280 de African Storybook y 253 de VOA. Por nivel, 766 A1, 5.696 A2, 5.491 B1, 2.524 B2, 777 C1 y 113 C2. Desde ese reinicio, un bloque de tres o más cuentos se mide también sin cada uno de ellos: si quitar uno solo mueve la medida más de 0,5 (un margen fijado antes de medir la tanda), los demás se quedan con la medida sin él, y ese texto conserva la del bloque entero —la regla no lo baja de nivel— y queda marcado. Son 92 textos, y frente al reinicio 19 cambian de letra 225: 42 suben y 183 bajan. En dos de los bloques cuyos cuentos subieron de A2 a B2, quitar el texto marcado al bloque tal como estaba antes deja la medida en A2, así que esas subidas están por revisar (`54d6591`). Lo que se quedó fuera se contó en `377a650`, cuando eran 15.357: otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.953 textos entre A1 y B1, frente a 598 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
 
 **(c) De aquellos 1.197 libros, solo 148 se podían abrir.** Eran los de Project
 Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero
@@ -1280,11 +1280,12 @@ usuario, porque la IP sale de una cabecera que puede escribir el cliente. Solo
 cuentan los que fallan, y son valores por defecto que se cambian por variable
 de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora —40 medidas de nivel o de capítulo y 6 curvas nuevas— y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, a fecha de `2bb1276`, la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo.
 
-El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `a557288`, el catálogo externo de textos libres tiene 15.367 filas y los vectores de búsqueda suman 68.546 (53.179 + 15.367). El Space publicado cuenta los mismos 68.546 libros en `/api/estado` a fecha de `053a486`, el reinicio 19. Esto confirma el tamaño del artefacto, no repite su inferencia ni
+El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `740eb84`, el catálogo externo de textos libres tiene 15.367 filas y los vectores de búsqueda suman 68.546 (53.179 + 15.367). El Space publicado cuenta los mismos 68.546 libros en `/api/estado` a fecha de `384a206`, el reinicio 21. Esto confirma el tamaño del artefacto, no repite su inferencia ni
 garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
 excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos,
-directorios) y 185 textos libres que no son lectura en inglés (relleno, otra
-lengua o anuncios; eran 163 en `3524357` y son 185 desde `a557288`), y por nivel solo se ofrecen obras literarias. Una medida del
+directorios) y 200 textos libres que no son lectura (relleno, otra lengua,
+anuncios o un texto que dice tener derechos; eran 163 en `3524357`, 185 en
+`a557288` y son 200 desde `740eb84`), y por nivel solo se ofrecen obras literarias. Una medida del
 precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A
 Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo
 camino da 1,713 (C1).
@@ -1326,8 +1327,9 @@ Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa d
 Medirlos aquí sí usó cómputo de pago, y no hay cifra en dólares que dar: no
 quedó registrado cuántas unidades se gastaron. Hasta el 10 de septiembre de 2026
 el cuaderno de Colab se abría con una A100, que consume unidades de pago de la
-cuenta Colab Pro, y hasta esa tarde se midieron 27.776 libros; ese día quedaban
-1,9 unidades. Desde entonces se midió en una T4 gratuita, en tandas reanudables
+cuenta Colab Pro, y hasta esa tarde se midieron 27.776 libros (los 29.875 medidos
+el 10 menos los 2.099 de la primera tanda en T4); el 9 de septiembre quedaban 1,9
+unidades (`colab_precalculo.py:903`). Desde entonces se midió en una T4 gratuita, en tandas reanudables
 —la primera, 2.099 libros; la última, 9.795 en 55 minutos—, y los textos libres
 en la CPU local. Las «2,8 h de A100» del registro del proyecto no son horas
 gastadas: son la estimación de tarjeta para los 61.642 libros (332,3 ventanas por

@@ -28,8 +28,8 @@ puntos en juego, no por comodidad.
   `pruebas_api.py`; antes ningún mutante de `api.py` con esa suite podía
   cazarse.
 - **Catálogo:** 68.546 libros = 53.179 de Gutenberg + 15.367 textos libres
-  (StoryWeaver 14.506, Let's Read 328, African Storybook 280, VOA 253; `a557288`,
-  publicado en el reinicio 19), medidos con el v4 en CPU local; en `377a650`
+  (StoryWeaver 14.506, Let's Read 328, African Storybook 280, VOA 253; `740eb84`,
+  publicado en el reinicio 21), medidos con el v4 en CPU local; en `377a650`
   quedaron 894 fuera y la nota de `DESPLIEGUE.md` explica por qué.
 - **Cuentas listas para usuarios (14 sep):** invitado1 a invitado8 con 20 usos
   cada una, profesor con 60 y miguel sin tope. Comprobado entrando en el Space.

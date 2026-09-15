@@ -34,7 +34,12 @@ Una por una, y marcando:
       cuenta que tenga **cupo**: explicar una palabra, resumir un libro y
       corregir la pronunciación salen a un servicio de pago y gastan cupo.
 - [ ] **Perfil de 1,20 sobre 2 ya puesto** (banda intermedia). En directo no se
-      responde el cuestionario: no garantiza ese número.
+      responde el cuestionario: no garantiza ese número. **Receta** (ensayo de e6,
+      15 de septiembre): *Tu nivel* → primera pregunta «Varias veces por semana» →
+      «Me vale así (1,20 · B2), guardar», sin contestar el resto. El titular dirá
+      «nivel B2»: que no sorprenda al decir «banda intermedia».
+- [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
+      sonido → «Boca en 3D»): la primera carga en el móvil tardó 4,4 s.
 - [ ] **_Crime and Punishment_ abierto una vez** y con su **curva ya
       calculada**: queda guardada y en directo sale al momento.
 - [ ] **Una palabra ensayada** del capítulo abierto y **otra que el diccionario
@@ -53,6 +58,25 @@ Una por una, y marcando:
 - [ ] **Grabación de respaldo** del recorrido completo, abierta en un
       reproductor y **rotulada en pantalla como «Grabación previa»**. Solo se usa
       si falla algo del plan B, y se dice que es una grabación.
+
+## Antes de grabar, con cuenta y micrófono
+
+Lo que el ensayo de e6 (`auditoria/ensayo_demo_2026-09-15.md`) no pudo probar
+sin cuenta ni micrófono. Miguel lo ensaya en su teléfono antes de la demo:
+
+1. **Paso 4:** cuánto tardan en llegar «En español» y «Aquí significa» con
+   *poverty*.
+2. **Paso 4, la marca IA:** con qué palabra sale. Sin cuenta, *Mihail* solo
+   dice «no está en el diccionario».
+3. **Paso 5:** grabar «Una frase de mi libro» con una palabra mal dicha a
+   propósito. Cuánto tarda «Corrígeme», y si salen el sonido que falla y su
+   «Escuchar y ver».
+4. **Paso 6:** «Don't you want to come with us?». Que salgan *doncha* y
+   *wanna*, «aquí sin pausa» y «Escúchalo natural», y cuánto tarda.
+5. **Paso 7:** que la palabra mal pronunciada aparezca en «Mis palabras».
+6. **El cronómetro:** la demo entera, contra los 3–5 minutos. Con las esperas
+   medidas sin cuenta, e6 estima de 3:40 a 4:10; los pasos 4, 5 y 6 son los que
+   no se han podido medir.
 
 ---
 
@@ -87,8 +111,10 @@ orientativa.»
 
 **2. Encontrar (1:00 – 1:25)**
 
-**Hace:** *Encontrar*. Escribe en español lo que apetece leer. Desliza hasta
-ver una tarjeta de cuento libre entre los libros.
+**Hace:** *Encontrar*. Escribe «cuentos de dragones». Con el perfil de 1,20,
+«En tu nivel» abre con cuentos de licencia libre: 13 de sus 14 tarjetas en el
+Space del reinicio 21 (15 de septiembre). Con «una novela de detectives
+victoriana» no sale ninguno.
 
 **Dice:** «Busco en español y me devuelve libros por significado, con su nivel
 al lado. Y entre los clásicos salen cuentos de licencia libre, que es donde está
@@ -107,8 +133,12 @@ media, 1,70: me queda por encima, y lo sé antes de la primera página.»
 
 **4. Una palabra en su frase (1:50 – 2:20)**
 
-**Hace:** en el lector, toca la palabra ensayada. Espera a que llegue la
-explicación. Luego toca la palabra que el diccionario no trae.
+**Hace:** en el lector, toca la palabra ensayada. La de siempre, *poverty*, está
+en «Antes del primer capítulo»: se abre desde el **Índice**, no con «Empezar a
+leer», que lleva al capítulo 2. Si suena, es la **voz del navegador** («Sin
+grabación para esta palabra»). **Sigue hablando mientras llega la explicación**,
+que tarda unos segundos (unos 15 según la API, sin medir con cuenta). Luego toca
+la palabra que el diccionario no trae; si el tiempo aprieta, sáltala.
 
 **Dice:** «Toco una palabra. El diccionario y la pronunciación salen al
 instante; la explicación de qué significa en esta frase llega unos segundos
@@ -138,7 +168,9 @@ dónde me paré y me enseña cómo se dice de corrido: *don't you* suena
 
 **7. Mis palabras (3:20 – 3:40)**
 
-**Hace:** *Mis palabras*. Enseña la lista con su frase y «Repasa cinco».
+**Hace:** *Mis palabras*. Enseña la lista con su frase y «Repasa cinco». La
+tarjeta de *poverty* dice «cap. 1» aunque la palabra es del prefacio: no lo leas
+en voz alta.
 
 **Dice:** «Todo lo que consulto y lo que pronuncio mal se queda aquí, con la
 frase donde lo encontré, para repasar.»

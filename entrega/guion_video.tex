@@ -233,10 +233,14 @@ son el trampolín, no la piscina.
         directo algo falla y se usa, va rotulada en pantalla como
         \textbf{grabación previa}: nunca se presenta una reproducción como
         respuesta en vivo.
-  \item \textbf{La boca en 3D.} El \emph{front} publicado (\texttt{45d9999}) ya
-        lleva la cabeza de MakeHuman y la lengua corregida de la rama
-        \texttt{boca3d} (75f334a está en \texttt{master}). Aun así, comprobarla
-        en el móvil antes de grabar; si no carga, basta el corte 2D.
+  \item \textbf{La boca en 3D.} El \emph{front} publicado (\texttt{b76ca59}, 15 de
+        septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
+        \texttt{boca3d} (75f334a está en \texttt{master}). \textbf{Ábrela una vez
+        antes de grabar}: la primera carga en el móvil tardó 4,4 s. Si no carga,
+        basta el corte 2D.
+  \item \textbf{El perfil 1,20, receta} (ensayo de e6, 15 de septiembre): \emph{Tu
+        nivel} $\rightarrow$ primera pregunta «Varias veces por semana»
+        $\rightarrow$ «Me vale así (1,20 · B2), guardar». El titular dirá «nivel B2».
 \end{itemize}
 
 \newpage
@@ -324,7 +328,9 @@ que siguen igual, porque el motor es el mismo:
         cubren \textbf{solo lo local}: lema, diccionario, acepción y fonética
         (§8.2 del documento). \textbf{La traducción y el «Aquí significa» salen
         de la IA} y llegan unos segundos después, en la segunda etapa de la hoja:
-        no los atribuyas al diccionario ni a los 40 ms. \textbf{Consulta una palabra
+        no los atribuyas al diccionario ni a los 40 ms. Y los 40 ms son del
+        servidor: \textbf{en pantalla se ven 0,3--0,4 s en caliente y 3,8 s la
+        primera vez} (ensayo de e6), así que a cámara di «al instante». \textbf{Consulta una palabra
         cualquiera antes de grabar} y el paso Cuatro va fluido. Si el motor
         llevaba horas sin visitas, la primera llamada tarda además medio minuto
         en despertarlo; el \emph{front} lo dice en pantalla. Despiértalo antes.
@@ -354,8 +360,8 @@ que siguen igual, porque el motor es el mismo:
 \textbf{El perfil 1,20 se prepara antes y se dice como preparado.} El
 cuestionario no garantiza ese número: responderlo en directo puede dar otro.
 Deja puesto el perfil de 1,20 y, en el paso Uno, enseña el resultado.
-\emph{Mídeme con un texto}, que nombras, y \emph{Mídeme con un libro que ya
-leí} están en \emph{Tu nivel}, bajo «Afinar»: no las hagas en directo, que el
+\emph{Afinar con un texto}, que nombras, y \emph{Con un libro que ya
+leíste} están en \emph{Tu nivel}, bajo «Afinar»: no las hagas en directo, que el
 libro tarda en medirse.
 
 \textbf{Y la palabra del paso Cuatro se elige antes, no en directo.} El
@@ -372,7 +378,9 @@ Así que la palabra del plano está \textbf{medida}, no elegida por bonita:
 \textbf{poverty}, afinidad \textbf{0,505} ---por encima del umbral de duda, así
 que sale sin aviso---, acepción correcta, y la fonética británica y la americana
 se oyen distintas. Está en \emph{«He was in terrible poverty, yet he took upon
-himself the payment of his brother's debts»}, y encima es el tema del libro. Si
+himself the payment of his brother's debts»}, y encima es el tema del libro. Está
+en \textbf{«Antes del primer capítulo»}: ábrelo desde el Índice, porque «Empezar a
+leer» lleva al capítulo 2. Si
 quieres otra: \textbf{torture} (0,504) o \textbf{cruelty} (0,502). En la hoja
 de la palabra se ve \textbf{«En español»} (la traducción) y \textbf{«Aquí
 significa»}; la marca \textbf{IA} solo sale cuando la definición no viene del
@@ -406,15 +414,16 @@ directo; todos a 390 px de ancho, con perfil 1,20 puesto:
         Contraseña con el botón «Entrar», sin nada escrito]
   \item {}[CAPTURA: Tu nivel, resultado «1,20 de 2 · intermedio» con la escala y
         la franja de lecturas recomendadas]
-  \item {}[CAPTURA: Tu nivel $\rightarrow$ «Afinar»: «Mídeme con un texto» y
-        «Mídeme con un libro que ya leí»]
+  \item {}[CAPTURA: Tu nivel $\rightarrow$ «Afinar»: «Afinar con un texto» y
+        «Con un libro que ya leíste»]
   \item {}[CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
         con el nivel al lado de cada libro, \emph{Crime and Punishment} visible]
   \item {}[CAPTURA: ficha de \emph{Crime and Punishment}: 203.415 palabras,
         diálogo, vocabulario y la curva medida con la media 1,70 y la línea «tu
         nivel»]
-  \item {}[CAPTURA: lector con la hoja de \emph{poverty}: fonética con audio, «En
-        español» y «Aquí significa»]
+  \item {}[CAPTURA: lector con la hoja de \emph{poverty}: fonética británica y
+        americana, el botón de la voz del navegador («Sin grabación para esta
+        palabra»), «En español» y «Aquí significa»]
   \item {}[CAPTURA: hoja de una palabra que el diccionario no trae, con la marca
         «IA» en la definición]
   \item {}[CAPTURA: Pronunciar, con la frase del libro escrita y la barra de
@@ -424,7 +433,8 @@ directo; todos a 390 px de ancho, con perfil 1,20 puesto:
   \item {}[CAPTURA: «Ver cómo se mueve la boca» abierto: el corte del sonido y el
         de la palabra entera]
   \item {}[CAPTURA: Mis palabras, con la lista de palabras consultadas y su
-        frase, y «Repasa cinco»]
+        frase, y «Repasa cinco». La tarjeta de \emph{poverty} dice «cap. 1» aunque
+        es del prefacio: no leerlo en voz alta]
   \item {}[CAPTURA: para el cierre, la dirección del \emph{front} grande sobre la
         portada: \texttt{mikemaki1763-literalevel-front.static.hf.space}]
 \end{itemize}
@@ -444,7 +454,7 @@ Para este ejemplo, un perfil preparado: \textbf{1,20 sobre 2}. \emph{(mostrar el
 dificultad capítulo a capítulo}. Media \textbf{1,70}. Mi perfil es 1,20: me queda
 por encima, y lo sé antes de la primera página.
 
-\textbf{Cuatro.} \emph{(tocar} poverty\emph{)} Toco una palabra y en \textbf{40 milisegundos}
+\textbf{Cuatro.} \emph{(tocar} poverty\emph{)} Toco una palabra y \textbf{al instante}
 tengo el diccionario y la fonética. Unos segundos después llega lo que pone
 la IA: la traducción y qué significa \textbf{en esta frase}. Y si el diccionario no la
 trae, la define un modelo y lo marca: \textbf{IA}.

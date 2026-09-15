@@ -44,7 +44,7 @@ en un solo proceso, solo en local. Los recursos del apartado Datos también hace
    ninguno. Además, **15.367 textos de licencia libre** (StoryWeaver, Let's
    Read, African Storybook y VOA) medidos con el v4, que se abren sin descargar
    nada y salen intercalados al recomendar por nivel: 68.546 textos en total
-   (commit `a557288`, publicado en el reinicio 19). Los títulos con aviso de contenido lo enseñan antes de
+   (commit `740eb84`, publicado en el reinicio 21). Los títulos con aviso de contenido lo enseñan antes de
    abrir y nunca encabezan la recomendación. (Hasta el 12 de septiembre de 2026
    el catálogo eran 1.197 libros con etiquetas heredadas de un modelo v1.)
 3. **Lee.** Lector integrado de epub, pdf y txt. Los libros de Project

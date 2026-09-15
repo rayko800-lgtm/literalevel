@@ -476,7 +476,8 @@ el volumen, y los 53.179 libros del catálogo medido caen en el tramo más alto.
 Medirlos aquí **sí usó cómputo de pago**, sin cifra en dólares que dar porque no
 quedó registrado cuántas unidades se gastaron: hasta el 10 de septiembre de 2026
 el cuaderno de Colab corría en una A100 con unidades de la cuenta Colab Pro, y
-hasta esa tarde se midieron 27.776 libros. Desde entonces se midió en una T4
+hasta esa tarde se midieron 27.776 libros (los 29.875 medidos el 10 menos los
+2.099 de la primera tanda en T4). Desde entonces se midió en una T4
 gratuita, en tandas reanudables —la última, 9.795 libros en 55 minutos—, y los
 textos libres en la CPU local. Las «2,8 h de A100» del registro son la estimación
 de tarjeta para los 61.642 libros, no horas gastadas. Al ritmo medido en la A100,
@@ -584,7 +585,7 @@ porque ese editor gradúa sobre todo por extensión. Y Let's Read no valida: má
 la mitad son traducciones que heredan el nivel del libro original en otro idioma.
 Si alguien pregunta «¿y por qué no promediáis las tres?», la respuesta es esa:
 cada una mide una cosa distinta, y promediarlas escondería justo lo que se
-aprendió. Además, a fecha de `a557288` (reinicio 19), el catálogo de la aplicación suma 15.367 textos de licencia
+aprendió. Además, a fecha de `740eb84` (reinicio 21), el catálogo de la aplicación suma 15.367 textos de licencia
 libre de esas bibliotecas y de VOA (14.506 de StoryWeaver, de Pratham Books; 328 de Let's Read, de
 The Asia Foundation; 280 de African Storybook, de Saide; y 253 de VOA Learning English), con la dificultad que mide el modelo. Un cuento corto medido dentro de un bloque lo dice (`medido_en_bloque`); la atribución que exige su licencia se enseña pero no se puntúa («Doggie is Happy», 0,349 con ella y 0,007 sin ella); el texto servido sale sin páginas repetidas ni U+FEFF sin cambiar lo medido; y al recomendar por nivel ocupan un tercio de las tarjetas, por cercanía al nivel del lector (a fecha de `7c09d90`).
 
