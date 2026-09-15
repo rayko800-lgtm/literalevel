@@ -14,6 +14,9 @@
   text-decoration: none; font-weight: 600; min-width: 0; }
 .volver:hover { color: var(--texto); }
 .herramientas { display: flex; align-items: center; gap: .25rem; flex: none; }
+/* El «?» que vuelve a enseñar el aviso de la palabra (tanda 2 de la ayuda). */
+.herramientas .ayuda { width: 40px; height: 40px; border: 1px solid var(--borde); font-weight: 800; font-size: 1.05rem;
+  color: var(--acento-texto); }
 
 .hoja {
   max-width: 860px; margin: 0 auto; background: var(--lector-fondo); border: 1px solid var(--borde);

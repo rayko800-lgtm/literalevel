@@ -597,9 +597,19 @@ export class Lector implements OnDestroy {
   /** El «Entrar» de la hoja de la palabra: los ajustes ya en «Tu perfil». */
   protected entrar(): void { this.sesion.abrirPerfil(); }
 
+  /** Un solo aviso la primera vez (tanda 2 de la ayuda, Miguel): antes eran dos a la vez, el
+   *  de la palabra arriba y el de pasar página abajo, y del libro se veían dos líneas. El ✕
+   *  cierra los dos para siempre en este navegador; el «?» lo vuelve a enseñar. */
+  protected readonly tactil = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
   protected cerrarPista(): void {
     this.pista.set(false);
     marcarBandera(PISTA);
+    marcarBandera(PISTA_PAGINAS);
+  }
+
+  protected verAyuda(): void {
+    this.pista.set(true);
   }
 
   // --- Medir el capítulo -------------------------------------------------------------

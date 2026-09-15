@@ -17,6 +17,8 @@
           <button type="button" class="boton-icono" (click)="abrirAjustes()" aria-label="Tamaño de letra y colores">
             <app-icono nombre="letra" />
           </button>
+          <button type="button" class="boton-icono ayuda" (click)="verAyuda()" [attr.aria-expanded]="pista()"
+                  aria-label="Ayuda: cómo consultar una palabra">?</button>
         </div>
       </nav>
     }
@@ -77,8 +79,11 @@
         @if (pista()) {
           <div class="pista" role="note" lang="es">
             <app-icono nombre="chispa" />
-            <p><strong>Toca dos veces una palabra</strong> (en el móvil, mantenla pulsada) y verás qué significa en esta frase.</p>
-            <button type="button" class="boton-icono" (click)="cerrarPista()" aria-label="Entendido"><app-icono nombre="cerrar" /></button>
+            <p>
+              @if (tactil) { <strong>Mantén presionada una palabra</strong> para ver qué significa@if (paginado()) {; desliza para cambiar de página}. }
+              @else { <strong>Haz doble clic en una palabra</strong> para ver qué significa@if (paginado()) {; pasa de página con las flechas}. }
+            </p>
+            <button type="button" class="boton-icono" (click)="cerrarPista()" aria-label="Cerrar la ayuda"><app-icono nombre="cerrar" /></button>
           </div>
         }
 
@@ -161,14 +166,6 @@
           <app-icono nombre="ultimo" />
         </button>
       </nav>
-      @if (paginado()) {
-        @if (pistaPaginas()) {
-          <p class="pista-paginas">
-            <app-icono nombre="chispa" />Desliza o toca el borde derecho para pasar de página.
-            <button type="button" class="boton pequeno fantasma" (click)="cerrarPistaPaginas()">Entendido</button>
-          </p>
-        }
-      }
     }
   </div>
 

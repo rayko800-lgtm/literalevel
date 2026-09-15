@@ -14,6 +14,7 @@ import { vistaRitmo } from '../compartido/ritmo';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
+import { marcarVista, sinVer } from '../nucleo/banderas';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 
@@ -155,6 +156,15 @@ export class Pronunciar implements OnInit, OnDestroy {
    *  getUserMedia no existe o se rechaza sin preguntar (Ismael, 15 sep). */
   protected readonly enWebView = typeof navigator !== 'undefined' && /; wv\)/.test(navigator.userAgent);
   protected readonly avisoSinFrase = 'Primero escribe la frase que vas a leer.';
+  /** La línea de ayuda de la pantalla (tanda 2, Miguel): sale la primera vez en lugar del
+   *  subtítulo, se cierra con ✕ y vuelve con «?». Se guarda en el navegador, sin cuenta. */
+  private readonly claveAyuda = 'literalevel.ayuda-pronunciar';
+  protected readonly ayuda = signal(sinVer(this.claveAyuda));
+
+  protected cerrarAyuda(): void {
+    this.ayuda.set(false);
+    marcarVista(this.claveAyuda);
+  }
   /** Esperando la respuesta al permiso; a los 5 s sin respuesta se sugiere otro navegador. */
   protected readonly pidiendo = signal(false);
   protected readonly pidiendoLento = signal(false);

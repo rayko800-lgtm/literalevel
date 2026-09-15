@@ -1,8 +1,19 @@
 <div class="pagina estrecha" data-seccion="voz">
   <header class="cabecera-pagina">
     <span class="antetitulo">Pronunciar</span>
-    <h1>Lee una frase en voz alta</h1>
-    <p>Graba la frase y te digo qué palabras se entendieron, qué sonido se escapa y cómo colocar la boca.</p>
+    <div class="titulo-ayuda">
+      <h1>Lee una frase en voz alta</h1>
+      <button type="button" class="boton-icono ayuda" (click)="ayuda.set(true)" [attr.aria-expanded]="ayuda()"
+              aria-label="Ayuda: qué hace esta pantalla">?</button>
+    </div>
+    @if (ayuda()) {
+      <div class="linea-ayuda" role="note">
+        <p>Escribe o trae una frase, grábate leyéndola y te digo qué sonido corregir. Sin entrar puedes grabarte, escucharte y ver cómo se dice cada sonido.</p>
+        <button type="button" class="boton-icono" (click)="cerrarAyuda()" aria-label="Cerrar la ayuda"><app-icono nombre="cerrar" /></button>
+      </div>
+    } @else {
+      <p>Graba la frase y te digo qué palabras se entendieron, qué sonido se escapa y cómo colocar la boca.</p>
+    }
   </header>
 
   @if (bloqueada()) {

@@ -1,4 +1,12 @@
 .paso { margin-bottom: 1rem; }
+/* La línea de ayuda (tanda 2): el «?» junto al título y la nota en lugar del subtítulo. */
+.titulo-ayuda { display: flex; align-items: center; gap: .5rem; }
+.titulo-ayuda h1 { margin: 0; }
+.ayuda { width: 36px; height: 36px; border: 1px solid var(--borde); font-weight: 800; font-size: 1.05rem; color: var(--acento-texto); }
+.linea-ayuda { display: flex; align-items: flex-start; gap: .5rem; margin: .6rem 0 0; padding: .6rem .8rem;
+  border-radius: var(--radio-sm, 12px); background: var(--acento-suave); color: var(--acento-texto); }
+.linea-ayuda p { margin: 0; flex: 1; font-size: .98rem; line-height: 1.45; color: inherit; }
+.linea-ayuda .boton-icono { color: inherit; width: 40px; height: 40px; }
 .cab-paso { display: flex; align-items: center; gap: .6rem; }
 .cab-paso .boton { margin-left: auto; }
 .numero { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--acento-suave); color: var(--acento-texto); font-weight: 750; font-size: .9rem; }
