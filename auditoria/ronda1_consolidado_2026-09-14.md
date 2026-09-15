@@ -512,3 +512,8 @@ Reinicio 25, antes de subir (f4):
 - **Propuesta para el 26, detrás de clásicos y «Jane Austen»:** en consultas largas, el título tiene que casar con más de una palabra. Se calibra con consultas de varias palabras escritas antes de medir.
 - **Árbol limpio:** corpus y extremas fallaron por falta de memoria, con 3,4 de 16 GB libres y las copias del banco cargadas. No es un fallo del código. Se repiten solos cuando acabe el banco.
 - **Pendiente:** el ok de 4e a catalogo.py, con plazo hasta las 05:14.
+
+Reinicio 25: sube junto o no sube.
+- **Por qué:** api.py de cb39b91 llama a `buscar(..., franja=True)` y a `franja_de`. El catalogo.py del Space no tiene ninguno de los dos, así que subir api.py solo daría 503 en todas las búsquedas.
+- **Plan:** si a las 05:14 no hay ok de 4e, no se sube nada.
+- **Memoria de la máquina:** 2,2 de 15,9 GB libres, con el banco de f4 en tres procesos (unos 2,6 GB) y dos `ng serve` del front vivos desde el 14 (unos 720 MB). Se le pidió a e6 que los pare si no los usa.

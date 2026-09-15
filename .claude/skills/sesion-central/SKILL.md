@@ -355,3 +355,17 @@ contexto de la sesión, así que se avisó a Miguel para que decida si la rota.
   dentro del mismo guion que hace la llamada, y no imprimas nada del archivo».
 - Recargar el cupo de una cuenta es escribir en el bucket: solo con permiso de
   Miguel en esa sesión.
+
+## 13. La regla de «sube lo que tenga ok» no vale para archivos acoplados
+
+Para no bloquear una subida se pactó «si un visto bueno tarda más de 30
+minutos, sube solo lo aprobado». En el reinicio 25 la API nueva llamaba a
+funciones que solo existían en el catálogo nuevo: subir api.py solo habría
+dejado todas las búsquedas en 503. La desplegadora lo vio y paró.
+
+- Antes de pactar una subida parcial, pregunta si los archivos dependen entre
+  sí (una función nueva, un campo del contrato, un .npy que el código espera).
+- Si dependen, la regla es **juntos o nada**, y el plazo solo sirve para avisar.
+- Y con cuatro sesiones en la misma máquina, mira la RAM antes de un árbol
+  limpio: bancos de mutantes con el catálogo cargado y `ng serve` olvidados
+  dejaron 2 GB libres y las suites fallaron por memoria, no por código.
