@@ -131,6 +131,65 @@ git se calcula en local (`sha1("blob <n>\0" + contenido)`) y se compara con el
 `blob_id` que devuelve `list_repo_tree(..., expand=True)`. Así el commit dice de
 verdad qué cambió, y se ve de un vistazo si el Space está al día.
 
+### Cómo se despliega desde el 13 sep 2026 (reinicios 6 a 15)
+
+- **Se sube el contenido del COMMIT, no el del disco**, con el texto en LF
+  (`--commit REF`, por defecto HEAD). Con `core.autocrlf=true` el disco tiene
+  CRLF y el repo LF; comparando el disco, `--seco` daba archivos «distintos» que
+  no lo eran. Si el remoto tiene fin de línea mezclado, se descarga y se compara
+  normalizado; la etiqueta dice «solo fin de línea: pasa a LF».
+- **`--solo a b c`** siempre. Guardas que no se saltan: cada archivo elegido
+  tiene que estar versionado y **sin cambios en el disco** (si otra sesión dejó
+  `api.py` sucio, no sube: pídele que lo limpie o que haga commit);
+  `parent_commit` con la revisión remota leída, para que dos subidas no se pisen;
+  y escaneo de credenciales sobre los bytes que se envían.
+- **Pruebas en árbol limpio** antes de subir: `git archive <commit> app tools
+  pruebas_*.py ...`, enlaces duros a los datos grandes y `LITERALEVEL_MODELO`
+  apuntando a `modelo_v4`. Y comprobar que `app/` en HEAD es igual al commit
+  probado: otras sesiones hacen commits entre medias.
+- **El protocolo de cada reinicio:** aviso a Central antes, con el hash del
+  Space y lo que sube; `--solo`; un guion `comprobar_reinicioN.py` que espera
+  `RUNNING` en una revisión **distinta** de la anterior, comprueba `/api/salud`
+  y Gradio y luego lo concreto del cambio; segunda pasada de `--seco` («nada que
+  subir»); fila en `DESPLIEGUE.md` y hash a Central. Cuando el cambio es de
+  datos, guarda **antes** de subir la foto de lo que no debe cambiar (letra,
+  dificultad, estado) y compárala después.
+- **Una comprobación que falla puede ser del guion.** En el 12 y en el 13 las
+  dos «fallas» fueron expectativas mías: una frase citada de memoria y un 404
+  que el servidor da como 400 con `%00`. Míralo antes de tocar código.
+- **El `.npy` de embeddings del externo** cambia de nombre con cada versión: se
+  sube a mano con `upload_file` **antes** del `--solo` de los CSV. Su nombre
+  sale de la huella de las filas; el de Gutenberg no se toca.
+- **Un commit ajeno puede llevarse líneas tuyas sin commit.** El `0e270f9` de e6
+  subió `api.py` y `ui.py` enteros con cinco llamadas mías a `ficha.para_medir`,
+  y la función seguía sin commit: `HEAD` rompía al medir. Nada se desplegó.
+  Con varias sesiones en el mismo árbol, haz commit pronto de lo que otros
+  archivos ya llaman, y antes de desplegar mira `git log` de cada archivo.
+
+### El bucket de datos (`MikeMaki1763/literalevel-datos`, montado en `/data`)
+
+- **El listado llega con unos segundos de retraso** tras escribir: una
+  comprobación que cuenta archivos justo después da de menos. Espera unos 8 s y
+  vuelve a listar antes de concluir nada.
+- `HfApi.list_bucket_tree`, `download_bucket_files` y
+  `batch_bucket_files(add=…, delete=…)`. Antes de borrar, descarga y mira el
+  contenido; los nombres de `analisis/` son huellas y no dicen de qué libro son.
+- **Cupos de las cuentas:** el tope va en el secreto `LITERALEVEL_CUENTAS`
+  (`usuario:contrasena:tope`), pero **lo gastado vive en `uso_openai.json`**
+  del bucket (`{"invitado8": 20, ...}`). Recargar un cupo es dejar esos
+  contadores a cero, **sin tocar contraseñas ni secreto**
+  (`tools/rotar_cuentas.py` es para rotar contraseñas, no para esto). Relee el
+  archivo justo antes de escribir, vuelve a leerlo después y entra en el Space
+  con cada cuenta: `/api/entrar` devuelve `restantes`. Las contraseñas se leen
+  del archivo local y no se imprimen. No hace falta reiniciar: la app lee el
+  archivo en cada consulta.
+- **Escribir en el bucket necesita permiso explícito de Miguel en la sesión.**
+  El clasificador de modo automático lo deniega como «recurso compartido». No se
+  rodea ni se le pide a otra sesión: se para, se explica y se espera el «te
+  autorizo».
+- Los topes por IP y hora (40 medidas, 6 curvas, 4 curvas vivas) son de la
+  instancia: una comprobación que pide 7 curvas agota las de esa hora para tu IP.
+
 **Lo que NO se toca, y hay que saberlo antes de estropearlo:**
 
 - **`README.md`**: el del Space no es el del repositorio. Lleva el front matter

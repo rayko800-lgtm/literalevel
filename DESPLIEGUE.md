@@ -337,6 +337,23 @@ Despliegues seguidos, cada uno con sus comprobaciones y su vuelta atrás prepara
 | `371db00` | `app/api.py`, `app/ui.py`, `app/ficha.py`, `app/catalogo.py` | f4 `8ee42f0`: `ficha.para_medir` (la atribución de un texto libre no se puntúa), libres por cercanía al nivel y `medido_en_bloque` en tarjeta y ficha. Completa el `0e270f9` de e6, que se había llevado las llamadas a `para_medir` sin la función. e6 `0e270f9` + `95a3839`: plurales y nota de nivel. Subido con `desplegar_app.py --solo` desde `9be2c42` | «¿Cómo de difícil es?» de SWV229485 da 0,007 A1 (antes 0,35) y su curva rápida recalculada, 0,007. `medido_en_bloque` sale true en SWV100019 y false en SWV229485 y PG1661. A2 abre con SWV161290/198230/282453 (0,40) y B1 con SWV142665/411122/480165 (0,80), sin cuentos en común. **Borradas del bucket las 12 curvas guardadas de textos libres** (`analisis/*-rapido.json` de swv…txt, medidas con la atribución dentro; se recalculan gratis al pedirlas); las sinopsis, intactas. Segunda pasada de `--seco` desde `b81af8d`: nada que subir |
 | `7c09d90` | `corpus_abierto.parquet` | f4 `04fced0`: texto servido sin U+FEFF, sin párrafos repetidos seguidos y sin páginas dobles; la medida no cambia. Subido con `desplegar_app.py --solo` desde `ab4e36f` | Estado igual antes y después (68.536). SWV138722 y SWV229485 conservan letra, dificultad y `medido_en_bloque`. SWV138722 pasa de 669 a 628 palabras («Laptop was opened» ×1) y SWV229485 de 201 a 199 (sin U+FEFF). Segunda pasada de `--seco`: nada que subir |
 
+### Estado al cierre del 14 de septiembre de 2026
+
+- **Motor (Gradio + API):** `MikeMaki1763/literalevel` en `7c09d90`, RUNNING
+  (reinicio 15). Los reinicios 9 a 15 de hoy están en la tabla, de `de36496` a
+  `7c09d90`, y cada uno se cerró con una segunda pasada de `--seco` sin nada que
+  subir.
+- **Front estático:** `MikeMaki1763/literalevel-front` en `45d9999`, RUNNING. Lo
+  publica e6. f4 lo probó como persona tras el reinicio 12, pero no después de
+  los cambios de e6 de la tarde (plurales, `medido_en_bloque`, portadas).
+- **Cupos recargados (14 sep, con permiso explícito de Miguel):**
+  `uso_openai.json` del bucket pasó de `{invitado7: 3, invitado8: 20,
+  invitado1: 14, invitado3: 3}` a `{}`. Contraseñas y secreto, intactos.
+  Comprobado entrando en el Space con cada cuenta: invitado1 a invitado8 con 20
+  restantes y profesor con 60; miguel no tiene tope.
+- **Borrado en el bucket:** las 12 curvas `analisis/*-rapido.json` de textos
+  libres, medidas con la atribución dentro (reinicio 14). Las sinopsis no.
+
 ### El catálogo externo con StoryWeaver (14 sep 2026, reinicios 10 y 12)
 
 - **Medición.** `tools/medir_corpus.py` en CPU local, gratis, reanudable en shards de 250 (`corpus_graduado/medidas/`): 12.800 unidades; se cerró con `tools/cerrar_corpus.py`. De 16.251 textos libres (364 obras repetidas entre fuentes, fuera) quedan 15.357 medidos: 11.039 solos y 4.318 en bloques de al menos 250 palabras de su fuente y nivel.

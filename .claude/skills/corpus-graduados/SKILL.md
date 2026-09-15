@@ -95,8 +95,10 @@ medias crecientes), nunca «el modelo acierta A1».
 - **Páginas en párrafos antes de nada.** Un libro ilustrado trae una frase por
   renglón y el filtro de prosa lo toma por lista: 70 de 219 unidades rechazadas.
   Unir cada página en un párrafo las dejó en 9.
-- **Cuentos cortos (decisión de Miguel):** ≥250 palabras, solos; los demás, en
-  bloques de ≥250 **sin mezclar fuente ni nivel**. La cola corta se declara, no se estira.
+- **Cuentos cortos (decisión de Miguel):** al VALIDAR, ≥250 palabras solos; los
+  demás, en bloques de ≥250 **sin mezclar fuente ni nivel**. La cola corta se
+  declara, no se estira. Al CATALOGAR el corte para medir solo es 150
+  (`scoring.MIN_WORDS`); ver §4 ter.
   Al catalogar, un cuento corto toma la puntuación de su bloque y va marcado `medida = bloque`.
 - **Fuga:** 8-gramas contra ELG CEFR English (en caché de HF), umbral 50 %.
 - **Métricas siempre con la línea base de contar palabras** y la correlación
@@ -128,6 +130,71 @@ texto con licencia no libre. Ids: `SWV<id>`, `ASB<nnnn>`, `VOA<num>`.
   suite `pruebas_corpus.py`.
 - Despliegue: `catalogo_externo.csv` y `corpus_abierto.parquet` están en la lista
   blanca; el `.npy` del externo se sube a mano con `upload_file`.
+
+## 4 ter. StoryWeaver entero en el catálogo (14 sep 2026)
+
+Resultado: `catalogo_externo.csv` pasó de 3.919 a **15.357** filas (StoryWeaver
+14.500, Let's Read 326, African Storybook 278, VOA 253) y la app, a 68.536
+libros. Todo gratis, en CPU local. Lo que hay que saber para repetirlo:
+
+**Medir en local por shards, no de un tirón.** `tools/medir_corpus.py` guarda
+cada unidad medida en `corpus_graduado/medidas/medidas_NNNN.jsonl`, de 250 en
+250, con una **clave del contenido** (sha256 de tipo + ids + texto). Reanudar
+lee lo hecho del disco, no un contador. `--tope N` mide N y da la ETA.
+- Velocidad real en esta CPU (torch solo CPU; la GTX 1650 no se usa sin torch
+  con CUDA): 3,8–5,3 ventanas/s y unas 70–120 unidades/min. 12.800 unidades
+  tardaron unas 2 h. Las pruebas en paralelo la frenan, pero no rompen nada.
+- **El reparto importa y va en orden:** 1) cada texto con ≥150 palabras
+  (`scoring.MIN_WORDS`) se mide solo; 2) los cortos **y los que el filtro de
+  prosa rechazó solos** se agrupan en bloques de ≥250 palabras de su fuente y
+  nivel, en orden de id. Por eso los bloques no se forman hasta que la primera
+  pasada está completa.
+- Cierre en un comando: `tools/cerrar_corpus.py`. Para si falta algo por medir,
+  cataloga, compara con el catálogo anterior (filas, fuente, letra), pasa
+  `pruebas_corpus` y hace `--seco`. Su último paso deja de ser útil si los CSV
+  aún no tienen commit, porque el desplegador compara bytes del commit.
+- **Los 894 que quedan fuera, y por qué** (recontado por 4e): 776 tienen <150
+  palabras; 878 cayeron en uno de los 260 bloques que el filtro de prosa del v4
+  rechazó (215 «lista, menú o tabla», 32 por frases, 13 con <4 frases); de los
+  16 restantes, 15 no llegaron a formar bloque y 1 se midió solo, lo rechazó el
+  filtro y no llegó a bloque. Cita la línea de salida literal y el desglose,
+  no una explicación de memoria: la primera que di aquí estaba mal.
+- Los 48 de StoryWeaver bajados por popularidad **entran** al catálogo. Solo se
+  apartan al VALIDAR.
+
+**Lo que se mide y lo que se enseña no son lo mismo.**
+- `corpus_abierto.parquet` lleva la **atribución en español al final** (CC BY
+  la exige). Medida con el cuento, esa línea con URL lo subía: «Doggie is Happy»
+  (SWV229485) daba 0,349 en «¿Cómo de difícil es?» y 0,007 en el catálogo. Todo
+  lo que puntúa usa `ficha.para_medir(texto)` (sin licencia de Gutenberg y sin
+  el último párrafo de atribución); lo que se enseña sigue con ella. Si se
+  arregla después de que se guardaran curvas, **borra las curvas de ids no PG**
+  del bucket (`analisis/*.json` cuyo `titulo` es swv|asb|lrd|voa…txt), no las
+  sinopsis.
+- **Limpieza del texto servido, nunca del medido.** `catalogar_corpus.limpiar_para_servir`
+  quita U+FEFF, un párrafo idéntico al anterior y un párrafo que es la misma
+  página dos veces (cada mitad con ≥12 palabras y ≥2 frases). Los estribillos de
+  una frase y la repetición no consecutiva **se quedan**: en cuentos infantiles
+  es a propósito. Limpiar antes de medir cambiaría la clave y obligaría a volver
+  a medir. Comprobación: regenerar sin medir y que `catalogo_externo.csv` salga
+  **idéntico byte a byte**. Cambiaron 1.442 textos servidos (1.257 solo U+FEFF).
+  La columna `palabras` sigue contando el texto medido.
+
+**En la app.**
+- **Medido en bloque:** un cuento corto toma la dificultad de su bloque. La
+  tarjeta y la ficha llevan `medido_en_bloque` (contrato con e6) para no
+  presentarla como suya.
+- **Intercalado en «Sorpréndeme»** (decisión de Miguel): los libres no tienen
+  descargas y por popularidad salían del puesto 20 en A2 y nunca en B1. Si hay
+  libres en la franja, ocupan los puestos 2, 5, 8… (un tercio); el resto va por
+  descargas; un título con aviso de contenido sigue fuera de los 5 primeros.
+  **Ordénalos por cercanía al nivel del lector** y, a igual distancia, primero
+  los medidos solos. Por id empataban y A2 y B1 veían los mismos tres cuentos.
+- **Rendimiento:** `isin` contra un índice de texto de arrow recorre en Python
+  sus 15.357 ids en cada llamada (0,22 s por recomendación). Con un frozenset
+  cacheado son 3 ms.
+- Pruebas: `pruebas_corpus.py` (25 al cierre del 14 sep, con una prueba sobre el
+  catálogo real y otra con el modelo para Doggie). Mutantes `C3-*`.
 
 ## 5. Trabajar con otras sesiones a la vez
 
