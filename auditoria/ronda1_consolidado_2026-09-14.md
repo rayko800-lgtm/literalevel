@@ -298,3 +298,8 @@ Comprobación de los guiones corregidos (e6, feeb806; front ec957d0, Space 384a2
 Anexo de la ronda 3 del front (4e, 02cc538), sobre el front ec957d0:
 - **Cerrado y verificado:** una sola bajada de cada .glb, la guarda de three con su comentario, los bordes exactos en milésimas y los 8 chips con las cifras del commit de e6 en la página, con perfiles A2 y B1.
 - **Nota:** dos chips traen alguna tarjeta floja. «Child safety» sale con «Cuentos de miedo para niños» y «A visit to the zoo» con «Animales de la selva». Es el catálogo, no la regla.
+
+Reinicio 22, antes del commit (f4):
+- **Arreglo del nombre de pila, en local:** las 5 búsquedas de 4e que mezclan autor y título dan 8, 9, 8, 2 y 10 de 10 resultados del autor. En el Space del 21 daban 2, 0, 0, 0 y 4. «browning» abre con Browning.
+- **Serio de datos:** al buscar «Buying GHB Online» salía primero un anuncio de venta de metanfetamina, SWV644179, de la misma cuenta que el de GHB. Van los dos a no_lectura, y f4 revisa todos los textos de las cuentas con anuncios.
+- **Pendiente:** el banco de mutantes termina hacia las 03:42. Después vienen el commit, el visto bueno de 4e y e6, y la subida.

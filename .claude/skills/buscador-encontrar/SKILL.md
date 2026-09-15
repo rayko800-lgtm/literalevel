@@ -56,7 +56,11 @@ id contra el campo entero de los CSV, o una obra con coautor sale como fallo.
 **Lo que no debe aparecer nunca:** «Fenn, Amor» con «amor»; Jane G. Austin,
 Sidney Austen o Calamity Jane arriba en «Jane Austen»; ningún id de
 `no_lectura_externo.csv`; ningún gancho con URL o anuncio (prueba a propósito
-«digital marketing agency», «blender», «painting contractors»).
+«digital marketing agency», «blender», «painting contractors», «buying GHB
+online», «crystal meth»). StoryWeaver acepta textos de cualquiera: el 15 sep
+seguían visibles un anuncio de venta de GHB (con letra B1) y otro de
+metanfetamina, de la misma cuenta. **Un barrido por palabras no basta: cuando
+aparece un anuncio, se revisan todos los textos de esa cuenta.**
 
 **Los chips de sugerencia:** cada uno, con perfil A2 y con B1, tiene que dar
 algo en «En tu nivel» o «Un poco por encima». Una sugerencia que ofrecemos
