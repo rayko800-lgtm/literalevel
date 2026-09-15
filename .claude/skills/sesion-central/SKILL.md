@@ -253,3 +253,27 @@ tests_smoke.py`), o se lo pide a f4 antes de cualquier reinicio. Y cuando
 dos sesiones editan el mismo archivo a la vez, la central lo sabe (lo dijo
 f4 media hora antes): en ese momento hay que avisar a las dos de que solo
 suban sus hunks.
+
+## 8. El disco se llena solo cuando hay cuatro sesiones
+
+La madrugada del 15 de septiembre C: llegó a 0 GB con 819 GB libres en D:.
+Una sesión no podía ni abrir la salida de sus propios comandos (ENOSPC en
+%TEMP%) y un cálculo largo se cortó. Causas: copias de árbol limpio de 25 MB
+por reinicio en el scratchpad, diferencias de edición del arnés (unos 30 MB
+cada una), volcados de memoria de Chrome y temporales de días anteriores.
+Cambiar `TEMP` y `TMP` a `D:\Temp` solo afecta a los procesos que arrancan
+después: **las sesiones ya abiertas siguen escribiendo en C:**.
+
+- Antes de una tarde con cálculo pesado, mira `Get-PSDrive C`. Por debajo de
+  5 GB, libera antes de lanzar nada.
+- Lo pesado va a `D:\literalevel_tmp` por orden explícita en el encargo:
+  árboles limpios, banco de mutantes, perfiles de Chrome, volcados.
+- Borrable sin preguntar, con el permiso general de Miguel para lo
+  regenerable: `.tmp` de más de dos días en %TEMP% y carpetas de
+  `Temp/claude/bash-edit-diff` de más de tres horas. Los scratchpads de otras
+  sesiones vivas no se tocan: se le pide a su dueña.
+- Los procesos que escriben por partes con temporal y renombrado sobreviven a
+  un disco lleno; los que escriben directo, no. Pídelo así en cualquier tanda
+  larga.
+- Cuando la ronda acabe, reinicia las sesiones de una en una para que tomen
+  los temporales de D:.
