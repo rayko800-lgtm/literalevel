@@ -1221,3 +1221,5 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - Perfil 0,953: igual que la línea base (36 resultados, 16 marcados, top 10 idéntico).
 - A 4e: sin cifras nuevas en el guion. Hace el MENOR de «1 de 3» con una recompilación.
 - Pendiente para dar el 30b por bueno: el código de comprobar_r30b.py.
+- Guiones f5849dc (4e): «1 de 3» y el título de la bienvenida por separado, y paso 3 fechado «sobre los reinicios 28 y 30b». PDF de 9 páginas. Una sola recompilación.
+- Encargado a e6 el ensayo completo del guion en el front 72e9525 (§15): solo lectura, con copia a 4e.
