@@ -194,12 +194,13 @@ export interface Curva {
   global?: number;
   cefr?: string;
   banda?: string;
-  forma?: 'se_complica' | 'se_suelta' | 'pareja';
+  /** null con una sola fila desde el reinicio 27 (API 1708cb1): sin tendencia ni capítulos extremos. */
+  forma?: 'se_complica' | 'se_suelta' | 'pareja' | null;
   ventanas?: number;
   capitulos_medidos?: number;
   capitulos_totales?: number;
-  facil?: FilaCurva;
-  dificil?: FilaCurva;
+  facil?: FilaCurva | null;
+  dificil?: FilaCurva | null;
   trabajo?: string | null;
 }
 

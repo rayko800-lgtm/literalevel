@@ -50,6 +50,16 @@ describe('Ficha: dificultad capítulo a capítulo', () => {
     expect(texto).not.toContain('todavía no está medido');
   });
 
+  it('un capítulo con la API del 27: forma, facil y dificil llegan en null', async () => {
+    const { tarjeta, texto } = await montar(1, { fuente: 'completo', filas: [fila(1, 0.96)], forma: null, facil: null, dificil: null });
+    expect(texto).toContain('Es un texto de un solo capítulo');
+    expect(texto).toContain('0,96 (B1)');
+    for (const sobra of ['Se va', 'Mantiene un nivel', 'Lo más llevadero', 'Toca un punto', 'todavía no está medido']) {
+      expect(texto).not.toContain(sobra);
+    }
+    expect(tarjeta.querySelector('app-curva')).toBeNull();
+  });
+
   it('dos capítulos: tendencia, capítulos extremos y gráfica', async () => {
     const a = fila(1, 1.3), b = fila(2, 0.9);
     const { tarjeta, texto } = await montar(2, { fuente: 'catalogo', filas: [a, b], forma: 'se_suelta', facil: b, dificil: a });
