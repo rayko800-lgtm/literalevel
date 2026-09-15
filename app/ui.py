@@ -3806,8 +3806,9 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
         # limite mandando audio que whisper no pudiera transcribir.
         #
         # Whisper no se factura, pero las otras dos si. Se cobra. (Desde 0a759a5, sin
-        # voz ya no se llama a `explicar_correccion`; `generar_audio_correcto` si, y
-        # cachea por contenido.)
+        # voz ya no se llama a `explicar_correccion`, y desde 681544f tampoco a
+        # `generar_audio_correcto` ni a `analizar_natural`: sin voz solo queda la
+        # transcripcion. Si se devuelve el uso en ese caso es decision aparte.)
         #
         # Y el aviso es el de la grabacion sin voz: sin `OPENAI_API_KEY` se sale arriba
         # con su propio aviso, asi que aqui la causa es silencio, ruido o un fallo de red
