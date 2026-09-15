@@ -133,7 +133,7 @@ sobre lo que cambió, con los auditores rotados.
 | Rescate por nombre, frases en español, anuncios fuera, subidas simultáneas, 422 sin contraseña | 7d94bd9, c63ce44, a557288 (f4), subidos desde el árbol de bffc69d | Sí, reinicio 19, Space 053a486, comprobado sin fallos |
 | Fuga de memoria del 3D: renderer compartido, 18,1 MB y 1 contexto vivo tras 20 aperturas (antes 48,7 MB con 10) | d911cc2, b3ed0d7 (e6) | Sí, front 548ff40 |
 | Audio tras cerrar, teclado y aria-pressed, pérdida de contexto al 2D, README | bffc69d (e6), 2bbf9ec, 6fa33c0, 5cec3ae (e6) | Sí, front 548ff40 |
-| Restos de voz: silencio no se guarda, IPA en ASCII rechazada, «Mr.» no corta la frase | 2c0e681 (4e, 7 mutantes muertos) | Pendiente del reinicio 20 |
+| Restos de voz: silencio no se guarda, IPA en ASCII rechazada, «Mr.» no corta la frase | 2c0e681 (4e, 7 mutantes muertos) | Sí, reinicio 20, Space af72fb0, comprobado sin fallos |
 | Carpetas temporales de las suites, causa del disco lleno | 42de4cb (4e); 40cdcd4 (f4) | No aplica, 0 carpetas tras cada suite |
 
 Comprobación del reinicio 19 (f4): 0 fallos. «amor» con B1 da 12 de 12 sobre amor; «Jane Austen» sin Jane G. Austin; ningún anuncio ni texto que no es lectura en 14 búsquedas; el error de entrar ya no devuelve la contraseña; dos subidas simultáneas conservan sus nombres. En curso: prueba como persona de «amor» y «Jane Austen» con B1 sobre el Space nuevo (e6), pasada de documentos con el coste real de cómputo (4e). Después: reinicio 20, publicación del front con el 3D sin fuga y ronda 3 sobre lo corregido.
@@ -160,3 +160,10 @@ Pasada de documentos (4e, 13ad84a, PDF recompilados):
 - Carpetas huérfanas de pruebas: cb17bca borra al empezar las de más de 3 horas.
 
 Ronda 3 empezada: 4e audita la búsqueda del reinicio 19 y la boca 3D publicada.
+
+Reinicio 20 (f4): Space af72fb0, con voz.py y lexicon.py del árbol de fdbc54e, comprobado sin fallos. Las 12 suites pasan en árbol limpio. «Mr. Adams wants to come with us.» ya no da avisos, y «amor» con B1 sigue dando 12 de 12.
+
+Reinicio 21 en preparación (f4):
+- **Bloques con un texto raro:** margen de 0,5 fijado antes de medir. El texto raro se marca en la columna raro_en_bloque, y APOCALYPTO pasa a no_lectura.
+- **«Jane Austen»:** nombre de pila y apellido juntos cuentan como coincidencia completa. Sus obras ya salen primero, sin Sidney Austen ni Calamity Jane.
+- Las pruebas cazaron antes de subir que un nombre de pila solo volvía a traer «Fenn, Amor» con «amor». Ahora se exige el apellido, y una prueba lo vigila.
