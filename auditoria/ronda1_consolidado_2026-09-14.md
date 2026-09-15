@@ -1138,3 +1138,9 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - «granja» y «dragones» con 1,20, iguales o solo empates.
 - Si cuadra: clave en app/catalogo.py, con prueba y mutante C24-franja-empate-sin-cercania; después, corpus y banco.
 - e6 queda avisado de que puede publicar el aria-label antes de ese banco.
+
+**Visto bueno de e6 a 5ee4949:**
+- Textos buscados en el bundle publicado c73bbcc; la medida a 390 px es de hoy, sobre el mismo código.
+- Puntos 10 y 11 y pasos 3 y 4: bien.
+- MENOR opcional para 4e: «1 de 3 · Libros en inglés a tu nivel» son dos textos en pantalla. Se corrige junto con los cambios que traiga el 30b.
+- aria-label de Inicio: cambiado por e6 a «Ejemplo: mantener presionada una palabra del libro para ver qué significa en su frase», con aserción en entrar-perfil.spec.ts. Pendiente de pruebas, commit, visto bueno de 4e y publicación.
