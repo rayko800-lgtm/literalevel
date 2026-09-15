@@ -163,6 +163,20 @@ describe('Los bloques de Encontrar', () => {
     expect(ids(sinApi.porEncima)).toEqual(['borde-api', 'dentro-front']);
   });
 
+  it('los bordes de `franja` se comparan en milésimas: un hi sin redondear no deja fuera 1,25', () => {
+    const libros = [
+      libro('techo', 0.8, 1.9),
+      { ...libro('en-hi', 0.7, 1.25), por_franja: true },
+      { ...libro('sobre-hi', 0.7, 1.251), por_franja: true },
+      { ...libro('en-lo', 0.7, 0.35), por_franja: true },
+      { ...libro('sobre-lo', 0.7, 0.351), por_franja: true },
+    ];
+    const b = bloquesBusqueda(libros, b1, [0.8 - 0.45, 1.2499999999999998]);
+    expect(ids(b.enTuNivel)).toEqual(['sobre-lo']);
+    expect(ids(b.porEncima)).toEqual(['en-hi']);
+    expect(ids(b.menosParecidos)).toEqual(['sobre-hi', 'en-lo']);
+  });
+
   it('con franja, a 0,100 del techo sube y a 0,101 no', () => {
     const b = bloquesBusqueda([
       libro('techo', 0.8, 1.9), libro('escalon-1', 0.76, 1.9), libro('escalon-2', 0.72, 1.9),

@@ -51,7 +51,10 @@ export function bloquesBusqueda(libros: LibroTarjeta[], nivel: number,
   if (!libros.length) return b;
   // La franja la da la API desde el reinicio 23 (`franja: [lo, hi]`, lo < dificultad ≤ hi,
   // una sola constante en catalogo.py); sin ella, la de siempre alrededor del nivel.
-  const deLaApi = (dificultad: number) => franja ? dificultad > franja[0] && dificultad <= franja[1] : null;
+  // En milésimas, como los parecidos: un hi de 1,2499999999999998 no deja fuera a un libro
+  // a 1,25 (4e, visto bueno de 5e4421c).
+  const deLaApi = (dificultad: number) => franja
+    ? milesimas(dificultad) > milesimas(franja[0]) && milesimas(dificultad) <= milesimas(franja[1]) : null;
   const techo = milesimas(Math.max(...libros.map(l => l.similitud)));
   // Hasta dónde bajan los parecidos desde el techo sin un hueco mayor que SALTO.
   let suelo = techo;
