@@ -298,6 +298,14 @@ cervantes con B1 y 1,20 de 12 marcas a 0; dickens con 1,20 de 17 a 5 (suyas);
 aún deja una tarjeta rusa en «En tu nivel»; para la demo se usa «Crimen y
 castigo de Dostoyevski», que da el aviso y el libro primero.
 
+**Hueco de la medida del 29:** las 100 palabras de tema se midieron sin perfil
+y con B1, y los temas con A2 y B1, pero ningún tema con **el perfil de la demo
+(1,20)**. Tras subir, e6 vio que «animales de la granja» con 1,20 perdía «En tu
+nivel». Regla: toda regla que toque la franja se mide con los perfiles que se
+van a usar de verdad (sin perfil, A2, B1 **y 1,20**), y con un criterio de
+vuelta atrás escrito antes de subir (si cambia el paso 2 del guion o más de 3
+temas, se vuelve al catalogo.py anterior sin esperar).
+
 ### Los empates se ordenan distinto en cada máquina
 
 Con `n=24`, el Space y la medida local del mismo catalogo.py difirieron en 13 de
