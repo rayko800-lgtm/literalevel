@@ -207,7 +207,13 @@ En el 27 se midió el riesgo de la exención de clásicos «con y sin la exenci�
 sobre el código nuevo, y salió limpio. Pero el mismo reinicio traía otras dos
 reglas (un extra al autor sobre el título y un orden por primer autor), y en el
 Space «london», «hope», «king» o «school» pasaron a traer al autor en vez del
-tema: 0 de 10 resultados en común con el reinicio anterior. Lo cazó la medida
+tema: 0 de 10 resultados en común con el reinicio anterior. Medido después con
+la lista entera, eran **27 palabras y 54 de 198 listas** (love, family,
+friendship, moon, ocean, forest, city, music, space, stars, snow, fire, queen,
+princess, garden, island…): cualquier autor o entidad con esa palabra en el
+nombre («Snow, Eliza R.», «Ocean Spray», «Friendship Club») pasaba delante. Se
+arregló en el 28 quitando el extra al autor y dejando la clave de primer autor
+solo para consultas de dos palabras o más. Lo cazó la medida
 independiente de 4e contra una línea base tomada **antes** de subir.
 
 Regla: la comparación de riesgo se hace entre el catalogo.py del Space actual y
