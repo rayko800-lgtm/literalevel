@@ -130,7 +130,16 @@ dar el permiso en una sesión.
 - **Front:** bdfa418, con Tu nivel y Pronunciar nuevos, la ficha de un capítulo
   arreglada y el aviso «No te oí · Este intento no cuenta».
 - **Guion de la demo:** 800060e, con la receta B2 y «Antes de la demo».
-- **Serios abiertos:** ninguno. Quedan mejoras de búsqueda para el 29.
+- **Serio abierto que afecta a la demo (paso 3):** con el perfil B2 de la receta,
+  buscar un autor como «dostoyevski» enseña primero cuentos libres sin
+  relación («Books», «Story Chikkappa») en «En tu nivel», y ya no el aviso de
+  que no hay libros de su nivel. Parece un efecto de la búsqueda por franja
+  (reinicio 25) en consultas de autor. f4 lo mide con prioridad; si no llega
+  antes del fin de semana, 4e cambia el paso 3 por otra consulta.
+- **Límites declarados, sin cambio de código:** «Historias de amor» y «Terror
+  gótico» (título en consultas largas), «rosa» y «luna» con B1 (el arreglo
+  rompía 70 de 200 listas), «tolstoy» sin perfil, y «emma» con B1, «hamlet» y
+  «ulysses» sin perfil, que ya fallaban antes.
 
 ## Lo que queda
 
@@ -143,6 +152,6 @@ dar el permiso en una sesión.
 | ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
 | ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
-| Reinicio 29: «rosa» y «luna» con B1, erratas en títulos, menores de búsqueda y cuentas. El título en consultas largas se midió y **no se cambia**: ninguna variante ganó en la calibración; «Historias de amor» y «Terror gótico» quedan como límite declarado | f4 | en curso |
+| Reinicio 29: consultas de autor con perfil que marcan cuentos sin relación (paso 3 de la demo); erratas en títulos y menores. El título en consultas largas y «rosa»/«luna» con B1 se midieron y quedan como límite declarado | f4, con visto bueno de 4e | en curso, prioridad demo |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
