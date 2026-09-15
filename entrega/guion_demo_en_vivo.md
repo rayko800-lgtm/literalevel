@@ -94,13 +94,13 @@ que dice el **Plan B** para ese paso.
    grabar la demo. La aplicación descarta la grabación cuando whisper da, en
    todos sus trozos, más de 0,6 de probabilidad de que no haya voz; la voz más
    baja que se probó, sintética, dio 0,503.
-8. **Calentar el buscador antes de compartir pantalla:** si el Space acaba de
-   reiniciarse, espera medio minuto; después haz una búsqueda de prueba en
-   *Encontrar* con tu perfil ya guardado y espera a que salgan las tarjetas.
-   Tras un reinicio, el buscador tarda unos 30 s en quedar listo (catálogo 4,6 s
-   y modelo con los títulos unos 25 s; una búsqueda lanzada a los 5 s esperó
-   22,1 s y respondió bien). Después, cada búsqueda con nivel tarda de 0,7 a
-   0,9 s (Space del reinicio 26, 15 de septiembre, medido por f4).
+8. **Calentar el buscador antes de compartir pantalla:** haz una búsqueda de
+   prueba en *Encontrar* con tu perfil ya guardado y espera a que salgan las
+   tarjetas. Si el Space acaba de reiniciarse, espera antes medio minuto: tras un
+   reinicio, el buscador tarda unos 30 s en quedar listo (`/api/salud` dice
+   `buscador_listo: true` a los 26–29 s de arrancar; medido por 4e y por f4 en el
+   reinicio 27, 15 de septiembre). Después, cada búsqueda tarda menos de un
+   segundo.
 
 ---
 
