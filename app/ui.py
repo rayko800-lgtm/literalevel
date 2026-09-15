@@ -3780,7 +3780,8 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
     try:
         # Los fallos se registran aparte, en la base de ESTE lector: las
         # palabras que a uno se le atragantan no son asunto de los demas.
-        s = voz.practicar(ruta_audio, frase, guardar_fallos=False)
+        # `origen` solo va al registro de las grabaciones sin voz (4e, 06a7aac).
+        s = voz.practicar(ruta_audio, frase, guardar_fallos=False, origen="gradio")
         if s.evaluacion.palabras_falladas and s.transcripcion_ok:
             voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                  ruta=_archivo_lector("voz.db", peticion), frase=frase)
