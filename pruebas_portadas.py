@@ -12,7 +12,9 @@ Uso:  python -X utf8 pruebas_portadas.py
 """
 from __future__ import annotations
 
+import atexit
 import os
+import shutil
 import sys
 import tempfile
 import traceback
@@ -22,7 +24,13 @@ from types import SimpleNamespace
 from pathlib import Path
 
 sys.path.insert(0, "app")
-os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_portadas_")
+_BASE_TMP = os.environ.get("LITERALEVEL_TMP") or None
+if _BASE_TMP:
+    os.makedirs(_BASE_TMP, exist_ok=True)
+os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_portadas_", dir=_BASE_TMP)
+# Se borra al salir: sin esto cada corrida dejaba su carpeta en %TEMP%, y C: llegó a
+# 0 GB el 15 sep 2026 con miles de carpetas de pruebas (banco incluido).
+atexit.register(shutil.rmtree, os.environ["LITERALEVEL_DATOS"], True)
 
 FALLOS: list[str] = []
 HECHAS = 0

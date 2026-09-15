@@ -47,7 +47,10 @@ COPIAR = ["app", "tools", "pruebas_extremas.py", "pruebas_integracion.py", "test
           # copia (14 sep 2026, C3-bloque-sin-marca-*).
           "pruebas_api.py", "catalogo_medido.csv", "capitulos_medidos.parquet",
           "catalogo_externo.csv", "corpus_abierto.parquet", "avisos_contenido.csv",
-          "correcciones_catalogo.csv"]
+          "correcciones_catalogo.csv",
+          # El helper de carpetas temporales de 4e (15 sep 2026): extremas, api,
+          # integracion, voz, lexico y smoke lo importan.
+          "pruebas_tmp.py"]
 
 # (id, archivo, viejo, nuevo, prueba que debe cazarlo)
 MUTANTES = [
@@ -807,6 +810,13 @@ def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
     env["PYTHONIOENCODING"] = "utf-8"
     env["LITERALEVEL_MODELO"] = str(RAIZ / "modelo_v4")
     env["LITERALEVEL_DICCIONARIO"] = str(RAIZ / "kaikki_diccionario.db")
+    # Los temporales de cada suite, fuera de C: y en una carpeta por copia que se
+    # borra al terminar: las suites dejaban ~100 MB por corrida en %TEMP%, y con el
+    # banco C: llego a 0 GB el 15 sep 2026 (1.002 carpetas). Tambien si la suite
+    # muere sin llegar a su atexit.
+    tmp = BASE.parent / "pruebas" / destino.name
+    tmp.mkdir(parents=True, exist_ok=True)
+    env["TEMP"] = env["TMP"] = env["TMPDIR"] = env["LITERALEVEL_TMP"] = str(tmp)
     # `pruebas_extremas.py` a veces imprime su veredicto y luego no termina de
     # salir. Con `capture_output` eso colgaba el banco hasta el timeout, y el
     # TimeoutExpired lo tumbaba entero: C2-sin-excluir se llevo por delante los
@@ -823,6 +833,8 @@ def correr(destino: pathlib.Path, suite="pruebas_extremas.py"):
         verde = ("pruebas extremas pasan" in salida or "pruebas de la ficha pasan" in salida
                  or "pruebas de corpus pasan" in salida)
         r = subprocess.CompletedProcess(e.cmd, 0 if verde else 1, salida, "")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
     # Cada suite dice sus fallos a su manera, y el banco tiene que entender
     # las dos. `pruebas_extremas` y `pruebas_lexicon` los listan con "- ";
     # `pruebas_ficha` y `pruebas_perfil` escriben "  FALLA <nombre>". Sin la
