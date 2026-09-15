@@ -211,7 +211,7 @@ Diplomado en Ciencia de Datos --- Generación 34
       \centering
       \begin{tabular}{@{}C{3.6cm}C{4.0cm}C{3.3cm}@{}}
         {\large\bfseries\color{llcian} 0,908} & {\large\bfseries\color{llverde} A1 $<\cdots<$ C1} & {\large\bfseries\color{llambar} 97,2\pct} \\[2pt]
-        {\scriptsize Spearman, validación ciega} & {\scriptsize orden MCER creciente en corpus externo} & {\scriptsize dentro de $\pm 1$ nivel} \\
+        {\scriptsize Spearman, validación interna} & {\scriptsize orden MCER creciente en corpus externo} & {\scriptsize dentro de $\pm 1$ nivel} \\
       \end{tabular}
     \end{minipage}};
 \end{tikzpicture}
@@ -240,8 +240,9 @@ cualquier palabra en la frase en la que aparece y le corrige la pronunciación c
 lee en voz alta.
 
 Debajo hay un modelo de lenguaje pequeño (\cod{distilroberta-base}) afinado para
-predecir dificultad como un número continuo. En validación ciega alcanza una
-correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus externo
+predecir dificultad como un número continuo. En la validación interna —144 documentos
+reservados del corpus de anclaje, los mismos con los que se eligió el punto de control—
+alcanza una correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus externo
 que no se usó para ajustar los pesos —aunque sí se exploró durante el desarrollo, y eso
 se detalla en la limitación 6—, ordena los niveles del Marco Común Europeo de forma
 estrictamente
@@ -990,7 +991,7 @@ cosas, y las tres salieron de mirar cómo se usa un teléfono:
         grabación, el modelo generativo señalaba un sonido distinto en cada llamada. Ahora
         el fonema que falla sale de \textbf{alinear la transcripción de lo que había que
         decir con la de lo que se entendió} ---las dos de diccionario: Wiktionary y, donde
-        no la trae, CMUdict, 126.052 palabras bajo licencia BSD--- y el consejo de boca,
+        no la trae, CMUdict \parencite{cmudict}, 126.052 palabras bajo licencia BSD--- y el consejo de boca,
         lengua y aire sale de una ficha fija por fonema. Del modelo queda el resumen.
         La selección del fonema es determinista dadas las mismas palabras y
         transcripciones; esto no hace determinista al reconocimiento de voz.
@@ -1004,7 +1005,7 @@ cosas, y las tres salieron de mirar cómo se usa un teléfono:
         con «reducir movimiento» del sistema los deja quietos.
 \end{itemize}
 
-\noindent\textbf{Boca 3D y portadas, a fecha del \emph{front} \cod{45d9999}.} La boca 3D ya está publicada: el \emph{front} sirve \cod{boca3d/cara.glb} y \cod{lengua.glb}, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son \textbf{tipográficas}: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del \emph{front} que fija esos contrastes recorre 12 familias, 200 libros y dos temas (\cod{b2003e5}). Las portadas FLUX no se generaron: el pipeline
+\noindent\textbf{Boca 3D y portadas, a fecha del \emph{front} \cod{45d9999}.} La boca 3D ya está publicada: el \emph{front} sirve \cod{boca3d/cara.glb} y \cod{lengua.glb}, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir) \parencite{makehuman_licencia}; paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son \textbf{tipográficas}: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del \emph{front} que fija esos contrastes recorre 12 familias, 200 libros y dos temas (\cod{b2003e5}). Las portadas FLUX no se generaron: el pipeline
 exige saldo, tarifa actual, aprobación de muestras y permiso separado para publicar.
 La selección local de 1.200 libros contiene 746 motivos temáticos y 454 genéricos.
 Su calidad visual sigue sin comprobarse. El enlace del lector es
@@ -1144,7 +1145,21 @@ entorno de cómputo: solo estadísticas agregadas.
 \addlinespace
 \textbf{Kaikki / Wiktio\-nary} & Diccionario, IPA británica y americana, audio & 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 & Volcado de kaikki.org \parencite{ylonen2022wiktextract} & Libre \\
 \addlinespace
-\textbf{Story\-Weaver / Global Digital Library} & Lecturas graduadas del catálogo heredado, retirado el 12 de septiembre de 2026 & 1.049 registros & API pública de contenidos & Abierta, pero sin descarga de texto \\
+\textbf{ELG CEFR English} & Corpus de anclaje MCER: afinado y validación interna del v4 & 712 documentos; 654 aceptados & European Language Grid, descargado de Hugging Face \parencite{breuker2023cefr} & No comercial: CC BY-NC-SA 4.0 según el guion de entrenamiento; CC BY-NC 4.0 según su ficha en UniversalCEFR \\
+\addlinespace
+\textbf{Story\-Weaver} (Pratham Books) & Textos libres del catálogo, medidos con el v4 & 14.500 textos & Plataforma abierta \parencite{prathambooks_storyweaver} & CC BY 4.0 \\
+\addlinespace
+\textbf{Let's Read} (The Asia Foundation) & Textos libres del catálogo, medidos con el v4 & 326 textos & Biblioteca digital \parencite{asiafoundation_letsread} & CC BY 4.0 (316) y CC BY 3.0 (10) \\
+\addlinespace
+\textbf{African Story\-book} (Saide) & Textos libres del catálogo, medidos con el v4 & 278 textos & Biblioteca digital \parencite{saide_africanstorybook} & CC BY \\
+\addlinespace
+\textbf{VOA Learning English} & Textos libres del catálogo, medidos con el v4 & 253 textos & Sitio de Voice of America \parencite{voa_learningenglish} & Dominio público \\
+\addlinespace
+\textbf{Common Pile} (\cod{project\_\allowbreak gutenberg}) & Texto de los libros de Gutenberg para medir el catálogo & 57.226 textos descargados & Hugging Face \parencite{kandpal2025commonpile} & Dominio público \\
+\addlinespace
+\textbf{CMUdict} & Fonética americana donde Wiktionary no la trae (corrección de voz) & 126.052 palabras & GitHub de Carnegie Mellon University \parencite{cmudict} & BSD de dos cláusulas \\
+\addlinespace
+\textbf{Catálogo heredado} (Story\-Weaver / Global Digital Library) & Registros del catálogo anterior, retirado el 12 de septiembre de 2026; no son los 14.500 textos de arriba & 1.049 registros & API pública de contenidos & Abierta, pero sin descarga de texto \\
 \bottomrule
 \end{tabularx}
 \caption{Fuentes de datos, con volumen y procedencia.}
@@ -1938,8 +1953,8 @@ comparan con las de después de filtrar \\
 \end{longtable}
 \end{footnotesize}
 
-El corpus de anclaje MCER con el que se afinó es \textbf{ELG CEFR English} (CC BY-NC-SA
-4.0), una sola fuente: 712 documentos, de los que se aceptan 654 como prosa —57 son cortos
+El corpus de anclaje MCER con el que se afinó es \textbf{ELG CEFR English} \parencite{breuker2023cefr} (licencia no
+comercial; cuadro~\ref{cuad:fuentes}), una sola fuente: 712 documentos, de los que se aceptan 654 como prosa —57 son cortos
 y 1 tiene forma de frase anómala—, repartidos por documento y con semilla fija en 510 de
 entrenamiento y 144 de validación. Esos 144 producen las cifras de la primera fila del
 cuadro~\ref{cuad:desplegado}.
@@ -2168,7 +2183,7 @@ cambió: solo cambió cómo se agrupan.
 
 \textbf{Un intento de ampliar la validación que hubo que retirar, y por qué se deja
 escrito.} El 12 de septiembre de 2026 se midió el v4 sobre los dos conjuntos ingleses de
-referencia de UniversalCEFR (Imperial et al., 2025), \cod{cambridge\_exams\_en} y
+referencia de UniversalCEFR \parencite{imperial2025universalcefr}, \cod{cambridge\_exams\_en} y
 \cod{elg\_cefr\_en}: 739 textos, Spearman \textbf{0,946}. Era más alto que la validación
 interna (0,908), y eso bastó para no creérselo. Leyendo el guion de entrenamiento del v4
 salió la causa: \textbf{el v4 se entrenó con ELG CEFR English}, que es exactamente
@@ -2823,7 +2838,7 @@ convierte en una entrada.
 
 \medskip
 \noindent Lo que sí resuelve el problema es no pedirle nada a Gutenberg.
-\texttt{common-pile/project\_gutenberg} es un volcado ya publicado de esos mismos textos
+\texttt{common-pile/project\_gutenberg} es un volcado ya publicado \parencite{kandpal2025commonpile} de esos mismos textos
 de dominio público, servido por una red de distribución de contenidos. Medido sobre el
 primer fragmento: \textbf{8,0 MB/s}, unos \textbf{veintidós minutos} para los 10,5 GB, y
 el identificador de cada documento \textbf{es} el número de Gutenberg —239 de 239 cruzaron
@@ -2873,11 +2888,11 @@ resume cada una.
 \midrule
 Fórmulas clásicas (FKGL, ARI) & Pearson \textbf{0,517} en CLEAR & \textbf{0,89} \\
 Mejor LLM \emph{zero-shot} publicado & Pearson \textbf{0,725} en CLEAR & \textbf{0,89} \\
-Lexile, tarifa de creador de contenido & \textbf{3.824--54.636} USD/año & ~3 h de A100 \\
+Lexile, tarifa de creador de contenido & \textbf{3.824--54.636} USD/año \parencite{metametrics2026lexile} & 0 USD de cómputo (T4 gratuita) \\
 \bottomrule
 \end{tabular}
 \caption{Cifras publicadas frente a las de este proyecto. \textbf{No son comparaciones
-cara a cara}: las dos primeras filas vienen de un estudio ajeno sobre el mismo corpus, con
+cara a cara}: las dos primeras filas vienen de un estudio ajeno \parencite{grossman2026zeroshot} sobre el mismo corpus, con
 otra partición y otro protocolo. Justifican la decisión de afinar un codificador; no
 demuestran una victoria medida.}
 \label{cuad:competencia}
@@ -2919,8 +2934,11 @@ codificador; no demuestran una victoria medida.}
 \label{fig:competencia}
 \end{figure}
 
-Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa de Lexile; medirlos
-aquí cabe en la cuota de una suscripción de unos 10 USD al mes. \textbf{No es una razón
+Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa de Lexile. Medirlos
+aquí no costó cómputo de pago: los libros de Gutenberg se midieron en una T4 gratuita de
+Colab, en tandas reanudables ---la última, 9.795 libros en 55 minutos---, y los textos
+libres en la CPU local. Al ritmo medido en una A100, 61 libros por minuto, habrían sido
+unas 17 horas de reloj (\S\ref{sec:escalado}). \textbf{No es una razón
 monetaria estricta} —una licencia anual y unas horas de cómputo no se dividen— y tampoco
 son servicios equivalentes: Lexile vende una escala aceptada por instituciones. Lo que sí
 se sostiene es que el \textbf{coste de procesamiento está en otro orden de magnitud}, y eso
@@ -2928,7 +2946,7 @@ es lo que hace viable medir un catálogo entero en un trabajo de estudiante.
 
 \textbf{Dónde se pierde, que también hay que decirlo.} Lexile tiene treinta años de
 validación y una escala que \textbf{acepta un colegio}; la de aquí no la acepta nadie.
-\emph{TeakReader} ya da nivel MCER por capítulo y es una aplicación publicada en dos
+\emph{TeakReader} \parencite{teakreader} ya da nivel MCER por capítulo y es una aplicación publicada en dos
 tiendas, mientras esto vive en un enlace. Y las lecturas graduadas de editorial tienen algo
 que ningún modelo da: el nivel se lo puso una persona que leyó la obra.
 

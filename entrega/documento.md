@@ -38,8 +38,9 @@ de principio a fin—, le explica cualquier palabra en la frase en la que
 aparece y le corrige la pronunciación cuando lee en voz alta.
 
 Debajo hay un modelo de lenguaje pequeño (`distilroberta-base`) afinado para
-predecir dificultad como un número continuo. En validación ciega alcanza una
-correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus
+predecir dificultad como un número continuo. En la validación interna —144 documentos
+reservados del corpus de anclaje, los mismos con los que se eligió el punto de
+control— alcanza una correlación de Spearman de 0,908 con el nivel de referencia y, sobre un corpus
 externo que no se usó para ajustar los pesos —aunque sí se exploró durante
 el desarrollo, y eso se detalla en la limitación 6—, ordena los niveles del
 Marco Común Europeo de forma
@@ -229,7 +230,14 @@ crudo nunca sale del entorno de cómputo: solo estadísticas agregadas.
 | **SPGC** (Standardized Project Gutenberg Corpus) | Lista global de frecuencia de palabras (solo conteos, sin texto) | 45.345 libros en inglés de 55.905 | Zenodo, registro 2422561 (Gerlach & Font-Clos, 2018, 2020) | Abierta |
 | **Project Gutenberg** | Catálogo de obras a medir y a leer dentro de la app | 79.337 entradas; 61.642 libros de texto en inglés, instantánea del 7 de septiembre de 2026 | Catálogo oficial + espejo `gutenberg.pglaf.org` | Dominio público |
 | **Kaikki / Wiktionary** | Diccionario, IPA británica y americana, audio | 1.487.639 filas en SQLite (243 MB); IPA en 46.794 y audio en 7.003 (§6.4) | Volcado de kaikki.org (Ylönen, 2022) | Libre |
-| **StoryWeaver / Global Digital Library** | Lecturas graduadas del catálogo heredado, retirado el 12 de septiembre de 2026 | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
+| **ELG CEFR English** | Corpus de anclaje MCER: afinado y validación interna del v4 | 712 documentos; 654 aceptados | European Language Grid, descargado de Hugging Face (Breuker, 2023) | No comercial: CC BY-NC-SA 4.0 según el guion de entrenamiento; CC BY-NC 4.0 según su ficha en UniversalCEFR |
+| **StoryWeaver** (Pratham Books) | Textos libres del catálogo, medidos con el v4 | 14.500 textos | Plataforma abierta (Pratham Books, s. f.) | CC BY 4.0 |
+| **Let's Read** (The Asia Foundation) | Textos libres del catálogo, medidos con el v4 | 326 textos | Biblioteca digital (The Asia Foundation, s. f.) | CC BY 4.0 (316) y CC BY 3.0 (10) |
+| **African Storybook** (Saide) | Textos libres del catálogo, medidos con el v4 | 278 textos | Biblioteca digital (Saide, s. f.) | CC BY |
+| **VOA Learning English** | Textos libres del catálogo, medidos con el v4 | 253 textos | Sitio de Voice of America (Voice of America, s. f.) | Dominio público |
+| **Common Pile** (`project_gutenberg`) | Texto de los libros de Gutenberg para medir el catálogo | 57.226 textos descargados | Hugging Face (Kandpal et al., 2025) | Dominio público |
+| **CMUdict** | Fonética americana donde Wiktionary no la trae (corrección de voz) | 126.052 palabras | GitHub de Carnegie Mellon University (Carnegie Mellon University, s. f.) | BSD de dos cláusulas |
+| **Catálogo heredado** (StoryWeaver / Global Digital Library) | Registros del catálogo anterior, retirado el 12 de septiembre de 2026; no son los 14.500 textos de arriba | 1.049 registros | API pública de contenidos | Abierta, pero sin descarga de texto |
 
 *Cuadro 2. Fuentes de datos, con volumen y procedencia.*
 
@@ -726,8 +734,8 @@ de los cinco salen del mismo catálogo de British Council, con extracciones y
 filtros distintos: no son subconjuntos unos de otros y sus tamaños no se
 restan.*
 
-El corpus de anclaje MCER con el que se afinó es **ELG CEFR English** (CC BY-NC-SA
-4.0), una sola fuente: 712 documentos, de los que se aceptan 654 como prosa —57
+El corpus de anclaje MCER con el que se afinó es **ELG CEFR English** (Breuker, 2023; licencia no
+comercial, Cuadro 2), una sola fuente: 712 documentos, de los que se aceptan 654 como prosa —57
 son cortos y 1 tiene forma de frase anómala—, repartidos por documento y con
 semilla fija en 510 de entrenamiento y 144 de validación. Esos 144 producen las
 cifras de la primera fila del Cuadro 10.
@@ -1218,7 +1226,7 @@ IP»— y autoriza tres caminos: un espejo privado, el punto de acceso
 una puerta esté abierta y sea rápida no la convierte en una entrada.
 
 Lo que sí resuelve el problema es no pedirle nada a Gutenberg.
-`common-pile/project_gutenberg` es un volcado ya publicado de esos mismos
+`common-pile/project_gutenberg` (Kandpal et al., 2025) es un volcado ya publicado de esos mismos
 textos de dominio público, servido por una red de distribución de contenidos.
 Medido sobre el primer fragmento: **8,0 MB/s**, unos **veintidós minutos** para
 los 10,5 GB, y el identificador de cada documento **es** el número de Gutenberg
@@ -1288,7 +1296,7 @@ La consulta de *house* eligió un sentido no adecuado al contexto: disponibilida
 del diccionario no demuestra que su desambiguación sea correcta en todos los
 casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
 
-**Boca 3D y portadas, a fecha del front `45d9999`.** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
+**Boca 3D y portadas, a fecha del front `45d9999`.** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
 
 **Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. El validador garantiza la precisión de lo que se enseña, no que se enseñe todo. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
 
@@ -1302,15 +1310,18 @@ y la cifra que resume cada una.
 |---|---|---|
 | Fórmulas clásicas (FKGL, ARI) | Pearson **0,517** en CLEAR | **0,89** |
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
-| Lexile, tarifa de creador de contenido | **3.824–54.636 USD/año** | ~3 h de A100 |
+| Lexile, tarifa de creador de contenido (MetaMetrics, 2026) | **3.824–54.636 USD/año** | 0 USD de cómputo (T4 gratuita) |
 
 *Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
-sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
+(Grossman y Chen, 2026) sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
 decisión de afinar un codificador; no demuestran una victoria medida.*
 
-Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa de Lexile;
-medirlos aquí cabe en la cuota de una suscripción de unos 10 USD al mes. **No es
+Los 53.179 libros del catálogo medido caen en el tramo más alto de la tarifa de Lexile.
+Medirlos aquí no costó cómputo de pago: los libros de Gutenberg se midieron en
+una T4 gratuita de Colab, en tandas reanudables —la última, 9.795 libros en 55
+minutos—, y los textos libres en la CPU local. Al ritmo medido en una A100, 61
+libros por minuto, habrían sido unas 17 horas de reloj (§8.3). **No es
 una razón monetaria estricta** —una licencia anual y unas horas de cómputo no se
 dividen— y tampoco son servicios equivalentes: Lexile vende una escala aceptada
 por instituciones. Lo que sí se sostiene es que el **coste de procesamiento está
@@ -1319,7 +1330,7 @@ entero en un trabajo de estudiante.
 
 **Dónde se pierde, que también hay que decirlo.** Lexile tiene treinta años de
 validación y una escala que **acepta un colegio**; la de aquí no la acepta
-nadie. *TeakReader* ya da nivel MCER por capítulo y es una aplicación publicada
+nadie. *TeakReader* (TeakReader, s. f.) ya da nivel MCER por capítulo y es una aplicación publicada
 en dos tiendas, mientras esto vive en un enlace. Y las lecturas graduadas de
 editorial tienen algo que ningún modelo da: el nivel se lo puso una persona que
 leyó la obra.
@@ -1619,6 +1630,13 @@ Abid, A., Abdalla, A., Abid, A., Khan, D., Alfozan, A., & Zou, J. (2019).
 *Gradio: Hassle-free sharing and testing of ML models in the wild*
 (arXiv:1906.02569). arXiv. https://arxiv.org/abs/1906.02569
 
+Breuker, M. (2023). CEFR labelling and assessment services. En G. Rehm (Ed.),
+*European Language Grid* (pp. 277–282). Springer.
+https://doi.org/10.1007/978-3-031-17258-8_16
+
+Carnegie Mellon University. (s. f.). *The CMU Pronouncing Dictionary*
+[Conjunto de datos]. https://github.com/cmusphinx/cmudict
+
 Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system. En
 *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
 Discovery and Data Mining* (pp. 785–794). ACM.
@@ -1648,8 +1666,28 @@ Gerlach, M., & Font-Clos, F. (2020). A standardized Project Gutenberg corpus
 for statistical analysis of natural language and quantitative linguistics.
 *Entropy, 22*(1), 126. https://doi.org/10.3390/e22010126
 
+Grossman, R., & Chen, Y. (2026). *Zero-shot large language models for automatic
+readability assessment* (arXiv:2604.24470). arXiv.
+https://arxiv.org/abs/2604.24470
+
 Hu, M., & Nation, P. (2000). Unknown vocabulary density and reading
 comprehension. *Reading in a Foreign Language, 13*(1), 403–430.
+
+Imperial, J. M., Barayan, A., Stodden, R., Wilkens, R., Muñoz Sánchez, R., Gao,
+L., Torgbi, M., Knight, D., Forey, G., Jablonkai, R. R., Kochmar, E., Reynolds,
+R. J., Ribeiro, E., Saggion, H., Volodina, E., Vajjala, S., François, T.,
+Alva-Manchego, F., & Tayyar Madabushi, H. (2025). UniversalCEFR: Enabling open
+multilingual research on language proficiency assessment. En *Proceedings of the
+2025 Conference on Empirical Methods in Natural Language Processing* (pp.
+9703–9755). Association for Computational Linguistics.
+https://doi.org/10.18653/v1/2025.emnlp-main.491
+
+Kandpal, N., Lester, B., Raffel, C., Majstorovic, S., Biderman, S., Abbasi, B.,
+Soldaini, L., Shippole, E., Cooper, A. F., Skowron, A., Kirchenbauer, J.,
+Longpre, S., Sutawika, L., Albalak, A., Xu, Z., Penedo, G., Ben Allal, L.,
+Bakouch, E., Pressman, J. D., … Murray, T. (2025). *The Common Pile v0.1: An 8TB
+dataset of public domain and openly licensed text* (arXiv:2506.05209). arXiv.
+https://arxiv.org/abs/2506.05209
 
 Krashen, S. D. (1985). *The input hypothesis: Issues and implications*.
 Longman.
@@ -1658,6 +1696,12 @@ Liu, Y., Ott, M., Goyal, N., Du, J., Joshi, M., Chen, D., Levy, O., Lewis, M.,
 Zettlemoyer, L., & Stoyanov, V. (2019). *RoBERTa: A robustly optimized BERT
 pretraining approach* (arXiv:1907.11692). arXiv.
 https://arxiv.org/abs/1907.11692
+
+MakeHuman Community. (s. f.). *License*.
+https://static.makehumancommunity.org/about/license.html
+
+MetaMetrics. (2026). *Lexile® Text Analyzer content creator annual tiered pricing
+program*. https://www2.metametricsinc.com/content-creator-annual-pricing
 
 Nakanishi, T. (2015). A meta-analysis of extensive reading research. *TESOL
 Quarterly, 49*(1), 6–37. https://doi.org/10.1002/tesq.157
@@ -1675,6 +1719,9 @@ Passos, A., Cournapeau, D., Brucher, M., Perrot, M., & Duchesnay, É. (2011).
 Scikit-learn: Machine learning in Python. *Journal of Machine Learning
 Research, 12*, 2825–2830.
 
+Pratham Books. (s. f.). *StoryWeaver* [Biblioteca digital].
+https://storyweaver.org.in
+
 Project Gutenberg. (2026). *Project Gutenberg* [Biblioteca digital].
 https://www.gutenberg.org
 
@@ -1683,15 +1730,27 @@ Siamese BERT-networks. En *Proceedings of the 2019 Conference on Empirical
 Methods in Natural Language Processing* (pp. 3982–3992). Association for
 Computational Linguistics. https://doi.org/10.18653/v1/D19-1410
 
+Saide. (s. f.). *African Storybook* [Biblioteca digital].
+https://www.africanstorybook.org
+
 Sanh, V., Debut, L., Chaumond, J., & Wolf, T. (2019). *DistilBERT, a distilled
 version of BERT: Smaller, faster, cheaper and lighter* (arXiv:1910.01108).
 arXiv. https://arxiv.org/abs/1910.01108
+
+TeakReader. (s. f.). *English reading level checker for books*.
+https://teakreader.com/english-reading-level-checker-for-books
+
+The Asia Foundation. (s. f.). *Let's Read* [Biblioteca digital].
+https://www.letsreadasia.org
 
 Vajjala, S., & Lučić, I. (2018). OneStopEnglish corpus: A new corpus for
 automatic readability assessment and text simplification. En *Proceedings of
 the 13th Workshop on Innovative Use of NLP for Building Educational
 Applications* (pp. 297–304). Association for Computational Linguistics.
 https://doi.org/10.18653/v1/W18-0535
+
+Voice of America. (s. f.). *VOA Learning English*.
+https://learningenglish.voanews.com
 
 Wolf, T., Debut, L., Sanh, V., Chaumond, J., Delangue, C., Moi, A., Cistac, P.,
 Rault, T., Louf, R., Funtowicz, M., Davison, J., Shleifer, S., von Platen, P.,

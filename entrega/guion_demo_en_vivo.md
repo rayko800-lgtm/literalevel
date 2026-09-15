@@ -173,7 +173,8 @@ Respuestas de dos frases, con las cifras del documento. Si la pregunta va más
 allá, **remitir al apartado del documento** en vez de improvisar números.
 
 **¿Qué tan bien funciona el modelo?**
-**Dice:** «En validación ciega tiene una correlación de Spearman de 0,908 con el
+**Dice:** «En la validación interna, 144 documentos reservados del corpus con
+el que se entrenó, tiene una correlación de Spearman de 0,908 con el
 nivel de referencia, y el 97,2 % de los textos queda dentro de un nivel del
 correcto. Lo que sostiene el trabajo es que, en textos externos de British
 Council, ordena los niveles de A1 a C1 de forma estrictamente creciente, aunque
