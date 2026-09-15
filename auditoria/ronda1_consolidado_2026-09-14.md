@@ -937,3 +937,5 @@ Visto bueno de 4e a 7e2b861, el reinicio 29: ok.
 - **Arreglo aprobado (e6, con visto bueno de 4e):** una línea de estado dentro de la barra fija, siempre visible, con «Acepta el permiso…», «Grabando: habla ahora · N s» y un mensaje para cada rechazo. En un WebView de Android o sin `mediaDevices`, un aviso antes de pulsar para abrir la app en Chrome. Se publica sin esperar al informe de ayuda.
 
 Reinicio 29 (f4): las 13 diferencias entre local y Space son empates entre parecidos iguales, que se ordenan distinto en cada entorno. La comprobación tras subir compara el Space 29 con el volcado del Space 28. Para el 30 queda un desempate determinista por id.
+
+**Reinicio 29 subido (f4):** Space 5ab6832, desde 7e2b861. Árbol limpio con corpus 47/47, api 66/66 y extremas 351. Siguen en marcha la comprobación de f4 contra el volcado del Space 28, la batería y la medida independiente de 4e.
