@@ -1167,3 +1167,13 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - alguna lista cambia de marcas o de longitud frente al 28.
 - **No se vuelve atrás, se informa,** si el Space y la medida local solo difieren en el orden de empates a 6 decimales.
 - Ajuste del punto 3 (f4 propuso contar solo el número de marcas; la Central lo aprieta): ids marcados iguales al 28, con una lista cerrada de 4 excepciones («family» A2 y B1, «Familia» A2, «pintura» B1). En ellas solo se admite una copia del mismo título igual de cerca del nivel o más. Cualquier otra diferencia, o un quinto caso, da código 2 en comprobar_r30b.py. La referencia es r30_28.json (257/257 contra el volcado del Space 28).
+- **Corrección de f4:** con la clave de nivel, la lista cerrada tiene **10** listas, no 4:
+  - «familia» A2;
+  - «escuela» B1;
+  - «family» A2 y B1;
+  - «friendship» 1,20;
+  - «Familia» A2 y B1;
+  - «Amigos inseparables» A2 y B1;
+  - «Brujas y magia» A2.
+  «pintura» B1 ya no cambia. La Central comprobó las 10 distancias al nivel: en todas la copia que entra está igual de cerca o más. En las otras 535 listas, ids marcados y longitud son idénticos al 28.
+- Emparejamiento en el guion: por título, distancias ordenadas, elemento a elemento.
