@@ -144,5 +144,10 @@ Prueba como persona sobre el Space nuevo (e6, 1b42172, 390 px táctil, perfil B1
 - **Serio nuevo, front (e6):** el margen fijo de «Menos parecidos» esconde lo que es del nivel de la lectora. En «historias de la luna», cinco cuentos A2–B1 quedan detrás de 14 libros C1–C2, y la pantalla promete «Primero lo de tu nivel». Decisión de la central: un margen más ancho solo para la franja del lector, dentro de la ventana de relevancia de la API, sin bloque nuevo.
 - **Menor nuevo, API (f4, reinicio 20):** con «Jane Austen», sus novelas quedan por debajo de los libros sobre ella, y se cuelan Sidney Austen y Calamity Jane.
 - Menor abierto: los .glb sin comprimir.
-- Dudas de catálogo (f4): «Londres» sí pesa, pero hay pocos libros así en B1. SWV991 sale B2 por un texto raro dentro de su bloque, no por la cola.
+- **«detectives en Londres» (f4):** no es un fallo de búsqueda. «Londres» sí pesa: 5 de 12 resultados son de Londres. Pero de los 89 libros de detectives con Londres, 2 son B1 y 87 son C1–C2. Es otro hueco del catálogo y no se toca el código.
+- **SWV991 (f4):** el poema de nivel 1 no sale B2 por la cola. Sale así porque su bloque incluye APOCALYPTO, la sinopsis de una película con contenido adulto: sin ella el bloque mide 0,273 y con ella 1,291. Es un patrón: en una muestra de 30 bloques, quitar un solo texto mueve la medida más de 0,5 en 3 de ellos.
+  - Decisión de la central: medir cada bloque sin cada uno de sus textos. Si uno solo mueve la medida más del margen, fijado antes de ver resultados, los demás se quedan con la medida sin él.
+  - El raro conserva la medida del bloque completo y queda marcado. Si no es lectura, sale del catálogo.
+  - Cuesta unos 13 minutos de CPU y no cambia el índice de búsqueda.
+  - Va al reinicio 21, junto con lo de «Jane Austen».
 - Disco: se borraron 1.567 carpetas de pruebas de más de 3 horas en C:. Siguen apareciendo cuando se mata una suite antes de acabar.
