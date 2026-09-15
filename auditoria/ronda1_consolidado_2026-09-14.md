@@ -594,3 +594,13 @@ Chips sobre el reinicio 25 (4e, 7333c4b), con el criterio de e6 y contando tambi
   - El criterio pasa a ser al menos 3 del tema, revisado a mano.
 
 Visto bueno de 4e a las pantallas A (b4782a5): ok, con una condición antes de publicar. «🐢 Despacio» tiene que mostrar a la vista si está encendido. Además, «más seguido aquí» pasa a «de corrido aquí». Lo hace e6 en un commit con los chips.
+
+Reinicio 26 en preparación (f4, sin commit):
+- **Precarga medida de punta a punta:** se construye un solo catálogo. Una búsqueda lanzada a los 5 s espera a la misma carga y responde bien, y la siguiente tarda 0,37 s. Usa la misma memoria que hoy.
+- **Devolución por silencio:** `cuentas.devolver_por_silencio`, con tope de 10 al día por cuenta. /api/voz añade el campo `uso_devuelto`.
+- **Decisiones de la central:**
+  - Revisan 4e (cuentas.py) y e6 (api.py).
+  - Se autoriza una prueba de pago de silencio con invitado8, de 1 uso.
+  - Se parte en dos:
+    - **26:** precarga, devolución y los commits de voz y Gradio.
+    - **27:** clásicos, «Jane Austen» con B1, rescate por título con la regla del diccionario, título en consultas largas y los menores de búsqueda.
