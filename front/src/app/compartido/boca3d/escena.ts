@@ -713,7 +713,9 @@ export class EscenaBoca {
     this.guarda.midiendo = opciones.guarda !== false;
     if (this.sombras) {
       this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      // PCFSoftShadowMap ya no existe en three 0.186 (avisaba «has been removed» en
+      // consola y caía a PCF): PCF con `shadow.radius` (6, en la luz principal) da la suavidad.
+      this.renderer.shadowMap.type = THREE.PCFShadowMap;
     }
     this.canvas = this.renderer.domElement;
     this.canvas.style.display = 'block';
