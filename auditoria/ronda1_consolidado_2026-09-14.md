@@ -1077,3 +1077,8 @@ Límites declarados de la búsqueda ya en el documento y la estrategia (4e, f829
   - una sola palabra que coincide con un título, como «rosa» o «luna» con B1.
   Cada uno lleva su cifra y el arreglo descartado.
 - **Estrategia:** un párrafo con los tres, detrás de «Primeros usuarios».
+
+Reinicio 30a preparado (f4), a falta del ok de 4e: `preload_from_hub` con solo los 10 archivos de MiniLM que el Space baja al arrancar, no el repo entero de 4,6 GB.
+- **Comprobado:** sin HF_HOME ni TRANSFORMERS_CACHE en las variables, así que la caché del build es la que usa `_ruta_local`. En local, con una caché nueva y sin red, el modelo carga.
+- **Cambio:** 2 líneas al final de la cabecera YAML del README del Space, con un guion que aborta si se tocara algo más.
+- **Tras subir:** reconstrucción completa y medida de `buscador_listo` en 2 reinicios.
