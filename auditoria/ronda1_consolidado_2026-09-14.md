@@ -968,3 +968,10 @@ Reinicio 29, comprobación de f4 contra el volcado del Space 28:
 - **Batería:** los mismos 4 fallos que en el 28.
 - **Paso 2 del guion:** «cuentos de dragones» con 1,20 no cambia. Abre con un texto libre, así que la regla no puede activarse. No se vuelve al 28 por esto.
 - **En curso:** el diagnóstico de «animales de la granja» con 1,20, y el alcance con las 100 palabras, los chips y la reserva con A2, B1 y 1,20.
+
+Causa probable de «animales de la granja» en el 29 (4e):
+- **Mecanismo:** el primer resultado es de «United States. Bureau of Animal Industry». «animales» ≈ «animal» (0,86) pasa el umbral de nombres (0,75), así que i4 lo toma por búsqueda de autor y apaga la franja, también con A2 y B1.
+- **Alcance según 4e:** los 21 chips con A2 y B1 dan los mismos bloques que en el 25. Con 1,20 no hay línea base del 28; «Robots» (Shea, Robert) conviene revisarlo.
+- **Variantes a medir si la medida de f4 no manda volver al 28:**
+  - i5, que la central prefiere: la regla solo actúa si casan con el autor al menos la mitad de las palabras de contenido de la consulta;
+  - i6: excluir autores corporativos.
