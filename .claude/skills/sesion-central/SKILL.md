@@ -277,3 +277,14 @@ después: **las sesiones ya abiertas siguen escribiendo en C:**.
   larga.
 - Cuando la ronda acabe, reinicia las sesiones de una en una para que tomen
   los temporales de D:.
+
+**La causa de fondo, encontrada media hora después:** no eran los árboles ni
+los volcados. Ocho suites crean su carpeta de datos con `tempfile.mkdtemp` y
+**nunca la borran**: `pruebas_extremas.py` y `pruebas_corpus.py` dejan 100 MB
+por corrida, y el banco de mutantes corre la suite una vez por mutante. Había
+1.002 carpetas y 10,8 GB. Cómo se encontró: sumar lo escrito en C: en los
+últimos 45 minutos y agruparlo por carpeta (2 GB en 45 min, todo en
+`literalevel_pruebas_*` y `literalevel_corpus_*`). Regla para cualquier suite:
+carpeta temporal con un helper que la borre al salir (`atexit`) y que acepte
+`LITERALEVEL_TMP` para mandarla a D:, y una comprobación de que tras correr
+no queda carpeta nueva.
