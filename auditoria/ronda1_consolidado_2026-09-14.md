@@ -674,3 +674,7 @@ Guion de la demo al día con el 26 (4e, 5a3552a).
 - **Punto 8:** si el Space acaba de reiniciarse, se espera medio minuto y después se hace una búsqueda de prueba. Sale la cifra de 18,6 s.
 - **Paso 2:** «cuentos de dragones» trae 19 textos libres de 20. «Una novela de detectives victoriana» no trae ningún cuento libre, pero sí 3 de Gutenberg en su nivel.
 - **Pendiente:** afinar el punto 8 con `buscador_listo` en el 27. Falta publicar el front 51cda13 (e6).
+
+**Front dca18b4 publicado con el 26 (e6):** trae 51cda13. Con `uso_devuelto`, el aviso dice «No te oí… Este intento no cuenta.» y los usos no bajan; sin el campo, el aviso de antes. Comprobado a 390 px. El banco C14 da 3 de 3 con la prueba arreglada (24279b2).
+
+**La app queda lista para que Miguel la pruebe:** motor 5c6f8d9 (reinicio 26), front dca18b4 y guion 5a3552a. El reinicio 27 está en curso: clásicos (f4) y los menores de ui.py (e6).
