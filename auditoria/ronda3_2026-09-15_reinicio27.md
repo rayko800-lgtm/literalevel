@@ -86,3 +86,21 @@ Sondeo de `/api/salud` cada ~3 s durante 90 s desde que la API de Hugging Face d
 
 - `puntuador` y `consultor` siguen en `false` los 90 s, porque cargan cuando se usan.
 - Con esto, el punto 8 del guion de la demo deja la búsqueda de prueba como lo principal y avisa de «unos 30 s» tras un reinicio.
+
+## Reinicio 28 (`74f1484`, desde `b896b1f`): el SERIO, cerrado en el Space
+
+**Cómo se midió:**
+- Las mismas peticiones, desde fuera, tras RUNNING con el sha nuevo.
+- Guion `r28_space_vigia.mjs`, con salida en `r28_space.json` y `.log`.
+- Referencias:
+  - para las 9 búsquedas del 27, mi línea base del 26;
+  - para school, brown y castle (y otra vez london, hope y king), el top 10 del 26 que sacó f4 en local con el catalogo.py de 49a8e4d (igual al de 9132a59), en `auditoria/top10_palabras_de_tema_26.json`.
+
+**Resultados:**
+- **Palabras corrientes:** london, hope, king, school, brown y castle, sin perfil y con B1, dan **exactamente el mismo top 10 del 26, en el mismo orden** (12 de 12 listas).
+- **«rose»:** la línea base de f4 no la trae, porque su lista usa «rosa». En el 28, sin perfil, tiene 10 de 10 con «rose» en el título y 0 de autor; con B1, 6 de título y 4 de autor (cuentos libres de autoras con ese nombre). Queda pendiente compararla con el 26 cuando f4 añada «rose|None» y «rose|0.8».
+- **Clásicos:** siguen bien. cervantes, dante, moliere y agatha christie abren con sus obras, sin perfil y con B1, igual que en el 27.
+- **Austen:** «Jane Austen» con B1 abre con *The Watsons*, *Emma* y *Love and Freindship*, como en el 27. Sin perfil queda igual que en el 26.
+- **tolstoy:** vuelve al top 10 del 26 (10 de 10, con y sin perfil). Sin perfil abre otra vez con «My Visit to Tolstoy», como aceptó la Central.
+- **Tiempos:** la más lenta fue «cervantes» con B1, 1.050 ms; todas las demás, entre 375 y 840 ms. Ninguna pasa de 2 s.
+- **`buscador_listo`:** `true` entre los 13,6 y los 16,7 s tras RUNNING; `catalogo`, `true` desde el primer sondeo. Arrancó antes que en el 27 (23,1-26,3 s), así que el «medio minuto» del punto 8 del guion sigue siendo holgado.
