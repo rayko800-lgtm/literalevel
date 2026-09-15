@@ -414,3 +414,8 @@ Visto bueno de e6 a los arreglos de voz (86e6e1d): ok, y suben en el siguiente r
 - **Arreglos a medir con los temas de calibración:** que el título cuente solo con 2 palabras o más; o solo si el índice ya pasa 0,40; o solo contra la consulta tal cual, sin las frases «historias de X». También sus combinaciones.
 
 **Cambio de numeración:** la voz 86e6e1d sube sola ya, como reinicio 23, porque el silencio aún lanza llamadas de pago. La recuperación por franja pasa a ser el reinicio 24, y lo que era el 24 pasa a 25.
+
+Reinicio 23, solo voz (f4, --commit 86e6e1d): subiendo tras el árbol limpio.
+- **Qué sube:** solo app/voz.py y app/lexicon.py, según el primer --seco.
+- **Prueba en el Space:** la central autorizó una prueba de pago corta con invitado8, que Miguel habilitó para pruebas. Son dos llamadas a /api/voz: silencio, que no debe dar corrección ni guardar nada, y «Baker St. It was late.», que no debe tener enlace st‿it.
+- **Contraseña:** leída del archivo local y nunca escrita.
