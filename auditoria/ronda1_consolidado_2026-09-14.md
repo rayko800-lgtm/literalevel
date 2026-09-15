@@ -678,3 +678,12 @@ Guion de la demo al día con el 26 (4e, 5a3552a).
 **Front dca18b4 publicado con el 26 (e6):** trae 51cda13. Con `uso_devuelto`, el aviso dice «No te oí… Este intento no cuenta.» y los usos no bajan; sin el campo, el aviso de antes. Comprobado a 390 px. El banco C14 da 3 de 3 con la prueba arreglada (24279b2).
 
 **La app queda lista para que Miguel la pruebe:** motor 5c6f8d9 (reinicio 26), front dca18b4 y guion 5a3552a. El reinicio 27 está en curso: clásicos (f4) y los menores de ui.py (e6).
+
+Reinicio 27, punto 1 (f4, sin código todavía): los clásicos por apellido.
+- **Causa:** la compuerta de tema apaga el rescate por nombre, porque MiniLM no relaciona el apellido con sus libros. Las obras de Cervantes, Dante, Molière y Christie dan de tema entre 0,24 y 0,52, frente a techos de 0,57 a 0,75.
+- **«tolstoy»:** es otro caso, un empate entre sus obras y los libros sobre él.
+- **El diccionario Kaikki no sirve de señal:** es inglés, y «rosa» o «amor» salen como nombre igual que los autores.
+- **Propuesta:**
+  - (a) un apellido exacto de un autor con al menos 5 obras no lo apaga la compuerta;
+  - (b) a igual rescate, gana el autor al título.
+- **Decisión de la central:** (b) aprobado. (a) solo después de medir las colisiones con una lista de unas 100 palabras de tema escrita antes de mirar, como «london», «hope», «grey», «vega» o «paz».
