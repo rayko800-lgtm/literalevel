@@ -280,3 +280,10 @@ Documentos y guiones al día con el reinicio 21 (4e, a978155; PDF recompilados):
 - **Cómputo:** la fecha de las unidades corregida y el origen de los 27.776.
 - **Guiones:** los 10 arreglos del ensayo. El paso 2 usa ahora «cuentos de dragones», que con perfil 1,20 da 13 textos libres de 14 en «En tu nivel».
 - **Antes de grabar:** una sección nueva con los 6 puntos que Miguel ensaya con cuenta y micrófono.
+
+Chips nuevos de Encontrar (e6, 4e6276e, front ec957d0):
+- **Medición:** 32 alternativas contra el reinicio 21. Quedan 8 chips que dan al menos 3 textos de su nivel con A2 y con B1: Detectives, El océano, Una historia de amistad, Cuentos cortos para empezar, Viajes al espacio, Dinosaurios, Cuentos de miedo para niños y Animales de la selva.
+- **Cambios:** se cambiaron seis, porque «Aventuras en el mar» y «Fábulas con animales» tampoco llegaban. El ejemplo del buscador ya no cita un autor.
+- **Comprobado a 390 px:** con A2 y con B1, ningún chip deja la pantalla sin nada de su nivel.
+
+**Dato para decidir si se amplía el catálogo.** Con A2 y B1 no llegan a 3 textos estos temas: amor, familia, amigos, deportes, la escuela, piratas, fantasmas, monstruos, brujas, robots, planetas, Navidad y misterios. Es el mapa de huecos de composición que vio Esmeralda, ahora medido. La lista está en la skill buscador-encontrar.

@@ -37,7 +37,21 @@ detectives · rosa · paz · lluvia y agricultores · viaje al espacio y la luna
 
 **Autores (deben salir sus obras primero):** cervantes · dante · moliere ·
 dickens · tolstoy · dostoyevski · chejov · Jane Austen · agatha christie ·
-emily bronte.
+emily bronte · browning · robert browning («browning» también es sustantivo).
+
+**Apellido con tema o título, sin perfil (el autor en los 10 primeros al menos
+tantas veces como midió 4e con la regla apagada):** treasure island stevenson (8)
+· love poems by browning (7) · the secret garden frances hodgson burnett (7) ·
+white fang jack london (2) · the call of the wild by jack london (10). **El
+reinicio 21 los rompió en producción:** la regla «un apellido suelto no puntúa si
+la consulta trae otro nombre» miraba las 24.296 palabras del campo de autor
+(island, love, white…) y apagaba al autor buscado. El 22 solo mira nombres de
+pila de otros autores con ese apellido, y un seudónimo sin nombre de pila solo
+cuenta si tiene dos palabras o más y la consulta lo trae entero («I Love You» y
+«Jack Jack» se colaban con cualquier «love» o «jack»).
+
+**Cómo comparar en el Space:** el API recorta el autor con «y otros»; compara por
+id contra el campo entero de los CSV, o una obra con coautor sale como fallo.
 
 **Lo que no debe aparecer nunca:** «Fenn, Amor» con «amor»; Jane G. Austin,
 Sidney Austen o Calamity Jane arriba en «Jane Austen»; ningún id de
@@ -60,6 +74,18 @@ Con B1 no hay casi nada de amor ni de detectives en Londres **en el catálogo**
 búsqueda hace bien en decirlo con el aviso de otros niveles. Antes de tocar
 código por «no encontré X en mi nivel», cuenta cuántos hay con la regla de la
 app; si el hueco es de composición, se arregla añadiendo textos, no pesos.
+
+**Mapa de huecos para A2 y B1** (e6, 15 sep, 32 chips medidos contra el
+reinicio 21, criterio ≥3 en «A tu medida» + «Un poco por encima»). **No llegan:**
+historias de amor, amigos inseparables, familia, robots, inventos y
+científicos, planetas y estrellas, vida en el campo, la escuela, deportes,
+fantasmas, cuentos de miedo (sin «para niños»), monstruos, brujas y magia,
+piratas, cuentos de animales, misterios, viajes en el tiempo, Navidad, la
+ciudad, naturaleza y bosques. **Sí llegan:** detectives, el océano, amistad,
+cuentos cortos, viajes al espacio (justo), dinosaurios, miedo para niños,
+animales de la selva, hadas, dragones, la luna, magia, música y baile,
+aventuras en la selva, un viaje en tren, superhéroes. Si se amplía el catálogo,
+se empieza por la primera lista: es lo que buscará una lectora de 15 años.
 
 ## 4. Márgenes y constantes
 
