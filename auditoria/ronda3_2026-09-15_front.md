@@ -123,3 +123,75 @@
 - **El hueco se mide entre todos los resultados:** un libro C2 intermedio tapa un hueco y deja subir al de la franja. Es lo que dice el comentario de `:18-20` («entre parecidos seguidos»), no un fallo.
 - **`ng test`:** 68 de 68 en 16 archivos, con los tres casos nuevos [V, ronda 3 de la boca 3D, mismo HEAD de front].
 - **Consistencia:** el recuento del front y el de la API coinciden en las cinco búsquedas, tarjeta a tarjeta en los dos primeros bloques [V].
+
+---
+
+## Anexo: cierre en `88b3a83` y `4e6276e`, front publicado `ec957d0`
+
+- **Dónde:**
+  - **Front** `MikeMaki1763/literalevel-front` en `ec957d0`, que es `4e6276e:front` (árbol `c8418f38028f`) [V]. `4e6276e` contiene `88b3a83`, que se publicó antes como `b76ca59`.
+  - **API** `384a206` (reinicio 21), comprobada al acabar [V].
+- **Método:**
+  - Chrome con contexto aislado, a tamaño de escritorio (no emulé 390 px: aquí solo se miraba el contenido).
+  - Perfiles A2 (0,40) y B1 (0,80) hechos en el cuestionario del front, con la primera pregunta.
+  - Pestaña cerrada.
+- **Pruebas:** `ng test` da **73 de 73** en 16 archivos [V].
+
+| Pedido o hallazgo | Estado | Evidencia |
+|---|---|---|
+| **Los `.glb` se bajan en cada apertura** (ronda 3 de la boca 3D) | **cerrado** | [V] Detalle debajo de la tabla. |
+| **La guarda de `_interceptControlDown`, con su comentario** | **cerrado** | [L] Detalle debajo de la tabla. |
+| **Bordes de `bloquesBusqueda`, en milésimas enteras** | **cerrado** | [V] Detalle debajo de la tabla. |
+| **El cambio de conducta que avisa e6** («una relevancia a 0,051 del techo ya no entra») | **correcto** | [V y L] Detalle debajo de la tabla. |
+| **Chip «Detectives»** | **cerrado** | [V] API con la regla de `4e6276e`: con A2 (0,40), 1 «A tu medida» y 7 «Un poco por encima»; con B1 (0,80), 9 y 1. |
+| **Los 8 chips de `4e6276e`, con A2 y B1** | **correctos** | [V] Detalle debajo de la tabla. |
+
+**Los `.glb`:**
+- Seis aperturas y cierres de «Boca en 3D» en la ficha de /θ/: `performance.getEntriesByType('resource')` cuenta **1 `cara.glb` y 1 `lengua.glb`** tras cada una, y las seis pintan en 3D.
+- `bajarGlb` (`escena.ts:28`) guarda en el módulo la promesa de los bytes, y `bytes.catch(() => glbs.delete(url))` (`:36`) no guarda un fallo.
+- El reintento lo cubre `carga.spec.ts` («un fallo no se queda guardado: la siguiente apertura lo vuelve a pedir»), en verde; no lo forcé en el navegador.
+
+**La guarda:** en `escena.ts:1325-1328`, el comentario dice que el campo es privado de three 0.186 y que si desaparece solo vuelve la fuga, sin romper el cierre. La prueba sigue usando unos controles simulados; con el comentario, el riesgo queda dicho, que es lo que se pidió.
+
+**Los bordes**, con el paquete de `4e6276e` en Node:
+
+| Guarda | Entra | No entra |
+|---|---|---|
+| Parecido mínimo | 0,650 | 0,649 |
+| Hueco | 0,050 (se cruza) | 0,051 |
+| Margen de franja | 0,700 con techo 0,800 | 0,699 |
+| Relevancia normal | 0,750 con techo 0,800 | **0,749 (a 0,051)** |
+
+- El único cambio frente a `ec5bb75` es el último: antes, con la holgura, a 0,051 también entraba.
+- Un valor con cuatro decimales, como 0,6499, ahora redondea a 650 y sube. La API siempre manda tres, así que no importa.
+
+**Por qué el cambio de conducta es el correcto:**
+- La API redondea la similitud a tres decimales, y el motor aplica `MARGEN_RELEVANCIA = 0.05` sobre el valor sin redondear.
+- Si el front ve una diferencia de 0,051, el techo real es al menos el redondeado − 0,0005 y el otro libro está por debajo de su redondeado + 0,0005. La diferencia real pasa entonces de 0,050: tampoco era relevante para el motor.
+- Con la holgura de antes, el front daba por relevante lo que el motor no.
+
+**Los 8 chips de `4e6276e`**, contra la API de `384a206` con la regla del front, en «A tu medida / Un poco por encima»:
+
+| Chip | A2 (0,40) | B1 (0,80) |
+|---|---|---|
+| Detectives | 1/7 | 9/1 |
+| El océano | 5/6 | 12/1 |
+| Una historia de amistad | 3/4 | 7/0 |
+| Cuentos cortos para empezar | 4/3 | 6/4 |
+| Viajes al espacio | **1/2** | 2/3 |
+| Dinosaurios | 7/4 | 9/2 |
+| Cuentos de miedo para niños | 5/2 | 5/0 |
+| Animales de la selva | 2/3 | 6/1 |
+
+- Son exactamente las cifras del commit de e6. Los ocho dan al menos 3 con A2 y con B1; «Viajes al espacio» con A2 queda justo en 3.
+- **En la página**, con el perfil del cuestionario:
+  - A2: «Viajes al espacio» da 1 «A tu medida» (*About Space*) y 2 «Un reto»; «Dinosaurios», 7 y 4;
+  - B1: «Viajes al espacio» da 2 y 3; «Animales de la selva», 6 y 1.
+  - Coincide con la API, y los ocho chips se ven en la pantalla vacía de Encontrar.
+
+### [NOTA] Algunos chips traen tarjetas flojas en su tema
+
+- **Qué:**
+  - con B1, «Cuentos de miedo para niños» trae *Child safety* entre sus 5 «A tu medida»;
+  - con A2, «Animales de la selva» trae *The lost goat* y *A visit to the zoo*.
+- **Por qué es nota:** el recuento del chip se cumple, pero la sugerencia es lo primero que ve quien no sabe qué buscar. Lo apunto para el próximo repaso de chips; no lo mido más.
