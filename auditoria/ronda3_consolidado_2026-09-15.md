@@ -17,7 +17,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
-| Motor (Space de Gradio) | reinicio 27, 1708cb1 (autor más título arreglado, anuncios de drogas fuera, silencio sin coste y con el uso devuelto, buscador precargado al arrancar, autores clásicos por apellido y «Jane Austen» con B1) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
+| Motor (Space de Gradio) | reinicio 28, 74f1484 (autor más título arreglado, anuncios de drogas fuera, silencio sin coste y con el uso devuelto, buscador precargado al arrancar, autores clásicos por apellido y «Jane Austen» con B1) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | bdfa418 | Tu nivel y Pronunciar nuevos (propuestas A elegidas por Miguel); boca 3D sin fuga y con una sola descarga; «Primero lo de tu nivel» con la franja; chips con amor y fantasmas; aviso «No te oí · Este intento no cuenta»; ficha de un solo capítulo sin gráfica vacía |
 | Documentos y guiones | 2a44731 y 5a3552a | coste de cómputo real; la frase del caso Esmeralda reescrita (no faltaba catálogo, fallaba la búsqueda: 114 cuentos libres de amor en B1); receta del perfil B2 sin «Me vale así» (en la sexta no elegir «Capto bien la idea»); textos de las pantallas A; «Antes de la demo» con voz baja desde el móvil y calentar el buscador |
 
@@ -126,8 +126,8 @@ dar el permiso en una sesión.
 | ~~Reinicio 24: regla de silencio de whisper (4e, 0a759a5)~~ | hecho, Space 0c09197 | prueba de pago repetida: sin corrección ni fallos guardados |
 | ~~Reinicio 25: recuperación dentro de la franja del lector (caso Esmeralda)~~ | hecho, Space 4ba66f9 | «Fantasmas» A2 pasa de 1 a 9 cuentos del tema en su nivel; primera búsqueda con nivel tras reiniciar tarda 18,6 s (precarga en el 26) |
 | ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
-| Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo | subido, Space 1708cb1 | **regresión: palabras de tema que son apellido («london», «hope», «king», «school») traen al autor en vez del tema**; se arregla en el 28 |
-| Reinicio 28: solo el arreglo de la regresión del 27 (las 100 palabras de tema con el mismo top 10 que el 26, sin perder clásicos ni Austen) | f4, con visto bueno de 4e | en curso, plazo de una hora; si no, se apagan las tres reglas |
+| ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
+| ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
 | Reinicio 29: título en consultas largas («Historias de amor», «Terror gótico»), «rosa» y «luna» con B1, erratas en títulos | f4 | después del 28 |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |

@@ -816,3 +816,10 @@ Visto bueno de 4e a b896b1f, el arreglo del 28: ok.
 - **Mecanismo, el mismo en todas:** un autor o una entidad con esa palabra en el nombre pasa delante, como Snow, Eliza R.; Love, Nat; o Ocean Spray.
 - **El arreglo b896b1f** da 0 de 198 en local, y el guion queda validado para comprobarlo en el Space.
 - **Árbol limpio:** corpus 46/46 y api 66/66, con extremas en marcha. --seco: solo catalogo.py.
+
+**Reinicio 28 en producción y verificado por 4e (Space 74f1484, anexo 762d987): cerrado el serio del 27.**
+- **Palabras de tema:** london, hope, king, school, brown y castle dan exactamente el top 10 del 26, en el mismo orden.
+- **Siguen bien:** los clásicos y Austen con B1. tolstoy vuelve al 26.
+- **Tiempos:** la búsqueda más lenta tardó 1,05 s.
+- **`buscador_listo`:** true a los 14-17 s de RUNNING.
+- **Pendiente:** «rose» contra el 26, y la comprobación de f4 con las 198 listas en el Space.
