@@ -153,9 +153,17 @@ def atribucion(fuente, f):
             f"Credito: voanews.com / Voice of America. {f['url']}")
 
 
+# Un enlace no dice de que va un texto, y en la tarjeta se veia: 8 ganchos y 24
+# huellas con URL el 15 sep 2026, casi todos anuncios (ronda 2 de 4e). Estricta a
+# proposito: «Ewwwww....» no es un «www.».
+_URL = re.compile(r"https?://\S+|\bwww\.[a-z0-9-]+\.[a-z]{2,}\S*", re.I)
+
+
 def _cuerpo(texto):
-    """El texto en una linea, limpio y sin atribucion: de ahi salen gancho y huella."""
-    return " ".join(ficha.para_medir(limpiar_para_servir(texto)).split())
+    """El texto en una linea, limpio, sin atribucion y sin enlaces: de ahi salen
+    gancho y huella. El texto servido conserva los enlaces tal cual."""
+    limpio = _URL.sub(" ", ficha.para_medir(limpiar_para_servir(texto)))
+    return " ".join(re.sub(r"\(\s*\)", " ", limpio).split())
 
 
 def gancho(texto, minimo=GANCHO_MIN, maximo=GANCHO_MAX):

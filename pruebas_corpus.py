@@ -531,7 +531,11 @@ def _busqueda_relevancia_antes_que_nivel():
     """Diagnostico de e6 (14 sep 2026): con «Ordenar por mi nivel» el nivel pesaba
     mas que el tema, y «A Midsummer Night's Dream» buscado por titulo solo salia
     sin el ajuste. El titulo gana siempre; el nivel ordena dentro de lo relevante."""
-    s = [0.20, 0.85, 0.84, 0.70]          # parecido por tema de cada fila con la consulta
+    # El titulo exacto con un parecido por tema realista: en el catalogo real,
+    # «A Midsummer Night's Dream» da 0,77, el mejor de todos. Con 0,20 frente a 0,85
+    # es un nombre que no tiene que ver con lo pedido, y desde el 15 sep ese no
+    # rescata (MARGEN_SEMANTICO_NOMBRE; lo prueba _nombre_parecido_sin_tema_no_rescata).
+    s = [0.70, 0.85, 0.84, 0.70]          # parecido por tema de cada fila con la consulta
     emb = np.array([[x, (1 - x * x) ** 0.5] for x in s], dtype=np.float32)
     df = pd.DataFrame({
         "id": ["PG1", "PG2", "PG3", "PG4"],
@@ -578,6 +582,127 @@ def _buscar_llena_n_con_excluidos_delante():
 
 
 prueba("buscar llena n aunque los primeros esten excluidos", _buscar_llena_n_con_excluidos_delante)
+
+
+def _catalogo_de_mentira(s, titulos, autores, encode=None):
+    """Un Catalogo sin disco: `s` es el parecido por tema de cada fila con la consulta."""
+    n = len(s)
+    cat = object.__new__(cm.Catalogo)
+    cat.df = pd.DataFrame({"id": [f"PG{i}" for i in range(n)], "title": titulos, "author": autores,
+                           "nivel_cefr": ["B1"] * n, "hook": [""] * n, "downloads": [1] * n,
+                           "dificultad": [0.8] * n})
+    cat._emb = np.array([[x, (1 - x * x) ** 0.5] for x in s], dtype=np.float32)
+    cat._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+        encode or (lambda x, **k: np.array([[1.0, 0.0]] * len(x), dtype=np.float32)))})()
+    return cat
+
+
+def _nombre_parecido_sin_tema_no_rescata():
+    """«amor» (15 sep 2026): el autor «Fenn, Amor» subia «Design and tradition» a
+    0,85, y «Amour, Amour» o «Amory» a 0,76, por delante de los libros de amor. Un
+    nombre de pila o una palabra suelta del titulo ya no rescatan, y un apellido
+    parecido tampoco si ninguno de sus libros se parece a lo pedido
+    (MARGEN_SEMANTICO_NOMBRE). «chejov» sigue encontrando a Chekhov."""
+    cat = _catalogo_de_mentira(
+        [0.62, 0.60, 0.76, 0.74, 0.20],
+        ["Design and tradition", "Amour, Amour, Dear Planet!", "A Dozen Ways Of Love", "Hints for Lovers",
+         "Roster of Company I"],
+        ["Fenn, Amor, 1863-1933", "Clutter, Mark", "Dougall, L.", "Haultain, Arnold", "Amory, Charles Bean"])
+    for nivel in (None, 0.8):
+        ids = [l.id for l in cat.buscar("amor", nivel_lector=nivel, n=5)[0]]
+        assert ids == ["PG2", "PG3", "PG0", "PG1", "PG4"], f"«amor» con nivel {nivel}: {ids}"
+    chejov = _catalogo_de_mentira([0.60, 0.65], ["The Bet, and other stories", "Russian Tales"],
+                                  ["Chekhov, Anton Pavlovich, 1860-1904", "Smith, John"])
+    ids = [l.id for l in chejov.buscar("chejov", n=2)[0]]
+    assert ids == ["PG0", "PG1"], f"«chejov» ya no encuentra a Chekhov: {ids}"
+    return "ni el nombre de pila, ni «Amour», ni el apellido «Amory» sin tema; «chejov» si"
+
+
+prueba("un nombre parecido sin tema no rescata", _nombre_parecido_sin_tema_no_rescata)
+
+
+def _palabra_suelta_con_frases():
+    """Una palabra suelta en espanol casi no se parece a su tema: se incrusta tambien
+    en «historias de» y «libros sobre», y vale el mejor parecido (15 sep 2026)."""
+    vistos = []
+
+    def encode(x, **k):
+        vistos.append(list(x))
+        return np.array([[1.0, 0.0] if "historias" in f else [0.0, 1.0] for f in x], dtype=np.float32)
+
+    cat = _catalogo_de_mentira([0.9, 0.5], ["Uno", "Dos"], ["A", "B"], encode)
+    ids = [l.id for l in cat.buscar("amor", n=2)[0]]
+    assert vistos[0] == ["amor", "historias de amor", "libros sobre amor"], vistos
+    assert ids == ["PG0", "PG1"], f"la frase no cuenta: {ids}"
+    cat.buscar("cuentos de amor", n=2)
+    assert vistos[1] == ["cuentos de amor"], f"una consulta de varias palabras no lleva frases: {vistos[1]}"
+    return "«amor» se incrusta en tres frases y gana la de «historias de»; «cuentos de amor», sola"
+
+
+prueba("una palabra suelta se busca tambien dentro de frases", _palabra_suelta_con_frases)
+
+
+def _sin_titulo_fuera():
+    """89 filas de Gutenberg sin titulo: su vector sale de «nan. nan.» y encabezaba
+    busquedas como «amor» (15 sep 2026)."""
+    cat = _catalogo_de_mentira([0.9, 0.8, 0.5], [None, "nan", "Un libro"], ["", "", "X, Y"])
+    ids = [l.id for l in cat.buscar("algo que buscar", n=3)[0]]
+    assert ids == ["PG2"] and cat.sin_titulo == 2, (ids, getattr(cat, "sin_titulo", None))
+    return "las dos filas sin titulo fuera y contadas"
+
+
+prueba("las filas sin titulo no salen al buscar", _sin_titulo_fuera)
+
+
+def _busquedas_reales_en_espanol():
+    """Sobre el catalogo real, si esta aqui: lo que pidio Central (15 sep 2026) y
+    las tres consultas de la ronda 2 de 4e, en las que una palabra espanola se
+    parecia a un titulo o a un autor («sobre» a «Sombre», «historias» a
+    «Historians», «luna» a «Luna: The Lost Dog»)."""
+    import re
+    raiz = Path(__file__).resolve().parent
+    if not (raiz / "catalogo_medido.csv").exists():
+        return "sin el catalogo real aqui"
+    cat = cm.Catalogo(cm.CSV_MEDIDO)
+    _, huella = cat._externo_indexable()
+    if not ((raiz / f"catalogo_emb_ext_{huella}.npy").exists() or (cm.DIR_CACHE / f"catalogo_emb_ext_{huella}.npy").exists()):
+        return f"sin catalogo_emb_ext_{huella}.npy: no recalculo 15.000 vectores en una prueba"
+
+    def top(q, nivel=None, n=12):
+        return cat.buscar(q, nivel_lector=nivel, n=n)[0]
+
+    def lista(libros):
+        return [(l.id, l.titulo[:24]) for l in libros[:5]]
+
+    r = top("dostoyevski")
+    assert sum("Dostoyevsky" in l.autor for l in r[:5]) >= 3, lista(r)
+    r = top("chejov")
+    assert r[0].autor.startswith("Chekhov"), lista(r)
+    r = top("A Midsummer Night's Dream", 0.95)
+    assert {l.id for l in r[:3]} == {"PG1514", "PG2242", "PG1113"}, lista(r)
+    # Ronda 2 del front de 4e: tres libros de «Austin, Jane G.» salian arriba por
+    # el nombre parecido, y un solo falso positivo por nombre («Fenn, Amor») fijaba
+    # el techo de «amor» y vaciaba los bloques de la pantalla nueva.
+    for nivel in (None, 0.8):
+        r = top("Jane Austen", nivel)
+        assert sum("Austen" in l.titulo + l.autor for l in r[:5]) >= 4, lista(r)
+        assert not any("Austin" in l.autor for l in r[:5]), f"Jane G. Austin delante con nivel {nivel}: {lista(r)}"
+    r = top("amor", 0.8)
+    amor = sum(bool(re.search(r"(?i)\blov(e|ed|er|ers|es|ing)\b|romance", l.titulo + " " + l.gancho)) for l in r)
+    assert amor >= 6, f"«amor» con B1: {amor} de 12 sobre amor: {lista(r)}"
+    assert "PG53850" not in [l.id for l in r], f"«Design and tradition» (Fenn, Amor) sigue en «amor»: {lista(r)}"
+    r = top("cuentos de miedo", 0.8)
+    assert not any("Brownlie" in l.autor for l in r[:3]), lista(r)
+    for q, fuera, dentro in (("cuentos sobre la lluvia y los agricultores", r"(?i)centos|sombre", "SWV145049"),
+                             ("historias sobre la lluvia y los agricultores", r"(?i)historians", "SWV145049"),
+                             ("viaje al espacio y la luna", r"(?i)\bluna\b", "SWV554287")):
+        r = top(q)
+        colados = [l.titulo for l in r[:5] if re.search(fuera, l.titulo + " " + l.autor)]
+        assert not colados and dentro in [l.id for l in r[:5]], f"«{q}»: {lista(r)}"
+    return f"dostoyevski, chejov, Midsummer, Jane Austen; «amor» B1 {amor}/12; sin Brownlie ni Sombre, Historians ni Luna"
+
+
+prueba("buscar en espanol en el catalogo real: nombres y temas", _busquedas_reales_en_espanol)
 
 
 def _correccion_se_aplica_al_cargar():
@@ -808,6 +933,41 @@ def _pistas_de_busqueda_de_los_libres():
 
 prueba("los textos libres se buscan por su texto y sus temas, no solo por el titulo",
        _pistas_de_busqueda_de_los_libres)
+
+
+def _anuncios_fuera_y_enlaces_fuera_del_gancho():
+    """Ronda 2 de 4e (15 sep 2026): anuncios subidos a StoryWeaver salian en la
+    tarjeta con su enlace. El anuncio va a no_lectura; el enlace no entra en el
+    gancho ni en la huella de nadie."""
+    spec = importlib.util.spec_from_file_location("marcar_no_lectura", "tools/marcar_no_lectura.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    cuento = ("The girl went to school and her mother made lunch. She was happy. After school they went "
+              "home for dinner and she played with her friends. Contact: www.alqamaracademy.org for the "
+              "girl and her friends who went home after school and played.")
+    dic = {w.lower().strip(".:,") for w in cuento.split()}
+    atribucion = "\n\n«X» de Y, publicado en StoryWeaver (X) con licencia CC BY 4.0: https://storyweaver.org.in/x"
+    anuncios = ["ABS 200 Complete Course ( Introduction to Applied Behavioral Science ) To Buy This Tutorial "
+                "Click Below http://www.homeworkbag.com/ASHFORD-COURSE/ABS-200",
+                "Why is My Blender Not Spinning what are the Reasons and Solutions: https://blenderproguide.com/why/"]
+    for a in anuncios:
+        assert "anuncio" in (mod.motivo_no_lectura(a + atribucion, dic) or ""), f"no marca: {a[:40]}"
+    assert mod.motivo_no_lectura(cuento + atribucion, dic) is None, "marca un cuento que da una direccion web"
+    assert (mod.motivo_no_lectura(cuento, dic, "swv687758") or "").startswith("anuncio"), "no mira la lista revisada"
+
+    cc = _catalogador_aqui()
+    df = pd.DataFrame({"texto": ["Introduction Manufacturing in Australia( https://forgelabs.com.au/blogs/x ) is "
+                                 "changing quickly as new technologies arrive. More text follows here today.",
+                                 "Ewwwwww.... said Stella. What is that smell? She called her mother at once."],
+                       "temas": ["Children's stories; StoryWeaver reading level 3"] * 2})
+    cc.pistas_de_busqueda(df)
+    pistas = (df["hook"] + " " + df["huella_texto"]).tolist()
+    assert "http" not in pistas[0] and "( )" not in pistas[0] and "Australia is changing" in pistas[0], pistas[0]
+    assert df["hook"][1].startswith("Ewwwwww...."), f"se come un texto que no es un enlace: {df['hook'][1]}"
+    return "dos anuncios marcados, el cuento con direccion no; ni enlaces ni parentesis vacios en las pistas"
+
+
+prueba("los anuncios no son lectura y los enlaces no salen en el gancho", _anuncios_fuera_y_enlaces_fuera_del_gancho)
 
 
 def _embeddings_por_partes_reanudan():
@@ -1109,7 +1269,13 @@ def _credencial_dentro_de_un_parquet_comprimido():
     salta = []
     for compresion in ("gzip", "snappy"):
         ruta = carpeta / f"corpus_{compresion}.parquet"
-        pd.DataFrame({"id": ["A", "B"], "texto": textos}).to_parquet(ruta, compression=compresion, index=False)
+        # Sin estadisticas: pyarrow guarda sin comprimir el minimo y el maximo de
+        # cada columna en el pie, y con dos filas el texto de la clave ES el
+        # maximo; leido como bytes salia de ahi y la prueba no distinguia nada
+        # (mutante C5-parquet-como-bytes vivo, 15 sep 2026). En el corpus real la
+        # clave estaria en cualquier fila, dentro de las paginas comprimidas.
+        pd.DataFrame({"id": ["A", "B"], "texto": textos}).to_parquet(
+            ruta, compression=compresion, index=False, write_statistics=False)
         for contenido in (None, ruta.read_bytes()):
             try:
                 mod.revisar(str(ruta), "corpus_abierto.parquet", contenido)

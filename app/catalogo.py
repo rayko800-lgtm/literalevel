@@ -204,6 +204,28 @@ _PESO_NOMBRE = 0.85         # cuanto vale un nombre acertado frente al tema
 # mejor acierto de nombre) va siempre delante, este del nivel que este.
 MARGEN_RELEVANCIA = 0.05
 MARGEN_NOMBRE = 0.02
+# Un nombre acertado solo impulsa si alguno de sus libros se parece de verdad a lo
+# pedido: el mejor parecido SEMANTICO entre las filas con nombre tiene que quedar a
+# este margen del mejor parecido semantico del catalogo. Si no, son nombres que se
+# escriben parecido y nada mas, y no fijan la ventana de relevancia ni van delante.
+# Medido el 15 sep 2026 (mejor semantico menos mejor semantico con nombre): chejov
+# 0,00, Jane Austen 0,00, A Midsummer Night's Dream 0,00, dostoyevski 0,03, «libros
+# de dickens sobre huerfanos» 0,04, Frankenstein 0,06 y Little Black Sambo 0,13, el
+# mayor legitimo; «amor» 0,32 («Amory», «Armour»: apellidos, nada de amor).
+MARGEN_SEMANTICO_NOMBRE = 0.20
+# Una palabra suelta en espanol casi no se parece a su tema en este modelo («amor»
+# frente a «love», 0,3). Se incrusta tambien dentro de estas frases y vale el mejor
+# parecido. Medido el 15 sep 2026 con amor, miedo, escuela, perros, dragones,
+# piratas, fantasmas y amistad, 12 resultados cada una: resultados sobre el tema
+# 76 de 96 con la palabra sola, 88 con «historias de» y 88 con «libros sobre»
+# («cuentos de» 83, «a story about» 37). «amor» pasa de 4 a 11 de 12. Kaikki no
+# sirve para traducir: solo trae cabeceras en ingles.
+FRASES_PALABRA_SUELTA = ("historias de {}", "libros sobre {}")
+# Un titulo solo cuenta como nombre si TODAS las palabras de la consulta estan en
+# el (a este parecido cada una). Una sola palabra parecida («Amour», «Amora» para
+# «amor») ya no rescata nada; los apellidos si admiten el parecido de
+# _PARECIDO_NOMBRE, que es lo que encuentra a Chekhov escribiendo «chejov».
+_PARECIDO_TITULO = 0.9
 # Los textos libres que no son lectura en ingles (tools/marcar_no_lectura.py).
 NOMBRE_NO_LECTURA = "no_lectura_externo.csv"
 
@@ -258,6 +280,45 @@ def _similitud_nombres(consulta: str, fichas: list[set[str]]) -> np.ndarray:
         # «Little Black Sambo» empataba a 0,85 con cinco titulos que solo
         # comparten «Black» y el libro no salia (prueba final, 13 sep 2026).
         fuera[i] = mejor * (1.0 - 0.15 * (1.0 - cubiertas / len(pistas)))
+    return fuera
+
+
+def _apellidos(autor) -> str:
+    """Los apellidos de un campo de autor: lo que va antes de la primera coma de
+    cada autor («Dostoyevsky, Fyodor, 1821-1881; Garnett, Constance» da
+    «Dostoyevsky Garnett»). Sin coma -los textos libres, «Silvia Vie»- cuenta el
+    nombre entero. «Fenn, Amor» da «Fenn»: un nombre de pila no rescata."""
+    if autor is None or (isinstance(autor, float) and np.isnan(autor)):
+        return ""
+    return " ".join(a.split(",")[0] for a in str(autor).split(";"))
+
+
+def _titulo_completo(consulta: str, fichas: list[set[str]]) -> np.ndarray:
+    """La media del parecido de cada palabra de la consulta con el titulo, solo si
+    TODAS pasan de _PARECIDO_TITULO; si no, 0."""
+    pistas = [p for p in re.split(r"[^a-z0-9]+", _normalizar(consulta)) if len(p) >= 4]
+    fuera = np.zeros(len(fichas), dtype=np.float32)
+    if not pistas:
+        return fuera
+    cache: dict[tuple[str, str], float] = {}
+    for i, ficha in enumerate(fichas):
+        if not ficha:
+            continue
+        suma = 0.0
+        for pista in pistas:
+            mejor = 0.0
+            for palabra in ficha:
+                if abs(len(palabra) - len(pista)) > 2 or palabra[0] != pista[0]:
+                    continue
+                r = cache.get((pista, palabra))
+                if r is None:
+                    r = cache[(pista, palabra)] = difflib.SequenceMatcher(None, pista, palabra).ratio()
+                mejor = max(mejor, r)
+            if mejor < _PARECIDO_TITULO:
+                break
+            suma += mejor
+        else:
+            fuera[i] = suma / len(pistas)
     return fuera
 
 
@@ -487,6 +548,12 @@ class Catalogo:
                               | s.str.contains(_NO_ES_LECTURA_TEMAS)).to_numpy()
             else:
                 self._excl = np.zeros(len(d), dtype=bool)
+            # Las filas sin titulo (89 de Gutenberg el 15 sep 2026): su vector sale
+            # de «nan. nan.» y encabezaba busquedas como «amor» con 0,61.
+            titulo = d["title"] if "title" in d.columns else pd.Series([""] * len(d))
+            sin_titulo = (titulo.isna() | titulo.astype(str).str.strip().isin(["", "nan"])).to_numpy()
+            self.sin_titulo = int(sin_titulo.sum())
+            self._excl = self._excl | sin_titulo
             # Y los textos libres que no son lectura en ingles (relleno, otra
             # lengua): los marca tools/marcar_no_lectura.py y no se borran del CSV.
             fuera = self._leer_no_lectura()
@@ -605,21 +672,33 @@ class Catalogo:
         if not consulta:
             return [], "Escribe qué tipo de lectura buscas."
 
-        v = self._modelo_emb().encode([consulta], normalize_embeddings=True)[0]
-        sim = self.embeddings @ v
+        frases = [consulta]
+        if len(consulta.split()) == 1:
+            frases += [f.format(consulta) for f in FRASES_PALABRA_SUELTA]
+        vs = np.asarray(self._modelo_emb().encode(frases, normalize_embeddings=True))
+        sem = (self.embeddings @ vs.T).max(axis=1)
 
-        # Rescate por nombre: si la consulta se parece casi exactamente al
-        # titulo o al autor de un libro, ese libro sube aunque el tema no
-        # case. Es lo que hace que "dostoyevski" encuentre a Dostoyevsky.
-        if self._fichas is None:
-            self._fichas = _fichas(
-                (self.df["title"].astype(str) + " " + self.df["author"].astype(str)).tolist())
-        lex = _similitud_nombres(consulta, self._fichas)
+        # Rescate por nombre: si la consulta es el titulo entero de un libro o el
+        # apellido de su autor (con el parecido ortografico que encuentra a
+        # Dostoyevsky escribiendo «dostoyevski»), ese libro sube aunque el tema
+        # no case. Un nombre de pila o una palabra suelta del titulo, no.
+        # En su propio atributo y no en `_fichas`: hay montajes de prueba que
+        # rellenan `_fichas` con la forma de antes (una lista por fila).
+        if getattr(self, "_nombres", None) is None:
+            self._nombres = (_fichas(self.df["title"].astype(str).tolist()),
+                             _fichas([_apellidos(a) for a in self.df["author"]]))
+        titulos, apellidos = self._nombres
+        lex = np.maximum(_similitud_nombres(consulta, apellidos), _titulo_completo(consulta, titulos))
+        validos = ~self._excluidos
+        con_nombre = (lex >= _PARECIDO_NOMBRE) & validos
+        if con_nombre.any() and validos.any() and \
+                float(sem[con_nombre].max()) < float(sem[validos].max()) - MARGEN_SEMANTICO_NOMBRE:
+            lex = np.zeros_like(lex)          # se escribe parecido y no tiene que ver con lo pedido
         # Entre libros con el mismo acierto de nombre (dos ediciones del mismo
         # titulo) desempata el tema, con un peso que no puede adelantar a un
         # nombre mas completo.
-        sim = np.maximum(sim, np.where(lex >= _PARECIDO_NOMBRE,
-                                       lex * _PESO_NOMBRE + 0.01 * sim, 0.0))
+        sim = np.maximum(sem, np.where(lex >= _PARECIDO_NOMBRE,
+                                       lex * _PESO_NOMBRE + 0.01 * sem, 0.0))
 
         if nivel_lector is None:
             total = sim
