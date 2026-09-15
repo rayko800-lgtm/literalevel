@@ -561,3 +561,11 @@ Receta del perfil de la demo sin «Me vale así» (e6, medida en local y contra 
 - **Primera búsqueda con nivel tras el reinicio:** 18,6 s, por la carga del modelo y la comprobación del .npy. Las siguientes, 0,6–0,7 s.
   - El 26 empieza por precargar en el arranque, luego la devolución por silencio y después la búsqueda.
   - Hasta entonces, el guion dice que se caliente la búsqueda antes de la demo.
+
+Cuestionario de Tu nivel (4e, 88c28d5): no infravalora de forma sistemática, así que la fórmula no se toca.
+- **Método:** cuatro perfiles honestos, A2, B1, B2 y C1, fijados antes de calcular.
+- **Resultado:** ninguno baja de letra, y el error medio es de +0,19 hacia arriba. B2 da 1,51 (C1) y C1 da 1,82 (C2). Afinar no cambia ninguna letra.
+- **El A2 del recorrido de e6:** cabe en un B1 muy bajo, 1 de 64 combinaciones. No lo causa el fragmento difícil, sino el techo del fragmento fácil, que también hundía el nivel provisional. La propuesta A ya lo quita.
+- **Decisiones:** Afinar no se mete en las seis, y la receta B2 de la demo sigue valiendo.
+- **Pendiente:** la prueba honesta sería con lectores medidos también con un texto o un libro.
+- **Registro del silencio para el 26 (06a7aac):** no_speech_prob, hora y origen. Mutantes 18 de 18, con el visto bueno de e6 pendiente.
