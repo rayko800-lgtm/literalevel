@@ -1049,3 +1049,12 @@ Tanda 1 de ayuda publicada (e6, ad72c8d): Space del front 83f189d, con «Ajustes
 Vuelta atrás al 28 comprobada también por f4: las 257 listas del Space 62e5a06 son iguales al volcado del 28, y el paso 3 del guion está bien.
 - **DESPLIEGUE.md:** filas del 29 y de la vuelta atrás, con el hueco de medida y el permiso denegado y luego autorizado.
 - **Arranque lento:** RUNNING a los 72 s y `buscador_listo` a los 55 s. El log muestra que MiniLM se bajó del Hub sin token. Para el 30, f4 comprueba si es la causa y propone dejar el modelo dentro del Space, porque depender del Hub en cada arranque es un riesgo.
+
+**i7 medida: ninguna variante cumple, no se sube nada** (f4, contra el 28, n=24, con A2, B1 y 1,20).
+- **Calibración** (colados y buenos, B1 y 1,20): el 28 da 221/161; i7 con margen 0,00, 184/161; con 0,05, 150/161; con 0,10, 119/161; i7b, 21/109.
+- **i7 con 0,05:** entre 11 y 14 listas de tema pierden marcas por perfil (grey pasa de 12 a 2, river de 16 a 9), igual que las de control. Y no arregla tolstoy, cervantes ni wilde.
+- **i7b:** rompe casi todos los temas («amor» pasa de 12 a 0).
+- **Por qué:** los colados de tolstoy o wilde sí cambian con la palabra, porque MiniLM los acerca por tema, no por el marco. El modelo no sabe quién es Tolstoy.
+- **Decisión de la central:** límite declarado. Con perfil, «dostoyevski», «tolstoy» o «cervantes» a secas marcan cuentos sin relación. El guion usa «Crimen y castigo de Dostoyevski».
+- **Para después de la entrega:** decidir «autor» por la consulta.
+- **Siguiente, el 30:** desempate determinista y MiniLM dentro del Space.

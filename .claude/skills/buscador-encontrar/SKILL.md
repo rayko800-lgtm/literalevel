@@ -316,6 +316,19 @@ nuevo con un volcado del Space anterior**, no con lo local. Y conviene un
 desempate determinista (por id) para que las comparaciones dejen de dar falsos
 positivos.
 
+### Límite declarado: autores a secas con perfil (15 sep)
+
+Tras cuatro variantes medidas (no marcar si hay autor rescatado; solo si el
+primero es de Gutenberg; solo si casan más de la mitad de las palabras; quitar
+el título cuando casa igual con el marco), ninguna arregla «tolstoy»,
+«cervantes» o «dostoyevski» a secas con perfil sin quitar cuentos de su nivel
+a temas como «león», «brown», «hope» o «grey». La causa de fondo: MiniLM no sabe
+quién es Tolstoy y acerca títulos de misterio o de bestias a «historias de
+tolstoy» por tema. Queda como límite declarado; para la demo se busca
+«Crimen y castigo de Dostoyevski». Vía sin medir para después de la entrega:
+decidir que la consulta es de autor por la propia consulta, no por el primer
+resultado.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
