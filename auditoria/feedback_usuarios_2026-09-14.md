@@ -129,3 +129,5 @@ Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-
 - **Micrófono:** con sesión iniciada, pulsa y no pasa nada visible ni empieza la grabación. Puede ser un fallo, no solo de diseño. Si abrió el enlace desde WhatsApp, su navegador interno no suele permitir el micrófono. e6 revisa qué ve el usuario en cada caso: permiso negado, navegador sin micrófono o grabación sin audio.
 - **Saturación:** textos largos, mucho scroll antes de saber qué hacer. Entra en las propuestas de ayuda de e6.
 - **Falta saber:** qué teléfono y qué navegador usó, y si abrió el enlace desde WhatsApp.
+
+**Dato de Miguel (15 sep):** Ismael usó un teléfono **Android** y abrió el enlace que le llegó **por WhatsApp**. En Android, WhatsApp puede abrir los enlaces en su navegador interno (un WebView), donde el micrófono no suele estar disponible. Es la hipótesis principal del fallo del micrófono. e6 comprueba qué muestra Pronunciar cuando no hay `mediaDevices` o `getUserMedia` falla, y si no sale nada visible lo arregla ya con un aviso para abrir la app en Chrome.
