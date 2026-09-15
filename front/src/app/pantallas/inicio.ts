@@ -32,7 +32,7 @@ import { Sesion } from '../nucleo/sesion';
           </div>
         </div>
 
-        <figure class="demo" aria-label="Ejemplo: tocar una palabra del libro para ver qué significa ahí">
+        <figure class="demo" aria-label="Ejemplo: mantener presionada una palabra del libro para ver qué significa en su frase">
           <div class="demo-libro en-libro">
             <span class="demo-cap">Alice's Adventures in Wonderland · capítulo I</span>
             <p>Alice was beginning to get very tired of sitting by her sister on the

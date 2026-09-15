@@ -77,5 +77,8 @@ describe('Entrar y la ayuda de la tanda 1', () => {
     const tarjeta = [...(fixture.nativeElement as HTMLElement).querySelectorAll('a.puerta')].find(a => a.textContent?.includes('Mídeme'));
     expect(tarjeta?.textContent).toContain('Seis preguntas cortas, una por pantalla. Al final ves tu nivel.');
     expect(tarjeta?.textContent).not.toContain('estimación');
+    // La figura de ejemplo, como la bienvenida: ni «tocar» ni «ahí» (4e, 15 sep).
+    const figura = (fixture.nativeElement as HTMLElement).querySelector('figure.demo');
+    expect(figura?.getAttribute('aria-label')).toBe('Ejemplo: mantener presionada una palabra del libro para ver qué significa en su frase');
   });
 });
