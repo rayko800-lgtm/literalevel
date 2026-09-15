@@ -806,3 +806,7 @@ Arreglo del 28 con commit (f4, b896b1f): 0 de 198 listas distintas del 26 para l
 - **Pruebas:** corpus 46/46. La línea base está en auditoria/top10_palabras_de_tema_26.json.
 - **Pendiente:** banco, árbol limpio, visto bueno de 4e, --seco (solo catalogo.py) y la subida con las 100 palabras comprobadas en el Space.
 - **Front:** 4e dio el ok a 3662e57 de e6, los tipos de la curva con null, que sale con la próxima publicación.
+
+Visto bueno de 4e a b896b1f, el arreglo del 28: ok.
+- **Hueco:** el JSON de línea base no trae «rose». f4 lo añade con el catalogo.py del 26.
+- **Después de subir:** el vigía de 4e repite las búsquedas en el Space.
