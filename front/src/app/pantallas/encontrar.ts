@@ -27,7 +27,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
         <app-icono nombre="lupa" class="lupa" />
         <label class="oculto-visual" for="consulta">Qué te apetece leer</label>
         <input id="consulta" name="consulta" class="entrada" [(ngModel)]="consulta" maxlength="300"
-               placeholder="Detectives, Jane Austen, aventuras…" autocomplete="off" enterkeyhint="search">
+               placeholder="Detectives, dinosaurios, el océano…" autocomplete="off" enterkeyhint="search">
         <button class="boton" type="submit" [disabled]="cargando()">Buscar</button>
       </form>
       <div class="fila bajo-buscador">
@@ -279,12 +279,15 @@ export class Encontrar implements OnInit {
     });
   });
 
-  /** «Detectives en Londres» dejaba a A1–B2 sin nada de su nivel ni un poco por
-   *  encima (1 en otros niveles y 23 menos parecidos; ronda 3 del front de 4e):
-   *  «Detectives» da 9 a la medida de B1 y algo en la franja de A1 a C1. */
+  /** Una sugerencia nuestra no puede llevar a una pantalla vacía: cada chip da al
+   *  menos 3 entre «A tu medida» y «Un poco por encima» con A2 (0,4) y con B1 (0,8),
+   *  medido con `bloquesBusqueda` contra el Space 384a206 (reinicio 21). «Detectives en
+   *  Londres», «Una historia de amor del siglo XIX», «Ciencia ficción», «Jane Austen» y
+   *  «Terror gótico» daban 0 de A1 a B1; «Aventuras en el mar» y «Fábulas con
+   *  animales», 1 o 2. Sin autores: el 21 tiene una regresión con autor y título. */
   protected readonly ideas = [
-    'Detectives', 'Aventuras en el mar', 'Una historia de amor del siglo XIX',
-    'Cuentos cortos para empezar', 'Ciencia ficción', 'Jane Austen', 'Terror gótico', 'Fábulas con animales',
+    'Detectives', 'El océano', 'Una historia de amistad', 'Cuentos cortos para empezar',
+    'Viajes al espacio', 'Dinosaurios', 'Cuentos de miedo para niños', 'Animales de la selva',
   ];
   protected readonly num = num;
   protected readonly cefr = cefr;
