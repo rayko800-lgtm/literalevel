@@ -687,3 +687,12 @@ Reinicio 27, punto 1 (f4, sin código todavía): los clásicos por apellido.
   - (a) un apellido exacto de un autor con al menos 5 obras no lo apaga la compuerta;
   - (b) a igual rescate, gana el autor al título.
 - **Decisión de la central:** (b) aprobado. (a) solo después de medir las colisiones con una lista de unas 100 palabras de tema escrita antes de mirar, como «london», «hope», «grey», «vega» o «paz».
+
+Fallo que vio Miguel en el móvil, la ficha de un cuento de un solo capítulo (e6, ae4c8d8, a falta del ok de 4e):
+- **Causa:** la frase absurda sale de la API (`_resumen_curva`, api.py:1206-1210); con una fila, la segunda mitad cuenta como 0. Gradio tenía el mismo fallo.
+- **Front:** con un solo capítulo pone «Es un texto de un solo capítulo…», sin gráfica. Se publica antes del 27.
+- **Gráficas:** con un solo punto pintan un círculo o un marcador.
+- **«Lo que más se repite»:** filtro nuevo en ficha.caracteristicas; si todo son nombres propios, la sección no sale.
+- **API:** f4 devuelve `forma`, `facil` y `dificil` en None con una sola fila (C17).
+- **Pruebas:** ng test 93/93, extremas 351, mutantes 6/6.
+- **Subida:** ui.py y ficha.py van con el 27.
