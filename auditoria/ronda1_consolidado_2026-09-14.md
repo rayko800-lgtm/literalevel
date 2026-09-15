@@ -200,3 +200,15 @@ Ronda 3 de la boca 3D (4e, 444228a), sobre el front publicado 73a34dd:
 - **Menores nuevos, para e6 después del ensayo:**
   - Cada apertura vuelve a bajar cara.glb y lengua.glb, unos 2,7 MB, porque la URL firmada cambia. En un móvil con datos, eso cuenta.
   - El arreglo de la fuga depende de _interceptControlDown, una parte interna de three que la prueba solo simula.
+
+Ronda 3 de búsqueda (4e, 036a207), sobre el Space del reinicio 19 y 20:
+- **Cerrado:** el serio de la ronda 2. «sobre», «historias» y «luna» ya no se confunden con títulos parecidos.
+- **Serio nuevo:** el endurecimiento del nombre apagó el rescate de autores clásicos. «cervantes» saca libros de animales, «dante» de odontología y «moliere» de insectos, porque su parecido semántico no llega al margen.
+  - Decisión de la central: el apellido exacto de un autor rescata sin margen semántico, y el parecido por letras lo sigue necesitando.
+  - Va al reinicio 22 (f4), con pruebas para autores clásicos y para palabras españolas que también son apellido.
+- **Menores:**
+  - Con nombre y apellido gana cualquiera del mismo apellido: puede cerrarlo el 21.
+  - Nueve anuncios largos siguen visibles: van al 21.
+  - 89 libros de Gutenberg sin título quedan invisibles, y son libros reales: van al 22.
+- **Duda:** «luna» sola trae títulos con Luna.
+- **Ronda 3 del front:** pasa de f4 a 4e.
