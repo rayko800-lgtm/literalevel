@@ -181,12 +181,13 @@ class Practicar(unittest.TestCase):
                 mock.patch.object(voz, "registrar_ritmo"):
             s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
         self.assertFalse(s.transcripcion_ok)
+        self.assertFalse(s.sin_voz, "sin clave no hubo respuesta de whisper: el uso no se devuelve")
         registrar.assert_not_called()
 
     def test_con_transcripcion_vacia_no_se_guarda_nada_ni_se_da_por_transcrita(self):
         """e6, rondas 2 y 3 (M1): whisper da "" o "..." con silencio; se guardaba la frase
         entera, se pedian sus audios y se pagaba una explicacion de palabras que nadie dijo."""
-        for texto in ("  ", "..."):
+        for texto in ("  ", "...", "♪"):
             cliente = ClienteSimulado()
 
             def silencio(texto=texto, cliente=cliente, **kw):
@@ -199,6 +200,7 @@ class Practicar(unittest.TestCase):
                     mock.patch.object(voz, "registrar_ritmo"):
                 s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
             self.assertFalse(s.transcripcion_ok, f"{texto!r}: la API y Gradio guardan si transcripcion_ok")
+            self.assertTrue(s.sin_voz, f"{texto!r}: whisper respondio sin palabras, el uso se devuelve")
             registrar.assert_not_called()
             explicar.assert_not_called()
             self.assertIsNone(s.correccion, texto)
@@ -235,6 +237,7 @@ class Practicar(unittest.TestCase):
                     mock.patch.object(voz, "registrar_ritmo"):
                 s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
             self.assertEqual(s.transcripcion_ok, oida, (texto, no_voz))
+            self.assertEqual(s.sin_voz, not oida, f"{texto!r} con {no_voz}: sin_voz")
             self.assertEqual(explicar.called, oida, f"{texto!r} con no_speech_prob {no_voz}: explicacion de pago")
             self.assertEqual(registrar.called, oida, (texto, no_voz))
             self.assertEqual(s.audio_correcto is not None, oida, (texto, no_voz))
@@ -266,6 +269,7 @@ class Practicar(unittest.TestCase):
                 s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=False, nivel=1.0)
             self.assertEqual(len(llamadas), esperadas, (error, llamadas))
             self.assertEqual(s.transcripcion_ok, ok)
+            self.assertFalse(s.sin_voz, f"{error!r}: con voz o sin respuesta, sin_voz es False")
 
     def test_la_referencia_pedida_a_la_vez_se_transcribe_una_vez(self):
         """e6, 14 sep (M4): sin candado, dos lectores con la misma frase pagaban dos whisper."""

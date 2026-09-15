@@ -1428,6 +1428,10 @@ class SesionVoz:
     audios_palabras: dict[str, str] = field(default_factory=dict)
     # Pausas y velocidad del intento (ver `medir_ritmo`); None si no se midio.
     ritmo: dict | None = None
+    # True solo si whisper RESPONDIO y no se oyo ninguna palabra (vacio, «...» o todo por
+    # encima de UMBRAL_SIN_VOZ); sin clave o con la red caida, False. Nunca a la vez que
+    # `transcripcion_ok`. La API y Gradio devuelven el uso con el (e6 y f4, reinicio 26).
+    sin_voz: bool = False
 
 
 # 8 y no 6: un compuesto fallado pide tres (el compuesto y sus dos piezas).
@@ -1476,6 +1480,8 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     # Palabras, no caracteres: «...» no esta vacio y guardaba la frase entera y pedia
     # sus audios (e6, ronda 3).
     oida = bool(normalizar_palabras(transcripcion or ""))
+    # Sin transcripcion (None) no hubo respuesta: sin clave, plazo agotado o red caida.
+    sin_voz = transcripcion is not None and not oida
 
     if guardar_fallos and oida and evaluacion.palabras_falladas:
         registrar_fallos(evaluacion.palabras_falladas, frase=frase_objetivo)
@@ -1531,4 +1537,4 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
         registrar_ritmo(ritmo, frase_objetivo)
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
                      audio_correcto=audio_correcto, transcripcion_ok=oida,
-                     audios_palabras=audios, ritmo=ritmo)
+                     audios_palabras=audios, ritmo=ritmo, sin_voz=sin_voz)
