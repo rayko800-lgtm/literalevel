@@ -95,3 +95,8 @@ trata como fallo de diseño, no de la usuaria.
 llega sin saber nada y propone una o dos versiones de cada pantalla con
 esquema (`auditoria/esmeralda_ux_2026-09-15.md`). Miguel elige antes de
 programar. La variedad va con el reinicio 25.
+
+**Decisión de Miguel (15 sep, 05:10), sobre el recorrido de e6 (`auditoria/esmeralda_ux_2026-09-15.md`, de52e7d):**
+- **Tu nivel, propuesta A:** seis preguntas sin «Me vale así» ni nivel provisional. Se guarda solo al terminar, con «Lees en inglés a nivel B1 · Ver libros de mi nivel». Afinar queda como enlace pequeño al final.
+- **Pronunciar, propuesta A:** primero el resumen, luego la palabra a practicar con «Escuchar y ver» y el interruptor «🐢 Despacio». El ritmo y el habla natural van plegados. «Corrígeme» lleva texto, y tras corregir aparece «Grabar otra vez» (9624b0a), para no pagar dos veces la misma grabación.
+- **Aparte:** 4e mide si el cuestionario infravalora. En el recorrido, unas respuestas sinceras de B1 dieron A2.

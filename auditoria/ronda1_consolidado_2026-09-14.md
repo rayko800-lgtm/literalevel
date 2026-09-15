@@ -533,3 +533,10 @@ Devolución del uso con silencio, para el reinicio 26 (decisión de la central):
   - Hace falta un commit nuevo y un visto bueno corto de 4e.
 - **Reinicio 26:** el rescate con erratas bien hecho. El parecido de letras no vale si la palabra es española y la app la traduce, y sí vale si no lo es.
 - **Otro menor de 4e:** el techo corta 2 de 1.201 marcados.
+
+**Decisiones de Miguel sobre Esmeralda:** propuesta A en Tu nivel y en Pronunciar. La hace e6, con visto bueno de 4e, solo en plantilla. 4e mide aparte el cuestionario (B1 sincero → A2).
+- **Pronunciar tras corregir (e6, 9624b0a):** ya no se ofrece «Corrígeme» con la misma grabación.
+- **Reinicio 25 corregido (f4, 9132a59):** sin palabras enteras, así que las erratas vuelven. La franja y E se quedan, y el .npy se comprueba por forma y contenido.
+  - **Visto bueno de 4e:** ok. «sherlok holmes», «treasure iland» y «dracul» salen igual que hoy, ningún «Familiar» marcado y ACTION PART-1 fuera.
+  - **Pendiente:** el árbol limpio y la subida.
+- **Voz del 26:** sin_voz en 50a6304 (4e), con 15 de 15 mutantes.
