@@ -229,3 +229,19 @@ Datos del reinicio 21 (f4): código 7c9c289, datos 740eb84.
 - **Anuncios:** salen 8.
 - **Fuera de la búsqueda:** los textos que no son lectura pasan de 185 a 200.
 - pruebas_corpus da 41 de 41. Falta el árbol limpio, los mutantes y la batería de búsqueda antes de subir.
+
+Ensayo de la demo sin cuenta (e6, faee509), front 73a34dd y API af72fb0, a 390 px y 1280:
+- **Duración estimada:** entre 3:40 y 4:10. El paso 4 no cabe en 30 s con la explicación de la IA.
+- **Tarda más de 3 s:** la primera palabra consultada de la sesión (3,8 s; después, 0,8 s) y la primera boca 3D en el móvil (4,4 s).
+- **Diez arreglos de guion (4e, tras el 21):**
+  - la receta del perfil 1,20 y la consulta del paso 2, que no enseña cuentos libres;
+  - entrar a poverty por el Índice y los nombres reales de los botones de «Afinar»;
+  - los 40 ms, que son del servidor, y la voz del navegador;
+  - el hash del front citado y abrir la boca 3D antes de grabar.
+- **Fallo:** la tarjeta de «Mis palabras» dice «cap. 1» para una palabra del prefacio (e6).
+- **Lo que tiene que ensayar Miguel con su cuenta y micrófono:**
+  - la explicación de la IA con poverty y la marca de IA;
+  - «Corrígeme» con una palabra mal dicha;
+  - «Don't you want to come with us?» con la lectura natural;
+  - que la palabra aparezca en «Mis palabras»;
+  - la demo entera cronometrada.
