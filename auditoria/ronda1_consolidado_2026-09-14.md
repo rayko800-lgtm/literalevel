@@ -394,3 +394,11 @@ Ronda 3 de voz (e6, b152637), sobre 2c0e681 en el Space 62a5373:
 - **Abierto:** «St.» conserva un enlace entre dos frases.
 - **Dudas que siguen abiertas:** «going to work» → gonna, y el emparejado por orden.
 - **Arreglos:** los hace 4e con el visto bueno de e6. voz.py sube en el siguiente reinicio que llegue a tiempo.
+
+Arreglos de voz de la ronda 3 (4e, 86e6e1d, con aviso de Codex en el commit):
+- **Silencio:** ya no llama a explicar_correccion, y un espía en la prueba lo comprueba.
+- **«...»:** ya no cuenta como oída.
+- **Abreviaturas:** «St.» sale de la lista, entra «Prof.» y «Jr.» se queda fuera.
+- **IPA:** una IPA toda en ASCII casi igual a la palabra escrita tampoco pasa.
+- **Pruebas:** suites en verde y mutantes 5 de 5.
+- **Pendiente:** el visto bueno de e6, y después sube con el siguiente reinicio.
