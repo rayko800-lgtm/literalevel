@@ -266,6 +266,27 @@ porque son las que le enseñan a una lectora B1 los cuentos de su nivel.
 Para la demo se evitó sin tocar código: «Crimen y castigo de Dostoyevski» da 0
 marcas y el libro primero en «De otros niveles».
 
+### Arreglo de autores con perfil: «autores» que no son personas (medido en el 29)
+
+La regla que funciona es no marcar nada nuevo en la franja cuando el primer
+resultado general es una obra **de Gutenberg** rescatada por autor. Dos trampas
+que la versión anterior no veía y que solo salieron con listas de control:
+
+- **StoryWeaver usa colegios y editoriales como autor.** «school» con B1 abre
+  con un cuento de «The Polymath School (Grade 4)», que tiene 18 obras, más que
+  Jane Austen en el catálogo: un mínimo de obras no lo distingue. Por eso la
+  condición es que la obra sea de Gutenberg, no el número de obras.
+- **Gutenberg también tiene coautores institucionales.** «institute» con B1 abre
+  con un libro de cocina cuyo tercer coautor es un «Institute». La regla lo toma
+  por consulta de autor y quita marcas; se aceptó porque las que perdía no eran
+  del tema («Books», «My School»).
+
+La lista de control (20 palabras que coinciden con autores-organización y no
+estaban en la batería) se escribió **antes** de medir, porque la condición de
+Gutenberg se ideó mirando «school». Y la medida final se repite con el mismo
+`n` que pide el front (24), no con el `n=10` de las pasadas rápidas: la franja
+añade tarjetas detrás de los generales y con otro `n` pueden cambiar.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
