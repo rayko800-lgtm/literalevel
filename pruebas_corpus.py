@@ -12,32 +12,21 @@ Uso:  python -X utf8 pruebas_corpus.py
 """
 from __future__ import annotations
 
-import atexit
 import importlib.util
 import json
 import os
-import shutil
 import sys
-import tempfile
 import traceback
 from pathlib import Path
 
-
-def _carpeta_temporal(prefijo: str) -> str:
-    """Una carpeta temporal que se borra al salir, bajo LITERALEVEL_TMP si está
-    definida (el banco de mutantes la pone en D:). Sin borrarlas, cada corrida dejaba
-    unos 100 MB en %TEMP% -la caché de embeddings del catálogo cae aquí- y con el
-    banco se juntaron miles de carpetas: C: se quedó a 0 GB el 15 sep 2026."""
-    base = os.environ.get("LITERALEVEL_TMP") or None
-    if base:
-        os.makedirs(base, exist_ok=True)
-    carpeta = tempfile.mkdtemp(prefix=prefijo, dir=base)
-    atexit.register(shutil.rmtree, carpeta, True)
-    return carpeta
-
+# Carpetas temporales que se borran al salir, bajo LITERALEVEL_TMP si está definida
+# (el helper común de 4e, 42de4cb). Sin borrarlas, cada corrida dejaba unos 100 MB en
+# %TEMP% -la caché de embeddings del catálogo cae aquí- y con el banco se juntaron
+# miles de carpetas: C: se quedó a 0 GB el 15 sep 2026.
+import pruebas_tmp
 
 sys.path.insert(0, "app")
-os.environ["LITERALEVEL_DATOS"] = _carpeta_temporal("literalevel_corpus_")
+os.environ["LITERALEVEL_DATOS"] = pruebas_tmp.carpeta("literalevel_corpus_")
 import config as config_mod  # noqa: E402
 config_mod.cargar = lambda *a, **k: None
 os.environ.pop("OPENAI_API_KEY", None)
@@ -111,7 +100,7 @@ def _montar(carpeta: Path, con_externo=True):
 
 
 def _nuevo():
-    return Path(_carpeta_temporal("corpus_"))
+    return Path(pruebas_tmp.carpeta("corpus_"))
 
 
 # --- 1. El catalogo -----------------------------------------------------------

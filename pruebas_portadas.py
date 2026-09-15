@@ -12,9 +12,7 @@ Uso:  python -X utf8 pruebas_portadas.py
 """
 from __future__ import annotations
 
-import atexit
 import os
-import shutil
 import sys
 import tempfile
 import traceback
@@ -23,14 +21,12 @@ import json
 from types import SimpleNamespace
 from pathlib import Path
 
+import pruebas_tmp
+
 sys.path.insert(0, "app")
-_BASE_TMP = os.environ.get("LITERALEVEL_TMP") or None
-if _BASE_TMP:
-    os.makedirs(_BASE_TMP, exist_ok=True)
-os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_portadas_", dir=_BASE_TMP)
-# Se borra al salir: sin esto cada corrida dejaba su carpeta en %TEMP%, y C: llegó a
-# 0 GB el 15 sep 2026 con miles de carpetas de pruebas (banco incluido).
-atexit.register(shutil.rmtree, os.environ["LITERALEVEL_DATOS"], True)
+# Se borra al salir, bajo LITERALEVEL_TMP si está definida (helper común de 4e, 42de4cb):
+# sin esto cada corrida dejaba su carpeta en %TEMP%, y C: llegó a 0 GB el 15 sep 2026.
+os.environ["LITERALEVEL_DATOS"] = pruebas_tmp.carpeta("literalevel_portadas_")
 
 FALLOS: list[str] = []
 HECHAS = 0
