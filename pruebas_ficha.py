@@ -94,6 +94,13 @@ solo_nombres = ficha.caracteristicas(Lib("Kian", "A", [Cap("I", CUENTO)]))
 con_palabras = ficha.caracteristicas(Lib("Rio", "A", [Cap("I", NOVELA)]))
 comprobar("si solo se repiten nombres propios, no hay palabras que ensenar",
           solo_nombres.distintivas == [], str(solo_nombres.distintivas))
+# Cuentos de StoryWeaver escritos enteros en mayusculas (SWV181905): ahi ninguna
+# palabra empieza en minuscula y no por eso son nombres (entrega-4e).
+MAYUSCULAS = "THE BOY TOOK THE COW TO THE MILKMAN. THE COW WAS HAPPY. " * 8
+en_mayusculas = ficha.caracteristicas(Lib("Cow", "A", [Cap("I", MAYUSCULAS)]))
+comprobar("un texto en mayusculas no se queda sin palabras",
+          "cow" in en_mayusculas.distintivas and "milkman" in en_mayusculas.distintivas,
+          str(en_mayusculas.distintivas))
 comprobar("un nombre junto a palabras corrientes se queda",
           "kian" in con_palabras.distintivas and "river" in con_palabras.distintivas,
           str(con_palabras.distintivas))

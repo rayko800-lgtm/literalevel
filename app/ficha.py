@@ -334,11 +334,21 @@ def caracteristicas(libro) -> Caracteristicas:
                    if n >= 8][:12]
     # Pero si SOLO quedan nombres, la lista no dice nada del texto: en un cuento
     # corto de StoryWeaver salia «kian» y nada mas (Miguel, reinicio 27). Nombre
-    # es lo que nunca aparece empezando en minuscula; un nombre junto a palabras
-    # corrientes se queda, que en una novela es lo que se quiere ver.
-    en_minuscula = {t.lower().replace("’", "'") for t in _PALABRA_RE.findall(texto)
-                    if len(t) >= 3 and t[0].islower()}
-    if not any(p in en_minuscula for p in distintivas):
+    # es lo que sale Capitalizado y nunca en minuscula. Lo que solo sale EN
+    # MAYUSCULAS no cuenta ni a favor ni en contra: con «ninguna aparicion en
+    # minuscula» a secas se vaciaban 48 de 49 cuentos escritos en mayusculas
+    # (boy, cow, milkman) y los de escrituras sin caja (entrega-4e). Un nombre
+    # junto a palabras corrientes se queda, que en una novela es lo que se quiere.
+    minuscula, capitalizada = set(), set()
+    for t in _PALABRA_RE.findall(texto):
+        if len(t) < 3:
+            continue
+        clave = t.lower().replace("’", "'")
+        if t[0].islower():
+            minuscula.add(clave)
+        elif t[0].isupper() and not t[1:].isupper():
+            capitalizada.add(clave)
+    if distintivas and all(p in capitalizada and p not in minuscula for p in distintivas):
         distintivas = []
 
     return Caracteristicas(
