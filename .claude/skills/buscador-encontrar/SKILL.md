@@ -201,6 +201,20 @@ london) y **ninguna cambia su top 10**, porque el tema ya lo llena. Y el «autor
 gana al título» solo vale para el **primer autor** del campo: con cualquier
 autor, «rosa» traía a Martínez de la Rosa, colaborador de una antología.
 
+### La medida tiene que comparar ANTES contra DESPUÉS completos
+
+En el 27 se midió el riesgo de la exención de clásicos «con y sin la exención»
+sobre el código nuevo, y salió limpio. Pero el mismo reinicio traía otras dos
+reglas (un extra al autor sobre el título y un orden por primer autor), y en el
+Space «london», «hope», «king» o «school» pasaron a traer al autor en vez del
+tema: 0 de 10 resultados en común con el reinicio anterior. Lo cazó la medida
+independiente de 4e contra una línea base tomada **antes** de subir.
+
+Regla: la comparación de riesgo se hace entre el catalogo.py del Space actual y
+el catalogo.py completo que va a subir, sobre la lista fija de palabras de tema
+(`auditoria/palabras_de_tema_2026-09-15.txt`), sin perfil y con B1. Y alguien
+que no escribió el cambio toma su propia línea base antes de la subida.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las

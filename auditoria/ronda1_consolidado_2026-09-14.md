@@ -774,3 +774,9 @@ Visto bueno de e6 a api.py de 9e51c18: ok, solo por lectura por la RAM. Revisó 
 - **Tiempos:** cada búsqueda tarda de 0,6 a 0,7 s.
 - **Batería en el Space:** de 16 fallos a 3. Quedan «rosa» con A2 y con B1, y «luna» con B1.
 - **Orden del 28:** primero el título en consultas largas («Historias de amor» es un chip), después «rosa» y «luna» junto con las erratas, y al final los menores.
+
+**SERIO en producción, reinicio 27 (4e, medida independiente en el Space).**
+- **Qué pasa:** «london», «hope», «king», «school», «rose», «brown» y «castle» traen al autor en vez del tema. Sin perfil, london, hope y king comparten 0 de 10 resultados con el 26. Con B1, «king» trae «Color mixing guide For artists».
+- **Por qué no lo cazó la medida previa:** comparaba con y sin la exención, no el 26 contra el 27 completo, que también tiene el extra de (b) y la clave `primero`.
+- **Decisión de la central:** el reinicio 28 es solo este arreglo, con el criterio de que las 100 palabras de tema den el mismo top 10 que el 26 y los clásicos y Austen sigan bien. Si en una hora no está, el 28 sube con las tres reglas apagadas. Lo que era el 28 pasa al 29.
+- **Lo que sí está bien en el Space:** los clásicos, Austen con B1, las búsquedas por debajo de 1 s y `buscador_listo` a los 23-29 s.
