@@ -23,8 +23,9 @@
           </button>
         }
       }
-      <button class="boton-icono" type="button" (click)="sesion.ajustesAbiertos.set(true)" aria-label="Ajustes: colores, letra y perfil">
-        <app-icono nombre="ajustes" />
+      <!-- Con su nombre a la vista: el icono solo no decía que ahí se entra (Ismael, 15 sep). -->
+      <button class="boton-ajustes" type="button" (click)="sesion.ajustesAbiertos.set(true)" aria-label="Ajustes: colores, letra y perfil">
+        <app-icono nombre="ajustes" /><span>Ajustes</span>
       </button>
     </div>
   </div>

@@ -74,7 +74,7 @@ import { Sesion } from '../nucleo/sesion';
           @if (perfil(); as p) {
             <p>Tu nivel es <strong>{{ num(p.nivel) }} · {{ cefr(p.nivel) }}</strong>. Vuelve a medirte cuando quieras.</p>
           } @else {
-            <p>Seis preguntas cortas, una por pantalla. Desde la primera ya ves una estimación.</p>
+            <p>Seis preguntas cortas, una por pantalla. Al final ves tu nivel.</p>
           }
           <span class="enlace">{{ perfil() ? 'Ver mi nivel' : 'Empezar' }} <app-icono nombre="flecha" /></span>
         </a>

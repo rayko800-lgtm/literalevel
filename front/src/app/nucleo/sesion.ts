@@ -16,6 +16,14 @@ export class Sesion {
   readonly perfil = signal<Perfil | null>(null);
   readonly entrada = signal<Entrada | null>(null);
   readonly ajustesAbiertos = signal(false);
+  /** Abrir los ajustes ya en «Tu perfil», con el cursor en «Usuario»: los «Entrar» de las
+   *  pantallas abrían el panel por arriba y el formulario quedaba fuera (Ismael, 15 sep). */
+  readonly ajustesEnPerfil = signal(false);
+
+  abrirPerfil(): void {
+    this.ajustesEnPerfil.set(true);
+    this.ajustesAbiertos.set(true);
+  }
 
   private intentos = 0;
   private readonly libros = new Map<string, Promise<Libro>>();

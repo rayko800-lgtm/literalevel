@@ -514,5 +514,5 @@ export class Pronunciar implements OnInit, OnDestroy {
     });
   }
 
-  protected abrirAjustes(): void { this.sesion.ajustesAbiertos.set(true); }
+  protected abrirAjustes(): void { this.sesion.abrirPerfil(); }
 }

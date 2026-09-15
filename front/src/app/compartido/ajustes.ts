@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, afterNextRender, inject, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -80,7 +80,7 @@ import { Icono } from './icono';
         </div>
       </section>
 
-      <section>
+      <section #seccionPerfil class="perfil">
         <h3>Tu perfil</h3>
         @if (sesion.entrada(); as e) {
           @if (!e.puerta) {
@@ -95,7 +95,7 @@ import { Icono } from './icono';
               «¿de qué trata?» y la corrección de pronunciación usan OpenAI y necesitan entrar.</p>
             <form class="pila entrar" (ngSubmit)="entrar()">
               <label class="campo"><span>Usuario</span>
-                <input class="entrada" name="usuario" autocomplete="username" autocapitalize="none" [(ngModel)]="usuario" required>
+                <input #campoUsuario class="entrada" name="usuario" autocomplete="username" autocapitalize="none" [(ngModel)]="usuario" required>
               </label>
               <label class="campo"><span>Contraseña</span>
                 <input class="entrada" name="clave" type="password" autocomplete="current-password" [(ngModel)]="clave" required>
@@ -168,6 +168,19 @@ export class Ajustes {
   protected readonly sesion = inject(Sesion);
   private readonly api = inject(Api);
   readonly cerrar = output<void>();
+  private readonly seccionPerfil = viewChild<ElementRef<HTMLElement>>('seccionPerfil');
+  private readonly campoUsuario = viewChild<ElementRef<HTMLInputElement>>('campoUsuario');
+
+  constructor() {
+    // Desde un «Entrar»: el panel se abre ya en «Tu perfil» y con el cursor en «Usuario».
+    // Antes abría por arriba y el formulario quedaba fuera de la pantalla (Ismael, 15 sep).
+    afterNextRender(() => {
+      if (!this.sesion.ajustesEnPerfil()) return;
+      this.sesion.ajustesEnPerfil.set(false);
+      this.seccionPerfil()?.nativeElement.scrollIntoView?.({ block: 'start' });
+      this.campoUsuario()?.nativeElement.focus({ preventScroll: true });
+    });
+  }
 
   protected usuario = '';
   protected clave = '';

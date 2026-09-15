@@ -594,6 +594,8 @@ export class Lector implements OnDestroy {
   protected readonly vozDelNavegador = typeof speechSynthesis !== 'undefined';
 
   protected abrirAjustes(): void { this.sesion.ajustesAbiertos.set(true); }
+  /** El «Entrar» de la hoja de la palabra: los ajustes ya en «Tu perfil». */
+  protected entrar(): void { this.sesion.abrirPerfil(); }
 
   protected cerrarPista(): void {
     this.pista.set(false);
