@@ -1097,3 +1097,9 @@ Visto bueno de 4e a la bienvenida (13a730e): ok, con dos textos a cambiar antes 
 - **Menor:** la tarjeta no retiene el foco con Tab. e6 lo cierra si sale barato.
 
 f4 revierte i4 en el repositorio (3345ba9): el Space volvió al 28, pero HEAD seguía llevando i4 en catalogo.py, pruebas_corpus.py y banco_mutantes.py, y el siguiente despliegue lo habría subido otra vez. Los tres archivos quedan iguales a b896b1f, y el código de i4 se conserva en 7e2b861.
+
+**Reinicio 30a medido (f4, Space 282c46f): MiniLM ya no se descarga al arrancar.**
+- **`buscador_listo`:** a los 20 s de RUNNING, frente a 55 s en 62e5a06.
+- **Línea «api precarga»:** catálogo 5,9 s y modelo con títulos y primera búsqueda 17,2 s. Antes eran 11,9 s y 44,4 s.
+- **Descargas en el log:** ninguna, aunque el log se leyó solo 20 s.
+- **Segunda medida:** no se reinicia a propósito, porque Ismael puede estar probando. Se mide al subir el 30b.
