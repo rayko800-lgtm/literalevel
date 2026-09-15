@@ -840,3 +840,9 @@ Reinicio 28 cerrado también por f4, en DESPLIEGUE.md con el commit ca605c5.
 - **Batería en el Space:** 4 fallos. «tolstoy» sin perfil, que se aceptó, más «rosa» con A2 y con B1 y «luna» con B1, que van al 29.
 - **Límite de las consultas largas:** documentado en auditoria/limite_titulo_consultas_largas_2026-09-15.md.
 - **Siguiente:** f4 mide de dónde sale cada rescate por nombre en «rosa» y «luna» antes de proponer una señal.
+
+Reinicio 29, «rosa» y «luna» con B1 (f4, datos sin propuesta):
+- **Causa:** con una sola palabra, cualquier título que la contiene recibe rescate 1,0, con 134 filas en «rosa» y 25 en «luna». La compuerta de tema se decide en grupo por la mejor fila, así que queda abierta para todas. Con nivel, la ventana de nombres va primero y ordena el nivel. Por eso suben «The Water Supply of the El Paso» (índice 0,245) y «Luna, The Rajapalayam Puppy».
+- **No es el mismo mecanismo que las erratas.**
+- **Señal a medir:** con una sola palabra, el rescate por palabra del título se decide fila a fila, y cada fila solo lo conserva si su índice queda a menos de 0,20 del techo.
+- **Calibración, escrita antes de medir:** títulos de una palabra (emma, dracula, hamlet…), erratas de una palabra (dracul, frankenstien) y palabras españolas que coinciden con títulos.
