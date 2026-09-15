@@ -91,7 +91,8 @@ export class Pronunciar implements OnInit, OnDestroy {
   });
   protected readonly nota = computed(() => {
     const r = this.resultado();
-    if (!r) return '';
+    // Sin voz no hay nota: el aviso «No te oí» dice qué hacer (reinicio 24).
+    if (!r || !r.transcripcion_ok) return '';
     if (r.puntuacion >= 90) return '¡Muy bien!';
     if (r.puntuacion >= 70) return 'Bien, con algún detalle';
     return 'Vamos a por ello';

@@ -101,11 +101,15 @@
   @if (resultado(); as r) {
     <section class="tarjeta resultado" aria-live="polite">
       <div class="nota">
-        <div class="anillo" [style.--p]="r.puntuacion"><strong>{{ r.puntuacion }}</strong><span>/100</span></div>
+        <div class="anillo" [style.--p]="r.transcripcion_ok ? r.puntuacion : 0">
+          @if (r.transcripcion_ok) { <strong>{{ r.puntuacion }}</strong><span>/100</span> } @else { <strong aria-label="sin puntuación">—</strong> }
+        </div>
         <div>
-          <h2>{{ nota() }}</h2>
+          @if (nota()) { <h2>{{ nota() }}</h2> }
           @if (!r.transcripcion_ok) {
-            <p class="aviso error pequeno">No se pudo transcribir el audio: la puntuación no es válida.</p>
+            <!-- Con silencio o con lo que whisper inventa sin voz (reinicio 24), la API manda
+                 transcripcion_ok false: un 0/100 y «Vamos a por ello» no decían qué pasó. -->
+            <p class="aviso error pequeno">No te oí. Acércate al micrófono y vuelve a grabar.</p>
           } @else {
             <p class="suave">Se te entendió: <em lang="en">«{{ r.transcripcion || '(nada)' }}»</em></p>
           }
