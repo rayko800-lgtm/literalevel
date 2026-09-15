@@ -710,3 +710,5 @@ Visto bueno de 4e a ae4c8d8:
 - **ficha.py:** falla con textos escritos en mayúsculas. En 48 de 49 se vacía la lista de repetidas, con palabras corrientes dentro (boy, cow, snake).
 - **Arreglo medido por 4e:** solo cuenta como nombre lo Capitalizado que nunca aparece en minúscula, y lo escrito en mayúsculas no cuenta. Con eso, 0 textos en mayúsculas vaciados, 35 de 400 al azar, y Emma, P&P y Kian igual.
 - **Quién y cuándo:** lo aplica e6 antes del 27, con prueba, mutante y visto bueno corto de 4e.
+
+**Front bdfa418 publicado (e6, desde ae4c8d8):** la ficha de un solo capítulo ya dice «Es un texto de un solo capítulo…», sin gráfica vacía. «Lo que más se repite» se arregla cuando suba el 27. El arreglo de mayúsculas de ficha.py tiene prueba y 2 mutantes detectados, y falta medir los tres casos.
