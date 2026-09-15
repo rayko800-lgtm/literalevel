@@ -230,6 +230,20 @@ desplegado; una (G) arreglaba «Historias de amor» en la batería pero vaciaba
 límite declarado: elegir una variante porque mejora la batería es ajustar sobre
 el examen.
 
+### «rosa» y «luna» con B1: el rescate por palabra del título se decide en grupo
+
+Medido en el 29: con una consulta de UNA palabra, `_titulo_completo` da rescate
+1,0 a todo título que la contenga (134 filas con «rosa», 25 con «luna»), y la
+compuerta de tema se abre o se cierra para el grupo entero según la MEJOR de
+esas filas («Roses: a Monograph of the Genus Rosa», 0,704 frente a un techo de
+0,735). Con nivel, la ventana de nombres va primero y dentro ordena el nivel, así
+que suben títulos sin relación de tema pero cercanos al nivel («The Water Supply
+of the El Paso», índice 0,245; «Luna, The Rajapalayam Puppy»). Sin nivel no se
+nota porque ordena el índice. No es el mismo mecanismo que las erratas de
+apellido. La señal que se mide es decidir ese rescate fila a fila; su riesgo son
+los títulos de una palabra buscados por título (emma, dracula, hamlet) y las
+erratas de una palabra (dracul, frankenstien).
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
