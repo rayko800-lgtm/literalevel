@@ -48,47 +48,134 @@ en la primera línea.** `ui.py` depende de todas ellas y se rompe en silencio.
 
 ## Contrato entre módulos
 
-Escalas: la **pública es 0..2** (la que ve el usuario y la que consumen
-`catalogo.buscar`, `lexicon.consultar` y `perfil.Perfil.nivel`); la interna del
-modelo es 0..5. `public_score(y) = clip(y,0,5)*0.4`.
+Al día el 14 de septiembre de 2026 (HEAD `74ffffc`); cada nombre está comprobado
+con `grep` en el código. Escalas: la **pública es 0..2** (la que ve el usuario y
+la que consumen `catalogo`, `lexicon`, `perfil` y la API); la interna del modelo
+es 0..5. `public_score(y) = clip(y,0,5)*0.4`.
+
+**Motor**
 
 - `scoring.Puntuador(ruta).puntuar(texto) -> Resultado` — lanza `ValueError`
   legible si no es prosa continua.
 - `reader.cargar(ruta) -> Libro(titulo, autor, capitulos[])`
-- `perfil.desde_cuestionario(dict) / desde_muestra(texto, puntuador) -> Perfil`
-- `catalogo.Catalogo().buscar(consulta, nivel_lector, n) -> (libros, aviso)` —
-  nunca devuelve vacío en silencio. **El catálogo son 1197 libros, no 12752**:
-  `wc -l` engaña porque el campo `hook` lleva saltos de línea entrecomillados.
-  Cuéntalo con pandas. **Corrección:** antes decía aquí que el sesgo hacia A1
-  era deliberado. Era una suposición mía y es falsa. Las etiquetas salieron
-  del modelo v1 aplicado a las primeras ~190 palabras de cada obra, con
-  cortes CEFR por cuantiles; el propio cuaderno del proyecto concluyó que esa
-  correspondencia no se sostiene. Reparto real: A1 723, A2 185, B1 69, B2 52,
-  C1 53, C2 115. El tramo B1-B2, donde está la mayoría de los lectores, son
-  121 libros de 1.197.
-- `lexicon.ConsultorLexico().consultar(palabra, oracion, nivel, usar_openai=True) -> ResultadoLexico`
-  — nunca lanza por falta de red o clave; lo que falte va en `.avisos`. `usar_openai=False` es **la puerta de pago**: no construye cliente y no sale nada a la red. `ResultadoLexico.llamadas_de_pago` dice cuántas peticiones de pago salieron de verdad, y es lo que `ui` mira para devolver el uso del cupo — **no `desde_cache`**, que solo habla de la explicación contextual.
-- `perfil.HOLGURA` — la holgura de recomendación, la única. La lee `ui.HOLGURA_POR_NIVEL` y la anuncia `perfil.describir`.
-- `ficha.miles(n) -> str` — separador de miles en español (1.197). `f"{n:,}"` pone la coma, que aquí es el separador decimal.
-- `voz.practicar(ruta_audio, frase) -> SesionVoz`
+- `perfil.desde_cuestionario(dict) / desde_muestra(texto, puntuador) -> Perfil`.
+  `perfil.HOLGURA` es la holgura de recomendación, la única.
+- `ficha.miles(n) -> str` (separador de miles en español);
+  `ficha.para_medir(texto) -> str` (sin licencia de Gutenberg ni atribución de
+  un texto libre: solo para puntuar, lo que se enseña la conserva);
+  `ficha.capitulos_de_cuerpo(libro) -> [(indice, capitulo)]` (el mismo filtro en
+  Colab y en la app); `ficha.sinopsis(libro, cliente) -> (datos, causa)`, que
+  nunca recibe el último capítulo.
+
+**Catálogo** (`catalogo.Catalogo`)
+
+- Filas: 53.179 libros de Gutenberg (`catalogo_medido.csv`) y 15.357 textos de
+  licencia libre (`catalogo_externo.csv`, commit `377a650`): 68.536, que es lo
+  que cuenta `/api/estado`. Cuéntalo con pandas: el campo `hook` lleva saltos de
+  línea entrecomillados. El catálogo heredado de 1.197 se retiró el 12 sep.
+- `buscar(consulta, nivel_lector=None, n=...) -> (libros, aviso)` — nunca
+  devuelve vacío en silencio.
+- `por_nivel(nivel_lector, holgura=0.25, n=10) -> list[Libro]` — fuera lo que no
+  es lectura, solo obras literarias; los `PRIMEROS_SIN_AVISO` (5) primeros
+  puestos sin aviso de contenido; un tercio de los puestos para textos libres,
+  por cercanía al nivel (`_intercalar_libres`).
+- `Libro`: `dificultad` (v4; `None` si es heredada), `aviso_contenido` (`""` si
+  no hay; lista curada `avisos_contenido.csv`), `medida` (`"texto"`, `"bloque"`
+  o `""` en Gutenberg) y la propiedad `medido_en_bloque`. `aviso_de(id) -> str |
+  None` y `medida_de(id) -> str`. `correcciones_catalogo.csv` se aplica al cargar.
+
+**Léxico** (`lexicon.ConsultorLexico`)
+
+- `consultar(palabra_superficie, oracion, nivel, idioma="es", usar_openai=True)
+  -> ResultadoLexico` — nunca lanza por falta de red o clave; lo que falte va en
+  `.avisos`. `usar_openai=False` es **la puerta de pago**. `llamadas_de_pago` dice
+  cuántas peticiones de pago salieron de verdad (no `desde_cache`).
+- `ipa_uk`, `ipa_us`, `audio_uk`, `audio_us` son **de la forma escrita**: entrada
+  de Kaikki de esa forma → CMUdict de la forma (americano) → el lema solo si
+  coincide → lo que falte, OpenAI, con `ipa_generada_por_ia=True`.
+- `traduccion`, `definicion_ia`, `generado_por_ia`, `acepcion_elegida_por_ia`;
+  `acepciones_principales` (lista, solo con elección dudosa y sin explicación de
+  OpenAI, y con dos o más); `compuesto` y `parte_del_diccionario` para los
+  compuestos con guion que el diccionario no trae enteros.
+
+**Voz** (`voz`)
+
+- `practicar(ruta_audio, frase_objetivo, guardar_fallos=True, nivel=None) ->
+  SesionVoz(evaluacion, correccion, audio_correcto, transcripcion_ok,
+  audios_palabras, ritmo)`. La API y Gradio lo llaman con `guardar_fallos=False`
+  y guardan ellos en la base de su lector.
+- `medir_ritmo(evaluacion, tiempos_lector, tiempos_referencia, nivel) -> dict`
+  con `medido`, `duracion_s`, `palabras`, `pausas`, `tramos` y `natural`;
+  `analizar_natural(frase, palabras) -> dict | None` (énfasis, enlaces
+  comprobados con IPA de diccionario, reducciones de `REDUCCIONES_CONOCIDAS`,
+  versión natural), cacheado por frase.
+- `registrar_fallos(palabras, ruta, frase)` no guarda palabras funcionales
+  cortas; `registrar_ritmo(ritmo, frase, ruta)` solo guarda intentos medidos.
+  Ninguno lanza.
+- `palabras_para_practicar(n, ruta)`, `puntos_debiles(n, ruta)` y
+  `evolucion_ritmo(frase, n, ruta)`: `[]` sin base; **`HistorialIlegible`**
+  (`RuntimeError`) si la base existe y no se lee.
+
+**Corte de la boca** (`animacion_articulatoria`)
+
+- `svg_articulacion(simbolo, acento="ga", dur=None, repetir=True)` y
+  `svg_palabra(ipa, acento="ga", dur=None, repetir=True)`: `dur` en segundos de
+  0,3 a 30 (fuera, se ignora); `repetir=False` da una pasada y acaba en reposo.
+  `svg_articulacion_quieto(simbolo, acento)` sin animación.
+
+**Frontera HTTP** (`app/api.py`)
+
+- La identidad del lector viaja en `X-Lector`. En el Space se monta con
+  `demo.launch(ssr_mode=False, app_kwargs=api.para_gradio())`; `con_gradio()`
+  es solo para local. La API importa ayudantes privados de `ui.py` (entre ellos
+  `_fragmento_para_leer(oracion, palabra, tope=30)`): si cambias su firma, avisa.
 
 Regla común: **degradación elegante**. Sin `OPENAI_API_KEY` la app funciona
-(diccionario, IPA, audio de Wiktionary, buscador y puntuación no usan red); lo
-que se apaga es la explicación contextual y la voz.
+(diccionario, IPA, audio de Wiktionary, buscador, puntuación y ficha no usan
+red); lo que se apaga es la explicación contextual, las definiciones e IPA por
+IA, la voz y el resumen.
 
 ## Arranque
 
 ```bash
-python -X utf8 app/ui.py      # la app
-python -X utf8 tests_smoke.py       # lógica sin modelo
-python -X utf8 validar_local.py     # la prueba para el profesor
-python -X utf8 pruebas_voz.py
-python -X utf8 pruebas_lexicon.py
+python -X utf8 -m uvicorn app.api:app --host 127.0.0.1 --port 8000   # API para el front
+cd front && npm.cmd ci && npm.cmd start       # Angular en :4200, /api por proxy.conf.json
+python -X utf8 app/api.py                     # API + Gradio en un proceso (solo local)
+python -X utf8 main.py                        # solo Gradio, el respaldo, en :7860
+python -X utf8 validar_local.py               # la validación externa para el profesor
 ```
 
 `ui.py` carga los tres recursos pesados (modelo 328 MB, embeddings del
 catálogo, diccionario 243 MB + spaCy + MiniLM) **al primer uso, no al
 arrancar**. No lo cambies a carga anticipada: la demo se vuelve inusable.
+
+**Pruebas** (recuento del 14 sep 2026 en HEAD `74ffffc`, corridas con
+`LITERALEVEL_SIN_CLAVES=1`, que no lee claves ni gasta):
+
+| Suite | Qué cubre | Hoy |
+|---|---|---|
+| `tests_smoke.py` | bloques y escala, sin modelo | todo ok (no imprime recuento) |
+| `pruebas_extremas.py` | robustez del motor y de Gradio | 349 de 349 |
+| `pruebas_integracion.py` | recorrido completo encadenado | 27 pasos de 27 |
+| `pruebas_desambiguacion.py` | acepciones, sin red | 8 de 8 |
+| `pruebas_perfil.py` | cuestionario de nivel | todo ok (no imprime recuento) |
+| `pruebas_ficha.py` | ficha, pasajes y capítulos de cuerpo | 49 comprobaciones, 0 fallos |
+| `pruebas_corpus.py` | textos libres en catálogo y lector | 25 de 25 |
+| `pruebas_animacion.py` | corte 2D: SVG, duración y repetición | 2.109 comprobaciones, todo ok |
+| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 23 de 23 |
+| `pruebas_voz_concurrencia.py` | voz: candados, migración e historial | 10 de 10 |
+| `pruebas_audio_atomico.py` | caché y escritura atómica del TTS | 4 de 4 |
+| `pruebas_api.py` | frontera HTTP para Angular | 51 de 51 |
+| `pruebas_api_voz_temporal.py` | subida de audio a la API, por AST | pasa |
+| `pruebas_portadas.py` | pipeline de portadas, sin GPU ni red | 11 de 11 |
+| `pruebas_despliegue.py` | guardas del despliegue del Space | 13 de 13 |
+| `pruebas_despliegue_front.py` | publicador del front, sin red | 16 de 16 |
+| `pruebas_voz.py` | ciclo de voz; con clave llama a OpenAI | 16 comprobaciones sin red, todo ok (sin clave se omite el ciclo real) |
+| `pruebas_lexicon.py --sin-openai` | diccionario real; sin la opción llama a OpenAI | todo ok con --sin-openai |
+
+`pruebas_voz.py` y `pruebas_lexicon.py` sin `--sin-openai` llaman a OpenAI de
+verdad si hay clave: no las corras en una revisión sin autorización de gasto.
+Las pruebas del front son `npm.cmd test` dentro de `front/`.
 
 ## Antes de "arreglar" una llamada a una librería
 

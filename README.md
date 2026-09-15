@@ -25,10 +25,11 @@ npm.cmd ci
 npm.cmd start -- --host 127.0.0.1 --port 4200
 ```
 
-Abrir `http://127.0.0.1:4200/`. El proxy de desarrollo envía `/api` al puerto
-8000. No hace falta instalar Angular globalmente. Para el respaldo Gradio,
+Abrir `http://127.0.0.1:4200/`. El proxy de desarrollo (`front/proxy.conf.json`)
+envía `/api` al puerto 8000. No hace falta instalar Angular globalmente. Para el respaldo Gradio,
 `python -X utf8 main.py` usa el puerto 7860; ese comando por sí solo no arranca
-la API que espera el front. Los recursos del apartado Datos también hacen falta.
+la API que espera el front. `python -X utf8 app/api.py` levanta la API y Gradio
+en un solo proceso, solo en local. Los recursos del apartado Datos también hacen falta.
 
 ## Qué hace
 
@@ -40,9 +41,12 @@ la API que espera el front. Los recursos del apartado Datos también hacen falta
    v4**, capítulo a capítulo (585.111 capítulos), y cuando un libro te queda
    grande la aplicación te propone los capítulos que sí están a tu alcance. La
    letra es orientativa: el modelo ordena bien los niveles, pero no certifica
-   ninguno. (Hasta el 12 de septiembre de 2026 el catálogo eran 1.197 libros
-   con etiquetas heredadas de un modelo v1 que leía solo las primeras ~190
-   palabras de cada obra.)
+   ninguno. Además, **15.357 textos de licencia libre** (StoryWeaver, Let's
+   Read, African Storybook y VOA) medidos con el v4, que se abren sin descargar
+   nada y salen intercalados al recomendar por nivel: 68.536 textos en total
+   (commit `377a650`). Los títulos con aviso de contenido lo enseñan antes de
+   abrir y nunca encabezan la recomendación. (Hasta el 12 de septiembre de 2026
+   el catálogo eran 1.197 libros con etiquetas heredadas de un modelo v1.)
 3. **Lee.** Lector integrado de epub, pdf y txt. Los libros de Project
    Gutenberg se descargan y se abren dentro de la app, sin salir a por ellos.
    Al abrir un libro sale su **ficha**: tiempo estimado a 180 o 110 palabras por
@@ -52,14 +56,20 @@ la API que espera el front. Los recursos del apartado Datos también hacen falta
    libro, marcado como tal. Y **la curva de dificultad capítulo a capítulo**,
    que sí lee el libro entero con el v4: ahí no se muestrea.
 4. **Explica una palabra.** Doble clic sobre cualquier palabra del texto:
-   lema, IPA británica y americana cuando Wiktionary las trae, definición, el sentido que
+   lema, IPA británica y americana de la forma escrita (Wiktionary, CMUdict o, si
+   faltan, la IA, marcada), definición, el sentido que
    tiene *en esa frase*, la gramática y el audio de pronunciación. En español
    o en inglés, a elegir. Kaikki conserva la definición cuando existe una
    acepción utilizable; si no existe y se autoriza el servicio externo, el
-   fallback aparece marcado como generado por IA.
+   fallback aparece marcado como generado por IA. Si la acepción es dudosa y no
+   hay explicación, dice «Puede ser» con las principales.
 5. **Corrige la pronunciación.** Se lee una frase en voz alta y se marca
    palabra por palabra qué sonó bien y qué no, con el sonido concreto que
-   falla y cómo colocar la boca.
+   falla y cómo colocar la boca, con su audio y el corte de la boca (2D o 3D)
+   moviéndose al compás, también más lento. Y **lectura natural**: dónde se paró
+   el lector y qué tramos van lentos para su nivel, énfasis, enlaces y
+   reducciones del habla rápida (*don't you* → *doncha*), y la frase dicha de
+   corrido.
 6. **Recuerda.** *Mis libros* guarda todos los libros empezados, con la
    barra de avance y el capítulo por el que iba cada uno, y los reabre ahí
    mismo. *Mis palabras* guarda cada palabra consultada con su frase y su
@@ -154,7 +164,11 @@ No imprime ni un fragmento de los textos: el corpus tiene derechos.
 | `app/reader.py` | Lector de epub, pdf y txt → capítulos |
 | `app/catalogo.py` | Buscador semántico sobre el catálogo |
 | `app/lexicon.py` | Diccionario Kaikki, IPA, audio y explicación contextual |
-| `app/voz.py` | Tutor de pronunciación (whisper-1 → difflib → tts-1) |
+| `app/voz.py` | Tutor de pronunciación y lectura natural (whisper-1 con marcas por palabra → difflib → tts-1) |
+| `app/fonemas.py` | Fonemas del inglés, IPA de diccionario (Kaikki y CMUdict) |
+| `app/articulacion.py` | Fichas de articulación por sonido, americano y británico |
+| `app/animacion_articulatoria.py` | Corte de la boca en SVG animado, al compás del audio |
+| `app/cuentas.py` | Cuentas, cupo de uso y devoluciones |
 | `app/cuaderno.py` | Historial de palabras consultadas, con su frase y su libro |
 | `app/biblioteca.py` | Los libros abiertos y por qué capítulo va cada uno |
 | `app/ficha.py` | Ficha del libro: lo que se cuenta, y el resumen de qué trata |
@@ -167,34 +181,39 @@ torch.
 
 ## Pruebas
 
+Recuento del 14 de septiembre de 2026 en `74ffffc`, con `LITERALEVEL_SIN_CLAVES=1`
+(no lee claves ni gasta):
+
+| Suite | Qué cubre | Hoy |
+|---|---|---|
+| `tests_smoke.py` | bloques y escala, sin modelo | todo ok (no imprime recuento) |
+| `pruebas_extremas.py` | robustez del motor y de Gradio | 349 de 349 |
+| `pruebas_integracion.py` | recorrido completo encadenado | 27 pasos de 27 |
+| `pruebas_desambiguacion.py` | acepciones, sin red | 8 de 8 |
+| `pruebas_perfil.py` | cuestionario de nivel | todo ok (no imprime recuento) |
+| `pruebas_ficha.py` | ficha, pasajes y capítulos de cuerpo | 49 comprobaciones, 0 fallos |
+| `pruebas_corpus.py` | textos libres en catálogo y lector | 25 de 25 |
+| `pruebas_animacion.py` | corte 2D: SVG, duración y repetición | 2.109 comprobaciones, todo ok |
+| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 23 de 23 |
+| `pruebas_voz_concurrencia.py` | voz: candados, migración e historial | 10 de 10 |
+| `pruebas_audio_atomico.py` | caché y escritura atómica del TTS | 4 de 4 |
+| `pruebas_api.py` | frontera HTTP para Angular | 51 de 51 |
+| `pruebas_api_voz_temporal.py` | subida de audio a la API, por AST | pasa |
+| `pruebas_portadas.py` | pipeline de portadas, sin GPU ni red | 11 de 11 |
+| `pruebas_despliegue.py` | guardas del despliegue del Space | 13 de 13 |
+| `pruebas_despliegue_front.py` | publicador del front, sin red | 16 de 16 |
+| `pruebas_voz.py` | ciclo de voz; con clave llama a OpenAI | 16 comprobaciones sin red, todo ok (sin clave se omite el ciclo real) |
+| `pruebas_lexicon.py --sin-openai` | diccionario real; sin la opción llama a OpenAI | todo ok con --sin-openai |
+
 ```bash
-python -X utf8 tests_smoke.py          # lógica de bloques y escala, sin modelo
-python -X utf8 pruebas_extremas.py     # batería de robustez del motor
-python -X utf8 pruebas_integracion.py   # 27 pasos del recorrido completo
-python -X utf8 pruebas_desambiguacion.py   # 7 pruebas de acepciones, sin red
-python -X utf8 pruebas_perfil.py       # extremos del cuestionario de nivel
-python -X utf8 pruebas_ficha.py        # que los números de la ficha signifiquen algo
-python -X utf8 pruebas_api.py          # API; requiere dependencias NLP locales
-python -X utf8 pruebas_voz_concurrencia.py  # dobles sin red y SQLite temporal
-python -X utf8 pruebas_portadas.py     # pipeline sin GPU ni red
-python -X utf8 pruebas_despliegue.py   # guardas del despliegue, sin publicar
+python -X utf8 pruebas_extremas.py        # cualquiera de la tabla, igual
+cd front && npm.cmd test                  # pruebas del front Angular
 ```
 
-Las siguientes pueden usar un proveedor de pago; no ejecutarlas como parte de
-una revisión sin red ni sin autorización de gasto:
-
-```bash
-python -X utf8 pruebas_lexicon.py      # diccionario y caché (usa OpenAI)
-python -X utf8 pruebas_voz.py          # ciclo de voz completo (usa OpenAI)
-```
-
+`pruebas_voz.py` y `pruebas_lexicon.py` (sin `--sin-openai`) llaman a OpenAI de
+verdad si hay clave: no ejecutarlas en una revisión sin autorización de gasto.
 La degradación legible es el objetivo, no una garantía que una suite pueda
-demostrar para todas las entradas. Corte verificado del 13 de septiembre:
-API 32/35 en un entorno aislado, con tres casos pendientes por dependencias
-NLP ausentes; voz concurrente 7/7, despliegue 10/10 y portadas 11/11.
-El backend `e56cf08` se cotejó por hash y se probó lectura Angular sin entrar
-con una cuenta. No se ensayó micrófono físico ni OpenAI real en ese cierre.
-Evidencia y pendientes: [relevo de Codex](auditoria/relevo_codex_2026-09-13_noche.md).
+demostrar para todas las entradas.
 
 ## Datos que no van en el repositorio
 
@@ -228,12 +247,11 @@ explicación contextual, la generación de definiciones/IPA, la corrección de v
 y el resumen del libro. La primera descarga de recursos y de libros requiere
 conexión; disponer del diccionario local no significa que toda la app sea offline.
 
-## Avances no publicados en el corte anterior
+## Lo que sigue pendiente
 
-Portadas: pipeline preparado, sin nuevas imágenes FLUX; generación y subida
-requieren autorizaciones separadas. Blender: demo 3D local, sin contar su
-integración como publicada hasta verificarla en Angular. Los informes de cierre
-distinguen pruebas automatizadas, revisión visual y pendientes de usuario.
+Portadas: en la app hay portadas tipográficas por familia de tema; las generadas
+por IA siguen sin hacerse (sin presupuesto). La boca 3D, con la cabeza de
+MakeHuman, está publicada en la app, con el corte 2D de respaldo.
 
 ## Más
 
