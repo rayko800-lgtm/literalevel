@@ -131,8 +131,18 @@ sobre lo que cambió, con los auditores rotados.
 | Qué | Commit | En producción |
 |---|---|---|
 | Rescate por nombre, frases en español, anuncios fuera, subidas simultáneas, 422 sin contraseña | bffc69d (f4) | Sí, reinicio 19, Space 053a486, comprobado sin fallos |
-| Fuga de memoria del 3D: un solo renderer compartido, 1 contexto vivo tras 20 aperturas | b3ed0d7, 5cec3ae (e6) | Pendiente de publicar el front |
+| Fuga de memoria del 3D: renderer compartido, 18,1 MB y 1 contexto vivo tras 20 aperturas (antes 48,7 MB con 10) | d911cc2, b3ed0d7 (e6) | Sí, front 548ff40 |
+| Audio tras cerrar, teclado y aria-pressed, pérdida de contexto al 2D, README | bffc69d, 2bbf9ec, 6fa33c0, 5cec3ae (e6) | Sí, front 548ff40 |
 | Restos de voz: silencio no se guarda, IPA en ASCII rechazada, «Mr.» no corta la frase | 2c0e681 (4e, 7 mutantes muertos) | Pendiente del reinicio 20 |
-| Carpetas temporales de las suites, causa del disco lleno | 42de4cb (4e); corpus y portadas (f4) | No aplica, 0 carpetas tras cada suite |
+| Carpetas temporales de las suites, causa del disco lleno | 42de4cb (4e); 40cdcd4 (f4) | No aplica, 0 carpetas tras cada suite |
 
 Comprobación del reinicio 19 (f4): 0 fallos. «amor» con B1 da 12 de 12 sobre amor; «Jane Austen» sin Jane G. Austin; ningún anuncio ni texto que no es lectura en 14 búsquedas; el error de entrar ya no devuelve la contraseña; dos subidas simultáneas conservan sus nombres. En curso: prueba como persona de «amor» y «Jane Austen» con B1 sobre el Space nuevo (e6), pasada de documentos con el coste real de cómputo (4e). Después: reinicio 20, publicación del front con el 3D sin fuga y ronda 3 sobre lo corregido.
+
+Prueba como persona sobre el Space nuevo (e6, 1b42172, 390 px táctil, perfil B1):
+- «amor»: todo es de amor y ya no salen «Fenn, Amor» ni «MY FUTURE». Los 24 resultados son C1–C2: es el hueco de composición del catálogo.
+- «historias de la luna» y «libros sobre detectives»: ningún falso positivo por nombre.
+- **Serio nuevo, front (e6):** el margen fijo de «Menos parecidos» esconde lo que es del nivel de la lectora. En «historias de la luna», cinco cuentos A2–B1 quedan detrás de 14 libros C1–C2, y la pantalla promete «Primero lo de tu nivel». Decisión de la central: un margen más ancho solo para la franja del lector, dentro de la ventana de relevancia de la API, sin bloque nuevo.
+- **Menor nuevo, API (f4, reinicio 20):** con «Jane Austen», sus novelas quedan por debajo de los libros sobre ella, y se cuelan Sidney Austen y Calamity Jane.
+- Menor abierto: los .glb sin comprimir.
+- Dudas de catálogo (f4): «Londres» sí pesa, pero hay pocos libros así en B1. SWV991 sale B2 por un texto raro dentro de su bloque, no por la cola.
+- Disco: se borraron 1.567 carpetas de pruebas de más de 3 horas en C:. Siguen apareciendo cuando se mata una suite antes de acabar.
