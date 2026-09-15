@@ -98,11 +98,11 @@ que dice el **Plan B** para ese paso.
    «Este intento no cuenta.» y ese intento no gasta usos.
 8. **Calentar el buscador antes de compartir pantalla:** haz una búsqueda de
    prueba en *Encontrar* con tu perfil ya guardado y espera a que salgan las
-   tarjetas. Si el Space acaba de reiniciarse, espera antes medio minuto: tras un
-   reinicio, el buscador tarda unos 30 s en quedar listo (`/api/salud` dice
-   `buscador_listo: true` a los 26–29 s de arrancar; medido por 4e y por f4 en el
-   reinicio 27, 15 de septiembre). Después, cada búsqueda tarda menos de un
-   segundo.
+   tarjetas. Si el Space acaba de reiniciarse, espera antes un minuto: tras un
+   reinicio, el buscador tardó en quedar listo entre 14 y 46 s según el arranque
+   (`/api/salud` dice `buscador_listo: true`; medido por 4e y por f4 del reinicio
+   27 a la vuelta atrás al 28, 15 de septiembre). Después, cada búsqueda tarda
+   menos de dos segundos.
 9. **Paso 3:** con el perfil de 1,20, buscar «Crimen y castigo de Dostoyevski» y
    comprobar que sale el aviso de que no hay libros en tu nivel ni un poco por
    encima, y *Crime and Punishment* el primero en «De otros niveles».
