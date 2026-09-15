@@ -704,3 +704,9 @@ Reinicio 27, clásicos por apellido (f4, sin commit):
   - **Decisión:** (a) aprobada con N=5.
 - **Regla (b):** dar ventaja al autor sobre el título rompió la prueba de «rosa», porque Rosa es un colaborador (Martínez de la Rosa). La suite lo cazó antes del commit.
   - **Arreglo aprobado:** la ventaja solo cuenta para el primer autor del campo. Se comprueba también si con eso «Jane Austen» con B1 deja de abrir con la adaptación de MacKaye, que tiene a Austen como coautora.
+
+Visto bueno de 4e a ae4c8d8:
+- **Front y ui.py:** ok. El front se publica ya.
+- **ficha.py:** falla con textos escritos en mayúsculas. En 48 de 49 se vacía la lista de repetidas, con palabras corrientes dentro (boy, cow, snake).
+- **Arreglo medido por 4e:** solo cuenta como nombre lo Capitalizado que nunca aparece en minúscula, y lo escrito en mayúsculas no cuenta. Con eso, 0 textos en mayúsculas vaciados, 35 de 400 al azar, y Emma, P&P y Kian igual.
+- **Quién y cuándo:** lo aplica e6 antes del 27, con prueba, mutante y visto bueno corto de 4e.
