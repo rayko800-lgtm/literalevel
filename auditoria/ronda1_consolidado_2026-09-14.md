@@ -495,3 +495,14 @@ Visto bueno de e6 a api.py del reinicio 25 (cb39b91): ok, pruebas_api 59/59.
 - **Gradio:** no pide franja.
 - **Sin el .npy:** no se marca nada.
 - **Pendiente:** el visto bueno de 4e a catalogo.py.
+
+Front para el 26 (e6, 8ac6e31, sin publicar): sin voz ya no sale el aviso de énfasis y enlaces, y los botones de audio dependen de que llegue audio_correcto.
+
+Prueba local de la franja del 25 (cb39b91 con el .npy de títulos) con los bloques del front, por e6:
+- **Mejoras en «En tu nivel»:**
+  - Fantasmas A2 pasa de 1 a 9, todos de fantasmas;
+  - Familia C1 pasa de 0 a 4 más 4, sin «Familiar»;
+  - rosa B1 pasa de 1 a 13 más 4 cuentos de rosas;
+  - Detectives B1 pasa de 11 a 13.
+- **Sin perfil:** «ghost stories» no marca nada.
+- **Para mirar, sin ajustar sobre la batería:** «Terror gótico» con B1 mete 5 cuentos con índice de 0,33 a 0,49, entre ellos «The Enemy» y «The terror of the lion», que no son terror gótico. ACTION PART-1 no entra. «Historias de amor» con A2 trae tres «My story», que es el límite ya declarado.
