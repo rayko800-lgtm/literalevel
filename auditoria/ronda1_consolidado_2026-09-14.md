@@ -540,3 +540,9 @@ Devolución del uso con silencio, para el reinicio 26 (decisión de la central):
   - **Visto bueno de 4e:** ok. «sherlok holmes», «treasure iland» y «dracul» salen igual que hoy, ningún «Familiar» marcado y ACTION PART-1 fuera.
   - **Pendiente:** el árbol limpio y la subida.
 - **Voz del 26:** sin_voz en 50a6304 (4e), con 15 de 15 mutantes.
+
+Receta del perfil de la demo sin «Me vale así» (e6, medida en local y contra el Space):
+- **Respuestas:** varias veces por semana · Alice con naturalidad · una novela actual · fragmento medio con naturalidad · los hechos principales · fragmento difícil con diccionario.
+- **Resultado:** 1,20 exacto, B2, franja 0,95–1,45. Aguanta un despiste en la 2 o en la 6.
+- **Guion:** 4e la escribe cuando se publique Tu nivel A.
+- **Si cambia la fórmula** tras la medida de 4e, hay que volver a medirla.
