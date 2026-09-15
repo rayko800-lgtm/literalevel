@@ -47,7 +47,8 @@
         @case ('lista') { <span class="suave">{{ frase.trim() ? 'Pulsa el micrófono y lee la frase con calma.' : 'Primero escribe la frase.' }}</span> }
         @case ('grabando') { <strong>Grabando… {{ segundos() }} s</strong> <span class="suave">· pulsa para terminar</span> }
         @case ('grabada') {
-          <span class="suave">{{ corrigiendo() ? 'Transcribo tu voz y preparo la explicación: unos segundos.' : 'Escúchate y pide la corrección.' }}</span>
+          <span class="suave">{{ corrigiendo() ? 'Transcribo tu voz y preparo la explicación: unos segundos.'
+            : corregida() ? 'Ya tienes la corrección. Graba otra vez para que te corrija de nuevo.' : 'Escúchate y pide la corrección.' }}</span>
         }
       }
     </p>
@@ -56,7 +57,7 @@
          estados: grabar, parar y corregir caen en el mismo sitio. -->
     <div class="grabadora">
       <div class="lado">
-        @if (estado() === 'grabada') {
+        @if (estado() === 'grabada' && !corregida()) {
           <button type="button" class="accion" (click)="descartar(); grabar()">
             <app-icono nombre="recargar" /><span>Otra vez</span>
           </button>
@@ -78,10 +79,18 @@
           </button>
         }
         @case ('grabada') {
-          <button type="button" class="microfono corregir" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()"
-                  [attr.aria-label]="corrigiendo() ? 'Escuchando' : 'Corrígeme'">
-            @if (corrigiendo()) { <span class="giro"></span> } @else { <app-icono nombre="check" /> }
-          </button>
+          @if (corregida()) {
+            <!-- Con esta grabación ya corregida, «Corrígeme» sería otra llamada de pago con el
+                 mismo audio: el botón del centro vuelve a ser el micrófono (Central, 15 sep). -->
+            <button type="button" class="microfono" (click)="grabar()" aria-label="Grabar otra vez">
+              <app-icono nombre="micro" />
+            </button>
+          } @else {
+            <button type="button" class="microfono corregir" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()"
+                    [attr.aria-label]="corrigiendo() ? 'Escuchando' : 'Corrígeme'">
+              @if (corrigiendo()) { <span class="giro"></span> } @else { <app-icono nombre="check" /> }
+            </button>
+          }
         }
       }
       <div class="lado">

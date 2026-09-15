@@ -45,6 +45,9 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly audioUrl = signal<string | null>(null);
   protected readonly corrigiendo = signal(false);
   protected readonly resultado = signal<CorreccionVoz | null>(null);
+  /** La grabación de ahora ya tiene su corrección: «Corrígeme» otra vez sería otra
+   *  llamada de pago con el mismo audio (Central, 15 sep). Vuelve a false al grabar. */
+  protected readonly corregida = signal(false);
   protected readonly error = signal('');
   protected readonly necesitaEntrar = signal(false);
   protected readonly trayendo = signal(false);
@@ -161,6 +164,7 @@ export class Pronunciar implements OnInit, OnDestroy {
         const previa = this.audioUrl();
         if (previa) URL.revokeObjectURL(previa);
         this.audioUrl.set(URL.createObjectURL(this.blob));
+        this.corregida.set(false);
         this.estado.set('grabada');
       };
       this.grabador.start();
@@ -190,6 +194,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.blob = null;
     this.estado.set('lista');
     this.resultado.set(null);
+    this.corregida.set(false);
   }
 
   protected async corregir(): Promise<void> {
@@ -201,6 +206,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     try {
       const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`, this.acento()));
       this.resultado.set(r);
+      this.corregida.set(true);
       const e = this.entrada();
       if (e && r.restantes !== null) this.sesion.entrada.set({ ...e, restantes: r.restantes });
       this.cargarDebiles();
