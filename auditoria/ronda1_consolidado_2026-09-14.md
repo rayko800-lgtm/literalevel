@@ -876,3 +876,13 @@ Guiones al día con el segundo ensayo (4e, 5181c8f; guion_video.pdf recompilado)
 - **Arreglos:** boca 3D 2,9 s en el móvil, frase de voz sin verificar, «reinicio 28» y «Este intento no cuenta».
 - **Lista de Miguel:** punto 9 nuevo, repetir el paso 3 con cuenta.
 - **Documento y presentación:** sin cambios. Citan «dostoyevski» solo como rescate de un nombre mal escrito, y la API sigue poniendo Crime and Punishment en el puesto 2.
+
+Causa medida de las consultas de autor con perfil 1,20 (f4, contra el catalogo.py del Space):
+- **«dostoyevski»:** manda el suelo de 0,60. Pasan 12 marcas, 5 rusas por índice y 7 cuentos libres solo por título contra «historias de / libros sobre dostoyevski» (0,611–0,636). Sus obras quedan fuera de la franja (d 1,70).
+- **«tolstoy» y «cervantes»:** el techo lo pone un título, y casi todo lo que entra es por título («Story», «My stories», «Books», «The Beast»).
+- **«Jane Austen»:** entra por índice, por el nombre de pila.
+- **Arreglos probados:**
+  - **(i)** la franja no marca cuando se rescata a un autor. Arregla los autores y deja el top 10 igual, pero cambia las marcas con B1 de 50 listas de palabras de tema («love» baja de 15 a 3, «rosa» de 12 a 0). No vale.
+  - **(ii)** títulos solo genéricos. No arregla ningún autor.
+  - **(i)+(ii):** cambia las marcas de 57 listas.
+- **Siguiente:** i3, que aplica (i) solo si el primer resultado general viene del rescate por autor. El criterio incluye las marcas de las 100 palabras.
