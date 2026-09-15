@@ -442,3 +442,12 @@ Visto bueno de e6 a 0a759a5: ok, y sube como reinicio 24.
 - **Decisiones:**
   - e6 cambia el aviso de silencio en Pronunciar a «No te oí. Acércate al micrófono y vuelve a grabar.», y lo publica tras el 24.
   - 4e registra no_speech_prob al descartar, solo el número, para calibrar el umbral en el reinicio 26.
+
+**Arreglo de títulos cortos para la búsqueda por franja (reinicio 25): elegida la variante E**, por la calibración y no por la batería.
+- **Diagnóstico:** el ruido venía de comparar el título con la palabra suelta. «HOLI» o «Biryani» daban 0,79–0,86 contra «amor» o «Monstruos», y solo 0,35–0,64 contra «historias de X» o «libros sobre X».
+- **Qué hace E:** en consultas de una palabra, el título se compara solo con esas frases.
+- **Calibración** (dragones, océano y dinosaurios): 231 del tema de 236 marcados (97,9 %), el que más trae.
+- **Batería:** 196 de 255. «amor» pasa de 3/12 a 8/12 con A2 y de 2/12 a 9/12 con B1; Robots da 9/9 y 7/7; amigos 17/17 en los dos niveles.
+- **Límites declarados:** «Monstruos» se queda en 1/12 con cualquier variante, porque el MiniLM no lo acerca a «monster». «Historias de amor» tiene varias palabras, E no la toca y sigue trayendo los «My story».
+
+e6 comprobó el caso exacto del silencio del Space con whisper simulado. Con 0a759a5 no hay corrección de pago ni se guardan fallos, así que el reinicio 24 puede subir.
