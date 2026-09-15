@@ -6715,8 +6715,12 @@ def _practica_sin_voz_devuelve_el_uso():
                                                 transcripcion_ok=False, sin_voz=sin_voz)
 
     def codigo_de(pet):
+        # Antes de cobrar, la cuenta cobrada; despues, otra (la sesion cambio durante whisper).
+        # Asi la devolucion solo va a la cuenta cobrada si el codigo se leyo ANTES de cobrar:
+        # `_practicar` tambien lo lee al principio (cuentas.permite), y mirar solo el orden de
+        # las llamadas dejaba vivo el mutante C14-gradio-codigo-despues-de-cobrar.
         orden.append("codigo")
-        return "CODIGO-COBRADO"
+        return "OTRA-CUENTA" if "cobro" in orden else "CODIGO-COBRADO"
 
     def puede_pagar(pet):
         orden.append("cobro")
@@ -6734,7 +6738,6 @@ def _practica_sin_voz_devuelve_el_uso():
     finally:
         (ui.voz.practicar, ui.config.falta, ui._puede_pagar, ui._codigo_de, ui.cuentas.devolver_por_silencio) = viejos
     assert llamadas == [(ui.BASE_DATOS_LECTOR, "CODIGO-COBRADO")], f"devoluciones: {llamadas}"
-    assert orden.index("codigo") < orden.index("cobro"), f"el codigo se leyo despues de cobrar: {orden}"
     assert "No te oí" in salidas["sin_voz"] and "Este intento no cuenta" in salidas["sin_voz"], salidas["sin_voz"][:300]
     assert "No te oí" in salidas["red_caida"] and "no cuenta" not in salidas["red_caida"], salidas["red_caida"][:300]
     return "sin voz devuelve a la cuenta cobrada y lo dice; con la red caida, no"
