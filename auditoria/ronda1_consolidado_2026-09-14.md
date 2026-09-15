@@ -864,3 +864,9 @@ Plan B del paso 3 de la demo, comprobado por 4e en la página publicada con perf
 - **Qué sale:** 0 marcados y el aviso de que no hay libros en tu nivel. Crime and Punishment es la primera tarjeta de «De otros niveles», sin pulsar «Ver también». La ficha y la curva son las del guion.
 - **Decisión de la central:** se cambia ya en el guion, sin esperar al arreglo, porque ese arreglo solo quita marcas.
 - **Hipótesis confirmada por 4e:** con una sola palabra, la variante E marca cuentos titulados «Books» o «The Story of Stories» en cualquier autor, también en «dickens».
+
+Segundo ensayo de la demo (e6, d2883bc), sobre el front bdfa418 y el Space 74f1484, a 390 y a 1280:
+- **Cuadra con el guion:** la receta B2, «cuentos de dragones», los detectives, la ficha de Crime and Punishment, poverty, Pronunciar, «Mis palabras», el libro de un solo capítulo y el plan B.
+- **Serio del paso 3:** resuelto en el guion con «Crimen y castigo de Dostoyevski», que midió 4e. El arreglo del buscador sigue con f4.
+- **Tiempos con el buscador caliente:** búsquedas de 0,5 a 0,8 s, primera consulta de palabra 4,5 s y boca 3D la primera vez 2,9 s en el móvil. La duración estimada sigue en 3:40–4:10.
+- **Arreglos de guion para 4e:** la cifra de la boca 3D, que la frase de voz ya no cuenta como verificada, «reinicio 28» en el paso 2, y «Este intento no cuenta» en el punto 7.
