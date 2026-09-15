@@ -1001,3 +1001,13 @@ Arreglo del micrófono de Pronunciar (e6, 601788b), con el ok de 4e:
 **Micrófono publicado (e6):** 601788b, en el Space del front 0cfa382. Con el aviso de abrir en Chrome en el navegador de WhatsApp, «Acepta el permiso del micrófono», «Grabando: habla ahora» y un mensaje para cada error. Falta que lo pruebe Ismael.
 
 Decisión de Miguel (AskUserQuestion en la central): **volver al 28**. La autorización de la subida la da él en el chat de f4, porque la bloqueó el permiso de esa sesión. La central no la reenvía como permiso.
+
+Chips del 29 contra el 28 (f4, 27 consultas, n=24, A2, B1 y 1,20):
+- **Cambia solo «animales de la granja»:** A2 pasa de 16 marcas a 4, B1 de 13 a 1 y 1,20 de 15 a 3. Los otros 26 quedan iguales.
+- **Total de pérdidas con 1,20:** león, brown, hope y animales de la granja. La vuelta atrás sigue pendiente de Miguel.
+
+i7 en preparación (f4, sobre el catalogo.py del 28): el título no cuenta si casa igual con el marco solo («historias de», «libros sobre»).
+- **Calibración:** escrita a las 09:04, con 10 temas y 8 autores que no están en ninguna lista.
+- **Márgenes a medir:** 0,00, 0,05 y 0,10, más la variante i7b de 4e.
+- **Criterio:** el completo con A2, B1 y 1,20.
+- **Aviso:** «Jane Austen» tiene dos palabras y sus marcas vienen del índice, así que i7 no las quitará.
