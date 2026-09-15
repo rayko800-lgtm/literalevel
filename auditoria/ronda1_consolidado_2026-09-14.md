@@ -1111,3 +1111,10 @@ Reinicio 30b medido (f4, 545 listas contra el 28): solo cambian empates y ningú
 - **DESPLIEGUE:** la fila del 30a está en ef8b743.
 
 **Tanda 3 de ayuda publicada** (e6): Space del front c73bbcc, con 13a730e y a202a99. La bienvenida de 3 pasos ya lleva los textos de 4e («uno a tu medida», «qué significa y cómo se pronuncia») y retiene el foco con Tab. ng test 122/122. Con esto terminan las tres tandas de la ayuda, y 4e actualiza ahora los guiones.
+
+**Ensayo de e6 sobre 282c46f y c73bbcc** (perfil 1,20, 390 px):
+- Paso 3 con «Crimen y castigo de Dostoyevski»: aviso y *Crime and Punishment* **primero** en «De otros niveles», a 679 px. El guion decía «segundo»; pasado a 4e.
+- «dostoyevski» a secas no sirve: el libro queda a 3.789 px, detrás de «Ver también».
+- «animales de la granja» da 9 libres; «dragones» da 19 de 20; los detectives dan 3 de Gutenberg.
+- Bienvenida con el texto nuevo.
+f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cuando acabe el banco C24. Añadido al criterio de paro: el paso 3 tiene que seguir saliendo primero.
