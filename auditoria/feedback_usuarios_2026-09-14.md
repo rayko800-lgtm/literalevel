@@ -131,3 +131,10 @@ Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-
 - **Falta saber:** qué teléfono y qué navegador usó, y si abrió el enlace desde WhatsApp.
 
 **Dato de Miguel (15 sep):** Ismael usó un teléfono **Android** y abrió el enlace que le llegó **por WhatsApp**. En Android, WhatsApp puede abrir los enlaces en su navegador interno (un WebView), donde el micrófono no suele estar disponible. Es la hipótesis principal del fallo del micrófono. e6 comprueba qué muestra Pronunciar cuando no hay `mediaDevices` o `getUserMedia` falla, y si no sale nada visible lo arregla ya con un aviso para abrir la app en Chrome.
+
+**Decisión de Miguel sobre la ayuda (15 sep, sobre `auditoria/ismael_ayuda_2026-09-15.md`):**
+- **Ayuda: las dos.** Una bienvenida de 3 pasos, sin el de pronunciar, y además la línea de ayuda con «?» en Pronunciar y en el lector.
+- **Los tres arreglos, ya:** «Entrar» lleva a «Tu perfil», el icono de Ajustes lleva texto y la tarjeta «Mídeme» se corrige.
+- **Recortes:** primero el lector la primera vez, con un solo aviso.
+
+e6 lo hace en tres tandas con visto bueno de 4e. 4e ajusta el guion de la demo cuando salga la bienvenida.
