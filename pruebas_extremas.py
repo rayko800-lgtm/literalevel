@@ -5764,8 +5764,11 @@ def _lo_que_mas_se_repite_no_son_muletillas():
     partia «Svidrigaïlov» en «svidriga» y «lov», y las dos mitades subian a la
     lista como si fueran palabras del libro.
     """
+    # «garden» va de palabra corriente: desde 3151f51, una lista hecha SOLO de
+    # nombres se vacia a proposito (el cuento de Kian), y sin ella esta prueba
+    # se quedaba sin nada que mirar.
     relleno = ("Tuppence said that Svidrigaïlov thought so too. "
-               "She don’t think she got down. ") * 15
+               "She don’t think she got down to the garden. ") * 15
 
     class _Cap:
         titulo = "CHAPTER I"
