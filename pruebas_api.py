@@ -34,6 +34,8 @@ os.environ["LITERALEVEL_DATOS"] = pruebas_tmp.carpeta("literalevel_api_")
 # La nube: carpetas por lector. Es el caso que importa, porque en local todos
 # comparten la carpeta a proposito y el aislamiento no se veria.
 os.environ["SPACE_ID"] = "pruebas/literalevel"
+# Simular el Space no puede lanzar la precarga real del buscador (reinicio 26): para_gradio() la arranca.
+os.environ.setdefault("LITERALEVEL_PRECARGA", "0")
 os.environ.pop("LITERALEVEL_CUENTAS", None)
 import config as config_mod  # noqa: E402
 config_mod.cargar = lambda *a, **k: None
@@ -484,7 +486,7 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     compuesto.write_bytes(b"ID3" + b"\x00" * 64)
     vistas = {}
 
-    def practicar_doble(ruta, frase, guardar_fallos=True, nivel=None):
+    def practicar_doble(ruta, frase, guardar_fallos=True, nivel=None, origen=""):
         vistas["frase"] = frase
         ev = NS(puntuacion=60, transcripcion="the red rain coat", palabras_falladas=["raincoat"],
                 palabras_objetivo=["the", "red", "raincoat"], entendidas=[])
@@ -985,6 +987,143 @@ def buscar_devuelve_la_franja_y_la_marca():
     return "franja [0,35, 1,25] con nivel y null sin el; por_franja en cada tarjeta"
 
 
+def precarga_y_peticion_comparten_el_catalogo():
+    """Central, reinicio 26: la precarga del buscador va en un hilo al arrancar el Space. Una
+    peticion que llega a mitad espera a la MISMA instancia en el candado de ui.catalogo(): el
+    constructor se llama una vez. Sin SPACE_ID ni LITERALEVEL_PRECARGA=1 no arranca, y el Space la
+    lanza desde para_gradio(). /api/estado lleva la memoria del proceso."""
+    import threading
+    import time
+    from unittest.mock import patch
+
+    construidos = []
+
+    class Lento:
+        embeddings = None
+
+        def __init__(self):
+            construidos.append(self)
+            time.sleep(0.5)
+
+        def buscar(self, *a, **k):
+            return [], ""
+
+        def emb_titulos(self):
+            return None
+
+    entorno = {k: os.environ.pop(k) for k in ("SPACE_ID", "LITERALEVEL_PRECARGA") if k in os.environ}
+    viejo_cat, vieja_clase = ui._catalogo, ui.Catalogo
+    ui._catalogo, ui.Catalogo = None, Lento
+    try:
+        assert api.precargar_en_segundo_plano() is None, "sin variables no se precarga"
+        os.environ["SPACE_ID"], os.environ["LITERALEVEL_PRECARGA"] = "pruebas/literalevel", "0"
+        assert api.precargar_en_segundo_plano() is None, "LITERALEVEL_PRECARGA=0 no la apaga con SPACE_ID"
+        os.environ.pop("SPACE_ID")
+        os.environ["LITERALEVEL_PRECARGA"] = "1"
+        hilo = api.precargar_en_segundo_plano()
+        time.sleep(0.05)
+        desde_peticion = ui.catalogo()
+        hilo.join(5)
+        desde_hilo = ui._catalogo
+    finally:
+        ui._catalogo, ui.Catalogo = viejo_cat, vieja_clase
+        os.environ.pop("LITERALEVEL_PRECARGA", None)
+        os.environ.update(entorno)
+    assert hilo is not None and not hilo.is_alive(), "el hilo de precarga no acaba"
+    assert len(construidos) == 1, f"{len(construidos)} catalogos construidos a la vez"
+    assert desde_peticion is desde_hilo is construidos[0], "la peticion y la precarga no comparten instancia"
+    llamadas = []
+    with patch.object(api, "precargar_en_segundo_plano", lambda: llamadas.append(1)):
+        api.para_gradio()
+    assert llamadas == [1], f"para_gradio lanza la precarga {len(llamadas)} veces"
+    proceso = _ok(cliente.get("/api/estado", headers=nuevo_lector())).get("proceso")
+    assert isinstance(proceso, dict) and set(proceso) == {"memoria_mb", "pico_mb"}, proceso
+    return f"una instancia para hilo y peticion; sin variables no arranca; para_gradio la lanza; memoria {proceso}"
+
+
+def silencio_devuelve_el_uso_con_tope_diario():
+    """Central, reinicio 26: una grabacion en la que whisper responde sin voz devuelve el uso,
+    por cuenta y con 10 al dia; el 11 no devuelve. Otro dia empieza de cero. Una cuenta sin
+    tope no tiene nada que devolver. Veinte devoluciones a la vez dejan el contador exacto."""
+    import json
+    import threading
+    import cuentas
+
+    viejo = os.environ.get("LITERALEVEL_CUENTAS")
+    os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0,invitado:LLAVE-B:40"
+    try:
+        with tempfile.TemporaryDirectory(prefix="ll_devol_") as carpeta:
+            base = Path(carpeta)
+            for _ in range(12):
+                assert cuentas.consumir(base, "invitado:LLAVE-B")[0]
+            hechas = [cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") for _ in range(11)]
+            assert hechas == [True] * 10 + [False], hechas
+            assert cuentas.gastado(base, "invitado") == 2, cuentas.gastado(base, "invitado")
+            assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-16") is True, "otro dia"
+            assert cuentas.gastado(base, "invitado") == 1
+            assert cuentas.devolver_por_silencio(base, "jefe:LLAVE-A", hoy="2026-09-16") is False, "sin tope"
+            assert cuentas.devolver_por_silencio(base, None, hoy="2026-09-16") is False, "sin codigo"
+        with tempfile.TemporaryDirectory(prefix="ll_devol_hilos_") as carpeta:
+            base = Path(carpeta)
+            for _ in range(20):
+                cuentas.consumir(base, "invitado:LLAVE-B")
+            devueltas = []
+
+            def devolver():
+                if cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15"):
+                    devueltas.append(1)
+            hilos = [threading.Thread(target=devolver) for _ in range(20)]
+            for h in hilos:
+                h.start()
+            for h in hilos:
+                h.join()
+            registro = json.loads((base / "devoluciones_silencio.json").read_text(encoding="utf-8"))
+            assert len(devueltas) == 10, f"{len(devueltas)} devueltas de 20 a la vez"
+            assert cuentas.gastado(base, "invitado") == 10, cuentas.gastado(base, "invitado")
+            assert registro == {"2026-09-15": {"invitado": 20}}, registro
+    finally:
+        if viejo is None:
+            os.environ.pop("LITERALEVEL_CUENTAS", None)
+        else:
+            os.environ["LITERALEVEL_CUENTAS"] = viejo
+    return "10 al dia y el 11 no; otro dia de cero; sin tope ni codigo, no; 20 a la vez, 10 y contador exacto"
+
+
+def voz_sin_voz_devuelve_a_la_cuenta_cobrada():
+    """/api/voz devuelve el uso solo si whisper respondio sin voz (`sin_voz`), a la cuenta cobrada, y
+    lo dice en `uso_devuelto`. Con la red caida o con voz, no. Pasa origen="api" a voz.practicar."""
+    from types import SimpleNamespace as NS
+    from unittest.mock import patch
+
+    llamadas, origenes = [], []
+
+    def sesion(sin_voz, ok):
+        ev = NS(palabras_falladas=[], puntuacion=0, transcripcion="", palabras_objetivo=["the", "cat"], entendidas=[])
+        return NS(evaluacion=ev, transcripcion_ok=ok, correccion=None, audio_correcto=None,
+                  audios_palabras={}, ritmo=None, sin_voz=sin_voz)
+
+    resultados = {}
+    for caso, (sin_voz, ok) in {"silencio": (True, False), "red": (False, False), "voz": (False, True)}.items():
+        def practicar(ruta, frase, guardar_fallos=True, nivel=None, origen="", _s=sesion(sin_voz, ok)):
+            origenes.append(origen)
+            return _s
+        with patch.object(api.config, "falta", return_value=[]), \
+                patch.object(api, "_va_a_costar", return_value=False), \
+                patch.object(ui, "_codigo_de", lambda pet: "invitado:LLAVE-B"), \
+                patch.object(ui, "_puede_pagar", lambda pet: (True, "")), \
+                patch.object(api.voz, "practicar", practicar), \
+                patch.object(api.cuentas, "devolver_por_silencio",
+                             lambda base, codigo, hoy=None: (llamadas.append((caso, codigo)), True)[1]):
+            r = cliente.post("/api/voz", headers=nuevo_lector(), data={"frase": "The cat."},
+                             files={"audio": ("voz.webm", b"x" * 2000, "audio/webm")})
+        assert r.status_code == 200, (caso, r.status_code, r.text[:200])
+        resultados[caso] = r.json().get("uso_devuelto")
+    assert llamadas == [("silencio", "invitado:LLAVE-B")], llamadas
+    assert resultados == {"silencio": True, "red": False, "voz": False}, resultados
+    assert origenes == ["api", "api", "api"], origenes
+    return "silencio devuelve a la cuenta cobrada; red y voz no; origen api"
+
+
 def voz_subida_y_palabra_no_bloquean_a_los_demas():
     """Auditoría cruzada de 4e (14 sep 2026). /api/voz y la subida eran `async` y
     llamaban a voz y al lector en el bucle de eventos: mientras corregían, nada más
@@ -1020,7 +1159,7 @@ def voz_subida_y_palabra_no_bloquean_a_los_demas():
         hilo.join()
         return viva, dt
 
-    def practicar_lento(ruta, frase, guardar_fallos=True, nivel=None):
+    def practicar_lento(ruta, frase, guardar_fallos=True, nivel=None, origen=""):
         dentro.set()
         time.sleep(duerme)
         ev = NS(puntuacion=100, transcripcion=frase, palabras_falladas=[], palabras_objetivo=["hola"], entendidas=[])
@@ -1406,7 +1545,7 @@ def ritmo_de_la_lectura_con_nivel_y_audio_natural():
                          "audio_natural": str(mp3)}}
     vistas, guardados = {}, []
 
-    def practicar_doble(ruta, frase, guardar_fallos=True, nivel=None):
+    def practicar_doble(ruta, frase, guardar_fallos=True, nivel=None, origen=""):
         vistas["nivel"] = nivel
         ev = NS(puntuacion=90, transcripcion="you know", palabras_falladas=[],
                 palabras_objetivo=["you", "know"], entendidas=[])
@@ -1663,7 +1802,8 @@ if __name__ == "__main__":
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
                aviso_de_contenido_en_ficha_y_tarjeta, medido_en_bloque_en_ficha_y_tarjeta,
-               buscar_devuelve_la_franja_y_la_marca,
+               buscar_devuelve_la_franja_y_la_marca, precarga_y_peticion_comparten_el_catalogo,
+               silencio_devuelve_el_uso_con_tope_diario, voz_sin_voz_devuelve_a_la_cuenta_cobrada,
                voz_subida_y_palabra_no_bloquean_a_los_demas,
                validacion_sin_eco_de_la_entrada, dos_subidas_a_la_vez_no_pasan_el_tope_ni_rompen_los_nombres,
                cache_lexica_serializa_la_conexion_entre_hilos,

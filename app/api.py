@@ -771,6 +771,8 @@ def estado() -> dict:
                         "cargado": ui._consultor is not None},
         "catalogo": catalogo_info,
         "funciones_openai": {"disponibles": not config.falta()},
+        # Reinicio 26: para ver en el Space que la precarga no sube la RAM por encima de la primera busqueda.
+        "proceso": _memoria_del_proceso(),
         "perfiles": {"puerta": cuentas.hay_codigos(),
                      "validos": len(cuentas._tabla()),
                      "declarados": cuentas.declaradas(),
@@ -1917,15 +1919,23 @@ def _corregir_voz(pet: _Lector, frase: str, acento: str, ext: str, contenido: by
         if config.falta():
             raise _no(503, "Para corregir la pronunciación hace falta la clave de OpenAI. "
                            "Lo demás de la aplicación no la necesita.")
+        # El codigo que se va a cobrar, leido antes: la devolucion por silencio va a esa cuenta
+        # aunque la sesion cambie durante whisper (reinicio 26; ver `_cobrar`).
+        codigo = ui._codigo_de(pet)
         puede, motivo = ui._puede_pagar(pet)
         if not puede:
             raise _no(403, motivo)
+        devuelto = False
         try:
             # Desde aqui puede haber gasto aunque falle la transcripcion.
             # El nivel del lector fija la velocidad objetivo del ritmo (4e, 9f5f909).
             perfil = _perfil_de(pet)
             s = voz.practicar(tmp, frase, guardar_fallos=False,
-                              nivel=perfil.nivel if perfil is not None else None)
+                              nivel=perfil.nivel if perfil is not None else None, origen="api")
+            # Whisper respondio y no oyo nada: el uso se devuelve, con el tope diario de cuentas
+            # (Central, reinicio 26). Con la red o la clave caidas, `sin_voz` es False y no.
+            if getattr(s, "sin_voz", False) and cuentas.devolver_por_silencio(ui.BASE_DATOS_LECTOR, codigo):
+                devuelto = True
             if s.evaluacion.palabras_falladas and s.transcripcion_ok:
                 voz.registrar_fallos(s.evaluacion.palabras_falladas,
                                      ruta=ui._archivo_lector("voz.db", pet), frase=frase)
@@ -1973,6 +1983,7 @@ def _corregir_voz(pet: _Lector, frase: str, acento: str, ext: str, contenido: by
         "resumen": s.correccion.resumen if s.correccion else None,
         "detalles": detalles, "audio_correcto": _url_audio(s.audio_correcto),
         "restantes": _entrada_json(pet)["restantes"],
+        "uso_devuelto": devuelto,
         "ritmo": _ritmo_json(getattr(s, "ritmo", None)),
     }
 
@@ -2178,6 +2189,60 @@ def inicio(pet: Lector) -> dict:
 
 # --- Montaje junto a Gradio -------------------------------------------------------
 
+def _precarga_activada() -> bool:
+    """En el Space (SPACE_ID) o si se pide (LITERALEVEL_PRECARGA=1). LITERALEVEL_PRECARGA=0 la apaga
+    aunque haya SPACE_ID: pruebas_api simula el Space con SPACE_ID y llama a para_gradio(), y sin
+    esto lanzaba una precarga real con el catalogo y el modelo en mitad de la suite."""
+    marca = os.environ.get("LITERALEVEL_PRECARGA", "")
+    if marca == "0":
+        return False
+    return bool(os.environ.get("SPACE_ID") or marca == "1")
+
+
+def _precargar() -> None:
+    """Lo que tardaba la primera busqueda con nivel en el Space: 18,6 s (reinicio 25). Medido en
+    local: catalogo +287 MB en 2,4 s, modelo MiniLM +652 MB en 18,7 s, .npy de titulos +76 MB y la
+    primera busqueda, con los indices de nombres, +163 MB en 3,9 s; la segunda, 0,4 s. Es la misma
+    memoria que ocupa la primera busqueda de cualquiera; aqui se ocupa al arrancar. Una peticion que
+    llegue a mitad espera a la misma instancia en el candado de `ui.catalogo()`. Si algo falla, se
+    dice y la carga perezosa de siempre sigue."""
+    t0 = time.time()
+    try:
+        cat = ui.catalogo()
+        cat.embeddings
+        t1 = time.time()
+        cat.buscar("historias de fantasmas", nivel_lector=0.8, n=1, franja=True)
+        titulos = "si" if cat.emb_titulos() is not None else "no"
+        print(f"api precarga: catalogo {t1 - t0:.1f} s; modelo, titulos ({titulos}) y primera busqueda "
+              f"{time.time() - t1:.1f} s", file=sys.stderr)
+    except Exception as e:
+        print(f"api precarga: no ha podido ({type(e).__name__}: {e}); se cargara con la primera busqueda",
+              file=sys.stderr)
+
+
+def precargar_en_segundo_plano() -> threading.Thread | None:
+    """Arranca `_precargar` en un hilo de fondo si toca; no retrasa el arranque ni /api/salud."""
+    if not _precarga_activada():
+        return None
+    hilo = threading.Thread(target=_precargar, name="precarga-buscador", daemon=True)
+    hilo.start()
+    return hilo
+
+
+def _memoria_del_proceso() -> dict:
+    """La memoria del proceso en MB, de /proc/self/status (Linux, el Space): la de ahora y el pico.
+    None donde no hay /proc. Sin rutas ni nada del lector: /api/estado es publica."""
+    fuera = {"memoria_mb": None, "pico_mb": None}
+    try:
+        for linea in Path("/proc/self/status").read_text().splitlines():
+            clave, _, valor = linea.partition(":")
+            if clave in ("VmRSS", "VmHWM"):
+                fuera["memoria_mb" if clave == "VmRSS" else "pico_mb"] = round(int(valor.split()[0]) / 1024)
+    except (OSError, ValueError, IndexError):
+        pass
+    return fuera
+
+
 def para_gradio() -> dict:
     """Lo que se pasa a `demo.launch(ssr_mode=False, app_kwargs=api.para_gradio())`.
 
@@ -2198,6 +2263,8 @@ def para_gradio() -> dict:
     cabeceras pedidas, `X-Lector` incluida.
     """
     rutas = [r for r in app.router.routes if str(getattr(r, "path", "")).startswith("/api/")]
+    # El Space solo pasa por aqui al arrancar (app.py): es donde se lanza la precarga (reinicio 26).
+    precargar_en_segundo_plano()
     return {"routes": rutas, "exception_handlers": {Exception: _error_inesperado,
                                                     RequestValidationError: _validacion_sin_eco}}
 

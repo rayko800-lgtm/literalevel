@@ -54,6 +54,7 @@ import os
 import sys
 import threading
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -251,20 +252,27 @@ def _sumar(base: Path, cuenta: Cuenta) -> int | None:
         return None
 
 
+def _restar_ya_con_candado(base: Path, cuenta: Cuenta) -> bool:
+    """Baja un uso sin bajar de cero; quien llama ya tiene `_CANDADO` (no es reentrante).
+    True si bajo. Puede lanzar: quien llama decide."""
+    b = Path(base)
+    d = _leer(b)
+    actual = d.get(cuenta.nombre, 0)
+    if actual <= 0:
+        return False
+    d[cuenta.nombre] = actual - 1
+    tmp = _ruta_uso(b).with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f)
+    os.replace(tmp, _ruta_uso(b))
+    return True
+
+
 def _restar(base: Path, cuenta: Cuenta) -> None:
     """Baja un uso, sin bajar nunca de cero. Bajo el mismo candado que `_sumar`."""
     try:
         with _CANDADO:
-            b = Path(base)
-            d = _leer(b)
-            actual = d.get(cuenta.nombre, 0)
-            if actual <= 0:
-                return
-            d[cuenta.nombre] = actual - 1
-            tmp = _ruta_uso(b).with_suffix(".tmp")
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(d, f)
-            os.replace(tmp, _ruta_uso(b))
+            _restar_ya_con_candado(base, cuenta)
     except Exception:
         # Si no se puede devolver, el lector pierde un uso. Es lo malo menos
         # malo: lo contrario seria no cobrar por no poder escribir.
@@ -291,6 +299,56 @@ def devolver(base: Path, codigo: str | None) -> None:
     if cuenta is None or cuenta.tope == 0:
         return
     _restar(base, cuenta)
+
+
+# Devoluciones por silencio al dia por cuenta (Central, reinicio 26). A partir de aqui no se
+# devuelve y se anota: grabar silencio a proposito no puede convertir un cupo en barra libre.
+MAX_DEVOLUCIONES_SILENCIO = 10
+
+
+def _ruta_devoluciones(base: Path) -> Path:
+    return Path(base) / "devoluciones_silencio.json"
+
+
+def devolver_por_silencio(base: Path, codigo: str | None, hoy: str | None = None) -> bool:
+    """Devuelve el uso cobrado por una grabacion en la que whisper respondio y no oyo ninguna
+    palabra (`SesionVoz.sin_voz`), no por la red caida ni por la falta de clave. True si se
+    devolvio. La llaman /api/voz y Gradio con el codigo COBRADO, no el de la sesion de ahora.
+
+    Por CUENTA y por dia UTC (decision de la Central: la cabecera X-Lector la elige el cliente y
+    cambiandola se reiniciaria el tope), en `devoluciones_silencio.json` junto al contador de
+    usos y bajo el mismo `_CANDADO`: la cuenta de devoluciones y la del cupo no pueden
+    desincronizarse entre hilos. Del MAX_DEVOLUCIONES_SILENCIO + 1 en adelante suma, no devuelve
+    y lo dice por stderr. Sin perfiles, con una cuenta sin tope o sin poder escribir, False.
+    """
+    if not hay_codigos():
+        return False
+    cuenta = validar(codigo)
+    if cuenta is None or cuenta.tope == 0:
+        return False
+    hoy = hoy or datetime.now(timezone.utc).date().isoformat()
+    try:
+        with _CANDADO:  # el cobro y la devolucion, bajo el mismo candado
+            b = Path(base)
+            b.mkdir(parents=True, exist_ok=True)
+            try:
+                with open(_ruta_devoluciones(b), encoding="utf-8") as f:
+                    todas = json.load(f)
+            except Exception:
+                todas = {}
+            dia = todas.get(hoy) if isinstance(todas, dict) and isinstance(todas.get(hoy), dict) else {}
+            n = int(dia.get(cuenta.nombre, 0)) + 1
+            tmp = _ruta_devoluciones(b).with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({hoy: {**dia, cuenta.nombre: n}}, f)      # solo el dia de hoy
+            os.replace(tmp, _ruta_devoluciones(b))
+            if n > MAX_DEVOLUCIONES_SILENCIO:
+                print(f"cuentas: {cuenta.nombre} lleva {n} grabaciones sin voz hoy; no se devuelve",
+                      file=sys.stderr)
+                return False
+            return _restar_ya_con_candado(b, cuenta)
+    except Exception:
+        return False
 
 
 def consumir(base: Path, codigo: str | None) -> tuple[bool, str]:
