@@ -291,6 +291,13 @@ porque entran en la lista general cuentos rusos («Verotchka's Tales», «Makar'
 Dream») que la franja marca donde ya están. No son cuentos añadidos por título y
 se aceptan, pero la cifra buena es la de `n=24`.
 
+En producción desde el reinicio 29 (Space 5ab6832). Verificado a ciegas por
+otra sesión contra su línea base del 28: top 10 igual en 33 de 33 listas;
+cervantes con B1 y 1,20 de 12 marcas a 0; dickens con 1,20 de 17 a 5 (suyas);
+«school» y las palabras de control sin cambio. «dostoyevski» a secas con 1,20
+aún deja una tarjeta rusa en «En tu nivel»; para la demo se usa «Crimen y
+castigo de Dostoyevski», que da el aviso y el libro primero.
+
 ### Los empates se ordenan distinto en cada máquina
 
 Con `n=24`, el Space y la medida local del mismo catalogo.py difirieron en 13 de
