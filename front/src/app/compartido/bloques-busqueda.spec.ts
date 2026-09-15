@@ -41,4 +41,51 @@ describe('Los bloques de Encontrar', () => {
     expect(ids(b.otrosNiveles)).toEqual(['c', 'd']);
     expect(bloquesBusqueda([], nivel)).toEqual({ enTuNivel: [], porEncima: [], otrosNiveles: [], menosParecidos: [] });
   });
+
+  // Casos reales del Space en el reinicio 19 (053a486), lectora B1 a 0,80.
+  const b1 = 0.8;
+
+  it('«historias de la luna»: los cinco cuentos de su franja suben aunque estén a más de 0,05 del techo', () => {
+    const b = bloquesBusqueda([
+      libro('the-moon-tratado', 0.802, 1.761),
+      libro('the-moon-elger', 0.785, 1.695),
+      libro('romance-of-the-moon', 0.79, 1.818),
+      libro('moon-endureth', 0.757, 1.849),
+      libro('adventures-in-the-moon', 0.747, 1.947),
+      libro('aditi', 0.738, 0.458),
+      libro('moon-glow', 0.732, 1.577),
+      libro('journey', 0.731, 0.776),
+      libro('chandu', 0.723, 0.618),
+      libro('moon-and-sun', 0.715, 0.956),
+      libro('man-in-the-moon', 0.708, 1.393),
+      libro('moon-and-hockey', 0.704, 0.701),
+      libro('moon-fairy', 0.694, 1.298),         // de su franja, pero a más de 0,10 del techo
+    ], b1);
+    expect(ids(b.enTuNivel)).toEqual(['aditi', 'journey', 'chandu', 'moon-and-hockey']);
+    expect(ids(b.porEncima)).toEqual(['moon-and-sun']);
+    // Los relevantes de siempre (a 0,05 del techo) siguen donde estaban: C1–C2 para ella.
+    expect(ids(b.otrosNiveles)).toEqual(['the-moon-tratado', 'the-moon-elger', 'romance-of-the-moon', 'moon-endureth']);
+    expect(b.menosParecidos.map(l => l.id)).toContain('moon-fairy');
+    expect(b.menosParecidos.map(l => l.id)).toContain('man-in-the-moon');   // C1 para ella: el margen ancho es solo de la franja
+  });
+
+  it('«Terror gótico»: un cuento de terroristas de su franja no sube con un parecido flojo', () => {
+    const b = bloquesBusqueda([
+      libro('carmilla', 0.675, 1.8), libro('otro', 0.656, 1.9), libro('tercero', 0.629, 1.85),
+      libro('action-part-1', 0.586, 1.07),
+    ], b1);
+    expect(ids(b.porEncima)).toEqual([]);
+    expect(ids(b.menosParecidos)).toEqual(['action-part-1']);
+  });
+
+  it('«Jane Austen»: no se cruza el salto entre los títulos con su nombre y el resto', () => {
+    const b = bloquesBusqueda([
+      libro('memoir', 0.857, 1.889), libro('her-times', 0.857, 1.867), libro('play', 0.856, 1.577),
+      libro('emma', 0.793, 1.862), libro('persuasion', 0.793, 1.895),
+      libro('calamity-jane', 0.79, 1.39),
+    ], 0.953);
+    expect(ids(b.porEncima)).toEqual([]);
+    expect(ids(b.enTuNivel)).toEqual([]);
+    expect(b.menosParecidos.map(l => l.id)).toContain('calamity-jane');
+  });
 });
