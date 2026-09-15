@@ -63,25 +63,29 @@ describe('Pronunciar (propuesta A)', () => {
     expect(botones.map(b => b.textContent?.trim())).toContain('Escuchar y ver');
     const despacio = botones.find(b => b.textContent?.includes('Despacio')) as HTMLButtonElement;
     expect(despacio.textContent?.trim()).toBe('🐢 Despacio');
+    expect(despacio.getAttribute('aria-label')).toBe('Despacio');   // sin el emoji ni «Pulsa para cambiarla»
     expect(despacio.getAttribute('aria-pressed')).toBe('false');
     despacio.click();
     fixture.detectChanges();
     expect(c.velocidad()).toBe(0.5);
     expect(despacio.getAttribute('aria-pressed')).toBe('true');
+    expect(despacio.textContent?.trim()).toBe('🐢 Despacio · activado');   // encendido se dice a la vista (4e)
     despacio.click();
     fixture.detectChanges();
     expect(c.velocidad()).toBe(1);                       // dos estados, no tres
+    expect(despacio.textContent?.trim()).toBe('🐢 Despacio');
     expect(raiz.textContent).not.toContain('Más lento');
   });
 
-  it('el ritmo va plegado y cada marca detrás de su palabra: «no pares aquí» tras want, «más seguido aquí» tras us', async () => {
+  it('el ritmo va plegado y cada marca detrás de su palabra: «no pares aquí» tras want, «de corrido aquí» tras us', async () => {
     const { raiz } = await pintar();
     const plegado = raiz.querySelector('details.sonar-natural') as HTMLDetailsElement;
     expect(plegado.open).toBe(false);
     expect(plegado.querySelector('summary')?.textContent).toContain('Para sonar más natural');
     const items = [...plegado.querySelectorAll('.palabras-voz > li')].map(li =>
       li.classList.contains('marca') ? `[${li.textContent?.trim()}]` : (li.firstChild?.textContent ?? '').trim());
-    expect(items).toEqual(["don't", 'you', 'want', '[no pares aquí]', 'to', 'come', 'with', 'us', '[más seguido aquí]']);
+    expect(items).toEqual(["don't", 'you', 'want', '[no pares aquí]', 'to', 'come', 'with', 'us', '[de corrido aquí]']);
+    expect(raiz.textContent).not.toContain('más seguido');   // en México «seguido» es «a menudo» (4e)
     expect(raiz.textContent).not.toContain('aquí aceleras');
     expect(raiz.textContent).not.toContain('aquí sin pausa');
   });

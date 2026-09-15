@@ -17,7 +17,7 @@ export interface PalabraLeida {
   acelerar: boolean;
   /** Primera palabra de ese tramo. */
   empiezaAcelerar: boolean;
-  /** Última palabra de ese tramo: detrás va «más seguido aquí» (propuesta A de Pronunciar). */
+  /** Última palabra de ese tramo: detrás va «de corrido aquí» (propuesta A de Pronunciar). */
   terminaAcelerar: boolean;
 }
 

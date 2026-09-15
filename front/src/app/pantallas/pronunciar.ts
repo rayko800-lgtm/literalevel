@@ -70,13 +70,15 @@ export class Pronunciar implements OnInit, OnDestroy {
   private reloj: ReturnType<typeof setInterval> | undefined;
   /** «Escuchar y ver»: el audio y el corte 2D arrancan juntos (compartido/escuchar-y-ver.ts). */
   protected readonly eyv = new EscucharYVer();
-  /** «Más lento» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»):
-   *  1×, 0,5× y 0,25× para el audio, el corte 2D y el 3D. */
+  /** «🐢 Despacio» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»): 1× o
+   *  0,5× para el audio, el corte 2D y el 3D. El tipo admite 0,25×, que el 3D y
+   *  escuchar-y-ver siguen sabiendo hacer, pero la pantalla ya no lo ofrece. */
   protected readonly velocidad = signal<1 | 0.5 | 0.25>(1);   // el tipo `Velocidad` del 3D (b9, 6b2579b)
   // Un interruptor con nombre de estado y no de orden: «Más lento» se leía como un
   // consejo («tienes que ir más lento», Esmeralda) y chocaba con las marcas de ritmo.
-  // Encendido va a 0,5× (propuesta A de Pronunciar, Miguel, 15 sep).
-  protected readonly etiquetaVelocidad = computed(() => '🐢 Despacio');
+  // Encendido va a 0,5× (propuesta A de Pronunciar, Miguel, 15 sep), y la etiqueta lo
+  // dice a la vista además del estilo de activado (condición de 4e y la Central).
+  protected readonly etiquetaVelocidad = computed(() => (this.velocidad() === 1 ? '🐢 Despacio' : '🐢 Despacio · activado'));
   /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
    *  `viewChild(Boca3d)` usaría la clase como valor y el @defer dejaría de
    *  separar three.js. */
@@ -267,7 +269,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       cortes: this.cortesDelDetalle(d, i), velocidad: this.velocidad() };
   }
 
-  /** 1× → 0,5× → 0,25× → 1×. */
+  /** Interruptor: 1× ↔ 0,5×. */
   protected cambiarVelocidad(): void {
     this.velocidad.update(v => (v === 1 ? 0.5 : 1));
   }

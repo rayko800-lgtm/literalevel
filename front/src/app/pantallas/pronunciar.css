@@ -108,13 +108,16 @@
 .cortes { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
 .cortes figure { margin: 0; display: grid; gap: .25rem; justify-items: center; flex: 1 1 200px; max-width: 260px; }
 .cortes figcaption { font-size: .85rem; color: var(--texto-suave); text-align: center; }
-/* «Escuchar y ver», «Más lento» y «Boca en 3D», juntos debajo de la animación y
+/* «Escuchar y ver», «🐢 Despacio» y «Boca en 3D», juntos debajo de la animación y
    pegados abajo mientras se ve (sticky dentro de su tarjeta): pulsar y mirar a la vez. */
 .botones-corte { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin: .25rem 0; }
 .botones-corte .boton { min-height: 48px; flex: 1 1 8rem; max-width: 18rem; }
 /* .resultado parte palabras en cualquier sitio (overflow-wrap: anywhere) para no ensanchar
    la página; en estos botones partía «Escucha / r y ver» y dejaba la 🐢 sola arriba. */
 .resultado .botones-corte .boton { overflow-wrap: normal; white-space: nowrap; }
+/* «🐢 Despacio» encendido se tiene que ver (4e): mismo lenguaje que la celda elegida del AFI. */
+.botones-corte .boton[aria-pressed="true"] { border-color: var(--acento); background: var(--acento-suave);
+  color: var(--acento-texto); box-shadow: inset 0 0 0 1px var(--acento); }
 .botones-corte.pegada { position: sticky; bottom: .5rem; z-index: 5; padding: .5rem; border-radius: var(--radio);
   background: color-mix(in srgb, var(--superficie-2) 94%, transparent); box-shadow: 0 8px 22px -14px rgba(0, 0, 0, .7); }
 .ficha-sonido .botones-corte.pegada { background: color-mix(in srgb, var(--superficie) 94%, transparent); }
@@ -178,7 +181,7 @@
   /* La boca con el alto que cabe entre la cabecera (64), su pie (56) y la barra
      pegada en dos filas (120) con lo de debajo: la barra tapaba el tercio de abajo
      del lienzo, lengua y dientes (prueba de persona de f4 a 390 px). En una fila no
-     cabe: «Escuchar y ver», «Más lento» y «Cerrar 3D» piden 358 px y hay ~300. */
+     cabe: «Escuchar y ver», «🐢 Despacio» y «Cerrar 3D» piden unos 358 px y hay ~300. */
   app-boca3d { --boca3d-alto: clamp(220px, calc(100svh - 64px - 56px - var(--barra-inf) - 6rem - 120px - 1rem), 420px); }
   /* Con el teclado abierto sobre la frase, la barra estorba: fuera. */
   :host:has(textarea:focus) .grabadora { display: none; }

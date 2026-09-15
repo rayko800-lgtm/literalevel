@@ -177,8 +177,10 @@
               @if (corteDelSonido(d) || corteDeLaPalabra(d)) {
                 <!-- Cerrado no descarga nada: el <img loading="lazy"> espera a que se abra.
                      Si una imagen falla, se quita en vez de dejar el icono roto. -->
-                <!-- Abierta: «Escuchar y ver» y «🐢 Despacio» a la vista, sin buscarlos. -->
-                <details class="boca" open (toggle)="cerrarBoca($event, d, $index)">
+                <!-- La primera, abierta: «Escuchar y ver» y «🐢 Despacio» a la vista, sin buscarlos.
+                     Solo la primera: abrir prepara su mp3 y sus cortes, y con ocho palabras
+                     falladas se bajaban los de todas a la vez (4e, visto bueno de b4782a5). -->
+                <details class="boca" [open]="$first" (toggle)="cerrarBoca($event, d, $index)">
                   <summary><app-icono nombre="ojo" />Cómo se mueve la boca</summary>
                   <div class="cortes">
                     @if (corteDelSonido(d); as sonido) {
@@ -218,7 +220,7 @@
                       <app-icono nombre="altavoz" />Escuchar y ver
                     </button>
                     <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
-                            [attr.aria-label]="'Velocidad: ' + etiquetaVelocidad() + '. Pulsa para cambiarla'">{{ etiquetaVelocidad() }}</button>
+                            aria-label="Despacio">{{ etiquetaVelocidad() }}</button>
                     @if (boca3d) {
                     <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index, $event)"
                             [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
@@ -248,7 +250,7 @@
                     <li class="enlace" [attr.title]="'Se une con la siguiente (' + w.enlace + ')'"><span aria-hidden="true">‿</span><span class="oculto-visual" lang="es">se une con la siguiente</span></li>
                   }
                   <!-- Detrás de la palabra a la que se refieren, no delante de la siguiente. -->
-                  @if (w.terminaAcelerar) { <li class="marca acelera" lang="es">más seguido aquí</li> }
+                  @if (w.terminaAcelerar) { <li class="marca acelera" lang="es">de corrido aquí</li> }
                   @if (w.sinPausaDespues !== null) { <li class="marca pausa" lang="es">no pares aquí</li> }
                 }
               }
@@ -259,7 +261,7 @@
               <p class="tenue pequeno leyenda">
                 @if (v.hayEnfasis) { <span><strong>negrita</strong>: con énfasis</span> }
                 @if (v.hayEnlaces) { <span><span class="arco" aria-hidden="true">‿</span> se une con la siguiente</span> }
-                @if (v.hayMarcasDeTiempo) { <span>«más seguido aquí» y «no pares aquí»: medidos en tu grabación</span> }
+                @if (v.hayMarcasDeTiempo) { <span>«de corrido aquí» y «no pares aquí»: medidos en tu grabación</span> }
               </p>
             }
             @if (v.natural && (v.reducciones.length || v.versionNatural || v.audioNatural)) {
@@ -356,7 +358,7 @@
                   <app-icono nombre="altavoz" />Escuchar y ver
                 </button>
                 <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
-                        [attr.aria-label]="'Velocidad: ' + etiquetaVelocidad() + '. Pulsa para cambiarla'">{{ etiquetaVelocidad() }}</button>
+                        aria-label="Despacio">{{ etiquetaVelocidad() }}</button>
                 @if (boca3d) {
                 <button type="button" class="boton secundario" (click)="alternarBoca('sonido', $event)"
                         [attr.aria-expanded]="visor3d() === 'sonido'">

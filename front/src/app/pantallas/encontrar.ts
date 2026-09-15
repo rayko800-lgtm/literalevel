@@ -285,9 +285,16 @@ export class Encontrar implements OnInit {
    *  Londres», «Una historia de amor del siglo XIX», «Ciencia ficción», «Jane Austen» y
    *  «Terror gótico» daban 0 de A1 a B1; «Aventuras en el mar» y «Fábulas con
    *  animales», 1 o 2. Sin autores: el 21 tiene una regresión con autor y título. */
+  //
+  // Criterio desde el reinicio 25 (la franja marca `por_franja`; medida de 4e en 7333c4b):
+  // al menos 3 libros DEL TEMA, revisados a mano, entre «En tu nivel» y «Un poco por
+  // encima», con A2 y con B1. Contar tarjetas no basta. Con eso vuelven «Historias de amor»
+  // (5 y 7, el caso de Esmeralda) y «Fantasmas» (13 y 13), en lugar de «Viajes al espacio»
+  // y «Cuentos de miedo para niños». «Cuentos de hadas» sale de la reserva: no trae cuentos
+  // de hadas.
   protected readonly ideas = [
     'Detectives', 'El océano', 'Una historia de amistad', 'Cuentos cortos para empezar',
-    'Viajes al espacio', 'Dinosaurios', 'Cuentos de miedo para niños', 'Animales de la selva',
+    'Historias de amor', 'Dinosaurios', 'Fantasmas', 'Animales de la selva',
   ];
   protected readonly num = num;
   protected readonly cefr = cefr;
