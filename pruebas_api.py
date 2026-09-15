@@ -28,7 +28,9 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, "app")
-os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_api_")
+# Todas las carpetas temporales se borran al salir (`pruebas_tmp`).
+import pruebas_tmp  # noqa: E402
+os.environ["LITERALEVEL_DATOS"] = pruebas_tmp.carpeta("literalevel_api_")
 # La nube: carpetas por lector. Es el caso que importa, porque en local todos
 # comparten la carpeta a proposito y el aislamiento no se veria.
 os.environ["SPACE_ID"] = "pruebas/literalevel"
@@ -776,7 +778,7 @@ def sinopsis_simultaneas_una_generacion():
         guardadas["sinopsis"] = datos
         return datos, None
 
-    carpeta = Path(tempfile.mkdtemp(prefix="ll_sinopsis_"))
+    carpeta = Path(pruebas_tmp.carpeta("ll_sinopsis_"))
     originales = (config.falta, api._va_a_costar, api._cobrar, ui.consultor, ui._sinopsis_guardada,
                   ui.RUTA_ANALISIS, api.ficha.sinopsis)
     config.falta = lambda: False
@@ -1381,9 +1383,8 @@ def portada_por_ia_si_existe():
     """Punto 3 de las portadas: con PG1661.webp en la carpeta de portadas, la
     tarjeta y la ficha traen su URL versionada y la ruta la sirve con nosniff;
     sin archivo, None; y la ruta no deja salir de la carpeta."""
-    import tempfile as tf
     from app import catalogo as cat
-    carpeta = Path(tf.mkdtemp(prefix="ll_portadas_"))
+    carpeta = Path(pruebas_tmp.carpeta("ll_portadas_"))
     original = api._DIR_PORTADAS
     api._DIR_PORTADAS = carpeta
     try:

@@ -25,6 +25,8 @@ import time
 import uuid
 from pathlib import Path
 
+import pruebas_tmp
+
 sys.path.insert(0, "app")
 import lexicon  # noqa: E402
 import config  # noqa: E402
@@ -305,7 +307,7 @@ def main() -> int:
     ORACION_ESPIA = ("He tugged at the fetters that held him to the wall, and "
                      "the iron bit deeper into his wrists.")
     ruta_espia = Path(tempfile.gettempdir()) / f"lexicon_espia_{uuid.uuid4().hex}.db"
-    dir_audio_espia = Path(tempfile.mkdtemp(prefix="lexicon_audio_espia_"))
+    dir_audio_espia = Path(pruebas_tmp.carpeta("lexicon_audio_espia_"))
     viejo_openai = openai.OpenAI
     viejo_dir_audio = lexicon.RUTA_AUDIO_GENERADO
     viejo_clave = os.environ.get("OPENAI_API_KEY")

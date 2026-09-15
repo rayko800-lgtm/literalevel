@@ -27,7 +27,9 @@ sys.path.insert(0, "app")
 # ANTES de importar ui: sus rutas de datos se fijan al importarse. Sin esto,
 # las pruebas escriben en los datos reales de quien las ejecuta, y de hecho lo
 # hicieron: 24 archivos de prueba acabaron en la biblioteca del usuario.
-os.environ["LITERALEVEL_DATOS"] = tempfile.mkdtemp(prefix="literalevel_pruebas_")
+# Y se borra al salir (`pruebas_tmp`): cada corrida dejaba 100 MB en %TEMP%.
+import pruebas_tmp  # noqa: E402
+os.environ["LITERALEVEL_DATOS"] = pruebas_tmp.carpeta("literalevel_pruebas_")
 # Y ANTES de importar cualquier cosa que use la clave: esta suite NO PUEDE
 # llamar a OpenAI, y lo hacia. La prueba "audio inexistente" llegaba a
 # `voz.explicar_correccion`, que no tiene cache, y pagaba un `gpt-4o-mini` en
@@ -123,7 +125,7 @@ def titulo(t: str):
     print(f"\n--- {t} " + "-" * max(0, 60 - len(t)))
 
 
-TMP = Path(tempfile.mkdtemp(prefix="literalevel_extremas_"))
+TMP = Path(pruebas_tmp.carpeta("literalevel_extremas_"))
 
 # Lo primero de todo, antes de que ninguna prueba toque nada: montar la
 # interfaz no puede cargar el modelo, ni el catalogo, ni el diccionario.
@@ -1985,7 +1987,7 @@ prueba("codigo vacio, None y espacios",
 
 def _cupo_se_agota():
     def dentro():
-        base = pathlib.Path(tempfile.mkdtemp(prefix="cupo_"))
+        base = pathlib.Path(pruebas_tmp.carpeta("cupo_"))
         c = cuentas_mod.validar("invitado:LLAVE-B")
         vistos = []
         for _ in range(4):
@@ -2010,7 +2012,7 @@ def _sin_carrera():
     """
     import threading
     def dentro():
-        base = pathlib.Path(tempfile.mkdtemp(prefix="carrera_"))
+        base = pathlib.Path(pruebas_tmp.carpeta("carrera_"))
         pasaron = []
         def intento():
             if cuentas_mod.consumir(base, "invitado:LLAVE-B")[0]:
@@ -2028,7 +2030,7 @@ def _no_se_pierden_apuntes():
     """Dos hilos x 200 usos con cupo sin limite: el contador llega a 400."""
     import threading
     def dentro():
-        base = pathlib.Path(tempfile.mkdtemp(prefix="apuntes_"))
+        base = pathlib.Path(pruebas_tmp.carpeta("apuntes_"))
         def bucle():
             for _ in range(200):
                 cuentas_mod.consumir(base, "jefe:LLAVE-A")
@@ -3806,8 +3808,9 @@ def _una_sola_raiz_de_datos():
     """
     import subprocess
     guion = (
-        "import os, sys, tempfile" + chr(10) +
-        "tmp = tempfile.mkdtemp()" + chr(10) +
+        "import atexit, os, shutil, sys, tempfile" + chr(10) +
+        "tmp = tempfile.mkdtemp(dir=os.environ.get('LITERALEVEL_TMP') or None)" + chr(10) +
+        "atexit.register(shutil.rmtree, tmp, ignore_errors=True)" + chr(10) +
         "os.environ['LITERALEVEL_DATOS'] = tmp" + chr(10) +
         "sys.path.insert(0, %r)" % str(pathlib.Path(__file__).parent / "app") + chr(10) +
         "import catalogo, config, ui, lexicon, voz" + chr(10) +
@@ -4369,7 +4372,7 @@ def _los_archivos_que_escribe_la_app_no_la_tumban():
 
     # 3. `perfil.json` que es una carpeta: lo lee `demo.load`.
     import tempfile
-    carpeta = pathlib.Path(tempfile.mkdtemp()) / "perfil.json"
+    carpeta = pathlib.Path(pruebas_tmp.carpeta()) / "perfil.json"
     carpeta.mkdir()
     try:
         if perfil_mod.cargar(str(carpeta)) is not None:
@@ -6238,7 +6241,7 @@ def _el_catalogo_medido_recomienda_capitulos_sin_saltar_mal():
         ui.catalogo, ui._analisis_guardado = viejo_cat, viejo_an
 
     # c)
-    carpeta = pathlib.Path(tempfile.mkdtemp())
+    carpeta = pathlib.Path(pruebas_tmp.carpeta())
     del_catalogo = carpeta / "pg4242.txt"
     del_catalogo.write_text("CHAPTER I\n\n" + cuerpo + "\n\nCHAPTER II\n\n" + cuerpo,
                             encoding="utf-8")

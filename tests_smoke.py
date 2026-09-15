@@ -29,7 +29,8 @@ _LIBRO = os.environ.get("LITERALEVEL_LIBRO_PRUEBA") or next(
         Path.home() / "Downloads" / "dokumen.pub_notes-from-a-dead-house.epub",
     ) if c.exists()), None)
 if _LIBRO is None:
-    _LIBRO = str(Path(tempfile.mkdtemp()) / "libro.txt")
+    import pruebas_tmp  # la carpeta se borra al salir
+    _LIBRO = str(Path(pruebas_tmp.carpeta()) / "libro.txt")
     _p = ("The prison stood at the edge of the fortress, right by the rampart. "
           "You could look at the world through the chinks in the fence, and "
           "the sentries paced up and down the wall by day and by night. ")

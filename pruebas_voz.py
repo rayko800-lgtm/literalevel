@@ -93,7 +93,9 @@ print("\n=== registrar_fallos / puntos_debiles (DB de prueba) ===")
 # que no tiene nada que ver con lo que se esta midiendo: un mutante parecia
 # cazado por esta suite cuando lo unico que pasaba era que dos procesos
 # abrieron el mismo archivo. Lo encontro la auditoria 16.
-_TMP_VOZ = tempfile.mkdtemp(prefix="literalevel_voz_")
+# Y se borra al salir (`pruebas_tmp`).
+import pruebas_tmp  # noqa: E402
+_TMP_VOZ = pruebas_tmp.carpeta("literalevel_voz_")
 db_prueba = os.path.join(_TMP_VOZ, "voz_prueba.db")
 
 voz.registrar_fallos(["fox", "jumps"], ruta=db_prueba)
