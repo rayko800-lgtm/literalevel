@@ -6,7 +6,7 @@ import { Curva as GraficaCurva } from '../compartido/curva';
 import { Icono } from '../compartido/icono';
 import { Portada } from '../compartido/portada';
 import { Api, Curva, EntradaBiblioteca, Libro, Trabajo, mensajeError } from '../nucleo/api';
-import { cefr, miles, minutosDe, num } from '../nucleo/formato';
+import { cefr, miles, minutosDe, num, tiempoLlano } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
 
 /** La ficha: todo lo que ayuda a decidir si leer esto, antes de leerlo. */
@@ -40,7 +40,7 @@ import { Sesion } from '../nucleo/sesion';
               }
               <span class="chip">{{ l.capitulos.length }} {{ l.capitulos.length === 1 ? 'capítulo' : 'capítulos' }}</span>
               <span class="chip">{{ miles(l.palabras) }} palabras</span>
-              @if (l.ficha) { <span class="chip"><app-icono nombre="reloj" />{{ l.ficha.tiempo }}</span> }
+              @if (l.ficha) { <span class="chip"><app-icono nombre="reloj" />{{ tiempoLlano(l.ficha.tiempo) }}</span> }
             </div>
             @if (l.medido_en_bloque) {
               <!-- Contrato de f4 (8ee42f0): los cuentos cortos no se miden solos. -->
@@ -183,7 +183,7 @@ import { Sesion } from '../nucleo/sesion';
                 <div><dt>Frases</dt><dd>{{ num(f.frase_media, 0) }} palabras de media</dd></div>
                 <div><dt>Diálogo</dt><dd>{{ num(f.dialogo * 100, 0) }}% de las frases · {{ f.forma_del_dialogo }}</dd></div>
                 <div><dt>Vocabulario</dt><dd>{{ num(f.riqueza * 100, 1) }} palabras distintas por cada 100</dd></div>
-                <div><dt>Tiempo</dt><dd>{{ f.tiempo }}{{ f.exigente === true ? ' (va por encima de tu nivel)' : f.exigente === false ? ' a tu ritmo' : '' }}</dd></div>
+                <div><dt>Tiempo</dt><dd>{{ tiempoLlano(f.tiempo) }}{{ f.exigente === true ? ' (va por encima de tu nivel)' : f.exigente === false ? ' a tu ritmo' : '' }}</dd></div>
               </dl>
               @if (f.distintivas.length) {
                 <p class="etiqueta">Lo que más se repite</p>
@@ -338,6 +338,7 @@ export class FichaLibro implements OnDestroy {
   ];
   protected readonly miles = miles;
   protected readonly minutosDe = minutosDe;
+  protected readonly tiempoLlano = tiempoLlano;
 
   private vivo = true;
   private carga = 0;

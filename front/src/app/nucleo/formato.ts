@@ -27,6 +27,12 @@ export function reloj(minutos: number): string {
   return m ? `${h} h ${String(m).padStart(2, '0')} min` : `${h} h`;
 }
 
+/** El tiempo que da la API (`ficha.reloj`) dice «1 minutos» con un cuento de un
+ *  minuto: aquí se corrige hasta que el motor lo diga bien (f4, prueba de persona). */
+export function tiempoLlano(tiempo: string | null | undefined): string {
+  return (tiempo ?? '').replace(/(^|[^\d,.])1 minutos\b/g, '$11 minuto');
+}
+
 /** Minutos de lectura de un capítulo: 180 palabras/min cómodo (`ficha.PPM_COMODO`). */
 export function minutosDe(palabras: number): number {
   return Math.max(1, Math.round(palabras / 180));
