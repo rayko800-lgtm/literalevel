@@ -318,3 +318,17 @@ Retoques de guion del anexo de e6 (4e, 8856030; PDF recompilados):
 - **Fuentes libres:** en StoryWeaver hay pocos cuentos nuevos, de 0 a 23 por tema. En Let's Read y en lo comprobado de African Storybook no hay ninguno.
 - **Arreglo:** recuperar también dentro de la franja del lector. Lo diseña f4 para el reinicio 23.
 - **Front:** e6 estudia si su regla del salto deja «Robots» en «Menos parecidos».
+
+Causa medida del hueco de búsqueda (f4, en local con el Catalogo que carga la app). Los cuentos están cargados y casi ninguno excluido. Pierden por dos causas:
+- **Ventana de nivel:** se abre a 0,05 del techo global, y ese techo lo pone un Gutenberg con título exacto. El mejor cuento del tema queda de 0,07 a 0,24 por debajo, entre el puesto 12 y el 75.
+- **Índice:** diluye a los libres. Su embedding lleva un gancho que los de Gutenberg no tienen, y puntuados solo por el título suben de 0,07 a 0,21.
+
+Con un top-12 dentro de la franja del lector salen de 6 a 12 del tema en casi todas las consultas, con A2 y con B1. La excepción es «Monstruos» con B1, que da 2.
+
+Decisión de la central para el reinicio 23:
+- **Segundo top-k dentro de la franja:** umbral relativo al mejor de esa franja, con un suelo.
+- **Parecido de los libres:** el máximo entre su fila del índice y su título.
+- **Marca en la API:** los resultados que entran por la franja llevan una marca, y el front los respeta.
+- **Constantes:** fijadas antes de medir y calibradas con temas que no están en la batería.
+- **Visto bueno previo:** 4e aprueba catalogo.py y e6 el front.
+- **Después de subir:** volver a medir los chips y reescribir la frase del documento.
