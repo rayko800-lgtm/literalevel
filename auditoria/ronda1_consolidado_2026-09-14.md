@@ -923,3 +923,7 @@ Reinicio 29 con commit (f4, 7e2b861): la regla i4 con `_n_propio`.
 - **Pendiente:** el visto bueno de 4e y el árbol limpio.
 - **Aviso sobre la comprobación:** con n=24, el Space del 28 y la medida local del mismo código difieren en 13 de 257 listas. En 12 solo cambia el orden de los puestos 11 a 24, y en «trust» sin perfil también el top 10.
 - **Criterio tras subir:** comparar el Space 29 con un volcado del Space 28 en el mismo entorno, no con la medida local. Solo pueden cambiar los autores con 1,20, «Crimen y castigo de Dostoyevski» con B1 e «institute» con B1.
+
+Visto bueno de 4e a 7e2b861, el reinicio 29: ok.
+- **Qué comprobó:** «es de Gutenberg» usa la frontera `_n_propio` y no el prefijo del id, el rescate por título no activa la regla, y sin perfil no cambia nada.
+- **Tras subir:** 4e repite en el Space, contra su línea base del 28, el paso 3 con 1,20 y B1, dostoyevski, school, cervantes, dickens y las palabras de control. Compara top 10 y marcas, sin el orden de la cola.
