@@ -1211,3 +1211,13 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - Precarga: catálogo 3,8 s y modelo con primera búsqueda 13,7 s.
   - 0 descargas de MiniLM en el log.
   - Cautela resuelta con dos arranques: el modelo sale de la imagen.
+- **Ensayo de e6 sobre 0319290**, con sha confirmado y buscador_listo antes de empezar. Todo según lo previsto:
+  - «family» con 0,80: 36 resultados y 18 marcados. La única diferencia es SWV19641 → LRD5DCD… (0,656); orden de los 24 primeros idéntico.
+  - «mystery» sin perfil: mismo top 10, con 7↔8 intercambiados (PG27722 y PG34933).
+  - Front 72e9525 a 390 px con 1,20:
+    - paso 3: *Crime and Punishment* primero en «De otros niveles», a 679 px, sin cambios;
+    - granja: 9 libres en «En tu nivel»;
+    - dragones: 19 de 20 libres.
+  - Perfil 0,953: igual que la línea base (36 resultados, 16 marcados, top 10 idéntico).
+- A 4e: sin cifras nuevas en el guion. Hace el MENOR de «1 de 3» con una recompilación.
+- Pendiente para dar el 30b por bueno: el código de comprobar_r30b.py.
