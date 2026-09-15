@@ -834,3 +834,9 @@ Reinicio 29, punto 1, el título en consultas largas (f4): **sin cambio de códi
 
 Front 3662e57 (e6): no hizo falta publicar. Son solo tipos de TypeScript, y el build sale idéntico al que ya estaba en el Space bdfa418.
 - **Comprobado a 390 px:** Kian dice «Es un texto de un solo capítulo…», sin gráfica, y Pride and Prejudice dibuja su curva con marcas de capítulo.
+
+Reinicio 28 cerrado también por f4, en DESPLIEGUE.md con el commit ca605c5.
+- **Resultado:** 0 de 198 listas distintas del 26, y `buscador_listo` a los 20 s.
+- **Batería en el Space:** 4 fallos. «tolstoy» sin perfil, que se aceptó, más «rosa» con A2 y con B1 y «luna» con B1, que van al 29.
+- **Límite de las consultas largas:** documentado en auditoria/limite_titulo_consultas_largas_2026-09-15.md.
+- **Siguiente:** f4 mide de dónde sale cada rescate por nombre en «rosa» y «luna» antes de proponer una señal.
