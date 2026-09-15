@@ -198,6 +198,7 @@ export class Boca3d {
           mejilla: this.mejilla(),
           lenguaGlb: new URL('boca3d/lengua.glb', document.baseURI).href,
           caraGlb: new URL('boca3d/cara.glb', document.baseURI).href,
+          alPerderContexto: () => this.perdioContexto(),
         });
         this.modo.set('3d');
         const p = this.pose();
@@ -306,5 +307,14 @@ export class Boca3d {
     if (!this.escena) return;
     ev.preventDefault();
     this.escena.girar((ev.key === 'ArrowLeft' ? -1 : 1) * Math.PI / 8);
+  }
+
+  /** Se perdió el contexto WebGL: sin escena, audio parado y el corte 2D en su sitio. */
+  perdioContexto(): void {
+    this.peticion++;
+    this.sonador.parar();
+    this.escena?.destruir();
+    this.escena = null;
+    this.modo.set('2d');
   }
 }

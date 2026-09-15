@@ -626,6 +626,9 @@ export interface OpcionesEscena {
   lenguaGlb?: string;
   /** Labios y perfil seccionado de Blender; conserva las piezas simples si falla. */
   caraGlb?: string;
+  /** El navegador perdió el contexto WebGL (móvil con poca memoria, GPU reiniciada):
+   *  quien integra cae al corte 2D en vez de dejar el lienzo en blanco. */
+  alPerderContexto?: () => void;
 }
 
 export class EscenaBoca {
@@ -662,6 +665,8 @@ export class EscenaBoca {
   private readonly raiz: Node;
   /** Renderer creado solo para este visor (ya había otro abierto): se suelta entero al cerrar. */
   private readonly propio: boolean;
+  /** Escuchador de `webglcontextlost` del lienzo, para quitarlo al cerrar. */
+  private readonly alPerder: (e: Event) => void;
   private readonly mandibula = new THREE.Group();
   private readonly velo = new THREE.Group();
   private readonly labioSup: THREE.Mesh;
@@ -745,6 +750,9 @@ export class EscenaBoca {
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
     }
     this.canvas = this.renderer.domElement;
+    // Perder el contexto dejaba el lienzo en blanco: se avisa a quien integra, que cae al 2D.
+    this.alPerder = (e: Event) => { e.preventDefault(); opciones.alPerderContexto?.(); };
+    this.canvas.addEventListener('webglcontextlost', this.alPerder);
     this.canvas.style.display = 'block';
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
@@ -1315,6 +1323,7 @@ export class EscenaBoca {
       this.renderer.renderLists.dispose();
       this.renderer.setRenderTarget(null);
     }
+    this.canvas.removeEventListener('webglcontextlost', this.alPerder);
     this.canvas.remove();
   }
 
