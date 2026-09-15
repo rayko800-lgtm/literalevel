@@ -1280,3 +1280,12 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 4. n = 2 sin Ismael (documento.md:1461, estrategia.md:276).
 Menores: arranque sin fecha, 40 ms, silencio sin coste, recuentos de pruebas fechados y frase de Pronunciar. Comprobado y correcto: 0,908 interna; «determinista» solo del fonema; límites con las cifras de hoy; amor B1 como fallo de búsqueda.
 Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
+
+**Ronda 4, informe de f4 sobre el notebook** (530bd3a): 2 SERIOS, 12 menores y 1 duda. 43 celdas ligeras ejecutadas en local sin errores, y las cifras de §4-§7.1 se reproducen.
+- S1, verificado: notebook_proyecto.py:2482 dice «sin errores en un Colab limpio | Sí» y la línea 35 dice que no hubo ejecución nueva en Colab. documento.md:1432 lo repite. La ejecución de 1084bdf (13 sep) fue local, en una carpeta vacía.
+- S2, verificado: `0,72 × real + 0,38` en las líneas 1813 y 2437 y en la Figura 13. La celda imprime 0,667x + 0,411, que es lo que dice el documento.
+- Duda: el filtro global de avisos esconde un PendingDeprecationWarning de seaborn (`vert`).
+- **Plan de la Central:**
+  1. e6 corrige el notebook: S2, menores, la llamada de seaborn y el filtro estrechado, sin salidas.
+  2. f4 revisa y lo ejecuta en Colab gratis (CPU), guardando salidas y fecha real. Si falla, no se tapa.
+  3. 4e ajusta después documento.md:1432 con esa fecha.
