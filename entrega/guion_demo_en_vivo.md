@@ -47,9 +47,8 @@ Una por una, y marcando:
       opción en cualquier respuesta deja el perfil en B2, entre 1,07 y 1,27, salvo
       en la sexta: «Capto bien la idea» da 1,46, que ya es C1.
 - [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
-      sonido → «Boca en 3D»): la cara tarda 2,9 s la primera vez en el móvil
-      (1,8 s a 1280 px) y 0,6 s después (segundo ensayo de e6, front `bdfa418`
-      con el Space del reinicio 28).
+      sonido → «Boca en 3D»): la cara tarda unos 3–4 s la primera vez (depende de la
+      red; medido el 15 de septiembre) y menos de 1 s después.
 - [ ] **_Crime and Punishment_ abierto una vez** y con su **curva ya
       calculada**: queda guardada y en directo sale al momento.
 - [ ] **Una palabra ensayada** del capítulo abierto y **otra que el diccionario
@@ -184,7 +183,7 @@ media, 1,70: me queda por encima, y lo sé antes de la primera página.»
 **Hace:** en el lector, mantén presionada la palabra ensayada (con ratón, doble
 clic). La de siempre, *poverty*, está
 en «Antes del primer capítulo»: se abre desde el **Índice**, no con «Empezar a
-leer», que lleva al capítulo 2. En la ficha, el Índice queda unas 2,5 pantallas
+leer», que lleva al capítulo 2. En la ficha, el Índice queda unas 2 pantallas
 por debajo de «Empezar a leer»: baja hasta él, o usa «Índice» arriba del lector. Si suena, es la **voz del navegador** («Sin
 grabación para esta palabra»). **Sigue hablando mientras llega la explicación**,
 que tarda unos segundos (unos 15 según la API, sin medir con cuenta). Luego mantén

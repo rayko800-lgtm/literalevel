@@ -72,8 +72,8 @@ del profesor.
   presenta una reproducción como respuesta en vivo.
 - **La boca en 3D.** El front publicado (`bdfa418`, 15 de septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
   `boca3d` (75f334a está en `master`). **Ábrela una vez antes de grabar**: la cara
-  tarda 2,9 s la primera vez en el móvil (1,8 s a 1280 px) y 0,6 s después
-  (segundo ensayo de e6). Si no carga, basta el corte 2D.
+  tarda unos 3–4 s la primera vez (depende de la red; medido el 15 de
+  septiembre) y menos de 1 s después. Si no carga, basta el corte 2D.
 - **El perfil 1,20, receta** (medida por e6 contra el Space y por 4e con la
   fórmula, 15 de septiembre): en *Tu nivel*, «Varias veces por semana» →
   fragmento fácil «Lo entiendo con naturalidad, sin necesidad de releer» → «Sí,
@@ -219,7 +219,7 @@ capítulo.»
 > se oye. Está en *«He was in terrible poverty, yet he took upon himself
 > the payment of his brother's debts»*, y encima es el tema del libro. Está en
 > **«Antes del primer capítulo»**: ábrelo desde el Índice, porque «Empezar a
-> leer» lleva al capítulo 2. En la ficha, el Índice queda unas 2,5 pantallas
+> leer» lleva al capítulo 2. En la ficha, el Índice queda unas 2 pantallas
 > más abajo; o usa «Índice» arriba del lector. Si
 > quieres otra: **torture** (0,504) o **cruelty** (0,502). En la hoja de la
 > palabra se ve **«En español»** (la traducción) y **«Aquí significa»**; la
