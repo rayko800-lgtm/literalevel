@@ -1039,3 +1039,9 @@ Miguel escribió «Autorizo» en el chat de e6, otra vez en un chat que no despl
 Tanda 1 de ayuda: ok de 4e a ad72c8d. «Entrar» abre «Tu perfil» con el cursor en Usuario desde Pronunciar, la ficha y la hoja de la palabra, y «Mídeme» dice «Al final ves tu nivel». e6 la publica.
 
 Tanda 1 de ayuda publicada (e6, ad72c8d): Space del front 83f189d, con «Ajustes» con su nombre, «Entrar» hacia «Tu perfil» y la tarjeta «Mídeme» corregida. Lleva también el micrófono. Queda un menor sin bloquear, la marca de «Entrar» con el panel ya abierto, que va a la tanda 2 si sale barato.
+
+**Vuelta atrás al 28 verificada por 4e** (Space 62e5a06, anexo b7cd8d7): las 33 listas de su línea base son idénticas.
+- **Las cuatro palabras recuperan sus marcas:** león 12, brown 12 y hope 9 con 1,20; animales de la granja 15 con 1,20, 16 con A2 y 13 con B1.
+- **Paso 3 del guion:** sigue bien.
+- **«dostoyevski» con 1,20:** vuelve a colar 15 marcas, lo esperado.
+- **`buscador_listo`:** esta vez tardó 43-46 s. El punto 8 del guion pasa a «espera un minuto».
