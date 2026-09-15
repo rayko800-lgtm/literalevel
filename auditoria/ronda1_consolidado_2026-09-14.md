@@ -184,4 +184,8 @@ Ronda 3, informes recibidos:
   - Cerrados: el serio del coste, los cinco menores de la ronda 2 y la duda de _cefr.
   - Cifras recontadas: 15.367, 68.546, 11.881 y 14,5 h.
   - Menor nuevo: las 1,9 unidades son del 9 de septiembre, no del 10.
-- **Aparte, para f4:** desde el reinicio 19, «detectives en Londres» con B1 ya no trae los cuentos de detectives de StoryWeaver en «En tu nivel».
+- **«detectives en Londres» con B1 (f4, medido):** desde el reinicio 19 ya no trae los cuentos de detectives de StoryWeaver en «En tu nivel». Es correcto.
+  - Antes subían a 0,75–0,79 porque «detectives» se parecía por la forma de la palabra a sus títulos, no porque trataran de Londres.
+  - Ahora quedan en 0,41–0,49 por tema, y el mejor resultado es «Scotland Yard», C2, con 0,75.
+  - No se toca antes de la demo. Ofrecer detectives de B1 sin Londres queda como idea para después de la entrega.
+- Los tres menores de subidas van al reinicio 22, con pruebas propias (f4).
