@@ -669,3 +669,8 @@ Pasada de documentos de 4e (2a44731), sobre el front 83520e2 y el reinicio 25:
   - Los usos quedan 17 → 17.
 - **Registro:** «voz sin_voz» con no_speech_prob 0,943, la hora y el origen (api y gradio), sin texto.
 - **Mutantes:** C12 5/5 y C13 5/5. C14 de e6 da 2 de 3, por un hueco en su prueba, que e6 está arreglando.
+
+Guion de la demo al día con el 26 (4e, 5a3552a).
+- **Punto 8:** si el Space acaba de reiniciarse, se espera medio minuto y después se hace una búsqueda de prueba. Sale la cifra de 18,6 s.
+- **Paso 2:** «cuentos de dragones» trae 19 textos libres de 20. «Una novela de detectives victoriana» no trae ningún cuento libre, pero sí 3 de Gutenberg en su nivel.
+- **Pendiente:** afinar el punto 8 con `buscador_listo` en el 27. Falta publicar el front 51cda13 (e6).
