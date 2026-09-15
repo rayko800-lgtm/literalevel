@@ -945,9 +945,20 @@ class Catalogo:
             if sim[i] < minimo_similitud:
                 flojos += 1
                 continue
+            if not libros:
+                primer_i = int(i)
             libros.append(self._libro_de(i, sim[i], afin[i]))
         if franja and nivel_lector is not None and libros:
-            self._marcar_franja(libros, sem, vs, sim, afin, nivel_lector)
+            # Paso 3 de la demo (reinicio 29): «dostoyevski» con perfil 1,20 abria con sus obras (fuera de la franja) y
+            # la franja anadia «Books», «Story Chikkappa» o «Tanaji Malusare», que casan por titulo con «libros sobre
+            # dostoyevski». Si el primer resultado es un libro propio (Gutenberg) rescatado por su autor, la consulta es
+            # de autor y la franja no anade nada. Solo los propios: en StoryWeaver hay «autores» que son colegios («The
+            # Polymath School (Grade 4)») y «school» con B1 abre con uno de ellos.
+            por_autor = ((np.maximum(por_apellido, np.where((completo > 0) & con_apellido & (len(pistas) > 1),
+                                                            completo + _EXTRA_AUTOR_COMPLETO, 0.0)) >= _PARECIDO_NOMBRE)
+                         & (lex >= _PARECIDO_NOMBRE) & ~self._excluidos)
+            de_autor = bool(por_autor[primer_i]) and primer_i < getattr(self, "_n_propio", len(self.df))
+            self._marcar_franja(libros, sem, vs, sim, afin, nivel_lector, solo_marcar=de_autor)
 
         if not libros:
             # Nunca devolver vacio en silencio: ese era el fallo original.
@@ -972,7 +983,7 @@ class Catalogo:
                      medida=_medida_de_fila(f))
 
     def _marcar_franja(self, libros: list[Libro], sem: np.ndarray, vs: np.ndarray,
-                       sim: np.ndarray, afin: np.ndarray, nivel: float) -> None:
+                       sim: np.ndarray, afin: np.ndarray, nivel: float, solo_marcar: bool = False) -> None:
         """El segundo top-k del reinicio 23. Entre los textos validos de la franja del
         lector (franja_de), los que pasan SUELO_FRANJA y quedan a MARGEN_FRANJA del mejor
         de la franja y a MARGEN_TECHO_FRANJA del techo general. Los que ya estaban en
@@ -1006,7 +1017,7 @@ class Catalogo:
             ident = str(self.df["id"].iloc[i])
             if ident in por_id:
                 por_id[ident].por_franja = True
-            elif extra < K_FRANJA:
+            elif extra < K_FRANJA and not solo_marcar:
                 libro = self._libro_de(i, sim[i], afin[i])
                 libro.por_franja = True
                 libros.append(libro)

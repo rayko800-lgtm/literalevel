@@ -773,6 +773,33 @@ def _franja_trae_su_nivel_detras_de_los_n():
 prueba("la franja trae su nivel detras de los n", _franja_trae_su_nivel_detras_de_los_n)
 
 
+def _consulta_de_autor_no_anade_cuentos_por_franja():
+    """Paso 3 de la demo (reinicio 29): «dostoyevski» con perfil 1,20 abria con sus obras, fuera de la franja, y la
+    franja anadia cuentos que solo casaban por titulo («Books»). Si el primer resultado es un libro propio (Gutenberg,
+    por debajo de `_n_propio`) rescatado por su autor, la franja no anade nada. Si es un texto libre rescatado por
+    autor (en StoryWeaver hay «autores» que son colegios), la franja sigue anadiendo. `_n_propio` se fija a mano en
+    los dos casos: sin fijarlo, un montaje cuenta todas las filas como propias (4e)."""
+    def cat_con(propios):
+        s = [0.50, 0.48, 0.66, 0.64]
+        titulos = ["Crime and Punishment", "The Idiot", "Books", "A Night at School"]
+        autores = ["Dostoyevsky, Fyodor, 1821-1881", "Dostoyevsky, Fyodor, 1821-1881", "Kavya C", "Nyra Yadav"]
+        cat = _catalogo_de_mentira(s, titulos, autores)
+        cat.df["dificultad"] = [1.70, 1.72, 1.10, 1.00]
+        cat._n_propio = 4 if propios else 0
+        cat._emb_tit = np.zeros((len(s) - cat._n_propio, 2), dtype=np.float32)
+        return cat
+    res = cat_con(True).buscar("dostoyevsky", nivel_lector=1.2, n=2, franja=True)[0]
+    assert [l.id for l in res[:2]] == ["PG0", "PG1"], [l.id for l in res]
+    assert not [l.id for l in res if l.por_franja], f"consulta de autor con cuentos por franja: {[l.id for l in res]}"
+    res = cat_con(False).buscar("dostoyevsky", nivel_lector=1.2, n=2, franja=True)[0]
+    assert [l.id for l in res if l.por_franja] == ["PG2", "PG3"], \
+        f"con un texto libre delante la franja tendria que seguir: {[(l.id, l.por_franja) for l in res]}"
+    return "libro propio rescatado por autor primero: la franja no anade; texto libre rescatado por autor: si"
+
+
+prueba("una consulta de autor no anade cuentos por franja", _consulta_de_autor_no_anade_cuentos_por_franja)
+
+
 def _buscador_listo_solo_con_todo_cargado():
     """Reinicio 27: `listo_para_buscar` es false hasta que una busqueda ha dejado cargados el modelo, los
     titulos comprobados y los indices de nombres, y true despues. Sin atributos (un Catalogo a medio
