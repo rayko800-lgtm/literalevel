@@ -609,3 +609,13 @@ Reinicio 26 con commit (f4, 41e7e6d): precarga y devolución por silencio, con a
 - **Vistos buenos pedidos:** 4e para cuentas.py y e6 para api.py.
 - **Hueco que vio f4 antes de subir:** Gradio decía «No te oí», pero no llamaba a `devolver_por_silencio`. La comprobación prevista habría fallado. e6 lo cablea en ui.py con prueba y mutante, y el 26 no sube sin eso.
 - **Front:** 41bd2af tiene el ok de 4e (Despacio visible, «de corrido aquí», chips de amor y fantasmas). e6 lo publica ahora.
+
+**Pantallas A publicadas (e6):** front 83520e2, con Tu nivel A, Pronunciar A, «🐢 Despacio» visible, «de corrido aquí» y los chips de amor y fantasmas.
+
+Visto bueno de 4e a cuentas.py del 26 (41e7e6d): ok.
+- **Qué comprobó:** solo devuelve con `sin_voz`, nunca baja de cero, el día no se puede forzar desde el cliente, y 40 hilos dejan siempre 10 devoluciones. uso_openai.json no cambia de forma.
+- **Dos menores para el 27:** el intento se apunta aunque no haya nada que devolver, y un valor raro en el registro deja sin devolución todo ese día.
+
+Pasada de documentos de 4e sobre 83520e2, en curso:
+- la receta B2, los textos de las pantallas A, el punto 7 y el calentamiento de la búsqueda;
+- la frase del amor, recontada con el catálogo de la app. En la franja de B1 hay 114 textos libres con love o romance en el título y 4 de Gutenberg. Sin la franja, la búsqueda traía 24 de 24 de Gutenberg; con la del 25 se marcan 12, 8 con el amor en el título.
