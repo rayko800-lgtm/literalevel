@@ -82,13 +82,15 @@
           @if (corregida()) {
             <!-- Con esta grabación ya corregida, «Corrígeme» sería otra llamada de pago con el
                  mismo audio: el botón del centro vuelve a ser el micrófono (Central, 15 sep). -->
-            <button type="button" class="microfono" (click)="grabar()" aria-label="Grabar otra vez">
-              <app-icono nombre="micro" />
+            <button type="button" class="microfono con-texto" (click)="grabar()" aria-label="Grabar otra vez">
+              <app-icono nombre="micro" /><span aria-hidden="true">Grabar otra vez</span>
             </button>
           } @else {
-            <button type="button" class="microfono corregir" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()"
+            <!-- Con su nombre a la vista: un ✓ solo no decía qué hacía (Esmeralda). -->
+            <button type="button" class="microfono corregir con-texto" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()"
                     [attr.aria-label]="corrigiendo() ? 'Escuchando' : 'Corrígeme'">
-              @if (corrigiendo()) { <span class="giro"></span> } @else { <app-icono nombre="check" /> }
+              @if (corrigiendo()) { <span class="giro"></span><span aria-hidden="true">Escuchando</span> }
+              @else { <app-icono nombre="check" /><span aria-hidden="true">Corrígeme</span> }
             </button>
           }
         }
@@ -125,65 +127,35 @@
         </div>
       </div>
 
+      <!-- Propuesta A de Pronunciar (Miguel, 15 sep; auditoria/esmeralda_ux_2026-09-15.md):
+           primero qué hacer, en español; luego la frase solo con bien o a revisar; luego la
+           palabra a practicar; y el ritmo y lo natural, plegados al final. -->
+      @if (r.resumen) { <p class="resumen">{{ r.resumen }}</p> }
+
       @if (r.transcripcion_ok) {
         <!-- Una lista flexible y no un párrafo de <span>: Angular quita los espacios
              entre elementos, la frase quedaba como una sola «palabra» sin sitio donde
              partirse y en el móvil se salía por la derecha arrastrando la página. -->
         @if (vista(); as v) {
-          <ul class="palabras-voz en-libro" lang="en">
+          <ul class="palabras-voz frase-corregida en-libro" lang="en">
             @for (w of v.palabras; track w.indice) {
               @if (w.visible) {
-                @if (w.empiezaAcelerar) { <li class="marca acelera" lang="es">aquí aceleras</li> }
-                <li [class.bien]="w.bien" [class.mal]="!w.bien" [class.enfasis]="w.enfasis" [class.tramo]="w.acelerar">{{ w.texto }}<span class="oculto-visual" lang="es">{{ w.bien ? ' (bien)' : ' (a revisar)' }}{{ w.enfasis ? ', con énfasis' : '' }}</span></li>
-                @if (w.enlace) {
-                  <li class="enlace" [attr.title]="'Se une con la siguiente (' + w.enlace + ')'"><span aria-hidden="true">‿</span><span class="oculto-visual" lang="es">se une con la siguiente</span></li>
-                }
-                @if (w.sinPausaDespues !== null) { <li class="marca pausa" lang="es">aquí sin pausa</li> }
+                <li [class.bien]="w.bien" [class.mal]="!w.bien">{{ w.texto }}<span class="oculto-visual" lang="es">{{ w.bien ? ' (bien)' : ' (a revisar)' }}</span></li>
               }
             }
           </ul>
-          <!-- Cada tramo de la leyenda en su <span>: .leyenda es flex y un texto suelto
-               se partía en trozos («negrita» en una línea y «: con énfasis» en otra). -->
           <p class="tenue pequeno leyenda">
-            <span><span class="muestra bien"></span> bien pronunciada</span>
-            <span><span class="muestra mal"></span> no se entendió como esa palabra</span>
-            @if (v.hayEnfasis) { <span><strong>negrita</strong>: con énfasis</span> }
-            @if (v.hayEnlaces) { <span><span class="arco" aria-hidden="true">‿</span> se une con la siguiente</span> }
-            @if (v.hayMarcasDeTiempo) { <span>«aquí aceleras» y «aquí sin pausa»: medidos en tu grabación</span> }
+            <span><span class="muestra bien"></span> bien</span>
+            <span><span class="muestra mal"></span> a revisar</span>
           </p>
         }
       }
-
-      @if (r.ritmo && vista(); as v) {
-        @if (v.natural && (v.reducciones.length || v.versionNatural || v.audioNatural)) {
-          <div class="natural">
-            <h3>Cómo suena natural</h3>
-            @if (v.versionNatural) { <p class="version-natural" lang="en">«{{ v.versionNatural }}»</p> }
-            @if (v.reducciones.length) {
-              <ul class="reducciones">
-                @for (x of v.reducciones; track $index) {
-                  <li><span lang="en">{{ x.texto }}</span> → @if (x.ipa) { <span class="ipa">{{ x.ipa }}</span> }
-                    (<em lang="en">{{ x.forma }}</em>)
-                    @if (x.ia) { <span class="chip-ia" title="Lo propone la IA">IA</span> }</li>
-                }
-              </ul>
-            }
-            @if (v.audioNatural) {
-              <button type="button" class="boton secundario" (click)="sonar(v.audioNatural)"><app-icono nombre="play" />Escúchalo natural</button>
-            }
-          </div>
-        } @else if (!v.natural && r.transcripcion_ok) {
-          <!-- Sin voz ya está el aviso «No te oí»: este otro despistaba (Central, reinicio 26). -->
-          <p class="tenue pequeno">Esta vez no llegaron el énfasis ni los enlaces de la frase: los prepara OpenAI. Vuelve a probar en un rato.</p>
-        }
-      }
-
-      @if (r.resumen) { <p class="resumen">{{ r.resumen }}</p> }
 
       @if (r.detalles.length) {
         <div class="detalles">
           @for (d of r.detalles; track $index) {
             <article class="detalle">
+              <span class="antetitulo">Practica esta palabra</span>
               <header>
                 <strong lang="en">{{ d.palabra }}</strong>
                 @if (d.audio) {
@@ -205,8 +177,9 @@
               @if (corteDelSonido(d) || corteDeLaPalabra(d)) {
                 <!-- Cerrado no descarga nada: el <img loading="lazy"> espera a que se abra.
                      Si una imagen falla, se quita en vez de dejar el icono roto. -->
-                <details class="boca" (toggle)="cerrarBoca($event, d, $index)">
-                  <summary><app-icono nombre="ojo" />Ver cómo se mueve la boca</summary>
+                <!-- Abierta: «Escuchar y ver» y «🐢 Despacio» a la vista, sin buscarlos. -->
+                <details class="boca" open (toggle)="cerrarBoca($event, d, $index)">
+                  <summary><app-icono nombre="ojo" />Cómo se mueve la boca</summary>
                   <div class="cortes">
                     @if (corteDelSonido(d); as sonido) {
                       <figure>
@@ -261,6 +234,56 @@
             </article>
           }
         </div>
+      }
+
+      @if (r.transcripcion_ok && r.ritmo && vista(); as v) {
+        <details class="sonar-natural">
+          <summary>Para sonar más natural</summary>
+          <div class="pila-natural">
+            <ul class="palabras-voz en-libro" lang="en">
+              @for (w of v.palabras; track w.indice) {
+                @if (w.visible) {
+                  <li [class.bien]="w.bien" [class.mal]="!w.bien" [class.enfasis]="w.enfasis" [class.tramo]="w.acelerar">{{ w.texto }}<span class="oculto-visual" lang="es">{{ w.enfasis ? ', con énfasis' : '' }}</span></li>
+                  @if (w.enlace) {
+                    <li class="enlace" [attr.title]="'Se une con la siguiente (' + w.enlace + ')'"><span aria-hidden="true">‿</span><span class="oculto-visual" lang="es">se une con la siguiente</span></li>
+                  }
+                  <!-- Detrás de la palabra a la que se refieren, no delante de la siguiente. -->
+                  @if (w.terminaAcelerar) { <li class="marca acelera" lang="es">más seguido aquí</li> }
+                  @if (w.sinPausaDespues !== null) { <li class="marca pausa" lang="es">no pares aquí</li> }
+                }
+              }
+            </ul>
+            @if (v.hayEnfasis || v.hayEnlaces || v.hayMarcasDeTiempo) {
+              <!-- Cada tramo de la leyenda en su <span>: .leyenda es flex y un texto suelto
+                   se partía en trozos («negrita» en una línea y «: con énfasis» en otra). -->
+              <p class="tenue pequeno leyenda">
+                @if (v.hayEnfasis) { <span><strong>negrita</strong>: con énfasis</span> }
+                @if (v.hayEnlaces) { <span><span class="arco" aria-hidden="true">‿</span> se une con la siguiente</span> }
+                @if (v.hayMarcasDeTiempo) { <span>«más seguido aquí» y «no pares aquí»: medidos en tu grabación</span> }
+              </p>
+            }
+            @if (v.natural && (v.reducciones.length || v.versionNatural || v.audioNatural)) {
+              <div class="natural">
+                <h3>Cómo suena natural</h3>
+                @if (v.versionNatural) { <p class="version-natural" lang="en">«{{ v.versionNatural }}»</p> }
+                @if (v.reducciones.length) {
+                  <ul class="reducciones">
+                    @for (x of v.reducciones; track $index) {
+                      <li><span lang="en">{{ x.texto }}</span> → @if (x.ipa) { <span class="ipa">{{ x.ipa }}</span> }
+                        (<em lang="en">{{ x.forma }}</em>)
+                        @if (x.ia) { <span class="chip-ia" title="Lo propone la IA">IA</span> }</li>
+                    }
+                  </ul>
+                }
+                @if (v.audioNatural) {
+                  <button type="button" class="boton secundario" (click)="sonar(v.audioNatural)"><app-icono nombre="play" />Escúchalo natural</button>
+                }
+              </div>
+            } @else if (!v.natural) {
+              <p class="tenue pequeno">Esta vez no llegaron el énfasis ni los enlaces de la frase: los prepara OpenAI. Vuelve a probar en un rato.</p>
+            }
+          </div>
+        </details>
       }
 
       @if (r.audio_correcto) {

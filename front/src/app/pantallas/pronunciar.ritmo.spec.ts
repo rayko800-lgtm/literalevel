@@ -48,13 +48,15 @@ describe('Pronunciar con el ritmo de la lectura', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('pinta «aquí sin pausa» tras want, el arco with‿us, las negritas y cómo suena natural', async () => {
+  it('pinta «no pares aquí» tras want, el arco with‿us, las negritas y cómo suena natural, plegados', async () => {
     const raiz = await pintar(RITMO);
-    const items = [...raiz.querySelectorAll('.palabras-voz > li')].map(li =>
+    // Propuesta A: el ritmo va dentro de «Para sonar más natural», cerrado.
+    expect((raiz.querySelector('details.sonar-natural') as HTMLDetailsElement).open).toBe(false);
+    const items = [...raiz.querySelectorAll('.sonar-natural .palabras-voz > li')].map(li =>
       li.classList.contains('marca') ? `[${li.textContent?.trim()}]`
         : li.classList.contains('enlace') ? '‿'
           : (li.classList.contains('enfasis') ? '*' : '') + (li.firstChild?.textContent ?? '').trim());
-    expect(items).toEqual(["*don't", 'you', '*want', '[aquí sin pausa]', 'to', '*come', 'with', '‿', '*us']);
+    expect(items).toEqual(["*don't", 'you', '*want', '[no pares aquí]', 'to', '*come', 'with', '‿', '*us']);
     expect(raiz.querySelector('.marca.acelera')).toBeNull();
     const natural = raiz.querySelector('.natural') as HTMLElement;
     expect(natural.querySelector('.version-natural')?.textContent).toContain('Doncha wanna come with us?');

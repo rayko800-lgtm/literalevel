@@ -15,8 +15,10 @@ export interface PalabraLeida {
   sinPausaDespues: number | null;
   /** Dentro de un tramo leído más despacio que el objetivo de su nivel. */
   acelerar: boolean;
-  /** Primera palabra de ese tramo: ahí va la etiqueta «aquí aceleras». */
+  /** Primera palabra de ese tramo. */
   empiezaAcelerar: boolean;
+  /** Última palabra de ese tramo: detrás va «más seguido aquí» (propuesta A de Pronunciar). */
+  terminaAcelerar: boolean;
 }
 
 export interface VistaRitmo {
@@ -54,7 +56,7 @@ export function vistaRitmo(palabras: { palabra: string; bien: boolean }[],
   const dentro = (i: unknown): i is number => Number.isInteger(i) && (i as number) >= 0 && (i as number) < n;
   const vista: PalabraLeida[] = palabras.map((w, i) => ({
     indice: i, texto: w.palabra, bien: w.bien, visible: /\p{L}/u.test(w.palabra),
-    enfasis: false, enlace: null, sinPausaDespues: null, acelerar: false, empiezaAcelerar: false,
+    enfasis: false, enlace: null, sinPausaDespues: null, acelerar: false, empiezaAcelerar: false, terminaAcelerar: false,
   }));
   const medido = !!ritmo?.medido;
   let hayMarcasDeTiempo = false;
@@ -69,6 +71,7 @@ export function vistaRitmo(palabras: { palabra: string; bien: boolean }[],
     for (const t of ritmo.tramos ?? []) {
       if (!t.acelerar || !dentro(t.desde) || !dentro(t.hasta) || t.hasta < t.desde) continue;
       vista[t.desde].empiezaAcelerar = true;
+      vista[t.hasta].terminaAcelerar = true;
       for (let i = t.desde; i <= t.hasta; i++) vista[i].acelerar = true;
       hayMarcasDeTiempo = true;
     }

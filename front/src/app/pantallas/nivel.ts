@@ -3,22 +3,23 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
-import { Api, Cuestionario, Fragmento, LibroTarjeta, Perfil, Pregunta, mensajeError } from '../nucleo/api';
+import { Api, Cuestionario, Fragmento, LibroTarjeta, Pregunta, mensajeError } from '../nucleo/api';
 import { BANDAS, cefr, num } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
 
-type Vista = 'resultado' | 'preguntas' | 'listo' | 'muestra' | 'libro';
+type Vista = 'resultado' | 'preguntas' | 'muestra' | 'libro';
 
 /** El orden sube de nivel poco a poco: la primera pregunta se entiende sin
  *  saber qué es el MCER, y los textos en inglés van de Alicia a Frankenstein.
- *  Seis pasos; tres más para quien quiera afinar. */
+ *  Seis pasos y ninguno más: las tres preguntas de «afinar» (diccionario, series,
+ *  lecturas) salieron con la propuesta A de Esmeralda; si el cuestionario infravalora,
+ *  lo mide 4e y se cambia con su informe, no aquí. */
 const PASOS = ['frecuencia', 'fragmento_facil', 'libro_completo', 'fragmento_medio', 'comprension', 'fragmento_dificil'];
-const EXTRA = ['diccionario', 'series', 'lecturas'];
 const CLAVE_BORRADOR = 'literalevel.cuestionario';
 
-/** «Mídeme»: una pregunta por pantalla (PLAN_3_OCTUBRE.md §3.2).
- *  Nunca dos a la vez; se puede salir en cualquier momento con lo respondido;
- *  y cada respuesta enseña algo: la estimación se mueve desde la primera. */
+/** «Mídeme»: una pregunta por pantalla (PLAN_3_OCTUBRE.md §3.2), y al contestar la
+ *  sexta el nivel se guarda solo (propuesta A, Miguel, 15 sep: Esmeralda no quería
+ *  decidir nada después de contestar). Lo contestado a medias sobrevive a recargar. */
 @Component({
   selector: 'app-nivel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,9 +38,7 @@ export class Nivel implements OnInit {
   protected readonly cuestionario = signal<Cuestionario | null>(null);
   protected readonly vista = signal<Vista>('preguntas');
   protected readonly paso = signal(0);
-  protected readonly afinando = signal(false);
   protected readonly respuestas = signal<Record<string, number | number[]>>({});
-  protected readonly estimacion = signal<Perfil | null>(null);
   protected readonly guardando = signal(false);
   protected readonly error = signal('');
   protected muestra = '';
@@ -58,7 +57,7 @@ export class Nivel implements OnInit {
   protected readonly bandas = BANDAS;
   protected readonly anclas = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
-  protected readonly orden = computed(() => (this.afinando() ? [...PASOS, ...EXTRA] : PASOS));
+  protected readonly orden = computed(() => PASOS);
 
   protected readonly actual = computed<(Pregunta | Fragmento) | null>(() => {
     const c = this.cuestionario();
@@ -80,7 +79,10 @@ export class Nivel implements OnInit {
     return !!a && this.respuestas()[a.clave] !== undefined;
   });
 
-  /** Si el lector pulsa «Volver a medirme», que el perfil guardado no le saque. */
+  /** La sexta: su botón dice «Ver mi nivel» porque al pasar se guarda. */
+  protected readonly ultima = computed(() => this.paso() === this.orden().length - 1);
+
+  /** Si el lector pulsa «volver a medirme», que el perfil guardado no le saque. */
   private quiereMedirse = false;
 
   constructor() {
@@ -99,7 +101,7 @@ export class Nivel implements OnInit {
     });
     // Y lo contestado a medias sobrevive a recargar.
     effect(() => {
-      const estado = { respuestas: this.respuestas(), paso: this.paso(), afinando: this.afinando() };
+      const estado = { respuestas: this.respuestas(), paso: this.paso() };
       untracked(() => {
         try {
           if (Object.keys(estado.respuestas).length) localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(estado));
@@ -123,19 +125,16 @@ export class Nivel implements OnInit {
       const crudo = localStorage.getItem(CLAVE_BORRADOR);
       if (!crudo) return;
       const b = JSON.parse(crudo);
-      const validas = [...PASOS, ...EXTRA];
       const respuestas: Record<string, number | number[]> = {};
       for (const [k, v] of Object.entries(b?.respuestas ?? {})) {
         const ok = (x: unknown) => typeof x === 'number' && x >= 0 && x <= 2;
-        if (validas.includes(k) && (ok(v) || (Array.isArray(v) && v.every(ok)))) respuestas[k] = v as number | number[];
+        // Un borrador de antes puede traer las de «afinar»: ya no cuentan.
+        if (PASOS.includes(k) && (ok(v) || (Array.isArray(v) && v.every(ok)))) respuestas[k] = v as number | number[];
       }
       if (!Object.keys(respuestas).length) return;
       this.respuestas.set(respuestas);
-      this.afinando.set(!!b.afinando);
-      const total = b.afinando ? PASOS.length + EXTRA.length : PASOS.length;
-      this.paso.set(Math.min(Math.max(0, Number(b.paso) || 0), total - 1));
+      this.paso.set(Math.min(Math.max(0, Number(b.paso) || 0), PASOS.length - 1));
       this.vista.set('preguntas');
-      void this.estimar();
     } catch { /* borrador roto: se empieza de cero */ }
   }
 
@@ -150,7 +149,7 @@ export class Nivel implements OnInit {
 
   protected elegir(valor: number): void {
     const a = this.actual();
-    if (!a) return;
+    if (!a || this.guardando()) return;
     if (a.multiple) {
       const previas = this.respuestas()[a.clave];
       const lista = Array.isArray(previas) ? previas : [];
@@ -158,49 +157,35 @@ export class Nivel implements OnInit {
       const r = { ...this.respuestas() };
       if (nueva.length) r[a.clave] = nueva; else delete r[a.clave];
       this.respuestas.set(r);
-      void this.estimar();
       return;
     }
     this.respuestas.set({ ...this.respuestas(), [a.clave]: valor });
-    void this.estimar();
     // Avanza solo, con un respiro para que se vea la opción marcada.
     setTimeout(() => this.avanzar(), 260);
   }
 
   protected avanzar(): void {
-    if (this.paso() + 1 < this.orden().length) this.paso.set(this.paso() + 1);
-    else this.vista.set('listo');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (this.guardando()) return;
+    if (this.paso() + 1 < this.orden().length) {
+      this.paso.set(this.paso() + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (this.respondida()) {
+      void this.guardar();
+    }
   }
 
   protected atras(): void {
-    if (this.vista() === 'listo') { this.vista.set('preguntas'); return; }
     if (this.paso() > 0) this.paso.set(this.paso() - 1);
-  }
-
-  protected afinar(): void {
-    this.afinando.set(true);
-    this.paso.set(PASOS.length);
-    this.vista.set('preguntas');
   }
 
   protected reiniciar(): void {
     this.quiereMedirse = true;
     this.respuestas.set({});
-    this.estimacion.set(null);
     this.paso.set(0);
-    this.afinando.set(false);
     this.error.set('');
+    this.libroMedido.set(null);
     this.vista.set('preguntas');
-  }
-
-  private async estimar(): Promise<void> {
-    if (!this.respondidas()) { this.estimacion.set(null); return; }
-    try {
-      this.estimacion.set(await firstValueFrom(this.api.perfilDesdeCuestionario(this.respuestas(), false)));
-    } catch {
-      /* la estimación provisional es un adorno; guardar dará el error si lo hay */
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   protected async guardar(): Promise<void> {
@@ -212,9 +197,12 @@ export class Nivel implements OnInit {
       // Guardado: el borrador ya no hace falta.
       this.quiereMedirse = false;
       this.respuestas.set({});
+      this.paso.set(0);
+      this.libroMedido.set(null);
       this.vista.set('resultado');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
+      // Se queda en la sexta con lo contestado: «Ver mi nivel» lo vuelve a intentar.
       this.error.set(mensajeError(e));
     } finally {
       this.guardando.set(false);

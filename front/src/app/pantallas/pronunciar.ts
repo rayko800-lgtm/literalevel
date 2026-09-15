@@ -73,8 +73,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   /** «Más lento» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»):
    *  1×, 0,5× y 0,25× para el audio, el corte 2D y el 3D. */
   protected readonly velocidad = signal<1 | 0.5 | 0.25>(1);   // el tipo `Velocidad` del 3D (b9, 6b2579b)
-  protected readonly etiquetaVelocidad = computed(() =>
-    this.velocidad() === 0.5 ? 'Lento · 0,5×' : this.velocidad() === 0.25 ? 'Muy lento · 0,25×' : 'Más lento');
+  // Un interruptor con nombre de estado y no de orden: «Más lento» se leía como un
+  // consejo («tienes que ir más lento», Esmeralda) y chocaba con las marcas de ritmo.
+  // Encendido va a 0,5× (propuesta A de Pronunciar, Miguel, 15 sep).
+  protected readonly etiquetaVelocidad = computed(() => '🐢 Despacio');
   /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
    *  `viewChild(Boca3d)` usaría la clase como valor y el @defer dejaría de
    *  separar three.js. */
@@ -267,7 +269,7 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   /** 1× → 0,5× → 0,25× → 1×. */
   protected cambiarVelocidad(): void {
-    this.velocidad.update(v => v === 1 ? 0.5 : v === 0.5 ? 0.25 : 1);
+    this.velocidad.update(v => (v === 1 ? 0.5 : 1));
   }
 
   /** Al pulsar, que la animación quede a la vista entre la cabecera y la barra

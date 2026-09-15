@@ -26,6 +26,10 @@
   box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--acento) 80%, transparent);
 }
 .microfono[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
+/* «Corrígeme» y «Grabar otra vez» con su nombre (propuesta A): una píldora, no un círculo. */
+.microfono.con-texto { width: auto; min-width: 80px; padding: 0 1.3rem; border-radius: 999px; grid-auto-flow: column;
+  gap: .45rem; font-size: 1.05rem; font-weight: 700; white-space: nowrap; }
+.microfono.con-texto app-icono { font-size: 1.6rem; }
 .microfono.grabando { background: linear-gradient(145deg, #e0485c, #b02036); animation: latir 1.4s ease-in-out infinite; }
 @keyframes latir { 50% { box-shadow: 0 0 0 14px color-mix(in srgb, #e0485c 20%, transparent); } }
 
@@ -74,7 +78,14 @@
 .muestra { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
 .muestra.bien { background: var(--verde); }
 .muestra.mal { background: var(--rojo); }
-.resumen { font-size: 1.05rem; margin: 0; }
+.resumen { font-size: 1.1rem; margin: 0; font-weight: 550; }
+.detalle > .antetitulo { margin: 0; }
+/* «Para sonar más natural»: el ritmo, la leyenda y lo natural, plegados al final. */
+.sonar-natural { border-radius: var(--radio); background: var(--superficie-2); padding: 0 1rem; }
+.sonar-natural summary { display: flex; align-items: center; min-height: 52px; cursor: pointer; font-weight: 650;
+  color: var(--acento-texto); }
+.pila-natural { display: grid; gap: .75rem; padding-bottom: 1rem; }
+.pila-natural .natural { background: var(--superficie); }
 
 .detalles { display: grid; gap: .8rem; }
 .detalle { padding: 1rem; border-radius: var(--radio); background: var(--superficie-2); display: grid; gap: .45rem; }
@@ -101,6 +112,9 @@
    pegados abajo mientras se ve (sticky dentro de su tarjeta): pulsar y mirar a la vez. */
 .botones-corte { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin: .25rem 0; }
 .botones-corte .boton { min-height: 48px; flex: 1 1 8rem; max-width: 18rem; }
+/* .resultado parte palabras en cualquier sitio (overflow-wrap: anywhere) para no ensanchar
+   la página; en estos botones partía «Escucha / r y ver» y dejaba la 🐢 sola arriba. */
+.resultado .botones-corte .boton { overflow-wrap: normal; white-space: nowrap; }
 .botones-corte.pegada { position: sticky; bottom: .5rem; z-index: 5; padding: .5rem; border-radius: var(--radio);
   background: color-mix(in srgb, var(--superficie-2) 94%, transparent); box-shadow: 0 8px 22px -14px rgba(0, 0, 0, .7); }
 .ficha-sonido .botones-corte.pegada { background: color-mix(in srgb, var(--superficie) 94%, transparent); }
@@ -157,6 +171,7 @@
   :host-context(body:has(.nav-movil.oculta)) .grabadora {
     bottom: 0; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
   .microfono { width: 72px; height: 72px; font-size: 1.9rem; }
+  .microfono.con-texto { width: auto; height: 64px; padding: 0 1.1rem; font-size: 1rem; }
   /* Encima de la grabadora fija (72 px de micrófono y su margen) y de la navegación. */
   .botones-corte.pegada { bottom: calc(var(--barra-inf) + 6rem); }
   :host-context(body:has(.nav-movil.oculta)) .botones-corte.pegada { bottom: 6rem; }

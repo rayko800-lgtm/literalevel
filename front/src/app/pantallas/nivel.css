@@ -16,6 +16,15 @@
 .anclas span:last-child { transform: translateX(-100%); }
 .anclas span.suya { color: var(--acento-texto); }
 
+.medidor > .boton.bloque { min-height: 52px; }
+/* «Ver el detalle»: la cifra 0..2 y la franja, plegadas (propuesta A de Tu nivel). */
+.detalle-nivel summary { display: inline-flex; align-items: center; min-height: 44px; cursor: pointer;
+  color: var(--acento-texto); font-weight: 600; }
+.detalle-nivel p { margin: .25rem 0 0; color: var(--texto-suave); }
+/* Medirse de otra forma: enlaces pequeños al final, no una elección. */
+.afinar-pie { margin: 1.5rem 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 .35rem; }
+.afinar-pie .enlace-texto { min-height: 44px; font-size: inherit; }
+
 .enlaces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .enlace { display: flex; align-items: center; gap: .9rem; color: inherit; text-decoration: none; text-align: left; cursor: pointer; font: inherit; }
 .enlace:hover { border-color: var(--borde-fuerte); }

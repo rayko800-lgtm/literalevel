@@ -8,6 +8,9 @@
 
   @switch (vista()) {
     @case ('resultado') {
+      <!-- Propuesta A de Tu nivel (Miguel, 15 sep; auditoria/esmeralda_ux_2026-09-15.md): el
+           nivel, un solo botón y nada que decidir. La cifra va plegada y medirse de otra
+           forma queda como enlace pequeño al final. -->
       @if (perfil(); as p) {
         <header class="cabecera-pagina">
           <span class="antetitulo">Tu nivel de lectura</span>
@@ -18,11 +21,7 @@
         </header>
 
         <section class="tarjeta medidor">
-          <div class="cifra">
-            <strong>{{ num(p.nivel) }}</strong><span>de 2</span>
-            <span class="chip acento">{{ bandas[p.banda] || p.banda }}</span>
-          </div>
-          <div class="escala" role="img" [attr.aria-label]="'Nivel ' + num(p.nivel) + ' en una escala de 0 a 2'">
+          <div class="escala" role="img" [attr.aria-label]="'Nivel ' + cefr(p.nivel) + ' en la escala de A1 a C2'">
             <div class="pista-escala">
               <span class="rango" [style.left.%]="pos(p.rango_recomendado[0])"
                     [style.width.%]="pos(p.rango_recomendado[1]) - pos(p.rango_recomendado[0])"></span>
@@ -34,12 +33,14 @@
               }
             </div>
           </div>
-          <p class="suave">Te buscaré lecturas entre <strong>{{ num(p.rango_recomendado[0]) }}</strong> y
-            <strong>{{ num(p.rango_recomendado[1]) }}</strong> (la franja clara): cómodas pero con algo de reto.</p>
-          <div class="fila">
-            <a class="boton" routerLink="/encontrar" [queryParams]="{ vista: 'nivel' }"><app-icono nombre="libro" />Ver libros de mi nivel</a>
-            <button type="button" class="boton secundario" (click)="reiniciar()"><app-icono nombre="recargar" />Volver a medirme</button>
-          </div>
+          <p class="suave">Te buscaré libros que te queden cómodos, con algo de reto.</p>
+          <a class="boton bloque" routerLink="/encontrar" [queryParams]="{ vista: 'nivel' }"><app-icono nombre="libro" />Ver libros de mi nivel</a>
+          <details class="detalle-nivel">
+            <summary>Ver el detalle</summary>
+            <p><strong>{{ num(p.nivel) }}</strong> de 2 · {{ bandas[p.banda] || p.banda }}.
+              Busco lecturas entre {{ num(p.rango_recomendado[0]) }} y {{ num(p.rango_recomendado[1]) }}
+              (la franja clara de la barra).</p>
+          </details>
         </section>
 
         <div class="enlaces">
@@ -51,22 +52,22 @@
                 @else { Las que consultes al leer se guardan aquí }
               </span></span>
           </a>
-          <button type="button" class="tarjeta enlace" (click)="vista.set('muestra')">
-            <app-icono nombre="diana" />
-            <span><strong>Afinar con un texto</strong>
-              <span class="suave pequeno">Pega algo que leas cómodo y el modelo lo mide</span></span>
-          </button>
-          <button type="button" class="tarjeta enlace" (click)="vista.set('libro')">
-            <app-icono nombre="libro" />
-            <span><strong>Con un libro que ya leíste</strong>
-              <span class="suave pequeno">Búscalo y el modelo mide su dificultad</span></span>
-          </button>
         </div>
+
+        <p class="afinar-pie tenue pequeno">
+          ¿No te convence?
+          <button type="button" class="enlace-texto" (click)="vista.set('libro')">Afínalo con un libro que ya leíste</button> ·
+          <button type="button" class="enlace-texto" (click)="vista.set('muestra')">con un texto</button> ·
+          <button type="button" class="enlace-texto" (click)="reiniciar()">volver a medirme</button>
+        </p>
       }
     }
 
     @case ('preguntas') {
       @if (actual(); as a) {
+        <!-- Solo la pregunta, sus opciones y Atrás / Siguiente: sin «Me vale así» ni nivel
+             provisional (Esmeralda veía su nivel bajar mientras contestaba). Al contestar la
+             sexta se guarda solo. -->
         <div class="cuestionario">
           <div class="progreso">
             <button type="button" class="boton-icono" (click)="atras()" [disabled]="paso() === 0" aria-label="Pregunta anterior">
@@ -86,8 +87,8 @@
             </figure>
             <h1 class="pregunta">¿Cuánto entiendes?</h1>
           } @else {
-            @if (paso() === 0 && !afinando()) {
-              <p class="antetitulo">Un minuto para saber qué libros te van</p>
+            @if (paso() === 0) {
+              <p class="antetitulo">Seis preguntas para saber qué libros te van</p>
             }
             <h1 class="pregunta">{{ a.pregunta }}</h1>
             @if (a.multiple) { <p class="suave">Marca todas las que encajen.</p> }
@@ -97,76 +98,35 @@
             @for (o of a.opciones; track o.valor + o.etiqueta) {
               <button type="button" class="opcion" [class.elegida]="elegida(o.valor)"
                       [attr.role]="a.multiple ? 'checkbox' : 'radio'" [attr.aria-checked]="elegida(o.valor)"
-                      (click)="elegir(o.valor)">
+                      (click)="elegir(o.valor)" [disabled]="guardando()">
                 <span class="punto" [class.cuadrado]="a.multiple"><app-icono nombre="check" /></span>
                 <span>{{ o.etiqueta }}</span>
               </button>
             }
           </div>
 
+          @if (guardando()) {
+            <p class="espera" role="status"><span class="giro"></span>Calculando tu nivel…</p>
+          }
+
           @if (a.multiple) {
             <button type="button" class="boton bloque" (click)="avanzar()">Siguiente</button>
           }
 
-          <!-- Una mano (investigacion/una_mano.md §3.7): en el móvil, Atrás y Siguiente fijos
-               abajo a 56 px y «Me vale así» encima; el botón de atrás de arriba queda de duplicado. -->
+          <!-- Una mano (investigacion/una_mano.md §3.7): en el móvil, Atrás y Siguiente fijos abajo. -->
           <div class="barra-cuestionario">
-            @if (estimacion(); as e) {
-              <button type="button" class="boton fantasma guardar-abajo" (click)="guardar()" [disabled]="guardando()">
-                Me vale así ({{ num(e.nivel) }} · {{ cefr(e.nivel) }}), guardar
-              </button>
-            }
             <div class="pasos">
-              <button type="button" class="boton secundario" (click)="atras()" [disabled]="paso() === 0">
+              <button type="button" class="boton secundario" (click)="atras()" [disabled]="paso() === 0 || guardando()">
                 <app-icono nombre="izq" />Atrás
               </button>
-              <button type="button" class="boton" (click)="avanzar()" [disabled]="!respondida()">
-                Siguiente<app-icono nombre="der" />
+              <button type="button" class="boton" (click)="avanzar()" [disabled]="!respondida() || guardando()">
+                {{ ultima() ? 'Ver mi nivel' : 'Siguiente' }}<app-icono nombre="der" />
               </button>
             </div>
-          </div>
-
-          <div class="pie-cuestionario">
-            @if (estimacion(); as e) {
-              <div class="provisional" aria-live="polite">
-                <span class="tenue pequeno">Estimación provisional</span>
-                <strong>{{ num(e.nivel) }} · {{ cefr(e.nivel) }}</strong>
-                <div class="mini-escala"><i [style.left.%]="pos(e.nivel)"></i></div>
-              </div>
-              <button type="button" class="boton fantasma" (click)="guardar()" [disabled]="guardando()">
-                Me vale así, guardar
-              </button>
-            } @else {
-              <p class="tenue pequeno">Con la primera respuesta ya verás una estimación. Puedes parar cuando quieras.</p>
-            }
-            @if (paso() === 0 && !afinando()) {
-              <!-- Como en Gradio, desde la primera pantalla: quien ya sabe qué libro lee cómodo no necesita el cuestionario. -->
-              <button type="button" class="enlace-texto" (click)="vista.set('libro')">O mídete con un libro que ya leíste</button>
-            }
           </div>
         </div>
       } @else {
         <div class="espera"><span class="giro"></span>Preparando las preguntas…</div>
-      }
-    }
-
-    @case ('listo') {
-      @if (estimacion(); as e) {
-        <section class="tarjeta listo">
-          <span class="antetitulo">Ya está</span>
-          <h1>Tu nivel: <span class="letra">{{ cefr(e.nivel) }}</span></h1>
-          <p class="cifra-grande"><strong>{{ num(e.nivel) }}</strong> <span class="suave">de 2 · {{ bandas[e.banda] || e.banda }}</span></p>
-          <p class="suave">Buscaré libros entre {{ num(e.rango_recomendado[0]) }} y {{ num(e.rango_recomendado[1]) }}.</p>
-          <div class="fila">
-            <button type="button" class="boton" (click)="guardar()" [disabled]="guardando()">
-              <app-icono nombre="check" />{{ guardando() ? 'Guardando…' : 'Guardar mi nivel' }}
-            </button>
-            @if (!afinando()) {
-              <button type="button" class="boton secundario" (click)="afinar()">Afinar con 3 preguntas más</button>
-            }
-            <button type="button" class="boton fantasma" (click)="atras()">Cambiar una respuesta</button>
-          </div>
-        </section>
       }
     }
 
