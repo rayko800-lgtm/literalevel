@@ -810,3 +810,9 @@ Arreglo del 28 con commit (f4, b896b1f): 0 de 198 listas distintas del 26 para l
 Visto bueno de 4e a b896b1f, el arreglo del 28: ok.
 - **Hueco:** el JSON de línea base no trae «rose». f4 lo añade con el catalogo.py del 26.
 - **Después de subir:** el vigía de 4e repite las búsquedas en el Space.
+
+**La regresión del 27 era más ancha:** el guion de f4 contra el Space vivo da 54 de 198 listas distintas del 26, en 27 palabras.
+- **Palabras afectadas:** castillo, león, love, moon, family, friendship, ocean, forest, mountain, city, school, music, science, space, stars, brown, grey, teacher, snow, fire, castle, queen, king, princess, garden, island, hope y london.
+- **Mecanismo, el mismo en todas:** un autor o una entidad con esa palabra en el nombre pasa delante, como Snow, Eliza R.; Love, Nat; o Ocean Spray.
+- **El arreglo b896b1f** da 0 de 198 en local, y el guion queda validado para comprobarlo en el Space.
+- **Árbol limpio:** corpus 46/46 y api 66/66, con extremas en marcha. --seco: solo catalogo.py.
