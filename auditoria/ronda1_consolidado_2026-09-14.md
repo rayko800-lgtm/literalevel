@@ -800,3 +800,9 @@ Arreglo del 28, primera medida contra el 26 (f4, 198 listas):
 - **Quedan iguales:** london, king, school, rose y castle. Los clásicos, Austen con B1, «amor» y «rosa» siguen bien.
 - **Decisión:** (b) sale entera. «tolstoy» sin perfil vuelve a abrir con «My Visit to Tolstoy», como en el 26. Se quedan (a), `primero` solo con dos palabras o más, `buscador_listo`, la curva de un capítulo y cuentas.
 - **Pendiente:** repetir las 198 listas cuando haya RAM, con 1,3 GB libres. Si alguna sigue distinta, se decide antes de tocar nada.
+
+Arreglo del 28 con commit (f4, b896b1f): 0 de 198 listas distintas del 26 para las 100 palabras de tema, sin perfil y con B1.
+- **Siguen bien:** los clásicos, «Jane Austen» con B1, «amor» y «rosa». «tolstoy» sin perfil vuelve a «My Visit to Tolstoy», que se aceptó.
+- **Pruebas:** corpus 46/46. La línea base está en auditoria/top10_palabras_de_tema_26.json.
+- **Pendiente:** banco, árbol limpio, visto bueno de 4e, --seco (solo catalogo.py) y la subida con las 100 palabras comprobadas en el Space.
+- **Front:** 4e dio el ok a 3662e57 de e6, los tipos de la curva con null, que sale con la próxima publicación.
