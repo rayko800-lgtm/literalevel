@@ -732,3 +732,14 @@ Reinicio 27, clásicos medidos en el catálogo real (f4, sin commit, corpus 45/4
 - **Arreglo aprobado:** dentro de la ventana de nombres van primero las filas cuyo primer autor contiene todas las palabras de la consulta. Lleva una prueba inventada y el mutante C20.
 
 Menores de ui.py para el 27 (e6, 4a265f6 y el banco en 5985e8e): el código de la cuenta se lee una sola vez y el comentario viejo está reescrito. Extremas 351 y C14 + C15 6 de 6. Falta el visto bueno corto de 4e, y los hashes ya los tiene f4.
+
+Alcance del reinicio 27, cerrado por la central para no retrasarlo:
+- **Entra:**
+  - clásicos por apellido, con (a) N=5 y (b) solo para el primer autor;
+  - el arreglo de «Jane Austen» con B1 (C20);
+  - `_resumen_curva` con una sola fila (C17);
+  - `buscador_listo` en /api/salud;
+  - los menores de cuentas.py;
+  - de e6: ae4c8d8 (ui.py), 3151f51 (ficha.py) y 4a265f6 (menores de ui.py).
+- **Pasa al 28:** el rescate por título con erratas, que necesita una señal nueva medida porque el diccionario no sirve, y el título en consultas largas («Terror gótico», «Historias de amor»).
+- **Vistos buenos:** 4e para catalogo.py, cuentas.py y 4a265f6, y e6 para api.py.
