@@ -712,3 +712,11 @@ Visto bueno de 4e a ae4c8d8:
 - **Quién y cuándo:** lo aplica e6 antes del 27, con prueba, mutante y visto bueno corto de 4e.
 
 **Front bdfa418 publicado (e6, desde ae4c8d8):** la ficha de un solo capítulo ya dice «Es un texto de un solo capítulo…», sin gráfica vacía. «Lo que más se repite» se arregla cuando suba el 27. El arreglo de mayúsculas de ficha.py tiene prueba y 2 mutantes detectados, y falta medir los tres casos.
+
+Arreglo de mayúsculas de ficha.py (e6, 3151f51), a falta del visto bueno corto de 4e:
+- **Textos en mayúsculas:** se vaciaban 48 listas y ahora 0.
+- **400 textos libres al azar:** se vacían 37, antes 41, y son nombres sueltos.
+- **Emma y P&P:** idénticas. Kian sigue vacía.
+- **Mutantes:** 2 de 2 detectados.
+- **Duda:** SWV285707 podría estar escrito con Mayúscula En Cada Palabra, el mismo fallo en otra forma. 4e dice si es más que un caso aislado.
+- **Subida:** va con el 27.
