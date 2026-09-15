@@ -396,3 +396,22 @@ práctica: al leer un aviso de despliegue, **recorre la lista de archivos del
 Si falta un revisor, se pide directo a la desplegadora con plazo, y la subida
 espera. Un revisor que no corre suites por falta de RAM puede dar el ok leyendo
 el diff si las suites van en el árbol limpio de la desplegadora; que lo diga.
+
+## 15. Un paso de la demo que depende de la búsqueda lleva plan B en el guion
+
+15 sep, 08:15: el segundo ensayo completo de la demo, hecho sobre lo publicado
+después de cuatro reinicios de búsqueda, encontró que el paso 3 ya no mostraba
+lo que describía el guion («dostoyevski» con perfil B2 traía cuentos sin
+relación). Ninguna de las comprobaciones sueltas de cada reinicio lo había
+visto, porque ninguna seguía el guion de principio a fin.
+
+Lo que funcionó:
+- **Separar el guion del arreglo.** Mientras la desplegadora medía la causa,
+  otra sesión buscó en la página publicada una consulta que diera la misma
+  escena con el mismo libro («Crimen y castigo de Dostoyevski») y el guion se
+  cambió en el acto. El arreglo de código dejó de bloquear la grabación.
+- **Elegir un plan B que el arreglo no pueda romper:** una consulta con 0
+  marcados, que el arreglo (quitar marcas) solo puede dejar igual.
+- **Repetir el ensayo completo** después de cada grupo de cambios de búsqueda o
+  de pantallas, no solo comprobar cada cambio por separado. Y apuntar en la
+  lista de Miguel qué pasos tiene que repetir él con cuenta.
