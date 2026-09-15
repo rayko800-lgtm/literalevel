@@ -13,9 +13,20 @@ CONTENIDO, y el catalogador reutiliza lo medido.
 El reparto es el mismo que tenia `puntuar`, y el orden importa:
 1) cada texto con >= MIN_WORDS palabras se mide solo;
 2) los que quedan -los cortos Y los que el filtro de prosa rechazo en 1)- se
-   juntan en bloques de >= 250 palabras de su fuente y nivel, en orden de id.
+   juntan en bloques de >= 250 palabras de su fuente y nivel, en orden de id;
+3) la cola de cada grupo, lo que sobra por debajo de 250 al acabar: se mide
+   sola si llega a MIN_WORDS y, si no, se une al ultimo bloque del grupo. Antes
+   se tiraba sin medir: 16 textos del 14 sep salian del catalogo sin aviso,
+   contados junto a los que rechaza el filtro (auditoria cruzada de e6). Solo
+   se queda fuera la cola de un grupo que entero no llega a MIN_WORDS, y se
+   cuenta aparte en `df.attrs["cola_sin_medir"]`.
 Por eso los bloques no se pueden formar hasta que la primera pasada este
 completa: con `--tope` se para ahi y la siguiente ejecucion sigue.
+
+La clave lleva tambien la huella del modelo (config.json y pesos): con otro
+modelo, lo medido no se reutiliza. Las medidas anteriores al 15 sep no la
+llevan; se aceptan solo si el modelo es el v4 de HUELLA_V4, con el que se
+midieron, y se reescriben con la clave nueva.
 
 Reanudar lee los ids hechos del disco, no lleva un contador: un contador miente
 en cuanto algo se cae a mitad (skill precalculo-en-colab).
@@ -38,10 +49,29 @@ CADA = 100
 BLOQUE = 250
 
 
-def clave(tipo, ids, texto):
-    """Huella del contenido medido: cambia si cambia el texto o la composicion del bloque."""
+# La del modelo_v4 final (config.json y model.safetensors del 6 sep 2026), con
+# el que se midieron los shards del 14 sep. Calculada con `huella_modelo`.
+HUELLA_V4 = "fbff06d45f194ca6"
+
+
+def huella_modelo(carpeta=RAIZ / "modelo_v4"):
+    """Huella de config.json y de los pesos (1,6 s para los 328 MB del v4)."""
     h = hashlib.sha256()
-    for parte in (tipo, "|".join(map(str, ids)), texto):
+    for nombre in ("config.json", "model.safetensors"):
+        h.update(nombre.encode())
+        h.update(b"\0")
+        with open(Path(carpeta) / nombre, "rb") as f:
+            for trozo in iter(lambda: f.read(1 << 24), b""):
+                h.update(trozo)
+        h.update(b"\0")
+    return h.hexdigest()[:16]
+
+
+def clave(tipo, ids, texto, modelo=""):
+    """Huella de lo medido: cambia si cambia el texto, la composicion del bloque o
+    el modelo. Sin `modelo` es la clave de antes del 15 sep."""
+    h = hashlib.sha256()
+    for parte in (tipo, "|".join(map(str, ids)), texto) + ((modelo,) if modelo else ()):
         h.update(str(parte).encode("utf-8"))
         h.update(b"\0")
     return h.hexdigest()[:24]
@@ -98,27 +128,40 @@ def _medir_una(p, texto):
         return {"dificultad": None, "ventanas": 0, "error": str(e)[:160]}
 
 
-def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, salida=print):
+def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, salida=print,
+          modelo=None):
     """Rellena `dificultad`, `ventanas` y `medida` de `df` y devuelve (df, completo).
 
     `tope` limita las unidades NUEVAS medidas en esta llamada; con el tope
     alcanzado, `completo` es False y lo que falte queda sin medida. Sin
-    `puntuador` se carga el v4 solo si hay algo nuevo que medir."""
+    `puntuador` se carga el v4 solo si hay algo nuevo que medir. `modelo` es la
+    huella que entra en la clave: sin darla, la del v4 en disco, o el nombre del
+    puntuador que se pase."""
+    if modelo is None:
+        modelo = huella_modelo() if puntuador is None else "puntuador:" + type(puntuador).__name__
     hechas = leer_hechas(carpeta)
     escritor = _Escritor(carpeta)
     df["dificultad"], df["ventanas"], df["medida"] = float("nan"), 0, ""
+    df.attrs["cola_sin_medir"] = []
     estado = {"p": puntuador, "nuevas": 0, "ventanas": 0, "t0": time.time(), "completo": True}
 
     def obtener(tipo, ids, texto):
-        k = clave(tipo, ids, texto)
+        k = clave(tipo, ids, texto, modelo)
         if k in hechas:
             return hechas[k]
+        if modelo == HUELLA_V4:
+            viejo = hechas.get(clave(tipo, ids, texto))
+            if viejo is not None and "modelo" not in viejo:
+                r = {**viejo, "clave": k, "modelo": modelo}
+                escritor.poner(r)
+                hechas[k] = r
+                return r
         if tope is not None and estado["nuevas"] >= tope:
             estado["completo"] = False
             return None
         if estado["p"] is None:
             estado["p"] = scoring.Puntuador(str(RAIZ / "modelo_v4"))
-        r = {"clave": k, "tipo": tipo, "ids": list(ids), **_medir_una(estado["p"], texto)}
+        r = {"clave": k, "tipo": tipo, "ids": list(ids), "modelo": modelo, **_medir_una(estado["p"], texto)}
         escritor.poner(r)
         hechas[k] = r
         estado["nuevas"] += 1
@@ -145,6 +188,7 @@ def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, sal
         resto = df[df["medida"] == ""].sort_values("id")
         for (_, _), g in resto.groupby(["fuente", resto["nivel_editor"].fillna("sin")]):
             idx, ids, trozos, cuenta = [], [], [], 0
+            previo = None                     # (idx, ids, trozos) del ultimo bloque del grupo
             for i, f in g.iterrows():
                 idx.append(i)
                 ids.append(f["id"])
@@ -158,7 +202,23 @@ def medir(df, puntuador=None, carpeta=DIR_MEDIDAS, tope=None, bloque=BLOQUE, sal
                         for j in idx:
                             df.at[j, "dificultad"] = r["dificultad"]
                             df.at[j, "medida"] = "bloque"
+                    previo = (idx, ids, trozos)
                     idx, ids, trozos, cuenta = [], [], [], 0
+            if not idx:
+                continue
+            # 3) la cola: sola si llega a MIN_WORDS; si no, con el ultimo bloque.
+            if cuenta < scoring.MIN_WORDS and previo is None:
+                df.attrs["cola_sin_medir"].extend(ids)
+                continue
+            if cuenta < scoring.MIN_WORDS:
+                idx, ids, trozos = previo[0] + idx, previo[1] + ids, previo[2] + trozos
+            r = obtener("bloque", ids, "\n\n".join(trozos))
+            if r is None:
+                return df, False
+            if r["dificultad"] is not None:
+                for j in idx:
+                    df.at[j, "dificultad"] = r["dificultad"]
+                    df.at[j, "medida"] = "bloque"
     finally:
         escritor.volcar()
     return df, estado["completo"]
@@ -172,7 +232,10 @@ def main():
     df = cc.cargar(None)
     solos = df[df["palabras"] >= scoring.MIN_WORDS]
     hechas = leer_hechas()
-    pendientes = [t for i, t in zip(solos["id"], solos["texto"]) if clave("texto", [i], t) not in hechas]
+    modelo = huella_modelo()
+    pendientes = [t for i, t in zip(solos["id"], solos["texto"])
+                  if clave("texto", [i], t, modelo) not in hechas
+                  and not (modelo == HUELLA_V4 and clave("texto", [i], t) in hechas)]
     print(f"textos libres {len(df)} | solos {len(solos)} | solos pendientes {len(pendientes)} | "
           f"unidades ya medidas en disco {len(hechas)}")
     t0 = time.time()
@@ -186,8 +249,11 @@ def main():
               f"Quedan ~{len(pendientes) - nuevas} solos (~{ventanas_pend} ventanas) + los bloques: "
               f"~{ventanas_pend / max(vel, 1e-9) / 3600:.2f} h a esta velocidad.")
     medidos = int(df["dificultad"].notna().sum())
+    cola = len(df.attrs.get("cola_sin_medir", []))
     print(f"completo: {completo} | con medida {medidos} de {len(df)} "
-          f"(texto {int((df['medida'] == 'texto').sum())}, bloque {int((df['medida'] == 'bloque').sum())})")
+          f"(texto {int((df['medida'] == 'texto').sum())}, bloque {int((df['medida'] == 'bloque').sum())}) | "
+          f"sin medida: {len(df) - medidos - cola} por el filtro de prosa, {cola} en grupos de menos de "
+          f"{scoring.MIN_WORDS} palabras")
 
 
 if __name__ == "__main__":

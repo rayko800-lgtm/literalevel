@@ -317,9 +317,12 @@ class Catalogo:
 
     # --- embeddings ---------------------------------------------------
     def _texto_indexable(self) -> list[str]:
-        """Lo que se indexa: titulo, autor y las pistas de contenido. El
-        `hook` solo tiene ~8 palabras, asi que sin `huella_texto` la busqueda
-        semantica se queda sin senal."""
+        """Lo que se indexa: titulo, autor y las pistas de contenido. En
+        Gutenberg `hook` va vacio y `huella_texto` son sus temas. En los textos
+        libres, desde el 15 sep, `hook` es el arranque del texto y `huella_texto`
+        sus temas y lo que sigue (tools/catalogar_corpus.py). Hasta entonces los
+        dos iban vacios y el vector de los 15.357 salia solo de «titulo. autor.»
+        (auditoria cruzada de e6). El modelo de embeddings corta a 128 tokens."""
         d = self.df
         return (d["title"].astype(str) + ". " + d["author"].astype(str) + ". "
                 + d["hook"].astype(str) + " " + d["huella_texto"].astype(str)).tolist()
@@ -334,18 +337,28 @@ class Catalogo:
         externo = getattr(self, "ruta_externo", None)
         if externo is not None and len(textos) > n:
             # El externo en su propio archivo: anadir o cambiar un corpus
-            # recodifica sus filas (segundos), no las 53.179 de Gutenberg.
-            # La huella sale de las filas que DE VERDAD quedan tras filtrar las
-            # que ya estaban en el principal, no del archivo externo: con el
-            # mismo externo y otro principal pueden quedar otras filas con la
-            # misma longitud, y la cache devolvia los vectores de otros libros.
-            # Lo encontro la auditoria de Codex del 12 de septiembre de 2026.
-            ids_ext = self.df["id"].astype(str).tolist()[n:]
-            h = hashlib.sha256("\x1f".join(ids_ext + textos[n:]).encode("utf-8"))
-            ext = self._embeddings_de("catalogo_emb_ext_", h.hexdigest()[:16], textos[n:])
+            # recodifica sus filas, no las 53.179 de Gutenberg.
+            textos_ext, huella = self._externo_indexable()
+            ext = self._embeddings_de("catalogo_emb_ext_", huella, textos_ext)
             emb = np.vstack([emb, ext])
         self._emb = emb
         return emb
+
+    def _externo_indexable(self) -> tuple[list[str], str]:
+        """Los textos indexables del externo y la huella que nombra su `.npy`
+        (`catalogo_emb_ext_<huella>.npy`). tools/catalogar_corpus.py la usa para
+        calcularlo por partes con el mismo nombre que buscara `embeddings`.
+
+        La huella sale de las filas que DE VERDAD quedan tras filtrar las que ya
+        estaban en el principal, no del archivo externo: con el mismo externo y
+        otro principal pueden quedar otras filas con la misma longitud, y la
+        cache devolvia los vectores de otros libros (auditoria de Codex del 12 de
+        septiembre de 2026)."""
+        textos = self._texto_indexable()
+        n = getattr(self, "_n_propio", len(self.df))
+        ids_ext = self.df["id"].astype(str).tolist()[n:]
+        h = hashlib.sha256("\x1f".join(ids_ext + textos[n:]).encode("utf-8"))
+        return textos[n:], h.hexdigest()[:16]
 
     def _embeddings_de(self, prefijo: str, huella: str, textos: list[str]) -> np.ndarray:
         DIR_CACHE.mkdir(parents=True, exist_ok=True)
@@ -630,7 +643,10 @@ class Catalogo:
             clave = np.where(nombre | relevante, total, sim)
             orden = np.lexsort((-clave, ~(relevante | nombre), ~nombre))
         libros, flojos = [], 0
-        for i in orden[:n * 3]:
+        # El orden entero hasta llenar n: con `orden[:n * 3]`, si en esos puestos
+        # habia mas de 2n excluidos o flojos, la lista salia corta aunque hubiera
+        # candidatos validos mas abajo (auditoria cruzada de e6, M1).
+        for i in orden:
             if len(libros) >= n:
                 break
             if self._excluidos[i]:

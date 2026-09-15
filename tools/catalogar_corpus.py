@@ -11,7 +11,8 @@ Cada libro lleva la dificultad del v4 medida sobre SU texto. Un cuento de menos
 de 150 palabras no se puede puntuar solo (el v4 lee ventanas de 250 y rechaza
 por debajo de 150): toma la puntuacion del bloque de cuentos cortos de su misma
 fuente y nivel en que se midio, y se marca `medida = bloque` para decirlo. Si ni
-eso -el filtro de prosa lo rechaza-, no entra: sin medida no hay recomendacion.
+eso -el filtro de prosa lo rechaza, o su grupo entero no llega a MIN_WORDS-, no
+entra: sin medida no hay recomendacion. Los dos casos se cuentan por separado.
 
 Salen, en la raiz del repositorio:
 - catalogo_externo.csv   mismas columnas que catalogo_medido.csv, mas fuente,
@@ -29,6 +30,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "app"))
 import pandas as pd
 
+import ficha
 import scoring
 from scoring import Puntuador, words
 
@@ -46,6 +48,11 @@ BLOQUE = 250
 # una regex con "dominio publico.*", y "dominio publico salvo material adaptado
 # de Reuters" pasaba (auditoria de Codex, 12 de septiembre de 2026).
 LIBRES = {"cc by", "cc by 4.0", "cc by 3.0", "dominio publico (voa)"}
+# El gancho, en palabras, y lo que entra del texto en la huella de busqueda.
+GANCHO_MIN, GANCHO_MAX = 12, 30
+HUELLA_PALABRAS = 40
+DIR_PARTES_EMB = CORPUS / "embeddings_externo"
+PARTE_EMB = 1000
 AGENCIAS = re.compile(r"(?i)associated press|reuters|\bafp\b|agence france")
 
 
@@ -146,6 +153,82 @@ def atribucion(fuente, f):
             f"Credito: voanews.com / Voice of America. {f['url']}")
 
 
+def _cuerpo(texto):
+    """El texto en una linea, limpio y sin atribucion: de ahi salen gancho y huella."""
+    return " ".join(ficha.para_medir(limpiar_para_servir(texto)).split())
+
+
+def gancho(texto, minimo=GANCHO_MIN, maximo=GANCHO_MAX):
+    """El arranque del texto, en frases enteras: hasta llegar a `minimo` palabras
+    sin pasar de `maximo`. Si la primera frase ya pasa, sus `maximo` primeras
+    palabras y «…». Sale en la tarjeta y entra en el vector de busqueda.
+
+    Extractivo y local, sin OpenAI: son 15.367 textos y la busqueda no puede
+    depender de una clave (auditoria cruzada de e6, 14 sep 2026: en los libres
+    `hook` iba vacio y solo se indexaban titulo y autor)."""
+    palabras_ = _cuerpo(texto).split()
+    if not palabras_:
+        return ""
+    cuerpo = " ".join(palabras_[:maximo + 1])
+    fin = 0
+    for m in _FIN_DE_FRASE.finditer(cuerpo):
+        n = len(cuerpo[:m.end()].split())
+        if n > maximo:
+            break
+        fin = m.end()
+        if n >= minimo:
+            break
+    if fin:
+        return cuerpo[:fin]
+    return " ".join(palabras_[:maximo]) + ("…" if len(palabras_) > maximo else "")
+
+
+def huella_de_busqueda(temas_, texto, gancho_, palabras=HUELLA_PALABRAS):
+    """Los temas y las `palabras` que siguen al gancho. De los temas se quita el
+    «reading level N» del editor: no dice de que va el texto y es igual en miles
+    de filas. Los temas van delante porque el modelo corta a 128 tokens."""
+    tema = re.sub(r"\s*reading level \S+", "", str(temas_ or "")).strip()
+    resto = _cuerpo(texto).split()[len(gancho_.rstrip("…").split()):]
+    return (tema + ". " + " ".join(resto[:palabras])).strip()
+
+
+def pistas_de_busqueda(df):
+    """Rellena `hook` y `huella_texto`, que `Catalogo._texto_indexable` junta con
+    titulo y autor para el vector de busqueda."""
+    df["hook"] = df["texto"].map(gancho)
+    df["huella_texto"] = [huella_de_busqueda(t, x, g)
+                          for t, x, g in zip(df["temas"], df["texto"], df["hook"])]
+    return df
+
+
+def embeddings_por_partes(cat, carpeta=DIR_PARTES_EMB, parte=PARTE_EMB, salida=print):
+    """Los embeddings del externo de `cat`, de `parte` en `parte` filas, cada parte
+    guardada en disco al acabar: si se corta, la siguiente ejecucion sigue por la
+    primera que falte. Devuelve (matriz, nombre del .npy que busca el catalogo)."""
+    import numpy as np
+    textos, huella = cat._externo_indexable()
+    nombre = f"catalogo_emb_ext_{huella}.npy"
+    destino = Path(carpeta) / huella
+    destino.mkdir(parents=True, exist_ok=True)
+    trozos = []
+    for k, i in enumerate(range(0, len(textos), parte)):
+        lote = textos[i:i + parte]
+        ruta = destino / f"parte_{k:04d}.npy"
+        if ruta.exists():
+            emb = np.load(ruta)
+            if len(emb) == len(lote):
+                trozos.append(emb)
+                continue
+        emb = np.asarray(cat._modelo_emb().encode(lote, normalize_embeddings=True, batch_size=64,
+                                                  show_progress_bar=False), dtype=np.float32)
+        temporal = ruta.with_suffix(".tmp.npy")
+        np.save(temporal, emb)
+        temporal.replace(ruta)
+        trozos.append(emb)
+        salida(f"  embeddings: {i + len(lote)} de {len(textos)}")
+    return np.vstack(trozos), nombre
+
+
 def temas(fuente, f):
     if fuente == "storyweaver":
         return f"Children's stories; StoryWeaver reading level {f.get('nivel_editor')}"
@@ -169,7 +252,13 @@ def cargar(tope):
         n = 0
         for linea in ruta.open(encoding="utf-8"):
             f = json.loads(linea)
-            if not f.get("al_catalogo", fuente == "storyweaver"):
+            # StoryWeaver no trae `al_catalogo`: entra solo si su registro dice
+            # una licencia libre. Antes se le presumia «CC BY 4.0» si faltaba, y
+            # `licencia_libre` recibia la presumida (auditoria cruzada de e6, M3).
+            al_catalogo = f.get("al_catalogo")
+            if al_catalogo is None and fuente == "storyweaver":
+                al_catalogo = licencia_libre(f.get("licencia"), f)
+            if not al_catalogo:
                 continue
             texto = parrafos(f.get("texto"))
             if not texto:
@@ -179,13 +268,12 @@ def cargar(tope):
                 "fuente": fuente, "id": identificador(fuente, f), "title": f.get("titulo") or "",
                 "author": ", ".join(a for a in (f.get("autores") or []) if a)
                           or {"voa": "VOA Learning English"}.get(fuente, ""),
-                "licencia": f.get("licencia") or ("CC BY 4.0" if fuente == "storyweaver" else ""),
+                "licencia": f.get("licencia") or "",
                 "atribucion": atribucion(fuente, f), "url": f.get("url") or "",
                 "nivel_editor": None if nivel in (None, "", "None") else str(int(float(nivel))),
                 "temas": temas(fuente, f), "texto": texto,
                 "palabras": len(words(texto)),
-                "_libre": licencia_libre(
-                    f.get("licencia") or ("CC BY 4.0" if fuente == "storyweaver" else ""), f),
+                "_libre": licencia_libre(f.get("licencia"), f),
             })
             n += 1
             if tope and n >= tope:
@@ -233,12 +321,16 @@ def main():
     print(f"textos libres: {len(df)} | por fuente: {df['fuente'].value_counts().to_dict()}")
     df = puntuar(df)
     fuera = df[df["dificultad"].isna()]
+    cola = len(df.attrs.get("cola_sin_medir", []))
     df = df[df["dificultad"].notna()].copy()
     print(f"medidos: {len(df)} (texto {int((df['medida'] == 'texto').sum())}, "
-          f"bloque {int((df['medida'] == 'bloque').sum())}) | sin medida, fuera: {len(fuera)}")
+          f"bloque {int((df['medida'] == 'bloque').sum())}) | sin medida, fuera: {len(fuera)} "
+          f"({len(fuera) - cola} por el filtro de prosa, {cola} en grupos de menos de "
+          f"{scoring.MIN_WORDS} palabras)")
 
     df["nivel_cefr"] = df["dificultad"].map(lambda d: scoring.anchor_cefr(float(d) * 2.5))
-    df["hook"], df["huella_texto"], df["downloads"], df["capitulos"] = "", "", 0, 1
+    df["downloads"], df["capitulos"] = 0, 1
+    pistas_de_busqueda(df)
     columnas = ["id", "title", "author", "hook", "huella_texto", "nivel_cefr", "downloads",
                 "dificultad", "palabras", "ventanas", "capitulos", "temas",
                 "fuente", "licencia", "atribucion", "url", "nivel_editor", "medida"]
@@ -253,22 +345,21 @@ def main():
     # donde los recoge el despliegue. Sin este paso se calculaban en el primer
     # arranque del Space (2 vCPU) o en la primera busqueda, y en la cache, no
     # en la raiz. Los de Gutenberg ya estan y no se tocan.
+    # Por partes en CPU (corpus_graduado/embeddings_externo/<huella>/), con el
+    # nombre que buscara `Catalogo.embeddings`, y en la cache y en la raiz.
     if not args.sin_embeddings:
-        import shutil
+        import numpy as np
         import catalogo as cat_mod
         cat = cat_mod.Catalogo(cat_mod.CSV_MEDIDO)
+        ext, nombre = embeddings_por_partes(cat)
+        for carpeta in (cat_mod.DIR_CACHE, RAIZ):
+            for viejo in carpeta.glob("catalogo_emb_ext_*.npy"):
+                if viejo.name != nombre:
+                    viejo.unlink()
+            np.save(carpeta / nombre, ext)
         emb = cat.embeddings
-        nuevos = sorted(cat_mod.DIR_CACHE.glob("catalogo_emb_ext_*.npy"),
-                        key=lambda p: p.stat().st_mtime)
-        if not nuevos:
-            sys.exit("No se genero el .npy del externo")
-        ultimo = nuevos[-1]
-        for viejo in RAIZ.glob("catalogo_emb_ext_*.npy"):
-            if viejo.name != ultimo.name:
-                viejo.unlink()
-        shutil.copy2(ultimo, RAIZ / ultimo.name)
         print(f"embeddings: {emb.shape[0]} filas ({cat._n_propio} de Gutenberg + "
-              f"{emb.shape[0] - cat._n_propio} externas) -> {ultimo.name}")
+              f"{ext.shape[0]} externas) -> {nombre}")
 
 
 if __name__ == "__main__":

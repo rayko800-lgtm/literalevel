@@ -13,9 +13,13 @@ Una lectora B1 buscó «amor» y los primeros resultados fueron:
 - «Love story», con el título en inglés y el cuento en coreano;
 - un cuento en hindi y otro en turco;
 - «bumbumyj,jc».
-Sin gancho ni texto real, el vector de búsqueda de esas filas es casi solo el de sus
-temas («Children's stories; StoryWeaver reading level N»), y ese vector se parece a
-cualquier consulta.
+La causa no era la que decía aquí («el vector es casi solo el de sus temas»). La
+auditoría cruzada de e6 recalculó la huella del `.npy` externo (c0de66f8d3dfff21):
+en los 15.357 textos libres `hook` y `huella_texto` estaban vacíos y los temas no se
+indexan, así que el vector salía solo de «título. autor.». Un título como «edws» o
+«Love story» no dice nada del texto que hay debajo, y nada lo contrarrestaba. Marcar
+estos textos sigue haciendo falta aunque el vector lleve el texto: un cuento en coreano
+o «hrrr» no es lectura en inglés para nadie.
 
 LAS DOS REGLAS, MEDIDAS SOBRE LOS 15.357 TEXTOS DEL 14 SEP
 - Menos de MIN_DISTINTAS palabras distintas en alfabeto latino: texto vacío, de

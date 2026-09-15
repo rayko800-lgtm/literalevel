@@ -290,13 +290,25 @@ def reglas_lfs_que_faltan(api, cambian):
     return [l for l in necesarias if l.split()[0] not in patrones], actual
 
 
+def _texto_de_parquet(fuente):
+    """Todas las celdas de un parquet, descomprimidas, en un solo texto."""
+    import pandas as pd
+    df = pd.read_parquet(fuente)
+    return "\n".join(df[c].astype(str).str.cat(sep="\n") for c in df.columns)
+
+
 def revisar(ruta, rel, contenido=None):
     # Un binario no lleva credenciales en texto, y leido como texto puede dar un
     # falso positivo que bloquee el despliegue. El parquet del corpus abierto SI
-    # se escanea: lleva texto plano dentro.
+    # se escanea, pero DESCOMPRIMIDO: leido como bytes, Snappy cambia una cadena
+    # repetida por una referencia atras, y con gzip o zstd no queda nada legible
+    # (auditoria cruzada de e6, D1).
     if rel.endswith(".mp3"):
         return
-    if contenido is None:
+    if rel.endswith(".parquet"):
+        import io
+        texto = _texto_de_parquet(ruta if contenido is None else io.BytesIO(contenido))
+    elif contenido is None:
         with open(ruta, encoding="utf-8", errors="replace") as f:
             texto = f.read()
     else:

@@ -172,8 +172,11 @@ def sin_licencia(texto: str) -> str:
 # daba 0,349 con ella y 0,007 sin ella, que es lo que dice el catalogo
 # (prueba como persona, 14 sep 2026). Solo el ULTIMO parrafo, y solo si nombra
 # una de las cuatro bibliotecas.
+# Tras un parrafo en blanco o al principio: un texto libre sin cuerpo (SWV137935,
+# solo contadores de pagina y U+FEFF) llega aqui como la atribucion sola, porque
+# `sin_licencia` quita los saltos de delante, y se quedaba entera como texto.
 _ATRIBUCION_LIBRE = re.compile(
-    r"\n\s*\n\s*«[^»\n]{1,300}»[^\n]{0,600}?"
+    r"(?:\A|\n\s*\n)\s*«[^»\n]{1,300}»[^\n]{0,600}?"
     r"(?:StoryWeaver|African Storybook Project|Let's Read|VOA Learning English)"
     r"[^\n]*\s*$")
 

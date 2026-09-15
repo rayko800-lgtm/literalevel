@@ -441,6 +441,8 @@ def _atribucion_fuera_al_medir():
         texto = cuerpo + "\n\n" + a
         assert ficha.para_medir(texto) == cuerpo, f"no quita: {a[:40]}"
         assert ficha.sin_licencia(texto) == texto, "sin_licencia no debe quitarla: el lector la ensena"
+        # Un texto sin cuerpo: el servido es "\n\n" + atribucion (SWV137935).
+        assert ficha.para_medir("\n\n" + a) == "", f"sin cuerpo, la atribucion se queda como texto: {a[:40]}"
     # Lo que no es la atribucion final se queda.
     cita = cuerpo + "\n\n«Run!» she said, and StoryWeaver was never mentioned again in the tale."
     assert ficha.para_medir(cita + "\n\nThe end.") == cita + "\n\nThe end.", "se come un parrafo que no es el ultimo"
@@ -552,6 +554,30 @@ def _busqueda_relevancia_antes_que_nivel():
 
 
 prueba("al buscar, el titulo gana y el nivel solo ordena lo relevante", _busqueda_relevancia_antes_que_nivel)
+
+
+def _buscar_llena_n_con_excluidos_delante():
+    """Auditoria cruzada de e6 (M1): `buscar` solo miraba `orden[:n * 3]`. Con mas
+    de 2n excluidos en esos puestos devolvia menos de n habiendo validos debajo."""
+    s = [0.95, 0.94, 0.93, 0.92, 0.91, 0.90, 0.60, 0.59]
+    emb = np.array([[x, (1 - x * x) ** 0.5] for x in s], dtype=np.float32)
+    df = pd.DataFrame({
+        "id": [f"SWV{i}" for i in range(8)], "title": [f"Cuento {i}" for i in range(8)],
+        "author": [""] * 8, "nivel_cefr": ["A2"] * 8, "hook": [""] * 8, "downloads": [0] * 8,
+        "dificultad": [0.5] * 8})
+    cat = object.__new__(cm.Catalogo)
+    cat.df = df
+    cat._emb = emb
+    cat._fichas = None
+    cat._excl = np.array([True] * 6 + [False] * 2)      # los seis mas parecidos no son lectura
+    cat._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+        lambda x, **k: np.array([[1.0, 0.0]], dtype=np.float32))})()
+    ids = [l.id for l in cat.buscar("zzqx", n=2)[0]]
+    assert ids == ["SWV6", "SWV7"], f"con los 6 primeros excluidos y n=2: {ids}"
+    return f"n=2 con seis excluidos delante: {ids}"
+
+
+prueba("buscar llena n aunque los primeros esten excluidos", _buscar_llena_n_con_excluidos_delante)
 
 
 def _correccion_se_aplica_al_cargar():
@@ -667,6 +693,153 @@ def _medicion_reanudable_y_mismo_reparto():
 
 
 prueba("la medicion del corpus es reanudable y reparte como el catalogador", _medicion_reanudable_y_mismo_reparto)
+
+
+def _cargar_medidor():
+    spec = importlib.util.spec_from_file_location("medir_corpus", "tools/medir_corpus.py")
+    mc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mc)
+    return mc
+
+
+def _cola_de_grupo_medida_o_contada():
+    """Auditoria cruzada de e6 (14 sep 2026): lo que sobraba por debajo de 250
+    palabras al acabar un grupo se tiraba sin medir. 16 textos salian del
+    catalogo contados junto a los rechazos del filtro de prosa."""
+    mc = _cargar_medidor()
+    ids = ["SWV10", "SWV11", "SWV12", "SWV20", "SWV21", "SWV22", "SWV23", "SWV30"]
+    niveles = ["1", "1", "1", "2", "2", "2", "2", "3"]
+    palabras = [120, 140, 100, 130, 130, 80, 90, 60]
+    df = pd.DataFrame({"fuente": ["storyweaver"] * 8, "id": ids, "nivel_editor": niveles,
+                       "texto": [f"w{i} " * n for i, n in enumerate(palabras)], "palabras": palabras})
+    p = _PuntuadorFalso()
+    df, completo = mc.medir(df, puntuador=p, carpeta=_nuevo() / "medidas", salida=lambda *a: None)
+    fila = df.set_index("id")
+    assert completo
+    # Nivel 1: bloque [10, 11] de 260 y cola [12] de 100, por debajo de MIN_WORDS: se une.
+    assert fila.loc["SWV12", "medida"] == "bloque", "la cola corta del grupo se quedo sin medir"
+    assert fila.loc["SWV10", "dificultad"] == fila.loc["SWV12", "dificultad"] == 0.36, fila["dificultad"].tolist()
+    # Nivel 2: bloque [20, 21] de 260 y cola [22, 23] de 170: se mide sola.
+    assert fila.loc["SWV20", "dificultad"] == 0.26 and fila.loc["SWV22", "dificultad"] == fila.loc["SWV23", "dificultad"] == 0.17, \
+        fila["dificultad"].tolist()
+    # Nivel 3: 60 palabras en todo el grupo; no se puede medir y se cuenta aparte.
+    assert pd.isna(fila.loc["SWV30", "dificultad"]) and df.attrs["cola_sin_medir"] == ["SWV30"], df.attrs
+    return "cola corta unida al ultimo bloque, cola de 170 sola, grupo de 60 palabras contado aparte"
+
+
+prueba("la cola de cada grupo se mide o se cuenta aparte", _cola_de_grupo_medida_o_contada)
+
+
+def _clave_de_medida_con_modelo():
+    """Auditoria cruzada de e6: con otro modelo, lo medido no puede reutilizarse.
+    Lo medido antes de meter la huella en la clave vale solo con el v4."""
+    mc = _cargar_medidor()
+    carpeta = _nuevo() / "medidas"
+    texto = "a story " * 200
+
+    def tabla():
+        return pd.DataFrame({"fuente": ["voa"], "id": ["VOA1"], "nivel_editor": [None],
+                             "texto": [texto], "palabras": [400]})
+
+    def llamadas(modelo):
+        p = _PuntuadorFalso()
+        df, _ = mc.medir(tabla(), puntuador=p, carpeta=carpeta, salida=lambda *a: None, modelo=modelo)
+        return p.llamadas, float(df["dificultad"].iloc[0])
+
+    assert llamadas("modelo-A")[0] == 1 and llamadas("modelo-A")[0] == 0
+    assert llamadas("modelo-B")[0] == 1, "con otro modelo reutilizo la medida"
+    viejo = carpeta.parent / "legado"
+    viejo.mkdir()
+    (viejo / "medidas_0000.jsonl").write_text(json.dumps(
+        {"clave": mc.clave("texto", ["VOA1"], texto), "tipo": "texto", "ids": ["VOA1"],
+         "dificultad": 1.234, "ventanas": 2, "error": None}) + "\n", encoding="utf-8")
+    carpeta = viejo
+    assert llamadas("otro") == (1, 0.4), "una medida sin modelo se reutilizo con otro modelo"
+    assert llamadas(mc.HUELLA_V4) == (0, 1.234), "la medida del v4 anterior a la huella no se reutilizo"
+    guardadas = [json.loads(l) for r in viejo.glob("medidas_*.jsonl") for l in r.open(encoding="utf-8")]
+    assert any(g.get("modelo") == mc.HUELLA_V4 and g["dificultad"] == 1.234 for g in guardadas), guardadas
+    return "mismo modelo reutiliza, otro vuelve a medir; lo de antes solo con el v4, y se reescribe"
+
+
+prueba("la clave de medida cambia con el modelo", _clave_de_medida_con_modelo)
+
+
+def _catalogador_aqui():
+    """Como `_cargar_catalogador`, que se define mas abajo y aun no existe aqui."""
+    spec = importlib.util.spec_from_file_location("catalogar_corpus", "tools/catalogar_corpus.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _pistas_de_busqueda_de_los_libres():
+    """Auditoria cruzada de e6 (14 sep 2026): en los 15.357 libres `hook` y
+    `huella_texto` iban vacios y el vector salia solo de titulo y autor. Los
+    fixtures de este archivo tenian el mismo punto ciego: todos con hook ""."""
+    cc = _catalogador_aqui()
+    atribucion = "\n\n«Chunchun» de X, publicado en StoryWeaver (Pratham Books) con licencia CC BY 4.0: https://x"
+    texto = ("Chunchun was a little girl just like you.\n\nChunchun loved making things. One day, "
+             "Chunchun decided to make an umbrella! She picked a piece of paper.")
+    df = pd.DataFrame({"texto": [texto + atribucion, "word " * 50, ""],
+                       "temas": ["Children's stories; StoryWeaver reading level 2",
+                                 "VOA Learning English; As It Is", "Children's stories; Let's Read reading level 1"]})
+    cc.pistas_de_busqueda(df)
+    hook, huella = df["hook"].tolist(), df["huella_texto"].tolist()
+    assert hook[0] == "Chunchun was a little girl just like you. Chunchun loved making things.", hook[0]
+    assert huella[0].startswith("Children's stories; StoryWeaver. One day, Chunchun decided"), huella[0]
+    assert "reading level" not in huella[0] and "licencia" not in huella[0] + hook[0], (hook[0], huella[0])
+    assert hook[1] == " ".join(["word"] * 30) + "…" and huella[1].startswith("VOA Learning English; As It Is. word"), hook[1]
+    assert hook[2] == "", hook[2]
+
+    # Y en el catalogo que se despliega: texto indexable mas alla del titulo.
+    ruta = Path("catalogo_externo.csv")
+    if not ruta.exists():
+        return "gancho, huella y temas sin nivel del editor (sin catalogo_externo.csv en disco)"
+    ext = pd.read_csv(ruta, usecols=["title", "hook", "huella_texto"]).fillna("")
+    vacios = int((ext["hook"].str.strip() == "").sum())
+    assert vacios <= len(ext) // 100, f"{vacios} de {len(ext)} textos libres sin gancho en catalogo_externo.csv"
+    # Un cuento muy corto cabe entero en el gancho y su huella es solo el tema:
+    # lo que cuenta es cuanto texto hay entre los dos, ademas del titulo.
+    pistas = (ext["hook"] + " " + ext["huella_texto"]).str.split().map(len)
+    cortos = int((pistas < 8).sum())
+    assert cortos <= len(ext) // 100, f"{cortos} de {len(ext)} con menos de 8 palabras de pistas"
+    return f"gancho y huella en la prueba; en el catalogo, {vacios} sin gancho y {cortos} con menos de 8 palabras de {len(ext)}"
+
+
+prueba("los textos libres se buscan por su texto y sus temas, no solo por el titulo",
+       _pistas_de_busqueda_de_los_libres)
+
+
+def _embeddings_por_partes_reanudan():
+    import numpy as np
+    cc = _catalogador_aqui()
+    carpeta = _nuevo() / "partes"
+
+    class Modelo:
+        lotes = 0
+
+        def encode(self, lote, **k):
+            Modelo.lotes += 1
+            return np.array([[len(t), 1.0] for t in lote])
+
+    class Cat:
+        def _externo_indexable(self):
+            return ["a", "bb", "ccc", "dddd", "eeeee"], "h0"
+
+        def _modelo_emb(self):
+            return Modelo()
+
+    emb, nombre = cc.embeddings_por_partes(Cat(), carpeta=carpeta, parte=2, salida=lambda *a: None)
+    assert nombre == "catalogo_emb_ext_h0.npy" and Modelo.lotes == 3, (nombre, Modelo.lotes)
+    assert emb[:, 0].tolist() == [1, 2, 3, 4, 5], emb.tolist()
+    (carpeta / "h0" / "parte_0001.npy").unlink()             # un corte: falta la parte del medio
+    Modelo.lotes = 0
+    emb2, _ = cc.embeddings_por_partes(Cat(), carpeta=carpeta, parte=2, salida=lambda *a: None)
+    assert Modelo.lotes == 1 and emb2.tolist() == emb.tolist(), (Modelo.lotes, emb2.tolist())
+    return "tres partes; tras perder una, solo recalcula esa y el resultado es el mismo"
+
+
+prueba("los embeddings del externo se calculan por partes reanudables", _embeddings_por_partes_reanudan)
 
 
 # --- 2. El lector ---------------------------------------------------------------
@@ -825,6 +998,31 @@ def _respeta_al_catalogo_falso():
 prueba("lo interno no entra al catalogo", _respeta_al_catalogo_falso)
 
 
+def _storyweaver_sin_licencia_no_entra():
+    """Auditoria cruzada de e6 (M3): a StoryWeaver se le presumia «CC BY 4.0» si
+    faltaba el campo, y la barrera de licencias recibia la presumida."""
+    cc = _cargar_catalogador()
+    ruta = _nuevo() / "libros.jsonl"
+    filas = [
+        {"id": 1, "titulo": "Con licencia", "licencia": "CC BY 4.0", "nivel_editor": "1",
+         "url": "https://storyweaver.org.in/x/1", "texto": "A free story. " * 60},
+        {"id": 2, "titulo": "Sin licencia", "nivel_editor": "1",
+         "url": "https://storyweaver.org.in/x/2", "texto": "A story without a licence. " * 60},
+    ]
+    ruta.write_text("\n".join(json.dumps(f) for f in filas), encoding="utf-8")
+    cc.FUENTES = {"storyweaver": ruta}
+    try:
+        df = cc.cargar(None)
+    except SystemExit as e:
+        raise AssertionError(f"el registro sin licencia llego hasta la barrera: {e}")
+    assert df["id"].tolist() == ["SWV1"], df["id"].tolist()
+    assert df["licencia"].tolist() == ["CC BY 4.0"], df["licencia"].tolist()
+    return "el de StoryWeaver sin licencia se queda fuera sin abortar; el CC BY 4.0 entra"
+
+
+prueba("un libro de StoryWeaver sin licencia no entra al catalogo", _storyweaver_sin_licencia_no_entra)
+
+
 def _dominio_publico_con_excepcion():
     """El otro caso de Codex: una etiqueta que empieza por "dominio publico" pero
     declara material de agencia no puede colarse aunque venga al_catalogo."""
@@ -896,6 +1094,38 @@ def _credenciales_sin_falsos_positivos():
 
 
 prueba("el detector de credenciales no confunde URLs con claves", _credenciales_sin_falsos_positivos)
+
+
+def _credencial_dentro_de_un_parquet_comprimido():
+    """Auditoria cruzada de e6 (D1): el parquet se escaneaba como bytes. Con gzip
+    no queda nada legible, y con Snappy una cadena repetida pasa a referencia."""
+    spec = importlib.util.spec_from_file_location("desplegar_app", "tools/desplegar_app.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    carpeta = _nuevo()
+    clave = "sk-proj-" + "Z9y8X7w6" * 4
+    textos = ["Once upon a time there was a quiet harbour. " * 40,
+              "The boat drifted slowly. " * 30 + f' OPENAI_API_KEY="{clave}" ' + "The end. " * 30]
+    salta = []
+    for compresion in ("gzip", "snappy"):
+        ruta = carpeta / f"corpus_{compresion}.parquet"
+        pd.DataFrame({"id": ["A", "B"], "texto": textos}).to_parquet(ruta, compression=compresion, index=False)
+        for contenido in (None, ruta.read_bytes()):
+            try:
+                mod.revisar(str(ruta), "corpus_abierto.parquet", contenido)
+            except SystemExit as e:
+                salta.append("credencial" in str(e))
+            else:
+                salta.append(False)
+    assert all(salta) and len(salta) == 4, f"no salta la clave dentro del parquet: {salta}"
+    limpio = carpeta / "limpio.parquet"
+    pd.DataFrame({"id": ["A"], "texto": [textos[0]]}).to_parquet(limpio, compression="gzip", index=False)
+    mod.revisar(str(limpio), "corpus_abierto.parquet", limpio.read_bytes())
+    return "la clave salta en gzip y snappy, desde disco y desde los bytes del commit; el limpio pasa"
+
+
+prueba("una credencial dentro de un parquet comprimido tambien salta",
+       _credencial_dentro_de_un_parquet_comprimido)
 
 
 print()
