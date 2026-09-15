@@ -143,6 +143,6 @@ dar el permiso en una sesión.
 | ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
 | ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
-| Reinicio 29: título en consultas largas («Historias de amor», «Terror gótico»), «rosa» y «luna» con B1, erratas en títulos | f4 | después del 28 |
+| Reinicio 29: «rosa» y «luna» con B1, erratas en títulos, menores de búsqueda y cuentas. El título en consultas largas se midió y **no se cambia**: ninguna variante ganó en la calibración; «Historias de amor» y «Terror gótico» quedan como límite declarado | f4 | en curso |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
