@@ -1058,3 +1058,9 @@ Vuelta atrás al 28 comprobada también por f4: las 257 listas del Space 62e5a06
 - **Decisión de la central:** límite declarado. Con perfil, «dostoyevski», «tolstoy» o «cervantes» a secas marcan cuentos sin relación. El guion usa «Crimen y castigo de Dostoyevski».
 - **Para después de la entrega:** decidir «autor» por la consulta.
 - **Siguiente, el 30:** desempate determinista y MiniLM dentro del Space.
+
+Reinicio 30, primeros datos (f4, sin cambios todavía):
+- **Arranque:** el Space (cpu-basic) no tiene almacenamiento persistente ni `preload_from_hub`, así que baja MiniLM (471 MB) del Hub sin token en cada arranque.
+- **Propuesta aprobada:** 30a, solo con `preload_from_hub` en la cabecera del README del Space, comprobando que la caché del build es la que usa `_ruta_local` y midiendo `buscador_listo` en 2 reinicios.
+- **Aparte, 30b:** el desempate determinista, con puntuaciones redondeadas a 6 decimales y orden estable por fila, medido contra el 28. Solo pueden cambiar empates.
+- **Vistos buenos:** 4e antes de cada subida. Si el permiso de la sesión de f4 vuelve a bloquear, se le pide a Miguel en ese chat.
