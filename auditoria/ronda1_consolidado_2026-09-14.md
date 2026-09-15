@@ -332,3 +332,12 @@ Decisión de la central para el reinicio 23:
 - **Constantes:** fijadas antes de medir y calibradas con temas que no están en la batería.
 - **Visto bueno previo:** 4e aprueba catalogo.py y e6 el front.
 - **Después de subir:** volver a medir los chips y reescribir la frase del documento.
+
+La regla SALTO del front y «Robots» (e6, 94a1078; 70 búsquedas por 5 niveles contra 384a206):
+- **Resultado:** ningún valor de SALTO arregla «Robots» sin meter resultados sin relación.
+  - El hueco malo de «Familia» (0,058, con «Familiar Things» y «Midwifery») es menor que el bueno de «Robots» (0,075).
+  - El de «rosa» (0,096, malo) es mayor que el de «Superhéroes» (0,082, bueno).
+- **Decisión:** SALTO no se toca, y se vuelve a medir sobre el reinicio 23.
+- **Marca de la API:** e6 propone `por_franja`, siempre true o false, para que sin el campo el front se comporte igual que hoy.
+- **Pendiente entre f4 y e6:** una sola definición de la franja, ±0,25 o −0,45 a +0,45.
+- **Riesgos a medir en el 23:** ACTION PART-1 como mejor de la franja con B1, la meseta «Familiar» en Familia C1 y «rosa» de A1 a B1. Hace falta un suelo absoluto.
