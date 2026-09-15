@@ -147,6 +147,8 @@ dar el permiso en una sesión.
 - **Paso 3:** buscar «Crimen y castigo de Dostoyevski» (no «dostoyevski» a
   secas, que hoy enseña cuentos sin relación). Repetirlo con tu cuenta antes de
   grabar.
+- **Tras un reinicio del Space, espera un minuto** antes de la búsqueda de prueba
+  (un arranque tardó 45 s en tener el buscador listo).
 - **Antes de compartir pantalla:** una búsqueda con el perfil guardado (si el Space acaba de
   reiniciarse, esperar medio minuto; después cada búsqueda tarda menos de 1 s), abrir una vez la
   boca 3D, y grabar una frase en voz baja desde el móvil para ver que no sale
@@ -191,6 +193,6 @@ dar el permiso en una sesión.
 | ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
 | ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
-| ~~Reinicio 29: consultas de autor con perfil~~ | subido y **vuelto atrás al 28** (Space 62e5a06, autorizado por Miguel) | quitaba cuentos de su nivel a «león», «brown», «hope» y «animales de la granja» con el perfil 1,20; se mide otra vía (i7). El paso 3 del guion no depende de esto |
+| ~~Reinicio 29: consultas de autor con perfil~~ | subido y **vuelto atrás al 28** (Space 62e5a06, autorizado por Miguel, verificado por 4e: las 33 listas de control idénticas al 28) | quitaba cuentos de su nivel a «león», «brown», «hope» y «animales de la granja» con el perfil 1,20; se mide otra vía (i7). El paso 3 del guion no depende de esto |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
