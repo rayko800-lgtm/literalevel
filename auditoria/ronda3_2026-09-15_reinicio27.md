@@ -104,3 +104,30 @@ Sondeo de `/api/salud` cada ~3 s durante 90 s desde que la API de Hugging Face d
 - **tolstoy:** vuelve al top 10 del 26 (10 de 10, con y sin perfil). Sin perfil abre otra vez con «My Visit to Tolstoy», como aceptó la Central.
 - **Tiempos:** la más lenta fue «cervantes» con B1, 1.050 ms; todas las demás, entre 375 y 840 ms. Ninguna pasa de 2 s.
 - **`buscador_listo`:** `true` entre los 13,6 y los 16,7 s tras RUNNING; `catalogo`, `true` desde el primer sondeo. Arrancó antes que en el 27 (23,1-26,3 s), así que el «medio minuto» del punto 8 del guion sigue siendo holgado.
+
+## Reinicio 29 (`5ab6832`, desde `7e2b861`): las consultas de autor ya no añaden cuentos por franja
+
+**Cómo se midió:**
+- Desde fuera, contra mi línea base del Space del 28 (`74f1484`, recogida antes de la subida, `i4_base28.json`).
+- 11 consultas × sin perfil, B1 (0,80) y 1,20, con `n: 24`, los bloques del front publicado y una búsqueda de calentamiento.
+- Se compara el top 10, el número de marcas `por_franja` y el bloque de *Crime and Punishment* (PG2554). El orden de la cola, puestos 11-24, no se compara, porque f4 avisó de que varía entre máquinas.
+- Guion `r29_space_vigia.mjs`, con salida en `r29_space.json` y `.log`.
+
+**Resultados:**
+- **Top 10:** igual al del 28, y en el mismo orden, en las **33 de 33** listas.
+- **Sin perfil:** 0 marcas antes y después en todas las consultas.
+- **Consultas de autor, marcas del 28 → 29:**
+
+| Consulta | B1 | 1,20 |
+|---|---|---|
+| Crimen y castigo de Dostoyevski | 4 → **0** | 0 → 0 |
+| dostoyevski | 13 → 1 | 15 → 3 |
+| cervantes | 12 → **0** | 12 → **0** |
+| dickens | 12 → **0** | 17 → 5 |
+
+  - Las marcas que quedan en «dostoyevski» con 1,20 son rusos que ya estaban entre los 24 (*Verotchka's Tales*, *The Precipice*, *Makar's Dream*). Ya no quedan «Books» ni «Story Chikkappa».
+  - Aun así, «dostoyevski» con 1,20 deja una tarjeta en «En tu nivel», así que no da el aviso de «no hay libros en tu nivel». El paso 3 sigue con «Crimen y castigo de Dostoyevski».
+- **Paso 3 de la demo:** «Crimen y castigo de Dostoyevski» con 1,20 deja «En tu nivel» y «Un poco por encima» vacíos, con *Crime and Punishment* **el primero de «De otros niveles»**, igual que en el 28. Con B1 queda igual y ya sin las 4 marcas.
+- **«school» y las de control** (books, library, grade, public, team, children), con B1 y con 1,20: mismas marcas que en el 28 (de 7 a 18 cada una) y los mismos bloques. La regla no toca las consultas que no abren con un libro de Gutenberg rescatado por su autor, y «school» sigue abriendo con «The Polymath School».
+- **Tiempos:** entre 378 y 1.039 ms; solo «public» pasa de 1 s (1.005 y 1.039 ms), y ninguna llega a 2 s.
+- **`buscador_listo`:** `true` entre los 15,8 y los 19,0 s tras RUNNING.
