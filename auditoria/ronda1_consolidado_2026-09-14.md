@@ -294,3 +294,7 @@ Comprobación de los guiones corregidos (e6, feeb806; front ec957d0, Space 384a2
 - **La boca 3D:** ahora tarda 2,1 s la primera vez.
 - **Quedan retoques (4e):** el título y la entrada de la sección «Antes de…», dos notas viejas en guion_video.md y tres menciones a un front antiguo en el documento y la estrategia.
 - **«cap. 1» del prefacio:** es coherente con el resto de la app, que numera el prefacio como 1. Mostrar el título del capítulo es una mejora para el 23, no un arreglo urgente.
+
+Anexo de la ronda 3 del front (4e, 02cc538), sobre el front ec957d0:
+- **Cerrado y verificado:** una sola bajada de cada .glb, la guarda de three con su comentario, los bordes exactos en milésimas y los 8 chips con las cifras del commit de e6 en la página, con perfiles A2 y B1.
+- **Nota:** dos chips traen alguna tarjeta floja. «Child safety» sale con «Cuentos de miedo para niños» y «A visit to the zoo» con «Animales de la selva». Es el catálogo, no la regla.
