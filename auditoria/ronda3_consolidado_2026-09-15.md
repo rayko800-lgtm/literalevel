@@ -108,8 +108,16 @@ digan qué hace cada cosa». Es la segunda persona, después de Esmeralda, que n
 entiende sola para qué sirve cada pantalla. e6 recorre el front publicado como
 alguien que llega por primera vez y propone dos formas de ayuda con esquema (una
 bienvenida de pocos pasos que se puede saltar, o una frase de ayuda por
-pantalla) para que Miguel elija antes de programar. Falta saber en qué pantalla
-se perdió Ismael.
+pantalla) para que Miguel elija antes de programar.
+
+En una segunda nota concretó dos cosas. **El micrófono:** con la sesión
+iniciada, pulsó grabar y no pasó nada visible ni empezó la grabación. Puede ser
+un fallo, por ejemplo si abrió el enlace desde WhatsApp, cuyo navegador interno
+no suele permitir el micrófono; e6 revisa qué ve el usuario en cada caso
+(permiso negado, navegador sin micrófono, grabación sin audio) y propone el
+aviso que falte. **La saturación:** textos largos y mucho scroll antes de saber
+qué hacer; entra en las propuestas de ayuda. Falta saber qué teléfono y qué
+navegador usó.
 
 ## Un incidente con una contraseña
 
