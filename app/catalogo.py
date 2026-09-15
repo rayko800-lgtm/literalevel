@@ -233,11 +233,6 @@ _PARECIDO_TITULO = 0.9
 # Prejudice quedaban detrás (solo el apellido, 0,793), empatadas con Sidney Austen y
 # con «Calamity Jane» (prueba como persona de e6, 15 sep 2026).
 _EXTRA_AUTOR_COMPLETO = 0.02
-# A igual rescate, el autor gana al titulo (Central, reinicio 27): «tolstoy» empataba a 0,856 sus obras
-# (apellido exacto) con «My Visit to Tolstoy» o «The Life of Tolstoy» (titulo exacto), y desempataba el tema,
-# que MiniLM da mas alto a los libros SOBRE el. Pequeno a proposito: menor que MARGEN_NOMBRE (0,02), asi que no
-# saca a nadie de la ventana de nombres, y menor que _EXTRA_AUTOR_COMPLETO, asi que el nombre entero sigue mandando.
-_EXTRA_AUTOR_SOBRE_TITULO = 0.005      # solo al primer autor del campo, no a colaboradores ni traductores
 # La compuerta de tema (MARGEN_SEMANTICO_NOMBRE) no apaga a un autor con al menos este numero de obras cuando la
 # consulta trae su apellido exacto (Central, reinicio 27). MiniLM casi no une «cervantes», «dante», «moliere» o
 # «agatha christie» con sus libros (tema 0,24-0,52 frente a techos de 0,57-0,75 de libros de animales o
@@ -890,13 +885,6 @@ class Catalogo:
                 de_pila = set().union(*(pila_de.get(a, set()) for a in apellidos[i]))
                 if (pistas & de_pila) - enteros[i]:
                     por_apellido[i] = 0.0
-        # Solo si la palabra es apellido del PRIMER autor del campo: «rosa» como apellido de un colaborador
-        # («Kennedy, James; Martinez de la Rosa, Francisco») no puede pasar delante de los titulos con «Rosa».
-        if getattr(self, "_primeros", None) is None:
-            self._primeros = _fichas([_apellidos(str(a).split(";")[0]) for a in self.df["author"].tolist()])
-        for i in np.flatnonzero(por_apellido >= _PARECIDO_NOMBRE):
-            if pistas & self._primeros[i]:
-                por_apellido[i] += _EXTRA_AUTOR_SOBRE_TITULO
         completo = _titulo_completo(consulta, enteros)
         lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),
                                  np.where((completo > 0) & con_apellido & (len(pistas) > 1),
@@ -939,7 +927,9 @@ class Catalogo:
             if getattr(self, "_enteros_primero", None) is None:
                 self._enteros_primero = _fichas([_nombre_entero(str(a).split(";")[0]) for a in self.df["author"].tolist()])
             primero = np.zeros(len(lex), dtype=bool)
-            if pistas:
+            # Solo con dos palabras o mas (SERIO de 4e sobre el 27): con «london» o «king» sola, el apellido cabia
+            # entero en el nombre del autor y sus obras pasaban delante del nivel y del tema.
+            if len(pistas) >= 2:
                 for i in np.flatnonzero(nombre):
                     primero[i] = pistas <= self._enteros_primero[i]
             orden = np.lexsort((-clave, ~primero, ~(relevante | nombre), ~nombre))

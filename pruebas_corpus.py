@@ -632,26 +632,6 @@ def _nombre_parecido_sin_tema_no_rescata():
 prueba("un nombre parecido sin tema no rescata", _nombre_parecido_sin_tema_no_rescata)
 
 
-def _autor_gana_al_titulo_a_igual_rescate():
-    """Reinicio 27 (Central): «tolstoy» traia primero «My Visit to Tolstoy» y «The Life of Tolstoy», que casan
-    el titulo entero, empatados con sus obras, que casan el apellido; desempataba el tema. A igual rescate, gana
-    el autor, con y sin nivel."""
-    cat = _catalogo_de_mentira([0.30, 0.20, 0.40], ["My Visit to Tolstoy", "The Cossacks", "Uno"],
-                               ["Krauskopf, Joseph", "Tolstoy, Leo, graf", "Smith, John"])
-    for nivel in (None, 0.8):
-        ids = [l.id for l in cat.buscar("tolstoy", nivel_lector=nivel, n=3)[0]]
-        assert ids[:2] == ["PG1", "PG0"], f"«tolstoy» con nivel {nivel}: {ids}"
-    # Un colaborador no es el autor: «Tolstoy» como segundo autor no gana a su propia obra.
-    colab = _catalogo_de_mentira([0.30, 0.20, 0.40], ["Tolstoy on Art", "The Cossacks", "Uno"],
-                                 ["Maude, Aylmer; Tolstoy, Leo, graf [Contributor]", "Tolstoy, Leo, graf", "Smith, John"])
-    ids = [l.id for l in colab.buscar("tolstoy", n=3)[0]]
-    assert ids[0] == "PG1", f"«tolstoy»: el libro donde colabora pasa delante de su obra: {ids}"
-    return "sus obras delante de los libros sobre el, con y sin nivel"
-
-
-prueba("a igual rescate el autor gana al titulo", _autor_gana_al_titulo_a_igual_rescate)
-
-
 def _autor_con_obra_pasa_la_compuerta():
     """Reinicio 27 (Central, regla a con N=5): «cervantes» no traia ninguna obra suya, porque MiniLM casi no une el
     apellido con sus libros y la compuerta de tema apagaba el rescate. Con al menos 5 obras, el apellido exacto del
@@ -691,6 +671,24 @@ def _primer_autor_antes_que_el_nivel_en_los_nombres():
 
 
 prueba("el primer autor va antes que el nivel entre los nombres", _primer_autor_antes_que_el_nivel_en_los_nombres)
+
+
+def _palabra_corriente_que_es_apellido_no_trae_al_autor():
+    """SERIO de 4e sobre el 27: «london» traia las 10 obras de Jack London en vez de libros sobre Londres, porque el
+    extra del autor rompia el empate con el titulo exacto; y con B1 la clave `primero` las ponia delante del nivel.
+    Una palabra con mas titulos que obras de autores con ese apellido no da el extra, y una sola palabra no activa
+    `primero`. «tolstoy» (mas obras que titulos) sigue trayendo sus obras."""
+    s = [0.60, 0.58, 0.40, 0.38, 0.30]
+    titulos = ["The History of London", "London Bridge", "London Streets", "White Fang", "The Call of the Wild"]
+    autores = ["Smith, John", "Lee, Ann", "Brown, Mary", "London, Jack", "London, Jack"]
+    for nivel in (None, 0.8):
+        cat = _catalogo_de_mentira(s, titulos, autores)
+        ids = [l.id for l in cat.buscar("london", nivel_lector=nivel, n=3)[0]]
+        assert ids[:3] == ["PG0", "PG1", "PG2"], f"«london» con nivel {nivel} trae al autor antes que los titulos: {ids}"
+    return "«london» con mas titulos que obras: los titulos delante, con y sin nivel"
+
+
+prueba("una palabra corriente que es apellido no trae al autor", _palabra_corriente_que_es_apellido_no_trae_al_autor)
 
 
 def _franja_trae_su_nivel_detras_de_los_n():

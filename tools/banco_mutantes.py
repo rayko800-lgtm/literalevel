@@ -822,13 +822,6 @@ MUTANTES = [
     # Reinicio 27: la curva de un cuento de un solo capitulo (e6).
     ("C17-curva-una-fila-con-forma", "app/api.py",
      "    if len(filas) == 1:", "    if False:", "curva de un solo capitulo sin forma", "pruebas_api.py"),
-    # Reinicio 27, punto 1 (b): a igual rescate, el autor gana al titulo.
-    ("C18-autor-no-gana-al-titulo", "app/catalogo.py",
-     "                por_apellido[i] += _EXTRA_AUTOR_SOBRE_TITULO",
-     "                pass", "a igual rescate el autor gana al titulo", "pruebas_corpus.py"),
-    ("C18-colaborador-cuenta-como-autor", "app/catalogo.py",
-     "            if pistas & self._primeros[i]:", "            if True:",
-     "a igual rescate el autor gana al titulo", "pruebas_corpus.py"),
     # Reinicio 27, punto 1 (a): el apellido exacto de un autor con obra pasa la compuerta de tema.
     ("C19-sin-exencion-de-autor-con-obra", "app/catalogo.py",
      "            lex = np.where(self._autor_con_obra(pistas), lex, 0.0)", "            lex = np.zeros_like(lex)",
@@ -848,6 +841,10 @@ MUTANTES = [
      "            if not (_restar_ya_con_candado(b, cuenta) or True):", "devolucion sin cobro ni registro raro", "pruebas_api.py"),
     ("C13-devolucion-valor-raro-lanza", "app/cuentas.py",
      "            except (TypeError, ValueError):", "            except ():", "devolucion sin cobro ni registro raro", "pruebas_api.py"),
+    # Reinicio 28: la regresion del 27 (palabra corriente que es apellido).
+    ("C22-primero-con-una-palabra", "app/catalogo.py",
+     "            if len(pistas) >= 2:", "            if pistas:",
+     "una palabra corriente que es apellido no trae al autor", "pruebas_corpus.py"),
     ("C10-seudonimo-de-una-palabra", "app/catalogo.py",
      "                    if len(apellidos[i]) < 2 or not apellidos[i] <= pistas:",
      "                    if not apellidos[i] <= pistas:",
