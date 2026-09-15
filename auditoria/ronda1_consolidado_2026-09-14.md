@@ -1033,3 +1033,7 @@ Front bb31cf4 publicado (e6, e3f80e4): el micrófono se suelta si el permiso lle
 Tanda 1 de ayuda (e6, ad72c8d), a falta del ok de 4e: «Entrar» abre «Tu perfil» con el cursor en Usuario, la cabecera dice «Ajustes» y la tarjeta «Mídeme» ya no promete la estimación. ng test 110/110, el mutante cae y a 390 px nada queda tapado.
 
 Miguel escribió «Autorizo» en el chat de e6, otra vez en un chat que no despliega. e6 no lo aplica. La vuelta al 28 sigue pendiente de que la autorice en el chat de f4.
+
+**Vuelta atrás al 28 subida** (f4, con autorización de Miguel en su chat): Space 62e5a06, con el catalogo.py de b896b1f. f4 compara las 257 listas con el volcado del 28 y confirma el paso 3, y 4e lo comprueba desde fuera.
+
+Tanda 1 de ayuda: ok de 4e a ad72c8d. «Entrar» abre «Tu perfil» con el cursor en Usuario desde Pronunciar, la ficha y la hoja de la palabra, y «Mídeme» dice «Al final ves tu nivel». e6 la publica.

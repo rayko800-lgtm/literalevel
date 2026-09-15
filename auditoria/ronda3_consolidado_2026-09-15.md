@@ -17,7 +17,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
-| Motor (Space de Gradio) | reinicio 29, 5ab6832 (vuelta atrás pendiente de Miguel) (autor más título arreglado, anuncios de drogas fuera, silencio sin coste y con el uso devuelto, buscador precargado al arrancar, autores clásicos por apellido y «Jane Austen» con B1) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
+| Motor (Space de Gradio) | reinicio 28 restaurado, 62e5a06 (autor más título arreglado, anuncios de drogas fuera, silencio sin coste y con el uso devuelto, buscador precargado al arrancar, autores clásicos por apellido y «Jane Austen» con B1) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | bdfa418 | Tu nivel y Pronunciar nuevos (propuestas A elegidas por Miguel); boca 3D sin fuga y con una sola descarga; «Primero lo de tu nivel» con la franja; chips con amor y fantasmas; aviso «No te oí · Este intento no cuenta»; ficha de un solo capítulo sin gráfica vacía |
 | Documentos y guiones | 2a44731 y 5a3552a | coste de cómputo real; la frase del caso Esmeralda reescrita (no faltaba catálogo, fallaba la búsqueda: 114 cuentos libres de amor en B1); receta del perfil B2 sin «Me vale así» (en la sexta no elegir «Capto bien la idea»); textos de las pantallas A; «Antes de la demo» con voz baja desde el móvil y calentar el buscador |
 
@@ -160,7 +160,7 @@ dar el permiso en una sesión.
 - **Front:** bdfa418, con Tu nivel y Pronunciar nuevos, la ficha de un capítulo
   arreglada y el aviso «No te oí · Este intento no cuenta».
 - **Guion de la demo:** 800060e, con la receta B2 y «Antes de la demo».
-- **Consultas de autor con perfil (paso 3 original):** el arreglo del 29 quita cuentos a 4 temas con el perfil 1,20; la vuelta atrás está decidida pero pendiente de que Miguel la autorice. **La demo no depende de ello:** con el perfil B2 de la receta,
+- **Consultas de autor con perfil (paso 3 original):** el arreglo del 29 quita cuentos a 4 temas con el perfil 1,20; se volvió al 28 con autorización de Miguel. **La demo no depende de ello:** con el perfil B2 de la receta,
   buscar un autor como «dostoyevski» enseña primero cuentos libres sin
   relación («Books», «Story Chikkappa») en «En tu nivel», y ya no el aviso de
   que no hay libros de su nivel. Parece un efecto de la búsqueda por franja
@@ -191,6 +191,6 @@ dar el permiso en una sesión.
 | ~~Reinicio 26: buscador precargado al arrancar, devolución del uso con silencio (API y Gradio), voz sin TTS ni análisis sin voz~~ | hecho, Space 5c6f8d9 | invitado8 17 → 17 tras dos pruebas de silencio; primera búsqueda tras reiniciar, unos 30 s |
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
 | ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
-| Reinicio 29: consultas de autor con perfil | subido (Space 5ab6832); **vuelta atrás al 28 decidida pero bloqueada por permisos**: la tiene que autorizar Miguel | arregla los autores, pero con el perfil 1,20 quita cuentos de su nivel a «león», «brown», «hope» y «animales de la granja». El paso 3 del guion no depende de esto |
+| ~~Reinicio 29: consultas de autor con perfil~~ | subido y **vuelto atrás al 28** (Space 62e5a06, autorizado por Miguel) | quitaba cuentos de su nivel a «león», «brown», «hope» y «animales de la granja» con el perfil 1,20; se mide otra vía (i7). El paso 3 del guion no depende de esto |
 | Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | fin de semana del 19-20 |
 | Auditoría ciega del estado final | Codex | 19 de septiembre |
