@@ -638,6 +638,14 @@ def _autor_entero_delante_y_parciales_fuera():
          "Austen, Jane, 1775-1817", "Smith, John"])
     ids = [l.id for l in cat.buscar("Jane Austen", n=6)[0]]
     assert ids == ["PG1", "PG4", "PG0", "PG5", "PG3", "PG2"], f"«Jane Austen»: {ids}"
+    # Una sola palabra no es el nombre entero de nadie: «rosa» como apellido de un
+    # colaborador no puede pasar por delante de los títulos con «Rosa».
+    rosa = _catalogo_de_mentira(
+        [0.57, 0.29, 0.70],
+        ["Rosa Mundi and Other Stories", "Modern Poets and Poetry of Spain", "Roses: a Monograph of the Genus Rosa"],
+        ["Dell, Ethel M.", "Kennedy, James; Martinez de la Rosa, Francisco", "Andrews, Henry"])
+    ids = [l.id for l in rosa.buscar("rosa", n=3)[0]]
+    assert ids == ["PG2", "PG0", "PG1"], f"«rosa»: el apellido de un colaborador pasa delante de los títulos: {ids}"
     return "sus obras primero, el libro sobre ella despues; Sidney Austen y Calamity Jane solo por tema"
 
 

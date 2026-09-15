@@ -717,7 +717,11 @@ class Catalogo:
         titulos, apellidos, enteros, vocabulario = self._nombres
         por_apellido = _similitud_nombres(consulta, apellidos)
         # El nombre entero solo cuenta si incluye el apellido: «amor» es todo «Fenn, Amor»,
-        # pero es su nombre de pila, y un nombre de pila suelto no rescata.
+        # pero es su nombre de pila, y un nombre de pila suelto no rescata. Y solo con dos
+        # palabras o más: una sola palabra que es el apellido de un colaborador («rosa»
+        # en «Modern Poets and Poetry of Spain», por «Martínez de la Rosa») no es el nombre
+        # entero de nadie, y con el extra pasaba por delante de los títulos con «Rosa»
+        # (batería de buscador-encontrar, 15 sep 2026, antes de subir el 21).
         con_apellido = por_apellido >= _PARECIDO_NOMBRE
         # Un apellido suelto no puntúa si la consulta trae otro nombre que ese autor no
         # tiene: «Jane Austen» no es Sidney Austen ni «Calamity Jane».
@@ -729,7 +733,8 @@ class Catalogo:
                     por_apellido[i] = 0.0
         completo = _titulo_completo(consulta, enteros)
         lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),
-                                 np.where((completo > 0) & con_apellido, completo + _EXTRA_AUTOR_COMPLETO, 0.0)])
+                                 np.where((completo > 0) & con_apellido & (len(pistas) > 1),
+                                          completo + _EXTRA_AUTOR_COMPLETO, 0.0)])
         validos = ~self._excluidos
         con_nombre = (lex >= _PARECIDO_NOMBRE) & validos
         if con_nombre.any() and validos.any() and \
