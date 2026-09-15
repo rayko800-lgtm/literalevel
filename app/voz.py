@@ -413,6 +413,11 @@ def fijar_fonemas(correccion: Correccion | None,
             if o:
                 oidas.setdefault(_clave_palabra(o), []).append(dicho or "")
 
+    # DUDA abierta (e6, ronda 2), sin cambiar: si hay MENOS detalles que fallos de
+    # la misma palabra, el detalle se queda con la primera lectura, y si el modelo
+    # lo escribio por la segunda, el fonema no es el suyo. Se supone que el modelo
+    # sigue el orden de la frase y nada lo comprueba; cerrarlo pediria que el
+    # detalle diga que ocurrencia es, o no fijar fonema en ese caso.
     def siguiente(clave: str) -> str:
         cola = oidas[clave]
         return cola.pop(0) if len(cola) > 1 else cola[0]
@@ -968,7 +973,12 @@ def _etiquetador():
 
 
 def _verbo_detras(palabras: list[str], hasta: int) -> bool:
-    """Si la palabra que sigue a la posicion `hasta` es un verbo en forma base."""
+    """Si la palabra que sigue a la posicion `hasta` es un verbo en forma base.
+
+    DUDA abierta (e6, ronda 2), sin cambiar: «I am going to work» se reduce a
+    «gonna work», porque spaCy etiqueta «work» como VB, y lo habitual es «voy al
+    trabajo». Es ambiguo sin contexto. Cerrarlo pediria excluir los verbos que
+    tambien son destinos frecuentes tras «going to» (work, school, bed...)."""
     if hasta + 1 >= len(palabras):
         return False
     nlp = _etiquetador()
@@ -1072,6 +1082,10 @@ def _enlace_real(tipo: str, primera: str, segunda: str) -> bool:
 
 
 _FIN_DE_FRASE_RE = re.compile(r"[.?!;:…]+[\"'»”’)\]]*$")
+# El punto de un tratamiento no acaba la frase: «Mr. Adams» daba una frontera tras
+# «mr» y se perdia el enlace (e6, ronda 2). «on Baker St.» al final tampoco corta;
+# ahi la frase ya no sigue, asi que no hay enlace que colar.
+_ABREVIATURAS = frozenset({"mr.", "mrs.", "ms.", "dr.", "st."})
 
 
 def _fronteras_de_frase(frase: str | None, palabras: list[str]) -> set[int]:
@@ -1085,7 +1099,7 @@ def _fronteras_de_frase(frase: str | None, palabras: list[str]) -> set[int]:
     for trozo in str(frase).split():
         n = len(normalizar_palabras(trozo))
         i += n
-        if n and _FIN_DE_FRASE_RE.search(trozo):
+        if n and _FIN_DE_FRASE_RE.search(trozo) and trozo.lower().lstrip("\"'«“‘([") not in _ABREVIATURAS:
             fronteras.add(i - 1)
     return fronteras if i == len(palabras) else set()
 
@@ -1425,11 +1439,14 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     if tiempos is None and reintentar:
         transcripcion = transcribir_audio(ruta_audio)
     evaluacion = evaluar_pronunciacion(frase_objetivo, transcripcion or "")
-
     # Sin transcripcion todo cuenta como fallado: con guardar_fallos, que es el
     # valor por defecto, se guardaba la frase entera como palabras dificiles (e6,
-    # 14 sep, M1). La API y Gradio ya lo miraban; el valor por defecto no.
-    if guardar_fallos and transcripcion is not None and evaluacion.palabras_falladas:
+    # 14 sep, M1). Y whisper devuelve "" con una grabacion en silencio, que no es
+    # None: la API y Gradio guardan si `transcripcion_ok`, y lo guardaban todo (e6,
+    # ronda 2). Sin ninguna palabra oida no hay nada que corregir ni que guardar.
+    oida = bool((transcripcion or "").strip())
+
+    if guardar_fallos and oida and evaluacion.palabras_falladas:
         registrar_fallos(evaluacion.palabras_falladas, frase=frase_objetivo)
 
     correccion = None
@@ -1451,7 +1468,7 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     # «war» y «chant», y Miguel no pudo oir ninguna de las dos (e6, 13 sep).
     # Cada pieza se paga una vez: la cache es por contenido.
     audios = {}
-    if transcripcion is not None:
+    if oida:
         pedidas = []
         for palabra in evaluacion.palabras_falladas:
             pedidas.append(palabra)
@@ -1478,5 +1495,5 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     if guardar_fallos:
         registrar_ritmo(ritmo, frase_objetivo)
     return SesionVoz(evaluacion=evaluacion, correccion=correccion,
-                     audio_correcto=audio_correcto, transcripcion_ok=transcripcion is not None,
+                     audio_correcto=audio_correcto, transcripcion_ok=oida,
                      audios_palabras=audios, ritmo=ritmo)

@@ -642,7 +642,12 @@ def _ipa_de_modelo(texto, palabra: str | None = None) -> str | None:
     marca de IPA por IA (e6, 14 sep, M6). Ahora solo pasan letras minusculas sin
     acento precompuesto (las de la IPA, æ, ʃ, ɑ, no se descomponen; ʰ es una
     descomposicion de compatibilidad y vale), diacriticos combinados, los signos
-    de la transcripcion y, con `palabra`, como mucho un trozo por palabra."""
+    de la transcripcion y, con `palabra`, como mucho un trozo por palabra.
+
+    Y sin ningun simbolo propio de la IPA (todo ASCII), solo si no es la palabra
+    tal cual se escribe: las minusculas latinas son IPA, y «house» por «house» es
+    lo que hace el modelo cuando no sabe (e6, ronda 2). Sin `palabra` con que
+    comparar, no vale."""
     import unicodedata
     texto = str(texto or "").strip()
     if not texto or len(texto) > 60:
@@ -658,6 +663,11 @@ def _ipa_de_modelo(texto, palabra: str | None = None) -> str | None:
             return None
     if palabra is not None and len(interior.split()) > max(1, len(str(palabra).split())):
         return None
+    if interior.isascii():
+        def letras(s: str) -> str:
+            return "".join(c for c in s.lower() if c.isalpha())
+        if palabra is None or letras(interior) == letras(str(palabra)):
+            return None
     return texto if texto.startswith(("/", "[")) else f"/{texto.strip('/')}/"
 
 

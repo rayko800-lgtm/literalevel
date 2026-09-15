@@ -183,6 +183,23 @@ class Practicar(unittest.TestCase):
         self.assertFalse(s.transcripcion_ok)
         registrar.assert_not_called()
 
+    def test_con_transcripcion_vacia_no_se_guarda_nada_ni_se_da_por_transcrita(self):
+        """e6, ronda 2 (M1): whisper da "" con silencio; transcripcion_ok salia True y la API lo guardaba todo."""
+        cliente = ClienteSimulado()
+
+        def silencio(**kw):
+            cliente.transcripciones.append((Path(kw["file"].name).name, kw.get("response_format"), None))
+            return SimpleNamespace(text="  ", duration=2.0, words=[])
+        cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=silencio), speech=cliente.audio.speech)
+        with mock.patch.object(voz, "_cliente", lambda: cliente), \
+                mock.patch.object(voz, "explicar_correccion", lambda *a, **k: None), \
+                mock.patch.object(voz, "registrar_fallos") as registrar, \
+                mock.patch.object(voz, "registrar_ritmo"):
+            s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
+        self.assertFalse(s.transcripcion_ok, "la API y Gradio guardan si transcripcion_ok")
+        registrar.assert_not_called()
+        self.assertEqual(s.audios_palabras, {}, "sin palabras oidas, los audios de cada palabra son gasto")
+
     def test_si_rechazan_las_marcas_se_transcribe_sin_ellas_y_si_no_no(self):
         """e6, 14 sep (M5): con un plazo agotado el audio pudo cobrarse; no se sube otra vez."""
         class Rechazo(Exception):
@@ -358,6 +375,13 @@ class Natural(unittest.TestCase):
         self.assertEqual(voz._fronteras_de_frase(otra, voz.normalizar_palabras(otra)), {1, 4, 5},
                          "la coma no corta; el signo de fin de frase si")
 
+    def test_el_punto_de_un_tratamiento_no_acaba_la_frase(self):
+        """e6, ronda 2: «Mr. Adams» cortaba el enlace como si fuera fin de frase."""
+        for frase, esperadas in (("Mr. Adams ate it.", {3}),
+                                 ("I stopped. Mrs. Evans and Dr. Ross left.", {1, 7}),
+                                 ("\"Mr. Ives,\" said Ms. Orr of St. Anne.", {7})):
+            self.assertEqual(voz._fronteras_de_frase(frase, voz.normalizar_palabras(frase)), esperadas, frase)
+
     def test_ipa_del_enfasis_del_diccionario_y_no_del_modelo(self):
         """e6, 14 sep (M3): «cualquier cosa» salia como /cualquier cosa/."""
         bruto = {**RESPUESTA_NATURAL, "enfasis": [{"indice": 4, "ipa": "cualquier cosa"}]}
@@ -473,6 +497,16 @@ class IpaDeLaIA(unittest.TestCase):
         self.assertEqual(lexicon._ipa_de_modelo("/sɛt ˈɔf/", "set off"), "/sɛt ˈɔf/")
         self.assertEqual(lexicon._ipa_de_modelo("[tʰɒp]", "top"), "[tʰɒp]")
         self.assertEqual(lexicon._ipa_de_modelo("t͡ʃɪp", "chip"), "/t͡ʃɪp/")
+
+    def test_la_palabra_tal_cual_se_escribe_no_es_ipa(self):
+        """e6, ronda 2 (M6): _ipa_de_modelo("house", "house") daba "/house/"."""
+        import lexicon
+        self.assertIsNone(lexicon._ipa_de_modelo("house", "house"))
+        self.assertIsNone(lexicon._ipa_de_modelo("/House/", "house"), "las mayusculas ya no pasaban")
+        self.assertIsNone(lexicon._ipa_de_modelo("/set off/", "set off"))
+        self.assertIsNone(lexicon._ipa_de_modelo("hello"), "sin palabra con que comparar, solo ASCII no vale")
+        self.assertEqual(lexicon._ipa_de_modelo("/haus/", "house"), "/haus/", "ASCII que no es la ortografia pasa")
+        self.assertEqual(lexicon._ipa_de_modelo("ˈhaʊs", "house"), "/ˈhaʊs/")
 
 
 class HistorialRitmo(unittest.TestCase):
