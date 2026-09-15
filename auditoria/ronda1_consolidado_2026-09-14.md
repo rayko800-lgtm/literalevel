@@ -1029,3 +1029,7 @@ Informe de ayuda para alguien nuevo (e6, ca604e4, auditoria/ismael_ayuda_2026-09
 Decisiones de Miguel sobre la ayuda: las dos formas (bienvenida de 3 pasos y línea de ayuda en Pronunciar y en el lector), los tres arreglos ya y el recorte del lector la primera vez. e6 lo hace en tres tandas con visto bueno de 4e. Miguel aprobó en el chat de 4e la vuelta al 28, pero el permiso de subida es de la sesión de f4 y lo tiene que conceder allí.
 
 Front bb31cf4 publicado (e6, e3f80e4): el micrófono se suelta si el permiso llega después de salir de Pronunciar. Lleva también 601788b.
+
+Tanda 1 de ayuda (e6, ad72c8d), a falta del ok de 4e: «Entrar» abre «Tu perfil» con el cursor en Usuario, la cabecera dice «Ajustes» y la tarjeta «Mídeme» ya no promete la estimación. ng test 110/110, el mutante cae y a 390 px nada queda tapado.
+
+Miguel escribió «Autorizo» en el chat de e6, otra vez en un chat que no despliega. e6 no lo aplica. La vuelta al 28 sigue pendiente de que la autorice en el chat de f4.
