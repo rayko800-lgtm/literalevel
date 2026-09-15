@@ -303,3 +303,9 @@ Reinicio 22, antes del commit (f4):
 - **Arreglo del nombre de pila, en local:** las 5 búsquedas de 4e que mezclan autor y título dan 8, 9, 8, 2 y 10 de 10 resultados del autor. En el Space del 21 daban 2, 0, 0, 0 y 4. «browning» abre con Browning.
 - **Serio de datos:** al buscar «Buying GHB Online» salía primero un anuncio de venta de metanfetamina, SWV644179, de la misma cuenta que el de GHB. Van los dos a no_lectura, y f4 revisa todos los textos de las cuentas con anuncios.
 - **Pendiente:** el banco de mutantes termina hacia las 03:42. Después vienen el commit, el visto bueno de 4e y e6, y la subida.
+
+Retoques de guion del anexo de e6 (4e, 8856030; PDF recompilados):
+- **Demo:** la sección se llama «Antes de la demo, con cuenta y micrófono». Dice por dónde se entra y remite al plan B.
+- **Guion:** incluye el camino a poverty por el Índice y la cifra nueva de la boca 3D.
+- **Vídeo:** notas de tiempos al día.
+- **Documento y estrategia:** citan el front ec957d0, y se comprobó por SHA-256 que los modelos 3D servidos son los del repositorio.
