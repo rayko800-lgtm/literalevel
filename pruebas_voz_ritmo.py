@@ -184,21 +184,25 @@ class Practicar(unittest.TestCase):
         registrar.assert_not_called()
 
     def test_con_transcripcion_vacia_no_se_guarda_nada_ni_se_da_por_transcrita(self):
-        """e6, ronda 2 (M1): whisper da "" con silencio; transcripcion_ok salia True y la API lo guardaba todo."""
-        cliente = ClienteSimulado()
+        """e6, rondas 2 y 3 (M1): whisper da "" o "..." con silencio; se guardaba la frase
+        entera, se pedian sus audios y se pagaba una explicacion de palabras que nadie dijo."""
+        for texto in ("  ", "..."):
+            cliente = ClienteSimulado()
 
-        def silencio(**kw):
-            cliente.transcripciones.append((Path(kw["file"].name).name, kw.get("response_format"), None))
-            return SimpleNamespace(text="  ", duration=2.0, words=[])
-        cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=silencio), speech=cliente.audio.speech)
-        with mock.patch.object(voz, "_cliente", lambda: cliente), \
-                mock.patch.object(voz, "explicar_correccion", lambda *a, **k: None), \
-                mock.patch.object(voz, "registrar_fallos") as registrar, \
-                mock.patch.object(voz, "registrar_ritmo"):
-            s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
-        self.assertFalse(s.transcripcion_ok, "la API y Gradio guardan si transcripcion_ok")
-        registrar.assert_not_called()
-        self.assertEqual(s.audios_palabras, {}, "sin palabras oidas, los audios de cada palabra son gasto")
+            def silencio(texto=texto, cliente=cliente, **kw):
+                cliente.transcripciones.append((Path(kw["file"].name).name, kw.get("response_format"), None))
+                return SimpleNamespace(text=texto, duration=2.0, words=[])
+            cliente.audio = SimpleNamespace(transcriptions=SimpleNamespace(create=silencio), speech=cliente.audio.speech)
+            with mock.patch.object(voz, "_cliente", lambda cliente=cliente: cliente), \
+                    mock.patch.object(voz, "explicar_correccion") as explicar, \
+                    mock.patch.object(voz, "registrar_fallos") as registrar, \
+                    mock.patch.object(voz, "registrar_ritmo"):
+                s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
+            self.assertFalse(s.transcripcion_ok, f"{texto!r}: la API y Gradio guardan si transcripcion_ok")
+            registrar.assert_not_called()
+            explicar.assert_not_called()
+            self.assertIsNone(s.correccion, texto)
+            self.assertEqual(s.audios_palabras, {}, f"{texto!r}: sin palabras oidas, los audios de cada palabra son gasto")
 
     def test_si_rechazan_las_marcas_se_transcribe_sin_ellas_y_si_no_no(self):
         """e6, 14 sep (M5): con un plazo agotado el audio pudo cobrarse; no se sube otra vez."""
@@ -379,7 +383,11 @@ class Natural(unittest.TestCase):
         """e6, ronda 2: «Mr. Adams» cortaba el enlace como si fuera fin de frase."""
         for frase, esperadas in (("Mr. Adams ate it.", {3}),
                                  ("I stopped. Mrs. Evans and Dr. Ross left.", {1, 7}),
-                                 ("\"Mr. Ives,\" said Ms. Orr of St. Anne.", {7})):
+                                 ("Talk to Prof. Adams.", {3}),
+                                 # «St.» puede cerrar la frase: se corta tambien ante un
+                                 # nombre (e6, ronda 3), mejor que colar st‿it.
+                                 ("He lives on Baker St. It was late.", {4, 7}),
+                                 ("\"Mr. Ives,\" said Ms. Orr of St. Anne.", {6, 7})):
             self.assertEqual(voz._fronteras_de_frase(frase, voz.normalizar_palabras(frase)), esperadas, frase)
 
     def test_ipa_del_enfasis_del_diccionario_y_no_del_modelo(self):
@@ -505,6 +513,8 @@ class IpaDeLaIA(unittest.TestCase):
         self.assertIsNone(lexicon._ipa_de_modelo("/House/", "house"), "las mayusculas ya no pasaban")
         self.assertIsNone(lexicon._ipa_de_modelo("/set off/", "set off"))
         self.assertIsNone(lexicon._ipa_de_modelo("hello"), "sin palabra con que comparar, solo ASCII no vale")
+        self.assertIsNone(lexicon._ipa_de_modelo("/houses/", "house"), "casi la palabra escrita (e6, ronda 3)")
+        self.assertIsNone(lexicon._ipa_de_modelo("/colour/", "color"), "casi la palabra escrita (e6, ronda 3)")
         self.assertEqual(lexicon._ipa_de_modelo("/haus/", "house"), "/haus/", "ASCII que no es la ortografia pasa")
         self.assertEqual(lexicon._ipa_de_modelo("ˈhaʊs", "house"), "/ˈhaʊs/")
 

@@ -664,9 +664,13 @@ def _ipa_de_modelo(texto, palabra: str | None = None) -> str | None:
     if palabra is not None and len(interior.split()) > max(1, len(str(palabra).split())):
         return None
     if interior.isascii():
+        import difflib
+
         def letras(s: str) -> str:
             return "".join(c for c in s.lower() if c.isalpha())
-        if palabra is None or letras(interior) == letras(str(palabra)):
+        # Tampoco si es casi la palabra escrita: «houses» por «house» o «colour» por
+        # «color» (e6, ronda 3). Una IPA de verdad en ASCII se aleja más («haus», 0,67).
+        if palabra is None or difflib.SequenceMatcher(None, letras(interior), letras(str(palabra))).ratio() >= 0.8:
             return None
     return texto if texto.startswith(("/", "[")) else f"/{texto.strip('/')}/"
 

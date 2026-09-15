@@ -1083,9 +1083,11 @@ def _enlace_real(tipo: str, primera: str, segunda: str) -> bool:
 
 _FIN_DE_FRASE_RE = re.compile(r"[.?!;:…]+[\"'»”’)\]]*$")
 # El punto de un tratamiento no acaba la frase: «Mr. Adams» daba una frontera tras
-# «mr» y se perdia el enlace (e6, ronda 2). «on Baker St.» al final tampoco corta;
-# ahi la frase ya no sigue, asi que no hay enlace que colar.
-_ABREVIATURAS = frozenset({"mr.", "mrs.", "ms.", "dr.", "st."})
+# «mr» y se perdia el enlace (e6, ronda 2). Solo los que van siempre delante de un
+# nombre. «St.» y «Jr.» no: pueden cerrar la frase («He lives on Baker St. It was
+# late.» dejaba pasar st‿it, e6, ronda 3), y ahi es mejor perder el enlace de «St.
+# Anne» que inventar uno entre dos frases.
+_ABREVIATURAS = frozenset({"mr.", "mrs.", "ms.", "dr.", "prof."})
 
 
 def _fronteras_de_frase(frase: str | None, palabras: list[str]) -> set[int]:
@@ -1444,13 +1446,17 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     # 14 sep, M1). Y whisper devuelve "" con una grabacion en silencio, que no es
     # None: la API y Gradio guardan si `transcripcion_ok`, y lo guardaban todo (e6,
     # ronda 2). Sin ninguna palabra oida no hay nada que corregir ni que guardar.
-    oida = bool((transcripcion or "").strip())
+    # Palabras, no caracteres: «...» no esta vacio y guardaba la frase entera y pedia
+    # sus audios (e6, ronda 3).
+    oida = bool(normalizar_palabras(transcripcion or ""))
 
     if guardar_fallos and oida and evaluacion.palabras_falladas:
         registrar_fallos(evaluacion.palabras_falladas, frase=frase_objetivo)
 
+    # Y la explicacion tampoco: con silencio era una llamada de pago por grabacion que
+    # corregia palabras que nadie habia dicho (e6, ronda 3).
     correccion = None
-    if evaluacion.palabras_falladas:
+    if oida and evaluacion.palabras_falladas:
         correccion = explicar_correccion(evaluacion.palabras_falladas,
                                          entendidas=evaluacion.entendidas)
 
