@@ -831,3 +831,6 @@ Reinicio 29, punto 1, el título en consultas largas (f4): **sin cambio de códi
 - **Batería (solo informe):** G arregla «Historias de amor», pero vacía «Terror gótico», y elegirla sería decidir con la batería.
 - **Decisión de la central:** «Historias de amor» y «Terror gótico» quedan como límite declarado. El chip «Historias de amor» sigue cumpliendo el criterio del tema (5 y 7 a mano).
 - **Otros datos:** «rose» ya está en la línea base (5a2fc04). La comprobación de f4 del 28 en el Space da 0 de 198.
+
+Front 3662e57 (e6): no hizo falta publicar. Son solo tipos de TypeScript, y el build sale idéntico al que ya estaba en el Space bdfa418.
+- **Comprobado a 390 px:** Kian dice «Es un texto de un solo capítulo…», sin gráfica, y Pride and Prejudice dibuja su curva con marcas de capítulo.
