@@ -372,3 +372,12 @@ Reinicio 22 con commit (f4): código 8b259c5 y datos 9dcd867.
 e6 dio el visto bueno de api.py del reinicio 22 (8b259c5).
 - **Pruebas:** pruebas_api 58/58, y el banco C9 detecta sus 3 mutantes.
 - **Menor sin daño, para el 24:** si una subida y un borrado del mismo libro coinciden, pueden quedar su nombre y su título en el archivo de nombres. La estantería salta los archivos que no existen.
+
+Visto bueno de 4e al reinicio 22 (f79b562, ronda3_2026-09-15_reinicio22.md): ok.
+- **Serio del vocabulario de nombres, arreglado:** autor entre los 10 primeros, del Space del 21 al 22.
+  - «treasure island stevenson»: de 2 a 10.
+  - «love poems by browning»: de 0 a 7.
+  - «the secret garden frances hodgson burnett»: de 0 a 8.
+  - «the call of the wild by jack london»: de 4 a 10.
+- **Batería:** sin cambios en lo demás. no_lectura queda en 203, sin cuentos.
+- **Menores para el 24:** un nombre de pila corto o con iniciales convierte al autor en seudónimo («fu manchu sax rohmer» baja de 10 a 3). Un apellido que es palabra corriente vuelve a rescatar a quien no es («little dorrit dickens» con B1 trae a Burt Little).
