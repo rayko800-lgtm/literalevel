@@ -19,7 +19,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 |---|---|---|
 | Motor (Space de Gradio) | reinicio 25, 4ba66f9 (autor más título arreglado, anuncios de drogas fuera, silencio sin coste) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
 | Front (Space estático) | 83520e2 | Tu nivel y Pronunciar nuevos (propuestas A elegidas por Miguel); boca 3D sin fuga y con una sola descarga; «Primero lo de tu nivel» con la franja; chips con amor y fantasmas; aviso «No te oí» |
-| Documentos y guiones | 8856030 | coste de cómputo real, cifras del reinicio 21, diez arreglos del ensayo y la sección «Antes de la demo» |
+| Documentos y guiones | 2a44731 | coste de cómputo real; la frase del caso Esmeralda reescrita (no faltaba catálogo, fallaba la búsqueda: 114 cuentos libres de amor en B1); receta del perfil B2 sin «Me vale así» (en la sexta no elegir «Capto bien la idea»); textos de las pantallas A; «Antes de la demo» con voz baja desde el móvil y calentar el buscador |
 
 ## Informes de la ronda 3
 
@@ -102,6 +102,20 @@ herramienta local. No fue a ningún mensaje, commit ni archivo, pero la salida
 de las herramientas forma parte del contexto de esa sesión. **Miguel decide si
 la cambia.** Cambiarla es escribir en el bucket, así que tiene que hacerlo él o
 dar el permiso en una sesión.
+
+## Lo que Miguel tiene que saber para la demo
+
+- **Receta del perfil B2**, en «Tu nivel»: varias veces por semana · Alice con
+  naturalidad · una novela actual · fragmento medio con naturalidad · los hechos
+  principales · fragmento difícil «Entiendo algunas partes, pero necesitaría el
+  diccionario». En la sexta, **no** «Capto bien la idea» (sube a C1). Se guarda
+  sola al contestar la sexta.
+- **Antes de compartir pantalla:** una búsqueda con el perfil guardado (hasta
+  que suba la precarga del 26, la primera tarda unos 18 s), abrir una vez la
+  boca 3D, y grabar una frase en voz baja desde el móvil para ver que no sale
+  «No te oí».
+- **La contraseña de «profesor» se cambió** a las 05:40; la nueva está solo en
+  el archivo local.
 
 ## Lo que queda
 

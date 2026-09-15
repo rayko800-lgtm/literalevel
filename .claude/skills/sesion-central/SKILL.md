@@ -385,3 +385,14 @@ dejado todas las búsquedas en 503. La desplegadora lo vio y paró.
 - Y con cuatro sesiones en la misma máquina, mira la RAM antes de un árbol
   limpio: bancos de mutantes con el catálogo cargado y `ng serve` olvidados
   dejaron 2 GB libres y las suites fallaron por memoria, no por código.
+
+## 14. Todo lo que sube lleva el ok de alguien que no lo escribió
+
+En el reinicio 26 la desplegadora juntó en un commit su código (revisado por
+4e y e6) con el ui.py de otra sesión, que nadie más había mirado. La central lo
+vio en el aviso de despliegue y pidió un visto bueno corto antes de subir. Regla
+práctica: al leer un aviso de despliegue, **recorre la lista de archivos del
+`--solo` y pregunta, archivo por archivo, quién lo escribió y quién lo revisó**.
+Si falta un revisor, se pide directo a la desplegadora con plazo, y la subida
+espera. Un revisor que no corre suites por falta de RAM puede dar el ok leyendo
+el diff si las suites van en el árbol limpio de la desplegadora; que lo diga.
