@@ -356,6 +356,22 @@ contexto de la sesión, así que se avisó a Miguel para que decida si la rota.
 - Recargar el cupo de una cuenta es escribir en el bucket: solo con permiso de
   Miguel en esa sesión.
 
+**Cómo se cambió la contraseña (05:40, con permiso de Miguel en la central).**
+Las contraseñas no están en el bucket: viven en el secreto `LITERALEVEL_CUENTAS`
+del Space (`usuario:clave:tope,...`) y en la tabla local de
+`literalevel_codigos.txt`. El uso gastado sí va en `uso_openai.json`, por
+nombre, así que no se toca. Pasos, todo dentro de un guion que no imprime nada
+secreto:
+1. Leer la tabla local y **entrar en el Space con las diez cuentas**
+   (`POST /api/entrar` con un X-Lector de prueba y luego `/api/salir`): si
+   todas entran, el archivo coincide con el secreto y se puede reconstruir.
+2. Copia del archivo al scratchpad, clave nueva con `secrets` (sin «:» ni «,»),
+   sustituir solo la celda de esa cuenta.
+3. `HfApi(token=~/.hf_token).add_space_secret(...)` con el valor completo; el
+   Space se reinicia solo (unos 50 s). Avisar antes a la desplegadora.
+4. Comprobar: la nueva entra, la vieja no, otras cuentas siguen y los usos no
+   cambian. Solo entonces borrar la copia.
+
 ## 13. La regla de «sube lo que tenga ok» no vale para archivos acoplados
 
 Para no bloquear una subida se pactó «si un visto bueno tarda más de 30

@@ -576,3 +576,9 @@ Precarga del reinicio 26 (f4, medido en local):
   - un hilo de fondo al arrancar, solo en el Space, que no retrasa RUNNING ni /api/salud;
   - candado en ui.catalogo(), para no crear dos catálogos (2,4 GB), con prueba y mutante;
   - una búsqueda con nivel lanzada durante la precarga tiene que esperar y responder bien.
+
+**Contraseña de «profesor» cambiada (central, 05:40, a petición de Miguel en este chat).**
+- **Antes de tocar nada:** las 10 cuentas del archivo local entraban en el Space, así que el archivo coincidía con el secreto.
+- **El cambio:** una clave nueva de 16 caracteres, escrita en literalevel_codigos.txt y en el secreto LITERALEVEL_CUENTAS del Space. El Space se reinició solo y estaba RUNNING a los 50 s.
+- **Comprobado después:** profesor entra con la nueva y no con la vieja; miguel, invitado1 e invitado8 siguen entrando; los usos no cambian.
+- **Rastro:** ninguna contraseña ni el token salieron en ninguna salida. La copia de seguridad temporal se borró.
