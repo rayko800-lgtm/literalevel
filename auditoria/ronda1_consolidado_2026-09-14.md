@@ -917,3 +917,9 @@ Pasada final de i4 con n=24 (f4): cumple los cuatro criterios, y un assert confi
   - dostoyevski y sus variantes se quedan con 1 a 4 marcas de cuentos rusos que ya estaban entre los 24 generales, no añadidos por título.
 - **«Crimen y castigo de Dostoyevski» con 1,20:** 0 marcas.
 - **Siguiente:** parche, prueba y mutantes C23, banco, commit, visto bueno corto de 4e, árbol limpio y subida como reinicio 29.
+
+Reinicio 29 con commit (f4, 7e2b861): la regla i4 con `_n_propio`.
+- **Pruebas:** corpus 47/47 y mutantes C23 2 de 2. El --seco solo trae catalogo.py.
+- **Pendiente:** el visto bueno de 4e y el árbol limpio.
+- **Aviso sobre la comprobación:** con n=24, el Space del 28 y la medida local del mismo código difieren en 13 de 257 listas. En 12 solo cambia el orden de los puestos 11 a 24, y en «trust» sin perfil también el top 10.
+- **Criterio tras subir:** comparar el Space 29 con un volcado del Space 28 en el mismo entorno, no con la medida local. Solo pueden cambiar los autores con 1,20, «Crimen y castigo de Dostoyevski» con B1 e «institute» con B1.
