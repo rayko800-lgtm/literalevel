@@ -1082,3 +1082,5 @@ Reinicio 30a preparado (f4), a falta del ok de 4e: `preload_from_hub` con solo l
 - **Comprobado:** sin HF_HOME ni TRANSFORMERS_CACHE en las variables, así que la caché del build es la que usa `_ruta_local`. En local, con una caché nueva y sin red, el modelo carga.
 - **Cambio:** 2 líneas al final de la cabecera YAML del README del Space, con un guion que aborta si se tocara algo más.
 - **Tras subir:** reconstrucción completa y medida de `buscador_listo` en 2 reinicios.
+
+Reinicio 30a subido (f4, con el ok de 4e): Space 282c46f. Solo cambia README.md, con 2 líneas de `preload_from_hub`, y el buscador sigue siendo el del 28. Con la reconstrucción completa en marcha, f4 mide RUNNING, `buscador_listo` y si el log aún muestra la descarga del modelo, y después repite en un segundo reinicio.
