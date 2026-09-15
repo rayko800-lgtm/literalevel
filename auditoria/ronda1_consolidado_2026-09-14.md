@@ -524,3 +524,12 @@ Devolución del uso con silencio, para el reinicio 26 (decisión de la central):
 - **Cómo:** una sola función, `cuentas.devolver_por_silencio(base, codigo)`, bajo el mismo candado del cobro, que llaman la API (f4) y Gradio (e6).
 - **Voz del 26:** entra también 681544f de 4e, con el ok de e6. Sin voz ya no hay TTS ni análisis de pago.
 - **RAM:** e6 paró los dos `ng serve` olvidados, y la RAM libre pasó de 2,25 a 2,81 GB.
+
+**Visto bueno de 4e a cb39b91: franja y variante E, ok. Pero hay un serio.**
+- **El serio:** exigir palabras enteras en el rescate por título pierde las erratas que el Space de hoy sí encuentra. «sherlok holmes» pasa de 8 Sherlock a 0, «treasure iland» saca Treasure Island del top 24 y «dracul» pasa de Dracula del 1 al 4 a 0. A cambio, «familia» deja de traer 23 «Familiar».
+- **Decisión de la central:** una lectora se equivoca al escribir títulos en inglés más a menudo de lo que busca «familia».
+  - El 25 sube sin ese cambio, con la franja, la variante E, el .npy y el contrato.
+  - Añade los dos menores defensivos de 4e: un .npy desordenado o de otra dimensión no marca nada.
+  - Hace falta un commit nuevo y un visto bueno corto de 4e.
+- **Reinicio 26:** el rescate con erratas bien hecho. El parecido de letras no vale si la palabra es española y la app la traduce, y sí vale si no lo es.
+- **Otro menor de 4e:** el techo corta 2 de 1.201 marcados.
