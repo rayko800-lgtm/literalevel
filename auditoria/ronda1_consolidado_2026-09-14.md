@@ -939,3 +939,15 @@ Visto bueno de 4e a 7e2b861, el reinicio 29: ok.
 Reinicio 29 (f4): las 13 diferencias entre local y Space son empates entre parecidos iguales, que se ordenan distinto en cada entorno. La comprobación tras subir compara el Space 29 con el volcado del Space 28. Para el 30 queda un desempate determinista por id.
 
 **Reinicio 29 subido (f4):** Space 5ab6832, desde 7e2b861. Árbol limpio con corpus 47/47, api 66/66 y extremas 351. Siguen en marcha la comprobación de f4 contra el volcado del Space 28, la batería y la medida independiente de 4e.
+
+**Reinicio 29 verificado por 4e** (Space 5ab6832, anexo a91ecc9): cambia lo que tenía que cambiar y nada más.
+- **Medida:** 11 consultas por tres perfiles (sin perfil, B1 y 1,20), con n=24.
+- **Top 10:** igual en 33 de 33 listas, en el mismo orden.
+- **Marcas del 28 al 29:**
+  - cervantes pasa de 12 a 0;
+  - dickens con 1,20 pasa de 17 a 5, suyas;
+  - dostoyevski con 1,20 pasa de 15 a 3 cuentos rusos que ya estaban. «Books» y «Story Chikkappa» ya no salen.
+  - «Crimen y castigo de Dostoyevski» con B1 pasa de 4 a 0.
+- **Paso 3 del guion:** sin cambio, con el aviso y el libro primero.
+- **Palabras de control y school:** iguales al 28.
+- **Tiempos:** ninguna búsqueda llega a 2 s. `buscador_listo` sale a los 16-19 s.
