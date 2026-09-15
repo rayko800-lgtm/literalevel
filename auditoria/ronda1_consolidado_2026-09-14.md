@@ -478,3 +478,12 @@ Reinicio 25 con commit (f4, cb39b91): búsqueda por franja con la variante E.
   4. la batería en el Space.
 - **Pendiente:** el visto bueno de 4e y de e6.
 - **Si el código sube antes que el .npy:** no se marca nada, así que es seguro.
+
+**Front publicado con el aviso «No te oí»** (e6): Space del front 657ea8f, que sirve b9773bd.
+- **Antes de publicar:** los bloques de 350 respuestas reales salen idénticos a los del front anterior, sin franja y con franja sin marcas.
+- **En la página a 390 px:** raya en vez de 0/100, el aviso nuevo y ninguna palabra marcada.
+- **Con silencio aún se ven** «Cómo debería sonar» y «Bien leída», porque la API manda audio_correcto.
+- **Decisión:**
+  - En el 26, la API no genera audio_correcto sin voz (4e), y 4e comprueba si analizar_natural llama a OpenAI con silencio.
+  - El front solo muestra esos botones si llega el audio, y esconde el aviso de énfasis y enlaces sin voz (e6).
+  - Gradio aab69be también va al 26.
