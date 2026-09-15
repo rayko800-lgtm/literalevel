@@ -696,3 +696,11 @@ Fallo que vio Miguel en el móvil, la ficha de un cuento de un solo capítulo (e
 - **API:** f4 devuelve `forma`, `facil` y `dificil` en None con una sola fila (C17).
 - **Pruebas:** ng test 93/93, extremas 351, mutantes 6/6.
 - **Subida:** ui.py y ficha.py van con el 27.
+
+Reinicio 27, clásicos por apellido (f4, sin commit):
+- **Riesgo de la regla (a) medido:** lista de 100 palabras de tema escrita antes de medir, 50 en español y 50 en inglés.
+  - 7 coinciden con el apellido de un autor de al menos 5 obras: school, brown, grey, castle, king, hope y london.
+  - En ninguna de las 100 cambia el top 10, ni sin perfil ni con B1.
+  - **Decisión:** (a) aprobada con N=5.
+- **Regla (b):** dar ventaja al autor sobre el título rompió la prueba de «rosa», porque Rosa es un colaborador (Martínez de la Rosa). La suite lo cazó antes del commit.
+  - **Arreglo aprobado:** la ventaja solo cuenta para el primer autor del campo. Se comprueba también si con eso «Jane Austen» con B1 deja de abrir con la adaptación de MacKaye, que tiene a Austen como coautora.

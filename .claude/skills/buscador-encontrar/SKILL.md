@@ -195,6 +195,12 @@ con ese apellido exacto (cervantes 53, moliere 21, christie 16; rosa 2, amor
 apellidos de autores prolíficos («london», «hope», «grey», «vega», «paz»…),
 con la lista escrita antes de mirar.
 
+Medido en el 27 con 100 palabras de tema escritas antes de mirar: con N = 5
+obras, 7 coinciden con un apellido (school, brown, grey, castle, king, hope,
+london) y **ninguna cambia su top 10**, porque el tema ya lo llena. Y el «autor
+gana al título» solo vale para el **primer autor** del campo: con cualquier
+autor, «rosa» traía a Martínez de la Rosa, colaborador de una antología.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
