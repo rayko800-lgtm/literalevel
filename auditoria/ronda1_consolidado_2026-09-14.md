@@ -1224,3 +1224,21 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - Guiones f5849dc (4e): «1 de 3» y el título de la bienvenida por separado, y paso 3 fechado «sobre los reinicios 28 y 30b». PDF de 9 páginas. Una sola recompilación.
 - Encargado a e6 el ensayo completo del guion en el front 72e9525 (§15): solo lectura, con copia a 4e.
 - Cupo de Codex comprobado con una llamada de una palabra: agotado, vuelve el **19 sep a las 8:56**. Coincide con el día de grabación. Recomendación a Miguel: lanzar la auditoría a las 9:00 y grabar el vídeo el 20, para que dé tiempo a corregir un SERIO.
+
+**Ensayo completo del guion** (e6, f5849dc contra el front 72e9525 y la API 0319290, 390 px táctil, contexto limpio y sin cuenta). §15 cumplido tras las tandas, el aria-label y el 30b.
+- **Bien:**
+  - motor despierto y búsquedas en caliente de 0,42 a 0,72 s;
+  - bienvenida y «Saltar»;
+  - perfil 1,20 y paso 1;
+  - paso 2 (dragones 19 de 20; detectives, 3 de Gutenberg);
+  - ficha de PG2554;
+  - lector con un solo aviso;
+  - Pronunciar con ayuda visible y /ʌ/;
+  - micrófono: sin aviso de WebView en Chrome, estado visible sin tapar;
+  - «Entrar» del aviso ámbar;
+  - Mis palabras.
+- **No coincide, pasado a 4e:**
+  - boca 3D: la primera vez tarda 3,6 s por red, no 2,9 s → «unos 3–4 s»;
+  - Índice: unas 2 pantallas por debajo de «Empezar a leer», no 2,5.
+- **Matiz:** la primera consulta de palabra en frío tarda 5,0 s; el guion ya pide consultar una antes.
+- **Sin probar** (hace falta cuenta o micrófono): explicación IA, «Corrígeme», «Practica esta palabra», paso 6 y «Este intento no cuenta». Quedan en la lista de Miguel.
