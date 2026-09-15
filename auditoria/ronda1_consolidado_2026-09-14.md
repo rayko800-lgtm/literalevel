@@ -1089,3 +1089,9 @@ Tanda 3 de ayuda, la bienvenida (e6, 13a730e), a falta del ok de 4e.
 - **Cuándo sale:** 3 pasos, solo en la primera visita a Inicio y nunca sobre un enlace directo. Tiene «Saltar» en cada paso, «Medir mi nivel» y «Solo quiero leer» al final, y «Ver la bienvenida otra vez» en Ajustes.
 - **Pruebas:** ng test 121/121. A 390 px la tarjeta queda por encima de la barra.
 - **Decisión de la central:** quien ya usaba la app la ve una vez, porque las personas que se perdieron eran justo usuarios que volvían.
+
+Visto bueno de 4e a la bienvenida (13a730e): ok, con dos textos a cambiar antes de publicar.
+- **Paso 2:** «te decimos qué significa ahí» pasa a «qué significa y cómo se pronuncia», porque la explicación en contexto pide entrar.
+- **Paso 1:** «para que elijas uno que puedas terminar» pasa a «uno a tu medida».
+- **Lo que está bien:** solo en Inicio, nunca sobre enlaces directos, entera a 390 px, «Saltar» y Escape guardan la marca, funciona sin cuenta, y «Solo quiero leer» abre Alice.
+- **Menor:** la tarjeta no retiene el foco con Tab. e6 lo cierra si sale barato.
