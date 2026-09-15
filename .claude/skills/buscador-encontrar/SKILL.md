@@ -285,7 +285,11 @@ La lista de control (20 palabras que coinciden con autores-organización y no
 estaban en la batería) se escribió **antes** de medir, porque la condición de
 Gutenberg se ideó mirando «school». Y la medida final se repite con el mismo
 `n` que pide el front (24), no con el `n=10` de las pasadas rápidas: la franja
-añade tarjetas detrás de los generales y con otro `n` pueden cambiar.
+añade tarjetas detrás de los generales y con otro `n` pueden cambiar. Pasó de verdad:
+con `n=10` «dostoyevski» daba 0 marcas con la regla nueva; con `n=24` da 1-4,
+porque entran en la lista general cuentos rusos («Verotchka's Tales», «Makar's
+Dream») que la franja marca donde ya están. No son cuentos añadidos por título y
+se aceptan, pero la cifra buena es la de `n=24`.
 
 ## 4. Márgenes y constantes
 
