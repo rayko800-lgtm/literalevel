@@ -24,11 +24,12 @@ con love/romance/courtship, letra por dificultad pública):
 En la franja de recomendación de B1 (0,55 a 1,05) salían **3** títulos con amor y
 en la de B2 **60**, pero **esa primera medida era mía y estaba mal**: usaba el CSV
 crudo, donde *A Midsummer Night's Dream* guarda 0,697, y buscaba las palabras
-como subcadena. f4 lo midió bien sobre el catálogo que carga la app (con
-`correcciones_catalogo.csv`, sin índices, love/romance/courtship como palabra
-en temas o gancho, franja ±0,25): **1 en B1** (*The Princess Nobody*) y **28 en
-B2**. Van las cifras de f4 en el documento; la tabla de arriba sirve solo como
-forma del reparto.
+como subcadena. f4 lo midió sobre el catálogo que carga la app y dio **1 en B1** y **28 en B2**;
+la auditoría de documentos (4e) no reprodujo el 28. **Cifra que queda**, con la
+regla de la app escrita en el documento (libros literarios, sin excluidos, a
+0,25 del nivel, love/romance/courtship en los temas): **1 en B1** (*The Princess
+Nobody*) y **31 en B2** (29 títulos distintos). La tabla de arriba sirve solo
+como forma del reparto.
 
 **Lectura:** su experiencia coincide con los datos. La novela romántica de
 Gutenberg (Austen, Brontë, Hardy) está casi toda en C1 y C2, y los cuentos
