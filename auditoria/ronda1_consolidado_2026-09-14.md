@@ -1177,3 +1177,15 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - «Brujas y magia» A2.
   «pintura» B1 ya no cambia. La Central comprobó las 10 distancias al nivel: en todas la copia que entra está igual de cerca o más. En las otras 535 listas, ids marcados y longitud son idénticos al 28.
 - Emparejamiento en el guion: por título, distancias ordenadas, elemento a elemento.
+
+**30b, commit 1643c4b** (f4): app/catalogo.py, pruebas_corpus.py y tools/banco_mutantes.py. Banco C24 3/3, corpus 48/48.
+- La Central leyó el diff de catalogo.py:
+  - sin perfil, orden estable sobre el parecido redondeado;
+  - con perfil, la clave redondeada queda como la menos prioritaria en lexsort, así que no altera nombre, relevante ni primero;
+  - franja: parecido redondeado, luego |d − nivel|, luego fila;
+  - `d` y `nivel` están en ámbito.
+- MENOR: el comentario de ejemplo de «family» B1 (0,36 frente a 0,44) no es el caso de la lista cerrada (0,38 → 0,66).
+- Pendiente:
+  - ok de 4e, árbol limpio y --seco;
+  - despliegue y comprobar_r30b.py / marcha_atras_r30b.py;
+  - ensayo de e6 en el front: paso 3, granja, dragones, «mystery» y «family» B1.
