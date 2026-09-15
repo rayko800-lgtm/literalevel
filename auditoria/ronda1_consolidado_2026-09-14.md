@@ -1037,3 +1037,5 @@ Miguel escribió «Autorizo» en el chat de e6, otra vez en un chat que no despl
 **Vuelta atrás al 28 subida** (f4, con autorización de Miguel en su chat): Space 62e5a06, con el catalogo.py de b896b1f. f4 compara las 257 listas con el volcado del 28 y confirma el paso 3, y 4e lo comprueba desde fuera.
 
 Tanda 1 de ayuda: ok de 4e a ad72c8d. «Entrar» abre «Tu perfil» con el cursor en Usuario desde Pronunciar, la ficha y la hoja de la palabra, y «Mídeme» dice «Al final ves tu nivel». e6 la publica.
+
+Tanda 1 de ayuda publicada (e6, ad72c8d): Space del front 83f189d, con «Ajustes» con su nombre, «Entrar» hacia «Tu perfil» y la tarjeta «Mídeme» corregida. Lleva también el micrófono. Queda un menor sin bloquear, la marca de «Entrar» con el panel ya abierto, que va a la tanda 2 si sale barato.
