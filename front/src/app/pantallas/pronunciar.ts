@@ -149,14 +149,70 @@ export class Pronunciar implements OnInit, OnDestroy {
     }
   }
 
+  /** Android abre los enlaces de WhatsApp en un WebView («; wv)» en el user agent): ahí
+   *  getUserMedia no existe o se rechaza sin preguntar (Ismael, 15 sep). */
+  protected readonly enWebView = typeof navigator !== 'undefined' && /; wv\)/.test(navigator.userAgent);
+  protected readonly avisoSinFrase = 'Primero escribe la frase que vas a leer.';
+  /** Esperando la respuesta al permiso; a los 5 s sin respuesta se sugiere otro navegador. */
+  protected readonly pidiendo = signal(false);
+  protected readonly pidiendoLento = signal(false);
+  private relojPermiso: ReturnType<typeof setTimeout> | undefined;
+  /** La línea de la barra del micrófono. Va DENTRO de la barra: en el celular la barra es
+   *  fija y tapaba el aviso de error y el «Grabando…» de debajo, así que quien tocaba el
+   *  micrófono no veía pasar nada (Ismael, 15 sep). */
+  protected readonly lineaBarra = computed<{ texto: string; tipo: 'error' | 'aviso' | 'grabando' } | null>(() => {
+    const e = this.error();
+    if (e) return { texto: e, tipo: 'error' };
+    if (this.estado() === 'grabando') return { texto: `Grabando: habla ahora · ${this.segundos()} s`, tipo: 'grabando' };
+    if (this.pidiendo()) {
+      return { texto: this.pidiendoLento() ? '¿No ves el permiso? Abre LiteraLevel en Chrome o Safari.' : 'Acepta el permiso del micrófono.', tipo: 'aviso' };
+    }
+    // Antes de pulsar: si aquí no se puede grabar, que se sepa sin tocar nada.
+    if (this.estado() === 'lista' && (this.enWebView || !this.puedeGrabar())) return { texto: this.textoSinGrabacion(), tipo: 'aviso' };
+    return null;
+  });
+
+  private puedeGrabar(): boolean {
+    return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
+  }
+
+  private textoSinGrabacion(): string {
+    return this.enWebView
+      ? 'Para grabar tu voz, abre LiteraLevel en Chrome: toca ⋮ y luego «Abrir en Chrome».'
+      : 'Este navegador no puede grabar. Abre LiteraLevel en Chrome o Safari.';
+  }
+
+  /** Un mensaje por cada rechazo de getUserMedia: antes todos decían «no tengo permiso». */
+  protected mensajeMicrofono(e: unknown): string {
+    const nombre = (e as { name?: string } | null)?.name ?? '';
+    if (nombre === 'NotAllowedError' || nombre === 'SecurityError') {
+      return this.enWebView ? this.textoSinGrabacion() : 'No hay permiso para el micrófono. Actívalo en los ajustes del sitio y vuelve a intentar.';
+    }
+    if (nombre === 'NotFoundError' || nombre === 'OverconstrainedError') return 'No encontramos ningún micrófono. Conecta uno y vuelve a intentar.';
+    if (nombre === 'NotReadableError' || nombre === 'AbortError') return 'El micrófono está ocupado por otra app. Ciérrala y vuelve a intentar.';
+    return 'No se pudo empezar a grabar. Vuelve a intentar.';
+  }
+
   protected async grabar(): Promise<void> {
+    if (this.pidiendo()) return;
     this.error.set('');
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      this.error.set('Este navegador no deja grabar audio. Prueba con Chrome, Edge, Firefox o Safari actualizados.');
+    // El micrófono ya no va desactivado sin frase: un toque que no hace nada es lo que contó Ismael.
+    if (!this.frase.trim()) { this.error.set(this.avisoSinFrase); return; }
+    if (!this.puedeGrabar()) { this.error.set(this.textoSinGrabacion()); return; }
+    this.pidiendo.set(true);
+    this.relojPermiso = setTimeout(() => this.pidiendoLento.set(true), 5000);
+    let flujo: MediaStream;
+    try {
+      flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      this.error.set(this.mensajeMicrofono(e));
       return;
+    } finally {
+      clearTimeout(this.relojPermiso);
+      this.pidiendo.set(false);
+      this.pidiendoLento.set(false);
     }
     try {
-      const flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
       const tipos = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
       this.tipo = tipos.find(t => MediaRecorder.isTypeSupported(t)) ?? '';
       this.grabador = new MediaRecorder(flujo, this.tipo ? { mimeType: this.tipo } : undefined);
@@ -179,7 +235,9 @@ export class Pronunciar implements OnInit, OnDestroy {
         if (this.segundos() >= 30) this.pararGrabacion();
       }, 1000);
     } catch {
-      this.error.set('No tengo permiso para usar el micrófono. Actívalo en el candado de la barra de direcciones.');
+      // El permiso ya se dio: lo que falló es MediaRecorder. Se suelta el micrófono.
+      flujo.getTracks().forEach(t => t.stop());
+      this.error.set('No se pudo empezar a grabar. Vuelve a intentar.');
     }
   }
 

@@ -29,6 +29,7 @@
       }
     </div>
     <textarea id="frase" class="entrada frase en-libro" rows="3" maxlength="300" [(ngModel)]="frase" lang="en"
+              (input)="error() === avisoSinFrase && error.set('')"
               placeholder="Escribe o pega la frase en inglés que vas a leer"></textarea>
     @if (frase) {
       <button type="button" class="boton pequeno fantasma limpiar" (click)="frase = ''; descartar()">
@@ -56,6 +57,12 @@
          (investigacion/una_mano.md §3.4). El botón del centro no se mueve entre
          estados: grabar, parar y corregir caen en el mismo sitio. -->
     <div class="grabadora">
+      @if (lineaBarra(); as l) {
+        <p class="linea-barra" [class.error]="l.tipo === 'error'" [class.aviso]="l.tipo === 'aviso'" [class.grabando]="l.tipo === 'grabando'"
+           [attr.role]="l.tipo === 'error' ? 'alert' : 'status'">{{ l.texto }}
+          @if (l.tipo === 'error' && necesitaEntrar()) { <button type="button" class="boton pequeno fantasma" (click)="abrirAjustes()">Entrar</button> }
+        </p>
+      }
       <div class="lado">
         @if (estado() === 'grabada' && !corregida()) {
           <button type="button" class="accion" (click)="descartar(); grabar()">
@@ -69,7 +76,7 @@
       </div>
       @switch (estado()) {
         @case ('lista') {
-          <button type="button" class="microfono" (click)="grabar()" [disabled]="!frase.trim()" aria-label="Empezar a grabar">
+          <button type="button" class="microfono" (click)="grabar()" [attr.aria-disabled]="!frase.trim()" aria-label="Empezar a grabar">
             <app-icono nombre="micro" />
           </button>
         }
@@ -103,11 +110,6 @@
     </div>
   </section>
 
-  @if (error()) {
-    <div class="aviso error" role="alert"><p>{{ error() }}
-      @if (necesitaEntrar()) { <button type="button" class="boton pequeno fantasma" (click)="abrirAjustes()">Entrar</button> }
-    </p></div>
-  }
 
   @if (resultado(); as r) {
     <section class="tarjeta resultado" aria-live="polite">
