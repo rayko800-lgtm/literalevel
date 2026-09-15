@@ -189,3 +189,14 @@ Ronda 3, informes recibidos:
   - Ahora quedan en 0,41–0,49 por tema, y el mejor resultado es «Scotland Yard», C2, con 0,75.
   - No se toca antes de la demo. Ofrecer detectives de B1 sin Londres queda como idea para después de la entrega.
 - Los tres menores de subidas van al reinicio 22, con pruebas propias (f4).
+
+Ronda 3 de la boca 3D (4e, 444228a), sobre el front publicado 73a34dd:
+- **Cerrado y verificado:**
+  - La fuga de memoria: tras 20 aperturas quedan 1 contexto gráfico vivo y 13,8 MB, frente a 48,7 MB con 10 antes del arreglo.
+  - Al cerrar el visor, el audio ya no suena, a 1x ni a 0,5x.
+  - Las flechas del teclado y la etiqueta de «reposo» para lectores de pantalla.
+  - Si el navegador pierde el 3D, se pasa al 2D.
+  - El README.
+- **Menores nuevos, para e6 después del ensayo:**
+  - Cada apertura vuelve a bajar cara.glb y lengua.glb, unos 2,7 MB, porque la URL firmada cambia. En un móvil con datos, eso cuenta.
+  - El arreglo de la fuga depende de _interceptControlDown, una parte interna de three que la prueba solo simula.
