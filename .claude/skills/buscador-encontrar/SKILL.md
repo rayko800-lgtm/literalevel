@@ -159,6 +159,17 @@ local (familia, rosa, luna); sí vale si no lo es (sherlok, iland, dracul).
 Añadir a la batería: sherlok holmes · treasure iland · dracul · pride and
 prejudise · moby dik · frankenstien · wuthering heigths · familia.
 
+### En producción (reinicio 25, Space 4ba66f9, 15 sep)
+
+La franja está arriba con la variante E y el .npy de títulos
+(`catalogo_tit_ext_936bb14e0e7fda90.npy`), que se comprueba al cargar por forma
+y recodificando 8 títulos: si no cuadra, no marca nada (nunca 503). «Fantasmas»
+A2 pasa de 1 a 9 cuentos del tema en «En tu nivel». Límites declarados:
+«Monstruos», «Historias de amor» («My story») y «Terror gótico» B1 (títulos
+con «terror»). **La primera búsqueda con nivel tras un reinicio tarda 18,6 s**
+(modelo + comprobación); las siguientes 0,6 s. Antes de una demo, calentar con
+una búsqueda; la precarga en el arranque va en el reinicio 26.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
