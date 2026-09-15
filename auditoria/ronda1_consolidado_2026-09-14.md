@@ -999,3 +999,5 @@ Arreglo del micrófono de Pronunciar (e6, 601788b), con el ok de 4e:
 - **Comando listo:** `python -X utf8 tools/desplegar_app.py --solo app/catalogo.py --commit b896b1f`. Solo sube catalogo.py.
 
 **Micrófono publicado (e6):** 601788b, en el Space del front 0cfa382. Con el aviso de abrir en Chrome en el navegador de WhatsApp, «Acepta el permiso del micrófono», «Grabando: habla ahora» y un mensaje para cada error. Falta que lo pruebe Ismael.
+
+Decisión de Miguel (AskUserQuestion en la central): **volver al 28**. La autorización de la subida la da él en el chat de f4, porque la bloqueó el permiso de esa sesión. La central no la reenvía como permiso.
