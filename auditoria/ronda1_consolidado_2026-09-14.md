@@ -720,3 +720,7 @@ Arreglo de mayúsculas de ficha.py (e6, 3151f51), a falta del visto bueno corto 
 - **Mutantes:** 2 de 2 detectados.
 - **Duda:** SWV285707 podría estar escrito con Mayúscula En Cada Palabra, el mismo fallo en otra forma. 4e dice si es más que un caso aislado.
 - **Subida:** va con el 27.
+
+Visto bueno de 4e a 3151f51 (ficha.py): ok, entra en el 27.
+- **Caso Title Case, medido:** 22 textos de 15.367. Se vacían 5 listas, y en dos o tres se pierden palabras corrientes.
+- **Decisión:** es aislado y se deja así. Solo oculta una sección y no muestra nada falso.
