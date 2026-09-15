@@ -121,3 +121,11 @@ Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-
 - e6 recorre el front publicado como alguien que llega por primera vez y propone dos formas de ayuda con esquema: una bienvenida de 3 o 4 pasos que se puede saltar, o una ayuda de una frase por pantalla. Informe en `auditoria/ismael_ayuda_2026-09-15.md`.
 - Miguel elige antes de programar.
 - Conviene preguntarle a Ismael en qué pantalla se perdió y qué quería hacer.
+
+**Segunda nota de Ismael (15 sep), más concreta:**
+
+> «Entré y ya inicié sesión, pero le pisas al micrófono y no te dice que hables, no se activa la grabación… lo que quieres es que sea más intuitiva, a lo mejor no tan saturada la página. Por ejemplo, los textos están largos y tienes que hacerle scroll, y te pierdes, no sabes qué hacer en la aplicación.»
+
+- **Micrófono:** con sesión iniciada, pulsa y no pasa nada visible ni empieza la grabación. Puede ser un fallo, no solo de diseño. Si abrió el enlace desde WhatsApp, su navegador interno no suele permitir el micrófono. e6 revisa qué ve el usuario en cada caso: permiso negado, navegador sin micrófono o grabación sin audio.
+- **Saturación:** textos largos, mucho scroll antes de saber qué hacer. Entra en las propuestas de ayuda de e6.
+- **Falta saber:** qué teléfono y qué navegador usó, y si abrió el enlace desde WhatsApp.
