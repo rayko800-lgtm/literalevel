@@ -632,6 +632,92 @@ def _nombre_parecido_sin_tema_no_rescata():
 prueba("un nombre parecido sin tema no rescata", _nombre_parecido_sin_tema_no_rescata)
 
 
+def _franja_trae_su_nivel_detras_de_los_n():
+    """Reinicio 23 (e6, 4db6ea3): con A2, «Fantasmas» no traia ninguno de los 40 cuentos
+    de fantasmas de A2-B1, porque el techo lo ponia «True Ghost Stories» y la ventana de
+    MARGEN_RELEVANCIA no llegaba a ellos. Con `franja`, detras de los n de siempre van
+    los de la franja del lector, marcados: suelo, margen sobre el mejor de la franja,
+    margen sobre el techo general, bordes (lo, hi], tope K, el titulo solo de los
+    externos, nunca el rescate por nombre y nada sin el .npy de titulos."""
+    def cat_con(s, titulos, dif, autores=None):
+        cat = _catalogo_de_mentira(s, titulos, autores or ["Smith, John"] * len(s))
+        cat.df["dificultad"] = dif
+        return cat
+
+    def marcados(cat, q, nivel, n):
+        return [l.id for l in cat.buscar(q, nivel_lector=nivel, n=n, franja=True)[0] if l.por_franja]
+
+    assert cm.franja_de(0.7999999999999998) == (0.35, 1.25), cm.franja_de(0.7999999999999998)
+    # ACTION PART-1 (0,586) no pasa el suelo; los dos cuentos de su nivel van detras.
+    cat = cat_con([0.85, 0.72, 0.64, 0.586, 0.80],
+                  ["True Ghost Stories", "The Ghost Friend", "A Night at School", "ACTION PART-1", "Ghosts of Old"],
+                  [1.6, 0.5, 0.6, 0.7, 1.7])
+    sin = [l.id for l in cat.buscar("ghost stories", nivel_lector=0.4, n=2)[0]]
+    con = cat.buscar("ghost stories", nivel_lector=0.4, n=2, franja=True)[0]
+    assert [l.id for l in con[:2]] == sin and not any(l.por_franja for l in con[:2]), [(l.id, l.por_franja) for l in con]
+    assert [l.id for l in con[2:]] == ["PG1", "PG2"] and all(l.por_franja for l in con[2:]), [l.id for l in con]
+    assert not marcados(cat, "ghost stories", None, 2), "sin nivel no hay franja"
+    assert len(cat.buscar("ghost stories", nivel_lector=0.4, n=2)[0]) == 2, "sin `franja` no se anade nada"
+    # Por debajo de SUELO_FRANJA, no, aunque los margenes lo dejen pasar.
+    suelo = cat_con([0.62, 0.58], ["Uno", "Dos"], [0.4, 0.5])
+    assert marcados(suelo, "espectros", 0.4, 1) == ["PG0"], marcados(suelo, "espectros", 0.4, 1)
+    # A mas de MARGEN_FRANJA del mejor de la franja, no.
+    margen = cat_con([0.90, 0.72, 0.66], ["Uno", "Dos", "Tres"], [0.4, 0.5, 0.6])
+    assert marcados(margen, "espectros", 0.4, 1) == ["PG0"], marcados(margen, "espectros", 0.4, 1)
+    # A mas de MARGEN_TECHO_FRANJA del techo general, tampoco.
+    techo = cat_con([0.95, 0.66, 0.64], ["Uno", "Dos", "Tres"], [1.8, 0.5, 0.6])
+    assert marcados(techo, "espectros", 0.4, 1) == [], marcados(techo, "espectros", 0.4, 1)
+    # Bordes (lo, hi] en milesimas: 0,35 fuera y 1,25 y 1,2500004 dentro con B1.
+    borde = cat_con([0.70, 0.69, 0.68], ["Uno", "Dos", "Tres"], [0.35, 1.25, 1.2500004])
+    assert marcados(borde, "espectros", 0.8, 1) == ["PG1", "PG2"], marcados(borde, "espectros", 0.8, 1)
+    # Como mucho K_FRANJA detras.
+    muchos = cat_con([0.70 - 0.005 * i for i in range(16)], [f"Libro {i}" for i in range(16)], [0.4] * 16)
+    con = muchos.buscar("espectros", nivel_lector=0.4, n=1, franja=True)[0]
+    assert len(con) == 1 + cm.K_FRANJA, len(con)
+    # El titulo solo de un externo cuenta (su fila del indice queda por debajo del suelo)...
+    tit = cat_con([0.90, 0.50, 0.50], ["Uno", "Dos", "Tres"], [1.8, 0.4, 0.4])
+    tit._n_propio, tit._emb_tit = 1, np.array([[0.80, 0.60], [0.30, 0.95394]], dtype=np.float32)
+    assert marcados(tit, "espectros", 0.4, 1) == ["PG1"], marcados(tit, "espectros", 0.4, 1)
+    # ...y sin un .npy de titulos que cuadre no se marca nada.
+    sin_npy = cat_con([0.90, 0.70], ["Uno", "Dos"], [1.8, 0.4])
+    sin_npy._n_propio, sin_npy._emb_tit = 1, None
+    assert marcados(sin_npy, "espectros", 0.4, 1) == [], marcados(sin_npy, "espectros", 0.4, 1)
+    # Con una palabra, el titulo solo va contra sus frases y no contra la palabra suelta:
+    # «amor» a secas se parecia 0,8 a «HOLI» o «Kuppu» (reinicio 25, variante E).
+    palabra = cat_con([0.9, 0.3, 0.3], ["Uno", "HOLI", "Dos"], [1.8, 0.4, 0.4])
+    palabra._emb = np.array([[0.3, 0.9], [0.3, 0.3], [0.3, 0.3]], dtype=np.float32)
+    palabra._modelo_emb = lambda: type("M", (), {"encode": staticmethod(
+        lambda x, **k: np.array([[1.0, 0.0], [0.0, 1.0], [0.0, 1.0]][:len(x)], dtype=np.float32))})()
+    palabra._n_propio, palabra._emb_tit = 1, np.array([[0.95, 0.0], [0.0, 0.8]], dtype=np.float32)
+    assert marcados(palabra, "espectros", 0.4, 1) == ["PG2"], marcados(palabra, "espectros", 0.4, 1)
+    # El rescate por nombre no marca: «Ghost Stories for Children» casa entero, pero su
+    # parecido por tema es 0,40.
+    nombre = cat_con([0.80, 0.40, 0.62], ["Ghost Stories", "Ghost Stories for Children", "Uno"], [1.8, 0.4, 0.5])
+    m = marcados(nombre, "ghost stories", 0.4, 1)
+    assert "PG1" not in m and "PG2" in m, m
+    return "detras de los n, con suelo, margenes, bordes, tope, titulo solo y sin rescate ni .npy"
+
+
+prueba("la franja trae su nivel detras de los n", _franja_trae_su_nivel_detras_de_los_n)
+
+
+def _titulo_con_palabras_enteras():
+    """Reinicio 23: «familia» casaba con «Familiar» por parecido de letras (0,93), y los
+    «Familiar Things/Faces» tapaban los cuentos de familia. En el titulo, cada palabra
+    entera o con su plural; el parecido de letras queda para el autor («chejov»)."""
+    fam = _catalogo_de_mentira([0.70, 0.30, 0.72], ["Mi Familia", "Familiar Faces", "My family"],
+                               ["Gaete, Antonia", "Graham, Harry", "Lee, Ann"])
+    ids = [l.id for l in fam.buscar("familia", n=3)[0]]
+    assert ids[-1] == "PG1", f"«Familiar Faces» rescatado por «familia»: {ids}"
+    drag = _catalogo_de_mentira([0.55, 0.70], ["The Dragon", "Castles"], ["Smith, John", "Lee, Ann"])
+    ids = [l.id for l in drag.buscar("dragons", n=2)[0]]
+    assert ids == ["PG0", "PG1"], f"«dragons» ya no encuentra «The Dragon»: {ids}"
+    return "«familia» no rescata «Familiar»; «dragons» sigue encontrando «The Dragon»"
+
+
+prueba("un titulo casa con palabras enteras", _titulo_con_palabras_enteras)
+
+
 def _autor_entero_delante_y_parciales_fuera():
     """Prueba como persona de e6 (15 sep 2026): con «Jane Austen», Emma y Pride and
     Prejudice quedaban detras de los libros sobre ella y empatadas con Sidney Austen y
@@ -771,7 +857,36 @@ def _busquedas_reales_en_espanol():
         r = top(q)
         colados = [l.titulo for l in r[:5] if re.search(fuera, l.titulo + " " + l.autor)]
         assert not colados and dentro in [l.id for l in r[:5]], f"«{q}»: {lista(r)}"
-    return f"dostoyevski, chejov, Midsummer, Jane Austen; «amor» B1 {amor}/12; sin Brownlie ni Sombre, Historians ni Luna"
+    # Reinicio 25, segundo top-k de la franja (casos de e6 y de la Central, no calibracion).
+    franja = "sin el .npy de titulos: la franja no marca y no se mide"
+    if cat.emb_titulos() is not None:
+        fuera = cat._leer_no_lectura()
+
+        def marcados(q, nivel):
+            libros = cat.buscar(q, nivel_lector=nivel, n=24, franja=True)[0]
+            sin = cat.buscar(q, nivel_lector=nivel, n=24)[0]
+            assert [l.id for l in libros[:len(sin)]] == [l.id for l in sin], f"«{q}» {nivel}: cambian los n"
+            m = [l for l in libros if l.por_franja]
+            malos = [l.id for l in m if l.id.upper() in fuera or "Fenn, Amor" in l.autor]
+            assert not malos, f"«{q}» {nivel}: marcados excluidos o Fenn {malos}"
+            return m
+
+        for nivel in (0.4, 0.8):
+            robots = sum(bool(re.search(r"(?i)robot", l.titulo + " " + l.gancho)) for l in marcados("Robots", nivel))
+            assert robots >= 3, f"«Robots» {nivel}: {robots} robots marcados"
+        m = marcados("Terror gótico", 0.8)
+        assert not any("ACTION PART" in l.titulo.upper() for l in m), [l.titulo for l in m]
+        for nivel in (1.2, 1.6):
+            m = marcados("familia", nivel)
+            assert not any(re.search(r"(?i)\bfamiliar\b", l.titulo) for l in m), [l.titulo for l in m]
+        m = marcados("rosa", 0.8)
+        assert not any(re.search(r"(?i)little rabbit|sun in the beach", l.titulo) for l in m), [l.titulo for l in m]
+        sin, _ = cat.buscar("ghost stories", n=24)
+        con, _ = cat.buscar("ghost stories", n=24, franja=True)
+        assert [l.id for l in sin] == [l.id for l in con] and not any(l.por_franja for l in con), "«ghost stories» sin perfil"
+        franja = "franja: Robots, sin ACTION PART-1, sin Familiar, sin los dos de rosa, ghost stories igual"
+    return (f"dostoyevski, chejov, Midsummer, Jane Austen; «amor» B1 {amor}/12; sin Brownlie ni Sombre, "
+            f"Historians ni Luna; {franja}")
 
 
 prueba("buscar en espanol en el catalogo real: nombres y temas", _busquedas_reales_en_espanol)

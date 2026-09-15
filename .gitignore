@@ -15,6 +15,7 @@ kaikki_diccionario.db
 # Embeddings del buscador: 82 MB, derivados del CSV del catalogo. Se bajan del
 # repositorio de resultados (catalogo/) o se recalculan; no van a git.
 catalogo_emb_*.npy
+catalogo_tit_ext_*.npy
 
 # Fotogramas y paginas intermedias del video: se regeneran capturando la app
 capturas/video/

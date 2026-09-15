@@ -953,6 +953,38 @@ def medido_en_bloque_en_ficha_y_tarjeta():
     return "ficha y tarjeta: bloque true; solo y Gutenberg false"
 
 
+def buscar_devuelve_la_franja_y_la_marca():
+    """Contrato con e6 (reinicio 23): /api/buscar pide la franja al catalogo, lleva
+    `franja` [lo, hi] en milesimas con nivel y null sin el, y `por_franja` en cada
+    tarjeta, siempre presente."""
+    from types import SimpleNamespace as NS
+    base = dict(titulo="t", autor="a", nivel="B1", dificultad=1.0, gancho="", descargas=1,
+                similitud=0.5, afinidad=0.1, url_gutenberg="u", aviso_contenido="", medida="texto")
+    pedidas = []
+
+    def buscar(consulta, nivel_lector=None, n=10, franja=False, **k):
+        pedidas.append((nivel_lector, franja))
+        return [NS(id="PG1342", por_franja=False, **base),
+                NS(id=LIBRE, por_franja=bool(franja and nivel_lector is not None), **base)], ""
+
+    cat = ui.catalogo()
+    original = cat.buscar
+    try:
+        cat.buscar = buscar
+        con = _ok(cliente.post("/api/buscar", headers=nuevo_lector(),
+                               json={"consulta": "fantasmas", "nivel": 0.7999999999999998}))
+        sin = _ok(cliente.post("/api/buscar", headers=nuevo_lector(), json={"consulta": "fantasmas", "ajustar": False}))
+    finally:
+        cat.buscar = original
+    assert con["franja"] == [0.35, 1.25], con["franja"]
+    assert sin["franja"] is None, sin["franja"]
+    assert [r["por_franja"] for r in con["resultados"]] == [False, True], con["resultados"]
+    assert [r["por_franja"] for r in sin["resultados"]] == [False, False], sin["resultados"]
+    assert pedidas == [(0.7999999999999998, True), (None, True)], pedidas
+    assert api._libro_tarjeta(NS(id=LIBRE, **base))["por_franja"] is False, "sin el atributo, false"
+    return "franja [0,35, 1,25] con nivel y null sin el; por_franja en cada tarjeta"
+
+
 def voz_subida_y_palabra_no_bloquean_a_los_demas():
     """Auditoría cruzada de 4e (14 sep 2026). /api/voz y la subida eran `async` y
     llamaban a voz y al lector en el bucle de eventos: mientras corregían, nada más
@@ -1631,6 +1663,7 @@ if __name__ == "__main__":
                topes_de_subidas_por_lector_y_por_hora, palabra_que_falla_solo_devuelve_lo_cobrado,
                libro_subido_se_ve_con_su_nombre, palabra_escrita_no_se_atribuye_al_libro,
                aviso_de_contenido_en_ficha_y_tarjeta, medido_en_bloque_en_ficha_y_tarjeta,
+               buscar_devuelve_la_franja_y_la_marca,
                voz_subida_y_palabra_no_bloquean_a_los_demas,
                validacion_sin_eco_de_la_entrada, dos_subidas_a_la_vez_no_pasan_el_tope_ni_rompen_los_nombres,
                cache_lexica_serializa_la_conexion_entre_hilos,

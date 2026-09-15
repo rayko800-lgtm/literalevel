@@ -126,6 +126,7 @@ class Libro:
     dificultad: float | None = None     # medida por el v4; None si es heredada
     aviso_contenido: str = ""           # nota de avisos_contenido.csv; "" si no hay
     medida: str = ""                    # "texto", "bloque" (corpus libres) o "" (Gutenberg)
+    por_franja: bool = False            # entro por el segundo top-k de la franja (reinicio 23)
 
     @property
     def medido_en_bloque(self) -> bool:
@@ -232,6 +233,33 @@ _PARECIDO_TITULO = 0.9
 # Prejudice quedaban detrás (solo el apellido, 0,793), empatadas con Sidney Austen y
 # con «Calamity Jane» (prueba como persona de e6, 15 sep 2026).
 _EXTRA_AUTOR_COMPLETO = 0.02
+# Reinicio 23: los cuentos de la franja del lector que el techo global dejaba fuera.
+# «Fantasmas», «amor» o «Navidad» con A2 no traian ninguno de sus 40, 71 o 32 cuentos
+# de A2-B1: el techo lo ponia un Gutenberg de titulo exacto y la ventana de
+# MARGEN_RELEVANCIA (0,05) no llegaba a ellos (e6, 4db6ea3). Con nivel, y solo si se
+# pide (`franja=True`, la API), un segundo top-k entre los textos de la franja del
+# front, marcados `por_franja` y DETRAS de los n de siempre, que no cambian.
+# Calibrado con dragones, oceano y dinosaurios, A2 y B1, antes de mirar la bateria: a
+# 0,15 del mejor de la franja entran 4-24 del tema y 0-3 que no; a 0,20, hasta 12 que
+# no. El suelo es para lo que no es de nada (ACTION PART-1 a 0,586 en «Terror gotico»
+# con B1). El margen sobre el techo general no se pudo calibrar (en esos temas el techo
+# es de la propia franja) y va holgado.
+FRANJA_ABAJO = 0.45           # la franja del front: nivel - 0,45 < dificultad <= nivel + 0,45
+FRANJA_ARRIBA = 0.45
+SUELO_FRANJA = 0.60
+MARGEN_FRANJA = 0.15
+MARGEN_TECHO_FRANJA = 0.25
+K_FRANJA = 12
+# El titulo solo de los externos, con una consulta de UNA palabra, contra las frases de
+# FRASES_PALABRA_SUELTA y no contra la palabra sola: «amor» o «Monstruos» a secas daban
+# 0,79-0,86 con «HOLI», «Kuppu», «Biryani» o «DINO», y 0,35-0,64 con las frases; los del
+# tema suben con las frases («The love of Books» 0,805, «The book monster» 0,859).
+# Elegido con la calibracion (dragones, oceano y dinosaurios, 8 consultas x A2 y B1, del
+# tema / marcados): solo indice 235/270, titulo con todo 214/219, 2 palabras o mas
+# 222/227, indice >= 0,40 210/215, solo la palabra 198/201, las frases (E) 231/236.
+# Bateria, solo informe (10 consultas x A2 y B1): 170/206, 160/236, 176/239, 172/224,
+# 127/221 y E 196/255. Limites declarados: «Monstruos» 1/12 con todas las variantes, y
+# «Historias de amor» (varias palabras, E no la toca) con los «My story» (6/12 y 8/12).
 # Palabras de rol del campo de autor de Gutenberg, que no son nombres.
 _NO_SON_NOMBRES = frozenset({"illustrator", "editor", "translator", "contributor", "various",
                              "anonymous", "unknown", "compiler", "commentator", "author"})
@@ -342,9 +370,26 @@ def _es_seudonimo(autor) -> bool:
     return True
 
 
-def _titulo_completo(consulta: str, fichas: list[set[str]]) -> np.ndarray:
+def franja_de(nivel: float) -> tuple[float, float]:
+    """Los bordes (lo, hi] de la franja del lector, en milesimas como la dificultad de
+    la tarjeta. Un solo sitio: la API los devuelve y el front reparte con ellos."""
+    return round(nivel - FRANJA_ABAJO, 3), round(nivel + FRANJA_ARRIBA, 3)
+
+
+def _misma_palabra(a: str, b: str) -> bool:
+    """La misma palabra, o con el plural en -s o -es: «dragons» es «dragon»."""
+    return a == b or a in (b + "s", b + "es") or b in (a + "s", a + "es")
+
+
+def _titulo_completo(consulta: str, fichas: list[set[str]], exacto: bool = False) -> np.ndarray:
     """La media del parecido de cada palabra de la consulta con el titulo, solo si
-    TODAS pasan de _PARECIDO_TITULO; si no, 0."""
+    TODAS pasan de _PARECIDO_TITULO; si no, 0.
+
+    `exacto` (los titulos, reinicio 23): cada palabra tiene que estar entera, con su
+    plural. Con el parecido de letras «familia» casaba con «Familiar» (0,93), y «A
+    Catechism of Familiar Things» o «The Matron's Manual of Midwifery» subian a 0,797
+    detras de «Mi Familia» y delante de todos los cuentos de familia. El parecido de
+    letras se queda para el nombre del autor, que es para lo que se hizo."""
     pistas = [p for p in re.split(r"[^a-z0-9]+", _normalizar(consulta)) if len(p) >= 4]
     fuera = np.zeros(len(fichas), dtype=np.float32)
     if not pistas:
@@ -361,7 +406,8 @@ def _titulo_completo(consulta: str, fichas: list[set[str]]) -> np.ndarray:
                     continue
                 r = cache.get((pista, palabra))
                 if r is None:
-                    r = cache[(pista, palabra)] = difflib.SequenceMatcher(None, pista, palabra).ratio()
+                    r = cache[(pista, palabra)] = (float(_misma_palabra(pista, palabra)) if exacto else
+                                                   difflib.SequenceMatcher(None, pista, palabra).ratio())
                 mejor = max(mejor, r)
             if mejor < _PARECIDO_TITULO:
                 break
@@ -422,6 +468,7 @@ class Catalogo:
             self.df.loc[con, "nivel_cefr"] = self.df.loc[con, "dificultad"].map(
                 lambda d: scoring.anchor_cefr(float(d) * 2.5))
         self._emb: np.ndarray | None = None
+        self._emb_tit = False           # False: sin leer; None: no hay .npy que cuadre
         self._modelo = None
         self._fichas: list[set[str]] | None = None
 
@@ -470,7 +517,34 @@ class Catalogo:
         h = hashlib.sha256("\x1f".join(ids_ext + textos[n:]).encode("utf-8"))
         return textos[n:], h.hexdigest()[:16]
 
-    def _embeddings_de(self, prefijo: str, huella: str, textos: list[str]) -> np.ndarray:
+    def _titulos_externos(self) -> tuple[list[str], str]:
+        """Los titulos solos del externo y la huella que nombra su `.npy`
+        (`catalogo_tit_ext_<huella>.npy`), de los ids y los titulos en su orden."""
+        n = getattr(self, "_n_propio", len(self.df))
+        ids = self.df["id"].astype(str).tolist()[n:]
+        titulos = self.df["title"].fillna("").astype(str).tolist()[n:]
+        h = hashlib.sha256("\x1f".join(ids + titulos).encode("utf-8"))
+        return titulos, h.hexdigest()[:16]
+
+    def emb_titulos(self, calcular: bool = False) -> np.ndarray | None:
+        """El vector del titulo solo de cada texto externo, para el parecido de la franja:
+        su fila del indice lleva ademas el gancho y los temas, y el titulo diluido quedaba
+        0,07-0,21 por debajo (reinicio 23). Sin `calcular` solo se LEE: en el Space viaja
+        en su .npy, subido a mano como el del externo, y recalcularlo al arrancar serian
+        minutos de CPU. Sin un .npy que cuadre con estas filas, None: la franja no marca."""
+        actual = getattr(self, "_emb_tit", False)
+        if actual is False or (calcular and actual is None):
+            n = getattr(self, "_n_propio", len(self.df))
+            if len(self.df) <= n:
+                actual = np.zeros((0, self.embeddings.shape[1]), dtype=np.float32)
+            else:
+                titulos, huella = self._titulos_externos()
+                actual = self._embeddings_de("catalogo_tit_ext_", huella, titulos, calcular=calcular)
+            self._emb_tit = actual
+        return actual
+
+    def _embeddings_de(self, prefijo: str, huella: str, textos: list[str],
+                       calcular: bool = True) -> np.ndarray | None:
         DIR_CACHE.mkdir(parents=True, exist_ok=True)
         nombre = f"{prefijo}{huella}.npy"
         cache = DIR_CACHE / nombre
@@ -489,6 +563,8 @@ class Catalogo:
                         except OSError:
                             pass          # sin sitio donde copiarla, da igual
                     return emb
+        if not calcular:
+            return None
         emb = self._modelo_emb().encode(textos, normalize_embeddings=True,
                                         batch_size=64, show_progress_bar=False)
         emb = np.asarray(emb, dtype=np.float32)
@@ -711,8 +787,11 @@ class Catalogo:
     # --- busqueda -----------------------------------------------------
     def buscar(self, consulta: str, nivel_lector: float | None = None,
                peso_nivel: float = 0.3, n: int = 10,
-               minimo_similitud: float = 0.10) -> tuple[list[Libro], str]:
+               minimo_similitud: float = 0.10, franja: bool = False) -> tuple[list[Libro], str]:
         """Busca por descripcion libre, en espanol o ingles.
+
+        Con `franja` y un nivel, detras de los n de siempre van hasta K_FRANJA textos de
+        la franja del lector marcados `por_franja` (reinicio 23, ver FRANJA_ABAJO).
 
         Devuelve (resultados, aviso). `aviso` explica en lenguaje llano cuando
         el resultado no es el esperado, en vez de devolver una lista vacia muda.
@@ -767,7 +846,7 @@ class Catalogo:
                 if (pistas & de_pila) - enteros[i]:
                     por_apellido[i] = 0.0
         completo = _titulo_completo(consulta, enteros)
-        lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),
+        lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos, exacto=True),
                                  np.where((completo > 0) & con_apellido & (len(pistas) > 1),
                                           completo + _EXTRA_AUTOR_COMPLETO, 0.0)])
         validos = ~self._excluidos
@@ -814,15 +893,9 @@ class Catalogo:
             if sim[i] < minimo_similitud:
                 flojos += 1
                 continue
-            f = self.df.iloc[i]
-            libros.append(Libro(id=str(f["id"]), titulo=str(f["title"]),
-                                autor=str(f["author"]), nivel=str(f["nivel_cefr"]),
-                                gancho=str(f["hook"]), descargas=int(f.get("downloads", 0) or 0),
-                                dificultad=_dificultad_de(f),
-                                similitud=round(float(sim[i]), 3),
-                                afinidad=round(float(afin[i]), 3),
-                                aviso_contenido=str(f.get("aviso_contenido", "") or ""),
-                                medida=_medida_de_fila(f)))
+            libros.append(self._libro_de(i, sim[i], afin[i]))
+        if franja and nivel_lector is not None and libros:
+            self._marcar_franja(libros, sem, vs, sim, afin, nivel_lector)
 
         if not libros:
             # Nunca devolver vacio en silencio: ese era el fallo original.
@@ -834,6 +907,58 @@ class Catalogo:
         if flojos:
             aviso = f"Se descartaron {flojos} resultados por parecido bajo."
         return libros, aviso
+
+    def _libro_de(self, i: int, sim_i: float, afin_i: float) -> Libro:
+        f = self.df.iloc[i]
+        return Libro(id=str(f["id"]), titulo=str(f["title"]),
+                     autor=str(f["author"]), nivel=str(f["nivel_cefr"]),
+                     gancho=str(f["hook"]), descargas=int(f.get("downloads", 0) or 0),
+                     dificultad=_dificultad_de(f),
+                     similitud=round(float(sim_i), 3),
+                     afinidad=round(float(afin_i), 3),
+                     aviso_contenido=str(f.get("aviso_contenido", "") or ""),
+                     medida=_medida_de_fila(f))
+
+    def _marcar_franja(self, libros: list[Libro], sem: np.ndarray, vs: np.ndarray,
+                       sim: np.ndarray, afin: np.ndarray, nivel: float) -> None:
+        """El segundo top-k del reinicio 23. Entre los textos validos de la franja del
+        lector (franja_de), los que pasan SUELO_FRANJA y quedan a MARGEN_FRANJA del mejor
+        de la franja y a MARGEN_TECHO_FRANJA del techo general. Los que ya estaban en
+        `libros` se marcan donde estan; los demas se anaden detras, marcados y en su orden
+        de parecido, hasta K_FRANJA. El parecido es solo el de tema (su fila del indice o
+        su titulo solo), nunca el rescate por nombre; la `similitud` de la tarjeta sigue
+        siendo la del orden general."""
+        emb_tit = self.emb_titulos()
+        if emb_tit is None:
+            return                            # sin los titulos que cuadren, no se marca nada
+        s = np.asarray(sem, dtype=np.float32).copy()
+        if len(emb_tit):
+            frases = vs[1:] if len(vs) > 1 else vs      # una palabra: solo sus frases (ver K_FRANJA)
+            s[len(s) - len(emb_tit):] = np.maximum(s[len(s) - len(emb_tit):], (emb_tit @ frases.T).max(axis=1))
+        validos = ~self._excluidos
+        if not validos.any():
+            return
+        lo, hi = franja_de(nivel)
+        d = np.round(pd.to_numeric(self.df["dificultad"], errors="coerce").to_numpy(dtype=float), 3)
+        banda = validos & ~np.isnan(d) & (d > lo) & (d <= hi)
+        if not banda.any():
+            return
+        techo, mejor = float(s[validos].max()), float(s[banda].max())
+        dentro = (banda & (s >= SUELO_FRANJA) & (s >= mejor - MARGEN_FRANJA)
+                  & (s >= techo - MARGEN_TECHO_FRANJA))
+        orden = np.flatnonzero(dentro)
+        orden = orden[np.argsort(-s[orden], kind="stable")]
+        por_id = {l.id: l for l in libros}
+        extra = 0
+        for i in orden:
+            ident = str(self.df["id"].iloc[i])
+            if ident in por_id:
+                por_id[ident].por_franja = True
+            elif extra < K_FRANJA:
+                libro = self._libro_de(i, sim[i], afin[i])
+                libro.por_franja = True
+                libros.append(libro)
+                extra += 1
 
     def _intercalar_libres(self, d: pd.DataFrame, n: int,
                            nivel_lector: float | None = None) -> pd.DataFrame:

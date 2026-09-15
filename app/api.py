@@ -67,6 +67,7 @@ from pydantic import BaseModel, Field  # noqa: E402
 import animacion_articulatoria  # noqa: E402
 import articulacion  # noqa: E402
 import biblioteca  # noqa: E402
+import catalogo  # noqa: E402
 import config  # noqa: E402
 import cuaderno  # noqa: E402
 import cuentas  # noqa: E402
@@ -630,7 +631,10 @@ def _libro_tarjeta(b) -> dict:
             "aviso_contenido": getattr(b, "aviso_contenido", "") or None,
             # Contrato con f4 (reinicio 14): la dificultad de un texto libre corto
             # es la del bloque en que se midio, no la suya; el front lo dice.
-            "medido_en_bloque": getattr(b, "medida", "") == "bloque"}
+            "medido_en_bloque": getattr(b, "medida", "") == "bloque",
+            # Contrato con e6 (reinicio 23): entro por el segundo top-k de la franja. El
+            # front lo pone en su bloque de nivel sin margen ni SALTO. Siempre presente.
+            "por_franja": bool(getattr(b, "por_franja", False))}
 
 
 def _aviso_contenido(libro) -> str | None:
@@ -981,11 +985,15 @@ def buscar(datos: BusquedaPeticion, pet: LectorOpcional) -> dict:
         p = _perfil_de(pet)
         nivel = datos.nivel if datos.nivel is not None else (p.nivel if p else None)
     try:
-        libros, aviso = ui.catalogo().buscar(datos.consulta, nivel_lector=nivel, n=datos.n)
+        libros, aviso = ui.catalogo().buscar(datos.consulta, nivel_lector=nivel, n=datos.n, franja=True)
     except Exception as e:
         raise _no(503, f"El buscador no está disponible ahora mismo ({type(e).__name__}).") from e
+    # Contrato con e6 (reinicio 23): los bordes (lo, hi] de la franja con que se marca
+    # `por_franja`, en milesimas, para que el front reparta con los mismos; null sin nivel.
     return {"resultados": [_libro_tarjeta(b) for b in libros], "aviso": aviso,
-            "ajustado": nivel is not None, "nivel": nivel, "nota": _llano(ui._nota_nivel())}
+            "ajustado": nivel is not None, "nivel": nivel,
+            "franja": list(catalogo.franja_de(nivel)) if nivel is not None else None,
+            "nota": _llano(ui._nota_nivel())}
 
 
 @app.get("/api/recomendar")
