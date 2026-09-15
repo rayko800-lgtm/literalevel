@@ -6,6 +6,8 @@ Uso: python -X utf8 pruebas_voz_ritmo.py
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import tempfile
 import threading
@@ -235,8 +237,19 @@ class Practicar(unittest.TestCase):
                     mock.patch.object(voz, "explicar_correccion") as explicar, \
                     mock.patch.object(voz, "registrar_fallos") as registrar, \
                     mock.patch.object(voz, "registrar_ritmo"):
-                s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0)
+                with contextlib.redirect_stderr(io.StringIO()) as registro:
+                    s = voz.practicar(str(self.grabacion), FRASE, guardar_fallos=True, nivel=1.0, origen="api")
             self.assertEqual(s.transcripcion_ok, oida, (texto, no_voz))
+            # Central, reinicio 26: al descartar, el servidor apunta no_speech_prob, hora y origen, y nada mas.
+            lineas = [l for l in registro.getvalue().splitlines() if l.startswith("voz sin_voz:")]
+            if oida:
+                self.assertEqual(lineas, [], f"{texto!r} con {no_voz}: con voz no se registra")
+            else:
+                self.assertEqual(len(lineas), 1, registro.getvalue())
+                self.assertIn(f"no_speech_prob={list(no_voz)}", lineas[0])
+                self.assertIn("origen=api", lineas[0])
+                self.assertNotIn(texto.split()[-1].strip("."), lineas[0], "el texto no va al registro")
+                self.assertNotIn("lector", lineas[0], "la ruta del audio no va al registro")
             self.assertEqual(s.sin_voz, not oida, f"{texto!r} con {no_voz}: sin_voz")
             self.assertEqual(explicar.called, oida, f"{texto!r} con no_speech_prob {no_voz}: explicacion de pago")
             self.assertEqual(registrar.called, oida, (texto, no_voz))

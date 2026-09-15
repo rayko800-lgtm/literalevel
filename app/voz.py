@@ -14,7 +14,7 @@ OPENAI_API_KEY, `transcribir_audio`, `explicar_correccion` y
 que la interfaz solo tiene que comprobar si el resultado es `None`.
 """
 from __future__ import annotations
-import difflib, hashlib, json, os, re, sqlite3, tempfile, threading
+import difflib, hashlib, json, os, re, sqlite3, sys, tempfile, threading
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -788,7 +788,7 @@ def _sin_voz(segmentos) -> bool:
     return bool(probs) and all(p > UMBRAL_SIN_VOZ for p in probs)
 
 
-def _transcribir_con_tiempos(ruta_audio) -> tuple[dict | None, bool]:
+def _transcribir_con_tiempos(ruta_audio, origen: str = "") -> tuple[dict | None, bool]:
     """(datos o None, si se puede pedir la transcripcion sin marcas sin pagar el
     audio dos veces): cuando OpenAI rechazo la peticion, o sin clave, que no
     sube nada ni aqui ni en `transcribir_audio`."""
@@ -813,6 +813,11 @@ def _transcribir_con_tiempos(ruta_audio) -> tuple[dict | None, bool]:
         texto = str(_campo(r, "text", "") or "")
         if _sin_voz(_campo(r, "segments")):
             texto, palabras = "", []
+            # Para calibrar UMBRAL_SIN_VOZ con lectores reales (Central, reinicio 26): solo los
+            # no_speech_prob, la hora y quien llama («api» o «gradio»); nada del audio ni del texto.
+            probs = [round(float(_campo(s, "no_speech_prob")), 3) for s in _campo(r, "segments")]
+            print(f"voz sin_voz: no_speech_prob={probs} hora={datetime.now(timezone.utc).isoformat(timespec='seconds')} "
+                  f"origen={re.sub(r'[^a-z]', '', str(origen or '').lower())[:12] or 'desconocido'}", file=sys.stderr)
         return {"texto": texto,
                 "duracion": float(duracion) if duracion is not None else None,
                 "palabras": palabras}, False
@@ -1452,7 +1457,7 @@ def audios_de_palabras(palabras: list[str]) -> dict[str, str]:
 
 
 def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
-             guardar_fallos: bool = True, nivel: float | None = None) -> SesionVoz:
+             guardar_fallos: bool = True, nivel: float | None = None, origen: str = "") -> SesionVoz:
     """Ciclo completo de practica: transcribe el audio del usuario, evalua
     contra la frase objetivo, explica como corregir lo que fallo, genera un
     audio de referencia y registra las palabras debiles.
@@ -1467,7 +1472,8 @@ def practicar(ruta_audio: str | os.PathLike, frase_objetivo: str,
     # formato (400, 415 o 422: no se proceso). Con un plazo agotado o un corte de
     # red el audio pudo procesarse y cobrarse, y subirlo otra vez lo pagaba dos
     # veces (e6, 14 sep, M5). Sin clave no sale ninguna llamada.
-    tiempos, reintentar = _transcribir_con_tiempos(ruta_audio)
+    # `origen` («api» o «gradio») solo va al registro de las grabaciones sin voz.
+    tiempos, reintentar = _transcribir_con_tiempos(ruta_audio, origen)
     transcripcion = tiempos["texto"] if tiempos is not None else None
     if tiempos is None and reintentar:
         transcripcion = transcribir_audio(ruta_audio)
