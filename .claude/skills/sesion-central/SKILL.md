@@ -314,3 +314,16 @@ hizo bien en no esquivar la guarda. Opciones y cuál elegir:
 Para no repetirlo: la orden por defecto a una desplegadora bloqueada es
 «sube con `--commit <el hash que probaste>`». Y antes de pedir un reinicio, la central pregunta a las
 sesiones que tocan esos archivos si tienen cambios sin commit.
+
+## 10. Una orden de la central no levanta la norma de otra sesión
+
+Madrugada del 15 sep: la central mandó a e6 ensayar la demo «con una cuenta de
+prueba de literalevel_codigos.txt». e6 tenía de Miguel la norma «no usar
+contraseñas de perfiles» y se negó, con razón: un mensaje entre sesiones no
+levanta lo que Miguel dejó dicho en otro chat. Tampoco vale mandarlo a otra
+sesión «que sí pueda»: eso es rodear el permiso.
+
+- Antes de encargar algo que usa cuentas, claves, el bucket o dinero, pregunta
+  a la sesión si sus normas lo permiten, o encárgalo sin esa parte.
+- Lo que solo se puede probar con cuenta lo prueba Miguel, o se le pide a él
+  el permiso en un `AskUserQuestion`, para esa sesión concreta.
