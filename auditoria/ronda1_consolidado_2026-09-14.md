@@ -886,3 +886,10 @@ Causa medida de las consultas de autor con perfil 1,20 (f4, contra el catalogo.p
   - **(ii)** títulos solo genéricos. No arregla ningún autor.
   - **(i)+(ii):** cambia las marcas de 57 listas.
 - **Siguiente:** i3, que aplica (i) solo si el primer resultado general viene del rescate por autor. El criterio incluye las marcas de las 100 palabras.
+
+Variante i3 (f4): la franja no marca si el primer resultado general viene del rescate por autor.
+- **Autores con 1,20:** dostoyevski y sus variantes, tolstoy, cervantes, Jane Austen y oscar wilde pasan de 12 marcas a 0. dickens pasa de 17 a 5, todas suyas. «Crimen y castigo de Dostoyevski» sigue en 0.
+- **Temas:** los tres de A2 y B1, iguales.
+- **Las 100 palabras:** 197 de 198 listas iguales. La única distinta es «school» con B1, que pasa de 13 marcas a 1, porque su top 10 abre con una obra cuyo autor en StoryWeaver es «The Polymath School».
+- **«crime and punishment» y «crimen y castigo»:** 1 y 4 marcas de tema, igual que hoy. Se aceptan.
+- **Siguiente, i4:** i3 solo si esa primera obra es de Gutenberg. Se calibra con una lista de control de palabras que coinciden con autores-organización, escrita antes de medir.
