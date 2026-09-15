@@ -297,15 +297,20 @@ def _candado_subidas(pet: _Lector) -> threading.Lock:
     return _CANDADOS_SUBIDAS[h % len(_CANDADOS_SUBIDAS)]
 
 
-def _escribir_nombres(ruta: Path, nombres: dict) -> None:
-    """nombres.json a un temporal y `os.replace`: nunca queda a medio escribir."""
+def _escribir_nombres(ruta: Path, nombres: dict) -> bool:
+    """nombres.json a un temporal y `os.replace`: nunca queda a medio escribir. Si no
+    se puede escribir, lo dice en stderr y devuelve False: el libro sigue subido, pero
+    sin su nombre original (ronda 3 de e6: el error se tragaba en silencio)."""
     temporal = ruta.with_name(f".{ruta.name}.{uuid.uuid4().hex}.tmp")
     try:
         temporal.write_text(json.dumps(nombres, ensure_ascii=False), "utf-8")
         os.replace(temporal, ruta)
-    except OSError:
+        return True
+    except OSError as e:
+        print(f"api nombres.json: no he podido escribir {ruta}: {type(e).__name__}: {e}", file=sys.stderr)
         with contextlib.suppress(OSError):
             temporal.unlink()
+        return False
 
 
 def _guardar_nombre_subido(pet: _Lector, ident: str, original: str) -> None:
@@ -1070,11 +1075,12 @@ def _guardar_subido(pet: _Lector, original: str, ext: str, h, trozos: list[bytes
         carpeta.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise _no(500, "No he podido guardar el libro en el servidor.") from e
+    destino = carpeta / f"{ident[1:]}{ext}"
     with _candado_subidas(pet):
-        destino = carpeta / f"{ident[1:]}{ext}"
-        if not destino.exists() and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
+        nuevo = not destino.exists()
+        if nuevo and sum(1 for p in carpeta.iterdir() if p.suffix in _EXT_LIBRO) >= _MAX_SUBIDOS:
             raise _no(429, f"Ya tienes {_MAX_SUBIDOS} libros subidos. Borra alguno con la papelera de «Mis libros» para subir otro.")
-        if not destino.exists():
+        if nuevo:
             # Disco lleno o sin permiso: con mensaje propio, no el 500 genérico
             # (auditoría de Codex, 7).
             try:
@@ -1082,13 +1088,18 @@ def _guardar_subido(pet: _Lector, original: str, ext: str, h, trozos: list[bytes
             except OSError as e:
                 destino.unlink(missing_ok=True)
                 raise _no(500, "No he podido guardar el libro en el servidor.") from e
-        try:
-            lib = _cargar_libro(str(destino))
-        except HTTPException:
-            destino.unlink(missing_ok=True)
-            raise
+    # Abrir el libro, fuera del candado: pueden ser segundos (un PDF), y los candados van
+    # por franjas, así que un lector ajeno de la misma franja esperaba (ronda 3 de e6).
+    try:
+        lib = _cargar_libro(str(destino))
+    except HTTPException:
+        if nuevo:
+            with _candado_subidas(pet):
+                destino.unlink(missing_ok=True)
+        raise
+    with _candado_subidas(pet):
         _guardar_nombre_subido(pet, ident, original)
-        _titulo_subido(lib, ident, pet)
+    _titulo_subido(lib, ident, pet)
     return _libro_json(ident, lib, pet)
 
 
@@ -2098,19 +2109,21 @@ def borrar_subido(libro_id: str, pet: Lector) -> dict:
         raise _no(400, "Solo se pueden borrar los libros que hayas subido tú.")
     carpeta = _dir_subidos(pet)
     borrados = 0
-    for ext in _EXT_LIBRO:
-        p = carpeta / f"{ident[1:]}{ext}"
-        if not p.is_file():
-            continue
-        with _CANDADO_LIBROS:
-            for clave in [k for k in _LIBROS if k[0] == str(p)]:
-                del _LIBROS[clave]
-        biblioteca.olvidar(str(p), ui._archivo_lector("biblioteca.json", pet))
-        p.unlink(missing_ok=True)
-        borrados += 1
-    if not borrados:
-        raise _no(404, "Ese libro ya no está en el servidor.")
+    # Todo bajo el candado de subidas: con el archivo borrado fuera, una subida a la vez
+    # podía contarlo todavía o apuntar su nombre después del borrado (ronda 3 de e6).
     with _candado_subidas(pet):
+        for ext in _EXT_LIBRO:
+            p = carpeta / f"{ident[1:]}{ext}"
+            if not p.is_file():
+                continue
+            with _CANDADO_LIBROS:
+                for clave in [k for k in _LIBROS if k[0] == str(p)]:
+                    del _LIBROS[clave]
+            biblioteca.olvidar(str(p), ui._archivo_lector("biblioteca.json", pet))
+            p.unlink(missing_ok=True)
+            borrados += 1
+        if not borrados:
+            raise _no(404, "Ese libro ya no está en el servidor.")
         try:
             ruta = _nombres_subidos(pet)
             nombres = json.loads(ruta.read_text("utf-8"))

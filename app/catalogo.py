@@ -309,12 +309,37 @@ def _nombre_entero(autor) -> str:
     return re.sub(r"[\d?]+", " ", str(autor))
 
 
-def _vocabulario_de_nombres(autores) -> set[str]:
-    """Todas las palabras de nombre (apellidos y de pila) que hay en el campo de autor."""
-    vocabulario: set[str] = set()
-    for ficha in _fichas([_nombre_entero(a) for a in autores]):
-        vocabulario |= ficha
-    return {p for p in vocabulario if p.isalpha()} - _NO_SON_NOMBRES
+def _pila_por_apellido(autores) -> dict[str, set[str]]:
+    """{palabra de apellido: nombres de pila de los autores con ese apellido}.
+
+    Solo lo que va detrás de la coma. El vocabulario de todo el campo de autor
+    (24.296 palabras: island, love, white, wild, school...) apagaba al autor buscado
+    en cuanto la consulta traía una palabra de tema: «treasure island stevenson»
+    bajaba Treasure Island al 5.º (serio de la ronda 3 de 4e sobre el 21)."""
+    salida: dict[str, set[str]] = {}
+    for autor in autores:
+        if autor is None or (isinstance(autor, float) and np.isnan(autor)):
+            continue
+        for uno in str(autor).split(";"):
+            partes = uno.split(",")
+            if len(partes) < 2:
+                continue
+            pila = {p for p in _fichas([partes[1]])[0] if p.isalpha()} - _NO_SON_NOMBRES
+            for apellido in _fichas([partes[0]])[0]:
+                salida.setdefault(apellido, set()).update(pila)
+    return salida
+
+
+def _es_seudonimo(autor) -> bool:
+    """Ningún autor del campo trae nombre de pila tras la coma: «Calamity Jane,
+    1856-1903», «Abby Garcia»."""
+    if autor is None or (isinstance(autor, float) and np.isnan(autor)):
+        return False
+    for uno in str(autor).split(";"):
+        partes = uno.split(",")
+        if len(partes) >= 2 and any(p.isalpha() for p in _fichas([partes[1]])[0] - _NO_SON_NOMBRES):
+            return False
+    return True
 
 
 def _titulo_completo(consulta: str, fichas: list[set[str]]) -> np.ndarray:
@@ -713,8 +738,9 @@ class Catalogo:
             self._nombres = (_fichas(self.df["title"].astype(str).tolist()),
                              _fichas([_apellidos(a) for a in autores]),
                              _fichas([_nombre_entero(a) for a in autores]),
-                             _vocabulario_de_nombres(autores))
-        titulos, apellidos, enteros, vocabulario = self._nombres
+                             _pila_por_apellido(autores),
+                             [_es_seudonimo(a) for a in autores])
+        titulos, apellidos, enteros, pila_de, seudonimos = self._nombres
         por_apellido = _similitud_nombres(consulta, apellidos)
         # El nombre entero solo cuenta si incluye el apellido: «amor» es todo «Fenn, Amor»,
         # pero es su nombre de pila, y un nombre de pila suelto no rescata. Y solo con dos
@@ -723,13 +749,22 @@ class Catalogo:
         # entero de nadie, y con el extra pasaba por delante de los títulos con «Rosa»
         # (batería de buscador-encontrar, 15 sep 2026, antes de subir el 21).
         con_apellido = por_apellido >= _PARECIDO_NOMBRE
-        # Un apellido suelto no puntúa si la consulta trae otro nombre que ese autor no
-        # tiene: «Jane Austen» no es Sidney Austen ni «Calamity Jane».
+        # Un apellido suelto no puntúa si la consulta trae el nombre de pila de OTRO autor
+        # con ese apellido: «Jane Austen» no es Sidney Austen. Las palabras de tema
+        # (island, love, white) no son nombre de pila de ningún Stevenson, Browning o
+        # London, así que no apagan al autor. Un seudónimo sin nombre de pila («Calamity
+        # Jane») solo cuenta si la consulta lo trae entero.
         pistas = {p for p in re.split(r"[^a-z0-9]+", _normalizar(consulta)) if len(p) >= 4}
-        nombres_de_la_consulta = pistas & vocabulario
-        if len(pistas) > 1 and nombres_de_la_consulta:
-            for i in np.flatnonzero(por_apellido >= _PARECIDO_NOMBRE):
-                if nombres_de_la_consulta - enteros[i]:
+        if len(pistas) > 1:
+            for i in np.flatnonzero(con_apellido):
+                if seudonimos[i]:
+                    # De dos palabras o más: «I Love You» o «Jack Jack» se cubrían con
+                    # cualquier consulta que trajera «love» o «jack».
+                    if len(apellidos[i]) < 2 or not apellidos[i] <= pistas:
+                        por_apellido[i] = 0.0
+                    continue
+                de_pila = set().union(*(pila_de.get(a, set()) for a in apellidos[i]))
+                if (pistas & de_pila) - enteros[i]:
                     por_apellido[i] = 0.0
         completo = _titulo_completo(consulta, enteros)
         lex = np.maximum.reduce([por_apellido, _titulo_completo(consulta, titulos),

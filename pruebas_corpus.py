@@ -644,6 +644,24 @@ def _autor_entero_delante_y_parciales_fuera():
          "Austen, Jane, 1775-1817", "Smith, John"])
     ids = [l.id for l in cat.buscar("Jane Austen", n=6)[0]]
     assert ids == ["PG1", "PG4", "PG0", "PG5", "PG3", "PG2"], f"«Jane Austen»: {ids}"
+    # Serio de la ronda 3 de 4e sobre el 21: una palabra de tema en la consulta
+    # («island», «white», «fang») apagaba el apellido del autor buscado, porque el
+    # vocabulario de nombres era todo el campo de autor (aquí, «Island, Peter» y
+    # «White, Anne»). Solo apaga un nombre de pila de otro autor con ese apellido.
+    mixtas = _catalogo_de_mentira(
+        [0.70, 0.72, 0.10, 0.62, 0.66, 0.10],
+        ["Treasure Island", "The Island Treasure", "Poems", "White Fang", "Fang and Claw", "Sketches"],
+        ["Stevenson, Robert Louis", "Smith, John", "Island, Peter", "London, Jack", "Brown, Mary", "White, Anne"])
+    ids = [l.id for l in mixtas.buscar("treasure island stevenson", n=3)[0]]
+    assert ids[0] == "PG0", f"«treasure island stevenson» apaga a Stevenson: {ids}"
+    ids = [l.id for l in mixtas.buscar("white fang jack london", n=3)[0]]
+    assert ids[0] == "PG3", f"«white fang jack london» apaga a Jack London: {ids}"
+    # Un seudónimo de una sola palabra («I Love You») no se cubre con cualquier consulta
+    # que traiga «love»: con B1 abría «love poems by browning».
+    seudo = _catalogo_de_mentira([0.55, 0.45, 0.58], ["Singing in the Rain", "Dramatic Romances", "Love Poems"],
+                                 ["I Love You", "Browning, Robert", "Smith, Ann"])
+    ids = [l.id for l in seudo.buscar("love poems by browning", n=3)[0]]
+    assert ids[0] == "PG1", f"«love poems by browning» abre con un seudónimo de una palabra: {ids}"
     # Una sola palabra no es el nombre entero de nadie: «rosa» como apellido de un
     # colaborador no puede pasar por delante de los títulos con «Rosa».
     rosa = _catalogo_de_mentira(
@@ -728,6 +746,19 @@ def _busquedas_reales_en_espanol():
         assert not parciales, f"coincidencias parciales del nombre con nivel {nivel}: {parciales}"
     r = top("Jane Austen")
     assert r[0].autor.startswith("Austen, Jane"), f"con el nombre entero, sus obras no van primero: {lista(r)}"
+    # Serio de 4e sobre el 21: apellido con tema o título. Los mínimos son los que 4e
+    # midió con la regla apagada (auditoria/ronda3_2026-09-15_reinicio21.md).
+    for q, patron, minimo in (("treasure island stevenson", r"Stevenson, Robert Louis", 8),
+                              ("love poems by browning", r"Browning", 7),
+                              ("the secret garden frances hodgson burnett", r"Burnett, Frances Hodgson", 7),
+                              ("white fang jack london", r"London, Jack", 2),
+                              ("the call of the wild by jack london", r"London, Jack", 10)):
+        r = top(q, n=10)
+        suyos = sum(bool(re.search(patron, l.autor)) for l in r)
+        assert suyos >= minimo, f"«{q}»: {suyos} de 10 del autor, 4e midió {minimo}: {lista(r)}"
+    for q, patron in (("browning", r"Browning"), ("robert browning", r"Browning, Robert")):
+        r = top(q)
+        assert re.search(patron, r[0].autor), f"«{q}» no abre con Browning: {lista(r)}"
     r = top("amor", 0.8)
     amor = sum(bool(re.search(r"(?i)\blov(e|ed|er|ers|es|ing)\b|romance", l.titulo + " " + l.gancho)) for l in r)
     assert amor >= 6, f"«amor» con B1: {amor} de 12 sobre amor: {lista(r)}"

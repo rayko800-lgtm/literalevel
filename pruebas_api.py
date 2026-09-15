@@ -1160,6 +1160,109 @@ def cache_lexica_serializa_la_conexion_entre_hilos():
     return "guardar y obtener, de texto y de audio, siempre con el candado"
 
 
+def borrar_subido_todo_bajo_el_candado():
+    """Ronda 3 de e6 (15 sep 2026): borrar_subido quitaba el archivo, la caché y la
+    biblioteca fuera del candado de subidas; solo nombres.json iba dentro."""
+    from pathlib import Path as _Path
+
+    texto = ("A small fox ran across the frozen river before dawn. " * 50 + "\n\n") * 3
+    lector = nuevo_lector()
+    limite = ui._dentro_del_limite
+    ui._dentro_del_limite = lambda *a, **k: True
+    try:
+        subido = _ok(cliente.post("/api/libros", headers=lector,
+                                  files={"archivo": ("zorro.txt", texto.encode(), "text/plain")}))
+    finally:
+        ui._dentro_del_limite = limite
+    candado_real, borrar = api._candado_subidas, _Path.unlink
+    vistos, fuera = [], []
+
+    def candado_vigilado(pet):
+        c = candado_real(pet)
+        vistos.append(c)
+        return c
+
+    def unlink_vigilado(self, *a, **k):
+        if self.suffix in api._EXT_LIBRO and not any(c.locked() for c in vistos):
+            fuera.append(self.name)
+        return borrar(self, *a, **k)
+
+    api._candado_subidas, _Path.unlink = candado_vigilado, unlink_vigilado
+    try:
+        r = cliente.delete(f"/api/libros/{subido['id']}", headers=lector)
+    finally:
+        api._candado_subidas, _Path.unlink = candado_real, borrar
+    assert r.status_code == 200, r.text
+    assert vistos and not fuera, f"libros borrados fuera del candado de subidas: {fuera}"
+    return "el archivo del libro se borra con el candado de subidas tomado"
+
+
+def abrir_un_libro_no_retiene_el_candado_de_otros():
+    """Ronda 3 de e6 (15 sep 2026): el candado de subidas se retenía mientras se abría
+    el libro, y los candados van por franjas: un lector ajeno de la misma franja
+    esperaba. Con una sola franja, la subida de B acaba mientras A sigue abriendo."""
+    import threading
+    import time
+
+    texto = ("The lighthouse keeper counted the ships every night. " * 50 + "\n\n") * 3
+    dentro, duerme = threading.Event(), 2.0
+    cargar, candados, limite = api._cargar_libro, api._CANDADOS_SUBIDAS, ui._dentro_del_limite
+    llamadas = []
+
+    def cargar_la_primera_lenta(ruta):
+        llamadas.append(ruta)
+        if len(llamadas) == 1:
+            dentro.set()
+            time.sleep(duerme)
+        return cargar(ruta)
+
+    api._cargar_libro, api._CANDADOS_SUBIDAS = cargar_la_primera_lenta, [threading.Lock()]
+    ui._dentro_del_limite = lambda *a, **k: True
+    try:
+        with TestClient(api.app, raise_server_exceptions=False) as c:
+            hilo = threading.Thread(target=lambda: c.post(
+                "/api/libros", headers=nuevo_lector(),
+                files={"archivo": ("a.txt", texto.encode(), "text/plain")}))
+            hilo.start()
+            assert dentro.wait(30), "la subida lenta no llegó a abrir su libro"
+            t = time.time()
+            r = c.post("/api/libros", headers=nuevo_lector(),
+                       files={"archivo": ("b.txt", (texto + " Otro.").encode(), "text/plain")})
+            dt = time.time() - t
+            viva = hilo.is_alive()
+            hilo.join()
+    finally:
+        api._cargar_libro, api._CANDADOS_SUBIDAS, ui._dentro_del_limite = cargar, candados, limite
+    assert r.status_code == 200, r.text
+    assert viva and dt < duerme * 0.6, f"la subida de otro lector esperó {dt:.2f} s (la otra seguía: {viva})"
+    return f"la otra subida, en {dt:.2f} s mientras la primera seguía abriendo su libro ({duerme} s)"
+
+
+def nombres_que_no_se_pueden_escribir_lo_dicen():
+    """Ronda 3 de e6 (15 sep 2026): _escribir_nombres se tragaba el OSError."""
+    import contextlib
+    import io
+    import tempfile
+    from pathlib import Path as _Path
+
+    reemplazar, err = os.replace, io.StringIO()
+
+    def falla(*a, **k):
+        raise PermissionError("disco de solo lectura")
+
+    with tempfile.TemporaryDirectory(prefix="ll_nombres_") as d:
+        os.replace = falla
+        try:
+            with contextlib.redirect_stderr(err):
+                ok = api._escribir_nombres(_Path(d) / "nombres.json", {"u1": "Mi libro"})
+        finally:
+            os.replace = reemplazar
+        restos = list(_Path(d).iterdir())
+    assert ok is False and "nombres.json" in err.getvalue(), (ok, err.getvalue())
+    assert not restos, f"queda el temporal: {restos}"
+    return "devuelve False, lo escribe en stderr y no deja el temporal"
+
+
 def corte_de_la_boca_en_svg():
     """Las animaciones de 4e, servidas al front: tipo, caché, sin ejecutar nada
     aunque se abran sueltas, quieto distinto de animado y rechazo de lo raro."""
@@ -1531,6 +1634,8 @@ if __name__ == "__main__":
                voz_subida_y_palabra_no_bloquean_a_los_demas,
                validacion_sin_eco_de_la_entrada, dos_subidas_a_la_vez_no_pasan_el_tope_ni_rompen_los_nombres,
                cache_lexica_serializa_la_conexion_entre_hilos,
+               borrar_subido_todo_bajo_el_candado, abrir_un_libro_no_retiene_el_candado_de_otros,
+               nombres_que_no_se_pueden_escribir_lo_dicen,
                devolucion_va_a_la_cuenta_cobrada,
                sinopsis_simultaneas_una_generacion, borrar_subido_libera_el_cupo,
                historial_de_voz_ilegible_avisa, cita_recorta_sin_perder_la_oracion,
