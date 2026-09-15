@@ -271,3 +271,36 @@ sobre el HTML minificado. Dos reglas:
   Un 200 del `index.html` no dice nada.
 - La primera carga puede decir «No consigo hablar con el motor» si el Space de
   Gradio se está despertando: recargar una vez antes de dar el fallo por bueno.
+
+
+## Un modelo del Hub se baja en cada arranque si no se precarga (15 sep)
+
+El Space de LiteraLevel es `cpu-basic` y **no tiene almacenamiento
+persistente** (ya no existe en Spaces). El buscador carga MiniLM
+(`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) con
+`snapshot_download` y, si no está en la caché local, lo baja del Hub en el
+primer uso: 471 MB, sin token. Resultado: el tiempo hasta `buscador_listo` iba
+de 20 a 55 s según cómo respondiera el Hub, y un Hub lento justo tras un
+reinicio podía dejar el buscador sin cargar.
+
+Arreglo (reinicio 30a, Space 282c46f): `preload_from_hub` en la cabecera YAML
+del README **del Space** (no el del repo), solo con los archivos que la app
+baja de verdad, no el repositorio entero (4,6 GB con onnx, openvino, tf…):
+
+```yaml
+preload_from_hub:
+  - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 <archivos separados por comas>
+```
+
+- HF lo baja **al construir la imagen** a `~/.cache/huggingface/hub`, la caché
+  por defecto: comprueba antes que el Space no tenga `HF_HOME` ni
+  `TRANSFORMERS_CACHE` apuntando a otra ruta.
+- Sin revisión fija, para que exista `refs/main` y `local_files_only=True` lo
+  resuelva.
+- Edita solo la cabecera con un guion que aborte si el diff toca algo fuera de
+  ella: el README del Space no es el del repositorio y sobrescribirlo rompe el
+  arranque.
+- Medido: la precarga del arranque bajó de 44,4 s a 17,2 s y `buscador_listo`
+  de 55 s a 20 s; el log ya no muestra descargas.
+- No reinicies el Space solo para repetir una medida si hay usuarios probando:
+  mídelo en el siguiente despliegue, que reinicia igualmente.
