@@ -100,6 +100,34 @@ aventuras en la selva, un viaje en tren y superhéroes. Los que no llegaban
 (amor, familia, fantasmas, monstruos…) hay que volver a medirlos después de
 arreglar la recuperación.
 
+## 3b. Por qué no salían los cuentos del nivel (medido por f4, 15 sep)
+
+Dos causas, las dos de recuperación:
+
+- **La ventana de relevancia se mide contra el techo global.** Lo pone casi
+  siempre un libro de Gutenberg con el tema en el título («True Ghost
+  Stories» 0,855). El mejor cuento del tema quedaba de 0,07 a 0,24 por debajo,
+  entre el puesto 12 y el 75, y con n=24 no llegaba.
+- **El índice diluye a los libres.** Su vector es título + gancho + temas; el
+  de Gutenberg no tiene gancho. Puntuados solo por el título, los mismos
+  cuentos suben de 0,07 a 0,21.
+
+Diseño del reinicio 23 (contrato con el front):
+
+- Los n generales **no cambian**. Detrás van hasta K textos de la franja del
+  lector, recuperados en un segundo top-k solo entre textos de su nivel, con
+  el parecido máximo entre índice y título solo, y tres condiciones: suelo
+  absoluto, cerca del mejor de la franja y no demasiado lejos del techo.
+- Cada resultado lleva `por_franja` (siempre presente) y la respuesta trae
+  `franja: [lo, hi]` redondeada a tres decimales. La franja se define **en un
+  solo sitio** (catalogo.py) y el front la lee de la respuesta; sin ese campo
+  se comporta como antes.
+- Lo marcado entra en su bloque sin márgenes del front; lo no marcado sigue
+  sus reglas. Ningún valor del salto del front arreglaba esto sin meter basura
+  (e6 lo midió con 70 búsquedas): hacía falta la marca.
+- El rescate por título exige palabras enteras («familia» no es «familiar»);
+  el parecido de letras queda para apellidos.
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
