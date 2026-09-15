@@ -432,3 +432,8 @@ porque el permiso es de esa sesión.
   **en qué chat** tiene que autorizarlo. Con el comando exacto a mano.
 - Mientras tanto, los informes dicen la verdad: «vuelta atrás decidida, pendiente
   de autorización», no «vuelto atrás».
+- **Da el nombre exacto del chat y la frase que tiene que escribir.** Esa mañana
+  Miguel escribió «Apruebo regreso a 28» en el chat de 4e y «Autorizo» en el de
+  e6 antes de hacerlo en el de f4. Las dos sesiones hicieron bien en no
+  aplicarlo y en decirle dónde iba. La tercera vez, con «abre el chat
+  **entrega-f4**, escribe "Vuelve el Space al 28" y aprueba el permiso», salió.
