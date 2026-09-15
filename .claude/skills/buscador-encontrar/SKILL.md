@@ -128,6 +128,21 @@ Diseño del reinicio 23 (contrato con el front):
 - El rescate por título exige palabras enteras («familia» no es «familiar»);
   el parecido de letras queda para apellidos.
 
+### El vector del título y las palabras sueltas
+
+Al añadir «el parecido del título solo» para rescatar cuentos libres, entraron
+marcados títulos de una palabra sin relación («HOLI», «Kuppu», «Biryani»,
+«DINO») con 0,79–0,86 contra «amor» o «Monstruos». El MiniLM multilingüe
+acerca dos palabras sueltas cualesquiera; contra una frase ya no. Por eso, en
+consultas de una palabra, **el título se compara solo con las frases
+«historias de X» y «libros sobre X»**, nunca con la palabra suelta (variante E,
+elegida por calibración con dragones, océano y dinosaurios: 231 del tema de 236
+marcados).
+
+Límites que quedan y que no se arreglan con pesos: «Monstruos» no se acerca a
+«monster» en este modelo (1 de 12 con cualquier variante), y «Historias de
+amor» trae títulos genéricos tipo «My story».
+
 ## 4. Márgenes y constantes
 
 Cada constante nueva (`MARGEN_SEMANTICO_NOMBRE`, `MARGEN_RARO`, el 0,10 y las
