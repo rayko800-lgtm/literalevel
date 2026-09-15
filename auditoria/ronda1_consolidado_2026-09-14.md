@@ -746,3 +746,13 @@ Alcance del reinicio 27, cerrado por la central para no retrasarlo:
 
 Visto bueno de 4e a 4a265f6 y 5985e8e (menores de ui.py del 27): ok. `_practicar` cobra y devuelve a la misma cuenta.
 - **Acoplamiento:** el api.py del 27 ya usa la firma nueva de `_puede_pagar`, así que api.py y ui.py suben juntos o no sube ninguno.
+
+Reinicio 27 con commit (f4, 9e51c18), a falta de los vistos buenos de 4e (catalogo.py y cuentas.py) y e6 (api.py).
+- **Qué lleva:** clásicos con (a) y (b) al primer autor, «Jane Austen» con B1, `buscador_listo`, C17, /api/voz leyendo el código una vez, los menores de cuentas.py y la lista de palabras de tema en auditoria/.
+- **Pruebas:** corpus 46/46 y api 66/66.
+- **En el catálogo real:**
+  - cervantes, dante, moliere, agatha christie y tolstoy abren con obra suya;
+  - «Jane Austen» con B1 abre con The Watsons, Emma y Love and Freindship;
+  - london, hope y king no cambian;
+  - «amor» sin Fenn.
+- **Pendiente:** el banco, el árbol limpio con los cinco commits de e6, el --seco de cinco archivos, la subida y el comprobador con clásicos, Austen, buscador_listo y SWV4008.
