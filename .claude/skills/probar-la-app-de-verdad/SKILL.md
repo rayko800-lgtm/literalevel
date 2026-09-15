@@ -466,3 +466,91 @@ falla, no solo que la suite falla. En la primera pasada, tres mutantes «se
 cazaban»… por una prueba de rutas que fallaba en la copia por un archivo que no
 había copiado. El mutante parecía cubierto y no lo estaba. Exige el nombre de
 la prueba que salta, y que sea la que te esperas.
+
+---
+
+## 10. El front de Angular publicado: lo que solo se ve en el Space
+
+Aprendido entre el 13 y el 14 de septiembre, publicando el front estático una
+docena de veces. Todo esto pasaba las pruebas y el build.
+
+### La meta vacía: el front publicado no llegaba al motor
+
+El build de Angular **minifica** `<meta name="literalevel-api" content="">` a
+`<meta name="literalevel-api" content>`, sin valor. El publicador lo leía con
+un parser HTML que devuelve `None` para ese atributo y solo escribía la URL
+cuando había valor: la meta salió vacía, el front pidió `/api/salud` a **su
+propio dominio**, 404, y la pantalla dijo «No consigo hablar con el motor»
+mientras el motor respondía 200 a `curl`.
+
+Qué lo destapa y qué hacer siempre tras publicar:
+
+```bash
+curl -sL "https://…-front.static.hf.space/index.html?nocache=$RANDOM" \
+  | grep -o '<meta[^>]*literalevel-api[^>]*>\|main-[A-Z0-9]*\.js'
+```
+
+Tiene que salir el `main-*.js` nuevo **y** `content="https://…"`. Y si la
+pantalla dice que no hay motor, antes de culpar al Space mira
+`list_network_requests`: si las peticiones van a `…-front.static.hf.space/api/…`,
+es la meta. La prueba del publicador tiene que usar **el HTML tal como sale del
+build**, no uno escrito a mano con `content=""`.
+
+### Pestañas atrapadas en el build anterior
+
+Una pestaña abierta antes de publicar sigue con el `main-*.js` viejo, que pide
+chunks perezosos que ya no existen (o no los pide, y enseña la pantalla vieja).
+Dos consecuencias:
+
+- **Para verificar, pestaña nueva** (o `navigate_page` con `ignoreCache`) y
+  comprueba en el propio DOM qué `main-*.js` cargó
+  (`[...document.scripts].map(s => s.src)`). Si lo que ves no cambió, casi
+  seguro estás mirando el build anterior, no un fallo.
+- **Para el usuario**: el publicador no borra chunks viejos, `nucleo/version.ts`
+  recarga una vez si falla la carga de una ruta, y el `@defer` de la boca 3D
+  (que no pasa por el router) tiene su botón «Recargar y reintentar».
+
+### 390 px con emulación táctil, y medir en vez de mirar
+
+`emulate` con `390x844x3,mobile,touch` **antes** de medir: sin táctil no hay
+pulsación larga ni el comportamiento de los bordes del lector. Y mide:
+
+- `document.documentElement.scrollWidth` tiene que ser 390. Así salió que la
+  ficha se salía 4 px al ensanchar la portada: un chip largo empujaba una
+  columna `1fr` (hace falta `minmax(0, 1fr)`).
+- Tamaños reales de lo que se pulsa (`getBoundingClientRect().height ≥ 48`) y
+  que una barra fija no tape lo que debe verse (la barra de «Escuchar y ver»
+  tapaba la boca 3D hasta que se midió dónde quedaba el visor al pulsar).
+- Contraste sobre el **color calculado** (`getComputedStyle`), no sobre el
+  declarado; y del párrafo de texto de verdad: el primer `p` de la hoja era una
+  pista con el color de acento y daba 5,6:1 cuando el texto estaba a 12,6:1.
+
+### Lo que el Space no puede probar: micrófono y OpenAI
+
+En el Space no hay micrófono ni sesión con usos, así que la corrección de voz
+no se ve de verdad. Se prueba en local inyectando el resultado en el componente
+(`ng.getComponent(el).resultado.set({...})` en modo desarrollo) con **el JSON
+real** que manda quien escribió el contrato, no uno inventado: así se vieron
+«aquí sin pausa», los arcos de enlace y la leyenda partiéndose en trozos. Y en
+automatización, `audio.play()` puede no sonar ni emitir `playing`: comprueba
+también el camino de la voz del navegador y el de «sin audio».
+
+### `@defer` que no separa si se reexporta
+
+Con `import { Boca3d } from '../compartido/boca3d'` (un índice que reexporta)
+el build dejaba three.js entero, 736 KB, dentro del chunk de Pronunciar: el
+`@defer` compila, funciona, y no ahorra nada. Solo separa el componente en su
+chunk si se importa **directamente** desde el archivo que lo declara. Y lo
+mismo con `viewChild(Boca3d)`: usar la clase como valor la vuelve a meter;
+`viewChild<Boca3d>('visor')` con una referencia de plantilla, no. Comprobación:
+la tabla de chunks de `ng build` (el de Pronunciar en ~40 KB y uno aparte de
+~730 KB) y, en el navegador, que ningún `.glb` ni chunk grande baja hasta
+pulsar «Boca en 3D».
+
+### Publicar sin llevarse el trabajo de otros
+
+Varias sesiones comparten el árbol. Dos tropiezos reales: `git stash` guardó
+archivos ajenos, y un commit con rutas explícitas se llevó cinco líneas sin
+commit de otra sesión que dependían de una función aún no confirmada (HEAD
+rompió al medir). Publica desde un worktree limpio de HEAD y, antes de `git
+add` de un archivo compartido, mira `git diff -- ruta`.
