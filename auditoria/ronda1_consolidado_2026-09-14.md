@@ -130,9 +130,9 @@ sobre lo que cambió, con los auditores rotados.
 
 | Qué | Commit | En producción |
 |---|---|---|
-| Rescate por nombre, frases en español, anuncios fuera, subidas simultáneas, 422 sin contraseña | bffc69d (f4) | Sí, reinicio 19, Space 053a486, comprobado sin fallos |
+| Rescate por nombre, frases en español, anuncios fuera, subidas simultáneas, 422 sin contraseña | 7d94bd9, c63ce44, a557288 (f4), subidos desde el árbol de bffc69d | Sí, reinicio 19, Space 053a486, comprobado sin fallos |
 | Fuga de memoria del 3D: renderer compartido, 18,1 MB y 1 contexto vivo tras 20 aperturas (antes 48,7 MB con 10) | d911cc2, b3ed0d7 (e6) | Sí, front 548ff40 |
-| Audio tras cerrar, teclado y aria-pressed, pérdida de contexto al 2D, README | bffc69d, 2bbf9ec, 6fa33c0, 5cec3ae (e6) | Sí, front 548ff40 |
+| Audio tras cerrar, teclado y aria-pressed, pérdida de contexto al 2D, README | bffc69d (e6), 2bbf9ec, 6fa33c0, 5cec3ae (e6) | Sí, front 548ff40 |
 | Restos de voz: silencio no se guarda, IPA en ASCII rechazada, «Mr.» no corta la frase | 2c0e681 (4e, 7 mutantes muertos) | Pendiente del reinicio 20 |
 | Carpetas temporales de las suites, causa del disco lleno | 42de4cb (4e); 40cdcd4 (f4) | No aplica, 0 carpetas tras cada suite |
 
