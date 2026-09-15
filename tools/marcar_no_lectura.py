@@ -71,6 +71,11 @@ ANUNCIOS_REVISADOS = {
     # enlace al final, y el enlace ya no sale en sus pistas.
     "SWV573562", "SWV602973", "SWV616784", "SWV641941", "SWV642960", "SWV651227",
     "SWV670926", "SWV307241",
+    # Ronda 3 de 4e sobre el 21 (54d6591): venta de GHB por internet, visible con B1.
+    # La misma cuenta («samuel ngu») vende metanfetamina en SWV644179, y «UCAS Appraisal»,
+    # con un anuncio ya fuera, anuncia tasadores en Toronto en SWV119683: barrido de las
+    # 29 cuentas con algún anuncio marcado y de los dominios de sus enlaces.
+    "SWV644124", "SWV644179", "SWV119683",
 }
 # Textos que no son lectura para su nivel aunque pasen las reglas, revisados a mano
 # entre los raros de sus bloques (MARGEN_RARO en tools/medir_corpus.py), con su motivo.
