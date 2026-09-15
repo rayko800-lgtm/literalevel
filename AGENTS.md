@@ -160,12 +160,12 @@ arrancar**. No lo cambies a carga anticipada: la demo se vuelve inusable.
 | `pruebas_desambiguacion.py` | acepciones, sin red | 8 de 8 |
 | `pruebas_perfil.py` | cuestionario de nivel | todo ok (no imprime recuento) |
 | `pruebas_ficha.py` | ficha, pasajes y capítulos de cuerpo | 49 comprobaciones, 0 fallos |
-| `pruebas_corpus.py` | textos libres en catálogo y lector | 25 de 25 |
+| `pruebas_corpus.py` | textos libres en catálogo y lector | 34 de 34 (15 sep) |
 | `pruebas_animacion.py` | corte 2D: SVG, duración y repetición | 2.109 comprobaciones, todo ok |
-| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 23 de 23 |
+| `pruebas_voz_ritmo.py` | lectura natural con whisper y OpenAI simulados | 34 de 34 (15 sep) |
 | `pruebas_voz_concurrencia.py` | voz: candados, migración e historial | 10 de 10 |
 | `pruebas_audio_atomico.py` | caché y escritura atómica del TTS | 4 de 4 |
-| `pruebas_api.py` | frontera HTTP para Angular | 51 de 51 |
+| `pruebas_api.py` | frontera HTTP para Angular | 52 de 52 (15 sep) |
 | `pruebas_api_voz_temporal.py` | subida de audio a la API, por AST | pasa |
 | `pruebas_portadas.py` | pipeline de portadas, sin GPU ni red | 11 de 11 |
 | `pruebas_despliegue.py` | guardas del despliegue del Space | 13 de 13 |

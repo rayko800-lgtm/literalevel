@@ -160,8 +160,8 @@ capítulo.»
 > - **Con tu perfil puesto, *Crime and Punishment* no sale el primero.**
 >   Probado en la app publicada el 12 de septiembre de 2026 con un perfil
 >   de 1,34: «dostoyevski» devuelve primero *Best Russian Short Stories* y
->   **el nuestro, segundo**; sin perfil sale tercero, tras *The Idiot* y
->   *The House of the Dead*. Con otro perfil puede moverse un puesto. Está
+>   **el nuestro, segundo**, y el 15 de septiembre, con perfil 1,20, seguía
+>   segundo. Sin perfil ya no sale entre los seis primeros. Con otro perfil puede moverse un puesto. Está
 >   en la lista y se abre bien; **elígelo sin dudar**, que dudar delante de
 >   la cámara parece que la app no lo encuentra.
 > - **Con perfil 1,20 no esperes capítulos sugeridos para este libro.** Su

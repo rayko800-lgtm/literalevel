@@ -175,8 +175,9 @@ El proyecto se considera resuelto si se cumplen tres condiciones simultáneas:
 
 *Cuadro 1. Criterios de éxito del proyecto.*
 
-Las tres se cumplen y se documentan, respectivamente, en 7.4, 7.5 y en el
-documento de estrategia.
+C1 y C2 se cumplen y se documentan en 7.4 y 7.5. C3 se cumplió con la interfaz
+anterior, de Gradio, y se documenta en el documento de estrategia; sobre el front
+de Angular que se entrega está pendiente (accionable A8).
 
 ---
 
@@ -341,15 +342,16 @@ contrario que el heredado:
 
 | Nivel | Libros medidos | Libros literarios* |
 |---|---|---|
-| A1 | 1 | 290 entre A1 y B1 |
+| A1 | 1 | 288 entre A1 y B1 |
 | A2 | 40 | |
-| B1 | 558 | |
+| B1 | 557 | |
 | B2 | 3.127 | 1.676 |
-| C1 | 23.454 | |
+| C1 | 23.455 | |
 | C2 | 25.999 | |
 | **Total** | **53.179** | |
 
-*Cuadro 3b. Reparto del catálogo medido por el v4 (media 1,742 sobre 2).
+*Cuadro 3b. Reparto del catálogo medido por el v4 (media 1,742 sobre 2), con la corrección de
+`correcciones_catalogo.csv` aplicada (PG2242 pasa de B1 a C1), que es como lo cuenta la aplicación.
 \*Los que la aplicación ofrece al recomendar por nivel: ficción, cuentos,
 lecturas escolares, poesía y teatro. Entre los libros «fáciles» había índices,
 anuarios, mapas y tablas de números, que puntúan bajo precisamente porque son
@@ -362,7 +364,7 @@ es orientativa, porque la escala del modelo sale comprimida y desplazada hacia
 arriba (7.5), y el reparto describe el catálogo de Gutenberg, no la dificultad
 de la lectura en inglés en general.
 
-**Y fuera de Gutenberg.** A fecha de `377a650`, el catálogo suma además **15.357 textos de licencia libre** medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 599 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
+**Y fuera de Gutenberg.** A fecha de `377a650`, el catálogo suma además **15.357 textos de licencia libre** medidos con el v4: 14.500 de StoryWeaver, 326 de Let's Read, 278 de African Storybook y 253 de VOA. Por nivel, 749 A1, 5.580 A2, 5.543 B1, 2.578 B2, 794 C1 y 113 C2. Otros 894 textos libres se quedaron fuera; la salida de `cerrar_corpus.py` dice: «medidos: 15357 (texto 11039, bloque 4318) | sin medida, fuera: 894». Recontados sobre las medidas en disco: 776 tienen menos de 150 palabras, 878 cayeron en un bloque que el filtro de prosa continua rechazó (260 bloques: 215 con pinta de lista, menú o tabla, 32 con frases demasiado cortas o largas y 13 con menos de cuatro frases), 15 no llegaron a formar bloque y 1 se rechazó solo; 828 son de StoryWeaver. Es donde está la lectura de nivel bajo que Gutenberg no tiene: 11.872 textos entre A1 y B1, frente a 598 libros. Cuatro decisiones sobre ellos, publicadas a fecha de `7c09d90`. **(1)** Un cuento corto medido dentro de un bloque lleva la dificultad del bloque, no la suya, y la API lo marca (`medido_en_bloque`) para que la tarjeta y la ficha lo digan. **(2)** La atribución que exige su licencia se enseña al final del texto, pero no se puntúa: medida con el cuento, esa línea en español con su URL subía «Doggie is Happy» de 0,007 a 0,349 en «¿Cómo de difícil es?»; en el Space da 0,007. **(3)** El texto que se sirve sale sin caracteres U+FEFF, sin párrafos repetidos seguidos y sin páginas duplicadas dentro de un párrafo; el que se midió no cambia, y `catalogo_externo.csv` sale idéntico byte a byte al regenerarlo. Cambian 1.442 textos servidos, 185 de ellos por repeticiones, y los estribillos de una frase se conservan. **(4)** Como no tienen descargas de Gutenberg, al recomendar por nivel ocupan un tercio de las tarjetas (puestos 2, 5, 8…), ordenados por cercanía al nivel del lector; con 30 tarjetas, A2 recibe 11 y B1 10, sin cuentos en común entre las dos franjas.
 
 **(c) De aquellos 1.197 libros, solo 148 se podían abrir.** Eran los de Project
 Gutenberg. Los otros 1.049 provenían de StoryWeaver y no tenían fichero
@@ -708,9 +710,9 @@ largo del texto: es lo que mantiene el análisis en **alrededor de un segundo**
 en una CPU —0,96 a 1,04 s medidos sobre ocho ventanas en el equipo del autor,
 un Ryzen 5 2600—, y por eso un vistazo mide una muestra del texto y no el texto
 entero. El precálculo del catálogo, en cambio, recorre el libro completo sin
-muestrear y publica una dificultad por capítulo; esa remedición está **en
-curso** (accionable A3), así que las etiquetas que hoy lleva el catálogo
-siguen siendo las heredadas del v1. Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
+muestrear y publica una dificultad por capítulo; esa remedición **terminó el
+12 de septiembre de 2026** (accionable A3), y las letras del catálogo son ya las
+medidas por el v4. Su escala interna es 0–5 —un valor por nivel MCER, con posiciones
 intermedias (A1+, A2+, B1+, B2+)— y la pública es esa misma escala multiplicada
 por 0,4. **El modelo es final y no se reentrena.**
 
@@ -1050,7 +1052,7 @@ esas tres:
 | Pregunta del lector | Qué la responde | Coste para él |
 |---|---|---|
 | ¿Cuál es mi nivel? | Seis preguntas sobre hábitos observables y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo | Menos de dos minutos |
-| ¿Qué leo ahora? | Búsqueda semántica en español sobre el catálogo, acotada al rango de lectura del perfil | Segundos |
+| ¿Qué leo ahora? | Búsqueda por significado en español sobre el catálogo; con la casilla puesta, el nivel del perfil ordena lo más parecido, sin filtrar | Segundos |
 | ¿Por dónde se va a complicar? | Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear | De 12,7 s (vistazo, medido sobre Crime and Punishment) a minutos (libro completo) |
 | ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58 % de las consultas sobre un libro real, §6.4), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
@@ -1279,7 +1281,8 @@ de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proc
 El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `377a650`, el catálogo externo de textos libres tiene 15.357 filas y los vectores de búsqueda suman 68.536 (53.179 + 15.357). El Space publicado cuenta los mismos 68.536 libros en `/api/estado` a fecha de `7c09d90`. Esto confirma el tamaño del artefacto, no repite su inferencia ni
 garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
 excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos,
-directorios), y por nivel solo se ofrecen obras literarias. Una medida del
+directorios) y, desde `3524357`, 163 textos libres que no son lectura en inglés
+(relleno o en otra lengua), y por nivel solo se ofrecen obras literarias. Una medida del
 precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A
 Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo
 camino da 1,713 (C1).
@@ -1290,15 +1293,15 @@ de voz anónima. En el entorno local aislado pasaron **32 de 35 pruebas API**;
 tres quedaron sin validar por dependencias NLP ausentes. También pasaron 7
 pruebas de concurrencia de voz, 10 de despliegue y 11 de portadas, con sus
 alcances separados. No se probó OpenAI real ni micrófono físico en ese cierre.
-Recuento en árbol limpio a fecha de `8ee42f0` (14 de septiembre, el `app/` que publica
-`7c09d90`): **51 de 51 pruebas API**, las **349 pruebas extremas** del motor y 24 de corpus.
+Recuento sin claves del 15 de septiembre sobre `d58b0be`: **52 de 52 pruebas API**, las
+**349 de 349 pruebas extremas** del motor, 34 de 34 de corpus y 34 de 34 de lectura natural.
 La consulta de *house* eligió un sentido no adecuado al contexto: disponibilidad
 del diccionario no demuestra que su desambiguación sea correcta en todos los
 casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
 
-**Boca 3D y portadas, a fecha del front `45d9999`.** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1, y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
+**Boca 3D y portadas, a fecha del front `45d9999`.** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
 
-**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. El validador garantiza la precisión de lo que se enseña, no que se enseñe todo. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
+**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
 
 ### 8.6 Contra quién compite esto
 
@@ -1341,9 +1344,9 @@ escrito para un **hispanohablante que elige qué leer**, no para un profesor que
 clasifica textos; y es **auditable en lo que se puede auditar y de acceso
 gratuito para el lector**, con el modelo publicado y el código a la vista.
 
-Esa tercera hay que acotarla: el código y la inferencia desde los pesos públicos
-se pueden rehacer, **las métricas del v4 no**, porque su corpus de anclaje tiene
-derechos. Y las fórmulas clásicas también son gratuitas y reproducibles, así que
+Esa tercera hay que acotarla: el código, la inferencia desde los pesos públicos
+**y** las métricas internas del v4 se pueden rehacer —recalculadas el 12 de
+septiembre de 2026, idénticas a cuatro decimales—. Y las fórmulas clásicas también son gratuitas y reproducibles, así que
 la ventaja no está en la auditabilidad sola, sino en tenerla junto con un modelo
 que lee el texto. Lo que ninguna alternativa reúne son las **tres a la vez**.
 
@@ -1383,9 +1386,9 @@ repetirlo en cada párrafo corregido.
    perfil 1,20, «Sorpréndeme» proponía *The Secret Adversary* con etiqueta
    heredada **B2**, y el v4 leyendo el texto devolvía **C1**.
 4. **La literatura del catálogo es, en su inmensa mayoría, C1–C2**: 1 libro A1,
-   40 A2 y 558 B1 de 53.179. Para un lector B1 la respuesta no son libros
+   40 A2 y 557 B1 de 53.179. Para un lector B1 la respuesta no son libros
    enteros sino capítulos (3.644 en 1.499 libros), y por nivel solo se ofrecen
-   lecturas literarias: 290 entre A1 y B1.
+   lecturas literarias: 288 entre A1 y B1.
 5. **Los tamaños muestrales de la validación externa son pequeños**: 38 textos
    en Colab, 47 en local, con 3 textos en A1. Una diferencia de 0,05 entre dos
    niveles adyacentes con esas *n* no es significativa; lo que se afirma es el
@@ -1448,7 +1451,7 @@ repetirlo en cada párrafo corregido.
 13. **La prueba de usuario tiene n = 2.** Esmeralda y Laura son dos lectoras.
     Su valor es cualitativo y de diagnóstico, no estadístico: sirve para
     encontrar fallos de usabilidad graves —y encontraron varios—, no para
-    estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un hueco: una lectora B1 buscó libros de amor y encontró pocos. El catálogo le da la razón: con *love*, *romance* o *courtship* en los temas o el gancho, la franja de recomendación de B1 (0,55 a 1,05) tiene 1 título y la de B2, 28, porque la novela romántica de Gutenberg está casi toda en C1 y C2 y los cuentos libres no tratan de amor. Es un hueco de composición del catálogo, no de tamaño.
+    estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un hueco: una lectora B1 buscó libros de amor y encontró pocos. El catálogo le da la razón: entre las lecturas que ofrece la recomendación por nivel —literarias, sin las excluidas y a 0,25 del nivel— y con *love*, *romance* o *courtship* al principio de alguna palabra de sus temas de catálogo, la franja de B1 (0,55 a 1,05) tiene 1 libro y la de B2 (0,95 a 1,45), 31, que son 29 títulos distintos, porque la novela romántica de Gutenberg está casi toda en C1 y C2; ningún texto libre lleva esas palabras en sus temas. Recontado el 15 de septiembre con el catálogo que carga la aplicación. Es un hueco de composición del catálogo, no de tamaño.
 14. **La explicación contextual depende de un servicio externo de pago.** Sin
     clave, la aplicación sigue funcionando en todo lo que no sale a la red
     desde el servidor: diccionario, fonética, buscador y puntuación. Los
@@ -1616,9 +1619,10 @@ lector mediante un aviso en la ficha del libro y la decisión queda en sus
 manos.
 
 Los datos personales del lector —los libros empezados, el vocabulario
-consultado y el perfil de nivel— se guardan separados por sesión y no se
-comparten entre visitantes. Solo la caché de definiciones se comparte, por ser
-contenido de diccionario y no historial de nadie. Ningún texto con derechos se
+consultado y el perfil de nivel— se guardan separados por navegador y no se
+comparten entre visitantes. Sí se comparten las cachés de contenido —definiciones,
+audio generado, curvas y resúmenes de un mismo texto y el análisis de lectura
+natural de una frase—, que no son historial de nadie. Ningún texto con derechos se
 distribuye ni se imprime fuera del entorno de cómputo: de los corpus con
 licencia restrictiva solo salen estadísticas agregadas.
 
