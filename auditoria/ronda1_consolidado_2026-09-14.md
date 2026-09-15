@@ -859,3 +859,8 @@ Reinicio 29, «rosa» y «luna» con B1 (f4, datos sin propuesta):
 - **Qué rompía:** 70 de 200 listas de palabras de tema distintas del Space, con el primer resultado cambiado en 27. «dracul» perdía Dracula en los puestos 2 y 3. Además cambiaban 17 de 40 listas de títulos y 5 de 24 de autores.
 - **Fallos que ya están en el Space y se apuntan sin tocar:** «emma» con B1, y «hamlet» y «ulysses» sin perfil. «frankenstien» no funcionaba ni antes ni con el candidato.
 - **Siguiente, con prioridad:** las consultas de autor con perfil, que afectan al paso 3 de la demo.
+
+Plan B del paso 3 de la demo, comprobado por 4e en la página publicada con perfil 1,20: **«Crimen y castigo de Dostoyevski»**.
+- **Qué sale:** 0 marcados y el aviso de que no hay libros en tu nivel. Crime and Punishment es la primera tarjeta de «De otros niveles», sin pulsar «Ver también». La ficha y la curva son las del guion.
+- **Decisión de la central:** se cambia ya en el guion, sin esperar al arreglo, porque ese arreglo solo quita marcas.
+- **Hipótesis confirmada por 4e:** con una sola palabra, la variante E marca cuentos titulados «Books» o «The Story of Stories» en cualquier autor, también en «dickens».
