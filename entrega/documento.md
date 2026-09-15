@@ -1469,6 +1469,30 @@ repetirlo en cada párrafo corregido.
     lector, así que necesitan conexión, aunque no clave—. Lo que se apaga sin
     clave son tres cosas: la explicación en contexto, la corrección de
     pronunciación y el resumen de «¿de qué trata?» de la ficha.
+15. **La búsqueda por franja tiene tres límites conocidos,** medidos el 15 de
+    septiembre sobre el Space del reinicio 28 y dejados sin cambio de código
+    porque los arreglos probados estropeaban más búsquedas de las que salvaban
+    (`DESPLIEGUE.md`).
+    - **Un autor buscado por una sola palabra, con perfil, trae cuentos sin
+      relación.** Con un perfil de 1,20, «dostoyevski» marca 15 textos en la
+      franja y «tolstoy», «cervantes» y «oscar wilde», 12 cada uno: con una sola
+      palabra, la franja compara el título de los textos libres con «historias
+      de X» y «libros sobre X», y el modelo de parecido acerca a esas frases
+      títulos de misterio, bestias o fantasía aunque no tengan que ver con el
+      autor. Quitar el título solo cuando casa con el marco no lo arregla, y
+      decidir por el autor del primer resultado quitaba cuentos de su nivel a
+      «león», «brown», «hope» o «animales de la granja» (reinicio 29, vuelto
+      atrás). Con título y autor no pasa: «Crimen y castigo de Dostoyevski» da 0.
+    - **En las consultas de varias palabras, el título pesa demasiado:**
+      «Historias de amor» marca cuentos titulados «My stories», y contados a
+      mano solo unos 5 de sus resultados con A2 y 7 con B1 son de amor; con
+      «Terror gótico» pasa lo mismo. Ninguna de las tres variantes probadas
+      mejoraba lo desplegado en 14 consultas de calibración (85,4 % frente a
+      80,7–84,4 %).
+    - **Con una sola palabra, un título que solo la contiene sube:** «rosa» trae
+      «The Water Supply of the El Paso…» con A2 y B1, y «luna», con B1, «Luna,
+      The Rajapalayam Puppy». El arreglo medido cambiaba 70 de las 200 listas de
+      las 100 palabras de tema y hacía que «dracul» perdiera *Dracula*.
 
 ---
 
