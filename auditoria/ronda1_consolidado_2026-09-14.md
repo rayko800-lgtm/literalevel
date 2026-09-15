@@ -517,3 +517,10 @@ Reinicio 25: sube junto o no sube.
 - **Por qué:** api.py de cb39b91 llama a `buscar(..., franja=True)` y a `franja_de`. El catalogo.py del Space no tiene ninguno de los dos, así que subir api.py solo daría 503 en todas las búsquedas.
 - **Plan:** si a las 05:14 no hay ok de 4e, no se sube nada.
 - **Memoria de la máquina:** 2,2 de 15,9 GB libres, con el banco de f4 en tres procesos (unos 2,6 GB) y dos `ng serve` del front vivos desde el 14 (unos 720 MB). Se le pidió a e6 que los pare si no los usa.
+
+Devolución del uso con silencio, para el reinicio 26 (decisión de la central):
+- **Cuándo:** si transcripcion_ok es false por silencio, se devuelve el uso. Si falla la red o falta la clave, no.
+- **Límite:** 10 devoluciones al día **por cuenta**, no por lector, porque la cabecera X-Lector la pone el cliente.
+- **Cómo:** una sola función, `cuentas.devolver_por_silencio(base, codigo)`, bajo el mismo candado del cobro, que llaman la API (f4) y Gradio (e6).
+- **Voz del 26:** entra también 681544f de 4e, con el ok de e6. Sin voz ya no hay TTS ni análisis de pago.
+- **RAM:** e6 paró los dos `ng serve` olvidados, y la RAM libre pasó de 2,25 a 2,81 GB.
