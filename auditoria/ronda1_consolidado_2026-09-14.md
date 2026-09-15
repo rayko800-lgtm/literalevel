@@ -433,3 +433,12 @@ Muletillas de whisper con casi silencio (4e, 0a759a5, para el reinicio 25):
 - **Numeración:** 25 es la búsqueda por franja y 26 lo demás.
 - **Incidente:** al mirar el formato de literalevel_codigos.txt, la contraseña de «profesor» salió en la salida de una herramienta local de f4. No fue a ningún mensaje, commit ni archivo. Miguel decide si la cambia.
 - **Búsqueda por franja:** el ruido de títulos cortos viene del vector de la palabra sola, no de las frases. f4 mide ahora la variante inversa.
+
+Visto bueno de e6 a 0a759a5: ok, y sube como reinicio 24.
+- **Pruebas:** suites en verde y mutantes 10 de 11.
+- **Mutante que sobrevive:** cambiar `all` por `any` en `_sin_voz`. Falta un caso de dos segmentos, 0,9 y 0,2, que cuente como oído. Solo son pruebas y no viajan al Space, así que 4e lo añade aparte.
+- **Llamada de prueba de e6:** con una pausa larga de silencio, whisper devuelve un solo segmento con no_speech_prob 0,046 y la regla lo cuenta como voz. Pero whisper se comió la frase corta que iba justo después del silencio.
+- **Límite:** whisper calcula no_speech_prob una vez por ventana de 30 s, y en Pronunciar eso es en la práctica un único valor.
+- **Decisiones:**
+  - e6 cambia el aviso de silencio en Pronunciar a «No te oí. Acércate al micrófono y vuelve a grabar.», y lo publica tras el 24.
+  - 4e registra no_speech_prob al descartar, solo el número, para calibrar el umbral en el reinicio 26.
