@@ -1144,3 +1144,8 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
 - Puntos 10 y 11 y pasos 3 y 4: bien.
 - MENOR opcional para 4e: «1 de 3 · Libros en inglés a tu nivel» son dos textos en pantalla. Se corrige junto con los cambios que traiga el 30b.
 - aria-label de Inicio: cambiado por e6 a «Ejemplo: mantener presionada una palabra del libro para ver qué significa en su frase», con aserción en entrar-perfil.spec.ts. Pendiente de pruebas, commit, visto bueno de 4e y publicación.
+
+**Front 72e9525** (e6): publica 9a5fa3d, el aria-label de Inicio, con el ok de 4e.
+- Comprobado en lo publicado: texto nuevo una vez, el viejo ausente, sha por la API de HF, meta de la API intacta.
+- Build desde un worktree limpio, con 2,89 GB libres tras la medida de f4.
+- f4 ya puede lanzar corpus y el banco del 30b.
