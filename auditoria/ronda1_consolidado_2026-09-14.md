@@ -1195,3 +1195,9 @@ f4 acepta la clave del 30b (parecido redondeado, |d − nivel|, fila) y mide cua
   - vuelve si «love» B1 marca otro id, si entra una copia más lejos del nivel, si entra un título distinto en «Brujas», si PG2554 queda segundo o si «dragones» da un resultado menos.
   - La primera simulación del caso 4 estaba mal construida, y f4 la repitió.
 - **Hueco señalado por la Central:** un conjunto distinto al local con las mismas marcas no se detectaba. comprobar_r30b.py separa ahora tres salidas: idéntico, solo orden (se informa) y conjunto distinto (código propio; no se da por bueno sin mirarlo).
+- **Árbol limpio de 1643c4b:** corpus 48/48 y api 66/66; faltan las extremas. comprobar_r30b.py con códigos: 2 vuelve al 28, 3 conjunto distinto al local, 1 solo orden, 0 todo cuadra.
+- **Línea base de e6 sobre 282c46f, solo lectura:**
+  - «mystery» sin perfil: top 10 idéntico en tres pasadas; PG34933 en el 7.º y PG27722 en el 8.º.
+  - «family» con nivel 0,80 por API (`nivel` directo, api.py:981): 36 resultados y 18 marcadas.
+  - Predicción del 30b: sale SWV19641 (0,382) y entra LRD5DCD10D6C1764DFD9540DC0B3E15D25C (0,656); el resto de marcadas, igual.
+  - Nota: el perfil B1 del cuestionario de e6 da 0,953, no 0,80. Las predicciones de f4 son con 0,80.
