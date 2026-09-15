@@ -546,3 +546,18 @@ Receta del perfil de la demo sin «Me vale así» (e6, medida en local y contra 
 - **Resultado:** 1,20 exacto, B2, franja 0,95–1,45. Aguanta un despiste en la 2 o en la 6.
 - **Guion:** 4e la escribe cuando se publique Tu nivel A.
 - **Si cambia la fórmula** tras la medida de 4e, hay que volver a medirla.
+
+**Reinicio 25 en producción y comprobado (f4):** Space 4ba66f9. El .npy de títulos está en f50cc1b, y catalogo.py y api.py van desde 9132a59.
+- **Comprobador sin fallos:**
+  - franja y por_franja presentes;
+  - «Fantasmas» A2 con 13 marcados, así que el .npy cuadra en el Space;
+  - Robots A2 9 y B1 7;
+  - «familia» C1 sin «Familiar»;
+  - ACTION PART-1 fuera;
+  - «ghost stories» sin perfil igual;
+  - «amor» sin Fenn;
+  - anuncios de drogas fuera.
+- **Batería:** los mismos 16 fallos que antes, así que no hay regresión.
+- **Primera búsqueda con nivel tras el reinicio:** 18,6 s, por la carga del modelo y la comprobación del .npy. Las siguientes, 0,6–0,7 s.
+  - El 26 empieza por precargar en el arranque, luego la devolución por silencio y después la búsqueda.
+  - Hasta entonces, el guion dice que se caliente la búsqueda antes de la demo.
