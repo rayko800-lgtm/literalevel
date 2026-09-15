@@ -780,3 +780,7 @@ Visto bueno de e6 a api.py de 9e51c18: ok, solo por lectura por la RAM. Revisó 
 - **Por qué no lo cazó la medida previa:** comparaba con y sin la exención, no el 26 contra el 27 completo, que también tiene el extra de (b) y la clave `primero`.
 - **Decisión de la central:** el reinicio 28 es solo este arreglo, con el criterio de que las 100 palabras de tema den el mismo top 10 que el 26 y los clásicos y Austen sigan bien. Si en una hora no está, el 28 sube con las tres reglas apagadas. Lo que era el 28 pasa al 29.
 - **Lo que sí está bien en el Space:** los clásicos, Austen con B1, las búsquedas por debajo de 1 s y `buscador_listo` a los 23-29 s.
+
+Medida independiente del 27 (4e): el anexo está en 6c71362 y el punto 8 del guion en 800060e.
+- **Punto 8:** lo principal es hacer una búsqueda de prueba en Encontrar con el perfil guardado. Tras un reinicio, medio minuto, porque `buscador_listo` pasa a true a los 26-29 s.
+- **Línea base para el arreglo del 28:** el catalogo.py que corre en el 25 y en el 26 es el de 9132a59, idéntico al de 49a8e4d según su sha1. f4 saca de ahí el top 10 de las 100 palabras de tema, sin perfil y con B1, y se lo pasa a 4e para comparar después de subir.
