@@ -74,9 +74,15 @@ del profesor.
   septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
   `boca3d` (75f334a está en `master`). **Ábrela una vez antes de grabar**: la cara
   tarda 2,1 s la primera vez y 0,5 s después. Si no carga, basta el corte 2D.
-- **El perfil 1,20, receta** (ensayo de e6, 15 de septiembre): *Tu nivel* →
-  primera pregunta «Varias veces por semana» → «Me vale así (1,20 · B2),
-  guardar». El titular dirá «nivel B2».
+- **El perfil 1,20, receta** (medida por e6 contra el Space y por 4e con la
+  fórmula, 15 de septiembre): en *Tu nivel*, «Varias veces por semana» →
+  fragmento fácil «Lo entiendo con naturalidad, sin necesidad de releer» → «Sí,
+  una novela actual» → fragmento medio «Lo entiendo con naturalidad, sin
+  necesidad de releer» → «Los hechos o argumentos principales» → fragmento
+  difícil «Entiendo algunas partes, pero necesitaría el diccionario para
+  seguirlo». Se guarda solo al contestar la sexta. El titular dirá «Lees en
+  inglés a nivel B2», y el 1,20 está en «Ver el detalle». En la sexta no elijas
+  «Capto bien la idea»: da 1,46, que es C1.
 
 ---
 
@@ -182,8 +188,9 @@ capítulo.»
 > **El perfil 1,20 se prepara antes y se dice como preparado.** El
 > cuestionario no garantiza ese número: responderlo en directo puede dar otro.
 > Deja puesto el perfil de 1,20 y, en el paso Uno, enseña el resultado.
-> *Afinar con un texto*, que nombras, y *Con un libro que ya leíste* están
-> en *Tu nivel*, bajo «Afinar»: no las hagas en directo, que el libro tarda en
+> Afinar con un texto, que nombras, y con un libro que ya leíste están al
+> final del resultado de *Tu nivel*, en «¿No te convence? Afínalo con un libro
+> que ya leíste · con un texto»: no las hagas en directo, que el libro tarda en
 > medirse.
 >
 > **Y la palabra del paso Cuatro se elige antes, no en directo.** El
@@ -220,8 +227,9 @@ capítulo.»
 > que se entienda: si la lees perfecta, dirá que se entendió todo y no habrá
 > sonido que señalar. Si lees alguna palabra mal a propósito para que salga,
 > dilo («la digo mal a propósito»). El botón del sonido **suena** (audio
-> pregrabado, sin coste) y «Ver cómo se mueve la boca» abre **primero el
-> sonido y después la palabra entera**, animados. Con «Reducir movimiento»
+> pregrabado, sin coste) y «Cómo se mueve la boca», abierto ya en la primera
+> palabra a practicar, enseña **primero el sonido y después la palabra
+> entera**, animados. Con «Reducir movimiento»
 > del sistema salen quietos: tenlo apagado al grabar. Y la boca en 3D, de
 > lejos (ver *Preparación de la toma*).
 >
@@ -233,10 +241,10 @@ capítulo.»
 >   Encontrar · Pronunciar · Tu nivel]
 > - [CAPTURA: Ajustes → Tu perfil, formulario Usuario y Contraseña con el
 >   botón «Entrar», sin nada escrito]
-> - [CAPTURA: Tu nivel, resultado «1,20 de 2 · intermedio» con la escala
->   y la franja de lecturas recomendadas]
-> - [CAPTURA: Tu nivel → «Afinar»: «Afinar con un texto» y «Con un libro que
->   ya leíste»]
+> - [CAPTURA: Tu nivel, resultado «Lees en inglés a nivel B2» con la barra
+>   A1–C2 y «Ver el detalle» abierto: «1,20 de 2 · Intermedio» y la franja]
+> - [CAPTURA: el pie del resultado de Tu nivel: «¿No te convence? Afínalo con
+>   un libro que ya leíste · con un texto · volver a medirme»]
 > - [CAPTURA: Encontrar con «dostoyevski» escrito y la lista de resultados
 >   con el nivel al lado de cada libro, *Crime and Punishment* visible]
 > - [CAPTURA: ficha de *Crime and Punishment*: 203.415 palabras, diálogo,
@@ -250,8 +258,9 @@ capítulo.»
 >   acción fija abajo: micrófono en el centro y «Corrígeme»]
 > - [CAPTURA: la corrección palabra por palabra, el sonido que falla con su
 >   botón de audio y «Cómo colocar la boca»]
-> - [CAPTURA: «Ver cómo se mueve la boca» abierto: el corte del sonido y
->   el de la palabra entera]
+> - [CAPTURA: «Practica esta palabra» con «Cómo se mueve la boca» abierto:
+>   el corte del sonido y el de la palabra entera, con «Escuchar y ver» y
+>   «🐢 Despacio»]
 > - [CAPTURA: Mis palabras, con la lista de palabras consultadas y su
 >   frase, y «Repasa cinco». La tarjeta de *poverty* dice «cap. 1» aunque es
 >   del prefacio: no leerlo en voz alta]
@@ -279,7 +288,7 @@ trae, la define un modelo y lo marca: **IA**.
 **Cinco.** *(leer la frase y pulsar Corrígeme)* Leo en voz alta y pulso
 *Corrígeme*: me marca lo que se entendió, me señala **el
 sonido** que falla, lo oigo bien dicho y veo **cómo se mueve la boca**.
-*(abrir Ver cómo se mueve la boca)*
+*(pulsar Escuchar y ver en Practica esta palabra)*
 
 **Seis.** Lo que consulto se queda en **Mis palabras**, con su frase, para
 repasar.»

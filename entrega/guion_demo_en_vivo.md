@@ -34,10 +34,18 @@ Una por una, y marcando:
       cuenta que tenga **cupo**: explicar una palabra, resumir un libro y
       corregir la pronunciación salen a un servicio de pago y gastan cupo.
 - [ ] **Perfil de 1,20 sobre 2 ya puesto** (banda intermedia). En directo no se
-      responde el cuestionario: no garantiza ese número. **Receta** (ensayo de e6,
-      15 de septiembre): *Tu nivel* → primera pregunta «Varias veces por semana» →
-      «Me vale así (1,20 · B2), guardar», sin contestar el resto. El titular dirá
-      «nivel B2»: que no sorprenda al decir «banda intermedia».
+      responde el cuestionario: no garantiza ese número. **Receta** (medida por e6
+      en local y contra el Space, y por 4e con la fórmula, 15 de septiembre): en
+      *Tu nivel*, las seis respuestas en orden: «Varias veces por semana»; en el
+      fragmento fácil, «Lo entiendo con naturalidad, sin necesidad de releer»;
+      «Sí, una novela actual»; en el fragmento medio, «Lo entiendo con
+      naturalidad, sin necesidad de releer»; «Los hechos o argumentos
+      principales»; y en el difícil, «Entiendo algunas partes, pero necesitaría el
+      diccionario para seguirlo». Al contestar la sexta **se guarda solo**. El
+      titular dirá «Lees en inglés a nivel B2»: que no sorprenda al decir «banda
+      intermedia». El 1,20 está plegado en «Ver el detalle». Un despiste de una
+      opción en cualquier respuesta deja el perfil en B2, entre 1,07 y 1,27, salvo
+      en la sexta: «Capto bien la idea» da 1,46, que ya es C1.
 - [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
       sonido → «Boca en 3D»): la cara tarda 2,1 s la primera vez y 0,5 s
       después (ensayo de e6 a 390 px en el front `ec957d0`).
@@ -74,12 +82,22 @@ que dice el **Plan B** para ese paso.
 3. **Paso 5:** grabar «Una frase de mi libro» con una palabra mal dicha a
    propósito. Cuánto tarda «Corrígeme», y si salen el sonido que falla y su
    «Escuchar y ver».
-4. **Paso 6:** «Don't you want to come with us?». Que salgan *doncha* y
-   *wanna*, «aquí sin pausa» y «Escúchalo natural», y cuánto tarda.
+4. **Paso 6:** «Don't you want to come with us?». Que, al abrir «Para sonar
+   más natural», salgan *doncha* y *wanna*, «no pares aquí» y «Escúchalo
+   natural», y cuánto tarda.
 5. **Paso 7:** que la palabra mal pronunciada aparezca en «Mis palabras».
 6. **El cronómetro:** la demo entera, contra los 3–5 minutos. Con las esperas
    medidas sin cuenta, e6 estima de 3:40 a 4:10; los pasos 4, 5 y 6 son los que
    no se han podido medir.
+7. **Una frase en voz baja desde el móvil:** grabarla hablando bajo y comprobar
+   que se oye y se corrige. Si sale «No te oí», apuntarlo y avisar antes de
+   grabar la demo. La aplicación descarta la grabación cuando whisper da, en
+   todos sus trozos, más de 0,6 de probabilidad de que no haya voz; la voz más
+   baja que se probó, sintética, dio 0,503.
+8. **Calentar el buscador antes de compartir pantalla:** haz una búsqueda en
+   *Encontrar* con tu perfil ya guardado y espera a que salgan las tarjetas.
+   Tras un reinicio del Space, la primera búsqueda con nivel tardó 18,6 s y las
+   siguientes 0,6 s (Space del reinicio 25, 15 de septiembre).
 
 ---
 
@@ -105,7 +123,9 @@ Gutenberg y, además, 15.367 textos de licencia libre.»
 
 **1. Entrar y el nivel (0:40 – 1:00)**
 
-**Hace:** *Tu nivel*. Enseña el resultado ya preparado. Señala «Afinar».
+**Hace:** *Tu nivel*. Enseña el resultado ya preparado («Lees en inglés a nivel B2») y
+abre «Ver el detalle» para que se vea el 1,20. Señala abajo «¿No te convence?
+Afínalo con un libro que ya leíste · con un texto».
 
 **Dice:** «Primero, mi nivel. Unas preguntas y tres fragmentos, o un texto que
 ya leo cómodo. Para esta demo tengo un perfil preparado: 1,20 sobre 2, banda
@@ -153,8 +173,9 @@ está claro qué acepción es, la aplicación lo dice: esto lo ha escrito una IA
 **5. Pronunciar y corregir (2:20 – 2:50)**
 
 **Hace:** *Pronunciar*. Pulsa «Una frase de mi libro» o escribe una corta. Graba
-leyendo con una palabra mal dicha a propósito. Pulsa «Corrígeme». Abre el sonido
-que falla y pulsa «Escuchar y ver»; si da tiempo, «Más lento» o «Boca en 3D».
+leyendo con una palabra mal dicha a propósito. Pulsa «Corrígeme». En «Practica
+esta palabra» la boca ya está abierta: pulsa «Escuchar y ver»; si da tiempo,
+«🐢 Despacio» o «Boca en 3D».
 
 **Dice:** «Ahora la leo en voz alta, y una palabra la digo mal a propósito.
 Me marca palabra por palabra lo que se entendió y el sonido que falla. Lo oigo
@@ -162,8 +183,8 @@ bien dicho y veo a la vez cómo se mueve la boca, también más despacio.»
 
 **6. Que no suene robótico (2:50 – 3:20)**
 
-**Hace:** escribe «Don't you want to come with us?», graba, corrige. Señala el
-«aquí sin pausa» y las reducciones. Pulsa
+**Hace:** escribe «Don't you want to come with us?», graba, corrige. Abre «Para
+sonar más natural» y señala el «no pares aquí» y las reducciones. Pulsa
 «Escúchalo natural».
 
 **Dice:** «Cuando se lee palabra a palabra suena cortado. La aplicación mide
