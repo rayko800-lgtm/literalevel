@@ -1064,3 +1064,8 @@ Reinicio 30, primeros datos (f4, sin cambios todavía):
 - **Propuesta aprobada:** 30a, solo con `preload_from_hub` en la cabecera del README del Space, comprobando que la caché del build es la que usa `_ruta_local` y midiendo `buscador_listo` en 2 reinicios.
 - **Aparte, 30b:** el desempate determinista, con puntuaciones redondeadas a 6 decimales y orden estable por fila, medido contra el 28. Solo pueden cambiar empates.
 - **Vistos buenos:** 4e antes de cada subida. Si el permiso de la sesión de f4 vuelve a bloquear, se le pide a Miguel en ese chat.
+
+Tanda 2 de ayuda publicada (e6, 6f4e01f, con el ok de 4e): Space del front 898a640.
+- **Lector:** la primera vez sale un solo aviso con ✕, «Mantén presionada una palabra para ver qué significa; desliza para cambiar de página.», y un «?» en la barra lo vuelve a mostrar. A 390 px se ven cuatro renglones del libro donde antes eran dos.
+- **Pronunciar:** la línea de ayuda sustituye al subtítulo la primera vez, con ✕ y «?».
+- **Siguiente:** la tanda 3, la bienvenida. 4e revisa los guiones cuando esté publicada.
