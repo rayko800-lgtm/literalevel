@@ -110,10 +110,15 @@ alguien que llega por primera vez y propone dos formas de ayuda con esquema (una
 bienvenida de pocos pasos que se puede saltar, o una frase de ayuda por
 pantalla) para que Miguel elija antes de programar.
 
-En una segunda nota concretó dos cosas. **El micrófono:** pulsó grabar y no pasó
-nada visible ni empezó la grabación. **La saturación:** textos largos y mucho
-scroll antes de saber qué hacer; entra en las propuestas de ayuda. Usó Android y
-abrió el enlace desde WhatsApp.
+Hay una segunda nota, **de Laura**, que concreta dos cosas. **El micrófono:**
+había entrado —«entré y ya me inicié sesión»—, pulsó grabar y no pasó nada
+visible ni empezó la grabación. **La saturación:** textos largos y mucho scroll
+antes de saber qué hacer; de esa queja sale la segunda tanda de ayuda. Durante un
+día esta nota estuvo archivada como de Ismael, y de ahí salieron dos
+explicaciones equivocadas seguidas; Miguel aclaró el 16 de septiembre de quién
+era. De Ismael, según Miguel, es el dato del teléfono **Android** con el enlace
+abierto **desde WhatsApp**, y que **no había iniciado sesión**; eso no lo hemos
+medido nosotros y no entra en los entregables como causa.
 
 **Cerrado el 16 de septiembre, y con un hallazgo distinto.** Miguel confirmó que
 la nota es de Laura y que en su teléfono, con su cuenta, el micrófono graba bien.
