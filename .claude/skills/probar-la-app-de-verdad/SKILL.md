@@ -574,6 +574,23 @@ Es decir, el propio texto observado prueba que la rama medida es la de verdad.
   con solo preferencias, y el identificador del navegador —el que viaja en
   `X-Lector`— que **no** es una sesión.
 
+**Y su gemela: un cero solo vale si la medida puede ver un uno.** Buscando si un
+aviso mal escrito salía en la demo, f4 midió diez consultas del guion y no salió
+nunca. En vez de reportar el cero, montó un **control positivo**: seis consultas
+hechas para forzar el aviso (galimatías y temas lejanos), cada una con y sin
+perfil y con cuatro tamaños de lista, 48 peticiones más. Seguía sin salir. Solo
+entonces buscó el motivo en el código, y resultó que la rama **es inalcanzable con
+la configuración que se entrega**: el umbral que la dispara no lo cambia ningún
+llamador ni ninguna variable de entorno.
+
+- Antes de dar un «no pasa nunca», enseña la consulta que **debería** hacerlo
+  pasar. Si tampoco pasa, el hallazgo ya no es el aviso: es que la rama está
+  muerta, y eso se decide, no se arregla a ciegas.
+- Desconfía de una prueba que **fabrica** la cadena que debería producir el
+  código: aquí, la suite comprobaba que la interfaz muestra un texto construido a
+  mano y nunca ejecutaba la línea que lo genera, así que el fallo de plural no lo
+  iba a cazar nadie.
+
 ## Una acción por pasada, si quieres poder atribuir el efecto (16 sep)
 
 Al comprobar que pulsar un botón **ya no** abre un panel, f4 midió en dos pasadas

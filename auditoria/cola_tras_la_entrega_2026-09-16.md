@@ -26,7 +26,7 @@ escapó. **El modelo a seguir ya está en el código**: `app/ui.py:2573`, con
 
 | Qué sale con n = 1 | Dónde | Alcance |
 |---|---|---|
-| «Se descartaron 1 resultados por parecido bajo.» | `app/catalogo.py:962`, servido en el campo «aviso» por `app/api.py:998` | **Se ve en el paso 3 de la demo.** Pendiente de la medida de f4: si aparece con 1 en alguna consulta del guion, entra antes de la entrega; si no, aquí se queda. Quedaría «Se descartó un resultado por parecido bajo.» |
+| «Se descartaron 1 resultados por parecido bajo.» | `app/catalogo.py:962`, servido en el campo «aviso» por `app/api.py:998` | **Medido el 16 sep: no lo puede ver nadie.** La rama es **inalcanzable con la configuración que se entrega**: `flojos` solo cuenta las filas flojas que aparecen antes de llenar `n` (`catalogo.py:938-950`, con `break` al llegar a `n`), `minimo_similitud` vale 0.10 (`catalogo.py:830`) y no lo cambia ningún llamador (`api.py:993`, `ui.py:1324`, `api.py:2222`) ni ninguna variable de entorno; con 68.546 vectores el coseno no baja de 0,10. 58 consultas en vivo, incluidas 48 hechas para forzarlo, y el aviso vacío en todas. **Lo primero al retomarlo es decidir si esa rama debe seguir existiendo**; el arreglo sería «Se descartó un resultado por parecido bajo.» |
 | «Este libro tiene 1 capítulos; el 2 no existe.» | `app/api.py:563` | Es de la **misma familia** que el fallo de la ficha de un solo capítulo que vio Miguel en su teléfono. Se miran juntos |
 | «cupo de 1 usos» | `app/cuentas.py:403` y `:423` | **Condicionado** a que exista alguna cuenta con tope 1. No se comprueba abriendo `literalevel_codigos.txt` |
 | «Te quedan 1 usos», «1 de 20 se abren aquí mismo», «1 bloques», «Medidos 1 capitulos» (y le falta la tilde), «de 1 capítulos» | `app/ui.py` 693, 1233, 2140, 2432 y 2883 | Solo Gradio, que es motor y respaldo, no la pantalla de la entrega |
@@ -36,6 +36,16 @@ escapó. **El modelo a seguir ya está en el código**: `app/ui.py:2573`, con
 `app/api.py:1311` (no alcanzable con la configuración que se entrega);
 `app/ui.py:3304` (ya guardado con `> 1`); `app/ficha.py:114` (contenido por
 `ui._reloj_llano`, y el front va por `app/api.py:731`); `app/voz.py`, nada.
+
+## 2b. Dos huecos de prueba que salieron con lo anterior
+
+- **Ninguna prueba ejecuta la cadena de verdad.** `pruebas_extremas.py:5743`
+  **fabrica** el texto («Se descartaron 3 por parecido bajo.») para comprobar que
+  Gradio lo muestra, y nunca llama a `catalogo.py:962`. Por eso la suite no iba a
+  cazar el plural. Si se toca esa rama, la prueba tiene que llamar a `buscar()`
+  con un `minimo_similitud` alto, no construir la cadena a mano.
+- **El mutante ya existe:** `tools/banco_mutantes.py:963-964` baja
+  `minimo_similitud` de 0.10 a 0.0. Ahí está el gancho cuando se retome.
 
 ## 3. Mensajes que una persona no entendería
 
