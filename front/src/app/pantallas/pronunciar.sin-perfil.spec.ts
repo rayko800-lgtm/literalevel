@@ -45,12 +45,19 @@ describe('Pronunciar: «Corrígeme» sin perfil contesta en vez de estar apagado
     expect(boton().disabled).toBe(false);
   });
 
-  it('al pulsarlo dice qué falta y qué no, y abre Ajustes en «Tu perfil»', async () => {
-    const { fixture, sesion, boton, linea } = await montarGrabada(true);
+  it('al pulsarlo dice qué falta y qué no, con «Entrar», y NO abre el panel encima', async () => {
+    const { fixture, raiz, sesion, boton, linea } = await montarGrabada(true);
     boton().click();
     fixture.detectChanges();
     await fixture.whenStable();
     expect(linea()).toContain('La corrección necesita tu perfil. Grabarte y escucharte, no.');
+    // El panel tapaba el propio aviso: decide el usuario con el «Entrar» de la línea
+    // (Central, 16 sep). Es lo que hace el lector.
+    expect(sesion.ajustesAbiertos()).toBe(false);
+    const entrar = [...raiz.querySelectorAll('.grabadora .linea-barra button')]
+      .find(b => b.textContent?.trim() === 'Entrar') as HTMLButtonElement;
+    expect(entrar).toBeTruthy();
+    entrar.click();
     expect(sesion.ajustesAbiertos()).toBe(true);
     expect(sesion.ajustesEnPerfil()).toBe(true);
     // Y no se gasta una llamada de pago por el camino. Por método y no solo por ruta: la
