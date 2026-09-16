@@ -531,3 +531,11 @@ sí se cita es lo que el otro pudo comprobar solo: las 57 celdas con salidas y
   buscó `ui.py:693` y le dio cero, porque la tabla escribía «`app/ui.py` 693,
   1233, 2140, 2432 y 2883» en una sola línea. Antes de concluir que algo falta
   en un documento, comprueba que el patrón puede casar con cómo está escrito.
+  **El 16 de septiembre pasó siete veces en una tarde**, entre las tres sesiones:
+  un lexema con acentos entre corchetes, líneas de tabla que juntan referencias,
+  commits anotados en línea aparte de la palabra buscada, una aserción que pedía
+  un espacio que ponía el CSS, y frases que **cruzan dos líneas** y un `grep` de
+  una línea no ve. Reglas que salieron de ahí: buscar por **lexema corto** y no
+  por frase, normalizar los espacios o usar multilínea, **leer el párrafo
+  completo** antes de dar un cero por bueno, y decirlo cuando el cero era del
+  patrón: las tres sesiones lo hicieron y por eso ninguno acabó en un entregable.
