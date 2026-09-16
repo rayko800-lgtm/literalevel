@@ -576,6 +576,19 @@ el mismo error que con el caso de Esmeralda.
 - Lo que se midió sigue siendo cierto y útil, pero como hallazgo propio, no como
   causa del caso.
 
+**Y comprueba de quién es la nota de voz.** Horas después, Miguel mandó ese mismo
+audio diciendo «según yo este es de Laura». Era la misma grabación archivada como
+de Ismael, y empieza «entré y **ya me inicié sesión**»: justo lo contrario de la
+explicación que se acababa de escribir. Dos reglas de ahí:
+
+- **Una nota de voz reenviada no trae remitente.** Antes de citarla en un
+  entregable, pregunta de quién es; si no está confirmado, escribe «uno de los
+  lectores» y sigue adelante, que no cuesta nada.
+- **Una sola nota puede llevar dos quejas.** Al des-atribuirla hay que
+  des-atribuirlas todas, no solo la que se estaba investigando: aquí, el
+  micrófono **y** la saturación de la página, que era una de las razones escritas
+  para una tanda de cambios.
+
 ## Un aviso que existe en el DOM puede no verse (Pronunciar, 15 sep)
 
 Al investigar aquello se midió esto, que es un fallo real por sí mismo. El

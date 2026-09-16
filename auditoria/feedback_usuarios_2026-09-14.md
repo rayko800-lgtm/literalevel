@@ -122,7 +122,7 @@ Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-
 - Miguel elige antes de programar.
 - Conviene preguntarle a Ismael en qué pantalla se perdió y qué quería hacer.
 
-**Segunda nota de Ismael (15 sep), más concreta:**
+**Segunda nota (15 sep), de uno de los lectores, sin confirmar de quién:** el 16 de septiembre Miguel la mandó otra vez diciendo «según yo este es de Laura». Transcrita, es la misma grabación que estaba archivada aquí como segunda de Ismael, así que la atribución queda abierta y con ella **las dos** quejas que lleva dentro, el micrófono y la saturación.
 
 > «Entré y ya inicié sesión, pero le pisas al micrófono y no te dice que hables, no se activa la grabación… lo que quieres es que sea más intuitiva, a lo mejor no tan saturada la página. Por ejemplo, los textos están largos y tienes que hacerle scroll, y te pierdes, no sabes qué hacer en la aplicación.»
 
@@ -130,7 +130,7 @@ Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-
 - **Saturación:** textos largos, mucho scroll antes de saber qué hacer. Entra en las propuestas de ayuda de e6.
 - **Falta saber:** qué teléfono y qué navegador usó, y si abrió el enlace desde WhatsApp.
 
-**Dato de Miguel (15 sep):** Ismael usó un teléfono **Android** y abrió el enlace que le llegó **por WhatsApp**. En Android, WhatsApp puede abrir los enlaces en su navegador interno (un WebView), donde el micrófono no suele estar disponible. Es la hipótesis principal del fallo del micrófono. e6 comprueba qué muestra Pronunciar cuando no hay `mediaDevices` o `getUserMedia` falla, y si no sale nada visible lo arregla ya con un aviso para abrir la app en Chrome.
+**Dato de Miguel (15 sep), que era sobre Ismael y no necesariamente sobre esta nota:** usó un teléfono **Android** y abrió el enlace que le llegó **por WhatsApp**. En Android, WhatsApp puede abrir los enlaces en su navegador interno (un WebView), donde el micrófono no suele estar disponible. Era la hipótesis principal del fallo del micrófono, y sigue siendo **solo una hipótesis**: la nota dice «entré y ya inicié sesión», así que el caso a explicar es con sesión. El 16 de septiembre Miguel dijo además que Ismael no había iniciado sesión; eso queda como dicho por él y pendiente de confirmar, y no entra en los entregables. e6 comprueba qué muestra Pronunciar cuando no hay `mediaDevices` o `getUserMedia` falla, y si no sale nada visible lo arregla ya con un aviso para abrir la app en Chrome.
 
 **Decisión de Miguel sobre la ayuda (15 sep, sobre `auditoria/ismael_ayuda_2026-09-15.md`):**
 - **Ayuda: las dos.** Una bienvenida de 3 pasos, sin el de pronunciar, y además la línea de ayuda con «?» en Pronunciar y en el lector.
