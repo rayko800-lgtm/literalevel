@@ -77,7 +77,7 @@ import { Sesion } from '../nucleo/sesion';
           @if (perfil(); as p) {
             <p>Tu nivel es <strong>{{ num(p.nivel) }} · {{ cefr(p.nivel) }}</strong>. Vuelve a medirte cuando quieras.</p>
           } @else {
-            <p>Seis preguntas cortas, una por pantalla. Al final ves tu nivel.</p>
+            <p>Tres preguntas y tres fragmentos, uno por pantalla. Al final ves tu nivel.</p>
           }
           <span class="enlace">{{ perfil() ? 'Ver mi nivel' : 'Empezar' }} <app-icono nombre="flecha" /></span>
         </a>
@@ -117,7 +117,7 @@ import { Sesion } from '../nucleo/sesion';
           <li><span class="numero">1</span><div><h3>Sabes cuánto te va a costar</h3>
             <p>Un modelo propio lee el libro entero y dibuja su dificultad capítulo a capítulo, en una escala de 0 a 2.</p></div></li>
           <li><span class="numero">2</span><div><h3>Lees con red</h3>
-            <p>Toca una palabra y ves su pronunciación, la acepción que tiene en esa frase y la gramática.</p></div></li>
+            <p>Mantén presionada una palabra —con ratón, doble clic— y ves su pronunciación, la acepción que tiene en esa frase y la gramática.</p></div></li>
           <li><span class="numero">3</span><div><h3>Practicas en voz alta</h3>
             <p>Lee una frase del libro al micrófono y te dice qué sonido se te escapa y cómo colocar la boca.</p></div></li>
         </ol>

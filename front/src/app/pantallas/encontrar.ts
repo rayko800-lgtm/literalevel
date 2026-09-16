@@ -133,7 +133,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
           @if (!perfil()) {
             <div class="vacio tarjeta">
               <h2>Primero, tu nivel</h2>
-              <p class="suave">Con seis preguntas cortas sé qué libros te quedan cómodos con un poco de reto.</p>
+              <p class="suave">Con tres preguntas y tres fragmentos sé qué libros te quedan cómodos con un poco de reto.</p>
               <a class="boton" routerLink="/nivel">Medir mi nivel</a>
             </div>
           } @else if (cargando()) {

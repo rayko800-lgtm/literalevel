@@ -74,7 +74,9 @@ export class Bienvenida {
       // que nada de esto pide cuenta (4e, 15 sep).
       texto: `Mientras lees, ${this.tactil ? 'mantén presionada' : 'haz doble clic en'} una palabra: te decimos qué significa y cómo se pronuncia.` },
     { titulo: '¿Por dónde empiezas?',
-      texto: 'Mide tu nivel con seis preguntas o ve directo a un libro. Nada de esto pide cuenta.' },
+      // Seis pasos: tres preguntas y tres fragmentos (nivel.ts:17). «Seis preguntas»
+      // decía lo que la pantalla no hace (4e, 16 sep).
+      texto: 'Mide tu nivel con tres preguntas y tres fragmentos, o ve directo a un libro. Nada de esto pide cuenta.' },
   ];
   protected readonly paso = signal(0);
   protected readonly actual = () => this.pasos[this.paso()];

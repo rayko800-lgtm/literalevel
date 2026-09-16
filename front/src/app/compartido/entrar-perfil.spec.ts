@@ -75,7 +75,9 @@ describe('Entrar y la ayuda de la tanda 1', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     const tarjeta = [...(fixture.nativeElement as HTMLElement).querySelectorAll('a.puerta')].find(a => a.textContent?.includes('Mídeme'));
-    expect(tarjeta?.textContent).toContain('Seis preguntas cortas, una por pantalla. Al final ves tu nivel.');
+    // Seis pasos: tres preguntas y tres fragmentos (nivel.ts:17), no «seis preguntas».
+    expect(tarjeta?.textContent).toContain('Tres preguntas y tres fragmentos, uno por pantalla. Al final ves tu nivel.');
+    expect(tarjeta?.textContent).not.toContain('Seis preguntas');
     expect(tarjeta?.textContent).not.toContain('estimación');
     // La figura de ejemplo, como la bienvenida: ni «tocar» ni «ahí» (4e, 15 sep).
     const figura = (fixture.nativeElement as HTMLElement).querySelector('figure.demo');

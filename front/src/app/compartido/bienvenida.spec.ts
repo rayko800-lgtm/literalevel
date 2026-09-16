@@ -68,6 +68,9 @@ describe('Bienvenida', () => {
     await pulsar('Siguiente');
     expect(dialogo()?.textContent).toContain('3 de 3');
     expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Por dónde empiezas?');
+    // Seis pasos: tres preguntas y tres fragmentos, como nivel.ts:17 y los documentos.
+    expect(dialogo()?.textContent).toContain('Mide tu nivel con tres preguntas y tres fragmentos, o ve directo a un libro. Nada de esto pide cuenta.');
+    expect(dialogo()?.textContent).not.toContain('seis preguntas');
     expect(dialogo()?.textContent).not.toContain('pronunci');
     expect(boton('Saltar')).toBeTruthy();
     expect(boton('Medir mi nivel')).toBeTruthy();
