@@ -905,7 +905,8 @@ pendiente, permiso negado, sin micrófono, micrófono ocupado, sin frase— (\co
 El aviso para el WebView de Android se queda como precaución, no como explicación de este
 caso & 11 pruebas de \cod{pronunciar.\allowbreak microfono} y el navegador a 390~px.
 comprobado en lo publicado entonces (revisión \cod{48d748d} del Space, del commit \cod{940c275}) a 390$\times$844: la línea va dentro de la barra,
-acaba en 688 y se lee sin desplazar en los cinco finales de pulsar, ninguno mudo (e6).
+acaba en 688 y se lee sin desplazar en los cinco finales de pulsar ---el del permiso
+pendiente, en dos momentos---, ninguno mudo (e6).
 \textbf{Queda abierto en qué teléfono y navegador ocurrió}: en el de Miguel, con cuenta,
 graba bien \\
 \addlinespace
@@ -1078,7 +1079,7 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         dependencias NLP ausentes. Pasaron además 7 pruebas de concurrencia de voz,
         10 del despliegue y 11 del pipeline de portadas. No se suman como una prueba
         completa de usuario ni sustituyen la batería histórica del motor. El backend
-        publicado ---revisión \cod{e56cf08} del Space; su commit no quedó anotado--- se
+        publicado ---revisión \cod{e56cf08} del Space, subida selectiva de \cod{app/api.py} y \cod{app/voz.py} desde \cod{a87caa8} y \cod{71e4b52} (anterior a que el script exigiera commit)--- se
         cotejó por hash y se comprobó salud JSON, lectura de
         Alicia en Angular, diccionario sin perfil y rechazo de voz anónima. No se probó
         OpenAI real ni micrófono físico en ese cierre. Evidencia:

@@ -86,7 +86,7 @@ que dice el **Plan B** para ese paso.
    «Escuchar y ver». **Si pruebas *Pronunciar* en frío, sin haber abierto un
    libro, ese botón no está:** depende del libro en curso, no de la pantalla, y
    aparece al volver desde el lector (medido el 16 de septiembre por e6 sobre la
-   revisión `9b4a3b5` del Space). No es un fallo; escribe la frase a mano.
+   revisión `9b4a3b5` del Space, del commit `a1c4268`). No es un fallo; escribe la frase a mano.
 4. **Paso 6:** «Don't you want to come with us?». Que, al abrir «Para sonar
    más natural», salgan *doncha* y *wanna*, «no pares aquí» y «Escúchalo
    natural», y cuánto tarda.

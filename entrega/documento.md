@@ -1300,7 +1300,7 @@ precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A
 Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo
 camino da 1,713 (C1).
 
-El despliegue del backend —revisión `e56cf08` del Space; su commit no quedó anotado— fue cotejado por hash el 13 de septiembre:
+El despliegue del backend —revisión `e56cf08` del Space, subida selectiva de `app/api.py` y `app/voz.py` desde `a87caa8` y `71e4b52` (anterior a que el script exigiera commit)— fue cotejado por hash el 13 de septiembre:
 salud JSON, lectura de Alicia desde Angular, diccionario sin perfil y rechazo
 de voz anónima. En el entorno local aislado pasaron **32 de 35 pruebas API**;
 tres quedaron sin validar por dependencias NLP ausentes. También pasaron 7
