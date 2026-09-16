@@ -556,6 +556,24 @@ rompió al medir). Publica desde un worktree limpio de HEAD y, antes de `git
 add` de un archivo compartido, mira `git diff -- ruta`.
 
 
+## Demuestra que la medida no estaba hueca (16 sep)
+
+Medir «sin sesión» tiene una trampa: si la llamada que trae el estado no llega,
+la aplicación tampoco cree que estés fuera, y el camino que querías medir **no se
+ejecuta**. Entonces el resultado sale «bien» sin haber probado nada.
+
+f4 lo dejó demostrado al revés, sin falsear nada: el aviso que midió lo escribe un
+`return` temprano que **solo** se alcanza cuando el estado dice «bloqueada». Si el
+estado hubiera quedado nulo, en su lugar habría salido la respuesta del servidor.
+Es decir, el propio texto observado prueba que la rama medida es la de verdad.
+
+- Antes de dar por buena una medida de un caso «sin algo», di **qué se habría
+  visto si el caso no se hubiera dado**. Si no sabes distinguirlo, la medida no
+  vale.
+- Y comprueba el estado por lo que hay, no por lo que supones: aquí, `localStorage`
+  con solo preferencias, y el identificador del navegador —el que viaja en
+  `X-Lector`— que **no** es una sesión.
+
 ## Una acción por pasada, si quieres poder atribuir el efecto (16 sep)
 
 Al comprobar que pulsar un botón **ya no** abre un panel, f4 midió en dos pasadas
