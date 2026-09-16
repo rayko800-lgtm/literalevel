@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { Entrada } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
@@ -123,6 +123,19 @@ describe('Bienvenida: el paso 0 y la cuenta', () => {
   it('con el motor caído la sesión no llega, y sale como a un visitante', async () => {
     const sesion = TestBed.inject(Sesion);
     sesion.motor.set('caido');
+    const a = await inicio();
+    expect(a.dialogo()?.querySelector('h2')?.textContent).toBe('¿Ya tienes cuenta?');
+  });
+
+  it('si /api/inicio falla con el motor respondiendo, sale como a un visitante', async () => {
+    const sesion = TestBed.inject(Sesion);
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(r => r.url.endsWith('/api/salud')).flush({ estado: 'ok', buscador_listo: true });
+    await new Promise(r => setTimeout(r, 0));
+    http.expectOne(r => r.url.endsWith('/api/inicio')).flush('fallo', { status: 500, statusText: 'Internal Server Error' });
+    await new Promise(r => setTimeout(r, 0));
+    expect(sesion.motor()).toBe('listo');
+    expect(sesion.entrada()).toBeNull();
     const a = await inicio();
     expect(a.dialogo()?.querySelector('h2')?.textContent).toBe('¿Ya tienes cuenta?');
   });

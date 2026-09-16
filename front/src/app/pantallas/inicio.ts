@@ -207,8 +207,10 @@ export class Inicio {
   protected readonly ajustesAbiertos = this.sesion.ajustesAbiertos;
   /** La bienvenida elige su paso 0 según haya cuenta o no, y la sesión llega después del primer
    *  pintado: sin esperar, quien ya ha entrado veía un instante «¿Ya tienes cuenta?» (4e, 16 sep).
-   *  Con el motor caído la sesión no llega nunca, y ahí se enseña como a un visitante. */
-  protected readonly sesionConocida = computed(() => this.sesion.entrada() !== null || this.sesion.motor() === 'caido');
+   *  Con el motor caído, o si /api/inicio falla, la sesión no llega en esta visita, y ahí se
+   *  enseña como a un visitante. */
+  protected readonly sesionConocida = computed(() =>
+    this.sesion.entrada() !== null || this.sesion.motor() === 'caido' || this.sesion.sesionFallida());
   protected readonly num = num;
   protected readonly cefr = cefr;
   protected readonly miles = miles;

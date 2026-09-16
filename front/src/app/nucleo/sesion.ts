@@ -78,14 +78,20 @@ export class Sesion {
     }
   }
 
+  /** `/api/inicio` falló con el motor respondiendo: la sesión no se va a conocer en esta visita.
+   *  La bienvenida lo trata como a un visitante en vez de esperar para siempre (4e, 16 sep). */
+  readonly sesionFallida = signal(false);
+
   async refrescar(): Promise<void> {
     try {
       const i = await firstValueFrom(this.api.inicio());
       this.inicio.set(i);
       this.perfil.set(i.perfil);
       this.entrada.set(i.entrada);
+      this.sesionFallida.set(false);
     } catch {
       /* la portada funciona sin esto */
+      this.sesionFallida.set(true);
     }
   }
 
