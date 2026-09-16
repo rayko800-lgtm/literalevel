@@ -277,8 +277,9 @@ ficha de cada sonido.
 ### 3.4 El tercer ciclo: Ismael
 
 Los días 14 y 15 de septiembre de 2026 la probó **Ismael**, hermano del autor, que abrió
-el enlace **desde WhatsApp, en un teléfono Android**, sin que nadie le explicara nada.
-Mandó dos notas de voz:
+en un teléfono Android el enlace que le mandaron por WhatsApp, sin que nadie le explicara
+nada y —cosa que se supo después, y que cambia la lectura de lo que contó— **sin iniciar
+sesión**. Mandó dos notas de voz:
 
 > *«Cuesta un poquito entenderle… le falta hacerla más intuitiva, o a lo mejor unos
 > cuadros de diálogo que te diga qué hace cada cosa.»*
@@ -290,17 +291,19 @@ Mandó dos notas de voz:
 | Lo que dijo | Diagnóstico | Corrección | Verificación |
 |---|---|---|---|
 | «Le falta hacerla más intuitiva… unos cuadros de diálogo que te diga qué hace cada cosa» | Recorrido a 390 px sin cuenta: «Entrar» abría *Ajustes* por arriba y «Tu perfil» quedaba fuera de la pantalla; el botón de la cabecera era un icono sin texto; y la tarjeta «Mídeme» prometía una estimación desde la primera pregunta que ya no ocurre | **Primera tanda:** «Entrar» abre «Tu perfil» con el cursor en «Usuario», el botón dice **Ajustes** y «Mídeme» pierde la promesa. **Tercera tanda:** bienvenida de tres pasos la primera vez en Inicio, con «Saltar» y «Ver la bienvenida otra vez» en *Ajustes* | 5 pruebas de `entrar-perfil` y 6 de `bienvenida` en el front; recorrido en el navegador a 390 px |
-| «Le pisas al micrófono y no te dice que hables, no se activa la grabación» | No era impresión suya, era un fallo: en el teléfono la barra del micrófono es fija y tapaba el aviso de error y el «Grabando…»; y en el WebView con el que WhatsApp abre los enlaces en Android, `getUserMedia` no existe o se rechaza sin preguntar, así que al tocar no pasaba nada visible | Una línea de estado **dentro** de la barra, con un mensaje por caso —«Grabando: habla ahora», permiso pendiente, permiso negado, sin micrófono, micrófono ocupado, sin frase—, y en un WebView de Android, antes de pulsar, «Para grabar tu voz, abre LiteraLevel en Chrome» | 11 pruebas de `pronunciar.microfono` y el navegador a 390 px con el user agent del WebView. **Falta que Ismael lo repita en su teléfono** |
+| «Le pisas al micrófono y no te dice que hables, no se activa la grabación» | **La causa de su caso está en revisión.** Al investigar la queja apareció un fallo real y medido: en el front anterior, el aviso de error del micrófono y el «Grabando…» se pintaban **debajo de la barra fija** —y de 750 a 849, con la barra empezando en 687—, así que no se veían. Pero Ismael estaba **sin sesión**, y sin cuenta no hay corrección de pronunciación; no está establecido que lo que él vio fuera ese fallo, ni consta que su navegador fuera un WebView | Una línea de estado **dentro** de la barra, con un mensaje por caso —«Grabando: habla ahora», permiso pendiente, permiso negado, sin micrófono, micrófono ocupado, sin frase— (`601788b`). El aviso para el WebView de Android se queda como precaución, no como explicación de este caso | 11 pruebas de `pronunciar.microfono` y el navegador a 390 px. **Falta medir qué ve alguien sin sesión al pulsar el micrófono**, que es lo que decidirá la causa |
 | «No tan saturada la página, los textos están largos… te pierdes» | Medido a 390 px: el lector enseñaba dos avisos a la vez y dejaba ver unas dos líneas del libro, y *Pronunciar* ponía 46 palabras antes de la caja de la frase | **Segunda tanda:** un solo aviso en el lector —«Mantén presionada una palabra para ver qué significa; desliza para cambiar de página.»— y, en *Pronunciar*, una línea de ayuda en lugar del subtítulo; las dos se cierran con ✕ y vuelven con «?» | Comprobado en el front publicado a 390 px táctil el 15 de septiembre |
 
 *Cuadro 1c. El tercer ciclo, de la nota de voz al código publicado.*
 
-**La lección de este ciclo es que un fallo se puede esconder detrás de una queja de
-usabilidad.** «No se activa la grabación» sonaba a permiso del navegador y era una barra
-fija tapando el aviso; se encontró reproduciendo el caso a 390 px, no leyendo el código.
-**Queda pendiente** que Ismael repita la prueba del micrófono en su teléfono, dentro de
-WhatsApp, que es lo único que no se puede comprobar desde aquí. Y de los sitios donde se
-midió saturación queda sin tocar el índice de la ficha, a casi dos pantallas del principio.
+**La lección de este ciclo es la contraria de la que parecía.** Al principio se dio por
+hecho que «no se activa la grabación» era la barra fija tapando el aviso, y así se escribió;
+después se supo que Ismael no había iniciado sesión, y esa causa dejó de sostenerse. Quedan
+en pie dos cosas distintas: **lo que se arregló**, que estaba mal lo viera él o no, y **lo
+que su queja sigue señalando**, que es que la aplicación no dice con suficiente claridad qué
+se puede hacer sin cuenta. Esa medición está en marcha y la causa se escribirá cuando esté,
+no antes. Y de los sitios donde se midió saturación queda sin tocar el índice de la ficha, a
+casi dos pantallas del principio.
 
 ### 3.5 La lección, en una línea
 

@@ -619,8 +619,8 @@ cosas son ciertas.
 | Regresión logística | 3 variables clásicas | 0,29 | 1,39 | histórica |
 | XGBoost | 3 variables clásicas | 0,28 | 1,42 | histórica |
 | Regresión logística | 3 variables clásicas | **0,313** | **1,295** | recalculada |
-| Regresión logística | **17 variables** | **0,352** | **1,061** | recalculada |
-| XGBoost | **17 variables** | **0,340** | **1,081** | recalculada |
+| Regresión logística | **17 variables** | **0,352** | **1,062** | recalculada |
+| XGBoost | **17 variables** | **0,337** | **1,091** | recalculada |
 | Regresión logística | Embedding MiniLM (384 d) | 0,37 | 0,93 | histórica |
 | Regresión logística | Híbrido (embedding + 3 variables) | 0,37 | 0,91 | histórica |
 | **`roberta-base` afinado** | **Texto crudo, atención** | **0,46** | **0,67** | histórica |
@@ -628,7 +628,9 @@ cosas son ciertas.
 *Cuadro 7. Progresión de modelos sobre los mismos 950 extractos reservados,
 con la tanda de la que procede cada fila. La mejora acompaña siempre al
 enriquecimiento de la
-representación, no a la complejidad del clasificador.*
+representación, no a la complejidad del clasificador. Las filas recalculadas
+son las que imprime el cuadernillo en la ejecución del 16 de septiembre de 2026;
+su tercera decimal se mueve con la versión de las bibliotecas.*
 
 La lectura del cuadro es la tesis metodológica del trabajo: **cada vez que se
 le dio al modelo una representación más rica del texto, el desempeño subió; y
@@ -1453,8 +1455,11 @@ repetirlo en cada párrafo corregido.
     recalcular.** Los pesos del v4 están publicados en Hugging Face
     (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin
     credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra
-    la inferencia sobre texto real. El cuaderno no reentrena el v4, que pide una
-    GPU, pero **sus métricas sí se recalculan fuera de él**: los datos de
+    la inferencia sobre texto real. Ejecutado así el 16 de septiembre de 2026 en
+    Colab, con CPU y cuenta gratuita, y con las salidas guardadas en el propio
+    cuadernillo: 57 de 57 celdas de código con salida y ningún error. El
+    cuaderno no reentrena el v4, que pide una GPU, pero **sus métricas sí se
+    recalculan fuera de él**: los datos de
     entrenamiento son públicos (ELG CEFR English, en Hugging Face), y el guion
     y las 144 parejas de nivel y predicción están en `entrenamiento_v4/`, que no
     viaja con los entregables y se comparte a petición. Recalculadas en CPU en
@@ -1485,9 +1490,12 @@ repetirlo en cada párrafo corregido.
     Space y el perfil seguía ahí. Era la acción A4 de la estrategia y está
     cerrada.
 13. **La prueba de usuario tiene n = 3.** Esmeralda y Laura son dos lectoras,
-    y el tercero es Ismael, que abrió la aplicación en un Android desde
-    WhatsApp los días 14 y 15 de septiembre y dio con un fallo del micrófono y
-    con una interfaz saturada (apartado 3 de la estrategia).
+    y el tercero es Ismael, que la probó en un Android los días 14 y 15 de
+    septiembre: pidió que se entendiera mejor, dijo que al pulsar el micrófono
+    no pasaba nada y que las pantallas se sentían saturadas. De ahí salieron
+    las tres tandas de ayuda; la causa de lo del micrófono **está en revisión**,
+    porque se supo después que no había iniciado sesión (apartado 3 de la
+    estrategia).
     Su valor es cualitativo y de diagnóstico, no estadístico: sirve para
     encontrar fallos de usabilidad graves —y encontraron varios—, no para
     estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con *love* o *romance* en el título, frente a 4 libros de Gutenberg (recuento sobre el catálogo que carga la aplicación, `auditoria/ronda1_consolidado_2026-09-14.md`); pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En *Encontrar*, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (`auditoria/chips_reinicio25_2026-09-15.md`).
@@ -1609,7 +1617,7 @@ dos tandas y es fácil restar filas que no se pueden restar. Contra las tres
 variables clásicas de la tanda histórica, el paso al *embedding* va de 1,39 a
 0,93. Pero el cuadernillo entregado ejecuta una regresión logística sobre tres
 variables clásicas, sobre esa misma partición, y obtiene **1,295**; con
-diecisiete variables en vez de tres baja a **1,061**.
+diecisiete variables en vez de tres baja a **1,062**.
 
 **No son exactamente el mismo modelo, y decir que sí lo eran era impreciso.**
 Las tres variables se llaman igual en las dos tandas, pero `palabras_raras` no
