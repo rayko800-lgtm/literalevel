@@ -78,6 +78,18 @@ huecos de red. No se arreglan antes del 20: son solo pruebas, y
   varias de estas. Ojo: la convención `condición and "texto"` usa el texto como
   etiqueta de éxito, así que el cambio no puede ser «solo booleanos».
 
+## 2d. La corrección y el acento (notas de b0, 16 sep)
+
+- **El esquema de la corrección invita a culpar al acento sin base.**
+  `app/voz.py:171-173` (`DetallePalabra.fonema`) deja al modelo decir que falló
+  «el acento de la palabra» con `fonema: 'ninguno'`, pero el modelo solo recibe la
+  transcripción, y la transcripción no delata el acento. Es la misma inexactitud
+  que el texto nuevo de «igual» corrige, en el otro camino. `voz.py` es de Codex:
+  **se le pasa en su auditoría del 19** y no se toca antes de la entrega, porque
+  cambiar el esquema cambia lo que responde el modelo.
+- **El aviso de tope en inglés sigue sin decir qué se acabó.** Solo pasa por el
+  camino del léxico, el único que recibe idioma.
+
 ## 3. Mensajes que una persona no entendería
 
 | Texto de hoy | Dónde | Propuesta |
