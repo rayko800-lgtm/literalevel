@@ -87,7 +87,10 @@ import { Icono } from './icono';
             <p class="suave">Esta copia no tiene perfiles: todo está disponible sin entrar.</p>
           } @else if (e.dentro) {
             <p>Has entrado como <strong>{{ e.nombre }}</strong>.
-              @if (e.restantes !== null) { Te quedan <strong>{{ e.restantes }}</strong> usos. } @else { Sin límite de usos. }
+              @if (e.restantes !== null) {
+                {{ e.restantes === 1 ? 'Te queda' : 'Te quedan' }} <strong>{{ e.restantes }}</strong>
+                {{ e.restantes === 1 ? 'uso' : 'usos' }}.
+              } @else { Sin límite de usos. }
             </p>
             <button class="boton secundario" type="button" (click)="salir()">Salir</button>
           } @else {

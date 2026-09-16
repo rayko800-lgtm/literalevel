@@ -142,7 +142,7 @@
           <textarea class="entrada" rows="10" maxlength="25000" [(ngModel)]="muestra" lang="en"
                     placeholder="Pega aquí varios párrafos…"></textarea>
         </label>
-        <p class="tenue pequeno">{{ palabrasMuestra() }} palabras. La primera medición desde que despertó el servidor carga el modelo: hasta un minuto.</p>
+        <p class="tenue pequeno">{{ palabrasMuestra() }} {{ palabrasMuestra() === 1 ? 'palabra' : 'palabras' }}. La primera medición desde que despertó el servidor carga el modelo: hasta un minuto.</p>
         <div class="fila">
           <button type="button" class="boton" (click)="medirMuestra()" [disabled]="guardando() || palabrasMuestra() < 150">
             {{ guardando() ? 'Midiendo…' : 'Medir este texto' }}

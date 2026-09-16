@@ -54,8 +54,10 @@ import { miles } from '../nucleo/formato';
           </div>
         } @else {
           <section class="cifras">
-            <div><strong>{{ miles(c.palabras) }}</strong><span>palabras distintas</span></div>
-            <div><strong>{{ miles(c.consultas) }}</strong><span>consultas</span></div>
+            <!-- Con una sola palabra se leía «1 palabras distintas» en el paso 7 de la demo
+                 (ensayo del 16 sep). Mismo ternario que ya usaban «libro/libros» de abajo. -->
+            <div><strong>{{ miles(c.palabras) }}</strong><span>{{ c.palabras === 1 ? 'palabra distinta' : 'palabras distintas' }}</span></div>
+            <div><strong>{{ miles(c.consultas) }}</strong><span>{{ c.consultas === 1 ? 'consulta' : 'consultas' }}</span></div>
             <div><strong>{{ miles(c.libros) }}</strong><span>{{ c.libros === 1 ? 'libro' : 'libros' }}</span></div>
           </section>
 
