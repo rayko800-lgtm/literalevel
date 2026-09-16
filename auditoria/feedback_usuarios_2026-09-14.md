@@ -195,3 +195,11 @@ Transcrito de su nota, con las capturas al lado (cuenta «miguel», móvil real,
   puedo pisarle Saltar y enseñar directamente». Eso resuelve el riesgo que me
   frenaba: entra la versión mínima (paso 0) y el guion dirá que se puede recorrer
   antes o saltar en directo.
+- **Dos capturas acotan el límite:** a las **11:32** el aviso decía «vuelve a
+  intentarlo en unos **49 minutos**» y a las **11:51**, «unos **30 minutos**». La
+  ventana es de **una hora** y se le libera cerca de las 12:21. En la segunda
+  captura se ve además que **el aviso sale con la grabación ya hecha (0:09) y
+  tapando la parte baja**: graba primero y se entera después de que no puede
+  pedir la corrección. Y la frase que tenía puesta era una oración larga de libro
+  («Those who are able to solve the riddle of life…»), con la primera línea
+  cortada: el problema del cuadro con desplazamiento, otra vez, en su móvil real.
