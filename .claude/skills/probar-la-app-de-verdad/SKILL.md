@@ -627,18 +627,27 @@ así que el hallazgo quedó cerrado y no como sospecha.
   sesiones distintas. No es una anécdota: es lo primero que hay que mirar en una
   suite heredada.
 
-**Y el mismo patrón sin texto: una prueba puede medir un lienzo vacío.**
+**Y un caso que parecía del mismo patrón y no lo era: el lienzo 3D.**
 `tools/probar_boca_integrada.mjs` garantiza el encuadre de la cara 3D con
-`assert.equal(px.borde, 0)`, leyendo el canvas con `getImageData`. Ejecutando ese
-código en el navegador, el canvas **se lee vacío** —un color, cero píxeles
-opacos— porque WebGL no conserva el búfer de dibujo. Si en el entorno de pruebas
-pasa igual, ese `assert` pasa **sin medir nada**, y es justo la prueba que debía
-haber cazado el encuadre cortado que un usuario vio en su móvil. Queda pendiente
-de confirmar en Playwright, pero la regla ya vale:
+`assert.equal(px.borde, 0)`, leyendo el canvas con `getImageData`. Leído desde la
+página publicada, el canvas **sale vacío**, porque la app crea el renderer sin
+`preserveDrawingBuffer`. Se sospechó que la prueba era ciega. **No lo era:** el
+guion inyecta `preserveDrawingBuffer: true` antes de arrancar la app, lee 8.033
+colores y un 35 % de píxeles opacos, y un guardia previo haría saltar la prueba
+si el lienzo estuviera vacío. Y el control positivo lo cerró: forzando que el
+dibujo se salga del lienzo, `borde` pasa a 815 y el `assert` cae. Su `borde = 0`
+en lo publicado **era correcto**: el supuesto «labios tocando el borde» era una
+línea oscura de la página, y el problema real del usuario era haber girado la
+cara, no el encuadre.
 
 - Cuando una prueba afirma algo sobre **píxeles**, comprueba primero que lee
   píxeles: que haya opacos, que no sean todos del mismo color, que el conteo
   cambie si mueves a propósito lo que mides.
+- **Distingue lo que ve la página de lo que ve el arnés.** Una medida hecha a
+  mano desde el navegador y la de la prueba pueden discrepar sin que ninguna
+  mienta.
+- **Una sospecha de prueba ciega también se cierra con control positivo**, no
+  solo se abre: forzar el defecto y ver que la prueba cae.
 - Una aserción que **no puede fallar** es peor que no tener prueba, porque
   además da tranquilidad.
 
