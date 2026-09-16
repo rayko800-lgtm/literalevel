@@ -556,6 +556,32 @@ rompió al medir). Publica desde un worktree limpio de HEAD y, antes de `git
 add` de un archivo compartido, mira `git diff -- ruta`.
 
 
+## Cada publicación se comprueba contra la anterior (16 sep)
+
+Tres publicaciones del front en una tarde. 4e verificó cada una sobre **lo
+servido**, no sobre el repositorio: recorrió el grafo desde `index.html`, y
+además de mirar lo nuevo comprobó que **las frases de la tanda anterior seguían
+ahí y las viejas seguían a cero**. Un despliegue puede deshacer el anterior sin
+que nadie lo note, y el repositorio del Space acumula chunks huérfanos que no
+carga nadie: de 402 `.js`, solo 14 eran alcanzables, y 76 de los huérfanos
+contenían todavía el texto retirado. Quien audite a `grep` los encontrará y
+parecerá que no se corrigió; la respuesta es la lista de alcanzables.
+
+## Una afirmación del documento tiene que poder verse en pantalla (16 sep)
+
+El documento decía que sin clave de OpenAI la aplicación sigue funcionando en
+todo lo que no sale a la red. En *Pronunciar* eso era verdad a medias: el botón
+de corrección estaba apagado y no explicaba por qué, así que el usuario no tenía
+forma de saber qué seguía funcionando. Con el texto nuevo —«La corrección no está
+disponible en este servidor. Grabarte y escucharte, sí.»— la pantalla y el
+documento dicen lo mismo.
+
+- Al revisar un entregable, coge sus afirmaciones de cara al usuario y pregunta
+  **dónde se ve eso en la aplicación**. Si no se ve en ningún sitio, o falta una
+  frase en pantalla o sobra una en el documento.
+- Y al arreglar, comprueba que el arreglo no reintroduce el fallo que presume de
+  resolver: aquí, el aviso nuevo quedaba tapado por el panel que se abría solo.
+
 ## Antes de buscar el fallo, comprueba si había sesión (16 sep)
 
 Ismael tocó el micrófono en su Android y «no pasó nada». Se investigó como fallo
