@@ -35,8 +35,14 @@ dificultad de un capítulo y, en *Pronunciar*, grabarse, escucharse y ver cómo 
 dice cada sonido.
 Para la explicación por IA, el resumen y la corrección de pronunciación le
 comparto un acceso de invitado por separado: usan un servicio externo que
-pago yo y tienen límites de uso. Si falta una palabra en el diccionario, la
-definición por IA aparece identificada como tal.
+pago yo y tienen límites de uso. Hay además topes por hora, que van por conexión
+y no por cuenta, para no dispararme la factura ni el servidor, que es uno solo:
+10 correcciones de voz, 30 explicaciones, 6 resúmenes, 20 libros nuevos, 40
+capítulos medidos y 6 curvas. Si le sale el aviso de que llegó al tope, espere
+unos minutos y vuelva a intentarlo; mientras tanto puede seguir leyendo lo que ya
+abrió, buscar, consultar el diccionario y, en *Pronunciar*, grabarse y escucharse.
+Si falta una palabra en el diccionario, la definición por IA aparece identificada
+como tal.
 
 En **Pronunciar** se lee una frase y se compara con lo que se transcribió;
 no es un chat de voz ni una evaluación fonética de laboratorio. Conviene
