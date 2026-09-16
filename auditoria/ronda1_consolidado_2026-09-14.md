@@ -1315,3 +1315,9 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 - **Menor del front, decisión de la Central: entra antes de la entrega.** bienvenida.ts:77 dice «seis preguntas» y el documento dice tres preguntas y tres fragmentos; e6 lo cambia con el ok de 4e y publica.
 - **Revisión de e6 a d232ffd:** los 4 SERIOS y todos los menores resueltos, sin afirmaciones nuevas más fuertes de lo medido, paridad md/tex correcta. Dos restos en la figura del recorrido del .tex, encargados a 4e junto con la fecha del Colab: `documento.tex:2555` («6 preguntas + 3 fragmentos» → 3 + 3) y `documento.tex:2571` («40 ms en local» → en el servidor).
 - **Colab:** la cuenta miguel.reyes.carrillo19 no tiene suscripción ni unidades y las GPU de pago salen deshabilitadas. f4 ejecuta el .ipynb de 59a367a en CPU, sin comprar nada y sin pop-ups.
+- **Barrido de la Central fuera del front y de entrega/** («seis preguntas», «6 preguntas», «doble toque», «toca dos veces», «toca una palabra»):
+  - `README.md:36` desfasado, encargado a 4e;
+  - `pruebas_api.py:126` es correcto: `/api/cuestionario` ofrece 6 preguntas y 3 fragmentos, y el front presenta 6 pasos con 3 preguntas y 3 fragmentos (las otras tres son las de «afinar»). El documento debe decir «tres preguntas» solo de la pantalla, no de la API;
+  - `estrategia.md:209` y `documento.tex:758` son el histórico del doble toque, correctos.
+- **Figura del recorrido:** la etiqueta pasa a «0,7 s en pantalla» (razonamiento de 4e: en esa fila las etiquetas miden lo que espera el lector). Los 40 ms se quedan en el texto con su matiz.
+- e6 encontró la misma frase en `encontrar.ts:136` y va en su tanda del front, con barrido de `front/src`.
