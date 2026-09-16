@@ -443,3 +443,36 @@ porque el permiso es de esa sesión.
   commit (`git apply -R`, rutas explícitas). Tras cualquier vuelta atrás,
   comprobar con `git diff <commit subido> HEAD -- <archivo>` que HEAD coincide
   con lo que corre.
+
+## 17. De quién es la queja se confirma igual que la causa (16 sep)
+
+Una nota de voz se archivó como de Ismael. La central escribió en el informe, y
+de ahí en el documento, que el micrófono fallaba por el navegador interno de
+WhatsApp. Al día siguiente Miguel dijo que Ismael **no había iniciado sesión**, y
+la central corrigió todo hacia esa explicación. Horas después mandó el audio
+diciendo «según yo este es de Laura»: era la misma grabación, y empezaba «entré y
+**ya me inicié sesión**». Tres versiones en dos días, todas escritas antes de
+estar confirmadas.
+
+- **Pregunta de quién es cada nota antes de citarla.** Una nota reenviada no trae
+  remitente; el nombre se guarda junto al audio y a la transcripción.
+- **Una nota puede llevar varias quejas.** Al des-atribuirla, van todas: aquí
+  eran el micrófono **y** la saturación de la página, y la segunda era una de las
+  razones escritas para una tanda de cambios.
+- **Separa lo medido de lo que te contaron.** «El aviso se pintaba en 750-849 con
+  la barra en 687» se sostiene solo. «No había iniciado sesión» es de Miguel: en
+  el registro va con su nombre y su fecha, y en los entregables no entra hasta
+  confirmarse.
+- **Cuando una sesión se niega a escribir con una contradicción encima, tiene
+  razón.** 4e paró y avisó; eso evitó la cuarta versión.
+
+## 18. Un PDF se verifica por su contenido (16 sep)
+
+Compilando el guion del vídeo, `\cod{}` no existía en ese `.tex` y LaTeX falló
+con «Undefined control sequence». Las fuentes quedaron nuevas y el PDF siguió
+siendo el viejo, con un hash de front ya retirado dentro. 4e lo vio porque abrió
+el PDF después de compilar.
+
+- Tras compilar, **lee el PDF**: páginas y una cadena que solo exista en la
+  versión nueva. `pypdf` basta.
+- No des por bueno un «recompilado», ni propio ni ajeno, sin esa comprobación.
