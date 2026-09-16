@@ -128,7 +128,27 @@ real, y está en la misma pantalla.
 - Y que debajo del botón, dentro de la barra, en la misma línea de mensaje que
   ya usan los avisos del micrófono (636 – 688), ponga:
   **«La corrección necesita tu perfil. Grabarte y escucharte, no.»**
-  Cabe en una línea a 390 px y repite el «qué sí» al lado del «qué no».
+  Repite el «qué sí» al lado del «qué no».
+
+### Lo que se hizo, y las dos cifras que corrijo
+
+Miguel lo aprobó por la Central el mismo día y está publicado. Medido otra vez
+sobre el commit, a 390 px, con el botón ya pulsable:
+
+- El aviso sale en **625 – 696**, con `role="alert"` y su botón «Entrar»
+  dentro, sin desbordar a lo ancho y ochenta píxeles por encima de la
+  navegación inferior. **Se lee sin desplazar.**
+- **Corrijo lo que escribí arriba:** no cabe en una línea. Ocupa **71 px**, es
+  decir **hasta cuatro líneas** contando el «Entrar». Cabe y se lee, pero el
+  dato bueno es ese.
+- La primera versión **abría el panel de Ajustes al pulsar**, y medido ocupaba
+  de 169 a 844: tapaba el propio aviso. Es exactamente el defecto que se estaba
+  corrigiendo, así que la Central decidió quitarlo: ahora pulsar «Corrígeme»
+  sin sesión **solo** muestra el aviso, y el panel se abre si el usuario pulsa
+  «Entrar». Es lo que hace el lector.
+- Hay un segundo texto, para cuando el servidor no tiene clave de OpenAI —donde
+  entrar no arreglaría nada—: «La corrección no está disponible en este
+  servidor. Grabarte y escucharte, sí.», sin «Entrar» y sin panel.
 
 ---
 
