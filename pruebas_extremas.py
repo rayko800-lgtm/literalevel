@@ -7457,7 +7457,10 @@ def _el_aviso_de_igual_habla_del_acento():
     """
     voz = ui.voz
     igual = voz._SIN_COMPARACION["igual"]
-    assert "acento" in igual[0] and "entonación" in igual[0], igual[0]
+    assert "acento" in igual[0] and "sílaba" in igual[0], igual[0]
+    # Sin la entonacion: la pantalla ensena el ritmo medido, y nombrarla aqui se
+    # leia como que tampoco se mide (4e y la Central, 16 sep).
+    assert "entonación" not in igual[0], igual[0]
     assert "transcripción" not in igual[0], "no puede culpar a la transcripcion: " + igual[0]
     assert "sílaba" in igual[1], igual[1]
     # Y la marca de acento no sobrevive a `segmentar`, que es LA razon de todo esto.

@@ -294,10 +294,13 @@ _SIN_COMPARACION = {
     # que la transcripcion automatica se equivoco era falso -no se equivoco: es que
     # el acento no se compara- y le mandaba a desconfiar de la maquina. Miguel lo
     # conto con «assessors» el 16 sep 2026: esperaba «buena pronunciacion, pero la
-    # entonacion esta mal».
+    # entonacion esta mal». Solo se nombra el acento: la entonacion tampoco se
+    # compara aqui, pero la misma pantalla ensena el ritmo «medido en tu
+    # grabacion», y decir «no comparamos la entonacion» se leia como que el ritmo
+    # no se mide (4e y la Central, 16 sep).
     "igual": ("Los sonidos coinciden con los de la palabra, así que no hay ninguno que "
-              "señalarte. Lo que no comparamos es el acento de la palabra ni la entonación "
-              "de la frase, y la diferencia puede estar ahí",
+              "señalarte. Lo que no comparamos es en qué sílaba cae el acento, y la "
+              "diferencia puede estar ahí",
               "Escucha la palabra en «Cómo debería sonar» y repítela fijándote en qué "
               "sílaba suena más fuerte."),
     "sin_datos": ("No sé qué se entendió en su lugar, así que no te señalo un sonido concreto",
