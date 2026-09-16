@@ -280,6 +280,19 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   protected async corregir(): Promise<void> {
     if (!this.blob || !this.frase.trim()) return;
+    // Sin perfil el botón iba `disabled`: no explicaba nada donde estaba —la razón queda
+    // 309 px más arriba— y pulsarlo no contestaba. Ese sí era un «pulso y no pasa nada»,
+    // medido a 390 px (auditoria/microfono_casos_a_b_2026-09-16.md). Ahora se pulsa, lo
+    // dice en la barra y abre «Tu perfil», como hace el lector (Central, 16 sep).
+    if (this.bloqueada()) {
+      const puedeEntrar = this.entrada()?.openai !== false;
+      this.error.set(puedeEntrar
+        ? 'La corrección necesita tu perfil. Grabarte y escucharte, no.'
+        : 'La corrección no está disponible en este servidor. Grabarte y escucharte, sí.');
+      this.necesitaEntrar.set(puedeEntrar);
+      if (puedeEntrar) this.abrirAjustes();
+      return;
+    }
     this.corrigiendo.set(true);
     this.error.set('');
     this.necesitaEntrar.set(false);

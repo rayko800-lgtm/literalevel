@@ -104,8 +104,9 @@
               <app-icono nombre="micro" /><span aria-hidden="true">Grabar otra vez</span>
             </button>
           } @else {
-            <!-- Con su nombre a la vista: un ✓ solo no decía qué hacía (Esmeralda). -->
-            <button type="button" class="microfono corregir con-texto" (click)="corregir()" [disabled]="corrigiendo() || bloqueada()"
+            <!-- Con su nombre a la vista: un ✓ solo no decía qué hacía (Esmeralda). Y sin
+                 perfil NO va apagado: se pulsa y contesta en la barra (Central, 16 sep). -->
+            <button type="button" class="microfono corregir con-texto" (click)="corregir()" [disabled]="corrigiendo()"
                     [attr.aria-label]="corrigiendo() ? 'Escuchando' : 'Corrígeme'">
               @if (corrigiendo()) { <span class="giro"></span><span aria-hidden="true">Escuchando</span> }
               @else { <app-icono nombre="check" /><span aria-hidden="true">Corrígeme</span> }
