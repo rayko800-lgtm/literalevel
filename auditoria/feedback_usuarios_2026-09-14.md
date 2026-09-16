@@ -179,3 +179,19 @@ Transcrito de su nota, con las capturas al lado (cuenta «miguel», móvil real,
 **Lo que confirma esta prueba:** el micrófono graba, la corrección se pide con
 «Corrígeme» y las palabras difíciles se acumulan («analyses · 2», «two», «thousand»,
 «blistered», «sherlock»…), así que el camino con cuenta funciona de punta a punta.
+
+**Respuestas de Miguel (16 sep, sobre su propia prueba):**
+
+- **De «assessors» sí hubo corrección**, pero le salió un aviso: «me brincó el
+  mensaje de que no se detectó, con lo cual no te podemos decir cómo… algo así,
+  raro». Y dice qué esperaba: «me hubiera gustado que me dijera: ok, buena
+  pronunciación, pero **la entonación está mal**». O sea, distingue **sonidos** de
+  **entonación y acento**, y quiere las dos cosas. f4 localiza el texto exacto del
+  aviso y en qué condición se emite, antes de escribir nada en los entregables.
+- **El encuadre de la boca 3D y el scroll de Pronunciar: adelante**, aprobados
+  por él.
+- **La introducción guiada, también ahora:** «sí la puedes hacer ahorita, no pasa
+  nada, porque en la demo yo puedo saltarme esa introducción o hacerla antes;
+  puedo pisarle Saltar y enseñar directamente». Eso resuelve el riesgo que me
+  frenaba: entra la versión mínima (paso 0) y el guion dirá que se puede recorrer
+  antes o saltar en directo.
