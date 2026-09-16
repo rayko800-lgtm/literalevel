@@ -169,6 +169,27 @@ const VELO_CERRADO = -0.44, VELO_ABIERTO = -1.22;   // radianes desde +x hacia a
 const PIVOTE_MAND = new THREE.Vector2(2.6, 0.9);
 const MAND_MAX = 0.42;                          // radianes con mandibula = 1
 const FARINGE_X = 3.15;
+
+/** Hasta dónde deja girar el visor (Miguel, 16 sep; auditoria/boca3d_giro_2026-09-16.md).
+ *  El modelo es media cabeza seccionada, hecha para verse de perfil: girada −45° sale media
+ *  cara con la mandíbula cortada y la otra mitad translúcida detrás, y a 20° de elevación ya
+ *  se ven los planos de corte. El azimut es asimétrico: hacia la cara llega a −34° porque el
+ *  perfil real queda en −3,3° tras cargar la cara y el giro automático de los labios
+ *  redondeados suma −30° (`giroPara`). La elevación, ±10° alrededor del perfil (85,4°). */
+export const LIMITES_GIRO = {
+  azimutMin: -34 * Math.PI / 180,
+  azimutMax: 20 * Math.PI / 180,
+  polarMin: 75 * Math.PI / 180,
+  polarMax: 96 * Math.PI / 180,
+} as const;
+
+export function aplicarLimitesGiro(controles: OrbitControls): void {
+  controles.minAzimuthAngle = LIMITES_GIRO.azimutMin;
+  controles.maxAzimuthAngle = LIMITES_GIRO.azimutMax;
+  controles.minPolarAngle = LIMITES_GIRO.polarMin;
+  controles.maxPolarAngle = LIMITES_GIRO.polarMax;
+}
+
 const INCISIVO_SUP = new THREE.Vector2(-2.55, 0.45);   // borde inferior del incisivo superior
 const INCISIVO_INF_LOCAL = new THREE.Vector2(-2.5, 0.35); // borde superior, en la mandíbula
 const LABIO_X = -2.95, LABIO_SUP_Y = 0.45, LABIO_INF_Y = -0.15;
@@ -801,8 +822,7 @@ export class EscenaBoca {
     this.controles.enableDamping = true;
     this.controles.dampingFactor = 0.12;
     this.controles.rotateSpeed = 0.7;
-    this.controles.minPolarAngle = 0.35;
-    this.controles.maxPolarAngle = 2.5;
+    aplicarLimitesGiro(this.controles);
     this.controles.addEventListener('change', () => { this.sucio = true; });
     // Si el usuario arrastra, el giro automático de la cámara se cancela.
     this.controles.addEventListener('start', () => { this.arrastrando = true; this.giroLinea = 0; });
