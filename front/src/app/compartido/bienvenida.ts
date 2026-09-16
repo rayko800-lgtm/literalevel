@@ -78,10 +78,11 @@ export class Bienvenida {
     texto: 'Con cuenta te corrijo la pronunciación y te explico una palabra en su frase. Sin cuenta puedes leer, buscar, medir tu nivel y grabarte.',
   };
   /** Con cuenta, la primera vez que se entra: lo que gasta usos, que es lo que se malentiende.
-   *  La explicación en contexto también cobra (`app/api.py`, etapa completa de /api/palabra). */
+   *  Las tres cobran en el motor: /api/voz, la etapa completa de /api/palabra y la sinopsis
+   *  (`app/api.py`). Texto de la Central con las correcciones de 4e (16 sep). */
   private readonly pasoConCuenta: Paso = {
     titulo: 'Ya tienes cuenta',
-    texto: 'Con tu cuenta te corrijo la pronunciación y te explico cada palabra en su frase. Cada una de esas dos cosas gasta un uso.',
+    texto: 'Con tu cuenta te corrijo la pronunciación, te explico una palabra en su frase y te resumo un libro. Cada una de esas cosas gasta un uso.',
   };
   protected readonly pasos = computed(() =>
     [this.sesion.entrada()?.dentro ? this.pasoConCuenta : this.pasoSinCuenta, ...this.basicos]);

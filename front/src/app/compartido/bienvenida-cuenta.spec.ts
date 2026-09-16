@@ -72,7 +72,7 @@ describe('Bienvenida: el paso 0 y la cuenta', () => {
     expect(dialogo()?.textContent).toContain('1 de 4');
     expect(dialogo()?.querySelector('h2')?.textContent).toBe('Ya tienes cuenta');
     expect(dialogo()?.querySelector('p')?.textContent).toBe(
-      'Con tu cuenta te corrijo la pronunciación y te explico cada palabra en su frase. Cada una de esas dos cosas gasta un uso.');
+      'Con tu cuenta te corrijo la pronunciación, te explico una palabra en su frase y te resumo un libro. Cada una de esas cosas gasta un uso.');
     expect(botones().map(b => b.textContent?.trim())).toEqual(['Siguiente']);
     expect(boton('Entrar')).toBeUndefined();
     expect(boton('Saltar')).toBeTruthy();
@@ -109,6 +109,22 @@ describe('Bienvenida: el paso 0 y la cuenta', () => {
     sesion.entrada.set(entrada(false));
     await a.pintar();
     expect(a.dialogo()).toBeNull();
+  });
+
+  it('no sale hasta saber si hay sesión: quien ya entró no ve un instante «¿Ya tienes cuenta?»', async () => {
+    const sesion = TestBed.inject(Sesion);
+    const a = await inicio();                       // entrada() todavía null
+    expect(a.dialogo()).toBeNull();
+    sesion.entrada.set(entrada(true));
+    await a.pintar();
+    expect(a.dialogo()?.querySelector('h2')?.textContent).toBe('Ya tienes cuenta');
+  });
+
+  it('con el motor caído la sesión no llega, y sale como a un visitante', async () => {
+    const sesion = TestBed.inject(Sesion);
+    sesion.motor.set('caido');
+    const a = await inicio();
+    expect(a.dialogo()?.querySelector('h2')?.textContent).toBe('¿Ya tienes cuenta?');
   });
 
   it('no sale encima de Ajustes abierto', async () => {

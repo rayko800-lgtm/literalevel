@@ -16,7 +16,7 @@ import { Sesion } from '../nucleo/sesion';
     <!-- Solo aquí: la bienvenida nunca sale encima de un enlace directo a un libro o al lector.
          Ni encima de Ajustes: quien pulsa «Entrar» en el paso 0 y entra no debe encontrarse la
          bienvenida «con cuenta» tapando el formulario en ese mismo momento. -->
-    @if (bienvenida() && !ajustesAbiertos()) { <app-bienvenida /> }
+    @if (bienvenida() && !ajustesAbiertos() && sesionConocida()) { <app-bienvenida /> }
     <div class="pagina">
       <section class="heroe">
         <div class="texto-heroe">
@@ -205,6 +205,10 @@ export class Inicio {
   protected readonly seguir = computed(() => this.inicio()?.seguir ?? null);
   protected readonly bienvenida = this.sesion.bienvenida;
   protected readonly ajustesAbiertos = this.sesion.ajustesAbiertos;
+  /** La bienvenida elige su paso 0 según haya cuenta o no, y la sesión llega después del primer
+   *  pintado: sin esperar, quien ya ha entrado veía un instante «¿Ya tienes cuenta?» (4e, 16 sep).
+   *  Con el motor caído la sesión no llega nunca, y ahí se enseña como a un visitante. */
+  protected readonly sesionConocida = computed(() => this.sesion.entrada() !== null || this.sesion.motor() === 'caido');
   protected readonly num = num;
   protected readonly cefr = cefr;
   protected readonly miles = miles;

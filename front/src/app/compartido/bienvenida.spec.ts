@@ -36,6 +36,8 @@ describe('Bienvenida', () => {
         provideHttpClient(), provideHttpClientTesting(),
       ],
     }).compileComponents();
+    // La bienvenida espera a saber si hay sesión: aquí, un visitante sin cuenta.
+    TestBed.inject(Sesion).entrada.set({ puerta: true, dentro: false, nombre: null, restantes: null, openai: true, mensaje: '' });
   });
 
   async function en(ruta: string) {
