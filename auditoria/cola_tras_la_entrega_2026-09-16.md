@@ -110,3 +110,23 @@ aplicación después de borrar**.
   del lector. Límite declarado en el documento (limitación 15).
 - **Ideas que quedaron apuntadas:** preferir historias que no sean para «peques»
   cuando el lector tiene nivel alto.
+## Encuadre de la boca 3D: sacarlo a una función pura y probarlo
+
+**Por qué no se hizo ahora (16 sep):** el arreglo del encuadre fue cambiar dos
+constantes en `compartido/boca3d/escena.ts` —el punto de mira a `0,9` y la
+distancia a `17,5` con la cara modelada—, verificado con una captura del
+elemento antes y después. No lleva prueba automática porque `EscenaBoca` crea un
+`THREE.WebGLRenderer` en sus campos, así que no se puede instanciar en jsdom.
+
+**Forma concreta (la propuso 4e):** extraer una función pura exportada, del tipo
+`encuadre(caraModelada, cabezaEntera, aspecto)`, a la que llamen `vista()` y
+`distanciaEncuadre()`. Con eso una prueba normal fija que con la cara modelada
+salen **0,9 y 17,5**, y que **coinciden con los de la cabeza entera**, que es la
+decisión que se tomó.
+
+**Qué fija y qué no, para no venderlo de más:** fija que los números no vuelvan
+solos dentro de un mes, que es lo que una captura no caza. **No** fija que se vea
+bien: eso solo lo demuestra la captura antes y después.
+
+**Riesgo de hacerlo antes del 20:** es un refactor de la escena 3D a tres días de
+grabar, sobre algo ya verificado por captura. No compensa.
