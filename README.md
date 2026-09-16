@@ -33,8 +33,8 @@ en un solo proceso, solo en local. Los recursos del apartado Datos también hace
 
 ## Qué hace
 
-1. **Sitúa al lector.** Un cuestionario breve —seis preguntas y tres fragmentos
-   en escalera—, o midiendo un texto que ya lee cómodo.
+1. **Sitúa al lector.** Un cuestionario breve —seis pasos: tres preguntas y
+   tres fragmentos en escalera—, o midiendo un texto que ya lee cómodo.
 2. **Busca qué leer.** 53.179 libros de Project Gutenberg indexados por
    significado: se describe la trama en español y el buscador la entiende. Se
    ajusta al nivel del lector. **Cada libro está medido entero por el modelo
