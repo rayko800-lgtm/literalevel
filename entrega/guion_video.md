@@ -245,7 +245,9 @@ capítulo.»
 > banda en vez del decimal.
 >
 > **La frase del paso Cinco la trae la app** («Una frase de mi libro» en
-> *Pronunciar*), así que es del capítulo abierto. La corrección depende de lo
+> *Pronunciar*), así que es del capítulo abierto. Ese botón **solo aparece si
+> vienes de un libro**: en *Pronunciar* en frío no está, y hay que escribir la
+> frase a mano. La corrección depende de lo
 > que se entienda: si la lees perfecta, dirá que se entendió todo y no habrá
 > sonido que señalar. Si lees alguna palabra mal a propósito para que salga,
 > dilo («la digo mal a propósito»). El botón del sonido **suena** (audio
@@ -293,7 +295,7 @@ capítulo.»
 «Esto es LiteraLevel, en el móvil. Este front lo pidió el profesor en la
 revisión.
 
-**Uno.** Mido mi nivel con unas preguntas y tres fragmentos reales, o con un texto mío.
+**Uno.** Mido mi nivel con tres preguntas y tres fragmentos reales, o con un texto mío.
 Para este ejemplo, un perfil preparado: **1,20 sobre 2**. *(mostrar el resultado)*
 
 **Dos.** Describo en español lo que me apetece leer y busca por significado,

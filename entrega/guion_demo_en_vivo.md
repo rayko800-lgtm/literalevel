@@ -27,8 +27,10 @@ Una por una, y marcando:
       móvil duplicado en pantalla. Solo esa pestaña compartida: nada de consola,
       contraseñas ni otras pestañas.
 - [ ] **Motor despierto.** Abrir en otra pestaña (sin compartir)
-      `https://mikemaki1763-literalevel.hf.space/api/estado` y comprobar que
-      responde con el catálogo disponible. Después, en el front, **hacer una
+      `https://mikemaki1763-literalevel.hf.space/api/salud` y comprobar que dice
+      `"buscador_listo": true`, que es lo que hace falta para buscar. `/api/estado`
+      responde también, pero sirve para otra cosa —el recuento de libros— y no trae
+      ese campo. Después, en el front, **hacer una
       búsqueda y consultar una palabra**: la primera de cada cosa es la lenta.
 - [ ] **Sesión iniciada** en *Ajustes → Tu perfil*, **fuera de plano**, con una
       cuenta que tenga **cupo**: explicar una palabra, resumir un libro y
@@ -81,7 +83,10 @@ que dice el **Plan B** para ese paso.
    dice «no está en el diccionario».
 3. **Paso 5:** grabar «Una frase de mi libro» con una palabra mal dicha a
    propósito. Cuánto tarda «Corrígeme», y si salen el sonido que falla y su
-   «Escuchar y ver».
+   «Escuchar y ver». **Si pruebas *Pronunciar* en frío, sin haber abierto un
+   libro, ese botón no está:** depende del libro en curso, no de la pantalla, y
+   aparece al volver desde el lector (medido el 16 de septiembre por e6 sobre la
+   revisión `9b4a3b5` del Space). No es un fallo; escribe la frase a mano.
 4. **Paso 6:** «Don't you want to come with us?». Que, al abrir «Para sonar
    más natural», salgan *doncha* y *wanna*, «no pares aquí» y «Escúchalo
    natural», y cuánto tarda.
@@ -163,7 +168,7 @@ Gutenberg y, además, 15.367 textos de licencia libre.»
 abre «Ver el detalle» para que se vea el 1,20. Señala abajo «¿No te convence?
 Afínalo con un libro que ya leíste · con un texto».
 
-**Dice:** «Primero, mi nivel. Unas preguntas y tres fragmentos, o un texto que
+**Dice:** «Primero, mi nivel. Tres preguntas y tres fragmentos, o un texto que
 ya leo cómodo. Para esta demo tengo un perfil preparado: 1,20 sobre 2, banda
 intermedia. Es una escala propia: la letra del Marco Común es solo
 orientativa.»
@@ -214,7 +219,9 @@ está claro qué acepción es, la aplicación lo dice: esto lo ha escrito una IA
 
 **5. Pronunciar y corregir (2:20 – 2:50)**
 
-**Hace:** *Pronunciar*. Pulsa «Una frase de mi libro» o escribe una corta. Graba
+**Hace:** *Pronunciar*, llegando **desde el lector**: el botón «Una frase de mi
+libro» solo existe si hay un libro empezado. Púlsalo, o escribe una frase corta a
+mano, que también vale. Graba
 leyendo con una palabra mal dicha a propósito. Pulsa «Corrígeme». En «Practica
 esta palabra» la boca ya está abierta: pulsa «Escuchar y ver»; si da tiempo,
 «🐢 Despacio» o «Boca en 3D».
