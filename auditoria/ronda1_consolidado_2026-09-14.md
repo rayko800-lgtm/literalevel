@@ -1364,3 +1364,11 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 - El front es estático, no se duerme, responde en 0,64 s, y depende de la API para todo lo demás.
 - **Hueco declarado:** no se ha medido un despertar real desde la suspensión de 48 h; las cifras son arranques por despliegue. **Decisión de la Central: no se reinicia el Space para medirlo** (hay usuarios con cuenta y el número no cambia ninguna decisión).
 - Pasos para «Antes de la demo» encargados a 4e: abrir la víspera, comprobar `buscador_listo` diez minutos antes, esperar hasta minuto y medio sin recargar en bucle, y distinguir siesta de `Error`.
+
+**Vuelco en el caso del micrófono (16 sep).** Miguel manda la nota de voz diciendo «según yo este es de Laura». Transcrita por la Central (whisper-1, scratchpad/laura_nota_16sep.txt): es **la misma grabación** archivada como segunda nota de Ismael, y empieza «te cuenta que entré y **ya me inicié sesión**, pero le falta… le pisas al micrófono pero no te dice que hables, no se activa la grabación».
+- Consecuencia: **quien pulsó el micrófono sí había entrado.** Hay dos casos y no se pueden mezclar:
+  - **A, con sesión:** entró, pulsó y no se activó la grabación ni le dijo que hablara.
+  - **B, sin sesión:** lo que Miguel contó de Ismael, sin cuenta no hay esas funciones.
+- La atribución de la nota está en duda (Laura o Ismael) hasta que Miguel lo confirme; no se pone en boca de nadie.
+- Encargos: e6 mide el caso A en lo que se puede sin cuenta (borrando `navigator.mediaDevices` en el front 48d748d, permiso denegado, y permiso sin micrófono) además del B, y dice en tres pasos qué debe probar Miguel con su cuenta; 4e no escribe causa y revisa si c490b11 atribuye el micrófono a Ismael.
+- Lección, ya en la skill probar-la-app-de-verdad: la causa no se escribe antes de medirla, y **de quién es una nota de voz también se comprueba**.
