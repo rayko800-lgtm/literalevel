@@ -70,8 +70,20 @@ del profesor.
 - **Grabación de respaldo.** Graba antes el mismo recorrido. Si en directo algo
   falla y se usa, va rotulada en pantalla como **grabación previa**: nunca se
   presenta una reproducción como respuesta en vivo.
-- **La boca en 3D.** El front publicado (`bdfa418`, 15 de septiembre) lleva la cabeza de MakeHuman y la lengua corregida de la rama
-  `boca3d` (75f334a está en `master`). **Ábrela una vez antes de grabar**: la cara
+- **El motor, despierto.** El Space de la API se suspende a las 48 h exactas sin
+  visitas: abre la aplicación **la víspera** y, **diez minutos antes de grabar**,
+  comprueba que `/api/salud` diga `"buscador_listo": true`. Si no lo dice, espera
+  con esa pestaña abierta de uno a minuto y medio, sin recargar en bucle; si a
+  los dos minutos no responde, abre la página del Space y mira si pone `Error`.
+  La primera búsqueda tras el arranque va más lenta y la siguiente responde en
+  unos 0,3 s. El front es estático y se pinta en 0,64 s, pero lo demás espera a
+  la API. Las cifras son de arranques por despliegue, no de un despertar desde
+  la suspensión, que no se ha medido
+  (`auditoria/ronda4_arranque_demo_f4_2026-09-16.md`).
+- **La boca en 3D.** El front publicado (`940c275`, 16 de septiembre; Space `48d748d`) lleva la
+  cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
+  `master`): comprobado hoy, `boca3d/cara.glb` y `boca3d/lengua.glb` responden
+  200 en el Space publicado. **Ábrela una vez antes de grabar**: la cara
   tarda unos 3–4 s la primera vez (depende de la red; medido el 15 de
   septiembre) y menos de 1 s después. Si no carga, basta el corte 2D.
 - **El perfil 1,20, receta** (medida por e6 contra el Space y por 4e con la

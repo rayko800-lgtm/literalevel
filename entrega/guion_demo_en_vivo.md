@@ -95,13 +95,30 @@ que dice el **Plan B** para ese paso.
    todos sus trozos, más de 0,6 de probabilidad de que no haya voz; la voz más
    baja que se probó, sintética, dio 0,503. Con cuenta, el aviso termina en
    «Este intento no cuenta.» y ese intento no gasta usos.
-8. **Calentar el buscador antes de compartir pantalla:** haz una búsqueda de
-   prueba en *Encontrar* con tu perfil ya guardado y espera a que salgan las
-   tarjetas. Si el Space acaba de reiniciarse, espera antes un minuto: tras un
-   reinicio, el buscador tardó en quedar listo entre 14 y 46 s según el arranque
-   (`/api/salud` dice `buscador_listo: true`; medido por 4e y por f4 del reinicio
-   27 a la vuelta atrás al 28, 15 de septiembre). Después, cada búsqueda tarda
-   menos de dos segundos.
+8. **El motor, despierto y con el buscador listo.** El Space de la API se
+   suspende a las **48 h exactas sin visitas** (`sleep_time` 172.800 s, leído de
+   la API de Hugging Face el 16 de septiembre), así que:
+   - **La víspera, abre la aplicación una vez.** Con eso el contador de 48 h
+     vuelve a empezar y el Space llega despierto a la demo.
+   - **Diez minutos antes, abre `/api/salud`** y comprueba que dice
+     `"buscador_listo": true`. Si lo dice, no hay nada más que hacer.
+   - **Si no está listo, espera con esa pestaña abierta de uno a minuto y
+     medio**, que es lo que tarda el arranque. **No recargues en bucle** ni
+     abras más pestañas: no acelera nada.
+   - **Si a los dos minutos no responde,** abre la página del Space y mira la
+     fase: con `Error` es un fallo, no una siesta, y hay que avisar.
+   - **La primera búsqueda tras el arranque va más lenta** y la siguiente
+     responde en unos 0,3 s. Aun así, calienta el buscador antes de compartir
+     pantalla con una búsqueda de prueba en *Encontrar*, con tu perfil ya
+     guardado, y espera a que salgan las tarjetas.
+
+   Las cifras del arranque son de **arranques por despliegue**, no de un
+   despertar desde la suspensión, que no se ha medido: de 26 a 85 s hasta
+   `RUNNING` en los diez despliegues de `DESPLIEGUE.md` —los cuatro últimos, de
+   46 a 72 s— y de 12 a 14 s más hasta `buscador_listo` desde el reinicio 30a
+   (`auditoria/ronda4_arranque_demo_f4_2026-09-16.md`). El front es estático, no
+   se duerme y se pinta en 0,64 s, pero todo lo que no sea pintarse espera a la
+   API.
 9. **Paso 3:** con el perfil de 1,20, buscar «Crimen y castigo de Dostoyevski» y
    comprobar que sale el aviso de que no hay libros en tu nivel ni un poco por
    encima, y *Crime and Punishment* el primero en «De otros niveles».

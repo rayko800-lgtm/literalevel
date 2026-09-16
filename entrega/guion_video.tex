@@ -233,10 +233,22 @@ son el trampolín, no la piscina.
         directo algo falla y se usa, va rotulada en pantalla como
         \textbf{grabación previa}: nunca se presenta una reproducción como
         respuesta en vivo.
-  \item \textbf{La boca en 3D.} El \emph{front} publicado (\texttt{bdfa418}, 15 de
-        septiembre) lleva la cabeza de MakeHuman
+  \item \textbf{El motor, despierto.} El Space de la API se suspende a las 48~h
+        exactas sin visitas: abre la aplicación \textbf{la víspera} y,
+        \textbf{diez minutos antes de grabar}, comprueba que \texttt{/api/salud} diga
+        \texttt{"buscador\_listo": true}. Si no lo dice, espera con esa pestaña abierta
+        de uno a minuto y medio, sin recargar en bucle; si a los dos minutos no
+        responde, abre la página del Space y mira si pone \texttt{Error}. La primera
+        búsqueda tras el arranque va más lenta y la siguiente responde en unos
+        0,3~s. El \emph{front} es estático y se pinta en 0,64~s, pero lo demás
+        espera a la API. Las cifras son de arranques por despliegue, no de un
+        despertar desde la suspensión, que no se ha medido
+        (\texttt{auditoria/\allowbreak ronda4\_arranque\_demo\_f4\_\allowbreak 2026-09-16.md}).
+  \item \textbf{La boca en 3D.} El \emph{front} publicado (\texttt{940c275}, 16 de
+        septiembre; Space \texttt{48d748d}) lleva la cabeza de MakeHuman
         y la lengua corregida de la rama \texttt{boca3d} (75f334a está en
-        \texttt{master}). \textbf{Ábrela una vez antes de grabar}: la cara tarda
+        \texttt{master}): comprobado hoy, \texttt{boca3d/cara.glb} y
+        \texttt{boca3d/lengua.glb} responden 200 en el Space publicado. \textbf{Ábrela una vez antes de grabar}: la cara tarda
         unos 3--4 s la primera vez (depende de la red; medido el 15 de
         septiembre) y menos de 1 s después. Si no carga, basta el corte 2D.
   \item \textbf{El perfil 1,20, receta} (medida por e6 contra el Space y por 4e con
