@@ -2570,7 +2570,7 @@ plt.show()
 #    documentos. Sí son verificables: se recalcularon idénticas (§9.3).
 # 6. **El corpus de anclaje es de una sola fuente** (ELG CEFR English, 654
 #    documentos). Por eso UniversalCEFR no sirve para validar el v4 (§7.2).
-# 7. **Ejecutado de principio a fin en Colab el <fecha> (CPU), con las salidas
+# 7. **Ejecutado de principio a fin en Colab el 16 de septiembre de 2026 (CPU), con las salidas
 #    guardadas.** Con el matiz que se explica abajo: correr no es lo mismo que
 #    recalcular.
 #
@@ -2582,7 +2582,7 @@ plt.show()
 #
 # | | ¿Se hace? |
 # |---|---|
-# | **Ejecutarse de principio a fin** en Colab | **Sí**: ejecutado de principio a fin en Colab el <fecha> (CPU), con las salidas guardadas |
+# | **Ejecutarse de principio a fin** en Colab | **Sí**: ejecutado de principio a fin en Colab el 16 de septiembre de 2026 (CPU), con las salidas guardadas |
 # | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
 # | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
 # | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí, fuera del cuadernillo**: descarga manual de los 59 PDF y verificación de hashes aquí (§7.2); el recálculo pide `validar_local.py`, que se comparte a petición |
