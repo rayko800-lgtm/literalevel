@@ -110,17 +110,22 @@ alguien que llega por primera vez y propone dos formas de ayuda con esquema (una
 bienvenida de pocos pasos que se puede saltar, o una frase de ayuda por
 pantalla) para que Miguel elija antes de programar.
 
-En una segunda nota concretó dos cosas. **El micrófono:** con la sesión
-iniciada, pulsó grabar y no pasó nada visible ni empezó la grabación. Puede ser
-un fallo, por ejemplo si abrió el enlace desde WhatsApp, cuyo navegador interno
-no suele permitir el micrófono; e6 revisa qué ve el usuario en cada caso
-(permiso negado, navegador sin micrófono, grabación sin audio) y propone el
-aviso que falte. **La saturación:** textos largos y mucho scroll antes de saber
-qué hacer; entra en las propuestas de ayuda. **Usó Android y abrió el enlace
-desde WhatsApp**, que en Android puede abrirlo en su navegador interno, donde el
-micrófono no suele estar disponible. Mientras e6 lo confirma y, si hace falta,
-añade un aviso para abrir la app en Chrome, conviene que Miguel pida a quien
-reciba el enlace que lo abra en Chrome (Android) o Safari (iPhone). **e6 lo confirmó:** los avisos de
+En una segunda nota concretó dos cosas. **El micrófono:** pulsó grabar y no pasó
+nada visible ni empezó la grabación. **La saturación:** textos largos y mucho
+scroll antes de saber qué hacer; entra en las propuestas de ayuda. Usó Android y
+abrió el enlace desde WhatsApp.
+
+**Causa real, dicha por Miguel el 16 de septiembre: Ismael no había iniciado
+sesión**, y por eso no tenía esas funciones. Ni el micrófono ni el navegador
+interno de WhatsApp eran el problema, así que la primera explicación de este
+informe estaba equivocada: se escribió antes de medirla, el mismo error que con
+Esmeralda. Lo que sí es un fallo nuestro es que la app no le dijo con claridad
+que tenía que entrar. e6 mide qué ve alguien sin sesión al pulsar el micrófono y
+al consultar una palabra, y f4 mira qué devuelven las rutas sin credenciales;
+con eso se decide el aviso que falte. Su prueba pendiente ya no es «repetir en
+WhatsApp».
+
+Lo que sí era un fallo real y sigue arreglado: **e6 lo confirmó,** los avisos de
 Pronunciar se pintaban debajo de la barra fija del micrófono, así que en el
 móvil no se veía ni «este navegador no deja grabar», ni «no tengo permiso», ni
 siquiera «Grabando…». El arreglo pone una línea de estado dentro de la barra
