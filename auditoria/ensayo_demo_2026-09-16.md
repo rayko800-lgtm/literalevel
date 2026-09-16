@@ -112,7 +112,24 @@ decir en el primero qué se va a mirar exactamente.
 
 **C. Menor, y es de la aplicación, no del guion.** En *Mis palabras* se lee «**1
 palabras distintas**». Con una sola palabra el plural chirría. En la demo real
-Miguel tendrá varias, así que no bloquea nada; queda apuntado.
+Miguel tendrá varias, así que no bloquea nada.
+
+Miguel decidió por la Central arreglarlo antes de la entrega, y no solo el que
+se vio: **commit `a656c2e`**. Como el valor de un barrido está en que se pueda
+auditar entero, este es el inventario completo del patrón, **con veredicto para
+cada sitio**:
+
+| Dónde | Veredicto |
+|---|---|
+| `palabras.ts:57` «palabras distintas» | **arreglado** |
+| `palabras.ts:58` «consultas» | **arreglado** |
+| `ajustes.ts:90` «Te quedan N usos» | **arreglado**, verbo incluido; es el cupo, y se ve en la demo |
+| `nivel.html:145` «N palabras» de la muestra | **arreglado**; se ve al pegar el texto |
+| `palabras.ts:59`, `libro.ts:41` y `:228`, `lector.html:334`, `curva.ts:203` | ya concordaban, con el mismo ternario |
+| `libro.ts:42` «N palabras» de un libro | descartado: no puede valer 1 |
+| `lector.html:57` «N palabras» de un capítulo | descartado: no puede valer 1 |
+| `encontrar.ts:171`, `inicio.ts:53` «capítulo 1 de 1» | descartado: ya concuerda |
+| `tarjeta-libro.ts:36` «N lectores» | descartado: el `@if (descargas > 999)` de la línea de arriba impide que llegue a pintar «1 lectores» (lo localizó 4e en su propio barrido) |
 
 **D. Menor, de redacción.** El paso 1 del recorrido dice «Unas preguntas y tres
 fragmentos», y la pantalla ya dice «**Tres preguntas y tres fragmentos**». No se
