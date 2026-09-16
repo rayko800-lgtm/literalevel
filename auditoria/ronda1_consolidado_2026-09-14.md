@@ -1357,3 +1357,10 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 - **Graba el fin de semana del 19-20**, sin día fijo. Codex se lanza el 19 a partir de las 8:56, temprano, para que quepa una corrección antes de grabar; ninguna cifra del guion depende del día.
 - **Ha estado probando la app con su cuenta.** Pedido el detalle de la corrección de pronunciación, la explicación de la IA, «Practica esta palabra», el paso 6 y «Este intento no cuenta».
 - **Corroboración independiente de 4e sobre 48d748d:** recorrió el grafo desde index.html y llegó a los mismos 14 archivos que e6. Las cinco frases nuevas están servidas y las viejas dan cero («seis preguntas», «Seis preguntas», «6 preguntas», «doble toque», «toca una palabra», «toca dos veces»), con controles positivos para que los ceros signifiquen algo: «preguntas» 13, «fragmentos» 5, «presionada» 4. Con esto, lo que dicen documento, estrategia y presentación es lo que se sirve, y S2 y S3 quedan cerrados en las dos direcciones. 4e coincide en no limpiar los chunks huérfanos antes del 20.
+
+**Arranque para la demo** (f4, informe da49a16, sin reiniciar nada):
+- El Space de la API se duerme a las **48 h exactas** sin visitas (`sleep_time` 172.800 s en la API de HF), lo que confirma lo que ya decían documento.md:1473 y el cuadernillo. No se duerme por unas horas.
+- Despertar → RUNNING: 26-85 s en diez despliegues (46-72 s los cuatro últimos). RUNNING → `buscador_listo`: 12-14 s desde el 30a. Ya despierto, `/api/salud` en 0,3 s. **Cota en frío: de un minuto a minuto y medio.**
+- El front es estático, no se duerme, responde en 0,64 s, y depende de la API para todo lo demás.
+- **Hueco declarado:** no se ha medido un despertar real desde la suspensión de 48 h; las cifras son arranques por despliegue. **Decisión de la Central: no se reinicia el Space para medirlo** (hay usuarios con cuenta y el número no cambia ninguna decisión).
+- Pasos para «Antes de la demo» encargados a 4e: abrir la víspera, comprobar `buscador_listo` diez minutos antes, esperar hasta minuto y medio sin recargar en bucle, y distinguir siesta de `Error`.
