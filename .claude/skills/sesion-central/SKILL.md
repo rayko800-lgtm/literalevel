@@ -444,6 +444,31 @@ porque el permiso es de esa sesión.
   comprobar con `git diff <commit subido> HEAD -- <archivo>` que HEAD coincide
   con lo que corre.
 
+## 16b. Más chats no ahorran; medido el 16 de septiembre
+
+Miguel propuso abrir más sesiones y asignar un modelo distinto a cada una para
+gastar menos. La respuesta honesta, con la tarde delante, fue **no antes de la
+entrega**, y conviene saber por qué:
+
+- **El cuello de botella no era falta de manos.** Con tres sesiones hubo ratos
+  con dos paradas esperando a la tercera. Una cuarta habría esperado también, y
+  cada sesión nueva cuesta cargar el proyecto entero antes de servir, más el
+  tráfico con la central, que crece con cada chat.
+- **Dónde se fue el gasto de verdad:** cuatro publicaciones del front en una
+  tarde en vez de dos tandas; medidas repetidas por culpa de la central (pedir
+  una medida y publicar el front a media medida, así que hubo que repetirla); dos
+  sesiones comprobando lo mismo cuando no era una afirmación de entregable; e
+  informes citados enteros en los mensajes en vez de dejarlos en el repositorio y
+  citar el hash.
+- **Modelos por tarea, con frontera clara.** Lo que dio valor ese día es lo que
+  un modelo flojo no hace: tirar seis medidas propias por falsas antes de
+  contarlas, montar un control positivo antes de afirmar un cero, negarse a
+  escribir una causa sin confirmar. Se abarata solo el trabajo **mecánico y
+  verificable por guion** (inventarios con grep, comprobar enlaces, correr una
+  suite y dar números), y alguien fuerte revisa la conclusión.
+- **Y la cicatriz de §6b:** al mezclar modelos, una sesión puede quedarse sin
+  cupo de **su** modelo y callarse. Una sesión muda no siempre está pensando.
+
 ## 17. De quién es la queja se confirma igual que la causa (16 sep)
 
 Una nota de voz se archivó como de Ismael. La central escribió en el informe, y
