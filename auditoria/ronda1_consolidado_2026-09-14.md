@@ -1351,3 +1351,8 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 **Front 48d748d** (e6, con el visto bueno de 4e): publica 940c275, los cinco textos del cuestionario y del gesto. Verificado recorriendo el grafo de importaciones desde el index: de los 402 .js del Space solo 14 son alcanzables y en ninguno queda «seis preguntas».
 - **76 chunks huérfanos de despliegues viejos sí llevan el texto viejo.** Decisión de la Central: no se limpian antes de la entrega (nadie los carga, y equivocarse al decidir qué es alcanzable rompe la entrega). A la cola de después del 20, con la lista de los 14 como referencia. Riesgo declarado: quien haga grep sobre el Space lo encontrará; la respuesta es que lo alcanzable está limpio.
 - Lista de cifras del cuaderno aprobada: se cambian 1455 (0,337 y 1,091), 1453 y 1490 (1,062) y 2523 (0,688, Spearman del bosque); no se tocan 1035 (tabla de la fuga) ni 2160 y 2165 (correlación parcial). Con coma decimal y la salvedad de versiones extendida.
+
+**Respuestas de Miguel (16 sep):**
+- **Ismael puede aparecer con su nombre** (es su hermano): lo escrito en c490b11 se queda.
+- **Graba el fin de semana del 19-20**, sin día fijo. Codex se lanza el 19 a partir de las 8:56, temprano, para que quepa una corrección antes de grabar; ninguna cifra del guion depende del día.
+- **Ha estado probando la app con su cuenta.** Pedido el detalle de la corrección de pronunciación, la explicación de la IA, «Practica esta palabra», el paso 6 y «Este intento no cuenta».
