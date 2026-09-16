@@ -61,6 +61,13 @@ con las que publicó e6 sobre `48d748d`: los dos arreglos tocaron «Corrígeme»
 
 **Coincido con e6 cifra por cifra en los seis finales.**
 
+> **Cinco o seis, que es el mismo conjunto contado de dos maneras.** Los entregables dicen «cinco
+> finales (el del permiso pendiente, en dos momentos)» y aquí se cuentan seis. No hay contradicción:
+> el permiso que no contesta es **un solo final** que enseña **dos textos**, a los 2 s y pasados los
+> 5 s, y esta tabla les da una fila a cada uno porque cada texto se midió por separado. Los otros
+> cuatro coinciden uno a uno. Equivalencia: 5 finales = 6 filas − 1 (las dos filas del permiso
+> pendiente son el mismo final). Decisión de la Central, 16 sep.
+
 ## 2. «Corrígeme» sin sesión: lo que cambió en cada versión
 
 Aquí es donde las tres versiones dicen cosas distintas, y por eso no hay contradicción entre informes.
