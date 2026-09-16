@@ -607,6 +607,21 @@ cadena **que ha escrito la prueba**, no la aplicación.
 La pregunta que separa las dos: **¿de dónde sale el texto que estoy comparando?**
 Si sale de la prueba, la prueba se está creyendo a sí misma.
 
+**Y el mismo patrón sin texto: una prueba puede medir un lienzo vacío.**
+`tools/probar_boca_integrada.mjs` garantiza el encuadre de la cara 3D con
+`assert.equal(px.borde, 0)`, leyendo el canvas con `getImageData`. Ejecutando ese
+código en el navegador, el canvas **se lee vacío** —un color, cero píxeles
+opacos— porque WebGL no conserva el búfer de dibujo. Si en el entorno de pruebas
+pasa igual, ese `assert` pasa **sin medir nada**, y es justo la prueba que debía
+haber cazado el encuadre cortado que un usuario vio en su móvil. Queda pendiente
+de confirmar en Playwright, pero la regla ya vale:
+
+- Cuando una prueba afirma algo sobre **píxeles**, comprueba primero que lee
+  píxeles: que haya opacos, que no sean todos del mismo color, que el conteo
+  cambie si mueves a propósito lo que mides.
+- Una aserción que **no puede fallar** es peor que no tener prueba, porque
+  además da tranquilidad.
+
 ## Una acción por pasada, si quieres poder atribuir el efecto (16 sep)
 
 Al comprobar que pulsar un botón **ya no** abre un panel, f4 midió en dos pasadas
