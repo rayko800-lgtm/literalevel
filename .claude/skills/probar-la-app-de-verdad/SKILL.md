@@ -556,6 +556,19 @@ rompió al medir). Publica desde un worktree limpio de HEAD y, antes de `git
 add` de un archivo compartido, mira `git diff -- ruta`.
 
 
+## Una acción por pasada, si quieres poder atribuir el efecto (16 sep)
+
+Al comprobar que pulsar un botón **ya no** abre un panel, f4 midió en dos pasadas
+separadas: una para pulsar el botón y mirar `panelAbierto`, otra para pulsar el
+«Entrar» del aviso y ver que entonces sí abre. Si se pulsan los dos en el mismo
+guion, un panel abierto al final no se puede atribuir a un clic ni al otro, y la
+comprobación no prueba nada.
+
+- **Un clic por pasada**, con el estado leído justo después.
+- Para forzar un estado de espera (el texto que cambia a los 5 s), una promesa
+  que no se resuelve sirve — y hay que **soltarla al acabar**, o el botón se queda
+  bloqueado y la medida siguiente sale mal.
+
 ## Cada publicación se comprueba contra la anterior (16 sep)
 
 Tres publicaciones del front en una tarde. 4e verificó cada una sobre **lo
