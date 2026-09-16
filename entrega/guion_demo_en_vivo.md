@@ -93,11 +93,15 @@ que dice el **Plan B** para ese paso.
    más natural», salgan *doncha* y *wanna*, «no pares aquí» y «Escúchalo
    natural», y cuánto tarda.
 5. **Paso 7:** que la palabra mal pronunciada aparezca en «Mis palabras».
+   **Ensáyalo con cuenta:** sin entrar, una palabra que el diccionario no trae no se
+   guarda, porque solo se apuntan las que traen acepción.
 6. **El cronómetro:** la demo entera, contra los 3–5 minutos. **La máquina no es
-   el problema:** suma unos 5 s en toda la demo, medidos el 16 de septiembre sobre
-   la revisión `f4920fa` del Space (las dos búsquedas del paso 2, 0,90 s y 0,47 s;
-   el paso 3, 0,57 s y 1,19 s con la curva; el paso 4, 0,13 s y 1,02 s; el paso 7,
-   0,18 s; el primer pintado del front, 256 ms). Lo que ocupa el tiempo es hablar:
+   el problema:** suma unos pocos segundos en toda la demo, y las cifras por paso
+   cambian de una medida a otra con la red. El 16 de septiembre, la primera
+   búsqueda dio 0,90 s en una medida y 1,26 s en otra; la ficha con la curva,
+   1,19 s y 2,19 s; el primer pintado del front, 256 y 480 ms. La primera medida es
+   sobre la revisión `f4920fa` del front; la segunda, la del ensayo final
+   (`auditoria/ensayo_demo_final_2026-09-16.md`). Lo que ocupa el tiempo es hablar:
    unos **3:02**, que es una **estimación** a 145 palabras por minuto y no una
    medida —a 130 palabras por minuto el total hablado sube de 175 a 195 s—. Dentro
    de 5:00 quedan 1:58 para los pasos 5 y 6; dentro del 4:00 que fija este guion,
