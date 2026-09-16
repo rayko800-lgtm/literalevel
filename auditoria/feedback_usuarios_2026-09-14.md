@@ -138,3 +138,44 @@ Probó la app el 14 y el 15 de septiembre. Nota de 14 s, transcrita con whisper-
 - **Recortes:** primero el lector la primera vez, con un solo aviso.
 
 e6 lo hace en tres tandas con visto bueno de 4e. 4e ajusta el guion de la demo cuando salga la bienvenida.
+
+## Miguel prueba la app con su cuenta (16 sep, nota de voz y cuatro capturas)
+
+Transcrito de su nota, con las capturas al lado (cuenta «miguel», móvil real, front
+`f4920fa`):
+
+1. **Le saltó un límite y no lo esperaba.** «Primero me saltó un límite. Según yo
+   mi cuenta era de acceso libre y me puso un límite ahí.» La captura dice: «Has
+   llegado al límite de consultas de esta hora. Vuelve a intentarlo en unos 49
+   minutos. Leer, buscar y medir un capítulo siguen funcionando: no cuestan
+   nada.» **Es lo más urgente: si le salta en directo, la demo se cae.** f4
+   diagnostica qué límite es y qué opciones hay; la congelación se levanta si hace
+   falta, porque afecta a la demo.
+2. **En Pronunciar hay que buscar la frase.** «Cuando le piso al micrófono tengo
+   que scrollear para buscar el texto… con tanta información me pierdo, es como
+   de dónde estaba.» En la captura, al grabar, la frase queda arriba y cortada, y
+   la barra del micrófono ocupa la parte de abajo. e6 mide y propone dos
+   opciones, la mínima para antes del 20 y la buena para después.
+3. **Quiere una introducción guiada al abrir la aplicación**, que pregunte si ya
+   tienes cuenta y guíe por las funciones, «como cuando haces un login en una
+   cuenta de Google». Y la interfaz final **limpia, sin mucho texto**, con la
+   ayuda en pop-ups. Es la tercera persona que pide lo mismo, después de Ismael y
+   Laura: ya existe la bienvenida de 3 pasos, y él pide un paso 0 de cuenta y
+   menos texto fijo. 4e diseña la propuesta (mínima y completa) sin programar.
+4. **La corrección no le señaló el acento.** «Dije *assessors* y no me corrigió el
+   acento de la palabra… quiero que la corrección sea buena.» f4 mira si el
+   análisis detecta errores de **acento tónico** o solo sonidos. Si no los
+   detecta, es un límite que hay que declarar, porque hoy la pantalla promete
+   «te digo qué sonido corregir».
+5. **La boca 3D no se ve bien.** «Cuando doy clic en escuchar el 3D no me permite
+   verlo bien.» En la captura la cabeza sale cortada y descentrada: media cara de
+   perfil, la mandíbula partida, un plano de corte blanco en el cuello y los
+   labios fuera del encuadre. Sale en la demo. e6 reproduce a 390 px y propone el
+   arreglo mínimo sin tocar el `.glb`.
+6. **Blender, para después, dicho por él:** la animación «se ve muy básica aún»;
+   quiere que al abrirse los labios se vea el corte de la abertura. No entra antes
+   de la entrega.
+
+**Lo que confirma esta prueba:** el micrófono graba, la corrección se pide con
+«Corrígeme» y las palabras difíciles se acumulan («analyses · 2», «two», «thousand»,
+«blistered», «sherlock»…), así que el camino con cuenta funciona de punta a punta.

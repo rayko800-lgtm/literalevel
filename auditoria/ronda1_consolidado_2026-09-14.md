@@ -1492,3 +1492,13 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 - **El número que decide:** cuánto tarda «Corrígeme», que se hace dos veces y nadie ha medido. Si pasa de unos 8 s, los pasos 5 y 6 no caben en 4:00.
 - **Recortes por orden, a 4e para el guion:** segunda búsqueda del paso 2 (~15 s), segunda palabra del paso 4 (~10 s), y el paso 6 entero (~35 s) si «Corrígeme» va lento. No se recortan la curva del paso 3 ni la consulta del paso 4.
 - **Tres medidas que e6 tiró y dejó escritas para que nadie las repita:** «la curva tarda 0 ms» (su selector cazaba un icono), «el capítulo carga en 6 ms» (su condición ya la cumplía el índice de la ficha, y por eso la consulta siguiente no encontraba la palabra) y «la bienvenida tarda 34,8 s» (medía cuándo llegó su propio guion). Hallazgo de paso: el cuestionario avanza solo en los seis pasos, sin tocar «Siguiente».
+
+**Miguel prueba la app con su cuenta (16 sep).** Detalle en `auditoria/feedback_usuarios_2026-09-14.md`. Seis cosas, repartidas en el momento:
+- **Límite por hora, lo urgente:** «Has llegado al límite de consultas de esta hora… unos 49 minutos». Él creía su cuenta de acceso libre. A f4, solo lectura primero: qué límite es y de dónde sale, qué cuenta y tope tiene (sin abrir el archivo de códigos), qué lo consume, y opciones para que no salte en la demo con su coste. **Es SERIO de demo, así que la congelación se levanta si hace falta, pero decide la Central.**
+- **Scroll en Pronunciar** y sensación de perderse: a e6, medir y proponer dos opciones.
+- **Introducción guiada con paso 0 de cuenta**, e interfaz final limpia y sin mucho texto: a 4e, propuesta mínima y completa, sin programar. Tercera persona que pide lo mismo.
+- **La corrección no señaló el acento de «assessors»:** a f4, mirar si el análisis detecta acento tónico o solo sonidos; si no, es límite a declarar, porque la pantalla promete «te digo qué sonido corregir».
+- **Boca 3D cortada y descentrada** en su móvil, y sale en la demo: a e6, reproducir a 390 px y arreglo mínimo sin tocar el `.glb`.
+- **Blender más fino:** él mismo lo deja para después de la entrega; a la cola.
+- **Lo bueno:** su prueba confirma que el camino con cuenta funciona de punta a punta (graba, pide corrección y acumula palabras difíciles), que era el hueco que faltaba.
+- **Decisión sobre ab8537b:** adelante con la opción (a) de f4, volver a 48d748d/940c275 en `documento.tex:929` y `estrategia.md:308`, porque la frase cita el informe que midió esa revisión y dice «entonces». Encargado a 4e con recompilación.
