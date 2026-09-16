@@ -115,15 +115,21 @@ nada visible ni empezó la grabación. **La saturación:** textos largos y mucho
 scroll antes de saber qué hacer; entra en las propuestas de ayuda. Usó Android y
 abrió el enlace desde WhatsApp.
 
-**Causa real, dicha por Miguel el 16 de septiembre: Ismael no había iniciado
-sesión**, y por eso no tenía esas funciones. Ni el micrófono ni el navegador
-interno de WhatsApp eran el problema, así que la primera explicación de este
-informe estaba equivocada: se escribió antes de medirla, el mismo error que con
-Esmeralda. Lo que sí es un fallo nuestro es que la app no le dijo con claridad
+**Dos correcciones del 16 de septiembre, y la causa sigue abierta.** Primero
+Miguel dijo que **Ismael no había iniciado sesión** y que por eso no tenía esas
+funciones. Después mandó la nota del micrófono diciendo «según yo este es de
+Laura»: transcrita, es la misma grabación archivada como segunda de Ismael, y
+empieza «entré y **ya me inicié sesión**». Así que la nota está **sin atribuir**,
+lleva dentro dos quejas (micrófono y saturación) y el caso a explicar es **con
+sesión**. El dato de la falta de sesión queda como dicho por Miguel, pendiente de
+confirmar, y fuera de los entregables. La explicación del navegador interno de
+WhatsApp sigue siendo solo una hipótesis, y se escribió como causa antes de
+medirla: el mismo error que con Esmeralda, repetido. Lo que sí es un fallo nuestro es que la app no le dijo con claridad
 que tenía que entrar. e6 mide qué ve alguien sin sesión al pulsar el micrófono y
 al consultar una palabra, y f4 mira qué devuelven las rutas sin credenciales;
-con eso se decide el aviso que falte. Su prueba pendiente ya no es «repetir en
-WhatsApp».
+con eso se decide el aviso que falte. Lo que falta por saber es si el micrófono graba con sesión
+iniciada: e6 mide los casos que no piden cuenta y Miguel prueba el resto con la
+suya.
 
 Lo que sí era un fallo real y sigue arreglado: **e6 lo confirmó,** los avisos de
 Pronunciar se pintaban debajo de la barra fija del micrófono, así que en el
