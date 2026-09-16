@@ -1,12 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, HostListener, afterNextRender, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, HostListener, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Sesion } from '../nucleo/sesion';
 import { Icono } from './icono';
 
-interface Paso { titulo: string; texto: string; }
+/** `puerta`: el paso 0 sin cuenta, con «Entrar» y «Seguir sin cuenta» en vez de «Siguiente». */
+interface Paso { titulo: string; texto: string; puerta?: boolean; }
 
 /** La bienvenida de la primera visita a Inicio (tanda 3 de la ayuda; Miguel, sobre el informe
- *  de Ismael). Tres pasos, sin el de pronunciar, que tiene su propia línea de ayuda. Solo la pinta
+ *  de Ismael). Cuatro pasos: el 0 pregunta por la cuenta (o, con cuenta, dice qué gasta usos) y
+ *  los otros tres, sin el de pronunciar, que tiene su propia línea de ayuda. Solo la pinta
  *  Inicio, así que nunca sale encima de un enlace directo a un libro o al lector. «Saltar» en
  *  cada paso; se guarda en el navegador y se vuelve a ver desde Ajustes. */
 @Component({
@@ -18,16 +20,20 @@ interface Paso { titulo: string; texto: string; }
     <section class="tarjeta-bienvenida" role="dialog" aria-modal="true" aria-labelledby="titulo-bienvenida">
       <header>
         <span class="marca-b" aria-hidden="true">L</span>
-        <span class="cuenta">{{ paso() + 1 }} de {{ pasos.length }}</span>
+        <span class="cuenta">{{ paso() + 1 }} de {{ pasos().length }}</span>
         <button type="button" class="boton pequeno fantasma saltar" (click)="cerrar()">Saltar</button>
       </header>
       <h2 id="titulo-bienvenida" #titulo tabindex="-1">{{ actual().titulo }}</h2>
       <p>{{ actual().texto }}</p>
       <div class="puntos" aria-hidden="true">
-        @for (p of pasos; track $index) { <i [class.activo]="$index === paso()"></i> }
+        @for (p of pasos(); track $index) { <i [class.activo]="$index === paso()"></i> }
       </div>
       <div class="acciones-b">
-        @if (paso() < pasos.length - 1) {
+        @if (actual().puerta) {
+          <!-- Los dos del mismo tamaño: entrar no es la única salida (4e, informe d11057a). -->
+          <button type="button" class="boton bloque" (click)="entrar()">Entrar</button>
+          <button type="button" class="boton secundario bloque" (click)="siguiente()">Seguir sin cuenta</button>
+        } @else if (paso() < pasos().length - 1) {
           <button type="button" class="boton bloque" (click)="siguiente()">Siguiente<app-icono nombre="der" /></button>
         } @else {
           <button type="button" class="boton bloque" (click)="ir(['/nivel'])">Medir mi nivel</button>
@@ -65,7 +71,22 @@ export class Bienvenida {
   private readonly titulo = viewChild<ElementRef<HTMLElement>>('titulo');
   private readonly tactil = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
-  protected readonly pasos: Paso[] = [
+  /** Paso 0 (Miguel, 16 sep; diseño de 4e en auditoria/introduccion_al_abrir_4e_2026-09-16.md):
+   *  preguntar por la cuenta y decir lo que sí se puede sin ella. */
+  private readonly pasoSinCuenta: Paso = {
+    titulo: '¿Ya tienes cuenta?', puerta: true,
+    texto: 'Con cuenta te corrijo la pronunciación y te explico una palabra en su frase. Sin cuenta puedes leer, buscar, medir tu nivel y grabarte.',
+  };
+  /** Con cuenta, la primera vez que se entra: lo que gasta usos, que es lo que se malentiende.
+   *  La explicación en contexto también cobra (`app/api.py`, etapa completa de /api/palabra). */
+  private readonly pasoConCuenta: Paso = {
+    titulo: 'Ya tienes cuenta',
+    texto: 'Con tu cuenta te corrijo la pronunciación y te explico cada palabra en su frase. Cada una de esas dos cosas gasta un uso.',
+  };
+  protected readonly pasos = computed(() =>
+    [this.sesion.entrada()?.dentro ? this.pasoConCuenta : this.pasoSinCuenta, ...this.basicos]);
+
+  private readonly basicos: Paso[] = [
     { titulo: 'Libros en inglés a tu nivel',
       // Sin «que puedas terminar»: la app no lo sabe (4e, 15 sep).
       texto: 'Medimos qué tan difícil es cada capítulo para que elijas uno a tu medida.' },
@@ -79,7 +100,7 @@ export class Bienvenida {
       texto: 'Mide tu nivel con tres preguntas y tres fragmentos, o ve directo a un libro. Nada de esto pide cuenta.' },
   ];
   protected readonly paso = signal(0);
-  protected readonly actual = () => this.pasos[this.paso()];
+  protected readonly actual = () => this.pasos()[this.paso()];
 
   private readonly host = inject(ElementRef<HTMLElement>);
   /** Dónde estaba el foco al abrir, para devolverlo al cerrar. */
@@ -114,8 +135,14 @@ export class Bienvenida {
   }
 
   protected siguiente(): void {
-    this.paso.update(p => Math.min(p + 1, this.pasos.length - 1));
+    this.paso.update(p => Math.min(p + 1, this.pasos().length - 1));
     queueMicrotask(() => this.titulo()?.nativeElement.focus());
+  }
+
+  /** Al mismo sitio que los demás «Entrar»: Ajustes, en «Tu perfil», con el cursor en «Usuario». */
+  protected entrar(): void {
+    this.sesion.cerrarBienvenida();
+    this.sesion.abrirPerfil();
   }
 
   protected ir(ruta: unknown[]): void {

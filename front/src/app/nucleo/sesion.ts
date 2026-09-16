@@ -1,10 +1,11 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Api, Entrada, Inicio, Libro, Perfil } from './api';
 import { marcarVista, olvidarVista, sinVer } from './banderas';
 
 const BIENVENIDA = 'literalevel.bienvenida';
+const BIENVENIDA_CUENTA = 'literalevel.bienvenida-cuenta';
 
 export type EstadoMotor = 'comprobando' | 'listo' | 'despertando' | 'caido';
 
@@ -32,9 +33,17 @@ export class Sesion {
    *  navegador al saltarla o terminarla, y Ajustes la vuelve a pedir. */
   readonly bienvenida = signal(sinVer(BIENVENIDA));
 
+  /** Y una vez más la primera vez que alguien entra con cuenta, con su propio paso 0: quien
+   *  entra es quien va a usar la corrección (Central, 16 sep). Marca aparte, para que quien ya
+   *  la vio sin cuenta la vea una vez más al entrar, y quien entra la primera vez no la vea dos. */
+  private readonly vigilarCuenta = effect(() => {
+    if (this.entrada()?.dentro && sinVer(BIENVENIDA_CUENTA)) this.bienvenida.set(true);
+  });
+
   cerrarBienvenida(): void {
     this.bienvenida.set(false);
     marcarVista(BIENVENIDA);
+    if (this.entrada()?.dentro) marcarVista(BIENVENIDA_CUENTA);
   }
 
   verBienvenidaOtraVez(): void {

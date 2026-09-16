@@ -52,9 +52,12 @@ describe('Bienvenida', () => {
     return { fixture, router, raiz, dialogo, boton, pulsar };
   }
 
-  it('primera visita a Inicio: tres pasos, con «Saltar» en cada uno y el final con sus dos botones', async () => {
+  it('primera visita a Inicio: cuatro pasos, con «Saltar» en cada uno y el final con sus dos botones', async () => {
     const { dialogo, boton, pulsar } = await en('/');
-    expect(dialogo()?.textContent).toContain('1 de 3');
+    expect(dialogo()?.textContent).toContain('1 de 4');
+    expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Ya tienes cuenta?');
+    await pulsar('Seguir sin cuenta');
+    expect(dialogo()?.textContent).toContain('2 de 4');
     expect(dialogo()?.querySelector('h2')?.textContent).toBe('Libros en inglés a tu nivel');
     expect(dialogo()?.textContent).toContain('Medimos qué tan difícil es cada capítulo para que elijas uno a tu medida.');
     expect(dialogo()?.textContent).not.toContain('terminar');
@@ -66,7 +69,7 @@ describe('Bienvenida', () => {
     expect(dialogo()?.textContent).not.toContain('ahí');
     expect(boton('Saltar')).toBeTruthy();
     await pulsar('Siguiente');
-    expect(dialogo()?.textContent).toContain('3 de 3');
+    expect(dialogo()?.textContent).toContain('4 de 4');
     expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Por dónde empiezas?');
     // Seis pasos: tres preguntas y tres fragmentos, como nivel.ts:17 y los documentos.
     expect(dialogo()?.textContent).toContain('Mide tu nivel con tres preguntas y tres fragmentos, o ve directo a un libro. Nada de esto pide cuenta.');
@@ -82,11 +85,11 @@ describe('Bienvenida', () => {
     const { fixture, dialogo, boton } = await en('/');
     document.body.appendChild(fixture.nativeElement);
     const tab = (shiftKey = false) => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true }));
-    boton('Siguiente')!.focus();
+    boton('Seguir sin cuenta')!.focus();
     tab();
     expect(document.activeElement).toBe(boton('Saltar'));
     tab(true);
-    expect(document.activeElement).toBe(boton('Siguiente'));
+    expect(document.activeElement).toBe(boton('Seguir sin cuenta'));
     // Desde el título (donde se pone el foco al abrir), Tab entra en los botones de la tarjeta.
     (dialogo()!.querySelector('h2') as HTMLElement).focus();
     tab();
@@ -107,14 +110,14 @@ describe('Bienvenida', () => {
 
   it('«Medir mi nivel» lleva a Tu nivel y «Solo quiero leer», al libro', async () => {
     const a = await en('/');
-    await a.pulsar('Siguiente'); await a.pulsar('Siguiente');
+    await a.pulsar('Seguir sin cuenta'); await a.pulsar('Siguiente'); await a.pulsar('Siguiente');
     await a.pulsar('Medir mi nivel');
     expect(a.router.url).toBe('/nivel');
     expect(localStorage.getItem(CLAVE)).toBe('vista');
 
     TestBed.inject(Sesion).verBienvenidaOtraVez();
     const b = await en('/');
-    await b.pulsar('Siguiente'); await b.pulsar('Siguiente');
+    await b.pulsar('Seguir sin cuenta'); await b.pulsar('Siguiente'); await b.pulsar('Siguiente');
     await b.pulsar('Solo quiero leer');
     expect(b.router.url).toBe('/leer/PG11/auto');
   });

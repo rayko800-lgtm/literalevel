@@ -13,8 +13,10 @@ import { Sesion } from '../nucleo/sesion';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icono, Bienvenida],
   template: `
-    <!-- Solo aquí: la bienvenida nunca sale encima de un enlace directo a un libro o al lector. -->
-    @if (bienvenida()) { <app-bienvenida /> }
+    <!-- Solo aquí: la bienvenida nunca sale encima de un enlace directo a un libro o al lector.
+         Ni encima de Ajustes: quien pulsa «Entrar» en el paso 0 y entra no debe encontrarse la
+         bienvenida «con cuenta» tapando el formulario en ese mismo momento. -->
+    @if (bienvenida() && !ajustesAbiertos()) { <app-bienvenida /> }
     <div class="pagina">
       <section class="heroe">
         <div class="texto-heroe">
@@ -202,6 +204,7 @@ export class Inicio {
   protected readonly perfil = this.sesion.perfil;
   protected readonly seguir = computed(() => this.inicio()?.seguir ?? null);
   protected readonly bienvenida = this.sesion.bienvenida;
+  protected readonly ajustesAbiertos = this.sesion.ajustesAbiertos;
   protected readonly num = num;
   protected readonly cefr = cefr;
   protected readonly miles = miles;
