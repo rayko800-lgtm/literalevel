@@ -1729,6 +1729,12 @@ def plurales_de_los_minutos():
     assert ui._reloj_llano(1) == "1 minuto" and ui._reloj_llano(21) == "21 minutos"
     assert ui._cuanto_falta(1, "en") == "in 1 minute" and ui._cuanto_falta(5, "en") == "in about 5 minutes"
     assert "en 1 minuto." in ui._mensaje_limite("es", 1) and "1 minutos" not in ui._mensaje_limite("es", 1)
+    # El aviso dice QUE se ha acabado: con el cubo de la voz no puede hablar de
+    # «consultas», que es el del diccionario y otro tope (Miguel, 16 sep 2026).
+    assert "correcciones de pronunciación" in ui._mensaje_limite("es", 1, "voz")
+    assert "explicaciones en contexto" in ui._mensaje_limite("es", 1, "lexico")
+    assert ui._mensaje_limite("es", 1, "voz") != ui._mensaje_limite("es", 1, "lexico")
+    assert "en 1 minuto." in ui._mensaje_limite("es", 1, "voz")
     originales = (ui._dentro_del_limite, ui._minutos_para_la_siguiente, ui._descargar_gutenberg)
     ui._dentro_del_limite = lambda pet, cubo, tope, clave=None: cubo != "descargas"
     ui._minutos_para_la_siguiente = lambda cubo, pet, clave=None: 1

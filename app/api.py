@@ -1045,7 +1045,8 @@ async def subir_libro(pet: Lector, request: Request) -> dict:
     """Sube un `.epub`, `.pdf` o `.txt` propio. Solo lo ve este lector."""
     # Antes de leer nada: el cubo cuenta intentos, no solo subidas buenas.
     if not ui._dentro_del_limite(pet, "subidas", _SUBIDAS_HORA):
-        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("subidas", pet)))
+        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("subidas", pet),
+                                          "subidas"))
     formulario = await _formulario(request, _TOPE_SUBIDA, "El archivo pasa de 20 MB.")
     try:
         archivo = formulario.get("archivo")
@@ -1386,7 +1387,8 @@ def sinopsis(libro_id: str, pet: Lector) -> dict:
             return {"sinopsis": datos}
         if _va_a_costar(pet) and not ui._dentro_del_limite(pet, "sinopsis",
                                                           ui.LIMITE_SINOPSIS_HORA):
-            raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("sinopsis", pet)))
+            raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("sinopsis", pet),
+                                              "sinopsis"))
         if config.falta():
             raise _no(503, "Para el resumen hace falta la clave de OpenAI. La ficha "
                            "contada no la necesita.")
@@ -1564,7 +1566,8 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
     else:
         if explicable and not ui._dentro_del_limite(pet, "lexico", ui.LIMITE_CONSULTAS_HORA):
             raise _no(429, ui._mensaje_limite(idioma,
-                                              ui._minutos_para_la_siguiente("lexico", pet)))
+                                              ui._minutos_para_la_siguiente("lexico", pet),
+                                              "lexico"))
         with _candado_etapa("completa"):
             puede, motivo, cobrado = False, "", None
             try:
@@ -1922,7 +1925,8 @@ def _corregir_voz(pet: _Lector, frase: str, acento: str, ext: str, contenido: by
         except OSError as e:
             raise _no(500, "No he podido preparar la grabación en el servidor.") from e
         if _va_a_costar(pet) and not ui._dentro_del_limite(pet, "voz", ui.LIMITE_VOZ_HORA):
-            raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("voz", pet)))
+            raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("voz", pet),
+                                              "voz"))
         if config.falta():
             raise _no(503, "Para corregir la pronunciación hace falta la clave de OpenAI. "
                            "Lo demás de la aplicación no la necesita.")

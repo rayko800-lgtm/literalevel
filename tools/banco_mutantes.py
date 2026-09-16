@@ -588,6 +588,19 @@ MUTANTES = [
      "            libres.sort(key=lambda i: (distancia[i], en_bloque[i], i))",
      "            libres.sort(key=lambda i: (distancia[i], i))",
      "los libres van por cercania al nivel y los medidos solos antes que los de bloque", "pruebas_corpus.py"),
+    # 16 sep 2026: el aviso del tope decia «consultas» en los cinco caminos que
+    # comparten el texto, asi que en Pronunciar nombraba el cubo del diccionario
+    # y no el de la voz, que era el agotado (Miguel).
+    ("T1-tope-sin-cubo", "app/ui.py",
+     '    que, sigue = _LIMITES.get(cubo, ("", "Leer y buscar siguen funcionando."))',
+     '    que, sigue = "", "Leer y buscar siguen funcionando."',
+     "el aviso del tope nombra su cubo", "pruebas_extremas.py"),
+    # Y el aviso de «igual» culpaba a la transcripcion cuando lo que pasa es que
+    # el acento no se compara: `fonemas.segmentar` quita la marca (Miguel, «assessors»).
+    ("T2-igual-culpa-a-whisper", "app/voz.py",
+     '    "igual": ("Los sonidos coinciden con los de la palabra, así que no hay ninguno que "',
+     '    "igual": ("Lo que se entendió suena igual: puede que la transcripción se equivocara "',
+     "el aviso de «igual» habla del acento y no culpa a la transcripcion", "pruebas_extremas.py"),
     ("C3-bloque-sin-marca-tarjeta", "app/api.py",
      '            "medido_en_bloque": getattr(b, "medida", "") == "bloque",',
      '            "medido_en_bloque": False,',

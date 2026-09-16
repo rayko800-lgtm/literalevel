@@ -516,9 +516,29 @@ prueba("cubos distintos no se mezclan",
                 and ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "voz", 1)
                 and not ui._dentro_del_limite(_Pet(ip="10.5.5.5"), "lexico", 1))
        and "el lexico se agota y la voz sigue")
+# Esta prueba NO podia fallar: devolvia una TUPLA `(bool, bool)`, y `prueba()`
+# solo falla si salta una excepcion o si el resultado es `False` exacto. Una
+# tupla no es ninguna de las dos, asi que imprimia `ok` con lo que fuera dentro.
+# Es el mismo fallo que describe el comentario de tres lineas mas arriba,
+# arreglado alli en el codigo y no aqui en la prueba (f4, 16 sep 2026).
 prueba("el mensaje de limite existe en los dos idiomas",
-       lambda: (len(ui._mensaje_limite("es", 60)) > 40,
-                len(ui._mensaje_limite("en", 60)) > 40))
+       lambda: (len(ui._mensaje_limite("es", 60)) > 40
+                and len(ui._mensaje_limite("en", 60)) > 40)
+       and "los dos genericos tienen texto")
+# Y dice QUE se acabo: el generico y el de cada cubo no pueden ser el mismo
+# texto, que era el fallo que mando a Miguel a mirar el limite equivocado.
+prueba("el aviso del tope nombra su cubo",
+       lambda: ("correcciones de pronunciación" in ui._mensaje_limite("es", 60, "voz")
+                and "explicaciones en contexto" in ui._mensaje_limite("es", 60, "lexico")
+                and ui._mensaje_limite("es", 60, "voz") != ui._mensaje_limite("es", 60, "lexico")
+                and ui._mensaje_limite("es", 60, "voz") != ui._mensaje_limite("es", 60))
+       and "voz, lexico y el generico dicen cosas distintas")
+# Y ya no promete que medir un capitulo no cuesta nada, que dejo de ser verdad
+# con los topes de medidas (ver `_mensaje_tope_medir` en api.py).
+prueba("el aviso del tope no promete que medir sea gratis",
+       lambda: (not any("no cuestan nada" in ui._mensaje_limite("es", 60, c)
+                        for c in ("", "voz", "lexico", "sinopsis", "subidas")))
+       and "ninguno promete que medir sea gratis")
 def _por_encima_del_tope_no_llega_al_consultor():
     """Agotado el tope por hora, `_consultar` devuelve el aviso y no consulta.
 
@@ -557,7 +577,9 @@ def _por_encima_del_tope_no_llega_al_consultor():
             pass          # llego al consultor, que en el primer uso es normal
         segunda = consulta(None, None, None, "word",
                            "A sentence with the word.", "es", pet)[0]
-        aviso = ui._mensaje_limite("es", 60)[:30]
+        # Con el cubo: desde el 16 sep el texto depende de el, y el generico ya
+        # no coincide con lo que pinta el camino del lexico.
+        aviso = ui._mensaje_limite("es", 60, "lexico")[:30]
         assert aviso in segunda, f"esperaba el aviso de limite, dio: {segunda[:90]}"
     finally:
         ui.LIMITE_CONSULTAS_HORA, ui.consultor = tope_antes, consultor_antes
@@ -2220,10 +2242,15 @@ def _voz_y_sinopsis_respetan_su_tope():
     finally:
         ui.LIMITE_VOZ_HORA, ui.LIMITE_SINOPSIS_HORA = antes
         config_mod.falta = falta_antes
-    aviso = ui._mensaje_limite("es", 60)[:28]
-    assert aviso in segunda_voz, f"la voz no freno: {segunda_voz[:110]}"
-    assert aviso in segunda_sin, f"la sinopsis no freno: {segunda_sin[:110]}"
-    return "voz y sinopsis frenan al agotar su tope"
+    # Un prefijo por cubo. Antes se exigia el MISMO en los dos caminos, que solo
+    # podia funcionar mientras voz y sinopsis dijeran lo mismo; desde el 16 sep
+    # cada uno nombra lo suyo, y de paso la prueba distingue cual freno.
+    aviso_voz = ui._mensaje_limite("es", 60, "voz")[:28]
+    aviso_sin = ui._mensaje_limite("es", 60, "sinopsis")[:28]
+    assert aviso_voz != aviso_sin, "los dos cubos no pueden decir lo mismo"
+    assert aviso_voz in segunda_voz, f"la voz no freno: {segunda_voz[:110]}"
+    assert aviso_sin in segunda_sin, f"la sinopsis no freno: {segunda_sin[:110]}"
+    return "voz y sinopsis frenan al agotar su tope, cada uno con su aviso"
 
 
 prueba("voz y sinopsis respetan su tope", _voz_y_sinopsis_respetan_su_tope)
@@ -7417,6 +7444,30 @@ def _los_compuestos_se_corrigen_y_suenan_por_pieza():
 
 prueba("voz: los compuestos se corrigen y suenan por pieza",
        _los_compuestos_se_corrigen_y_suenan_por_pieza)
+
+
+def _el_aviso_de_igual_habla_del_acento():
+    """El texto de «igual» habla del ACENTO y no culpa a la transcripcion.
+
+    Un fallo de acento cae en «igual» por definicion: `fonemas.segmentar` quita
+    la marca (ˈ), asi que dos pronunciaciones que solo difieren en la silaba
+    tonica dan listas de fonemas identicas. Decir «puede que la transcripcion
+    se equivocara» era falso y mandaba a desconfiar de la maquina (Miguel,
+    «assessors», 16 sep 2026; caso cerrado como deducido del codigo).
+    """
+    voz = ui.voz
+    igual = voz._SIN_COMPARACION["igual"]
+    assert "acento" in igual[0] and "entonación" in igual[0], igual[0]
+    assert "transcripción" not in igual[0], "no puede culpar a la transcripcion: " + igual[0]
+    assert "sílaba" in igual[1], igual[1]
+    # Y la marca de acento no sobrevive a `segmentar`, que es LA razon de todo esto.
+    assert voz.fonemas.segmentar("/ˈasesoɹz/") == voz.fonemas.segmentar("/aseˈsoɹz/"), (
+        "si segmentar conservara el acento, un fallo de acento ya no caeria en «igual»")
+    return "habla del acento, no culpa a la transcripcion y segmentar quita la marca"
+
+
+prueba("voz: el aviso de «igual» habla del acento y no culpa a la transcripcion",
+       _el_aviso_de_igual_habla_del_acento)
 
 
 def _la_ficha_de_un_compuesto_no_es_la_de_su_parte():

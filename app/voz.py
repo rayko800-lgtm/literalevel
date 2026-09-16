@@ -288,9 +288,18 @@ _SIN_COMPARACION = {
     "sin_ipa": ("Esta palabra, o lo que se entendió, no está en los diccionarios de pronunciación, "
                 "así que no te señalo un sonido concreto para no inventártelo",
                 "Escúchala sola y repítela despacio, sílaba por sílaba."),
-    "igual": ("Lo que se entendió suena igual que la palabra: puede que la transcripción "
-              "automática se equivocara",
-              "Repítela un poco más despacio, marcando cada sonido."),
+    # Los fonemas se comparan SIN la marca de acento: `fonemas.segmentar` la quita
+    # («/ˈtɹædʒɪk/» -> t ɹ æ dʒ ɪ k). Asi que dos pronunciaciones que solo difieren
+    # en la silaba tonica dan listas identicas y caen aqui por definicion. Decirle
+    # que la transcripcion automatica se equivoco era falso -no se equivoco: es que
+    # el acento no se compara- y le mandaba a desconfiar de la maquina. Miguel lo
+    # conto con «assessors» el 16 sep 2026: esperaba «buena pronunciacion, pero la
+    # entonacion esta mal».
+    "igual": ("Los sonidos coinciden con los de la palabra, así que no hay ninguno que "
+              "señalarte. Lo que no comparamos es el acento de la palabra ni la entonación "
+              "de la frase, y la diferencia puede estar ahí",
+              "Escucha la palabra en «Cómo debería sonar» y repítela fijándote en qué "
+              "sílaba suena más fuerte."),
     "sin_datos": ("No sé qué se entendió en su lugar, así que no te señalo un sonido concreto",
                   "Escúchala sola y repítela despacio, sílaba por sílaba."),
 }

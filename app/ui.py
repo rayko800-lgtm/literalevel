@@ -751,14 +751,38 @@ def _rango_de_tiempo(comodo: int, exigente: int) -> str:
     return a if a == b else f"entre {a} y {b}"
 
 
-def _mensaje_limite(idioma: str, minutos: int) -> str:
+# Que se acabo y que sigue, por cubo. El texto de antes decia «consultas» en los
+# cinco caminos que lo comparten, asi que en Pronunciar nombraba el cubo del
+# diccionario (30/h) y no el de la voz (10/h), que era el agotado: a Miguel le
+# mando a mirar el limite equivocado (16 sep 2026). Y prometia que medir un
+# capitulo «no cuesta nada», que dejo de ser verdad con los topes de medidas;
+# eso ya lo decia el comentario de `_mensaje_tope_medir` en api.py.
+_LIMITES = {
+    "voz": ("correcciones de pronunciación",
+            "Grabarte y escucharte, leer y buscar siguen funcionando."),
+    "lexico": ("explicaciones en contexto",
+               "El diccionario, leer y buscar siguen funcionando."),
+    "sinopsis": ("resúmenes",
+                 "La ficha del libro, leer y buscar siguen funcionando."),
+    "subidas": ("libros subidos",
+                "Leer y buscar siguen funcionando."),
+}
+
+
+def _mensaje_limite(idioma: str, minutos: int, cubo: str = "") -> str:
+    """El aviso del tope por hora, diciendo QUE se ha acabado.
+
+    `cubo` es opcional a proposito: sin el sale el generico, que es lo que ve
+    quien llame sin decirlo. En ingles no se reparte por cubo porque el unico
+    camino que pasa `idioma` es el del lexico.
+    """
     if idioma == "en":
-        return (f"You have reached this hour's limit of paid lookups. "
-                f"Try again {_cuanto_falta(minutos, 'en')}. Reading, searching and "
-                f"measuring a chapter keep working: they cost nothing.")
-    return (f"Has llegado al límite de consultas de esta hora. Vuelve a "
-            f"intentarlo {_cuanto_falta(minutos)}. Leer, buscar y medir un "
-            f"capítulo siguen funcionando: no cuestan nada.")
+        return (f"You have reached one of this hour's limits. "
+                f"Try again {_cuanto_falta(minutos, 'en')}. Reading and searching keep working.")
+    que, sigue = _LIMITES.get(cubo, ("", "Leer y buscar siguen funcionando."))
+    cabeza = (f"Has llegado al límite de {que} de esta hora." if que
+              else "Has llegado a un límite de esta hora.")
+    return f"{cabeza} Vuelve a intentarlo {_cuanto_falta(minutos)}. {sigue}"
 
 
 def _archivo_lector(nombre: str, peticion=None) -> str:
@@ -2648,7 +2672,7 @@ def _de_que_trata(libro, peticion: gr.Request = None):
         if va_a_costar and not _dentro_del_limite(
                 peticion, "sinopsis", LIMITE_SINOPSIS_HORA):
             yield _aviso(_mensaje_limite(
-                "es", _minutos_para_la_siguiente("sinopsis", peticion)))
+                "es", _minutos_para_la_siguiente("sinopsis", peticion), "sinopsis"))
             return
         puede, motivo_pago = _puede_pagar(peticion)
         if not puede:
@@ -3482,7 +3506,7 @@ def _consultar(p, libro, idx, palabra, oracion_manual, idioma="es",
     if va_a_costar and not _dentro_del_limite(peticion, "lexico",
                                               LIMITE_CONSULTAS_HORA):
         yield (_aviso(_mensaje_limite(
-            idioma, _minutos_para_la_siguiente("lexico", peticion))),
+            idioma, _minutos_para_la_siguiente("lexico", peticion), "lexico")),
             "", gr.update(visible=False))
         return
 
@@ -3778,7 +3802,7 @@ def _practicar(ruta_audio, frase, peticion: gr.Request = None):
                                        _codigo_de(peticion))[0])
     if va_a_costar and not _dentro_del_limite(peticion, "voz", LIMITE_VOZ_HORA):
         return ("", _aviso(_mensaje_limite(
-            "es", _minutos_para_la_siguiente("voz", peticion))),
+            "es", _minutos_para_la_siguiente("voz", peticion), "voz")),
             gr.update(visible=False))
     # Esta es la funcion mas cara de la aplicacion: transcribe con whisper y
     # genera un audio de referencia, y ninguna de las dos cosas acierta en
