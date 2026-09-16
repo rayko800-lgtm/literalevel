@@ -18,7 +18,7 @@ cuatro minutos, y los guiones ya coinciden con lo que se ve.
 | Pieza | Versión | Qué lleva de esta noche |
 |---|---|---|
 | Motor (Space de Gradio) | reinicio 30b, 0319290 (empates por cercanía al nivel en la franja; encima: 30a 282c46f con MiniLM precargado; 28 restaurado 62e5a06 con autor más título arreglado, anuncios de drogas fuera, silencio sin coste y con el uso devuelto, buscador precargado al arrancar, autores clásicos por apellido y «Jane Austen» con B1) | «amor» con B1 da 12 de 12 sobre amor, y ahora trae también cuentos de su nivel marcados; «Jane Austen» abre con su obra; voz sin falsos «difíciles»; 225 textos remedidos por bloques con un texto raro; 200 textos que no son lectura fuera |
-| Front (Space estático) | 48d748d | Tu nivel y Pronunciar nuevos; «Primero lo de tu nivel» con la franja; chips con amor y fantasmas; micrófono con estado visible dentro de la barra (el aviso se pintaba debajo y no se veía) y aviso para abrir en Chrome desde el navegador de WhatsApp, que no es la causa del caso de Ismael; «Entrar» lleva a «Tu perfil» y «Ajustes» con nombre; un solo aviso en el lector y ayuda con «?» en el lector y en Pronunciar; bienvenida de 3 pasos; textos del cuestionario y del gesto corregidos |
+| Front (Space estático) | 48d748d | Tu nivel y Pronunciar nuevos; «Primero lo de tu nivel» con la franja; chips con amor y fantasmas; micrófono con estado visible dentro de la barra (el aviso se pintaba debajo y no se veía) y aviso para abrir en Chrome desde el navegador de WhatsApp; «Entrar» lleva a «Tu perfil» y «Ajustes» con nombre; un solo aviso en el lector y ayuda con «?» en el lector y en Pronunciar; bienvenida de 3 pasos; textos del cuestionario y del gesto corregidos |
 | Documentos y guiones | 16 sep: d232ffd, dc447f4 y c490b11 (documento, estrategia y presentación) y 657a640 (guiones de la demo y del vídeo); antes: 2a44731, 5a3552a, 5181c8f, 489ee48 y f829d60 | coste de cómputo real; la frase del caso Esmeralda reescrita (no faltaba catálogo, fallaba la búsqueda: 114 cuentos libres de amor en B1); receta del perfil B2 sin «Me vale así» (en la sexta no elegir «Capto bien la idea»); textos de las pantallas A; «Antes de la demo» con voz baja desde el móvil y calentar el buscador; límites declarados de la búsqueda en el documento (limitación 15) y en la estrategia; paso 3 con «Crimen y castigo de Dostoyevski»; esperar un minuto tras un reinicio; ronda 4: cuestionario contado como es (tres preguntas y tres fragmentos), gesto «mantener presionada», n = 3 con Ismael, cuaderno ejecutado en Colab el 16 sep con salidas, cifras de esa corrida y los guiones de verificación «a petición» |
 
 ## Informes de la ronda 3
@@ -100,7 +100,7 @@ paletas, las portadas, los ajustes y poder subir su libro. Tres cosas no:
 e6 recorre esas dos pantallas como alguien que llega sin saber nada y prepara
 propuestas con esquema para que Miguel elija antes de programar.
 
-## Ismael probó la app
+## Ismael probó la app, y una segunda nota de Laura
 
 Nota de voz del 15 de septiembre: la probó el 14 y el 15, y «cuesta un poquito
 entenderle»; pide que sea más intuitiva o que tenga «cuadros de diálogo que te
@@ -115,19 +115,7 @@ nada visible ni empezó la grabación. **La saturación:** textos largos y mucho
 scroll antes de saber qué hacer; entra en las propuestas de ayuda. Usó Android y
 abrió el enlace desde WhatsApp.
 
-**Dos correcciones del 16 de septiembre, y la causa sigue abierta.** Primero
-Miguel dijo que **Ismael no había iniciado sesión** y que por eso no tenía esas
-funciones. Después mandó la nota del micrófono diciendo «según yo este es de
-Laura»: transcrita, es la misma grabación archivada como segunda de Ismael, y
-empieza «entré y **ya me inicié sesión**». Así que la nota está **sin atribuir**,
-lleva dentro dos quejas (micrófono y saturación) y el caso a explicar es **con
-sesión**. El dato de la falta de sesión queda como dicho por Miguel, pendiente de
-confirmar, y fuera de los entregables. La explicación del navegador interno de
-WhatsApp sigue siendo solo una hipótesis, y se escribió como causa antes de
-medirla: el mismo error que con Esmeralda, repetido. Lo que sí es un fallo nuestro es que la app no le dijo con claridad
-que tenía que entrar. e6 mide qué ve alguien sin sesión al pulsar el micrófono y
-al consultar una palabra, y f4 mira qué devuelven las rutas sin credenciales;
-con eso se decide el aviso que falte. **Cerrado el 16 de septiembre, y con un hallazgo distinto.** Miguel confirmó que
+**Cerrado el 16 de septiembre, y con un hallazgo distinto.** Miguel confirmó que
 la nota es de Laura y que en su teléfono, con su cuenta, el micrófono graba bien.
 e6 midió los cinco finales de pulsar el micrófono en lo publicado (48d748d, 390
 px, informe 9d43956) y en todos sale un mensaje dentro de la barra, que acaba en
@@ -218,11 +206,11 @@ dar el permiso en una sesión.
 | ~~Reinicio 27: autores clásicos, «Jane Austen» con B1, ficha de un capítulo, buscador_listo~~ | hecho, Space 1708cb1 | trajo una regresión (27 palabras de tema traían al autor), cerrada en el 28 |
 | ~~Reinicio 28: arreglo de la regresión del 27~~ | hecho, Space 74f1484 | las 100 palabras de tema con el mismo top 10 que el 26; clásicos y Austen siguen bien (verificado por 4e) |
 | ~~Reinicio 29: consultas de autor con perfil~~ | subido y **vuelto atrás al 28** (Space 62e5a06, autorizado por Miguel, verificado por 4e: las 33 listas de control idénticas al 28) | quitaba cuentos de su nivel a «león», «brown», «hope» y «animales de la granja» con el perfil 1,20; se mide otra vía (i7). El paso 3 del guion no depende de esto |
-| ~~Ayuda para usuarios nuevos (decisión de Miguel)~~ | hecho, front c73bbcc (aria-label de Inicio en 72e9525) | tanda 1 (Entrar → Tu perfil, «Ajustes» con nombre, «Mídeme» corregida), tanda 2 (un solo aviso en el lector y ayuda con «?» en el lector y en Pronunciar) y tanda 3 (bienvenida de 3 pasos que se puede saltar); guiones 657a640, con visto bueno de e6 y ensayo completo sobre el 30b |
+| ~~Ayuda para usuarios nuevos (decisión de Miguel)~~ | hecho, front 48d748d (aria-label de Inicio en 72e9525; textos del cuestionario y del gesto en 48d748d) | tanda 1 (Entrar → Tu perfil, «Ajustes» con nombre, «Mídeme» corregida), tanda 2 (un solo aviso en el lector y ayuda con «?» en el lector y en Pronunciar) y tanda 3 (bienvenida de 3 pasos que se puede saltar); guiones 657a640, con visto bueno de e6 y ensayo completo sobre el 30b |
 | ~~Otra vía para las consultas de autor con perfil (i7)~~ | medida | ninguna variante cumple: quitaba cuentos a temas o no arreglaba los autores. **Límite declarado:** con perfil, «dostoyevski», «tolstoy» o «cervantes» a secas marcan cuentos sin relación; el guion usa «Crimen y castigo de Dostoyevski» |
 | Reinicio 30a: MiniLM precargado en el Space | hecho, Space 282c46f | buscador listo a los 20 s de RUNNING en el primer arranque y a los 12 s en el segundo (0319290), frente a 55 s; 0 descargas de MiniLM en el log completo |
 | Reinicio 30b: empates deterministas (redondeo a 6 decimales, cercanía al nivel en la franja y fila) | hecho, Space 0319290 (DESPLIEGUE 9108a52) | contra el volcado del Space 28: 0 vueltas, 198 iguales, 58 solo orden, top 10 con el mismo conjunto en todas y «pintura» B1 aceptada (copia de 0,775 en vez de 0,99); paso 3, granja y dragones bien en el front; límite declarado: el redondeo no iguala Space y local en todas las parejas («magic» B1, «mystery» 11↔12). Medida previa: 545 listas contra el 28 sin paro; «mystery» sin perfil intercambia 7↔8 (empate); lista cerrada de 10 cortes con copias más cercanas al nivel; marcha atrás si falla el paso 3, «granja», «dragones», marcas o longitud |
-| Ensayar con cuenta y micrófono: explicación de la IA, «Corrígeme», lectura natural, «Mis palabras», demo cronometrada | **Miguel** | dice el 16 sep que ya ha estado probando la app con su cuenta; pendiente el detalle de qué funcionó y qué no |
+| Ensayar con cuenta: explicación de la IA, «Practica esta palabra», paso 6 y «Este intento no cuenta»; demo cronometrada | **Miguel** | 16 sep: ha estado probando la app con su cuenta y **el micrófono le graba bien**; queda cronometrar la demo entera |
 | Auditoría ciega del estado final | Codex | 19 de septiembre, desde las 8:56 (cupo comprobado el 15) |
 | Ronda 4, a ciegas: documento, estrategia y presentación contra la producción de hoy | e6 | 15 sep |
 | Ronda 4, a ciegas: reproducibilidad y cifras del notebook | f4 | 15 sep |
