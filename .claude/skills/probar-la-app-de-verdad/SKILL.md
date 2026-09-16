@@ -607,6 +607,26 @@ cadena **que ha escrito la prueba**, no la aplicación.
 La pregunta que separa las dos: **¿de dónde sale el texto que estoy comparando?**
 Si sale de la prueba, la prueba se está creyendo a sí misma.
 
+**Una aserción que no puede fallar es el mismo fallo sin texto.**
+`pruebas_extremas.py:519-521` guardaba la cadena del aviso de tope con una lambda
+que devuelve una **tupla**: `lambda: (len(...) > 40, len(...) > 40)`. El
+lanzador solo falla con una excepción o con `False` exacto, y una tupla no es
+ninguna de las dos, así que imprimía `ok` pasara lo que pasara. Lo tragicómico:
+el comentario tres líneas más arriba describe ese mismo fallo —«devolvía una
+TUPLA (True, False), que nunca es False»— arreglado en el código y no en la
+prueba de al lado. Y f4 lo acotó bien: repasó las 30 lambdas con paréntesis del
+archivo y demostró que las otras seis eran booleanos legítimos unidos con `and`,
+así que el hallazgo quedó cerrado y no como sospecha.
+
+- **Antes de cambiar una cadena, mira quién la guarda** y comprueba que ese
+  guardián puede fallar. Cambiar el texto y dejar la prueba ciega es peor que no
+  tocar nada.
+- En un lanzador propio, **haz que un resultado que no sea booleano sea un
+  fallo**, no un `ok`.
+- El 16 de septiembre este patrón apareció **cinco veces en una tarde**, en tres
+  sesiones distintas. No es una anécdota: es lo primero que hay que mirar en una
+  suite heredada.
+
 **Y el mismo patrón sin texto: una prueba puede medir un lienzo vacío.**
 `tools/probar_boca_integrada.mjs` garantiza el encuadre de la cara 3D con
 `assert.equal(px.borde, 0)`, leyendo el canvas con `getImageData`. Ejecutando ese
