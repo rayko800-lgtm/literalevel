@@ -39,13 +39,21 @@
         </button>
       }
     </div>
-    <textarea id="frase" class="entrada frase en-libro" rows="3" maxlength="300" [(ngModel)]="frase" lang="en"
-              (input)="error() === avisoSinFrase && error.set('')"
-              placeholder="Escribe o pega la frase en inglés que vas a leer"></textarea>
-    @if (frase) {
-      <button type="button" class="boton pequeno fantasma limpiar" (click)="frase = ''; descartar()">
-        <app-icono nombre="cerrar" />Borrar la frase
-      </button>
+    @if (estado() === 'grabando') {
+      <!-- Mientras se graba la frase no se edita, así que deja de ser un campo: se enseña
+           entera. En el campo cabían seis líneas y una oración de libro dejaba cinco
+           ocultas, con un desplazamiento dentro del propio cuadro que no encontraba nadie
+           («tengo que scrollear para buscar el texto», Miguel, 16 sep). -->
+      <p class="frase en-libro frase-leyendo" lang="en">{{ frase }}</p>
+    } @else {
+      <textarea id="frase" class="entrada frase en-libro" rows="3" maxlength="300" [(ngModel)]="frase" lang="en"
+                (input)="error() === avisoSinFrase && error.set('')"
+                placeholder="Escribe o pega la frase en inglés que vas a leer"></textarea>
+      @if (frase) {
+        <button type="button" class="boton pequeno fantasma limpiar" (click)="frase = ''; descartar()">
+          <app-icono nombre="cerrar" />Borrar la frase
+        </button>
+      }
     }
   </section>
 

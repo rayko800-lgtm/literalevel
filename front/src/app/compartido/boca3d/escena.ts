@@ -1058,7 +1058,10 @@ export class EscenaBoca {
    *  la altura de la boca. */
   vista(azimut: number, polar = 1.49): void {
     const distancia = this.distanciaEncuadre();
-    this.controles.target.set(this.cabezaEntera ? 0.9 : 0.1, 0.05, 0);
+    // Con la cara modelada se mira al mismo punto que con la cabeza entera: mirando a la
+    // boca (0,1) el perfil se salía por la izquierda y los labios tocaban el borde del
+    // lienzo a 390 px (Miguel, 16 sep; auditoria/boca3d_y_frase_2026-09-16.md).
+    this.controles.target.set(this.cabezaEntera || this.caraModelada ? 0.9 : 0.1, 0.05, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
       this.controles.target.y + distancia * Math.cos(polar),
@@ -1075,10 +1078,10 @@ export class EscenaBoca {
     // Con la cara modelada el perfil entero no cabe a 13, pero lo que importa
     // es la boca: en el móvil a 16 quedaba pequeña. La nariz y la garganta se
     // ven enteras al girar.
-    // 14,5 es lo más cerca que el perfil entero (nariz, mentón, faringe) cabe
-    // sin tocar el borde del lienzo en un móvil (288x420): lo mide
-    // tools/probar_boca_integrada.mjs.
-    return (this.cabezaEntera ? 17.5 : this.caraModelada ? 14.5 : 13) * Math.max(1, 1 / this.camara.aspect);
+    // 14,5 se calibró para «lo más cerca que cabe sin tocar el borde» en 288x420, pero
+    // medido a 390 px el perfil sí tocaba el borde izquierdo: se aleja a 17,5, el mismo
+    // valor que ya usaba la cabeza entera (Central, 16 sep).
+    return (this.cabezaEntera || this.caraModelada ? 17.5 : 13) * Math.max(1, 1 / this.camara.aspect);
   }
 
   /** Con `true` el lienzo captura todos los gestos táctiles (también los

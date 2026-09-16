@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, Injector, OnDestroy, OnInit, afterNextRender, computed, inject, input, signal, viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -156,6 +158,9 @@ export class Pronunciar implements OnInit, OnDestroy {
    *  getUserMedia no existe o se rechaza sin preguntar (Ismael, 15 sep). */
   protected readonly enWebView = typeof navigator !== 'undefined' && /; wv\)/.test(navigator.userAgent);
   protected readonly avisoSinFrase = 'Primero escribe la frase que vas a leer.';
+  /** Para esperar al pintado antes de buscar la frase en el DOM: al volver de `grabar()` el
+   *  párrafo todavía no existe, y un microtask llegaba demasiado pronto (16 sep). */
+  private readonly inyector = inject(Injector);
   /** La línea de ayuda de la pantalla (tanda 2, Miguel): sale la primera vez en lugar del
    *  subtítulo, se cierra con ✕ y vuelve con «?». Se guarda en el navegador, sin cuenta. */
   private readonly claveAyuda = 'literalevel.ayuda-pronunciar';
@@ -248,6 +253,14 @@ export class Pronunciar implements OnInit, OnDestroy {
       };
       this.grabador.start();
       this.estado.set('grabando');
+      // Y la frase, a la vista: al empezar a grabar quedaba arriba, recortada dentro de su
+      // propio cuadro, y había que ir a buscarla («no sé dónde estaba», Miguel, 16 sep).
+      // Tras el pintado y no en un microtask: el párrafo aún no está en el DOM al volver de
+      // aquí, y la prueba lo cazó con cero llamadas. `?.()` porque jsdom no lo implementa.
+      afterNextRender(
+        () => document.querySelector('.frase-leyendo')?.scrollIntoView?.({ block: 'center' }),
+        { injector: this.inyector },
+      );
       this.segundos.set(0);
       this.reloj = setInterval(() => {
         this.segundos.update(s => s + 1);
