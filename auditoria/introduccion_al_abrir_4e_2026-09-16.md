@@ -7,6 +7,27 @@
   `a656c2e`. Los textos que se citan son los que sirve esa revisión, leídos del código, no de
   memoria.
 
+## 0. Lo decidido (Central, 16 de septiembre)
+
+Esto ya no es una propuesta: la Central decidió con este informe delante.
+
+1. **El paso 0 entra antes del 20**, en la versión mínima de la sección 5: dentro de la bienvenida
+   que ya existe, «Entrar» y «Seguir sin cuenta» del mismo tamaño, «Saltar» intacto, «Entrar» al
+   destino de hoy, y diciendo lo que **sí** se puede sin cuenta. Lo programa e6 cuando termine la
+   boca 3D y el scroll, que van antes.
+2. **«Cómo funciona» no se toca ahora**, y cuando se toque **se pliega, no se quita**. A la cola de
+   después de la entrega.
+3. **La introducción sale también la primera vez que alguien entra con cuenta**, una sola vez y con
+   «Saltar»: quien entra con cuenta es justo quien va a usar la corrección, que es lo que más se
+   malentiende.
+4. **Los textos nuevos van en español de México**, como el resto de la aplicación.
+5. **Quedan descartados** el tour encadenado de globos y los pop-ups que tapen contenido, por los
+   motivos de la sección 6.
+
+Lo único que queda por hacer de 4e son las tres líneas de guion que describen la tarjeta como de
+tres pasos, **cuando e6 publique y no antes**: escritas hoy, describirían una pantalla que todavía
+no existe.
+
 ## 1. Lo que pidió Miguel, y lo que ya existe
 
 Pidió cuatro cosas: que la interfaz tiene **demasiada información** y se pierde; una
@@ -135,7 +156,11 @@ Los recortes de la sección 4, más el paso 0.
   (los 679 px del paso 3, las «2 pantallas» del Índice) y obliga a volver a cronometrar. A tres
   días de grabar, cambiar la pantalla por la que empieza la demo es el peor sitio donde tocar.
 
-## 6. Lo que no recomiendo
+## 6. Lo descartado, y por qué
+
+**Las dos cosas de esta sección están descartadas por decisión de la Central (16 de septiembre),
+no son una recomendación de quien escribe.** Se dejan con su motivo para que, si alguien las vuelve
+a proponer después del 20, discuta el motivo y no la conclusión.
 
 - **Un tour encadenado con globos sobre cada control**, tipo *coach marks*. Es lo que más se
   parece a «como una cuenta de Google», y es justo lo que Ismael pedía; pero son cuatro o cinco
@@ -146,11 +171,13 @@ Los recortes de la sección 4, más el paso 0.
   —el panel de *Ajustes* abriéndose encima del propio aviso— salió exactamente de eso. Si se usan,
   que no cubran el texto del libro, la barra del micrófono ni la caja de la frase.
 
-## 7. Lo que decide Miguel
+## 7. Lo que queda abierto
 
-1. Si entra el **paso 0** antes del 20, o todo después.
-2. Si «Cómo funciona» de Inicio **se quita o se pliega** (yo lo plegaría: se conserva para quien
-   lo busque).
-3. Si la introducción debe volver a salir **cuando alguien entra por primera vez con cuenta**, o
-   solo la primera visita.
-4. Si los textos nuevos van en **español de México**, como pidió para los de la tanda de ayuda.
+Las cuatro preguntas que traía esta sección están contestadas en la sección 0. Queda esto:
+
+1. **e6 programa el paso 0**, después de la boca 3D y del scroll, que van antes.
+2. **4e actualiza las tres líneas de guion** que describen la tarjeta como de tres pasos
+   (`guion_demo_en_vivo.md:140`, `guion_video.md:99`, `guion_video.tex:265`), **cuando e6
+   publique**, en un commit pequeño con los PDF.
+3. **Después de la entrega:** plegar «Cómo funciona» y los recortes de la sección 4, que mueven
+   Inicio y *Encontrar* y obligan a recronometrar la demo.
