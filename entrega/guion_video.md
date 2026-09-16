@@ -80,6 +80,9 @@ del profesor.
   la API. Las cifras son de arranques por despliegue, no de un despertar desde
   la suspensión, que no se ha medido
   (`auditoria/ronda4_arranque_demo_f4_2026-09-16.md`).
+- **Las correcciones, contadas.** «Corrígeme» tiene 10 por hora, por conexión y no
+  por cuenta: si ensayas en ráfaga desde la misma red en la hora antes de grabar, te
+  quedas sin ellas para la toma. El aviso dice cuándo vuelve la primera, no todas.
 - **La boca en 3D.** El front publicado —revisión `f4920fa` del Space, del commit `a656c2e`— lleva la
   cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
   `master`): comprobado hoy, `boca3d/cara.glb` y `boca3d/lengua.glb` responden
@@ -96,8 +99,9 @@ del profesor.
   inglés a nivel B2», y el 1,20 está en «Ver el detalle». En la sexta no elijas
   «Capto bien la idea»: da 1,46, que es C1.
 - **La primera vez salen tres ayudas.** En un navegador limpio, al abrir Inicio
-  sale la bienvenida («1 de 3» y, debajo, «Libros en inglés a tu nivel»): pulsa «Saltar»,
-  arriba a la derecha de la tarjeta, antes de grabar. Al abrir el lector sale
+  sale la bienvenida («1 de 4» y, debajo, «¿Ya tienes cuenta?»): pulsa «Saltar»,
+  arriba a la derecha de la tarjeta, antes de grabar; al entrar con tu cuenta sale
+  una vez más, con lo que gasta usos, y se salta igual. Al abrir el lector sale
   arriba «Mantén presionada una palabra para ver qué significa; desliza para
   cambiar de página.», y en *Pronunciar*, en lugar del subtítulo, «Escribe o trae
   una frase, grábate leyéndola y te digo qué sonido corregir…». Ciérralas con ✕

@@ -137,11 +137,16 @@ que dice el **Plan B** para ese paso.
    comprobar que sale el aviso de que no hay libros en tu nivel ni un poco por
    encima, y *Crime and Punishment* el primero en «De otros niveles».
 10. **La bienvenida:** en un navegador limpio o en incógnito, al abrir Inicio sale
-    una tarjeta de tres pasos («1 de 3» y, debajo, «Libros en inglés a tu nivel»). Pulsa
-    «Saltar», arriba a la derecha de la tarjeta, o recórrela una vez antes de
-    grabar: después ya no vuelve. Quien ya usaba la aplicación también la verá una
-    vez. Un enlace directo al lector o a una ficha no la muestra, y se puede volver
-    a ver desde *Ajustes* → «Ver la bienvenida otra vez».
+    una tarjeta de cuatro pasos («1 de 4» y, debajo, «¿Ya tienes cuenta?», con
+    «Entrar» y «Seguir sin cuenta»). **La decisión es tuya:** recórrela una vez antes
+    de grabar, o pulsa «Saltar», arriba a la derecha de la tarjeta, y enseña la
+    aplicación directamente; las dos formas valen. **Sale dos veces en ese
+    navegador**, porque aquí se entra antes de la demo: la de sin cuenta al abrir
+    Inicio y, al entrar con tu cuenta, otra, que empieza por «Ya tienes cuenta» y
+    dice qué gasta usos. Sáltalas o recórrelas las dos antes de compartir pantalla.
+    En un navegador donde ya la viste, sin cuenta no vuelve; con cuenta sale esa
+    segunda una sola vez. Un enlace directo al lector o a una ficha no la muestra, y
+    se puede volver a ver desde *Ajustes* → «Ver la bienvenida otra vez».
 11. **Las ayudas de la primera vez:** al abrir el lector sale arriba «Mantén
     presionada una palabra para ver qué significa; desliza para cambiar de
     página.», y en *Pronunciar*, en lugar del subtítulo, «Escribe o trae una frase,
@@ -153,6 +158,17 @@ que dice el **Plan B** para ese paso.
     paso 4**, unos 10 s; y solo si «Corrígeme» va lento, el **paso 6 entero**, unos
     35 s, que es el segundo ejemplo de lo mismo que enseña el 5. **No se recortan
     la curva del paso 3 ni la consulta del paso 4:** son el producto.
+13. **No gastes correcciones en la hora previa.** «Corrígeme» tiene **10 por hora**, y
+    la demo usa una o dos: sobran si no ensayas en ráfaga. El tope va **por conexión,
+    no por cuenta**, así que ensayar y grabar desde la misma red gastan el mismo cupo:
+    un ensayo largo desde casa se come el de la demo. La cuenta es deslizante: el
+    aviso dice cuándo vuelve **la primera**, no todas. Las explicaciones (30 por
+    hora) y los resúmenes (6) llevan su propio cupo, y agotar uno no toca los otros.
+    **Si aun así llegas al tope**, no hay ningún ajuste que tocar: la salida es
+    reiniciar el Space, que borra el contador, al precio del arranque en frío del
+    punto 8 (de uno a minuto y medio). Pídelo **antes** de empezar, nunca a mitad de
+    la demo. Con el tope agotado siguen funcionando leer lo que ya abriste, buscar,
+    el diccionario, grabarte y escucharte.
 
 ---
 
