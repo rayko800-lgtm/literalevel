@@ -1489,13 +1489,14 @@ repetirlo en cada párrafo corregido.
     megas). Verificado de punta a punta: se fijó un perfil, se reinició el
     Space y el perfil seguía ahí. Era la acción A4 de la estrategia y está
     cerrada.
-13. **La prueba de usuario tiene n = 3.** Esmeralda y Laura son dos lectoras,
-    y el tercero es Ismael, que la probó en un Android los días 14 y 15 de
-    septiembre: pidió que se entendiera mejor, dijo que al pulsar el micrófono
-    no pasaba nada y que las pantallas se sentían saturadas. De ahí salieron
-    las tres tandas de ayuda; la causa de lo del micrófono **está en revisión**,
-    porque se supo después que no había iniciado sesión (apartado 3 de la
-    estrategia).
+13. **La prueba de usuario tiene n = 3.** Esmeralda, Laura e Ismael. Ismael la
+    probó en un Android los días 14 y 15 de septiembre y pidió que la
+    aplicación se entendiera mejor; Laura, que ya la había probado antes, mandó
+    por esos días una segunda nota: con su cuenta ya iniciada, pulsó el
+    micrófono y no se activó la grabación, y las pantallas se le hicieron
+    saturadas. De ahí salieron las tres tandas de ayuda y el arreglo del
+    micrófono; **dónde ocurrió** lo de la grabación sigue abierto, porque en el
+    teléfono de Miguel, con cuenta, graba bien (apartado 3 de la estrategia).
     Su valor es cualitativo y de diagnóstico, no estadístico: sirve para
     encontrar fallos de usabilidad graves —y encontraron varios—, no para
     estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con *love* o *romance* en el título, frente a 4 libros de Gutenberg (recuento sobre el catálogo que carga la aplicación, `auditoria/ronda1_consolidado_2026-09-14.md`); pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En *Encontrar*, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (`auditoria/chips_reinicio25_2026-09-15.md`).

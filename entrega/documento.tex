@@ -842,17 +842,24 @@ cuadro~\ref{cuad:laura} se hicieron primero en Gradio, que sigue en marcha como 
 las que tocan la pantalla se llevaron al \emph{front}: los ajustes fuera de la navegación,
 el lector que sube al cambiar de capítulo, «Otra frase» y la ficha de cada sonido.
 
-\subsubsection{El tercer ciclo: Ismael}
+\subsubsection{El tercer ciclo: Ismael, y una segunda nota de Laura}
 \label{sec:ismael}
 
 Los días 14 y 15 de septiembre de 2026 la probó \textbf{Ismael}, hermano del autor, que
 abrió en un teléfono Android el enlace que le mandaron por WhatsApp, sin que nadie le
-explicara nada y ---cosa que se supo después, y que cambia la lectura de lo que
-contó--- \textbf{sin iniciar sesión}. Mandó dos notas de voz:
+explicara nada y ---según Miguel, que habló con él; no es algo que hayamos medido--- sin
+haber iniciado sesión. Su nota de voz:
 
 \begin{quote}\itshape
 «Cuesta un poquito entenderle\dots{} le falta hacerla más intuitiva, o a lo mejor unos
-cuadros de diálogo que te diga qué hace cada cosa.»\par\medskip
+cuadros de diálogo que te diga qué hace cada cosa.»
+\end{quote}
+
+Por esos mismos días llegó una segunda nota, esta vez de \textbf{Laura}, que ya había
+probado la aplicación en septiembre (apartado~\ref{sec:laura}) y que en esta ocasión
+\textbf{sí había entrado con su cuenta}:
+
+\begin{quote}\itshape
 «Entré y ya inicié sesión, pero le pisas al micrófono y no te dice que hables, no se
 activa la grabación\dots{} a lo mejor no tan saturada la página, los textos están largos y
 tienes que hacerle scroll, y te pierdes, no sabes qué hacer.»
@@ -884,20 +891,26 @@ primera vez en Inicio, con «Saltar» y «Ver la bienvenida otra vez» en \emph{
 5 pruebas de \cod{entrar-perfil} y 6 de \cod{bienvenida} en el \emph{front}; recorrido en
 el navegador a 390~px \\
 \addlinespace
-«Le pisas al micrófono y no te dice que hables, no se activa la grabación» &
-\textbf{La causa de su caso está en revisión.} Al investigar la queja apareció un fallo
+«Le pisas al micrófono y no te dice que hables, no se activa la grabación»
+\emph{(Laura, con su cuenta ya iniciada)} &
+\textbf{Un fallo medido y corregido, y un caso que sigue abierto.} Al investigar la queja apareció un fallo
 real y medido: en el \emph{front} anterior, el aviso de error del micrófono y el
 «Grabando\dots{}» se pintaban \textbf{debajo de la barra fija} ---de 750 a 849, con la
-barra empezando en 687---, así que no se veían. Pero Ismael estaba \textbf{sin sesión}, y
-sin cuenta no hay corrección de pronunciación; no está establecido que lo que él vio fuera
-ese fallo, ni consta que su navegador fuera un WebView & Una línea de estado
+barra empezando en 687---, así que no se veían. Laura había entrado, así que no era falta
+de cuenta, y en el teléfono de Miguel, con cuenta, el micrófono graba bien (16 de
+septiembre): tampoco es un fallo general. Queda abierto en qué teléfono o navegador
+ocurrió, y que fuera el navegador interno de WhatsApp es una \textbf{hipótesis} & Una línea de estado
 \textbf{dentro} de la barra, con un mensaje por caso —«Grabando: habla ahora», permiso
 pendiente, permiso negado, sin micrófono, micrófono ocupado, sin frase— (\cod{601788b}).
 El aviso para el WebView de Android se queda como precaución, no como explicación de este
 caso & 11 pruebas de \cod{pronunciar.\allowbreak microfono} y el navegador a 390~px.
-\textbf{Falta medir qué ve alguien sin sesión al pulsar el micrófono} \\
+comprobado en lo publicado (\cod{48d748d}) a 390$\times$844: la línea va dentro de la barra,
+acaba en 688 y se lee sin desplazar en los cinco finales de pulsar, ninguno mudo (e6).
+\textbf{Queda abierto en qué teléfono y navegador ocurrió}: en el de Miguel, con cuenta,
+graba bien \\
 \addlinespace
-«No tan saturada la página, los textos están largos\dots{} te pierdes» & Medido a 390~px:
+«No tan saturada la página, los textos están largos\dots{} te pierdes»
+\emph{(Laura)} & Medido a 390~px:
 el lector enseñaba dos avisos a la vez y dejaba ver unas dos líneas del libro, y
 \emph{Pronunciar} ponía 46 palabras antes de la caja de la frase & Segunda tanda: un solo
 aviso en el lector —«Mantén presionada una palabra para ver qué significa; desliza para
@@ -907,14 +920,19 @@ publicado a 390~px táctil el 15 de septiembre \\
 \end{longtable}
 \end{small}
 
-\textbf{La lección de este ciclo es la contraria de la que parecía.} Al principio se dio
-por hecho que «no se activa la grabación» era la barra fija tapando el aviso, y así se
-escribió; después se supo que Ismael no había iniciado sesión, y esa causa dejó de
-sostenerse. Quedan en pie dos cosas distintas: \textbf{lo que se arregló}, que estaba mal lo
-viera él o no, y \textbf{lo que su queja sigue señalando}, que es que la aplicación no dice
-con suficiente claridad qué se puede hacer sin cuenta. Esa medición está en marcha y la
-causa se escribirá cuando esté, no antes. Y de los sitios donde se midió saturación queda
-sin tocar el índice de la ficha, a casi dos pantallas del principio.
+\textbf{La lección de este ciclo es que la atribución también es un dato.} La nota del
+micrófono se contó primero como de Ismael y sin sesión, y de ahí salió una causa ---el
+navegador interno con el que WhatsApp abre los enlaces--- que no se sostenía: la nota es de
+Laura y ella había entrado. Lo medido no cambia: los avisos del micrófono se pintaban bajo
+la barra fija y no se veían, que es exactamente por qué al pulsar no parecía pasar nada, y
+eso está corregido en \cod{601788b} y comprobado en lo publicado, donde los cinco finales de
+pulsar enseñan un mensaje visible dentro de la barra
+(\cod{auditoria/\allowbreak microfono\_casos\_a\_b\_\allowbreak 2026-09-16.md}). Lo que queda
+abierto es dónde ocurrió, porque en el teléfono de Miguel, con cuenta, el micrófono graba
+bien. Caben tres explicaciones, ninguna comprobada: que la nota sea anterior al arreglo, que
+el mensaje saliera y no se leyera ---es una línea fina encima del botón--- o que el fallo
+esté después del permiso, en \cod{MediaRecorder}. Y de los sitios donde se midió saturación
+queda sin tocar el índice de la ficha, a casi dos pantallas del principio.
 
 \subsubsection{La lección, en una línea}
 
@@ -3183,11 +3201,13 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         se reinició el Space y el perfil seguía ahí. Era la acción A4 de la estrategia
         y está cerrada.
   \item \textbf{La prueba de usuario tiene $n = 3$.} Esmeralda y Laura son dos lectoras,
-        y el tercero es Ismael, que la probó en un Android los días 14 y 15 de septiembre:
-        pidió que se entendiera mejor, dijo que al pulsar el micrófono no pasaba nada y que
-        las pantallas se sentían saturadas. De ahí salieron las tres tandas de ayuda; la
-        causa de lo del micrófono \textbf{está en revisión}, porque se supo después que no
-        había iniciado sesión (apartado~\ref{sec:ismael}).
+        y el tercero es Ismael, que la probó en un Android los días 14 y 15 de septiembre y
+        pidió que la aplicación se entendiera mejor. Por esos días Laura mandó una segunda
+        nota: con su cuenta ya iniciada, pulsó el micrófono y no se activó la grabación, y
+        las pantallas se le hicieron saturadas. De ahí salieron las tres tandas de ayuda y
+        el arreglo del micrófono; \textbf{dónde ocurrió} lo de la grabación sigue abierto,
+        porque en el teléfono de Miguel, con cuenta, graba bien
+        (apartado~\ref{sec:ismael}).
         Su valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar
         fallos de usabilidad graves —y encontraron varios—, no para estimar satisfacción
         media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (\cod{auditoria/\allowbreak feedback\_usuarios\_\allowbreak 2026-09-14.md}), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con \emph{love} o \emph{romance} en el título, frente a 4 libros de Gutenberg (recuento sobre el catálogo que carga la aplicación, \cod{auditoria/\allowbreak ronda1\_consolidado\_\allowbreak 2026-09-14.md}); pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En \emph{Encontrar}, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (\cod{auditoria/\allowbreak chips\_reinicio25\_\allowbreak 2026-09-15.md}).
