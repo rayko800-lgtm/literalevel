@@ -1303,3 +1303,13 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 **Colab (decisión de Miguel, 15 sep):** con rayko800 la CPU gasta unidades del saldo Pro (0,08 por hora), así que f4 paró antes de ejecutar y eliminó el entorno (1,99 unidades intactas). Miguel elige ejecutar en su otra cuenta, miguel.reyes.carrillo19@gmail.com, comprobando «Recursos» antes; si también gasta, no se ejecuta.
 - **Notebook, SERIO de enlaces resuelto por e6** (59a367a): las remisiones al repositorio pasan a «no viajan con los entregables y se comparten a petición», con la fórmula de mensaje_profesor.md. Siguen dichos como públicos el v4, CLEAR, el catálogo de Gutenberg y el manifiesto de British Council. No promete que un tercero rehaga el entrenamiento. 103/103 celdas, sin salidas; en local, 57 celdas sin error ni avisos con `-W default`.
 - Orden acordado entre sesiones: e6 corrigió antes de que f4 ejecutara, para ejecutar una sola vez.
+
+**Ronda 4, documentos corregidos por 4e** (d232ffd: documento.md y .tex, estrategia.md, presentacion.tex y los dos PDF; documento pasa a 58 páginas):
+- S1: §8.2 y la diapositiva usan «Crimen y castigo de Dostoyevski», con las posiciones de hoy y remisión a la limitación 15; fuera «el nombre mal escrito llega igual».
+- S2: seis pasos, tres preguntas (frecuencia, libro entero, qué puede contar) y tres fragmentos, citando nivel.ts:17 y perfil.py.
+- S3: «mantener presionada (con ratón, doble clic)»; el doble toque queda solo como histórico (estrategia.md:209).
+- S4: n = 3 y apartado «El tercer ciclo: Ismael» en documento (1487) y estrategia, con las tres tandas, el arreglo del micrófono (601788b) y su prueba pendiente.
+- Menores: arranque fechado, 40 ms aclarado, silencio sin coste con el tope de 10, recuentos 66/351/48 (incluida la fila de Robustez) y la frase de Pronunciar marcada como anterior.
+- Repositorio: limitaciones 9, 10 y 11, .tex 532/3041/3234 y estrategia 24-27, con «se comparte a petición».
+- Revisión encargada a e6.
+- **Menor del front, decisión de la Central: entra antes de la entrega.** bienvenida.ts:77 dice «seis preguntas» y el documento dice tres preguntas y tres fragmentos; e6 lo cambia con el ok de 4e y publica.
