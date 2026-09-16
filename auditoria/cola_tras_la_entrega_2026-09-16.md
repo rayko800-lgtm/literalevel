@@ -55,6 +55,29 @@ escapó. **El modelo a seguir ya está en el código**: `app/ui.py:2573`, con
   `pruebas_extremas.py:5743` y el `'1 consulta'` con un espacio que lo ponía el
   CSS— eran el mismo fallo: la prueba se creía a sí misma.
 
+## 2c. Siete pruebas ciegas en `pruebas_extremas.py` (barrido de b9, 16 sep)
+
+Informe completo en `auditoria/ronda5_pruebas_ciegas_b9_2026-09-16.md` (43cdae8),
+con las siete demostradas sobre dobles mutantes (7 de 7 en `ok`), doce débiles y
+la lista de lo que está bien. **Ninguna afecta a lo que ve un usuario**; son
+huecos de red. No se arreglan antes del 20: son solo pruebas, y
+`pruebas_extremas.py` tenía cambios de f4 a medias.
+
+- **Primero C3 y C4**, porque dejan una propiedad **sin ninguna otra red**:
+  «repasar agrupa por lema» (853-858, el `or` corta si `registrar()` devuelve
+  verdadero y la comparación no se evalúa) y «re-anotar no duplica»
+  (1043-1048, devuelve la lista sin compararla).
+- **C1, C2, C5, C6 y C7** tienen la propiedad cubierta por otra prueba con
+  `assert`, pero siguen siendo ciegas: `lista or "…"` (1141-1145),
+  `([] or None) and "…"`, que da `None` (333-336), la lista sin comparar de
+  «olvidar un libro» (1061-1063), `.name` sin asertar (809-810 y 817-818) y
+  `__doc__ is not None` como única comprobación (896).
+- **El arreglo de fondo es del lanzador, no de cada prueba:** hoy `prueba()`
+  solo falla con excepción o con `False` exacto, así que `None`, tuplas y listas
+  pasan como `ok`. Tratar como fallo `None` y los contenedores cerraría de golpe
+  varias de estas. Ojo: la convención `condición and "texto"` usa el texto como
+  etiqueta de éxito, así que el cambio no puede ser «solo booleanos».
+
 ## 3. Mensajes que una persona no entendería
 
 | Texto de hoy | Dónde | Propuesta |
