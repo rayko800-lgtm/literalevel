@@ -222,3 +222,37 @@ dar el permiso en una sesión.
 | Ronda 4: enlaces y recursos públicos de los entregables (HF, Spaces, datos, DOI) | 4e | 15 sep |
 | Tres menores de 4e (parche_menores_28.py: devoluciones con disco roto, índice apellido→filas, obras sin fechas); buscador y cobro congelados hasta el 20 | f4 | después del 20; el de las obras mueve la exención de 5 obras y exige medida completa |
 | MENOR tras la entrega: el comentario de 1643c4b en catalogo.py promete que los empates no se reordenan entre máquinas, en contra del límite declarado | quien toque catalogo.py | después del 20 |
+
+## Al cierre del 16 de septiembre
+
+La ronda 4 se cerró y el día siguió con la prueba de Miguel, que es la que más
+cambió el trabajo. Resumen para no leer el consolidado entero.
+
+**Publicado hoy.** Front: textos del cuestionario y del gesto, el aria-label de
+Inicio, «Corrígeme» que ya contesta sin sesión y con su aviso visible, y singular
+y plural correctos. Última revisión del Space del front citada aquí: `f4920fa`,
+del commit `a656c2e`. Motor: reinicio 30b (`0319290`), con los empates ordenados
+por cercanía al nivel.
+
+**Lo que trajo la ronda 4.** Documento, estrategia y presentación corregidos
+(cuestionario contado como es, el gesto de mantener presionada, n = 3 con los
+tres lectores, el cuaderno **ejecutado de verdad en Colab** el 16 con las salidas
+guardadas, y los guiones de verificación dichos como «se comparten a petición»).
+Enlaces: ninguno roto y las siete revisiones citadas siguen existiendo. Notebook:
+revisado celda a celda, sin cifras viejas.
+
+**Lo que encontró Miguel probando con su cuenta.** El límite de **10
+correcciones por hora y por IP**, que no es de su cuenta y vive en memoria; el
+aviso que **nombraba el cubo equivocado**; el mensaje de «igual» que culpaba a la
+transcripción cuando la verdad es que **no comparamos el acento**; la boca 3D con
+el encuadre cortado; y la frase de *Pronunciar* que obliga a desplazarse. Los
+cuatro primeros se arreglan o se declaran antes de la entrega; el último, en su
+versión mínima.
+
+**Lo que queda, con dueño.** e6: la tanda del encuadre y la frase, repetir la
+prueba de la boca tras compilar con el tamaño real, y el paso 0 de la bienvenida.
+f4: la subida del motor con los dos textos y la revisión de los dos commits de
+4e. 4e: el paso 0 en los guiones y la regla de no gastar correcciones en la hora
+previa. Miguel: cronometrar la demo entera y lanzar Codex el 19 por la mañana.
+
+**Lo aparcado con su motivo** está en `auditoria/cola_tras_la_entrega_2026-09-16.md`.
