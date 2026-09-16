@@ -1366,7 +1366,8 @@ print(importancias.head(6).round(3))
 # capacidad de sobra para relaciones no lineales e interacciones, **no supera a
 # la regresión lineal** (RMSE ≈0,77 frente a ≈0,75; las cifras exactas las
 # imprime la celda de arriba y bailan en la tercera decimal según la versión de
-# scikit-learn). **El cuello de botella no
+# scikit-learn; lo mismo vale para las demás cifras de este cuadernillo, que
+# son las que imprime la corrida que acompaña a la entrega). **El cuello de botella no
 # es el algoritmo: es la representación del texto.** Ninguna de estas diecisiete
 # variables sabe qué dice el texto.
 
@@ -1450,9 +1451,9 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # - Con las **tres variables clásicas** del experimento original: exactitud
 #   **0,313**, error ordinal **1,295 niveles**.
-# - Con las **diecisiete**: exactitud **0,352**, error ordinal **1,061**.
+# - Con las **diecisiete**: exactitud **0,352**, error ordinal **1,062**.
 #   Catorce variables más compran cuatro puntos de exactitud.
-# - **XGBoost sobre las mismas diecisiete: 0,340 y 1,081. Es peor que la
+# - **XGBoost sobre las mismas diecisiete: 0,337 y 1,091. Es peor que la
 #   regresión logística en las dos métricas**, con trescientos árboles y
 #   capacidad para modelar interacciones que la logística ni siquiera puede
 #   representar.
@@ -1487,7 +1488,7 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # > **Matiz que el cuadernillo obliga a hacer.** Aquella comparación se hizo
 # > contra tres variables, y aquí se ha visto que ampliarlas a diecisiete sube la
-# > referencia clásica a 0,352 y 1,061. Es decir, **la ventaja de los embeddings
+# > referencia clásica a 0,352 y 1,062. Es decir, **la ventaja de los embeddings
 # > sobre unas variables clásicas bien surtidas es bastante menor de lo que aquel
 # > experimento sugería**. La brecha que sí es grande, y que no se cierra con más
 # > conteos, es la del transformador que lee el texto: 0,46 y 0,67.
@@ -2520,7 +2521,7 @@ plt.show()
 # **1. El problema es real y la aproximación clásica no lo resuelve.** Sobre las
 # diecisiete variables de conteo, todos los modelos se quedan en la misma zona:
 # la regresión lineal llega a Spearman 0,707 y un Random Forest con trescientos
-# árboles se queda en 0,686, por debajo. Dar más capacidad al algoritmo no
+# árboles se queda en 0,688, por debajo. Dar más capacidad al algoritmo no
 # cambia el resultado. **El cuello de botella nunca fue el algoritmo: fue la
 # representación del texto.**
 #
