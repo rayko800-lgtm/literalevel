@@ -127,9 +127,22 @@ WhatsApp sigue siendo solo una hipótesis, y se escribió como causa antes de
 medirla: el mismo error que con Esmeralda, repetido. Lo que sí es un fallo nuestro es que la app no le dijo con claridad
 que tenía que entrar. e6 mide qué ve alguien sin sesión al pulsar el micrófono y
 al consultar una palabra, y f4 mira qué devuelven las rutas sin credenciales;
-con eso se decide el aviso que falte. Lo que falta por saber es si el micrófono graba con sesión
-iniciada: e6 mide los casos que no piden cuenta y Miguel prueba el resto con la
-suya.
+con eso se decide el aviso que falte. **Cerrado el 16 de septiembre, y con un hallazgo distinto.** Miguel confirmó que
+la nota es de Laura y que en su teléfono, con su cuenta, el micrófono graba bien.
+e6 midió los cinco finales de pulsar el micrófono en lo publicado (48d748d, 390
+px, informe 9d43956) y en todos sale un mensaje dentro de la barra, que acaba en
+688 y se lee sin desplazar: ninguno es mudo. Así que la explicación que mejor
+encaja para su nota es que fuera **anterior al arreglo 601788b**, cuando el aviso
+se pintaba en 750-849 bajo la barra; queda como hipótesis fechada, junto con las
+otras dos de e6 (que el mensaje saliera y no se leyera como respuesta, o un fallo
+en `MediaRecorder`, el único tramo que no se puede provocar).
+
+**Y el fallo que sí está comprobado es otro:** en *Pronunciar* sin sesión,
+«Corrígeme» va apagado, sin explicación al alcance, y pulsarlo no da ninguna
+respuesta; el texto que lo explica está 309 px más arriba. Es el único «pulso y
+no pasa nada» verificado que tenemos, lo encontramos nosotros al medir, y no es
+lo que ella describía: no hay que mezclarlos. Arreglo aprobado, calcado del
+patrón del lector, con revisión de 4e antes de publicar.
 
 Lo que sí era un fallo real y sigue arreglado: **e6 lo confirmó,** los avisos de
 Pronunciar se pintaban debajo de la barra fija del micrófono, así que en el
