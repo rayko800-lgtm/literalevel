@@ -1604,3 +1604,11 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 - **Ya existe:** «Restablecer vista» vuelve al perfil, y **cerrar y abrir el visor no conserva el giro**, así que «volver al perfil al abrir» no hace falta. La mandíbula abierta con /p/ no explica lo de Miguel.
 - **Hallazgos de paso:** la propia app gira la cámara −30° con los sonidos de labios redondeados (`giroPara`), y eso ya asoma algo de sección; y el panel `sticky` tapa la mandíbula a 360 px si se desplaza la página (a la cola, porque con la vista de la app no tapa nada).
 - **Decisión: se aprueba limitar el giro** (azimut −30°/+20°, asimétrico para respetar `giroPara`), **midiendo antes la elevación** en vez de acotarla a ojo, con capturas en los cuatro límites, comprobación del giro automático, prueba, mutante y visto bueno de b0. Descartado que la cámara vuelva sola al perfil al soltar el dedo, por riesgo de chocar con el giro automático.
+- **Topes de giro de la boca 3D publicados** (a3): **revisión del Space e56396a, del commit a70af4e**, con visto bueno de b0. Informe y capturas en `auditoria/boca3d_giro_2026-09-16.md` (3c0a7d9, 7b7fba0).
+  - **Azimut −34° / +20°:** a −30° y −33° la imagen es prácticamente igual, y −34° deja entero el giro automático (perfil real en −3,27° más los −30° de `giroPara`, peor caso −33,27°). b0 lo comprobó para las tres poses con giro.
+  - **Vertical ±10° alrededor del perfil** (ángulos polares de 75° a 96°), **medido antes de fijarlo**: a 20° ya se ven los planos de corte y a 10° solo un filo de piel. El título del commit dice «de elevación», que es impreciso; el informe lo dice bien.
+  - Capturas en los cuatro topes a 384 px sin la media cara ni la mandíbula cortada; el giro automático de /w/ se mueve y no choca.
+  - 142/142 pruebas. Mutantes: tope en −30° → 3 rojas; sin tope mínimo → 2 rojas; **quitar la llamada del constructor → 0 rojas**, porque la escena real no se construye en jsdom. **a3 lo declara en vez de callarlo** y lo demuestra en el navegador: diez flechas y un arrastre largo dan la misma imagen exacta en el tope.
+  - Verificado sobre lo servido, sin retrocesos, y **sin ninguno de los ficheros de prueba** que usó en local.
+  - A la cola: las dos notas no bloqueantes de b0 y el panel `sticky`.
+- a3 empieza el paso 0 de la bienvenida.
