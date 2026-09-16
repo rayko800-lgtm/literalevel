@@ -1295,3 +1295,9 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
   - Menores de texto y descargas con tiempo de espera, 3 intentos y tamaño mínimo.
   - 103/103 celdas sincronizadas, sin salidas. En local, 57 celdas de código sin error ni avisos con `-W default` (el v4 sustituido).
   - **Riesgo abierto:** §9.3 y la limitación 7 llevan el marcador `<fecha>` hasta que f4 lo ejecute en Colab. Si la ejecución falla, hay que reescribir esas frases antes de la entrega; no pueden quedar con el marcador.
+
+**Ronda 4, informe de enlaces de 4e** (c6d7e8d): ningún enlace roto. CLEAR y el catálogo de Gutenberg responden sin cabeceras; el v4 es público y no gated (sha 0a45209); 59/59 PDF de British Council con el hash del manifiesto (solo desde el navegador, como avisa el cuaderno); front y API en RUNNING; 12 DOI y 25 enlaces web a 200.
+- **SERIO:** el repositorio del que se dice que se recalculan cifras no es público (404 sin sesión), y `validar_local.py`, `tools/bajar_corpus_bc.py` y `entrenamiento_v4/` no están en ningún repo público. No bloquea la ejecución del cuaderno.
+- **Decisión de la Central:** no se hace público antes de la entrega (la historia puede llevar corpus con derechos y no hay tiempo de revisarla). Se rebaja el texto a «se comparte a petición», como `mensaje_profesor.md:49`, y se deja claro qué sí es público. Si Miguel quiere publicar algo, después del 20 y con revisión.
+
+**Colab (decisión de Miguel, 15 sep):** con rayko800 la CPU gasta unidades del saldo Pro (0,08 por hora), así que f4 paró antes de ejecutar y eliminó el entorno (1,99 unidades intactas). Miguel elige ejecutar en su otra cuenta, miguel.reyes.carrillo19@gmail.com, comprobando «Recursos» antes; si también gasta, no se ejecuta.
