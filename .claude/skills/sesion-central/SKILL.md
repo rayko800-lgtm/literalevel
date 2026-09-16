@@ -475,6 +475,11 @@ el PDF después de compilar.
 
 - Tras compilar, **lee el PDF**: páginas y una cadena que solo exista en la
   versión nueva. `pypdf` basta.
+- **Y lee cómo salió impresa, no solo que esté.** `\cod{role="alert"}` se imprimió
+  como «role=.alert"»: una comilla recta dentro de un span de código, el único
+  caso en todos los `.tex`, y la compilación no falló. Un PDF puede salir mal sin
+  dar error. Si una frase se imprime rota, la salida más barata es reescribirla
+  sin el carácter que la rompe, en md y en tex, en vez de investigar la fuente.
 - No des por bueno un «recompilado», ni propio ni ajeno, sin esa comprobación.
 
 **Y la prueba que se cita tiene que ser reproducible.** Al retocar el cuadernillo,
