@@ -31,7 +31,9 @@ Una por una, y marcando:
       `"buscador_listo": true`, que es lo que hace falta para buscar. `/api/estado`
       responde también, pero sirve para otra cosa —el recuento de libros— y no trae
       ese campo. Después, en el front, **hacer una
-      búsqueda y consultar una palabra**: la primera de cada cosa es la lenta.
+      búsqueda de prueba**: la primera tras el arranque es la lenta —0,90 s frente
+      a 0,47 s la siguiente, medido el 16 de septiembre—. Consultar una palabra no
+      hace falta para calentar: tarda unos 1,0 s desde la primera.
 - [ ] **Sesión iniciada** en *Ajustes → Tu perfil*, **fuera de plano**, con una
       cuenta que tenga **cupo**: explicar una palabra, resumir un libro y
       corregir la pronunciación salen a un servicio de pago y gastan cupo.
@@ -91,9 +93,16 @@ que dice el **Plan B** para ese paso.
    más natural», salgan *doncha* y *wanna*, «no pares aquí» y «Escúchalo
    natural», y cuánto tarda.
 5. **Paso 7:** que la palabra mal pronunciada aparezca en «Mis palabras».
-6. **El cronómetro:** la demo entera, contra los 3–5 minutos. Con las esperas
-   medidas sin cuenta, e6 estima de 3:40 a 4:10; los pasos 4, 5 y 6 son los que
-   no se han podido medir.
+6. **El cronómetro:** la demo entera, contra los 3–5 minutos. **La máquina no es
+   el problema:** suma unos 5 s en toda la demo, medidos el 16 de septiembre sobre
+   la revisión `f4920fa` del Space (las dos búsquedas del paso 2, 0,90 s y 0,47 s;
+   el paso 3, 0,57 s y 1,19 s con la curva; el paso 4, 0,13 s y 1,02 s; el paso 7,
+   0,18 s; el primer pintado del front, 256 ms). Lo que ocupa el tiempo es hablar:
+   unos **3:02**, que es una **estimación** a 145 palabras por minuto y no una
+   medida —a 130 palabras por minuto el total hablado sube de 175 a 195 s—. Dentro
+   de 5:00 quedan 1:58 para los pasos 5 y 6; dentro del 4:00 que fija este guion,
+   **58 s**, y el guion les asigna 60: cabe, pero justo. Lo único que falta por
+   medir es cuánto tarda «Corrígeme» (`auditoria/cronometro_demo_2026-09-16.md`).
 7. **Una frase en voz baja desde el móvil:** grabarla hablando bajo y comprobar
    que se oye y se corrige. Si sale «No te oí», apuntarlo y avisar antes de
    grabar la demo. La aplicación descarta la grabación cuando whisper da, en
@@ -139,6 +148,11 @@ que dice el **Plan B** para ese paso.
     grábate leyéndola y te digo qué sonido corregir…». Ciérralas con ✕ antes de
     compartir pantalla (vuelven con el «?» de la barra del lector y el del título de
     *Pronunciar*), para que no tapen el libro ni la frase.
+12. **Si hay que recortar, en este orden**, y no improvises otro: primero la
+    **segunda búsqueda del paso 2**, unos 15 s; después la **segunda palabra del
+    paso 4**, unos 10 s; y solo si «Corrígeme» va lento, el **paso 6 entero**, unos
+    35 s, que es el segundo ejemplo de lo mismo que enseña el 5. **No se recortan
+    la curva del paso 3 ni la consulta del paso 4:** son el producto.
 
 ---
 

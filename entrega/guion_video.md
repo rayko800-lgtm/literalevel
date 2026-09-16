@@ -172,14 +172,16 @@ capítulo.»
 > dinero. Y tres cosas de la primera vez, medidas el 11 de septiembre de 2026 (la
 > primera, otra vez el 15, en el ensayo de e6):
 >
-> - La **primera consulta léxica de la sesión tardó 3,8 s** hasta ver el
->   diccionario el 15 de septiembre (el 11 eran unos 55 s): carga el
->   diccionario de 243 MB, spaCy y el modelo de similitud. **En caliente se ven
+> - La **primera consulta léxica tarda unos 1,0 s** —el panel a 0,47 s, y la IPA
+>   y el diccionario a 1,02 s—, medido el 16 de septiembre sobre la revisión
+>   `f4920fa` del Space, del commit `a656c2e`. Las cifras viejas eran de cuando el
+>   servidor cargaba en frío el diccionario de 243 MB, spaCy y el modelo de
+>   similitud: 3,8 s el 15 de septiembre y unos 55 s el 11. **En caliente se ven
 >   0,3–0,4 s**, y a cámara dices «al instante».
 >   **La traducción y el «Aquí significa» salen de la IA** y llegan unos
 >   segundos después, en la segunda etapa de la hoja: no los atribuyas al
->   diccionario. **Consulta una palabra cualquiera antes de
->   grabar** y el paso Cuatro va fluido. Si el motor llevaba horas sin
+>   diccionario. Eso es lo único que puede tardar aquí, **pide cuenta y sigue sin
+>   medirse**; la consulta en sí ya no hay que calentarla. Si el motor llevaba horas sin
 >   visitas, la primera llamada tarda además medio minuto en despertarlo; el
 >   front lo dice en pantalla. Despiértalo antes.
 > - **Calcula la curva del libro antes.** Queda guardada, así que en la
@@ -380,7 +382,7 @@ Pruébalo.»
 | ¿Se oye el audio de la app en la demo? | comprobar niveles en OBS |
 | ¿Funciona el micrófono para la parte de pronunciación? | **hace falta un headset** |
 | ¿El enlace del final está vivo? | pegarlo en el móvil y abrirlo |
-| ¿El motor está despierto y has entrado? | abrir *Ajustes → Tu perfil* fuera de plano y consultar una palabra antes de grabar |
+| ¿El motor está despierto y has entrado? | abrir *Ajustes → Tu perfil* fuera de plano; lo que se calienta es el buscador con una búsqueda, no la palabra |
 | ¿No se ve nada privado? | ni contraseña, ni identificador de lector, ni consola, ni claves |
 | ¿Hay respaldo grabado? | si se usa, rotulado como **grabación previa** |
 | ¿Lo que dices coincide con lo que se ve? | perfil, media de la ficha y palabra, iguales en pantalla |
