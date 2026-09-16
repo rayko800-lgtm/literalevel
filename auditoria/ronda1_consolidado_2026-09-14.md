@@ -1321,3 +1321,4 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
   - `estrategia.md:209` y `documento.tex:758` son el histórico del doble toque, correctos.
 - **Figura del recorrido:** la etiqueta pasa a «0,7 s en pantalla» (razonamiento de 4e: en esa fila las etiquetas miden lo que espera el lector). Los 40 ms se quedan en el texto con su matiz.
 - e6 encontró la misma frase en `encontrar.ts:136` y va en su tanda del front, con barrido de `front/src`.
+- **dc447f4** (4e): figura del recorrido con «3 preguntas + 3 fragmentos» y «0,7 s en pantalla», comprobado en el texto extraído del PDF (58 páginas); README.md:36 con «seis pasos: tres preguntas y tres fragmentos» y barrido del README. Los documentos no describen `/api/cuestionario`, así que el matiz de la API no obliga a más cambios. Queda solo el commit pequeño con la fecha del Colab.
