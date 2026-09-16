@@ -1,7 +1,10 @@
 # Qué se ve al pulsar el micrófono, y qué funciona sin cuenta
 
-**Medido el 16 de septiembre de 2026** sobre el front publicado (Space
-`48d748d7624a17ca0bad1cb0ca43cd413e52138f`, commit `940c275`), a **390 × 844 px**,
+**Medido el 16 de septiembre de 2026** sobre el front publicado: **revisión del
+Space** `48d748d7624a17ca0bad1cb0ca43cd413e52138f`, **del commit** `940c275`.
+Las dos cosas hacen falta y no son lo mismo: la revisión del Space no resuelve
+con `git show`, y el commit por sí solo no dice qué se está sirviendo. Medido a
+**390 × 844 px**,
 móvil y táctil, en un contexto de navegador aislado y **sin sesión**. Todas las
 cifras son píxeles desde el borde superior de la ventana, sin desplazar.
 
