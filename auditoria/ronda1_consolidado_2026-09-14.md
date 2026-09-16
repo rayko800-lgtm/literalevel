@@ -1337,3 +1337,10 @@ Encargado a 4e (tras los enlaces), en un único commit con PDF; revisa e6.
 - Encargos: e6 mide qué ve alguien sin sesión al pulsar el micrófono y al consultar una palabra, a 390 px, y propone texto sin implementarlo; f4 mira qué rutas exigen cuenta y qué mensaje devuelven sin credenciales, y si alguna cobra un uso sin devolverlo.
 - Informe de la ronda 3 y memoria primeros-usuarios corregidos.
 - **Su prueba pendiente ya no es repetir en WhatsApp.**
+- **Lado del servidor, medido por f4 sobre 0319290 sin credenciales:** la API queda descartada como causa del caso de Ismael.
+  - Solo `/api/voz` y la etapa `completa` de `/api/palabra` exigen cuenta; el resto basta con la cabecera del navegador, y salud, estado, cuestionario y audios no piden nada.
+  - `/api/voz` sin perfil da **403** con «Esta parte necesita que entres con tu perfil. El resto de la aplicación… funciona sin entrar.»
+  - `/api/palabra` responde 200 con la definición y el aviso; «Mis palabras», repaso y biblioteca dan 200 vacíos; `/api/entrada` dice `puerta:true, dentro:false`.
+  - Nada cobra un uso sin devolverlo: `consumir` rechaza sin sumar. `/api/voz` sí lee la grabación antes de comprobar la cuenta, así que se pierde la subida, no cuota.
+  - Sin `OPENAI_API_KEY`: 503 con texto claro antes del cobro, y el diccionario sigue respondiendo.
+  - **Único texto que una persona no entendería:** el 400 de `X-Lector`. Cambio de código, congelado y el front siempre manda la cabecera: **a la cola de después del 20**, junto con adelantar el 403 de `/api/voz` antes de leer el formulario.
