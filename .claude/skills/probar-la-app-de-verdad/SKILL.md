@@ -591,6 +591,22 @@ llamador ni ninguna variable de entorno.
   mano y nunca ejecutaba la línea que lo genera, así que el fallo de plural no lo
   iba a cazar nadie.
 
+### La prueba que se cree a sí misma
+
+Dos veces el mismo día, y 4e lo juntó: una prueba puede pasar o fallar por una
+cadena **que ha escrito la prueba**, no la aplicación.
+
+- `pruebas_extremas.py:5743` comprobaba que la interfaz muestra «Se descartaron 3
+  por parecido bajo.» **construyendo ese texto en la prueba**. La línea que lo
+  genera de verdad no se ejecutaba nunca, y de hecho es inalcanzable.
+- Una prueba nueva del front afirmaba `'1 consulta'` con un espacio que en la
+  pantalla **lo pone el CSS**: el número y el sustantivo son dos nodos. Falló, y
+  la salida buena no fue retocar la aserción sino **emparejar cifra y sustantivo
+  leyendo el DOM**, con lo que además queda fijado que no se despareje.
+
+La pregunta que separa las dos: **¿de dónde sale el texto que estoy comparando?**
+Si sale de la prueba, la prueba se está creyendo a sí misma.
+
 ## Una acción por pasada, si quieres poder atribuir el efecto (16 sep)
 
 Al comprobar que pulsar un botón **ya no** abre un panel, f4 midió en dos pasadas

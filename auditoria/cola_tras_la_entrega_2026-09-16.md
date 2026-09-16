@@ -46,6 +46,11 @@ escapó. **El modelo a seguir ya está en el código**: `app/ui.py:2573`, con
   con un `minimo_similitud` alto, no construir la cadena a mano.
 - **El mutante ya existe:** `tools/banco_mutantes.py:963-964` baja
   `minimo_similitud` de 0.10 a 0.0. Ahí está el gancho cuando se retome.
+- **Repaso con esa lupa, ofrecido por 4e y aceptado:** al abrir sus tres menores
+  después del 20, revisar las pruebas que toque preguntando **de dónde sale el
+  texto que comparan**. Los dos casos del 16 sep —la cadena fabricada en
+  `pruebas_extremas.py:5743` y el `'1 consulta'` con un espacio que lo ponía el
+  CSS— eran el mismo fallo: la prueba se creía a sí misma.
 
 ## 3. Mensajes que una persona no entendería
 
