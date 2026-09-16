@@ -1051,10 +1051,10 @@ esas tres:
 
 | Pregunta del lector | Qué la responde | Coste para él |
 |---|---|---|
-| ¿Cuál es mi nivel? | Seis preguntas sobre hábitos observables y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo | Menos de dos minutos |
+| ¿Cuál es mi nivel? | Seis pasos, uno por pantalla: tres preguntas sobre hábitos observables (con qué frecuencia lee, si ha terminado un libro entero, qué puede contar de una página que acaba de leer) y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo | Menos de dos minutos |
 | ¿Qué leo ahora? | Búsqueda por significado en español sobre el catálogo; el nivel del perfil ordena lo más parecido y lo de otros niveles sale aparte, sin filtrar | Segundos |
 | ¿Por dónde se va a complicar? | Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear | De 12,7 s (vistazo, medido sobre Crime and Punishment) a minutos (libro completo) |
-| ¿Qué significa esta palabra *aquí*? | Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58 % de las consultas sobre un libro real, §6.4), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Instantáneo en local; la explicación contextual tarda más |
+| ¿Qué significa esta palabra *aquí*? | Mantener presionada la palabra (con ratón, doble clic): lema, IPA británica y americana cuando el diccionario la trae (el 58 % de las consultas sobre un libro real, §6.4), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Unos 0,7 s en caliente y unos 5 s la primera consulta de la sesión; la explicación contextual tarda más |
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
 
 *Cuadro 15. Del modelo a las decisiones del usuario.*
@@ -1064,9 +1064,14 @@ esas tres:
 Tomemos el caso concreto de una lectora cuyo perfil da 1,20 sobre 2 (banda
 intermedia, ancla B2).
 
-1. Busca. Escribe *«dostoyevski»*, mal escrito, y el rescate por parecido
-   ortográfico la lleva igualmente a quien busca —«chejov» y «Shakespear»
-   funcionan igual— sin estorbar a las búsquedas por tema, porque el buscador
+1. Busca. Escribe *«Crimen y castigo de Dostoyevski»*. Con su perfil de
+   1,20 la pantalla avisa de que no hay libros en su nivel ni un poco por
+   encima, y *Crime and Punishment* sale el primero en «De otros niveles», sin
+   pulsar nada: a 390 px queda a 679 px del principio de la página (ensayo del
+   15 de septiembre de 2026 sobre los reinicios 28 y 30b). Escribir solo
+   *«dostoyevski»* con un perfil puesto es peor: «En tu nivel» se llena de
+   cuentos sin relación y el libro cae a 3.789 px, que es exactamente la
+   limitación 15. El buscador
    no busca por título sino por significado, sobre embeddings multilingües.
    Podría haber escrito en español lo que le apetece —*«una novela de
    detectives victoriana»*— y el buscador respondería igual. Medido el 11 de
@@ -1110,10 +1115,13 @@ intermedia, ancla B2).
    el libro se va complicando o soltando y cuáles son su capítulo más
    llevadero (el 19, 1,52) y su capítulo más exigente (el 36, 1,87).
    La segunda vez tarda 0,02 s porque queda guardada.
-5. Toca una palabra que no conoce. El trabajo local —lema, categoría
-   gramatical, consulta al diccionario, desambiguación por similitud, IPA— son
-   **40 milisegundos** *en caliente*; la primera consulta de la sesión carga el
-   diccionario, spaCy y el modelo de similitud, y eso tarda. La explicación
+5. Mantiene presionada una palabra que no conoce (con ratón, doble clic).
+   El trabajo del servidor —lema, categoría gramatical, consulta al
+   diccionario, desambiguación por similitud, IPA— son **40 milisegundos** *en
+   caliente*; lo que ve el lector, con la red de por medio, son unos 0,7 s
+   (0,64–0,73 medidos) y unos 5 s la primera consulta de la sesión, que carga
+   el diccionario, spaCy y el modelo de similitud. Medido el 15 de septiembre
+   de 2026 sobre el front publicado, a 390 px. La explicación
    contextual, que sale a la red, es lo único lento siempre, y por eso la ficha
    se pinta en dos etapas: lo local aparece al instante y la explicación se
    añade cuando llega.
@@ -1296,15 +1304,20 @@ de voz anónima. En el entorno local aislado pasaron **32 de 35 pruebas API**;
 tres quedaron sin validar por dependencias NLP ausentes. También pasaron 7
 pruebas de concurrencia de voz, 10 de despliegue y 11 de portadas, con sus
 alcances separados. No se probó OpenAI real ni micrófono físico en ese cierre.
-Recuento sin claves del 15 de septiembre sobre `d58b0be`: **52 de 52 pruebas API**, las
-**349 de 349 pruebas extremas** del motor, 34 de 34 de corpus y 34 de 34 de lectura natural.
+Recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290`
+(`1643c4b`, cada suite corrida sola): **66 de 66 pruebas API**, las **351 pruebas extremas**
+del motor sin ningún fallo y 48 de 48 de corpus (`DESPLIEGUE.md`). Las 34 de 34 de lectura
+natural son del corte anterior, `d58b0be`.
 La consulta de *house* eligió un sentido no adecuado al contexto: disponibilidad
 del diccionario no demuestra que su desambiguación sea correcta en todos los
 casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
 
 **Boca 3D y portadas, a fecha del front `ec957d0` (repositorio `4e6276e`).** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
 
-**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
+**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace. Esa comprobación es anterior a la pantalla de hoy, donde la lectura
+natural va plegada bajo «Para sonar más natural»; como la propone un modelo generativo, la
+respuesta puede cambiar, y el guion de la demostración la vuelve a comprobar con cuenta antes
+de enseñarla.
 
 ### 8.6 Contra quién compite esto
 
@@ -1419,25 +1432,33 @@ repetirlo en cada párrafo corregido.
    una auditoría externa lo señaló con razón: sin esa lista nadie podía
    comprobar que las fuentes de validación fueran ajenas a las de
    entrenamiento. **Ya están**: guion, tarjeta de métricas y las 144
-   predicciones, en `entrenamiento_v4/`. Y la comprobación resultó necesaria de
+   predicciones, en `entrenamiento_v4/`, que no viaja con los entregables y se
+   comparte a petición. Y la comprobación resultó necesaria de
    verdad: la primera validación con UniversalCEFR del apartado 7.5 se hizo
    sobre este mismo corpus y hubo que retirarla.
 10. **British Council no se puede redistribuir, pero sí reconstruir.** Tiene
-    derechos y no acompaña al repositorio; se reconstruye desde su manifiesto
-    de URLs y SHA-256 y se verifica archivo por archivo con
-    `tools/bajar_corpus_bc.py`. Comprobado desde una carpeta vacía el 12 de
-    septiembre de 2026: da las mismas cifras del Cuadro 11. Las cifras internas
-    del v4 (0,908 y 97,2 %) **también se recalculan** desde el repositorio
-    (limitación 9).
+    derechos y no acompaña a la entrega; se reconstruye desde su manifiesto de
+    URLs y SHA-256, que sí viaja —va dentro del cuaderno— y se verifica archivo
+    por archivo. Comprobado el 15 de septiembre de 2026 sin cuenta: las 59 URLs
+    responden desde un navegador y los 59 archivos dan el mismo SHA-256 que el
+    manifiesto (`auditoria/ronda4_enlaces_4e_2026-09-15.md`); antes, desde una
+    carpeta vacía el 12 de septiembre con `tools/bajar_corpus_bc.py`, salían las
+    mismas cifras del Cuadro 11. Ese guion, `validar_local.py` y
+    `entrenamiento_v4/` **no viajan con los entregables y se comparten a
+    petición**: lo que cualquiera puede comprobar por su cuenta es la cadena del
+    cuaderno —el modelo v4 en Hugging Face, CLEAR, el catálogo de Gutenberg y
+    estos hashes—. Las cifras internas del v4 (0,908 y 97,2 %) se recalculan con
+    el guion y las 144 parejas de `entrenamiento_v4/` (limitación 9).
 11. **El cuaderno corre entero en un Colab limpio, pero correr no es
     recalcular.** Los pesos del v4 están publicados en Hugging Face
     (`MikeMaki1763/literalevel-v4`, repositorio público, descarga sin
     credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra
     la inferencia sobre texto real. El cuaderno no reentrena el v4, que pide una
     GPU, pero **sus métricas sí se recalculan fuera de él**: los datos de
-    entrenamiento son públicos (ELG CEFR English, en Hugging Face), el guion
-    está en `entrenamiento_v4/` y las 144 parejas de nivel y predicción están
-    publicadas. Recalculadas en CPU en menos de un minuto, dan las mismas
+    entrenamiento son públicos (ELG CEFR English, en Hugging Face), y el guion
+    y las 144 parejas de nivel y predicción están en `entrenamiento_v4/`, que no
+    viaja con los entregables y se comparte a petición. Recalculadas en CPU en
+    menos de un minuto, dan las mismas
     cifras a cuatro decimales.
 12. **El despliegue está en el escalón más barato, y eso tiene dos
     consecuencias.** La aplicación está publicada en Hugging Face Spaces
@@ -1448,27 +1469,41 @@ repetirlo en cada párrafo corregido.
     visitas** (`gcTimeout` = 172.800 s según la API de
     Hugging Face), de modo que el primer visitante después de una pausa paga
     un arranque en frío mientras se cargan *torch* y los 328 MB del modelo.
-    Está medido: reiniciando el Space, **31 s hasta que el runtime dice
-    `RUNNING` y 32 s hasta que la página responde**. Es la cota inferior,
-    porque ahí la imagen del contenedor ya estaba construida; despertar de
-    una suspensión de 48 h añade traerla. El disco del contenedor **sí es
+    Está medido, y cambia de un arranque a otro. En el despliegue del 15 de
+    septiembre (`0319290`, con la imagen del contenedor ya construida), **46 s
+    hasta que el runtime dijo `RUNNING`** y el buscador listo —`buscador_listo`
+    en `/api/salud`, que desde el reinicio 26 se precarga al arrancar— **14 s
+    después**; en los otros arranques medidos ese día, entre 12 y 55 s después
+    de `RUNNING` (`DESPLIEGUE.md`). Una medida anterior, sobre el Space sin el
+    buscador precargado, dio 31 s hasta `RUNNING` y 32 s hasta que la página
+    respondía. Todas son cotas inferiores: despertar de una suspensión de 48 h
+    añade traer la imagen. El disco del contenedor **sí es
     efímero**, y por eso la estantería, el avance de lectura, el cuaderno y el
     perfil del lector se guardan en un **bucket de almacenamiento montado en
     `/data`** (18 USD por TB y mes en repositorio privado, y esto ocupa
     megas). Verificado de punta a punta: se fijó un perfil, se reinició el
     Space y el perfil seguía ahí. Era la acción A4 de la estrategia y está
     cerrada.
-13. **La prueba de usuario tiene n = 2.** Esmeralda y Laura son dos lectoras.
+13. **La prueba de usuario tiene n = 3.** Esmeralda y Laura son dos lectoras,
+    y el tercero es Ismael, que abrió la aplicación en un Android desde
+    WhatsApp los días 14 y 15 de septiembre y dio con un fallo del micrófono y
+    con una interfaz saturada (apartado 3 de la estrategia).
     Su valor es cualitativo y de diagnóstico, no estadístico: sirve para
     encontrar fallos de usabilidad graves —y encontraron varios—, no para
-    estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con *love* o *romance* en el título, frente a 4 libros de Gutenberg; pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En *Encontrar*, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (`auditoria/chips_reinicio25_2026-09-15.md`).
+    estimar satisfacción media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con *love* o *romance* en el título, frente a 4 libros de Gutenberg (recuento sobre el catálogo que carga la aplicación, `auditoria/ronda1_consolidado_2026-09-14.md`); pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En *Encontrar*, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (`auditoria/chips_reinicio25_2026-09-15.md`).
 14. **La explicación contextual depende de un servicio externo de pago.** Sin
     clave, la aplicación sigue funcionando en todo lo que no sale a la red
     desde el servidor: diccionario, fonética, buscador y puntuación. Los
     enlaces de audio de Wiktionary son aparte —los descarga el navegador del
     lector, así que necesitan conexión, aunque no clave—. Lo que se apaga sin
     clave son tres cosas: la explicación en contexto, la corrección de
-    pronunciación y el resumen de «¿de qué trata?» de la ficha.
+    pronunciación y el resumen de «¿de qué trata?» de la ficha. Con cuenta,
+    cada corrección gasta un uso del cupo del perfil, salvo cuando la grabación
+    no trae voz: entonces la aplicación dice «No te oí. Acércate al micrófono y
+    vuelve a grabar. Este intento no cuenta.» y devuelve el uso, con un tope de
+    10 devoluciones por cuenta y día UTC (`app/api.py:1945`,
+    `app/cuentas.py:306`). Si lo que falla es la red o la clave, no hay
+    devolución.
 15. **La búsqueda por franja tiene tres límites conocidos,** medidos el 15 de
     septiembre sobre el Space del reinicio 28 y dejados sin cambio de código
     porque los arreglos probados estropeaban más búsquedas de las que salvaban

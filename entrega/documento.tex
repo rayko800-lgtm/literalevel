@@ -527,11 +527,13 @@ ficticia de inteligencia artificial aplicada a la educación. La ficción es un 
 del módulo y conviene decir desde el principio \textbf{qué es ficticio y qué no}: la
 empresa lo es; el modelo, la aplicación desplegada, el corpus, las métricas y cada cifra
 de este documento, no. Todo lo que se afirma aquí está medido, y qué parte se puede
-además \emph{reproducir} desde este repositorio y cuál no está dicho sin adornos en el
-apartado~\ref{sec:validacion} y en las limitaciones: el código, la inferencia desde los
-pesos públicos y las métricas del entrenamiento del v4 se rehacen desde el repositorio, con
-datos públicos; lo único que no se redistribuye es el corpus de British Council, que se
-reconstruye con su manifiesto.
+además \emph{reproducir} y cuál no está dicho sin adornos en el
+apartado~\ref{sec:validacion} y en las limitaciones: con lo público —los pesos del v4 en
+Hugging Face, CLEAR, el catálogo de Project Gutenberg y el manifiesto de hashes de British
+Council— se rehacen la inferencia y la cadena entera del cuaderno; los guiones de
+verificación (\cod{validar\_local.py}, \cod{tools/\allowbreak bajar\_corpus\_bc.py},
+\cod{entrenamiento\_v4/}) no viajan con los entregables y se comparten a petición; y el
+corpus de British Council no se redistribuye, se reconstruye con su manifiesto.
 
 El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 \emph{input} comprensible sostiene que se aprende con material que está justo un
@@ -616,8 +618,9 @@ cuadro~\ref{cuad:primaria}.
 \textbf{Necesidad} & \textbf{Cómo se atiende} \\
 \midrule
 Saber por dónde empezar sin sentirse examinada &
-Seis preguntas sobre hábitos observables —con qué frecuencia lee, si necesita
-diccionario, si ve series sin subtítulos, si ha terminado un libro entero— y
+Seis pasos, uno por pantalla: tres preguntas sobre hábitos observables —con qué
+frecuencia lee, si ha terminado un libro entero, qué puede contar de una página que acaba
+de leer—, intercaladas con los tres fragmentos de la fila siguiente, y
 \textbf{cero jerga gramatical} \\
 \addlinespace
 Juzgarse ante algo real y no ante una descripción &
@@ -755,6 +758,8 @@ pantalla pequeña}:
   \item El doble toque para consultar una palabra \textbf{no funcionaba en el móvil}: el
         código escuchaba solo el evento del ratón, que iOS no emite al seleccionar con
         el dedo. La instrucción en pantalla prometía algo que el dispositivo no hacía.
+        Hoy la palabra se consulta manteniéndola presionada —con ratón, doble clic— y el
+        lector lee la selección, que en iOS llega por \cod{selectionchange}.
   \item Los títulos de la tabla de resultados eran enlaces a \cod{gutenberg.org}, así
         que tocarlos \textbf{sacaba al lector fuera de la aplicación}.
   \item El resultado del nivel se pintaba en la parte superior de la página, fuera de la
@@ -837,13 +842,82 @@ cuadro~\ref{cuad:laura} se hicieron primero en Gradio, que sigue en marcha como 
 las que tocan la pantalla se llevaron al \emph{front}: los ajustes fuera de la navegación,
 el lector que sube al cambiar de capítulo, «Otra frase» y la ficha de cada sonido.
 
+\subsubsection{El tercer ciclo: Ismael}
+\label{sec:ismael}
+
+Los días 14 y 15 de septiembre de 2026 la probó \textbf{Ismael}, hermano del autor, que
+abrió el enlace \textbf{desde WhatsApp, en un teléfono Android}, sin que nadie le
+explicara nada. Mandó dos notas de voz:
+
+\begin{quote}\itshape
+«Cuesta un poquito entenderle\dots{} le falta hacerla más intuitiva, o a lo mejor unos
+cuadros de diálogo que te diga qué hace cada cosa.»\par\medskip
+«Entré y ya inicié sesión, pero le pisas al micrófono y no te dice que hables, no se
+activa la grabación\dots{} a lo mejor no tan saturada la página, los textos están largos y
+tienes que hacerle scroll, y te pierdes, no sabes qué hacer.»
+\end{quote}
+
+\begin{small}
+\begin{longtable}{@{}L{3.1cm} L{3.8cm} L{4.2cm} L{2.8cm}@{}}
+\toprule
+\textbf{Lo que dijo} & \textbf{Diagnóstico} & \textbf{Corrección} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Lo que dijo} & \textbf{Diagnóstico} & \textbf{Corrección} & \textbf{Verificación} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{El tercer ciclo, de la nota de voz al código publicado.}
+\label{cuad:ismael}
+\endlastfoot
+«Le falta hacerla más intuitiva\dots{} unos cuadros de diálogo que te diga qué hace cada
+cosa» & Recorrido a 390~px sin cuenta: «Entrar» abría \emph{Ajustes} por arriba y «Tu
+perfil» quedaba fuera de la pantalla; el botón de la cabecera era un icono sin texto; la
+tarjeta «Mídeme» prometía una estimación desde la primera pregunta que ya no ocurre &
+Primera tanda: «Entrar» abre «Tu perfil» con el cursor en «Usuario», el botón dice
+\textbf{Ajustes} y «Mídeme» pierde la promesa. Tercera tanda: bienvenida de tres pasos la
+primera vez en Inicio, con «Saltar» y «Ver la bienvenida otra vez» en \emph{Ajustes} &
+5 pruebas de \cod{entrar-perfil} y 6 de \cod{bienvenida} en el \emph{front}; recorrido en
+el navegador a 390~px \\
+\addlinespace
+«Le pisas al micrófono y no te dice que hables, no se activa la grabación» & No era
+impresión suya, era un fallo: en el teléfono la barra del micrófono es fija y tapaba el
+aviso de error y el «Grabando\dots{}»; y en el WebView con el que WhatsApp abre los
+enlaces en Android, \cod{getUserMedia} no existe o se rechaza sin preguntar, así que al
+tocar no pasaba nada visible & Una línea de estado \textbf{dentro} de la barra, con un
+mensaje por caso —«Grabando: habla ahora», permiso pendiente, permiso negado, sin
+micrófono, micrófono ocupado, sin frase—, y en un WebView de Android, antes de pulsar,
+«Para grabar tu voz, abre LiteraLevel en Chrome» & 11 pruebas de
+\cod{pronunciar.\allowbreak microfono} y el navegador a 390~px con el user agent del
+WebView. \textbf{Falta que Ismael lo repita en su teléfono} \\
+\addlinespace
+«No tan saturada la página, los textos están largos\dots{} te pierdes» & Medido a 390~px:
+el lector enseñaba dos avisos a la vez y dejaba ver unas dos líneas del libro, y
+\emph{Pronunciar} ponía 46 palabras antes de la caja de la frase & Segunda tanda: un solo
+aviso en el lector —«Mantén presionada una palabra para ver qué significa; desliza para
+cambiar de página.»— y, en \emph{Pronunciar}, una línea de ayuda en lugar del subtítulo;
+las dos se cierran con una cruz y vuelven con «?» & Comprobado en el \emph{front}
+publicado a 390~px táctil el 15 de septiembre \\
+\end{longtable}
+\end{small}
+
+\textbf{La lección de este ciclo es que un fallo se puede esconder detrás de una queja de
+usabilidad.} «No se activa la grabación» sonaba a permiso del navegador y era una barra
+fija tapando el aviso; se encontró reproduciendo el caso a 390~px, no leyendo el código.
+\textbf{Queda pendiente} que Ismael repita la prueba del micrófono en su teléfono, dentro
+de WhatsApp, que es lo único que no se puede comprobar desde aquí. Y de los sitios donde se
+midió saturación queda sin tocar el índice de la ficha, a casi dos pantallas del principio.
+
 \subsubsection{La lección, en una línea}
 
 \textbf{El valor de una prueba de usuario no está en el promedio de satisfacción, sino
-en la frase que duele.} Con $n = 2$ no se puede estimar nada, pero se pueden encontrar
-los fallos que hacen que una persona se culpe a sí misma, y ya hay una coincidencia: a
-las dos lectoras les costó el móvil y a ninguna le gustó la paleta por defecto
-(cuadros~\ref{cuad:esmeralda} y~\ref{cuad:laura}). \textcite{nielsen2000five}
+en la frase que duele.} Con $n = 3$ no se puede estimar nada, pero se pueden encontrar
+los fallos que hacen que una persona se culpe a sí misma, y ya hay una coincidencia: a los
+tres les costó el teléfono, y a las dos lectoras no les gustó la paleta por defecto
+(cuadros~\ref{cuad:esmeralda}, \ref{cuad:laura} y~\ref{cuad:ismael}). \textcite{nielsen2000five}
 sitúa en cinco usuarios el punto donde se detecta la mayor parte de los problemas de
 usabilidad; el accionable A8 lleva la prueba hasta ahí.
 
@@ -925,8 +999,10 @@ En una consulta léxica nueva, casi todo el tiempo es \textbf{espera al servicio
 externo}: la explicación contextual se midió en \textbf{14,9 segundos} con el esfuerzo
 de razonamiento \cod{low} que usa la aplicación —eran 67,7 con el esfuerzo medio de
 antes—, mientras todo el trabajo local —lema, diccionario, desambiguación, fonética—
-son \textbf{40 milisegundos}. Por eso la ficha se pinta en dos etapas: lo local aparece
-al instante y la explicación se añade cuando llega. El trabajo tarda lo mismo; deja de
+son \textbf{40 milisegundos} de trabajo en el servidor; en el teléfono, con la red de
+por medio, la hoja tarda unos 0,7~s en caliente y unos 5~s la primera consulta de la
+sesión (medido el 15 de septiembre de 2026 a 390~px). Por eso la ficha se pinta en dos
+etapas: lo local aparece primero y la explicación se añade cuando llega. El trabajo tarda lo mismo; deja de
 parecer que la aplicación se colgó. La misma idea gobierna la curva de dificultad, que
 se repinta cada pocos capítulos mientras mide (el repintado cuesta 25~ms, medido) y los
 recursos pesados, que se cargan al primer uso y no al arrancar.
@@ -972,8 +1048,11 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         Alicia en Angular, diccionario sin perfil y rechazo de voz anónima. No se probó
         OpenAI real ni micrófono físico en ese cierre. Evidencia:
         \cod{auditoria/\allowbreak despliegue\_codex\_\allowbreak 2026-09-13\_noche.md}.
-        Recuento sin claves del 15 de septiembre sobre \cod{d58b0be}: 52 de 52 pruebas API,
-        349 de 349 pruebas extremas del motor, 34 de 34 de corpus y 34 de 34 de lectura natural.
+        Recuento sin claves del 15 de septiembre sobre el árbol del despliegue
+        \cod{0319290} (\cod{1643c4b}, cada suite corrida sola): 66 de 66 pruebas API,
+        351 pruebas extremas del motor sin ningún fallo y 48 de 48 de corpus
+        (\cod{DESPLIEGUE.md}). Las 34 de 34 de lectura natural son del corte anterior,
+        \cod{d58b0be}.
 \end{itemize}
 
 \medskip\noindent\textbf{Lo que el \emph{front} añadió a la usabilidad en un día.} Tres
@@ -1018,7 +1097,7 @@ anterior, \emph{house} eligió un sentido no adecuado para una frase sobre la ub
 de un edificio: disponibilidad del diccionario no demuestra desambiguación correcta
 en todos los casos. Estos límites también forman parte de la entrega.
 
-\textbf{Lectura natural, medida con diez frases.} En \emph{Pronunciar}, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (\emph{want to} \textrightarrow{} \emph{wanna}). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (\cod{auditoria/\allowbreak bateria\_lectura\_natural\_\allowbreak 2026-09-14.md}), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, \textbf{todos correctos}, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como \emph{an argument}. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de \emph{gonna}, \emph{wanna} o \emph{gotta} (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de \cod{7c09d90} las reducciones \emph{doncha} y \emph{wanna}, marcadas como generadas por IA, y ningún enlace.
+\textbf{Lectura natural, medida con diez frases.} En \emph{Pronunciar}, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (\emph{want to} \textrightarrow{} \emph{wanna}). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (\cod{auditoria/\allowbreak bateria\_lectura\_natural\_\allowbreak 2026-09-14.md}), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, \textbf{todos correctos}, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como \emph{an argument}. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de \emph{gonna}, \emph{wanna} o \emph{gotta} (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de \cod{7c09d90} las reducciones \emph{doncha} y \emph{wanna}, marcadas como generadas por IA, y ningún enlace. Esa comprobación es anterior a la pantalla de hoy, donde la lectura natural va plegada bajo «Para sonar más natural»; como la propone un modelo generativo, la respuesta puede cambiar, y el guion de la demostración la vuelve a comprobar con cuenta antes de enseñarla.
 
 \subsection{Accionables}
 
@@ -1083,7 +1162,7 @@ Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textb
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas, sobre la interfaz anterior}: lo completó en Gradio, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas---; sobre el \emph{front} de Angular, pendiente (A8) \\
 Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Parcial}: recuento sin claves del 15 de septiembre ---API 52 de 52, extremas 349 de 349, lectura natural 34 de 34, voz concurrente 10 de 10 y corpus 34 de 34---; no equivalen a una prueba completa de usuario \\
+Producto & Robustez & \textbf{Parcial}: recuento sin claves del 15 de septiembre sobre el árbol del despliegue \cod{0319290} ---API 66 de 66, 351 pruebas extremas sin ningún fallo y corpus 48 de 48---, más lectura natural 34 de 34 y voz concurrente 10 de 10 del corte anterior \cod{d58b0be}; no equivalen a una prueba completa de usuario \\
 Operación & Enlace permanente disponible & \textbf{Cumplido}: el \emph{front} en \cod{MikeMaki1763/\allowbreak literalevel-front} y la API con el motor en \cod{MikeMaki1763/\allowbreak literalevel}, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{Cumplido} el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
@@ -2446,13 +2525,13 @@ decisiones, y el producto está construido para producir exactamente esas tres
 \toprule
 \textbf{Pregunta del lector} & \textbf{Qué la responde} & \textbf{Coste para él} \\
 \midrule
-¿Cuál es mi nivel? & Seis preguntas sobre hábitos observables y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo & Menos de dos minutos \\
+¿Cuál es mi nivel? & Seis pasos, uno por pantalla: tres preguntas sobre hábitos observables (con qué frecuencia lee, si ha terminado un libro entero, qué puede contar de una página que acaba de leer) y tres fragmentos reales en escalera; o bien subir un libro que ya lee cómodo & Menos de dos minutos \\
 \addlinespace
 ¿Qué leo ahora? & Búsqueda por significado en español sobre el catálogo; el nivel del perfil ordena lo más parecido y lo de otros niveles sale aparte, sin filtrar & Segundos \\
 \addlinespace
 ¿Por dónde se va a complicar? & Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear (figura~\ref{fig:curva_wp}) & De 12,7 s (vistazo, medido sobre \emph{Crime and Punishment}) a minutos (libro completo) \\
 \addlinespace
-¿Qué significa esta palabra \emph{aquí}? & Doble toque sobre la palabra: lema, IPA británica y americana cuando el diccionario la trae (el 58\pct{} de las consultas sobre un libro real), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio & Instantáneo en local; la explicación contextual tarda más \\
+¿Qué significa esta palabra \emph{aquí}? & Mantener presionada la palabra (con ratón, doble clic): lema, IPA británica y americana cuando el diccionario la trae (el 58\pct{} de las consultas sobre un libro real), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio & Unos 0,7~s en caliente y unos 5~s la primera consulta de la sesión; la explicación contextual tarda más \\
 \addlinespace
 ¿Lo estoy pronunciando bien? & Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla & Una frase \\
 \bottomrule
@@ -2515,9 +2594,14 @@ red; por eso la ficha se pinta en dos etapas.}
 \end{figure}
 
 \begin{enumerate}[leftmargin=*, itemsep=4pt]
-  \item Busca. Escribe \emph{«dostoyevski»}, mal escrito, y el rescate por parecido
-        ortográfico la lleva igualmente a quien busca —«chejov» y «Shakespear» funcionan
-        igual— sin estorbar a las búsquedas por tema, porque el buscador no busca por
+  \item Busca. Escribe \emph{«Crimen y castigo de Dostoyevski»}. Con su perfil de 1,20
+        la pantalla avisa de que no hay libros en su nivel ni un poco por encima, y
+        \emph{Crime and Punishment} sale el primero en «De otros niveles», sin pulsar
+        nada: a 390~px queda a 679~px del principio de la página (ensayo del 15 de
+        septiembre de 2026 sobre los reinicios 28 y 30b). Escribir solo
+        \emph{«dostoyevski»} con un perfil puesto es peor: «En tu nivel» se llena de
+        cuentos sin relación y el libro cae a 3.789~px, que es exactamente la
+        limitación~15. El buscador no busca por
         título sino por significado, sobre \emph{embeddings} multilingües. Podría haber
         escrito en español lo que le apetece —\emph{«una novela de detectives
         victoriana»}— y el buscador respondería igual. Medido el 11 de septiembre de
@@ -2560,10 +2644,13 @@ red; por eso la ficha se pinta en dos etapas.}
         1,52) y su capítulo más exigente (el \textbf{36}, 1,87). La segunda vez
         tarda 0,02~s porque queda guardada. Las figuras~\ref{fig:curva_wp}
         y~\ref{fig:curvas_comp} muestran ese producto sobre tres libros medidos.
-  \item Toca una palabra que no conoce. El trabajo local —lema, categoría gramatical,
-        consulta al diccionario, desambiguación por similitud, IPA— son \textbf{40
-        milisegundos} \emph{en caliente}; la primera consulta de la sesión carga el
-        diccionario, spaCy y el modelo de similitud, y eso tarda. La explicación
+  \item Mantiene presionada una palabra que no conoce (con ratón, doble clic). El
+        trabajo del servidor —lema, categoría gramatical, consulta al diccionario,
+        desambiguación por similitud, IPA— son \textbf{40 milisegundos} \emph{en
+        caliente}; lo que ve el lector, con la red de por medio, son unos 0,7~s
+        (0,64--0,73 medidos) y unos 5~s la primera consulta de la sesión, que carga el
+        diccionario, spaCy y el modelo de similitud. Medido el 15 de septiembre de 2026
+        sobre el \emph{front} publicado, a 390~px. La explicación
         contextual, que sale a la red, es lo único lento siempre, y por eso la ficha se
         pinta en dos etapas: lo local aparece al instante y la explicación se añade
         cuando llega.
@@ -3030,24 +3117,33 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         ni el guion de entrenamiento estaban en el repositorio, y una auditoría externa lo
         señaló con razón: sin esa lista nadie podía comprobar que las fuentes de validación
         fueran ajenas a las de entrenamiento. \textbf{Ya están}: guion, tarjeta de métricas y
-        las 144 predicciones, en \cod{entrenamiento\_v4/}. Y la comprobación resultó necesaria
+        las 144 predicciones, en \cod{entrenamiento\_v4/}, que no viaja con los
+        entregables y se comparte a petición. Y la comprobación resultó necesaria
         de verdad: la primera validación con UniversalCEFR se hizo sobre este mismo corpus y
         hubo que retirarla.
   \item \textbf{British Council no se puede redistribuir, pero sí reconstruir.} Tiene
-        derechos y no acompaña al repositorio; se reconstruye desde su manifiesto de URLs y
-        SHA-256 y se verifica archivo por archivo con \cod{tools/\allowbreak bajar\_corpus\_bc.py}.
-        Comprobado desde una carpeta vacía el 12 de septiembre de 2026: da las mismas cifras
-        del cuadro~\ref{cuad:validacion}. Las cifras internas del v4 (0,908 y 97,2\pct)
-        también se recalculan desde el repositorio.
+        derechos y no acompaña a la entrega; se reconstruye desde su manifiesto de URLs y
+        SHA-256, que sí viaja —va dentro del cuaderno— y se verifica archivo por archivo.
+        Comprobado el 15 de septiembre de 2026 sin cuenta: las 59 URLs responden desde un
+        navegador y los 59 archivos dan el mismo SHA-256 que el manifiesto
+        (\cod{auditoria/\allowbreak ronda4\_enlaces\_4e\_\allowbreak 2026-09-15.md}); antes,
+        desde una carpeta vacía el 12 de septiembre con \cod{tools/\allowbreak
+        bajar\_corpus\_bc.py}, salían las mismas cifras del cuadro~\ref{cuad:validacion}.
+        Ese guion, \cod{validar\_local.py} y \cod{entrenamiento\_v4/} \textbf{no viajan con
+        los entregables y se comparten a petición}: lo que cualquiera puede comprobar por su
+        cuenta es la cadena del cuaderno —el modelo v4 en Hugging Face, CLEAR, el catálogo de
+        Gutenberg y estos hashes—. Las cifras internas del v4 (0,908 y 97,2\pct) se
+        recalculan con el guion y las 144 parejas de \cod{entrenamiento\_v4/}.
   \item \textbf{El cuaderno corre entero en un Colab limpio, pero correr no es
         recalcular.} Los pesos del v4 están publicados en Hugging Face
         (\cod{MikeMaki1763/\allowbreak literalevel-v4}, repositorio público, descarga sin
         credenciales), así que el cuaderno se ejecuta de principio a fin y demuestra la
         inferencia sobre texto real. El cuaderno no reentrena el v4, que pide una GPU, pero
         \textbf{sus métricas sí se recalculan fuera de él}: los datos de entrenamiento son
-        públicos (ELG CEFR English, en Hugging Face), el guion está en \cod{entrenamiento\_v4/}
-        y las 144 parejas de nivel y predicción están publicadas. Recalculadas en CPU en menos
-        de un minuto, dan las mismas cifras a cuatro decimales.
+        públicos (ELG CEFR English, en Hugging Face), y el guion y las 144 parejas de nivel
+        y predicción están en \cod{entrenamiento\_v4/}, que no viaja con los entregables y se
+        comparte a petición. Recalculadas en CPU en menos de un minuto, dan las mismas cifras
+        a cuatro decimales.
   \item \textbf{El despliegue está en el escalón más barato, y eso tiene dos
         consecuencias.} La aplicación está publicada en dos Spaces de Hugging Face con
         dirección fija que sobrevive a apagar el equipo del autor: el \emph{front} de
@@ -3060,28 +3156,40 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         172.800 s según la API de Hugging Face), de modo que el \emph{front} abre al
         instante, pero su primera llamada a la API después de una pausa paga un arranque
         en frío mientras se cargan \emph{torch} y los 328 MB del modelo; el \emph{front} lo
-        dice con palabras («tarda unos 30 segundos en despertar») en vez de fallar. Está
-        medido: reiniciando el Space,
-        \textbf{31 s hasta que el runtime dice \cod{RUNNING} y 32 s hasta que la página
-        responde}. Es la cota inferior, porque ahí la imagen del contenedor ya estaba
-        construida; despertar de una suspensión de 48 h añade traerla. El disco del
+        dice con palabras («tarda unos 30 segundos en despertar», \cod{nucleo/api.ts},
+        que se queda corto) en vez de fallar. Está medido, y cambia de un arranque a otro:
+        en el despliegue del 15 de septiembre (\cod{0319290}, con la imagen del contenedor
+        ya construida), \textbf{46 s hasta que el runtime dijo \cod{RUNNING}} y el buscador
+        listo —\cod{buscador\_listo} en \cod{/api/salud}, precargado al arrancar desde el
+        reinicio 26— \textbf{14 s después}; en los otros arranques medidos ese día, entre
+        12 y 55 s después de \cod{RUNNING} (\cod{DESPLIEGUE.md}). Una medida anterior,
+        sobre el Space sin el buscador precargado, dio 31 s hasta \cod{RUNNING} y 32 s
+        hasta que la página respondía. Todas son cotas inferiores: despertar de una
+        suspensión de 48 h añade traer la imagen. El disco del
         contenedor \textbf{sí es efímero}, y por eso la estantería, el avance de
         lectura, el cuaderno y el perfil del lector se guardan en un \textbf{bucket de
         almacenamiento montado en \cod{/data}} (18 USD por TB y mes en repositorio
         privado, y esto ocupa megas). Verificado de punta a punta: se fijó un perfil,
         se reinició el Space y el perfil seguía ahí. Era la acción A4 de la estrategia
         y está cerrada.
-  \item \textbf{La prueba de usuario tiene $n = 2$.} Esmeralda y Laura son dos lectoras.
+  \item \textbf{La prueba de usuario tiene $n = 3$.} Esmeralda y Laura son dos lectoras,
+        y el tercero es Ismael, que abrió la aplicación en un Android desde WhatsApp los
+        días 14 y 15 de septiembre y dio con un fallo del micrófono y con una interfaz
+        saturada (apartado~\ref{sec:ismael}).
         Su valor es cualitativo y de diagnóstico, no estadístico: sirve para encontrar
         fallos de usabilidad graves —y encontraron varios—, no para estimar satisfacción
-        media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (\cod{auditoria/\allowbreak feedback\_usuarios\_\allowbreak 2026-09-14.md}), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con \emph{love} o \emph{romance} en el título, frente a 4 libros de Gutenberg; pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En \emph{Encontrar}, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (\cod{auditoria/\allowbreak chips\_reinicio25\_\allowbreak 2026-09-15.md}).
+        media. Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (\cod{auditoria/\allowbreak feedback\_usuarios\_\allowbreak 2026-09-14.md}), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con \emph{love} o \emph{romance} en el título, frente a 4 libros de Gutenberg (recuento sobre el catálogo que carga la aplicación, \cod{auditoria/\allowbreak ronda1\_consolidado\_\allowbreak 2026-09-14.md}); pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En \emph{Encontrar}, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (\cod{auditoria/\allowbreak chips\_reinicio25\_\allowbreak 2026-09-15.md}).
   \item \textbf{La explicación contextual depende de un servicio externo de pago.} Sin
         clave, la aplicación sigue funcionando en todo lo que no sale a la red desde el
         servidor: diccionario, fonética, buscador y puntuación. Los enlaces de audio de
         Wiktionary son aparte, porque los descarga el navegador del lector: necesitan
         conexión, aunque no clave. Lo que se apaga sin clave son tres cosas: la
         explicación en contexto, la corrección de pronunciación y el resumen de
-        «¿de qué trata?» de la ficha.
+        «¿de qué trata?» de la ficha. Con cuenta, cada corrección gasta un uso del cupo del
+        perfil, salvo cuando la grabación no trae voz: entonces la aplicación dice «No te
+        oí. Acércate al micrófono y vuelve a grabar. Este intento no cuenta.» y devuelve el
+        uso, con un tope de 10 devoluciones por cuenta y día UTC (\cod{app/api.py:1945},
+        \cod{app/cuentas.py:306}). Si lo que falla es la red o la clave, no hay devolución.
   \item \textbf{La búsqueda por franja tiene tres límites conocidos,} medidos el 15 de
         septiembre sobre el Space del reinicio 28 y dejados sin cambio de código porque
         los arreglos probados estropeaban más búsquedas de las que salvaban
@@ -3231,7 +3339,8 @@ interfaz que se puede usar con el pulgar.
 fija ---el \emph{front} de Angular en un Space estático y la API con el motor en otro---,
 pero el motor corre sobre el hardware más barato: se suspende por inactividad. El catálogo ya está
 medido entero ---53.179 libros--- y las métricas del v4, que el documento citaba sin poder
-recalcular, ya se recalculan desde el repositorio. Lo que queda está planificado con coste
+recalcular, ya se recalculan fuera del cuaderno con el guion y las 144 parejas de
+\cod{entrenamiento\_v4/}, que se comparten a petición. Lo que queda está planificado con coste
 y criterio de terminado en el cuadro~\ref{cuad:accionables}.
 
 \textbf{Y para qué sirve esto, dicho como decisión y no como métrica.} Un lector que hoy

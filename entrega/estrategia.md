@@ -21,11 +21,14 @@ ficticia de inteligencia artificial aplicada a la educación. La ficción es un
 requisito del módulo y conviene decir desde el principio **qué es ficticio y qué
 no**: la empresa lo es; el modelo, la aplicación desplegada, el corpus, las
 métricas y cada cifra de este documento, no. Todo lo que se afirma aquí está
-medido, y qué parte se puede además *reproducir* desde el repositorio y cuál no
-está dicho sin adornos en el documento principal: el código, la inferencia
-desde los pesos públicos y las métricas del entrenamiento del v4 se rehacen
-desde el repositorio, con datos públicos; lo único que no se redistribuye es el
-corpus de British Council, que se reconstruye con su manifiesto.
+medido, y qué parte se puede además *reproducir* y cuál no está dicho sin
+adornos en el documento principal: con lo público —los pesos del v4 en Hugging
+Face, CLEAR, el catálogo de Project Gutenberg y el manifiesto de hashes de
+British Council— se rehacen la inferencia y la cadena entera del cuaderno; los
+guiones de verificación (`validar_local.py`, `tools/bajar_corpus_bc.py`,
+`entrenamiento_v4/`) no viajan con los entregables y se comparten a petición; y
+el corpus de British Council no se redistribuye, se reconstruye con su
+manifiesto.
 
 El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 *input* comprensible sostiene que se aprende con material que está justo un
@@ -106,7 +109,7 @@ Su tolerancia a la fricción es de segundos.
 
 | Necesidad | Cómo se atiende |
 |---|---|
-| Saber por dónde empezar sin sentirse examinada | Seis preguntas sobre hábitos observables —con qué frecuencia lee, si necesita diccionario, si ve series sin subtítulos, si ha terminado un libro entero— y **cero jerga gramatical** |
+| Saber por dónde empezar sin sentirse examinada | Seis pasos, uno por pantalla: tres preguntas sobre hábitos observables —con qué frecuencia lee, si ha terminado un libro entero, qué puede contar de una página que acaba de leer—, intercaladas con los tres fragmentos de la fila siguiente, y **cero jerga gramatical** |
 | Juzgarse ante algo real y no ante una descripción | Tres fragmentos literarios en escalera (*Alice*, Sherlock Holmes, *Frankenstein*), pintados con la tipografía del lector para que se lean como un libro y no como un formulario. Pesan 0,65 en el cálculo del nivel: delante de un texto real la gente se juzga mejor que describiéndose |
 | Que le propongan algo, no una biblioteca | La pestaña «A mi nivel» de *Encontrar*, que propone lecturas sin escribir nada |
 | Poder usarlo con el pulgar | Objetivos táctiles de 44 px, controles repartidos en filas que caben en 390 px, mandos de navegación también debajo del texto |
@@ -206,7 +209,8 @@ necesitaban un dedo y una pantalla pequeña**:
 - El doble toque para consultar una palabra **no funcionaba en el móvil**: el
   código escuchaba solo el evento del ratón, que iOS no emite al seleccionar
   con el dedo. La instrucción en pantalla prometía algo que el dispositivo no
-  hacía.
+  hacía. Hoy la palabra se consulta manteniéndola presionada —con ratón, doble
+  clic— y el lector lee la selección, que en iOS llega por `selectionchange`.
 - Los títulos de la tabla de resultados eran enlaces a `gutenberg.org`, así que
   tocarlos **sacaba al lector fuera de la aplicación**.
 - El resultado del nivel se pintaba en la parte superior de la página, fuera de
@@ -270,13 +274,41 @@ como motor, y las que tocan la pantalla se llevaron al front: los ajustes fuera
 de la navegación, el lector que sube al cambiar de capítulo, «Otra frase» y la
 ficha de cada sonido.
 
-### 3.4 La lección, en una línea
+### 3.4 El tercer ciclo: Ismael
+
+Los días 14 y 15 de septiembre de 2026 la probó **Ismael**, hermano del autor, que abrió
+el enlace **desde WhatsApp, en un teléfono Android**, sin que nadie le explicara nada.
+Mandó dos notas de voz:
+
+> *«Cuesta un poquito entenderle… le falta hacerla más intuitiva, o a lo mejor unos
+> cuadros de diálogo que te diga qué hace cada cosa.»*
+>
+> *«Entré y ya inicié sesión, pero le pisas al micrófono y no te dice que hables, no se
+> activa la grabación… a lo mejor no tan saturada la página, los textos están largos y
+> tienes que hacerle scroll, y te pierdes, no sabes qué hacer.»*
+
+| Lo que dijo | Diagnóstico | Corrección | Verificación |
+|---|---|---|---|
+| «Le falta hacerla más intuitiva… unos cuadros de diálogo que te diga qué hace cada cosa» | Recorrido a 390 px sin cuenta: «Entrar» abría *Ajustes* por arriba y «Tu perfil» quedaba fuera de la pantalla; el botón de la cabecera era un icono sin texto; y la tarjeta «Mídeme» prometía una estimación desde la primera pregunta que ya no ocurre | **Primera tanda:** «Entrar» abre «Tu perfil» con el cursor en «Usuario», el botón dice **Ajustes** y «Mídeme» pierde la promesa. **Tercera tanda:** bienvenida de tres pasos la primera vez en Inicio, con «Saltar» y «Ver la bienvenida otra vez» en *Ajustes* | 5 pruebas de `entrar-perfil` y 6 de `bienvenida` en el front; recorrido en el navegador a 390 px |
+| «Le pisas al micrófono y no te dice que hables, no se activa la grabación» | No era impresión suya, era un fallo: en el teléfono la barra del micrófono es fija y tapaba el aviso de error y el «Grabando…»; y en el WebView con el que WhatsApp abre los enlaces en Android, `getUserMedia` no existe o se rechaza sin preguntar, así que al tocar no pasaba nada visible | Una línea de estado **dentro** de la barra, con un mensaje por caso —«Grabando: habla ahora», permiso pendiente, permiso negado, sin micrófono, micrófono ocupado, sin frase—, y en un WebView de Android, antes de pulsar, «Para grabar tu voz, abre LiteraLevel en Chrome» | 11 pruebas de `pronunciar.microfono` y el navegador a 390 px con el user agent del WebView. **Falta que Ismael lo repita en su teléfono** |
+| «No tan saturada la página, los textos están largos… te pierdes» | Medido a 390 px: el lector enseñaba dos avisos a la vez y dejaba ver unas dos líneas del libro, y *Pronunciar* ponía 46 palabras antes de la caja de la frase | **Segunda tanda:** un solo aviso en el lector —«Mantén presionada una palabra para ver qué significa; desliza para cambiar de página.»— y, en *Pronunciar*, una línea de ayuda en lugar del subtítulo; las dos se cierran con ✕ y vuelven con «?» | Comprobado en el front publicado a 390 px táctil el 15 de septiembre |
+
+*Cuadro 1c. El tercer ciclo, de la nota de voz al código publicado.*
+
+**La lección de este ciclo es que un fallo se puede esconder detrás de una queja de
+usabilidad.** «No se activa la grabación» sonaba a permiso del navegador y era una barra
+fija tapando el aviso; se encontró reproduciendo el caso a 390 px, no leyendo el código.
+**Queda pendiente** que Ismael repita la prueba del micrófono en su teléfono, dentro de
+WhatsApp, que es lo único que no se puede comprobar desde aquí. Y de los sitios donde se
+midió saturación queda sin tocar el índice de la ficha, a casi dos pantallas del principio.
+
+### 3.5 La lección, en una línea
 
 **El valor de una prueba de usuario no está en el promedio de satisfacción, sino
-en la frase que duele.** Con n = 2 no se puede estimar nada, pero se pueden
+en la frase que duele.** Con n = 3 no se puede estimar nada, pero se pueden
 encontrar los fallos que hacen que una persona se culpe a sí misma, y ya hay
-una coincidencia: a las dos lectoras les costó el móvil y a ninguna le gustó la
-paleta por defecto. Nielsen (2000) sitúa en cinco usuarios el punto donde se
+una coincidencia: a los tres les costó el teléfono, y a las dos lectoras no les
+gustó la paleta por defecto. Nielsen (2000) sitúa en cinco usuarios el punto donde se
 detecta la mayor parte de los problemas de usabilidad; el accionable A8 lleva la
 prueba hasta ahí.
 
@@ -365,8 +397,10 @@ En una consulta léxica nueva, casi todo el tiempo es **espera al servicio
 externo**: la explicación contextual se midió en **14,9 segundos** con el
 esfuerzo de razonamiento `low` que usa la aplicación —eran 67,7 con el esfuerzo
 medio de antes—, mientras todo el trabajo local —lema, diccionario,
-desambiguación, fonética— son **40 milisegundos**. Por eso la ficha se pinta en dos etapas: lo
-local aparece al instante y la explicación se añade cuando llega. El trabajo
+desambiguación, fonética— son **40 milisegundos** de trabajo en el servidor; en el teléfono,
+con la red de por medio, la hoja tarda unos 0,7 s en caliente y unos 5 s la primera consulta de
+la sesión (medido el 15 de septiembre de 2026 a 390 px). Por eso la ficha se pinta en dos etapas:
+lo local aparece primero y la explicación se añade cuando llega. El trabajo
 tarda lo mismo; deja de parecer que la aplicación se colgó. La misma idea
 gobierna la curva de dificultad, que se repinta cada pocos capítulos mientras
 mide (el repintado cuesta 25 ms, medido) y los recursos pesados, que se cargan
@@ -411,8 +445,10 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   lectura de Alicia en Angular, diccionario sin perfil y rechazo de voz anónima.
   No se probó OpenAI real ni micrófono físico en ese cierre. Evidencia:
   `auditoria/despliegue_codex_2026-09-13_noche.md`.
-  Recuento sin claves del 15 de septiembre sobre `d58b0be`: 52 de 52 pruebas API,
-  349 de 349 pruebas extremas, 34 de 34 de corpus y 34 de 34 de lectura natural.
+  Recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290`
+  (`1643c4b`, cada suite corrida sola): 66 de 66 pruebas API, 351 pruebas extremas sin
+  ningún fallo y 48 de 48 de corpus (`DESPLIEGUE.md`). Las 34 de 34 de lectura natural
+  son del corte anterior, `d58b0be`.
 
 **Lo que el front añadió a la usabilidad en un día.** Tres cosas, y las tres
 salieron de mirar cómo se usa un teléfono:
@@ -444,9 +480,9 @@ salieron de mirar cómo se usa un teléfono:
 
 **Boca 3D y portadas, a fecha del front `ec957d0` (repositorio `4e6276e`).** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
 
-**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace.
+**Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space a fecha de `7c09d90` las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace. Esa comprobación es anterior a la pantalla de hoy, donde la lectura natural va plegada bajo «Para sonar más natural»; como la propone un modelo generativo, la respuesta puede cambiar, y el guion de la demostración la vuelve a comprobar con cuenta antes de enseñarla.
 
-**Primeros usuarios.** Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con *love* o *romance* en el título, frente a 4 libros de Gutenberg; pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En *Encontrar*, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (`auditoria/chips_reinicio25_2026-09-15.md`).
+**Primeros usuarios.** Desde el 14 de septiembre hay cuentas repartidas a los primeros usuarios (`auditoria/feedback_usuarios_2026-09-14.md`), y la primera respuesta ya enseñó un fallo: una lectora B1 buscó libros de amor y encontró pocos. No faltaban en el catálogo; fallaba la búsqueda. En la franja que la aplicación da a un lector B1 (dificultad de 0,35 a 1,25) hay 114 textos libres con *love* o *romance* en el título, frente a 4 libros de Gutenberg (recuento sobre el catálogo que carga la aplicación, `auditoria/ronda1_consolidado_2026-09-14.md`); pero la búsqueda devolvía los más parecidos de todo el catálogo, y con «amor» o «Historias de amor» y nivel B1 los 24 primeros eran de Gutenberg, sin ninguno de esos cuentos. Desde el reinicio 25 (15 de septiembre), detrás de esos resultados van hasta 12 textos de la franja del lector que se parecen a lo buscado: con «amor» y nivel B1 se marcan 12, y 8 llevan el amor en el título. En *Encontrar*, contados a mano, unos 7 de los resultados de «Historias de amor» que caen en el nivel del lector o un poco por encima son de amor, en sentido amplio. Recontado el 15 de septiembre con el catálogo que carga la aplicación y con el Space publicado (`auditoria/chips_reinicio25_2026-09-15.md`).
 
 **Límites de la búsqueda, declarados.** Tres quedan sin cambio de código porque los arreglos probados estropeaban más búsquedas de las que salvaban (medido el 15 de septiembre sobre el Space del reinicio 28, `DESPLIEGUE.md`). Con perfil, un autor buscado por una sola palabra trae cuentos sin relación: con 1,20, «dostoyevski» marca 15 textos en la franja y «tolstoy», «cervantes» y «oscar wilde», 12, porque el modelo de parecido acerca a «historias de X» y «libros sobre X» títulos de misterio, bestias o fantasía; con título y autor, «Crimen y castigo de Dostoyevski» da 0. En las consultas de varias palabras el título pesa demasiado: «Historias de amor» marca cuentos titulados «My stories», y solo unos 5 (A2) y 7 (B1) de sus resultados son de amor. Y con una sola palabra sube un título que solo la contiene: «rosa» trae «The Water Supply of the El Paso…» y «luna», con B1, «Luna, The Rajapalayam Puppy».
 
@@ -631,7 +667,7 @@ visuales pendientes no deben desplazar el ensayo de la demo.
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas, sobre la interfaz anterior**: lo completó en Gradio, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas—; sobre el front de Angular, pendiente (A8) |
 | Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Parcial**: recuento sin claves del 15 de septiembre —API 52 de 52, extremas 349 de 349, lectura natural 34 de 34, voz concurrente 10 de 10 y corpus 34 de 34—; no equivalen a una prueba completa de usuario |
+| Producto | Robustez | **Parcial**: recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290` —API 66 de 66, 351 pruebas extremas sin ningún fallo y corpus 48 de 48—, más lectura natural 34 de 34 y voz concurrente 10 de 10 del corte anterior `d58b0be`; no equivalen a una prueba completa de usuario |
 | Operación | Enlace permanente disponible | **Cumplido**: el front en `MikeMaki1763/literalevel-front` y la API con el motor en `MikeMaki1763/literalevel`, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en `/data` |
 | Operación | Catálogo medido, no heredado | **Cumplido** el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |
