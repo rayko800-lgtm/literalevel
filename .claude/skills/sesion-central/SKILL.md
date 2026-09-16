@@ -476,3 +476,19 @@ el PDF después de compilar.
 - Tras compilar, **lee el PDF**: páginas y una cadena que solo exista en la
   versión nueva. `pypdf` basta.
 - No des por bueno un «recompilado», ni propio ni ajeno, sin esa comprobación.
+
+**Y la prueba que se cita tiene que ser reproducible.** Al retocar el cuadernillo,
+e6 dio como garantía una huella de `outputs` + `execution_count`
+(`4ee9324220fff845`). f4 no pudo reproducirla: probó tres formas de serializar y
+le salieron tres valores distintos, ninguno ese. No estaba mal, pero **una huella
+sin el método con que se calculó no es verificable**, así que no se cita. Lo que
+sí se cita es lo que el otro pudo comprobar solo: las 57 celdas con salidas y
+`execution_count` **idénticos celda a celda** contra la corrida anterior.
+
+- Si das una huella, da el guion que la produce; si no, da la comparación.
+- **Compara por contenido, nunca por número de línea.** Añadir una frase corrió
+  dos pasajes una línea, y compararlos por su número los marcaba como cambiados
+  cuando estaban intactos. f4 cayó en eso en su primera pasada y lo corrigió.
+- **Cuenta los cambios con exactitud o no los cuentes.** «Siete líneas» era el
+  diff de un archivo, no el acumulado: 11 en el `.py` y 13 en el `.ipynb`. Los
+  cinco cambios descritos eran los correctos; el recuento, no.
