@@ -10,6 +10,25 @@ cuenta `MikeMaki1763`.
 
 ---
 
+## 0. La revisión del Space no es un commit de git
+
+El 16 de septiembre dos sesiones perdieron un rato con esto. El front se publicó
+tres veces en una tarde y los informes citaban `48d748d` y `fce0df6` como si
+fueran commits: no resuelven con `git show`, porque son **revisiones del
+repositorio del Space**, con su propio historial y su `lastModified`. El commit
+del repositorio que produjo la segunda era `5e9acc0`, y esa es la pareja que hay
+que dar.
+
+- En cualquier informe, di **«revisión del Space»** y cita al lado **el commit
+  del repositorio** que la generó.
+- Para saber qué hay publicado ahora, pregunta a la API de Hugging Face (`sha` y
+  `lastModified`), no al repositorio local.
+- Con varias publicaciones en el mismo día, **cada medida lleva la revisión sobre
+  la que se hizo**. Una medida sin ese dato no se puede comparar con la siguiente,
+  y dos sesiones pueden parecer en desacuerdo cuando midieron cosas distintas.
+
+---
+
 ## 1. El token
 
 Va en `C:\Users\laura\.hf_token`, **fuera del repositorio**. Tiene que ser de
