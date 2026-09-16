@@ -305,7 +305,8 @@ se contó primero como de Ismael y sin sesión, y de ahí salió una causa —el
 con el que WhatsApp abre los enlaces— que no se sostenía: la nota es de Laura y ella había
 entrado. Lo medido no cambia: los avisos del micrófono se pintaban bajo la barra fija y no
 se veían, que es exactamente por qué al pulsar no parecía pasar nada, y eso está corregido
-en `601788b`, y comprobado en lo publicado: los cinco finales de pulsar enseñan un mensaje
+en `601788b`, y comprobado en lo publicado entonces —revisión `9b4a3b5` del Space, del
+commit `a1c4268`—: los cinco finales de pulsar enseñan un mensaje
 visible dentro de la barra. Lo que queda abierto es dónde ocurrió, porque en el teléfono de
 Miguel, con cuenta, el micrófono graba bien. Caben tres explicaciones, ninguna comprobada:
 que la nota sea anterior al arreglo, que el mensaje saliera y no se leyera —es una línea

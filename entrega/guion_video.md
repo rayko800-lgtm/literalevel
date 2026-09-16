@@ -80,7 +80,7 @@ del profesor.
   la API. Las cifras son de arranques por despliegue, no de un despertar desde
   la suspensión, que no se ha medido
   (`auditoria/ronda4_arranque_demo_f4_2026-09-16.md`).
-- **La boca en 3D.** El front publicado (`940c275`, 16 de septiembre; Space `48d748d`) lleva la
+- **La boca en 3D.** El front publicado —revisión `f4920fa` del Space, del commit `a656c2e`— lleva la
   cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
   `master`): comprobado hoy, `boca3d/cara.glb` y `boca3d/lengua.glb` responden
   200 en el Space publicado. **Ábrela una vez antes de grabar**: la cara
