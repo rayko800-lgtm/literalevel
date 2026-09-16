@@ -83,6 +83,25 @@ aplicación después de borrar**.
 - **Dos carpetas temporales vacías del 7 de septiembre** que dan «Acceso
   denegado» al borrarlas. Ocupan 0 bytes; se dejaron estar.
 
+## 5b. De la prueba de Miguel del 16 de septiembre
+
+- **La boca 3D, más fina (lo dejó él para después).** «La animación 3D me gusta,
+  pero se ve muy básica aún… los labios cuando se abren, no se ve el corte de la
+  abertura.» Es trabajo de Blender sobre el `.glb`, no de la aplicación. Distinto
+  del encuadre cortado que se arregla antes de la entrega.
+- **La introducción guiada, versión completa.** Paso 0 de «¿ya tienes cuenta?»,
+  guía por las funciones y **quitar texto fijo** de las pantallas, que es lo que
+  de verdad pidió: «la interfaz final limpia, sin mucho texto», con la ayuda a
+  demanda. La propuesta de 4e queda en `auditoria/`; antes del 20 solo entraría
+  una versión mínima, si entra.
+- **El scroll de Pronunciar, versión buena.** Antes del 20, si entra, solo la
+  opción mínima que mida e6.
+- **Si el análisis no detecta el acento tónico** (pendiente de f4): decidir si se
+  añade o si se declara como límite, porque la pantalla promete «te digo qué
+  sonido corregir» y Miguel esperaba que le corrigiera el acento de «assessors».
+- **El límite por hora:** si para la demo se sube o se exime una cuenta, dejarlo
+  escrito y **devolverlo a su valor** después del 20.
+
 ## 6. Preguntas abiertas de producto, para después
 
 - **Decidir «autor» por la consulta.** Con perfil, un autor buscado con una sola
