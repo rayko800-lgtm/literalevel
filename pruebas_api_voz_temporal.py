@@ -51,7 +51,12 @@ def comprobar(comparar: str | None = None) -> None:
     api = types.ModuleType("api_aislada")
     ui = types.SimpleNamespace(
         LIMITE_FRASE_VOZ=300, LIMITE_VOZ_HORA=30,
-        _puede_pagar=lambda pet: (False, "No autorizado."),
+        # Dos argumentos y `_codigo_de`: desde el reinicio 27 `_corregir_voz` lee el
+        # codigo una sola vez y se lo pasa al cobro. Sin esto la prueba caia con
+        # AttributeError y el manejador lo tapaba como «Error generico.»: llevaba
+        # rota desde el 27 y nadie lo dijo (f4, 16 sep 2026).
+        _codigo_de=lambda pet: None,
+        _puede_pagar=lambda pet, codigo=None: (False, "No autorizado."),
         _dentro_del_limite=lambda *a: True)
 
     def sin_proveedor(*a, **k):
