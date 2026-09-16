@@ -191,3 +191,11 @@ Dos cosas que no bloquean y no se tocaron antes de publicar:
    tope puede dejar de alcanzar sin que nada avise. Arreglo: un comentario junto a
    `LIMITES_GIRO` con esa dependencia, y que la prueba calcule el perfil a partir
    de las mismas constantes en vez de llevarlo escrito a mano.
+
+## Prueba de «/api/inicio falla»: espera frágil (4e, 16 sep)
+
+`front/src/app/compartido/bienvenida-cuenta.spec.ts`, caso «si /api/inicio falla
+con el motor respondiendo»: entre la respuesta de `/api/salud` y la de
+`/api/inicio` espera con `setTimeout(r, 0)`. Hoy pasa, pero depende de cuántos
+microtasks encadene `Sesion.comprobar()`. Si algún día sale intermitente, empezar
+por ahí: esperar a que exista la petición de `/api/inicio` en vez de a un tic.
