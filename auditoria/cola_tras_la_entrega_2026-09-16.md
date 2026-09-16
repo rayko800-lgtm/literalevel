@@ -161,3 +161,21 @@ bien: eso solo lo demuestra la captura antes y después.
 
 **Riesgo de hacerlo antes del 20:** es un refactor de la escena 3D a tres días de
 grabar, sobre algo ya verificado por captura. No compensa.
+
+## Topes de giro de la boca 3D: dos cabos que dejó 4e (16 sep)
+
+Publicado en `a70af4e` con `LIMITES_GIRO` (azimut −34°/+20°, polar 75°–96°).
+Dos cosas que no bloquean y no se tocaron antes de publicar:
+
+1. **La prueba del giro automático solo mira `redondeados`.** Hoy
+   `muy_redondeados` y `estirados` dan el mismo −30°, pero si alguien cambia uno
+   de ellos, ninguna prueba avisaría de que deja de caber en el tope. Arreglo:
+   recorrer en `limites-giro.spec.ts` todas las poses con `giroPara` distinto de
+   cero.
+2. **El margen de −34° depende de dónde queda el perfil**, −3,27°, que sale de
+   `controles.target.x = 0.9` al cargar una cara con `labios_en_piel`
+   (`escena.ts`, rama `cabezaEntera`) y de la posición inicial de la cámara
+   (0,3 · 0,9 · 10,5). Si se toca cualquiera de las dos, el perfil se mueve y el
+   tope puede dejar de alcanzar sin que nada avise. Arreglo: un comentario junto a
+   `LIMITES_GIRO` con esa dependencia, y que la prueba calcule el perfil a partir
+   de las mismas constantes en vez de llevarlo escrito a mano.
