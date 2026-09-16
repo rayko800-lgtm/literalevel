@@ -1,6 +1,6 @@
 # Mensaje para el profesor: adelanto de LiteraLevel
 
-Versión revisada el 14 de septiembre de 2026. Borrador: no se ha enviado.
+Versión revisada el 16 de septiembre de 2026. Borrador: no se ha enviado.
 
 > **Antes de mandarlo:** abrir el enlace desde el móvil, comprobar lectura y
 > acceso, y despertar el backend. El front estático y la API son servicios
@@ -26,10 +26,13 @@ capítulos y consultar palabras dentro de su frase. La escala es propia, de 0 a
 
 El catálogo ya no es el adelanto de 1.197 registros. El archivo medido contiene
 **53.179 libros de Gutenberg y 585.111 capítulos**, contados de nuevo el 14 de
-septiembre. La recomendación excluye índices y materiales no literarios; no
+septiembre. Si abre *Encontrar* verá 68.546: son esos 53.179 más 15.367 textos
+cortos y libres de otras fuentes, medidos igual. La recomendación excluye índices y materiales no literarios; no
 todo el catálogo es adecuado para un principiante.
 
-Puede probar lectura, búsqueda y diccionario sin entrar con una cuenta.
+Sin entrar con una cuenta puede leer, buscar, consultar el diccionario, medir la
+dificultad de un capítulo y, en *Pronunciar*, grabarse, escucharse y ver cómo se
+dice cada sonido.
 Para la explicación por IA, el resumen y la corrección de pronunciación le
 comparto un acceso de invitado por separado: usan un servicio externo que
 pago yo y tienen límites de uso. Si falta una palabra en el diccionario, la
@@ -37,17 +40,20 @@ definición por IA aparece identificada como tal.
 
 En **Pronunciar** se lee una frase y se compara con lo que se transcribió;
 no es un chat de voz ni una evaluación fonética de laboratorio. Conviene
-probarlo desde un teléfono con micrófono. La última comprobación técnica no
-incluyó una grabación con micrófono físico, así que quiero ensayar ese paso
-antes de la demostración.
+probarlo desde un teléfono con micrófono. Lo probé el 16 de septiembre desde el
+mío, con cuenta y micrófono real, y graba y corrige; antes de la demostración lo
+ensayo otra vez con la frase concreta que voy a leer.
 
 Lo que más me interesa de su opinión es **la usabilidad**: si se entiende por
 dónde empezar, qué le estorba y qué falta. Dos lectoras encontraron problemas
-en la interfaz anterior y esos comentarios guiaron los cambios; aún queda
-volver a probar el recorrido completo de Angular con usuarios.
+en la interfaz anterior y esos comentarios guiaron los cambios. Ya se ha probado
+también en Angular y en teléfono —un lector nuevo y una de ellas otra vez—, y de
+ahí salieron la bienvenida de la primera visita y los avisos de ayuda de cada
+pantalla.
 
-También puedo compartirle el repositorio y el cuaderno para revisar cómo se
-obtuvieron las métricas. Las pruebas técnicas y lo que todavía no se ha
+El cuaderno va con la entrega, y el repositorio y los guiones de verificación,
+que no viajan con los entregables, se los comparto a petición para revisar cómo
+se obtuvieron las métricas. Las pruebas técnicas y lo que todavía no se ha
 validado están separados en el documento, sin presentarlos como una garantía
 de que toda la aplicación esté libre de fallos.
 
