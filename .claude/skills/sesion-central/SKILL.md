@@ -497,3 +497,12 @@ sí se cita es lo que el otro pudo comprobar solo: las 57 celdas con salidas y
 - **Cuenta los cambios con exactitud o no los cuentes.** «Siete líneas» era el
   diff de un archivo, no el acumulado: 11 en el `.py` y 13 en el `.ipynb`. Los
   cinco cambios descritos eran los correctos; el recuento, no.
+- **No des por hecho lo que una sesión anunció.** La central escribió «bien
+  borrada tu copia del scratchpad» cuando f4 solo había dicho que la borraría;
+  f4 lo corrigió. Es el mismo error que registrar una vuelta atrás como hecha
+  antes de que Miguel la autorizara. Si lo vas a dar por hecho, pide la
+  confirmación de después, no el anuncio de antes.
+- **Y cuidado con el falso negativo del `grep` sobre tus propios informes.** f4
+  buscó `ui.py:693` y le dio cero, porque la tabla escribía «`app/ui.py` 693,
+  1233, 2140, 2432 y 2883» en una sola línea. Antes de concluir que algo falta
+  en un documento, comprueba que el patrón puede casar con cómo está escrito.
