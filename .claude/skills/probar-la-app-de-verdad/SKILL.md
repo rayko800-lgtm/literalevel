@@ -556,10 +556,30 @@ rompió al medir). Publica desde un worktree limpio de HEAD y, antes de `git
 add` de un archivo compartido, mira `git diff -- ruta`.
 
 
+## Antes de buscar el fallo, comprueba si había sesión (16 sep)
+
+Ismael tocó el micrófono en su Android y «no pasó nada». Se investigó como fallo
+del micrófono, se midió un aviso que no se veía (abajo), se escribió en el
+documento que la causa era el navegador interno de WhatsApp… y el 16 de
+septiembre Miguel contó que **Ismael no había iniciado sesión**, así que esas
+funciones no estaban disponibles para él. La causa se escribió antes de medirla,
+el mismo error que con el caso de Esmeralda.
+
+- **Lo primero que se pregunta ante «pulsé y no pasó nada»:** si había cuenta,
+  en qué pantalla estaba y qué decía la app en ese momento. Sin eso, cualquier
+  hipótesis técnica es una historia.
+- **Una función que pide cuenta y no lo dice se ve igual que un fallo.** Prueba
+  cada pantalla **sin sesión** y mira si la app explica qué hay que hacer, donde
+  la persona está mirando. Comprueba también qué devuelve la API sin
+  credenciales: un error técnico que el front no puede traducir es el mismo
+  fallo, un piso más abajo.
+- Lo que se midió sigue siendo cierto y útil, pero como hallazgo propio, no como
+  causa del caso.
+
 ## Un aviso que existe en el DOM puede no verse (Pronunciar, 15 sep)
 
-Ismael tocó el micrófono en su Android y «no pasó nada». El código sí escribía
-un aviso («Este navegador no deja grabar audio»), pero a 390 px se pintaba en
+Al investigar aquello se midió esto, que es un fallo real por sí mismo. El
+código sí escribía un aviso («Este navegador no deja grabar audio»), pero a 390 px se pintaba en
 y = 750-849, **debajo de la barra fija del micrófono**, que empieza en y = 687.
 Lo mismo pasaba con «No tengo permiso…» y hasta con «Grabando…». Ninguna
 prueba lo vio porque todas miraban que el texto estuviera en la página, no que
