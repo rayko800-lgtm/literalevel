@@ -128,6 +128,11 @@ aplicación después de borrar**.
 - **El límite por hora:** si para la demo se sube o se exime una cuenta, dejarlo
   escrito y **devolverlo a su valor** después del 20.
 
+- **El panel `sticky` de la boca 3D tapa la mandíbula a 360 px** si se desplaza
+  la página hasta dejar el visor en la mitad inferior: «Escuchar y ver»,
+  «Despacio» y «Cerrar 3D» ocupan tres filas con `bottom: 96px`. Con la vista que
+  deja la app no tapa nada (0 % en 551 puntos, medido por e6 el 16 sep).
+
 ## 6. Preguntas abiertas de producto, para después
 
 - **Decidir «autor» por la consulta.** Con perfil, un autor buscado con una sola
