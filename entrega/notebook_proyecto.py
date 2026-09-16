@@ -1536,10 +1536,14 @@ print("   predecir siempre la clase mayoritaria del entrenamiento:",
 #
 # **Aviso de reproducibilidad, otra vez y en su sitio:** los pesos están
 # publicados en `MikeMaki1763/literalevel-v4`, en abierto y sin credenciales, y
-# la celda siguiente los descarga. El guion de entrenamiento y su tarjeta de
-# métricas están en `entrenamiento_v4/`, y los datos del anclaje (ELG CEFR
-# English) son públicos. Este cuadernillo no reentrena —pide una GPU—, pero el
-# entrenamiento se puede rehacer, y sus métricas se recalcularon en CPU.
+# la celda siguiente los descarga. Los datos del anclaje (ELG CEFR English)
+# también son públicos, y el corpus de entrenamiento (CLEAR) y el catálogo de
+# Gutenberg se bajan aquí mismo. El guion de entrenamiento y su tarjeta de
+# métricas **no viajan con los entregables y se comparten a petición**: sus
+# cifras se recalcularon en CPU, pero este cuadernillo no promete que un
+# tercero pueda rehacer el entrenamiento, que además pide una GPU. Lo que sí
+# se puede comprobar aquí es la cadena entera que lleva hasta el v4 y su
+# inferencia sobre texto real, con los pesos públicos.
 
 # %%
 # ============================================================
@@ -1838,9 +1842,10 @@ print(tabla_reportada.to_string(index=False))
 #
 # Se usaron los textos de lectura graduada de **British Council**, cada uno con
 # su nivel oficial en el nombre del archivo. El material tiene derechos y no se
-# distribuye; el guion de validación del repositorio (`validar_local.py`) no
-# imprime ni un fragmento, solo puntuaciones. Al final de este apartado se
-# explica cómo reconstruir el corpus y verificarlo archivo por archivo.
+# distribuye; el guion de validación (`validar_local.py`) no imprime ni un
+# fragmento, solo puntuaciones, y no viaja con los entregables: se comparte a
+# petición. Al final de este apartado se explica cómo reconstruir el corpus y
+# verificarlo archivo por archivo, que es lo que sí se puede hacer aquí.
 
 # %%
 validacion_externa = pd.DataFrame({
@@ -1941,17 +1946,21 @@ plt.show()
 # El reparto, por tanto:
 #
 # 1. **Descargue los PDF** desde las URLs del manifiesto
-#    (la celda de abajo imprime todas las que faltan; en el repositorio están
-#    también en `entrega/corpus_bc_manifiesto.csv`, que no viaja con el cuadernillo).
+#    (la celda de abajo imprime todas las que faltan: lleva dentro las 59 URL con
+#    su SHA-256, así que no hace falta ningún archivo aparte; el CSV del
+#    manifiesto no viaja con los entregables y se comparte a petición).
 # 2. **Súbalos a la carpeta `corpus_bc/`** (en Colab, panel de archivos → subir).
 # 3. **Ejecute la celda.** Empareja cada PDF con el manifiesto **por su hash**,
 #    no por su nombre, así que da igual que el navegador añada «(1)».
 # 4. Con los 59 verificados, las cifras se recalculan con
-#    `python -X utf8 validar_local.py corpus_bc` desde la raíz del repositorio.
-#    Ese guion necesita `pypdf` y el modelo, que este cuadernillo no instala.
+#    `python -X utf8 validar_local.py corpus_bc`. Ese guion necesita `pypdf` y el
+#    modelo, que este cuadernillo no instala, y **no viaja con los entregables:
+#    se comparte a petición**. Lo que sí queda comprobado aquí es que los PDF
+#    son byte a byte los que se midieron.
 #
-# En el repositorio, `tools/bajar_corpus_bc.py` hace lo mismo en local y distingue
-# además un archivo roto de uno que British Council haya actualizado después.
+# `tools/bajar_corpus_bc.py` hace lo mismo en local y distingue además un archivo
+# roto de uno que British Council haya actualizado después; tampoco viaja con los
+# entregables y se comparte a petición.
 
 # %%
 import hashlib
@@ -2099,8 +2108,9 @@ if faltan:
     for n, u in faltan:
         print(f"  {n}  {u}")
 else:
-    print("Corpus completo. Desde la raíz del repositorio:")
-    print(f"  python -X utf8 validar_local.py {CORPUS_BC}")
+    print("Corpus completo, verificado byte a byte contra el manifiesto de hashes.")
+    print(f"  Las medias por nivel se recalculan con: validar_local.py {CORPUS_BC}")
+    print("  (ese guion no viaja con los entregables; se comparte a petición.)")
 
 # %% [markdown]
 # ### Un intento de ampliar esta validación que hubo que retirar
@@ -2575,14 +2585,15 @@ plt.show()
 # | **Ejecutarse de principio a fin** en Colab | **Sí**: ejecutado de principio a fin en Colab el <fecha> (CPU), con las salidas guardadas |
 # | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
 # | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
-# | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí, fuera del cuadernillo**: descarga manual de los 59 PDF, verificación de hashes aquí (§7.2) y recálculo con `validar_local.py` desde el repositorio |
-# | **Recalcular las métricas internas del v4** (0,908, 97,2 %) | **Sí**, fuera de este cuadernillo: `entrenamiento_v4/` con los datos públicos de ELG, idénticas a cuatro decimales |
+# | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí, fuera del cuadernillo**: descarga manual de los 59 PDF y verificación de hashes aquí (§7.2); el recálculo pide `validar_local.py`, que se comparte a petición |
+# | **Recalcular las métricas internas del v4** (0,908, 97,2 %) | **Sí**, fuera de este cuadernillo: los datos de ELG son públicos y las cifras salieron idénticas a cuatro decimales; el guion de entrenamiento y su tarjeta de métricas se comparten a petición |
 #
 # Hasta el 12 de septiembre de 2026 la última fila decía «No», y este párrafo lo
 # justificaba con un corpus de anclaje «que no se puede redistribuir». Era falso:
 # el anclaje es ELG CEFR English, público con licencia CC BY-NC-SA 4.0. Lo que
-# faltaba eran el guion y la tarjeta de métricas, que vivían en Drive. Ya están en
-# `entrenamiento_v4/`, junto con las 144 parejas de nivel y predicción.
+# faltaba eran el guion y la tarjeta de métricas, que vivían en Drive. Ya están
+# escritos, junto con las 144 parejas de nivel y predicción, y se comparten a
+# petición: no viajan con los entregables.
 #
 # Y publicar la composición del anclaje no era un trámite. En cuanto se supo de
 # qué estaba hecho, se vio que la validación con UniversalCEFR medía el propio
@@ -2599,7 +2610,7 @@ plt.show()
 #
 # 1. ~~Publicar la composición del corpus de anclaje~~ **Hecho el 12 de
 #    septiembre de 2026**: ELG CEFR English, 654 documentos, partición 510 / 144
-#    por documento. Guion y métricas en `entrenamiento_v4/`.
+#    por documento. El guion y la tarjeta de métricas se comparten a petición.
 # 2. ~~Reunir un corpus de anclaje redistribuible~~ **No hacía falta**: el
 #    anclaje ya era público, y sus métricas se recalculan idénticas.
 # 3. **Recalibrar la escala pública con una transformación afín** ajustada sobre
