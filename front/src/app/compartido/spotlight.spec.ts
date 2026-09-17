@@ -1,29 +1,42 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { Router, provideRouter } from '@angular/router';
+import { Entrada } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
-import { PasoTutorial, Tutorial } from '../nucleo/tutorial';
+import { Tutorial } from '../nucleo/tutorial';
 import { Spotlight } from './spotlight';
 
-/** Este proyecto no tiene `zone.js/testing`, así que `fakeAsync`/`tick` no
- *  están disponibles: se espera con temporizadores reales (los márgenes del
- *  propio `spotlight.ts` son cortos, 150/1500 ms, así que el coste es bajo). */
-function esperar(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+/** Overlay del tutorial guiado v2, D1.2: tarjetas de elección, objetivos
+ *  reales (D1.1, reutilizado en `nivel-final`), y la píldora no modal de
+ *  los pasos silenciosos (checkpoints y el cuestionario de nivel). Nunca a
+ *  la vez que Ajustes; siempre se puede cerrar. */
+describe('Spotlight (D1.2)', () => {
+  @Component({ selector: 'app-falsa', template: '<p>falsa</p>' })
+  class Falsa {}
 
-/** Overlay del tutorial guiado v2 (D1.1): nunca a la vez que Ajustes o la
- *  bienvenida actual, nunca bloquea si el elemento objetivo no aparece, y
- *  siempre se puede cerrar (Saltar, Escape). */
-describe('Spotlight', () => {
   @Component({ selector: 'app-raiz-prueba', imports: [Spotlight], template: '<app-spotlight />' })
   class Raiz {}
 
   const CLAVE_DEV = 'literalevel.tutorial-dev';
+  const AUTENTICADA: Entrada = { puerta: true, dentro: true, nombre: 'miguel', restantes: null, openai: true, mensaje: '' };
 
   beforeEach(() => {
     try { localStorage.clear(); } catch { /* sin almacenamiento */ }
     try { localStorage.setItem(CLAVE_DEV, 'on'); } catch { /* sin almacenamiento */ }
-    TestBed.configureTestingModule({ imports: [Raiz] });
+    TestBed.configureTestingModule({
+      imports: [Raiz],
+      providers: [
+        provideRouter([
+          { path: 'encontrar', component: Falsa },
+          { path: 'nivel', component: Falsa },
+          { path: 'palabras', component: Falsa },
+          { path: 'pronunciar', component: Falsa },
+        ]),
+        provideHttpClient(), provideHttpClientTesting(),
+      ],
+    });
   });
 
   function montar() {
@@ -33,10 +46,11 @@ describe('Spotlight', () => {
     const sesion = TestBed.inject(Sesion);
     const raiz = fixture.nativeElement as HTMLElement;
     const dialogo = () => raiz.querySelector('[role=dialog]') as HTMLElement | null;
+    const pildora = () => raiz.querySelector('.pildora-tutorial') as HTMLElement | null;
     const boton = (texto: string) => [...(dialogo()?.querySelectorAll('button') ?? [])]
       .find(b => b.textContent?.trim().startsWith(texto)) as HTMLButtonElement | undefined;
     const pulsar = (texto: string) => { boton(texto)!.click(); fixture.detectChanges(); };
-    return { fixture, tutorial, sesion, raiz, dialogo, boton, pulsar };
+    return { fixture, tutorial, sesion, raiz, dialogo, pildora, boton, pulsar };
   }
 
   afterEach(() => {
@@ -44,40 +58,60 @@ describe('Spotlight', () => {
   });
 
   it('no muestra nada si el tutorial no está activo', () => {
-    const { fixture, dialogo } = montar();
+    const { fixture, dialogo, pildora } = montar();
     fixture.detectChanges();
     expect(dialogo()).toBeNull();
+    expect(pildora()).toBeNull();
   });
 
-  it('un paso sin objetivo muestra una tarjeta centrada de inmediato', () => {
-    const { fixture, tutorial, dialogo } = montar();
-    tutorial.iniciar();
+  it('cuenta-eleccion: tarjeta con sus dos opciones, sin «Siguiente» genérico', () => {
+    const { fixture, tutorial, dialogo, boton } = montar();
+    tutorial.iniciar(); // sesión desconocida al llegar aquí: queda oculto hasta saberse anónima
+    TestBed.inject(Sesion).entrada.set({ puerta: true, dentro: false, nombre: null, restantes: null, openai: true, mensaje: '' });
     fixture.detectChanges();
-    expect(dialogo()).toBeTruthy();
-    expect(dialogo()?.querySelector('h2')?.textContent).toBe(tutorial.pasos[0].titulo);
-    expect(dialogo()?.textContent).toContain('1 de 3');
+    expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Ya tienes cuenta?');
+    expect(boton('Entrar')).toBeTruthy();
+    expect(boton('Continuar sin cuenta')).toBeTruthy();
+    expect(boton('Siguiente')).toBeUndefined();
+    expect(boton('Terminar')).toBeUndefined();
+  });
+
+  it('elegir una opción llama a tutorial.elegir() y la tarjeta pasa al siguiente paso', () => {
+    const { fixture, tutorial, dialogo, pulsar } = montar();
+    tutorial.iniciar();
+    TestBed.inject(Sesion).entrada.set(AUTENTICADA);
+    fixture.detectChanges();
+    expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Qué quieres hacer?');
+    pulsar('🧠 Practicar');
+    expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Qué practicas hoy?');
+  });
+
+  it('«Atrás» solo aparece cuando tutorial.puedeAtras() es verdad', () => {
+    const { fixture, tutorial, dialogo, boton, pulsar } = montar();
+    tutorial.iniciar();
+    TestBed.inject(Sesion).entrada.set(AUTENTICADA);
+    fixture.detectChanges();
+    expect(boton('Atrás')).toBeUndefined(); // intencion, sin historial
+    pulsar('🧠 Practicar');
+    expect(boton('Atrás')).toBeTruthy();
+    pulsar('Atrás');
+    expect(dialogo()?.querySelector('h2')?.textContent).toBe('¿Qué quieres hacer?');
   });
 
   it('nunca se muestra a la vez que Ajustes', () => {
     const { fixture, tutorial, sesion, dialogo } = montar();
     tutorial.iniciar();
+    sesion.entrada.set(AUTENTICADA);
+    fixture.detectChanges();
     sesion.ajustesAbiertos.set(true);
     fixture.detectChanges();
     expect(dialogo()).toBeNull();
   });
 
-  it('al activarse cierra la bienvenida actual, para que nunca compitan por el foco', () => {
-    const { fixture, tutorial, sesion, dialogo } = montar();
-    sesion.bienvenida.set(true); // como un visitante nuevo, antes de activar el tutorial
-    tutorial.iniciar();
-    fixture.detectChanges();
-    expect(sesion.bienvenida()).toBe(false);
-    expect(dialogo()).toBeTruthy();
-  });
-
   it('«Saltar» cierra el tutorial', () => {
     const { fixture, tutorial, dialogo, pulsar } = montar();
     tutorial.iniciar();
+    TestBed.inject(Sesion).entrada.set(AUTENTICADA);
     fixture.detectChanges();
     pulsar('Saltar');
     expect(tutorial.activo()).toBe(false);
@@ -87,118 +121,129 @@ describe('Spotlight', () => {
   it('Escape cierra el tutorial', () => {
     const { fixture, tutorial, dialogo } = montar();
     tutorial.iniciar();
+    TestBed.inject(Sesion).entrada.set(AUTENTICADA);
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     fixture.detectChanges();
     expect(tutorial.activo()).toBe(false);
-    expect(dialogo()).toBeNull();
-  });
-
-  it('«Siguiente»/«Atrás» avanzan y retroceden; «Atrás» no sale en el primer paso', () => {
-    const { fixture, tutorial, dialogo, boton, pulsar } = montar();
-    tutorial.iniciar();
-    fixture.detectChanges();
-    expect(boton('Atrás')).toBeUndefined();
-    pulsar('Siguiente');
-    expect(dialogo()?.querySelector('h2')?.textContent).toBe(tutorial.pasos[1].titulo);
-    expect(boton('Atrás')).toBeTruthy();
-    pulsar('Atrás');
-    expect(dialogo()?.querySelector('h2')?.textContent).toBe(tutorial.pasos[0].titulo);
-  });
-
-  it('en el último paso, el botón dice «Terminar» y cierra el tutorial al pulsarlo', () => {
-    const { fixture, tutorial, dialogo, pulsar } = montar();
-    tutorial.iniciar();
-    fixture.detectChanges();
-    pulsar('Siguiente');
-    pulsar('Siguiente');
-    expect(dialogo()?.textContent).toContain('Terminar');
-    pulsar('Terminar');
-    expect(tutorial.activo()).toBe(false);
-  });
-
-  describe('con un paso que apunta a un elemento real (D1.2+ lo hará así)', () => {
-    function conObjetivo(objetivo: string): PasoTutorial[] {
-      return [{ id: 'con-objetivo', titulo: 'Paso con objetivo', texto: 'texto', objetivo }];
-    }
-
-    it('si el elemento ya existe, se posiciona sobre él sin esperar', () => {
-      const marca = document.createElement('div');
-      marca.id = 'marca-existente';
-      document.body.appendChild(marca);
-      const { fixture, tutorial, dialogo } = montar();
-      (tutorial as unknown as { pasos: PasoTutorial[] }).pasos = conObjetivo('#marca-existente');
-      tutorial.iniciar();
-      fixture.detectChanges();
-      expect(dialogo()?.classList.contains('centrada')).toBe(false);
-      expect(dialogo()?.textContent).not.toContain('No encuentro esa parte');
-      marca.remove();
-    });
-
-    it('si el elemento aparece tarde (dentro del margen de espera), lo encuentra igual', async () => {
-      const { fixture, tutorial, dialogo } = montar();
-      (tutorial as unknown as { pasos: PasoTutorial[] }).pasos = conObjetivo('#marca-tardia');
-      tutorial.iniciar();
-      fixture.detectChanges();
-      expect(dialogo()?.classList.contains('centrada')).toBe(true); // todavía buscando
-
-      await esperar(300);
-      const marca = document.createElement('div');
-      marca.id = 'marca-tardia';
-      document.body.appendChild(marca);
-      await esperar(300); // el sondeo cada 150 ms lo recoge dentro del margen de 1500 ms
-      fixture.detectChanges();
-
-      expect(dialogo()?.classList.contains('centrada')).toBe(false);
-      marca.remove();
-    });
-
-    it('si el elemento nunca aparece, se rinde tras el margen de espera: tarjeta centrada con «Reintentar», sin bucle infinito', async () => {
-      const { fixture, tutorial, dialogo, boton } = montar();
-      (tutorial as unknown as { pasos: PasoTutorial[] }).pasos = conObjetivo('#nunca-existe');
-      tutorial.iniciar();
-      fixture.detectChanges();
-
-      await esperar(1800); // pasa de sobra el margen máximo de 1500 ms
-      fixture.detectChanges();
-
-      expect(dialogo()?.classList.contains('centrada')).toBe(true);
-      expect(dialogo()?.textContent).toContain('No encuentro esa parte de la pantalla ahora mismo.');
-      expect(boton('Reintentar')).toBeTruthy();
-      // Sigue siendo posible cerrarlo: nunca un overlay imposible de cerrar.
-      expect(boton('Saltar')).toBeTruthy();
-    });
-
-    it('«Reintentar» vuelve a buscar el elemento', async () => {
-      const { fixture, tutorial, dialogo, pulsar } = montar();
-      (tutorial as unknown as { pasos: PasoTutorial[] }).pasos = conObjetivo('#marca-para-reintentar');
-      tutorial.iniciar();
-      fixture.detectChanges();
-      await esperar(1800);
-      fixture.detectChanges();
-      expect(dialogo()?.textContent).toContain('No encuentro esa parte');
-
-      const marca = document.createElement('div');
-      marca.id = 'marca-para-reintentar';
-      document.body.appendChild(marca);
-      pulsar('Reintentar');
-      await esperar(50);
-      fixture.detectChanges();
-
-      expect(dialogo()?.classList.contains('centrada')).toBe(false);
-      marca.remove();
-    });
   });
 
   it('Tab no saca el foco de la tarjeta', () => {
     const { fixture, tutorial, dialogo, boton } = montar();
     tutorial.iniciar();
+    TestBed.inject(Sesion).entrada.set(AUTENTICADA);
     fixture.detectChanges();
     const primero = boton('Saltar')!;
-    const ultimo = (dialogo()!.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
-    const ultimoBoton = ultimo[ultimo.length - 1];
-    ultimoBoton.focus();
+    const botones = dialogo()!.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
+    botones[botones.length - 1].focus();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
     expect(document.activeElement).toBe(primero);
+  });
+
+  describe('pasos silenciosos (checkpoints y nivel-inicio): sin tarjeta, con píldora', () => {
+    it('nivel-inicio no muestra tarjeta modal, solo la píldora, y no roba el foco', () => {
+      const { fixture, tutorial, dialogo, pildora, pulsar } = montar();
+      tutorial.iniciar();
+      TestBed.inject(Sesion).entrada.set(AUTENTICADA);
+      fixture.detectChanges();
+      pulsar('🎯 Medir mi nivel');
+      expect(dialogo()).toBeNull();
+      expect(pildora()?.textContent).toContain('Midiendo tu nivel');
+      expect(pildora()?.textContent).toContain('Salir');
+      // No roba el foco: a diferencia de la tarjeta modal, nada aquí lo mueve.
+      expect(pildora()!.contains(document.activeElement)).toBe(false);
+    });
+
+    it('«Salir» de la píldora cierra el tutorial igual que «Saltar»', () => {
+      const { fixture, tutorial, pildora, pulsar } = montar();
+      tutorial.iniciar();
+      TestBed.inject(Sesion).entrada.set(AUTENTICADA);
+      fixture.detectChanges();
+      pulsar('🎯 Medir mi nivel');
+      const salir = [...pildora()!.querySelectorAll('button')].find(b => b.textContent?.includes('Salir'))!;
+      salir.click();
+      fixture.detectChanges();
+      expect(tutorial.activo()).toBe(false);
+    });
+
+    it('un checkpoint (encontrar-inicio) tampoco muestra tarjeta modal, y no bloquea nada', () => {
+      const { fixture, tutorial, sesion, dialogo, pildora, pulsar } = montar();
+      tutorial.iniciar();
+      sesion.entrada.set(AUTENTICADA);
+      sesion.perfil.set({
+        nivel: 1.2, banda: 'intermedio', origen: 'cuestionario', creado: '',
+        nombre: '', objetivo: 1.2, rango_recomendado: [1, 1.4], cefr: 'B2',
+      });
+      fixture.detectChanges();
+      pulsar('📖 Leer');
+      expect(dialogo()).toBeNull();
+      expect(pildora()).toBeTruthy();
+      expect(tutorial.activo()).toBe(true); // no completado
+    });
+
+    it('la píldora desaparece al llegar a nivel-final (deja de ser silencioso)', () => {
+      const { fixture, tutorial, sesion, dialogo, pildora, pulsar } = montar();
+      tutorial.iniciar();
+      sesion.entrada.set(AUTENTICADA);
+      fixture.detectChanges();
+      pulsar('🎯 Medir mi nivel');
+      expect(pildora()).toBeTruthy();
+      sesion.perfil.set({
+        nivel: 1.2, banda: 'intermedio', origen: 'cuestionario', creado: '',
+        nombre: '', objetivo: 1.2, rango_recomendado: [1, 1.4], cefr: 'B2',
+      });
+      TestBed.tick();
+      fixture.detectChanges();
+      expect(pildora()).toBeNull();
+      expect(dialogo()).toBeTruthy();
+    });
+  });
+
+  describe('nivel-final: objetivo real, avanza sin «Siguiente»', () => {
+    function abrirNivelFinal(fixture: ReturnType<typeof montar>['fixture'], tutorial: Tutorial, sesion: Sesion) {
+      tutorial.iniciar();
+      sesion.entrada.set(AUTENTICADA);
+      fixture.detectChanges();
+      const boton = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')]
+        .find(b => b.textContent?.trim().startsWith('🎯 Medir mi nivel')) as HTMLButtonElement;
+      boton.click();
+      fixture.detectChanges();
+      sesion.perfil.set({
+        nivel: 1.2, banda: 'intermedio', origen: 'cuestionario', creado: '',
+        nombre: '', objetivo: 1.2, rango_recomendado: [1, 1.4], cefr: 'B2',
+      });
+      TestBed.tick();
+      fixture.detectChanges();
+    }
+
+    it('sin el elemento real en pantalla: tarjeta centrada con «Reintentar», nunca «Siguiente»', async () => {
+      const { fixture, tutorial, sesion, dialogo, boton } = montar();
+      abrirNivelFinal(fixture, tutorial, sesion);
+      await new Promise(r => setTimeout(r, 1700)); // agota el margen de espera del objetivo
+      fixture.detectChanges();
+      expect(dialogo()?.textContent).toContain('No encuentro esa parte de la pantalla ahora mismo.');
+      expect(boton('Reintentar')).toBeTruthy();
+      expect(boton('Siguiente')).toBeUndefined();
+      expect(boton('Saltar')).toBeTruthy(); // sigue siendo posible cerrarlo
+    });
+
+    it('con el elemento real en pantalla, se posiciona sobre él sin esperar', () => {
+      const marca = document.createElement('a');
+      marca.setAttribute('data-tutorial', 'nivel-ver-libros');
+      document.body.appendChild(marca);
+      const { fixture, tutorial, sesion, dialogo } = montar();
+      abrirNivelFinal(fixture, tutorial, sesion);
+      expect(dialogo()?.classList.contains('centrada')).toBe(false);
+      marca.remove();
+    });
+
+    it('avanza al checkpoint encontrar-inicio cuando el router navega a /encontrar (el clic real en el botón de la app), no por un botón del tutorial', async () => {
+      const { fixture, tutorial, sesion } = montar();
+      abrirNivelFinal(fixture, tutorial, sesion);
+      expect(tutorial.pasoActual()?.id).toBe('nivel-final');
+      await TestBed.inject(Router).navigateByUrl('/encontrar');
+      expect(tutorial.pasoActual()?.id).toBe('encontrar-inicio');
+      expect(tutorial.activo()).toBe(true);
+    });
   });
 });

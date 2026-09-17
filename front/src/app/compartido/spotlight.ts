@@ -1,29 +1,32 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, HostListener, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { OpcionPaso, Tutorial } from '../nucleo/tutorial';
 import { Sesion } from '../nucleo/sesion';
-import { Tutorial } from '../nucleo/tutorial';
-import { Icono } from './icono';
 
 /** Cuánto se espera a que aparezca el elemento objetivo antes de rendirse y
  *  mostrar una tarjeta centrada sin spotlight. Nunca espera para siempre. */
 const ESPERA_MAXIMA_MS = 1500;
 const REINTENTO_MS = 150;
 
-/** Overlay del tutorial guiado v2 (D1.1). Vive en la raíz de la app (junto a
- *  `<app-ajustes>`), no dentro de una pantalla, para sobrevivir a los cambios
- *  de ruta: el tutorial cruza varias pantallas (D1.2-D1.5).
+/** Overlay del tutorial guiado v2. Vive en la raíz de la app (junto a
+ *  `<app-ajustes>`), no dentro de una pantalla, para sobrevivir a los
+ *  cambios de ruta: el tutorial cruza varias pantallas.
  *
- *  Contrato del `objetivo` de un paso (D1.1 solo lo define; D1.2-D1.5 lo usan
- *  con elementos reales, vía `data-tutorial`, nunca `nth-child` ni clases de
- *  estilo, que cambian sin avisar):
- *  - existe ya → spotlight normal, posicionado sobre el elemento;
- *  - todavía no existe → espera acotada, reintentando cada 150 ms;
- *  - sigue sin existir tras la espera → tarjeta centrada sin spotlight, con
- *    «Reintentar» además de «Siguiente»/«Saltar». Nunca un bucle infinito ni
- *    un overlay que no se pueda cerrar: «Saltar» y Escape funcionan siempre. */
+ *  Tres formas de mostrarse, según el paso (`nucleo/tutorial.ts`):
+ *  - **de elección** (`opciones`): tarjeta con sus propios botones.
+ *  - **de objetivo real** (`objetivo`, vía `[data-tutorial="..."]`, nunca
+ *    `nth-child` ni una clase de estilo): existe ya → spotlight normal,
+ *    posicionado sobre el elemento; todavía no existe → espera acotada,
+ *    reintentando cada 150 ms; sigue sin existir tras la espera → tarjeta
+ *    centrada sin spotlight, con «Reintentar». Nunca un botón «Siguiente»
+ *    además de la acción real: el avance lo dispara `tutorial.ts` al
+ *    detectar esa acción (ver sus `effect`s).
+ *  - **silencioso** (`silencioso`): nada de tarjeta ni foco robado, solo un
+ *    indicador pequeño, no modal, con «Salir».
+ *  En cualquier forma: «Saltar»/Escape cierran siempre, «Atrás» solo si el
+ *  paso lo permite. */
 @Component({
   selector: 'app-spotlight',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icono],
   template: `
     @if (visible(); as p) {
       <div class="velo-tutorial"></div>
@@ -31,8 +34,7 @@ const REINTENTO_MS = 150;
                 [class.centrada]="!posicion()"
                 [style.top.px]="posicion()?.top" [style.left.px]="posicion()?.left">
         <header>
-          <span class="cuenta">{{ indice() + 1 }} de {{ tutorial.pasos.length }}</span>
-          <button type="button" class="boton pequeno fantasma" (click)="tutorial.saltar()">Saltar</button>
+          <button type="button" class="boton pequeno fantasma saltar" (click)="tutorial.saltar()">Saltar</button>
         </header>
         <h2 id="titulo-tutorial" #titulo tabindex="-1">{{ p.titulo }}</h2>
         <p>{{ p.texto }}</p>
@@ -40,39 +42,50 @@ const REINTENTO_MS = 150;
           <p class="aviso">No encuentro esa parte de la pantalla ahora mismo.</p>
         }
         <div class="acciones-tutorial">
-          @if (!tutorial.esPrimero()) {
+          @if (tutorial.puedeAtras()) {
             <button type="button" class="boton secundario" (click)="tutorial.atras()">Atrás</button>
           }
           @if (p.objetivo && !posicion() && !esperando()) {
-            <button type="button" class="boton secundario" (click)="reintentar()">
-              <app-icono nombre="recargar" />Reintentar
-            </button>
+            <button type="button" class="boton secundario" (click)="reintentar()">Reintentar</button>
           }
-          <button type="button" class="boton bloque" (click)="tutorial.siguiente()">
-            {{ tutorial.esUltimo() ? 'Terminar' : 'Siguiente' }}
-          </button>
+          @for (o of p.opciones ?? []; track o.etiqueta) {
+            <button type="button" class="boton bloque" (click)="tutorial.elegir(o)">{{ o.etiqueta }}</button>
+          }
         </div>
       </section>
     }
+    @if (pill(); as p) {
+      <div class="pildora-tutorial" role="status">
+        <span>Tutorial · {{ p.texto }}</span>
+        <button type="button" class="boton pequeno fantasma" (click)="tutorial.saltar()">Salir</button>
+      </div>
+    }
   `,
   styles: `
-    :host { position: fixed; inset: 0; z-index: 95; }
-    .velo-tutorial { position: absolute; inset: 0; background: var(--velo); }
+    :host { position: fixed; inset: 0; z-index: 95; pointer-events: none; }
+    .velo-tutorial { position: absolute; inset: 0; background: var(--velo); pointer-events: auto; }
     .tarjeta-tutorial {
       position: fixed; width: min(360px, calc(100% - 2rem)); max-height: calc(100svh - 2rem); overflow: auto;
       display: grid; gap: .75rem; padding: 1.1rem 1.1rem 1.25rem; border-radius: var(--radio-lg);
       background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra-alta);
+      pointer-events: auto;
     }
     .tarjeta-tutorial.centrada { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
     header { display: flex; align-items: center; gap: .6rem; }
-    .cuenta { color: var(--texto-tenue); font-size: .85rem; font-variant-numeric: tabular-nums; }
-    .fantasma { margin-left: auto; }
+    .saltar { margin-left: auto; }
     h2 { margin: 0; font-size: 1.2rem; line-height: 1.25; }
     h2:focus { outline: none; }
     p { margin: 0; font-size: .95rem; line-height: 1.45; color: var(--texto-suave); }
     .aviso { color: var(--texto-tenue); font-size: .85rem; }
     .acciones-tutorial { display: flex; gap: .5rem; flex-wrap: wrap; }
     .acciones-tutorial .bloque { flex: 1 1 auto; justify-content: center; }
+    /* La píldora: no modal, no le quita sitio al contenido ni el foco a nada. */
+    .pildora-tutorial {
+      position: fixed; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      display: flex; align-items: center; gap: .6rem; padding: .5rem .5rem .5rem .9rem; border-radius: 999px;
+      background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra-alta);
+      font-size: .85rem; color: var(--texto-suave); pointer-events: auto;
+    }
   `,
 })
 export class Spotlight {
@@ -87,14 +100,16 @@ export class Spotlight {
    *  ocultaría el tutorial siempre. En su lugar, cuando el tutorial se activa
    *  se cierra la bienvenida vieja explícitamente (ver el `effect` de abajo),
    *  así que los dos nunca compiten de verdad por el foco. */
-  protected readonly visible = computed(() =>
-    this.tutorial.activo() && !this.sesion.ajustesAbiertos()
-      ? this.tutorial.pasoActual()
-      : null);
+  private readonly activoSinAjustes = computed(() => this.tutorial.activo() && !this.sesion.ajustesAbiertos());
 
-  protected readonly indice = computed(() => {
-    const actual = this.tutorial.pasoActual();
-    return actual ? this.tutorial.pasos.findIndex(p => p.id === actual.id) : 0;
+  protected readonly visible = computed(() => {
+    const p = this.activoSinAjustes() ? this.tutorial.pasoActual() : null;
+    return p && !p.silencioso ? p : null;
+  });
+
+  protected readonly pill = computed(() => {
+    const p = this.activoSinAjustes() ? this.tutorial.pasoActual() : null;
+    return p?.silencioso ? p : null;
   });
 
   protected readonly posicion = signal<{ top: number; left: number } | null>(null);
@@ -175,7 +190,8 @@ export class Spotlight {
   @HostListener('document:keydown.escape')
   protected alEscape(): void { if (this.visible()) this.tutorial.saltar(); }
 
-  /** Un diálogo de verdad: Tab no sale de la tarjeta (igual que `bienvenida.ts`). */
+  /** Un diálogo de verdad: Tab no sale de la tarjeta (igual que `bienvenida.ts`).
+   *  La píldora no es un diálogo (no roba foco), así que no entra aquí. */
   @HostListener('document:keydown.tab', ['$event'])
   @HostListener('document:keydown.shift.tab', ['$event'])
   protected encerrarFoco(ev: Event): void {

@@ -34,7 +34,7 @@
             </div>
           </div>
           <p class="suave">Te buscaré libros que te queden cómodos, con algo de reto.</p>
-          <a class="boton bloque" routerLink="/encontrar" [queryParams]="{ vista: 'nivel' }"><app-icono nombre="libro" />Ver libros de mi nivel</a>
+          <a class="boton bloque" routerLink="/encontrar" [queryParams]="{ vista: 'nivel' }" data-tutorial="nivel-ver-libros"><app-icono nombre="libro" />Ver libros de mi nivel</a>
           <details class="detalle-nivel">
             <summary>Ver el detalle</summary>
             <p><strong>{{ num(p.nivel) }}</strong> de 2 · {{ bandas[p.banda] || p.banda }}.

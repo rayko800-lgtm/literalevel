@@ -1,4 +1,4 @@
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Api, Entrada, Inicio, Libro, Perfil } from './api';
@@ -28,6 +28,13 @@ export class Sesion {
     this.ajustesEnPerfil.set(true);
     this.ajustesAbiertos.set(true);
   }
+
+  /** Si ya sabemos algo sobre la sesión (con o sin cuenta) o si directamente no hay motor con
+   *  quien hablar. Antes solo lo tenía `inicio.ts` como computed privado; el tutorial v2 (D1.2)
+   *  también lo necesita para no decidir «¿tienes cuenta?» antes de saberlo (nunca mostrar esa
+   *  pregunta un instante a quien ya entró). */
+  readonly sesionConocida = computed(() =>
+    this.entrada() !== null || this.motor() === 'caido' || this.sesionFallida());
 
   /** La bienvenida de la primera visita a Inicio (tanda 3 de la ayuda). Se guarda en el
    *  navegador al saltarla o terminarla, y Ajustes la vuelve a pedir. */
