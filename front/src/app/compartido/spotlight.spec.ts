@@ -66,6 +66,18 @@ describe('Spotlight (D1.2)', () => {
     expect(pildora()).toBeNull();
   });
 
+  it('activarDesarrollo() (la vía real de `?tutorialv2=on`) sin progreso previo: se activa solo y cierra Bienvenida v1, sin «Repetir tutorial» manual', () => {
+    const { fixture, tutorial, sesion, dialogo } = montar();
+    sesion.bienvenida.set(true); // como llegaría cualquier visitante nuevo
+    tutorial.activarDesarrollo();
+    fixture.detectChanges();
+    expect(tutorial.activo()).toBe(true);
+    sesion.entrada.set(AUTENTICADA); // se sabe la sesión: ya hay algo que mostrar
+    fixture.detectChanges();
+    expect(dialogo()).toBeTruthy(); // Tutorial v2 realmente en pantalla, no solo el flag
+    expect(sesion.bienvenida()).toBe(false); // nunca los dos a la vez (D1.1, punto 6)
+  });
+
   it('cuenta-eleccion: tarjeta con sus dos opciones, sin «Siguiente» genérico', () => {
     const { fixture, tutorial, dialogo, boton } = montar();
     tutorial.iniciar(); // sesión desconocida al llegar aquí: queda oculto hasta saberse anónima

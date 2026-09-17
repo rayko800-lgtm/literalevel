@@ -63,6 +63,75 @@ describe('Tutorial (D1.2)', () => {
     expect(localStorage.getItem(CLAVE_DEV)).toBe('on');
   });
 
+  describe('activarDesarrollo() y el progreso guardado (D1.V intento 2: activación sin fricción)', () => {
+    it('sin progreso previo: activa el tutorial desde la primera visita, sin «Repetir tutorial»', () => {
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(true);
+    });
+
+    it('con progreso `activo`: reanuda el pasoId guardado en vez de empezar de cero', () => {
+      localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'nivel-inicio', estado: 'activo' }));
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(true);
+      expect(t.pasoActual()?.id ?? 'nivel-inicio').toBe('nivel-inicio'); // silencioso: pasoActual puede ser null, pasoId no
+    });
+
+    it('con progreso `completado`: no reinicia solo', () => {
+      localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'tutorial-final', estado: 'completado' }));
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(false);
+    });
+
+    it('con progreso `saltado`: no reinicia solo', () => {
+      localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'intencion', estado: 'saltado' }));
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(false);
+    });
+
+    it('progreso corrupto (JSON inválido): degrada a ausencia de progreso y arranca limpio', () => {
+      localStorage.setItem(CLAVE, '{no es json');
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(true);
+    });
+
+    it('progreso de una versión incompatible: degrada a ausencia de progreso y arranca limpio', () => {
+      localStorage.setItem(CLAVE, JSON.stringify({ version: 99, pasoId: 'intencion', estado: 'activo' }));
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(true);
+    });
+
+    it('progreso con un pasoId que ya no existe: degrada a ausencia de progreso y arranca limpio', () => {
+      localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'paso-retirado', estado: 'activo' }));
+      const t = crear();
+      t.activarDesarrollo();
+      expect(t.activo()).toBe(true);
+    });
+
+    it('llamado dos veces con el tutorial ya activo, no lo reinicia', () => {
+      const t = crear();
+      t.activarDesarrollo();
+      const sesion = TestBed.inject(Sesion);
+      sesion.entrada.set(AUTENTICADA);
+      t.elegir({ etiqueta: '🧠 Practicar', siguienteId: 'practicar-eleccion' });
+      t.activarDesarrollo();
+      expect(t.pasoActual()?.id).toBe('practicar-eleccion'); // no volvió a intencion
+    });
+
+    it('sin flag de desarrollo, producción sigue exactamente igual: no hay auto-inicio ni progreso tocado', () => {
+      const t = crear();
+      expect(t.habilitado()).toBe(false);
+      expect(t.activo()).toBe(false);
+      expect(t.pasoActual()).toBeNull();
+      expect(localStorage.getItem(CLAVE)).toBeNull();
+    });
+  });
+
   describe('con el flag ya activado', () => {
     beforeEach(() => { try { localStorage.setItem(CLAVE_DEV, 'on'); } catch { /* sin almacenamiento */ } });
 

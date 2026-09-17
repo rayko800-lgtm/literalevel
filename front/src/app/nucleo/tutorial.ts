@@ -365,10 +365,35 @@ export class Tutorial {
     }
   }
 
-  /** Solo para nosotros, en desarrollo: enciende el flag y lo deja guardado. */
+  /** Solo para nosotros, en desarrollo: enciende el flag y decide qué hacer
+   *  con el progreso guardado (D1.V intento 2, Miguel: antes esto solo
+   *  encendía el flag y dejaba `activo` en falso hasta un «Repetir tutorial»
+   *  manual, así que `?tutorialv2=on` nunca llegó a mostrar Tutorial v2 en
+   *  la prueba humana — solo se vio Bienvenida v1). Si ya estaba activo
+   *  (llamada repetida en la misma sesión), no lo reinicia. */
   activarDesarrollo(): void {
     try { localStorage.setItem(CLAVE_DESARROLLO, 'on'); } catch { /* sin almacenamiento */ }
     this.habilitado.set(true);
+    if (this.activo()) return;
+    this.retomarOArrancar();
+  }
+
+  /** Sin progreso, o con uno corrupto/de otra versión/de un paso que ya no
+   *  existe (`leerProgreso()` ya degrada todo eso a `null`, o el `pasoId`
+   *  puede apuntar a un paso retirado): arranca una vuelta limpia. Con
+   *  `activo`, retoma ese `pasoId`. Con `completado`/`saltado` no toca
+   *  nada — «Repetir tutorial» (Ajustes) sigue siendo la única vía
+   *  explícita para volver a empezarlo. */
+  private retomarOArrancar(): void {
+    const p = leerProgreso();
+    const existe = !!p && this.pasos.some(x => x.id === p.pasoId);
+    if (p && existe && p.estado === 'activo') {
+      this.pasoIdActual.set(p.pasoId);
+      this.activo.set(true);
+      return;
+    }
+    if (p && existe) return; // completado o saltado.
+    this.iniciar();
   }
 
   iniciar(): void {
