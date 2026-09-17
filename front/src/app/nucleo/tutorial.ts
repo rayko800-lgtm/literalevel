@@ -169,9 +169,36 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
   // capítulo del índice) y ninguno es EL botón. Una tarjeta modal con velo
   // estorbaría probar cualquiera de ellos; la píldora no bloquea nada.
   { id: 'libro-ficha', silencioso: true, texto: 'Mira la ficha y abre el libro cuando estés listo' },
-  // Checkpoint nuevo: D1.4 le da contenido real.
+  // Checkpoint de D1.3, con comportamiento real desde D1.4.
   { id: 'lector-inicio', silencioso: true, texto: 'Leyendo' },
+  {
+    id: 'lector-palabra',
+    titulo: 'Prueba manteniendo pulsada una palabra',
+    texto: 'Cualquiera que quieras consultar mientras lees.',
+    objetivo: '[data-tutorial="lector-texto"]',
+  },
+  {
+    id: 'lexico-abierto',
+    titulo: 'Aquí ves el significado y la pronunciación',
+    texto: 'Cuando quieras, pasa a practicar cómo suena esa frase.',
+    objetivo: '[data-tutorial="lexico-pronunciar"]',
+  },
+  {
+    id: 'pronunciar-grabar',
+    titulo: 'Grábate y después pide la corrección',
+    texto: 'Pulsa el micrófono, lee la frase y toca «Corrígeme».',
+    objetivo: '[data-tutorial="pronunciar-practica"]',
+  },
+  // Sin objetivo a propósito (Miguel, D1.4): «Escuchar y ver» solo tiene
+  // sentido si hubo un sonido fallado que enseñar, y no siempre lo hay.
+  {
+    id: 'pronunciar-resultado',
+    titulo: 'Aquí ves el resultado',
+    texto: 'Si hay un sonido marcado, puedes escucharlo y ver cómo se mueve la boca con «Escuchar y ver». Cuando quieras, continúa leyendo.',
+  },
   { id: 'practicar-inicio', silencioso: true, texto: 'Practicando' },
+  // Checkpoint nuevo: D1.5 le da contenido real.
+  { id: 'post-lectura-inicio', silencioso: true, texto: 'Después de leer' },
 ];
 
 /** Motor del tutorial guiado v2. Detrás de un flag de desarrollo
@@ -219,6 +246,12 @@ export class Tutorial {
    *  de paso (`irA`) y explícitamente al empezar una búsqueda nueva. */
   readonly avisoTransitorio = signal<string | null>(null);
 
+  /** De dónde vino la visita actual a Pronunciar (D1.4), si vino de un libro
+   *  concreto: para reconocer que «Continuar leyendo» volvió al mismo sitio
+   *  y no a otro libro cualquiera. No es una signal: no dibuja nada por sí
+   *  sola, solo la lee el watcher de router de abajo. */
+  private origenPronunciar: { id: string; cap: number } | null = null;
+
   constructor() {
     // Único punto que decide qué hacer con `cuenta-eleccion`: si la sesión
     // ya se sabe autenticada (porque ya lo estaba al llegar aquí, o porque
@@ -258,6 +291,22 @@ export class Tutorial {
         if (ENCONTRAR_O_ANTES.includes(this.pasoIdActual()) && url.startsWith('/libro/')) this.irA('libro-ficha');
         // Cualquiera de los «Leer» de la ficha lleva a /leer/:id/:cap.
         if ([...ENCONTRAR_O_ANTES, 'libro-ficha'].includes(this.pasoIdActual()) && url.startsWith('/leer/')) this.irA('lector-inicio');
+        // D1.4: mismo patrón, otro tramo. `lector-inicio` solo resuelve
+        // cuando el router está REALMENTE en /leer/ (igual que `encontrar-inicio`).
+        if (this.pasoIdActual() === 'lector-inicio' && url.startsWith('/leer/')) this.irA('lector-palabra');
+        // La hoja de la palabra ya lleva a /pronunciar con libro/cap (lector.html).
+        if (this.pasoIdActual() === 'lexico-abierto' && url.startsWith('/pronunciar')) this.irA('pronunciar-grabar');
+        // «Continuar leyendo» (o «Volver al libro» sin contexto) vuelve a /leer/.
+        // Solo cuenta como el regreso válido del flujo si el libro/capítulo
+        // coincide con el origen registrado (Miguel, D1.4): volver a OTRO
+        // libro no es evidencia de que «Continuar leyendo» funcionó, pero
+        // tampoco se bloquea esa navegación, simplemente el tutorial no
+        // avanza. Sin origen registrado (Pronunciar sin contexto), cualquier
+        // vuelta a /leer/ vale, como en D1.3.
+        if (['pronunciar-grabar', 'pronunciar-resultado'].includes(this.pasoIdActual()) && url.startsWith('/leer/')) {
+          const o = this.origenPronunciar;
+          if (!o || url.startsWith(`/leer/${o.id}/${o.cap}`)) this.irA('post-lectura-inicio');
+        }
       });
 
     // El cuestionario de nivel guarda solo al contestar la última pregunta
@@ -330,6 +379,35 @@ export class Tutorial {
     this.avisoTransitorio.set(resultado === 'sin-resultados'
       ? 'No encontré resultados. Prueba con otra búsqueda.'
       : 'Hubo un problema con la búsqueda. Puedes intentarlo de nuevo, o seguir sin el tutorial.');
+  }
+
+  /** Lo que llama `lector.ts` cuando la hoja de la palabra tiene contenido
+   *  LOCAL utilizable (D1.4) — nunca espera a la explicación de contexto
+   *  (IA). Mismo guardado que `notificarBusqueda`: sin efecto si el tutorial
+   *  está inactivo o en otro paso. */
+  notificarLector(evento: 'palabra'): void {
+    if (!this.activo() || this.pasoIdActual() !== 'lector-palabra') return;
+    if (evento === 'palabra') this.irA('lexico-abierto');
+  }
+
+  /** De dónde vino esta visita a Pronunciar (D1.4): `null` si no hay un
+   *  libro/capítulo de origen (se abrió desde otro sitio, como siempre). Lo
+   *  llama `pronunciar.ts` en `ngOnInit`, con su propio `contexto()` —
+   *  Tutorial no calcula ni duplica ese dato, solo lo recuerda para
+   *  reconocer el regreso. */
+  registrarContextoPronunciar(contexto: { id: string; cap: number } | null): void {
+    if (!this.activo()) return;
+    this.origenPronunciar = contexto;
+  }
+
+  /** Lo que llama `pronunciar.ts` al empezar/terminar una corrección, o al
+   *  descubrir que está bloqueada (sin cuenta, sin OpenAI) — D1.4. Mismo
+   *  contrato que `notificarBusqueda`: solo actúa en `pronunciar-grabar`. */
+  notificarPronunciar(resultado: 'inicio' | 'resultado' | 'error'): void {
+    if (!this.activo() || this.pasoIdActual() !== 'pronunciar-grabar') return;
+    if (resultado === 'inicio') { this.avisoTransitorio.set(null); return; }
+    if (resultado === 'resultado') { this.avisoTransitorio.set(null); this.irA('pronunciar-resultado'); return; }
+    this.avisoTransitorio.set('No se pudo completar la corrección. Puedes intentarlo de nuevo, o continuar leyendo.');
   }
 
   atras(): void {

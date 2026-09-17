@@ -333,18 +333,94 @@ describe('Spotlight (D1.2)', () => {
       expect(pildora()!.contains(document.activeElement)).toBe(false); // no roba el foco
     });
 
-    it('cualquiera de las rutas válidas /leer/:id/:cap avanza a lector-inicio', async () => {
-      const { fixture, tutorial, dialogo, pildora } = montar();
+    it('cualquiera de las rutas válidas /leer/:id/:cap avanza hasta lector-palabra (D1.4 le da comportamiento a lector-inicio)', async () => {
+      const { fixture, tutorial, dialogo } = montar();
       const sesion = TestBed.inject(Sesion);
       await irAEncontrarBusqueda(fixture, tutorial, sesion);
       tutorial.notificarBusqueda('con-resultados');
       await TestBed.inject(Router).navigateByUrl('/libro/PG11');
       await TestBed.inject(Router).navigateByUrl('/leer/PG11/7'); // capítulo cualquiera, no el 0
       fixture.detectChanges();
-      expect(tutorial.pasoActual()?.id).toBe('lector-inicio');
+      expect(tutorial.pasoActual()?.id).toBe('lector-palabra');
+      expect(tutorial.activo()).toBe(true); // NO completado
+      expect(dialogo()).toBeTruthy(); // lector-palabra sí muestra tarjeta (con objetivo)
+    });
+  });
+
+  describe('D1.4: lector, léxico y pronunciar', () => {
+    it('lector-palabra: spotlight sobre la región de lectura (lector-texto), sin palabra hardcodeada', async () => {
+      const marca = document.createElement('div');
+      marca.setAttribute('data-tutorial', 'lector-texto');
+      document.body.appendChild(marca);
+      localStorage.setItem('literalevel.tutorial-dev', 'on');
+      localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'lector-inicio', estado: 'activo' }));
+      const { fixture, tutorial, dialogo } = montar();
+      await TestBed.inject(Router).navigateByUrl('/leer/PG11/1');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('lector-palabra');
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Prueba manteniendo pulsada una palabra');
+      expect(dialogo()?.classList.contains('centrada')).toBe(false); // encontró la región
+      marca.remove();
+    });
+
+    it('lexico-abierto: spotlight sobre el CTA real hacia Pronunciar (lexico-pronunciar)', async () => {
+      const marca = document.createElement('a');
+      marca.setAttribute('data-tutorial', 'lexico-pronunciar');
+      document.body.appendChild(marca);
+      localStorage.setItem('literalevel.tutorial-dev', 'on');
+      localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'lector-palabra', estado: 'activo' }));
+      const { fixture, tutorial, dialogo } = montar();
+      tutorial.notificarLector('palabra');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('lexico-abierto');
+      expect(dialogo()?.classList.contains('centrada')).toBe(false);
+      marca.remove();
+    });
+
+    it('pronunciar-grabar: spotlight sobre pronunciar-practica; el aviso transitorio aparece con el error', async () => {
+      const marca = document.createElement('div');
+      marca.setAttribute('data-tutorial', 'pronunciar-practica');
+      document.body.appendChild(marca);
+      localStorage.setItem('literalevel.tutorial-dev', 'on');
+      localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'lexico-abierto', estado: 'activo' }));
+      const { fixture, tutorial, dialogo } = montar();
+      await TestBed.inject(Router).navigateByUrl('/pronunciar');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('pronunciar-grabar');
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Grábate y después pide la corrección');
+      tutorial.notificarPronunciar('error');
+      fixture.detectChanges();
+      expect(dialogo()?.textContent).toContain('No se pudo completar la corrección');
+      marca.remove();
+    });
+
+    it('pronunciar-resultado: tarjeta simple, sin objetivo obligatorio, menciona Escuchar y ver', async () => {
+      localStorage.setItem('literalevel.tutorial-dev', 'on');
+      localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'lexico-abierto', estado: 'activo' }));
+      const { fixture, tutorial, dialogo } = montar();
+      await TestBed.inject(Router).navigateByUrl('/pronunciar');
+      tutorial.notificarPronunciar('resultado');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('pronunciar-resultado');
+      expect(dialogo()).toBeTruthy();
+      expect(dialogo()?.textContent).toContain('Escuchar y ver');
+      // Sin objetivo: no se queda esperando ni pide «Reintentar».
+      expect(dialogo()?.textContent).not.toContain('No encuentro esa parte');
+    });
+
+    it('post-lectura-inicio: checkpoint silencioso, no modal, tutorial activo (no completado)', async () => {
+      localStorage.setItem('literalevel.tutorial-dev', 'on');
+      localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'lexico-abierto', estado: 'activo' }));
+      const { fixture, tutorial, dialogo, pildora } = montar();
+      await TestBed.inject(Router).navigateByUrl('/pronunciar');
+      tutorial.registrarContextoPronunciar({ id: 'PG11', cap: 1 });
+      tutorial.notificarPronunciar('resultado');
+      await TestBed.inject(Router).navigateByUrl('/leer/PG11/1');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('post-lectura-inicio');
       expect(tutorial.activo()).toBe(true); // NO completado
       expect(dialogo()).toBeNull();
-      expect(pildora()).toBeTruthy(); // checkpoint silencioso, con «Salir» disponible
+      expect(pildora()).toBeTruthy();
     });
   });
 });

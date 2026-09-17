@@ -12,6 +12,7 @@ import { Api, Capitulo, Libro, Medida, Palabra, mensajeError, urlMotor } from '.
 import { cefr, miles, minutosDe, num } from '../nucleo/formato';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
+import { Tutorial } from '../nucleo/tutorial';
 
 const PISTA = 'literalevel.pista-palabra';
 const PISTA_PAGINAS = 'literalevel.pista-paginas';
@@ -62,6 +63,10 @@ export class Lector implements OnDestroy {
   private readonly sesion = inject(Sesion);
   private readonly router = inject(Router);
   protected readonly prefs = inject(Preferencias);
+  // Solo notifica: el lector no sabe nada del tutorial más allá de avisarle
+  // cuándo hay una hoja de palabra local utilizable (D1.4). Tutorial decide
+  // qué hacer con eso; nunca al revés.
+  private readonly tutorial = inject(Tutorial);
 
   protected readonly libro = signal<Libro | null>(null);
   protected readonly capitulo = signal<Capitulo | null>(null);
@@ -239,12 +244,27 @@ export class Lector implements OnDestroy {
     }
   }
 
+  /** La escritura de verdad, sin temporizador: la usan tanto el guardado con
+   *  espera (`guardarPosicion`) como el volcado inmediato antes de salir del
+   *  lector (`alSalirAPronunciar`, D1.4) — una sola lógica, no dos. */
+  private escribirPosicion(fraccion: number, clave = this.clavePosicion()): void {
+    try { localStorage.setItem(clave, fraccion.toFixed(4)); } catch { /* sin almacenamiento */ }
+  }
+
   private guardarPosicion(fraccion: number): void {
     const clave = this.clavePosicion();
     clearTimeout(this.relojPosicion);
-    this.relojPosicion = setTimeout(() => {
-      try { localStorage.setItem(clave, fraccion.toFixed(4)); } catch { /* sin almacenamiento */ }
-    }, 300);
+    this.relojPosicion = setTimeout(() => this.escribirPosicion(fraccion, clave), 300);
+  }
+
+  /** Antes de ir a Pronunciar desde la hoja de la palabra (D1.4): la posición
+   *  se guarda cada 300 ms, pero si el lector se va antes de que pase ese
+   *  plazo, «Continuar leyendo» volvería a un punto viejo. Se vuelca ya,
+   *  reutilizando `escribirPosicion`, sin duplicar el cálculo de la fracción
+   *  (que ya vive en `avance()`, actualizado por el scroll/paso de página). */
+  protected alSalirAPronunciar(): void {
+    clearTimeout(this.relojPosicion);
+    this.escribirPosicion(this.avance());
   }
 
   private restaurarPosicion(id: string, n: number): void {
@@ -475,6 +495,12 @@ export class Lector implements OnDestroy {
       if (token !== this.consulta) return;
       this.palabra.set(rapida);
       this.buscandoPalabra.set(false);
+      // D1.4: solo cuenta como "seleccionó una palabra" si la hoja local ya
+      // tiene algo que enseñar (igual que decide el propio `lector.html` para
+      // no mostrar «no está en el diccionario»). Nunca espera a la IA.
+      if (rapida.sentido || rapida.acepciones_principales?.length || rapida.ipa_uk || rapida.ipa_us) {
+        this.tutorial.notificarLector('palabra');
+      }
       this.explicando.set(rapida.explicacion_pendiente);
       const completa = await firstValueFrom(this.api.palabra({ ...cuerpo, etapa: 'completa' }));
       if (token !== this.consulta) return;

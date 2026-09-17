@@ -48,7 +48,7 @@
       <article class="hoja" [class.recargando]="cargando()" [class.paginado]="paginado()" [style]="estiloTinte()">
         <!-- Todo lo del capítulo va DENTRO de #texto: en modo páginas es la caja de
              columnas, y la cabecera y el cierre tienen que caer en sus páginas. -->
-        <div class="texto" #texto lang="en" (pointerdown)="alTocar($event)" (pointerup)="alSoltarToque($event)"
+        <div class="texto" #texto lang="en" data-tutorial="lector-texto" (pointerdown)="alTocar($event)" (pointerup)="alSoltarToque($event)"
              (wheel)="alRueda($event)" (scroll)="alMoverColumnas()">
         <header class="cabecera-cap" lang="es">
           <span class="antetitulo">Capítulo {{ c.indice + 1 }} de {{ c.total }}</span>
@@ -300,7 +300,8 @@
         }
 
         <div class="fila acciones-palabra">
-          <a class="boton pequeno secundario" routerLink="/pronunciar" [queryParams]="{ frase: w.cita || w.oracion }">
+          <a class="boton pequeno secundario" routerLink="/pronunciar" data-tutorial="lexico-pronunciar"
+             [queryParams]="{ frase: w.cita || w.oracion, libro: id(), cap: indice() }" (click)="alSalirAPronunciar()">
             <app-icono nombre="micro" />Leer esta frase en voz alta
           </a>
         </div>

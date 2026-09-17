@@ -75,7 +75,7 @@
     <!-- La barra de acción: en el móvil va fija abajo, al alcance del pulgar
          (investigacion/una_mano.md §3.4). El botón del centro no se mueve entre
          estados: grabar, parar y corregir caen en el mismo sitio. -->
-    <div class="grabadora">
+    <div class="grabadora" data-tutorial="pronunciar-practica">
       @if (lineaBarra(); as l) {
         <p class="linea-barra" [class.error]="l.tipo === 'error'" [class.aviso]="l.tipo === 'aviso'" [class.grabando]="l.tipo === 'grabando'"
            [attr.role]="l.tipo === 'error' ? 'alert' : 'status'">{{ l.texto }}
@@ -421,5 +421,11 @@
     </section>
   }
 
-  <p class="tenue pequeno volver"><a routerLink="/leer">Volver al libro</a></p>
+  <p class="tenue pequeno volver">
+    @if (contexto(); as c) {
+      <a [routerLink]="['/leer', c.id, c.cap]">Continuar leyendo</a>
+    } @else {
+      <a routerLink="/leer">Volver al libro</a>
+    }
+  </p>
 </div>

@@ -19,6 +19,7 @@ import {
 import { marcarVista, sinVer } from '../nucleo/banderas';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
+import { Tutorial } from '../nucleo/tutorial';
 
 type Grabacion = 'lista' | 'grabando' | 'grabada';
 type Detalle = CorreccionVoz['detalles'][number];
@@ -41,6 +42,11 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   private readonly api = inject(Api);
   protected readonly sesion = inject(Sesion);
+  // Solo notifica, nunca al revés (D1.4): Pronunciar no decide nada del
+  // tutorial, solo le dice cuándo empieza a corregir, cuándo hay resultado y
+  // cuándo hay error, y le pasa el {libro, cap} de origen para que
+  // «Continuar leyendo» se pueda reconocer al volver.
+  private readonly tutorial = inject(Tutorial);
 
   protected frase = '';
   protected readonly estado = signal<Grabacion>('lista');
@@ -128,6 +134,10 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (f) this.frase = f.slice(0, 300);
     else if (this.libro()) void this.traerFrase();
     this.cargarDebiles();
+    // D1.4: registra de dónde viene (si viene de un libro concreto) para que
+    // el tutorial sepa a qué vuelta reconocer como «Continuar leyendo».
+    // Sin efecto si el tutorial no está activo en el paso que lo espera.
+    this.tutorial.registrarContextoPronunciar(this.contexto());
   }
 
   ngOnDestroy(): void {
@@ -304,11 +314,13 @@ export class Pronunciar implements OnInit, OnDestroy {
         ? 'La corrección necesita tu perfil. Grabarte y escucharte, no.'
         : 'La corrección no está disponible en este servidor. Grabarte y escucharte, sí.');
       this.necesitaEntrar.set(puedeEntrar);
+      this.tutorial.notificarPronunciar('error');
       return;
     }
     this.corrigiendo.set(true);
     this.error.set('');
     this.necesitaEntrar.set(false);
+    this.tutorial.notificarPronunciar('inicio');
     const ext = (this.blob.type.includes('mp4') ? 'm4a' : this.blob.type.includes('ogg') ? 'ogg' : 'webm');
     try {
       const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`, this.acento()));
@@ -317,9 +329,11 @@ export class Pronunciar implements OnInit, OnDestroy {
       const e = this.entrada();
       if (e && r.restantes !== null) this.sesion.entrada.set({ ...e, restantes: r.restantes });
       this.cargarDebiles();
+      this.tutorial.notificarPronunciar('resultado');
     } catch (err) {
       this.error.set(mensajeError(err));
       this.necesitaEntrar.set(err instanceof HttpErrorResponse && err.status === 403);
+      this.tutorial.notificarPronunciar('error');
     } finally {
       this.corrigiendo.set(false);
     }

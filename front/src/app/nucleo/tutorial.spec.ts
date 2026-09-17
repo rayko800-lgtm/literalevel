@@ -451,7 +451,7 @@ describe('Tutorial (D1.2)', () => {
         expect(t.activo()).toBe(true);
       });
 
-      it('cualquiera de las rutas /leer/:id/:cap avanza a lector-inicio desde libro-ficha, sin completar', async () => {
+      it('cualquiera de las rutas /leer/:id/:cap avanza hasta lector-palabra (vía el checkpoint lector-inicio) desde libro-ficha, sin completar', async () => {
         const sesion = TestBed.inject(Sesion);
         sesion.entrada.set(AUTENTICADA);
         sesion.perfil.set(PERFIL);
@@ -464,8 +464,9 @@ describe('Tutorial (D1.2)', () => {
         await router.navigateByUrl('/libro/PG11');
         expect(t.pasoActual()?.id).toBe('libro-ficha');
         await router.navigateByUrl('/leer/PG11/3'); // no el capítulo 0: cualquier capítulo vale
-        expect(t.pasoActual()?.id).toBe('lector-inicio');
-        expect(t.pasoActual()?.silencioso).toBe(true);
+        // La misma navegación resuelve los dos pasos en cadena (D1.4), igual
+        // que nivel-final → encontrar-inicio → encontrar-busqueda en D1.3.
+        expect(t.pasoActual()?.id).toBe('lector-palabra');
         expect(t.activo()).toBe(true); // NO completado
       });
 
@@ -474,6 +475,158 @@ describe('Tutorial (D1.2)', () => {
         const t = crear();
         expect(t.activo()).toBe(true);
         expect(t.pasoActual()?.id).toBe('lector-inicio');
+        expect(t.pasoActual()?.silencioso).toBe(true);
+      });
+    });
+
+    describe('D1.4: lector, léxico y pronunciar', () => {
+      function crearDesdeLectorInicio(): Tutorial {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(AUTENTICADA);
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'lector-inicio', estado: 'activo' }));
+        return crear();
+      }
+
+      it('lector-inicio retoma correctamente y avanza a lector-palabra solo cuando el router está REALMENTE en /leer/', async () => {
+        const t = crearDesdeLectorInicio();
+        const router = TestBed.inject(Router);
+        expect(t.pasoActual()?.id).toBe('lector-inicio');
+        await router.navigateByUrl('/leer/PG11/1');
+        expect(t.pasoActual()?.id).toBe('lector-palabra');
+      });
+
+      it('notificarLector se ignora mientras el paso todavía es lector-inicio (no lector-palabra)', () => {
+        const t = crearDesdeLectorInicio();
+        t.notificarLector('palabra'); // todavía en lector-inicio: el router no ha confirmado /leer/
+        expect(t.pasoActual()?.id).toBe('lector-inicio');
+      });
+
+      it('notificarLector se ignora si el tutorial está inactivo', async () => {
+        const t = crearDesdeLectorInicio();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        t.saltar();
+        expect(t.activo()).toBe(false);
+        t.notificarLector('palabra');
+        expect(t.activo()).toBe(false); // no se reactivó
+      });
+
+      it('lector-palabra → lexico-abierto vía notificarLector, sin palabra hardcodeada', async () => {
+        const t = crearDesdeLectorInicio();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        expect(t.pasoActual()?.id).toBe('lector-palabra');
+        t.notificarLector('palabra'); // cualquier palabra vale: el lector ya decidió que es "utilizable"
+        expect(t.pasoActual()?.id).toBe('lexico-abierto');
+      });
+
+      it('router a /pronunciar desde lexico-abierto avanza a pronunciar-grabar', async () => {
+        const t = crearDesdeLectorInicio();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        t.notificarLector('palabra');
+        await router.navigateByUrl('/pronunciar');
+        expect(t.pasoActual()?.id).toBe('pronunciar-grabar');
+      });
+
+      describe('en pronunciar-grabar', () => {
+        async function irAPronunciarGrabar(): Promise<{ t: Tutorial; router: Router }> {
+          const t = crearDesdeLectorInicio();
+          const router = TestBed.inject(Router);
+          await router.navigateByUrl('/leer/PG11/1');
+          t.notificarLector('palabra');
+          await router.navigateByUrl('/pronunciar');
+          return { t, router };
+        }
+
+        it('notificarPronunciar se ignora si el tutorial está inactivo', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.saltar();
+          expect(t.activo()).toBe(false);
+          t.notificarPronunciar('resultado');
+          expect(t.activo()).toBe(false); // no se reactivó
+        });
+
+        it('notificarPronunciar se ignora si el paso actual no es pronunciar-grabar', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.atras(); // vuelve a lexico-abierto
+          expect(t.pasoActual()?.id).toBe('lexico-abierto');
+          t.notificarPronunciar('resultado');
+          expect(t.pasoActual()?.id).toBe('lexico-abierto'); // sin cambios
+        });
+
+        it('"inicio" limpia el aviso de un intento anterior', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.notificarPronunciar('error');
+          expect(t.avisoTransitorio()).not.toBeNull();
+          t.notificarPronunciar('inicio');
+          expect(t.avisoTransitorio()).toBeNull();
+        });
+
+        it('"resultado" avanza a pronunciar-resultado', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.notificarPronunciar('resultado');
+          expect(t.pasoActual()?.id).toBe('pronunciar-resultado');
+          expect(t.activo()).toBe(true);
+        });
+
+        it('"error" (incluida la rama bloqueada de corregir()) deja el aviso, sin avanzar ni bloquear', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.notificarPronunciar('error');
+          expect(t.pasoActual()?.id).toBe('pronunciar-grabar');
+          expect(t.avisoTransitorio()).toContain('No se pudo completar la corrección');
+          expect(t.activo()).toBe(true);
+        });
+      });
+
+      describe('Continuar leyendo: reconocer el regreso al origen', () => {
+        it('con contexto registrado, volver al MISMO libro/capítulo avanza a post-lectura-inicio, sin completar', async () => {
+          const t = crearDesdeLectorInicio();
+          const router = TestBed.inject(Router);
+          await router.navigateByUrl('/leer/PG11/1');
+          t.notificarLector('palabra');
+          await router.navigateByUrl('/pronunciar');
+          t.registrarContextoPronunciar({ id: 'PG11', cap: 1 });
+          t.notificarPronunciar('resultado');
+          await router.navigateByUrl('/leer/PG11/1');
+          expect(t.pasoActual()?.id).toBe('post-lectura-inicio');
+          expect(t.pasoActual()?.silencioso).toBe(true);
+          expect(t.activo()).toBe(true); // NO completado
+        });
+
+        it('volver a OTRO libro/capítulo no cuenta como éxito contextual: no avanza, pero no bloquea la navegación', async () => {
+          const t = crearDesdeLectorInicio();
+          const router = TestBed.inject(Router);
+          await router.navigateByUrl('/leer/PG11/1');
+          t.notificarLector('palabra');
+          await router.navigateByUrl('/pronunciar');
+          t.registrarContextoPronunciar({ id: 'PG11', cap: 1 });
+          t.notificarPronunciar('resultado');
+          expect(t.pasoActual()?.id).toBe('pronunciar-resultado');
+          await router.navigateByUrl('/leer/OTRO-LIBRO/0'); // el usuario decidió leer otra cosa
+          expect(router.url).toBe('/leer/OTRO-LIBRO/0'); // la navegación real no se bloqueó
+          expect(t.pasoActual()?.id).toBe('pronunciar-resultado'); // el tutorial no lo dio por válido
+          expect(t.activo()).toBe(true);
+        });
+
+        it('sin contexto registrado (Pronunciar abierto sin libro/cap), cualquier /leer/ vale, como en D1.3', async () => {
+          const t = crearDesdeLectorInicio();
+          const router = TestBed.inject(Router);
+          await router.navigateByUrl('/leer/PG11/1');
+          t.notificarLector('palabra');
+          await router.navigateByUrl('/pronunciar');
+          t.registrarContextoPronunciar(null); // como si hubiera llegado desde la navegación, sin libro
+          t.notificarPronunciar('resultado');
+          await router.navigateByUrl('/leer/CUALQUIERA/0');
+          expect(t.pasoActual()?.id).toBe('post-lectura-inicio');
+        });
+      });
+
+      it('post-lectura-inicio sobrevive un refresh: sigue activo, no completado', () => {
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'post-lectura-inicio', estado: 'activo' }));
+        const t = crear();
+        expect(t.activo()).toBe(true);
+        expect(t.pasoActual()?.id).toBe('post-lectura-inicio');
         expect(t.pasoActual()?.silencioso).toBe(true);
       });
     });
