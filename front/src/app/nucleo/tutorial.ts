@@ -14,12 +14,14 @@ import { Sesion } from './sesion';
  *      forzar un paso que todavía no ha pasado de verdad.
  *    - `leer`: el destino depende de si ya hay nivel medido; se resuelve
  *      en `elegir()`, no aquí, porque es la única opción cuyo siguiente
- *      paso no es un dato fijo. */
+ *      paso no es un dato fijo.
+ *    - `terminar` (D1.5): la ÚNICA acción de todo el tutorial que llama
+ *      `completar()`. Nunca navega ni cambia de paso por su cuenta. */
 export interface OpcionPaso {
   readonly etiqueta: string;
   readonly siguienteId?: string;
   readonly ruta?: string;
-  readonly accion?: 'abrir-perfil' | 'leer';
+  readonly accion?: 'abrir-perfil' | 'leer' | 'terminar';
 }
 
 /** Un paso del tutorial guiado v2. Tres formas, no una sola:
@@ -46,6 +48,10 @@ export interface PasoTutorial {
   /** Aunque haya historial, este paso no ofrece «Atrás» (p. ej. `nivel-final`:
    *  no tiene sentido deshacer un nivel ya medido). */
   readonly sinAtras?: boolean;
+  /** Sin «Saltar» (D1.5, solo `tutorial-final`): en la última pantalla del
+   *  tutorial no aporta nada, la acción real ya está ahí. Excepción trivial
+   *  y localizada al contrato de `spotlight.ts`, no una regla general. */
+  readonly sinSaltar?: boolean;
 }
 
 type EstadoProgreso = 'activo' | 'completado' | 'saltado';
@@ -197,8 +203,28 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
     texto: 'Si hay un sonido marcado, puedes escucharlo y ver cómo se mueve la boca con «Escuchar y ver». Cuando quieras, continúa leyendo.',
   },
   { id: 'practicar-inicio', silencioso: true, texto: 'Practicando' },
-  // Checkpoint nuevo: D1.5 le da contenido real.
+  // Checkpoint de D1.4, con comportamiento real desde D1.5.
   { id: 'post-lectura-inicio', silencioso: true, texto: 'Después de leer' },
+  {
+    id: 'cierre-palabras',
+    titulo: 'Vuelve a lo que vas aprendiendo',
+    // Sin prometer una palabra concreta (Miguel, D1.5): no hay garantía de
+    // que la última consultada ya se haya guardado (etapa completa, IA).
+    texto: 'En Mis palabras puedes volver al vocabulario que se haya guardado durante tus lecturas y, cuando haya material disponible, repasarlo.',
+    // Sin `siguienteId`: no hay ningún enlace real y permanente a /palabras
+    // que señalar (Miguel, D1.5 — motivo para D3/Mi espacio), así que el
+    // tutorial ofrece su propio botón, pero el paso solo avanza cuando el
+    // router CONFIRMA la llegada (ver el watcher más abajo), nunca al pulsar.
+    opciones: [{ etiqueta: 'Ver mis palabras', ruta: '/palabras' }],
+  },
+  {
+    id: 'tutorial-final',
+    titulo: 'Ya conoces lo esencial de LiteraLevel',
+    texto: 'Encuentra algo que quieras leer, consulta lo que no entiendas y practica tu pronunciación mientras avanzas.',
+    opciones: [{ etiqueta: 'Terminar tutorial', accion: 'terminar' }],
+    // Única pantalla sin «Saltar» (Miguel, D1.5): ya no aporta nada aquí.
+    sinSaltar: true,
+  },
 ];
 
 /** Motor del tutorial guiado v2. Detrás de un flag de desarrollo
@@ -307,6 +333,16 @@ export class Tutorial {
           const o = this.origenPronunciar;
           if (!o || url.startsWith(`/leer/${o.id}/${o.cap}`)) this.irA('post-lectura-inicio');
         }
+        // D1.5: mismo patrón otra vez. `post-lectura-inicio` solo resuelve
+        // cuando el router está REALMENTE en /leer/ (la misma navegación de
+        // «Continuar leyendo» que ya lo trajo aquí, en cadena con la línea de
+        // arriba — o una posterior, si el checkpoint se restauró aparte).
+        if (this.pasoIdActual() === 'post-lectura-inicio' && url.startsWith('/leer/')) this.irA('cierre-palabras');
+        // «Ver mis palabras» (cierre-palabras) navega sin `siguienteId`
+        // (Miguel, D1.5): el paso solo avanza cuando el router CONFIRMA la
+        // llegada a /palabras, nunca al pulsar el botón — clic → navegación
+        // → NavigationEnd → tutorial-final, sin maquinaria nueva.
+        if (this.pasoIdActual() === 'cierre-palabras' && url.startsWith('/palabras')) this.irA('tutorial-final');
       });
 
     // El cuestionario de nivel guarda solo al contestar la última pregunta
@@ -361,6 +397,13 @@ export class Tutorial {
       } else {
         this.irA('leer-eleccion');
       }
+      return;
+    }
+    // Única acción de todo el tutorial que completa (D1.5): nunca navega,
+    // nunca cambia de paso por su cuenta — «Terminar tutorial» se queda en
+    // /palabras, como pidió Miguel.
+    if (opcion.accion === 'terminar') {
+      this.completar();
       return;
     }
     if (opcion.ruta) void this.router.navigateByUrl(opcion.ruta);

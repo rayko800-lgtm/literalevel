@@ -580,7 +580,7 @@ describe('Tutorial (D1.2)', () => {
       });
 
       describe('Continuar leyendo: reconocer el regreso al origen', () => {
-        it('con contexto registrado, volver al MISMO libro/capítulo avanza a post-lectura-inicio, sin completar', async () => {
+        it('con contexto registrado, volver al MISMO libro/capítulo avanza hasta cierre-palabras (vía post-lectura-inicio), sin completar', async () => {
           const t = crearDesdeLectorInicio();
           const router = TestBed.inject(Router);
           await router.navigateByUrl('/leer/PG11/1');
@@ -589,8 +589,9 @@ describe('Tutorial (D1.2)', () => {
           t.registrarContextoPronunciar({ id: 'PG11', cap: 1 });
           t.notificarPronunciar('resultado');
           await router.navigateByUrl('/leer/PG11/1');
-          expect(t.pasoActual()?.id).toBe('post-lectura-inicio');
-          expect(t.pasoActual()?.silencioso).toBe(true);
+          // La misma navegación resuelve los dos pasos en cadena (D1.5),
+          // igual que las cadenas anteriores de D1.3/D1.4.
+          expect(t.pasoActual()?.id).toBe('cierre-palabras');
           expect(t.activo()).toBe(true); // NO completado
         });
 
@@ -618,7 +619,7 @@ describe('Tutorial (D1.2)', () => {
           t.registrarContextoPronunciar(null); // como si hubiera llegado desde la navegación, sin libro
           t.notificarPronunciar('resultado');
           await router.navigateByUrl('/leer/CUALQUIERA/0');
-          expect(t.pasoActual()?.id).toBe('post-lectura-inicio');
+          expect(t.pasoActual()?.id).toBe('cierre-palabras'); // en cadena, igual que arriba
         });
       });
 
@@ -628,6 +629,165 @@ describe('Tutorial (D1.2)', () => {
         expect(t.activo()).toBe(true);
         expect(t.pasoActual()?.id).toBe('post-lectura-inicio');
         expect(t.pasoActual()?.silencioso).toBe(true);
+      });
+    });
+
+    describe('D1.5: cierre del onboarding', () => {
+      function crearDesdePostLectura(): Tutorial {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(AUTENTICADA);
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'post-lectura-inicio', estado: 'activo' }));
+        return crear();
+      }
+
+      it('post-lectura-inicio solo resuelve a cierre-palabras cuando el router está REALMENTE en /leer/ (no en otra ruta)', async () => {
+        const t = crearDesdePostLectura();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/nivel');
+        expect(t.pasoActual()?.id).toBe('post-lectura-inicio'); // sigue esperando, sin bloquear
+        await router.navigateByUrl('/leer/PG11/1');
+        expect(t.pasoActual()?.id).toBe('cierre-palabras');
+      });
+
+      it('«Ver mis palabras»: NO avanza al pulsar, solo cuando el router confirma NavigationEnd en /palabras', async () => {
+        const t = crearDesdePostLectura();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        expect(t.pasoActual()?.id).toBe('cierre-palabras');
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Ver mis palabras')!);
+        // Justo tras pulsar, la navegación (`router.navigateByUrl`, disparada
+        // sin `await` dentro de `elegir()`) todavía no se ha asentado: no
+        // debería haber avanzado todavía.
+        expect(t.pasoActual()?.id).toBe('cierre-palabras');
+        // Deja terminar esa navegación (necesita más que un microtask).
+        await new Promise(r => setTimeout(r, 0));
+        expect(router.url).toBe('/palabras');
+        expect(t.pasoActual()?.id).toBe('tutorial-final');
+      });
+
+      it('navegación manual a /palabras (sin pasar por el tutorial) no completa nada', async () => {
+        const t = crearDesdePostLectura();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        expect(t.pasoActual()?.id).toBe('cierre-palabras');
+        // Alguien navega directo a /palabras sin usar el botón del tutorial:
+        // la transición ya está prevista (mismo watcher), pero nunca completa.
+        await router.navigateByUrl('/palabras');
+        expect(t.pasoActual()?.id).toBe('tutorial-final');
+        expect(t.activo()).toBe(true); // NO completado
+      });
+
+      it('0 palabras (o cualquier contenido de /palabras) no bloquea: D1.5 no depende del contenido, solo de la ruta', async () => {
+        const t = crearDesdePostLectura();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Ver mis palabras')!);
+        await new Promise(r => setTimeout(r, 0));
+        expect(t.pasoActual()?.id).toBe('tutorial-final'); // sin haber tocado ningún signal de contenido
+      });
+
+      it('usuario anónimo (sin cuenta) también llega al cierre', async () => {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(ANONIMA);
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'post-lectura-inicio', estado: 'activo' }));
+        const t = crear();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Ver mis palabras')!);
+        await new Promise(r => setTimeout(r, 0));
+        expect(t.pasoActual()?.id).toBe('tutorial-final');
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Terminar tutorial')!);
+        expect(t.activo()).toBe(false);
+        const p = JSON.parse(localStorage.getItem(CLAVE)!);
+        expect(p.estado).toBe('completado');
+      });
+
+      it('usuario con sesión también llega al cierre', async () => {
+        const t = crearDesdePostLectura();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Ver mis palabras')!);
+        await new Promise(r => setTimeout(r, 0));
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Terminar tutorial')!);
+        expect(t.activo()).toBe(false);
+        const p = JSON.parse(localStorage.getItem(CLAVE)!);
+        expect(p.estado).toBe('completado');
+      });
+
+      describe('tutorial-final', () => {
+        async function irATutorialFinal(): Promise<{ t: Tutorial; router: Router }> {
+          const t = crearDesdePostLectura();
+          const router = TestBed.inject(Router);
+          await router.navigateByUrl('/leer/PG11/1');
+          t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Ver mis palabras')!);
+          await new Promise(r => setTimeout(r, 0));
+          return { t, router };
+        }
+
+        it('solo «Terminar tutorial» produce estado "completado"; refresh, cambiar de ruta o esperar no lo hacen', async () => {
+          const { t, router } = await irATutorialFinal();
+          expect(t.pasoActual()?.id).toBe('tutorial-final');
+          // Cambiar de ruta sin pulsar nada del tutorial:
+          await router.navigateByUrl('/encontrar');
+          expect(t.activo()).toBe(true); // sigue activo, sin completar
+          const p = JSON.parse(localStorage.getItem(CLAVE)!);
+          expect(p.estado).toBe('activo');
+        });
+
+        it('«Terminar tutorial» deja estado "completado" y no navega a ningún otro sitio', async () => {
+          const { t, router } = await irATutorialFinal();
+          const antes = router.url;
+          t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Terminar tutorial')!);
+          expect(t.activo()).toBe(false);
+          const p = JSON.parse(localStorage.getItem(CLAVE)!);
+          expect(p).toEqual({ version: 1, pasoId: 'tutorial-final', estado: 'completado' });
+          expect(router.url).toBe(antes); // se queda en /palabras, sin navegar
+        });
+
+        it('«Saltar» en tutorial-final deja "saltado", nunca "completado"', async () => {
+          const { t } = await irATutorialFinal();
+          t.saltar();
+          expect(t.activo()).toBe(false);
+          const p = JSON.parse(localStorage.getItem(CLAVE)!);
+          expect(p.estado).toBe('saltado');
+        });
+      });
+
+      it('completado persiste tras un refresh simulado', () => {
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'tutorial-final', estado: 'completado' }));
+        const t = crear();
+        expect(t.activo()).toBe(false);
+        expect(t.pasoActual()).toBeNull();
+      });
+
+      it('completado no se reactiva solo al crear el servicio', () => {
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'tutorial-final', estado: 'completado' }));
+        const t = crear();
+        t.iniciar(); // hace falta un iniciar() explícito
+        expect(t.activo()).toBe(true); // esto sí lo reactiva, pero por acción explícita, no solo
+      });
+
+      it('Repetir tutorial tras completar reinicia correctamente, saltando cuenta-eleccion si ya hay sesión', async () => {
+        const t = crearDesdePostLectura();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/leer/PG11/1');
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Ver mis palabras')!);
+        await new Promise(r => setTimeout(r, 0));
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Terminar tutorial')!);
+        expect(t.activo()).toBe(false);
+        t.repetir();
+        expect(t.activo()).toBe(true);
+        expect(t.pasoActual()?.id).toBe('intencion'); // ya autenticado: se salta cuenta-eleccion
+      });
+
+      it('repetir con perfil, palabras y libros ya existentes no atasca el recorrido (nivel-inicio salta directo a nivel-final)', () => {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(AUTENTICADA);
+        sesion.perfil.set(PERFIL); // como si ya hubiera un nivel medido de una vuelta anterior
+        const t = crear();
+        t.iniciar();
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === '🎯 Medir mi nivel')!);
+        expect(t.pasoActual()?.id).toBe('nivel-final'); // no se queda esperando el cuestionario
       });
     });
   });

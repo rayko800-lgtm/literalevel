@@ -34,7 +34,9 @@ const REINTENTO_MS = 150;
                 [class.centrada]="!posicion()"
                 [style.top.px]="posicion()?.top" [style.left.px]="posicion()?.left">
         <header>
-          <button type="button" class="boton pequeno fantasma saltar" (click)="tutorial.saltar()">Saltar</button>
+          @if (!p.sinSaltar) {
+            <button type="button" class="boton pequeno fantasma saltar" (click)="tutorial.saltar()">Saltar</button>
+          }
         </header>
         <h2 id="titulo-tutorial" #titulo tabindex="-1">{{ p.titulo }}</h2>
         <p>{{ p.texto }}</p>
@@ -191,7 +193,10 @@ export class Spotlight {
   }
 
   @HostListener('document:keydown.escape')
-  protected alEscape(): void { if (this.visible()) this.tutorial.saltar(); }
+  protected alEscape(): void {
+    const p = this.visible();
+    if (p && !p.sinSaltar) this.tutorial.saltar(); // igual que ocultar el botón (D1.5)
+  }
 
   /** Un diálogo de verdad: Tab no sale de la tarjeta (igual que `bienvenida.ts`).
    *  La píldora no es un diálogo (no roba foco), así que no entra aquí. */

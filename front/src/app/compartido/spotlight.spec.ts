@@ -408,19 +408,74 @@ describe('Spotlight (D1.2)', () => {
       expect(dialogo()?.textContent).not.toContain('No encuentro esa parte');
     });
 
-    it('post-lectura-inicio: checkpoint silencioso, no modal, tutorial activo (no completado)', async () => {
+    it('post-lectura-inicio → cierre-palabras: checkpoint sin tarjeta, luego tarjeta real, tutorial activo (no completado)', async () => {
       localStorage.setItem('literalevel.tutorial-dev', 'on');
       localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'lexico-abierto', estado: 'activo' }));
-      const { fixture, tutorial, dialogo, pildora } = montar();
+      const { fixture, tutorial, dialogo } = montar();
       await TestBed.inject(Router).navigateByUrl('/pronunciar');
       tutorial.registrarContextoPronunciar({ id: 'PG11', cap: 1 });
       tutorial.notificarPronunciar('resultado');
       await TestBed.inject(Router).navigateByUrl('/leer/PG11/1');
       fixture.detectChanges();
-      expect(tutorial.pasoActual()?.id).toBe('post-lectura-inicio');
+      // La misma navegación resuelve post-lectura-inicio → cierre-palabras (D1.5).
+      expect(tutorial.pasoActual()?.id).toBe('cierre-palabras');
       expect(tutorial.activo()).toBe(true); // NO completado
-      expect(dialogo()).toBeNull();
-      expect(pildora()).toBeTruthy();
+      expect(dialogo()).toBeTruthy(); // cierre-palabras sí muestra tarjeta (opciones)
+    });
+  });
+
+  describe('D1.5: cierre del onboarding', () => {
+    function prepararCierrePalabras() {
+      localStorage.setItem('literalevel.tutorial', JSON.stringify({ version: 1, pasoId: 'post-lectura-inicio', estado: 'activo' }));
+    }
+
+    async function montarEnCierrePalabras() {
+      prepararCierrePalabras();
+      const m = montar();
+      m.sesion.entrada.set(AUTENTICADA);
+      await TestBed.inject(Router).navigateByUrl('/leer/PG11/1');
+      m.fixture.detectChanges();
+      return m;
+    }
+
+    it('cierre-palabras: tarjeta con «Ver mis palabras», sin prometer una palabra concreta', async () => {
+      const { dialogo, boton } = await montarEnCierrePalabras();
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Vuelve a lo que vas aprendiendo');
+      expect(dialogo()?.textContent).not.toContain('acabas de consultar');
+      expect(boton('Ver mis palabras')).toBeTruthy();
+    });
+
+    it('tutorial-final: sin botón «Saltar» (D1.5), con «Terminar tutorial»', async () => {
+      const { fixture, dialogo, boton, pulsar } = await montarEnCierrePalabras();
+      pulsar('Ver mis palabras');
+      await new Promise(r => setTimeout(r, 0));
+      fixture.detectChanges();
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Ya conoces lo esencial de LiteraLevel');
+      expect(boton('Saltar')).toBeUndefined(); // ocultado a propósito, único paso sin él
+      expect(boton('Terminar tutorial')).toBeTruthy();
+    });
+
+    it('Escape no hace nada en tutorial-final (coherente con ocultar Saltar)', async () => {
+      const { fixture, tutorial, dialogo, pulsar } = await montarEnCierrePalabras();
+      pulsar('Ver mis palabras');
+      await new Promise(r => setTimeout(r, 0));
+      fixture.detectChanges();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+      expect(tutorial.activo()).toBe(true); // no se saltó
+      expect(dialogo()).toBeTruthy();
+    });
+
+    it('«Terminar tutorial» completa y se queda en /palabras', async () => {
+      const { fixture, tutorial, pulsar } = await montarEnCierrePalabras();
+      pulsar('Ver mis palabras');
+      await new Promise(r => setTimeout(r, 0));
+      fixture.detectChanges();
+      const router = TestBed.inject(Router);
+      const antes = router.url;
+      pulsar('Terminar tutorial');
+      expect(tutorial.activo()).toBe(false);
+      expect(router.url).toBe(antes);
     });
   });
 });
