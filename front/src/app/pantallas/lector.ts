@@ -116,6 +116,7 @@ export class Lector implements OnDestroy {
   private espera: ReturnType<typeof setTimeout> | undefined;
   private reloj: ReturnType<typeof setTimeout> | undefined;
   private relojPosicion: ReturnType<typeof setTimeout> | undefined;
+  private relojRecolocar: ReturnType<typeof setTimeout> | undefined;
   private audio: HTMLAudioElement | null = null;
   private abrirAlFinal = false;
   private toque: { x: number; y: number; t: number; tipo: string } | null = null;
@@ -151,11 +152,17 @@ export class Lector implements OnDestroy {
       untracked(() => void this.cargar(id, cap));
     });
     // Cambiar de modo o de tamaño de letra redistribuye el texto: se vuelve a
-    // medir conservando por dónde ibas.
+    // medir conservando por dónde ibas. El temporizador se guarda y se limpia
+    // en `ngOnDestroy` como los demás: sin eso, un componente destruido antes
+    // de los 30 ms seguía llamando `recolocar()` sobre su propio `nativeElement`
+    // ya fuera de uso (jsdom en los tests: `el.scrollTo is not a function`).
     effect(() => {
       this.paginado();
       this.prefs.letra();
-      untracked(() => setTimeout(() => this.recolocar(), 30));
+      untracked(() => {
+        clearTimeout(this.relojRecolocar);
+        this.relojRecolocar = setTimeout(() => this.recolocar(), 30);
+      });
     });
     // El elemento del texto aparece cuando llega el capítulo: se observa su tamaño
     // (girar el móvil, abrir el panel de la palabra en escritorio).
@@ -172,6 +179,7 @@ export class Lector implements OnDestroy {
     clearTimeout(this.espera);
     clearTimeout(this.reloj);
     clearTimeout(this.relojPosicion);
+    clearTimeout(this.relojRecolocar);
     this.observador?.disconnect();
     this.audio?.pause();
   }
