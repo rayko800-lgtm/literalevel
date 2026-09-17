@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { Api, mensajeError } from '../nucleo/api';
 import { Idioma, ModoLectura, Preferencias, TamanoLetra, Tema } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
+import { Tutorial } from '../nucleo/tutorial';
 import { Icono } from './icono';
 
 /** Los ajustes, en un panel lateral y no en la navegación: Laura y el profesor
@@ -116,6 +117,10 @@ import { Icono } from './icono';
         <!-- En el móvil, el cierre va abajo, fijo (investigacion/una_mano.md §3.8). -->
         <button class="boton secundario cerrar-abajo" type="button" (click)="cerrar.emit()">Cerrar los ajustes</button>
         <a routerLink="/" (click)="verBienvenida()">Ver la bienvenida otra vez</a>
+        @if (tutorial.habilitado()) {
+          <!-- Solo visible con el tutorial v2 activado en desarrollo (D1.1): nunca para un usuario normal. -->
+          <a routerLink="/" (click)="repetirTutorial()">Repetir tutorial (v2, desarrollo)</a>
+        }
         <a routerLink="/estado" (click)="cerrar.emit()">Estado del sistema</a>
         <span class="tenue pequeno">LiteraLevel no certifica niveles del MCER: orienta para elegir qué leer.</span>
       </footer>
@@ -170,6 +175,7 @@ import { Icono } from './icono';
 export class Ajustes {
   protected readonly prefs = inject(Preferencias);
   protected readonly sesion = inject(Sesion);
+  protected readonly tutorial = inject(Tutorial);
   private readonly api = inject(Api);
   readonly cerrar = output<void>();
   private readonly seccionPerfil = viewChild<ElementRef<HTMLElement>>('seccionPerfil');
@@ -225,6 +231,11 @@ export class Ajustes {
 
   protected verBienvenida(): void {
     this.sesion.verBienvenidaOtraVez();
+    this.cerrar.emit();
+  }
+
+  protected repetirTutorial(): void {
+    this.tutorial.repetir();
     this.cerrar.emit();
   }
 
