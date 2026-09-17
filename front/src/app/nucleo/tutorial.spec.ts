@@ -36,6 +36,8 @@ describe('Tutorial (D1.2)', () => {
           { path: 'nivel', component: Falsa },
           { path: 'palabras', component: Falsa },
           { path: 'pronunciar', component: Falsa },
+          { path: 'libro/:id', component: Falsa },
+          { path: 'leer/:id/:cap', component: Falsa },
         ]),
         provideHttpClient(), provideHttpClientTesting(),
       ],
@@ -195,7 +197,7 @@ describe('Tutorial (D1.2)', () => {
         expect(t.puedeAtras()).toBe(false);
       });
 
-      it('nivel-final avanza al checkpoint encontrar-inicio cuando el botón real navega a /encontrar, sin completar', async () => {
+      it('nivel-final avanza directo a encontrar-busqueda (vía el checkpoint encontrar-inicio) cuando el botón real navega a /encontrar, sin completar', async () => {
         const sesion = TestBed.inject(Sesion);
         sesion.entrada.set(AUTENTICADA);
         const t = crear();
@@ -206,7 +208,9 @@ describe('Tutorial (D1.2)', () => {
         TestBed.tick();
         expect(t.pasoActual()?.id).toBe('nivel-final');
         await router.navigateByUrl('/encontrar'); // el clic real en el botón de nivel.html hace esto
-        expect(t.pasoActual()?.id).toBe('encontrar-inicio');
+        // La misma navegación resuelve los dos pasos en cadena (D1.3): nunca
+        // se queda esperando una segunda navegación que no va a llegar.
+        expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
         expect(t.activo()).toBe(true); // NO completado
       });
 
@@ -318,9 +322,9 @@ describe('Tutorial (D1.2)', () => {
       });
     });
 
-    it('completar() sigue existiendo pero ningún camino de D1.2 lo invoca: los tres checkpoints dejan activo() en true', () => {
-      // Cubierto arriba (Leer con nivel, Mis palabras, Pronunciar, nivel-final→encontrar-inicio):
-      // en los cuatro casos `t.activo()` se comprobó `true` al llegar al checkpoint.
+    it('completar() sigue existiendo pero ningún camino de D1.2/D1.3 lo invoca: todos los checkpoints dejan activo() en true', () => {
+      // Cubierto arriba (Leer con nivel, Mis palabras, Pronunciar, nivel-final→…):
+      // en todos los casos `t.activo()` se comprobó `true` al llegar al checkpoint.
       // Aquí solo se confirma que `completar()` en sí mismo sigue disponible para D1.5.
       const sesion = TestBed.inject(Sesion);
       sesion.entrada.set(AUTENTICADA);
@@ -330,6 +334,148 @@ describe('Tutorial (D1.2)', () => {
       expect(t.activo()).toBe(false);
       const p = JSON.parse(localStorage.getItem(CLAVE)!);
       expect(p.estado).toBe('completado');
+    });
+
+    describe('D1.3: búsqueda y libro', () => {
+      it('encontrar-inicio retoma correctamente desde D1.2 vía navegación real (no se queda esperando otra)', async () => {
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'encontrar-inicio', estado: 'activo' }));
+        const t = crear();
+        const router = TestBed.inject(Router);
+        expect(t.pasoActual()?.id).toBe('encontrar-inicio');
+        await router.navigateByUrl('/encontrar');
+        expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
+      });
+
+      it('restaurar encontrar-inicio y navegar a OTRA ruta no produce avance falso; conserva el checkpoint', async () => {
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'encontrar-inicio', estado: 'activo' }));
+        const t = crear();
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl('/nivel');
+        expect(t.pasoActual()?.id).toBe('encontrar-inicio'); // sigue esperando, sin bloquear la navegación
+        expect(t.activo()).toBe(true);
+      });
+
+      it('búsqueda en curso, sin notificar todavía: sigue esperando en encontrar-busqueda, sin avanzar', async () => {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(AUTENTICADA);
+        const t = crear();
+        const router = TestBed.inject(Router);
+        t.iniciar();
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === '📖 Leer')!); // sin perfil: leer-eleccion
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === 'Buscar sin nivel')!); // → encontrar-inicio
+        await router.navigateByUrl('/encontrar'); // → encontrar-busqueda (cadena de D1.3)
+        expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
+        // Ni «con-resultados» ni «sin-resultados» ni «error»: como si la promesa
+        // de la API siguiera pendiente. No debe avanzar solo.
+        expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
+      });
+
+      describe('en encontrar-busqueda', () => {
+        function crearEnBusqueda(): { t: Tutorial; sesion: Sesion } {
+          const sesion = TestBed.inject(Sesion);
+          sesion.entrada.set(AUTENTICADA);
+          sesion.perfil.set(PERFIL);
+          const t = crear();
+          t.iniciar();
+          t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === '📖 Leer')!); // con perfil: directo a encontrar-inicio
+          return { t, sesion };
+        }
+
+        it('notificarBusqueda se ignora si el tutorial está inactivo', () => {
+          const { t } = crearEnBusqueda();
+          t.saltar();
+          expect(t.activo()).toBe(false);
+          t.notificarBusqueda('con-resultados'); // no debe lanzar ni reactivar nada
+          expect(t.activo()).toBe(false);
+        });
+
+        it('notificarBusqueda se ignora si el paso actual no es encontrar-busqueda', () => {
+          const { t } = crearEnBusqueda();
+          // Con perfil, «Leer» deja el tutorial en encontrar-inicio (checkpoint),
+          // no en encontrar-busqueda todavía (falta la navegación real).
+          expect(t.pasoActual()?.id).toBe('encontrar-inicio');
+          t.notificarBusqueda('con-resultados');
+          expect(t.pasoActual()?.id).toBe('encontrar-inicio'); // sin cambios
+        });
+
+        it('con resultados avanza a encontrar-resultados y limpia el aviso', async () => {
+          const { t, sesion } = crearEnBusqueda();
+          const router = TestBed.inject(Router);
+          await router.navigateByUrl('/encontrar');
+          expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
+          t.notificarBusqueda('sin-resultados');
+          expect(t.avisoTransitorio()).toContain('No encontré resultados');
+          t.notificarBusqueda('inicio'); // nueva búsqueda: limpia el aviso anterior
+          expect(t.avisoTransitorio()).toBeNull();
+          t.notificarBusqueda('con-resultados');
+          expect(t.pasoActual()?.id).toBe('encontrar-resultados');
+          expect(t.avisoTransitorio()).toBeNull();
+          void sesion; // solo para reutilizar el helper
+        });
+
+        it('sin resultados: no avanza falsamente, deja un aviso no bloqueante', async () => {
+          const { t } = crearEnBusqueda();
+          await TestBed.inject(Router).navigateByUrl('/encontrar');
+          t.notificarBusqueda('sin-resultados');
+          expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
+          expect(t.avisoTransitorio()).toBe('No encontré resultados. Prueba con otra búsqueda.');
+          expect(t.activo()).toBe(true);
+        });
+
+        it('error: no marca progreso falso, deja Saltar disponible (activo sigue true)', async () => {
+          const { t } = crearEnBusqueda();
+          await TestBed.inject(Router).navigateByUrl('/encontrar');
+          t.notificarBusqueda('error');
+          expect(t.pasoActual()?.id).toBe('encontrar-busqueda');
+          expect(t.avisoTransitorio()).toContain('problema');
+          expect(t.activo()).toBe(true);
+          t.saltar();
+          expect(t.activo()).toBe(false); // Saltar sigue funcionando
+        });
+      });
+
+      it('cualquier navegación válida a /libro/:id avanza a libro-ficha, sin importar qué tarjeta era', async () => {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(AUTENTICADA);
+        sesion.perfil.set(PERFIL);
+        const t = crear();
+        const router = TestBed.inject(Router);
+        t.iniciar();
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === '📖 Leer')!);
+        await router.navigateByUrl('/encontrar');
+        t.notificarBusqueda('con-resultados');
+        expect(t.pasoActual()?.id).toBe('encontrar-resultados');
+        await router.navigateByUrl('/libro/SWV12345'); // una tarjeta cualquiera, no la primera
+        expect(t.pasoActual()?.id).toBe('libro-ficha');
+        expect(t.pasoActual()?.silencioso).toBe(true);
+        expect(t.activo()).toBe(true);
+      });
+
+      it('cualquiera de las rutas /leer/:id/:cap avanza a lector-inicio desde libro-ficha, sin completar', async () => {
+        const sesion = TestBed.inject(Sesion);
+        sesion.entrada.set(AUTENTICADA);
+        sesion.perfil.set(PERFIL);
+        const t = crear();
+        const router = TestBed.inject(Router);
+        t.iniciar();
+        t.elegir(t.pasoActual()!.opciones!.find(o => o.etiqueta === '📖 Leer')!);
+        await router.navigateByUrl('/encontrar');
+        t.notificarBusqueda('con-resultados');
+        await router.navigateByUrl('/libro/PG11');
+        expect(t.pasoActual()?.id).toBe('libro-ficha');
+        await router.navigateByUrl('/leer/PG11/3'); // no el capítulo 0: cualquier capítulo vale
+        expect(t.pasoActual()?.id).toBe('lector-inicio');
+        expect(t.pasoActual()?.silencioso).toBe(true);
+        expect(t.activo()).toBe(true); // NO completado
+      });
+
+      it('llegar a lector-inicio sobrevive un refresh, sigue activo, no completado', () => {
+        localStorage.setItem(CLAVE, JSON.stringify({ version: 1, pasoId: 'lector-inicio', estado: 'activo' }));
+        const t = crear();
+        expect(t.activo()).toBe(true);
+        expect(t.pasoActual()?.id).toBe('lector-inicio');
+        expect(t.pasoActual()?.silencioso).toBe(true);
+      });
     });
   });
 });

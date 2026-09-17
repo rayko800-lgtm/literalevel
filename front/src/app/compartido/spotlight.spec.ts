@@ -33,6 +33,8 @@ describe('Spotlight (D1.2)', () => {
           { path: 'nivel', component: Falsa },
           { path: 'palabras', component: Falsa },
           { path: 'pronunciar', component: Falsa },
+          { path: 'libro/:id', component: Falsa },
+          { path: 'leer/:id/:cap', component: Falsa },
         ]),
         provideHttpClient(), provideHttpClientTesting(),
       ],
@@ -237,13 +239,112 @@ describe('Spotlight (D1.2)', () => {
       marca.remove();
     });
 
-    it('avanza al checkpoint encontrar-inicio cuando el router navega a /encontrar (el clic real en el botón de la app), no por un botón del tutorial', async () => {
+    it('avanza hasta encontrar-busqueda cuando el router navega a /encontrar (el clic real en el botón de la app), no por un botón del tutorial', async () => {
       const { fixture, tutorial, sesion } = montar();
       abrirNivelFinal(fixture, tutorial, sesion);
       expect(tutorial.pasoActual()?.id).toBe('nivel-final');
       await TestBed.inject(Router).navigateByUrl('/encontrar');
-      expect(tutorial.pasoActual()?.id).toBe('encontrar-inicio');
+      // La misma navegación resuelve encontrar-inicio → encontrar-busqueda en cadena (D1.3).
+      expect(tutorial.pasoActual()?.id).toBe('encontrar-busqueda');
       expect(tutorial.activo()).toBe(true);
+    });
+  });
+
+  describe('D1.3: búsqueda y libro', () => {
+    const PERFIL = {
+      nivel: 1.2, banda: 'intermedio', origen: 'cuestionario' as const, creado: '',
+      nombre: '', objetivo: 1.2, rango_recomendado: [1, 1.4] as [number, number], cefr: 'B2',
+    };
+
+    async function irAEncontrarBusqueda(fixture: ReturnType<typeof montar>['fixture'], tutorial: Tutorial, sesion: Sesion) {
+      tutorial.iniciar();
+      sesion.entrada.set(AUTENTICADA);
+      sesion.perfil.set(PERFIL);
+      fixture.detectChanges();
+      const leer = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')]
+        .find(b => b.textContent?.trim().startsWith('📖 Leer')) as HTMLButtonElement;
+      leer.click();
+      fixture.detectChanges();
+      await TestBed.inject(Router).navigateByUrl('/encontrar');
+      fixture.detectChanges();
+    }
+
+    it('encontrar-busqueda: tarjeta apuntando al buscador, sin opciones ni «Siguiente»', async () => {
+      const { fixture, tutorial, sesion, dialogo, boton } = montar();
+      await irAEncontrarBusqueda(fixture, tutorial, sesion);
+      expect(tutorial.pasoActual()?.id).toBe('encontrar-busqueda');
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Busca algo que te gustaría leer');
+      expect(boton('Siguiente')).toBeUndefined();
+      expect(boton('Terminar')).toBeUndefined();
+    });
+
+    it('el aviso transitorio ("sin resultados"/"error") se muestra bajo la tarjeta cuando existe', async () => {
+      const { fixture, tutorial } = montar();
+      await irAEncontrarBusqueda(fixture, tutorial, TestBed.inject(Sesion));
+      tutorial.notificarBusqueda('sin-resultados');
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('No encontré resultados');
+    });
+
+    it('encontrar-resultados: la zona de resultados aparece tarde y el spotlight la encuentra', async () => {
+      const { fixture, tutorial, dialogo } = montar();
+      const sesion = TestBed.inject(Sesion);
+      await irAEncontrarBusqueda(fixture, tutorial, sesion);
+      tutorial.notificarBusqueda('con-resultados');
+      fixture.detectChanges();
+      expect(dialogo()?.classList.contains('centrada')).toBe(true); // todavía buscando la zona
+
+      await new Promise(r => setTimeout(r, 300));
+      const zona = document.createElement('div');
+      zona.setAttribute('data-tutorial', 'encontrar-resultados');
+      document.body.appendChild(zona);
+      await new Promise(r => setTimeout(r, 300));
+      fixture.detectChanges();
+
+      expect(dialogo()?.classList.contains('centrada')).toBe(false);
+      expect(dialogo()?.textContent).toContain('Elige el libro que más te interese');
+      zona.remove();
+    });
+
+    it('dos o más tarjetas presentes: cualquiera puede navegar y avanzar, no se exige pulsar la primera', async () => {
+      const { fixture, tutorial } = montar();
+      const sesion = TestBed.inject(Sesion);
+      await irAEncontrarBusqueda(fixture, tutorial, sesion);
+      tutorial.notificarBusqueda('con-resultados');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('encontrar-resultados');
+      // Ni siquiera hace falta que exista la zona en el DOM: lo que demuestra
+      // progreso es la navegación real a /libro/:id, sea cual sea la tarjeta.
+      await TestBed.inject(Router).navigateByUrl('/libro/SWV99999'); // no la primera tarjeta, una cualquiera
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('libro-ficha');
+    });
+
+    it('libro-ficha: no modal, píldora sin foco robado ni clics bloqueados', async () => {
+      const { fixture, tutorial, dialogo, pildora } = montar();
+      const sesion = TestBed.inject(Sesion);
+      await irAEncontrarBusqueda(fixture, tutorial, sesion);
+      tutorial.notificarBusqueda('con-resultados');
+      await TestBed.inject(Router).navigateByUrl('/libro/PG11');
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('libro-ficha');
+      expect(dialogo()).toBeNull(); // sin tarjeta modal ni velo
+      expect(pildora()?.textContent).toContain('Mira la ficha y abre el libro cuando estés listo');
+      expect(pildora()!.contains(document.activeElement)).toBe(false); // no roba el foco
+    });
+
+    it('cualquiera de las rutas válidas /leer/:id/:cap avanza a lector-inicio', async () => {
+      const { fixture, tutorial, dialogo, pildora } = montar();
+      const sesion = TestBed.inject(Sesion);
+      await irAEncontrarBusqueda(fixture, tutorial, sesion);
+      tutorial.notificarBusqueda('con-resultados');
+      await TestBed.inject(Router).navigateByUrl('/libro/PG11');
+      await TestBed.inject(Router).navigateByUrl('/leer/PG11/7'); // capítulo cualquiera, no el 0
+      fixture.detectChanges();
+      expect(tutorial.pasoActual()?.id).toBe('lector-inicio');
+      expect(tutorial.activo()).toBe(true); // NO completado
+      expect(dialogo()).toBeNull();
+      expect(pildora()).toBeTruthy(); // checkpoint silencioso, con «Salir» disponible
     });
   });
 });

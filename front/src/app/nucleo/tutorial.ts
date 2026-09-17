@@ -91,10 +91,10 @@ function leerFlagDesarrollo(): boolean {
   try { return localStorage.getItem(CLAVE_DESARROLLO) === 'on'; } catch { return false; }
 }
 
-/** D1.2: entrada e intención, hasta el punto en que D1.3 (Encontrar/libro/
- *  lector/léxico/Pronunciar) y D1.5 (Mi espacio) tienen que continuar.
- *  `encontrar-inicio` y `practicar-inicio` son checkpoints: D1.2 llega ahí
- *  y se detiene sin completar el tutorial (decisión explícita de Miguel:
+/** D1.2 (entrada e intención) + D1.3 (búsqueda y libro), hasta el punto en
+ *  que D1.4 (léxico/Pronunciar/Continuar leyendo) y D1.5 (Mi espacio) tienen
+ *  que continuar. `lector-inicio` y `practicar-inicio` son checkpoints:
+ *  llegar ahí no completa el tutorial (decisión explícita de Miguel:
  *  `completado` queda reservado para el final real de D1.5). */
 const PASOS_D1_2: readonly PasoTutorial[] = [
   {
@@ -149,8 +149,28 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
       { etiqueta: 'Pronunciar', siguienteId: 'practicar-inicio', ruta: '/pronunciar' },
     ],
   },
-  // Checkpoints: D1.3 y D1.5 los retoman con este mismo id, sin migrar nada.
+  // Checkpoint de D1.2, con comportamiento real desde D1.3: en cuanto el
+  // router confirma que se está de verdad en /encontrar, pasa a la pregunta.
   { id: 'encontrar-inicio', silencioso: true, texto: 'Buscando tu próxima lectura' },
+  {
+    id: 'encontrar-busqueda',
+    titulo: 'Busca algo que te gustaría leer',
+    texto: 'Escríbelo con tus palabras, en español o en inglés.',
+    objetivo: '[data-tutorial="encontrar-buscador"]',
+  },
+  {
+    id: 'encontrar-resultados',
+    titulo: 'Estos son tus resultados',
+    texto: 'Elige el libro que más te interese.',
+    objetivo: '[data-tutorial="encontrar-resultados"]',
+  },
+  // Silencioso a propósito (Miguel, D1.3): la ficha tiene varios botones
+  // «Leer» válidos según el libro (empezar, seguir, desde el principio, un
+  // capítulo del índice) y ninguno es EL botón. Una tarjeta modal con velo
+  // estorbaría probar cualquiera de ellos; la píldora no bloquea nada.
+  { id: 'libro-ficha', silencioso: true, texto: 'Mira la ficha y abre el libro cuando estés listo' },
+  // Checkpoint nuevo: D1.4 le da contenido real.
+  { id: 'lector-inicio', silencioso: true, texto: 'Leyendo' },
   { id: 'practicar-inicio', silencioso: true, texto: 'Practicando' },
 ];
 
@@ -193,6 +213,12 @@ export class Tutorial {
 
   readonly puedeAtras = computed(() => this.historial().length > 0 && !this.pasoActual()?.sinAtras);
 
+  /** Mensaje de "cero resultados"/"error" de `encontrar-busqueda` (D1.3):
+   *  no forma parte de `PasoTutorial` porque es transitorio y depende de un
+   *  intento concreto, no del paso en sí. Se limpia en cualquier transición
+   *  de paso (`irA`) y explícitamente al empezar una búsqueda nueva. */
+  readonly avisoTransitorio = signal<string | null>(null);
+
   constructor() {
     // Único punto que decide qué hacer con `cuenta-eleccion`: si la sesión
     // ya se sabe autenticada (porque ya lo estaba al llegar aquí, o porque
@@ -207,14 +233,31 @@ export class Tutorial {
       }
     });
 
-    // `nivel-final` no tiene botón propio: el botón real «Ver libros de mi
-    // nivel» ya navega a /encontrar; el tutorial solo lo observa.
+    // Ninguno de estos pasos tiene botón propio: la acción real (un enlace
+    // de verdad de la pantalla, no del tutorial) ya navega; el tutorial solo
+    // observa a dónde llegó el router. `encontrar-inicio` solo resuelve
+    // cuando el router está REALMENTE en /encontrar (Miguel, D1.3): si el
+    // checkpoint se restaura en otra ruta, se queda tal cual —silencioso,
+    // sin bloquear nada— hasta que una navegación real lo confirme.
+    const ENCONTRAR_O_ANTES = ['encontrar-inicio', 'encontrar-busqueda', 'encontrar-resultados'];
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed())
       .subscribe(e => {
-        if (this.activo() && this.pasoIdActual() === 'nivel-final' && e.urlAfterRedirects.startsWith('/encontrar')) {
-          this.irA('encontrar-inicio');
-        }
+        if (!this.activo()) return;
+        const url = e.urlAfterRedirects;
+        // Cada `if` vuelve a leer `pasoIdActual()` (no una copia de antes de
+        // este evento): un único NavigationEnd puede resolver más de un paso
+        // en cadena (nivel-final → encontrar-inicio → encontrar-busqueda son
+        // la misma navegación real), igual que la resolución síncrona de
+        // `irA`. Sin esto, `encontrar-inicio` se quedaría esperando una
+        // segunda navegación que nunca llega.
+        if (this.pasoIdActual() === 'nivel-final' && url.startsWith('/encontrar')) this.irA('encontrar-inicio');
+        if (this.pasoIdActual() === 'encontrar-inicio' && url.startsWith('/encontrar')) this.irA('encontrar-busqueda');
+        // Cualquier tarjeta lleva a /libro/:id; no importa cuál, ni si se llegó
+        // buscando o saltándose un paso (una ruta escrita a mano, por ejemplo).
+        if (ENCONTRAR_O_ANTES.includes(this.pasoIdActual()) && url.startsWith('/libro/')) this.irA('libro-ficha');
+        // Cualquiera de los «Leer» de la ficha lleva a /leer/:id/:cap.
+        if ([...ENCONTRAR_O_ANTES, 'libro-ficha'].includes(this.pasoIdActual()) && url.startsWith('/leer/')) this.irA('lector-inicio');
       });
 
     // El cuestionario de nivel guarda solo al contestar la última pregunta
@@ -275,6 +318,20 @@ export class Tutorial {
     if (opcion.siguienteId) this.irA(opcion.siguienteId);
   }
 
+  /** Lo que llama `encontrar.ts` al empezar/terminar una búsqueda (D1.3).
+   *  Encontrar no sabe nada del tutorial más allá de avisarle; decidir qué
+   *  hacer con eso es cosa de aquí, nunca al revés. Solo hace algo si el
+   *  tutorial está activo y el paso actual es `encontrar-busqueda`: una
+   *  búsqueda fuera del tutorial (flag apagado, u otro paso) no toca nada. */
+  notificarBusqueda(resultado: 'inicio' | 'con-resultados' | 'sin-resultados' | 'error'): void {
+    if (!this.activo() || this.pasoIdActual() !== 'encontrar-busqueda') return;
+    if (resultado === 'inicio') { this.avisoTransitorio.set(null); return; }
+    if (resultado === 'con-resultados') { this.avisoTransitorio.set(null); this.irA('encontrar-resultados'); return; }
+    this.avisoTransitorio.set(resultado === 'sin-resultados'
+      ? 'No encontré resultados. Prueba con otra búsqueda.'
+      : 'Hubo un problema con la búsqueda. Puedes intentarlo de nuevo, o seguir sin el tutorial.');
+  }
+
   atras(): void {
     if (!this.activo() || !this.puedeAtras()) return;
     const h = this.historial();
@@ -307,6 +364,8 @@ export class Tutorial {
     const actual = this.pasoIdActual();
     if ((opciones.registrar ?? true) && actual !== id) this.historial.update(h => [...h, actual]);
     this.pasoIdActual.set(id);
+    // Un aviso de `encontrar-busqueda` nunca sobrevive a salir de ese paso.
+    this.avisoTransitorio.set(null);
     this.persistir('activo');
     // Resolución inmediata, sin esperar al `effect`: si la condición de avance
     // de este paso ya se cumple AHORA (p. ej. llega a `nivel-inicio` con un

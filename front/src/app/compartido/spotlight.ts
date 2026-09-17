@@ -41,6 +41,9 @@ const REINTENTO_MS = 150;
         @if (p.objetivo && !posicion() && !esperando()) {
           <p class="aviso">No encuentro esa parte de la pantalla ahora mismo.</p>
         }
+        @if (tutorial.avisoTransitorio(); as a) {
+          <p class="aviso">{{ a }}</p>
+        }
         <div class="acciones-tutorial">
           @if (tutorial.puedeAtras()) {
             <button type="button" class="boton secundario" (click)="tutorial.atras()">Atrás</button>

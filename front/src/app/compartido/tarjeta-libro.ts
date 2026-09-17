@@ -9,7 +9,7 @@ import { cefr, encaje, miles, num } from '../nucleo/formato';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Portada],
   template: `
-    <a class="tarjeta-libro" [routerLink]="['/libro', libro().id]" [class.sin-texto]="!libro().abrible">
+    <a class="tarjeta-libro" [routerLink]="['/libro', libro().id]" [class.sin-texto]="!libro().abrible" data-tutorial="tarjeta-libro">
       <app-portada class="portada" [id]="libro().id" [titulo]="libro().titulo" [autor]="libro().autor"
                    [cefr]="letra()" [temas]="libro().temas" [ia]="libro().portada_ia" [compacta]="true" />
       <div class="cuerpo">
