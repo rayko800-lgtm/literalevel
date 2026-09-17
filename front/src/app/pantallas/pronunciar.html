@@ -423,9 +423,9 @@
 
   <p class="tenue pequeno volver">
     @if (contexto(); as c) {
-      <a [routerLink]="['/leer', c.id, c.cap]">Continuar leyendo</a>
+      <a [routerLink]="['/leer', c.id, c.cap]" data-tutorial="pronunciar-continuar">Continuar leyendo</a>
     } @else {
-      <a routerLink="/leer">Volver al libro</a>
+      <a routerLink="/leer" data-tutorial="pronunciar-continuar">Volver al libro</a>
     }
   </p>
 </div>

@@ -109,7 +109,7 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
     // Nada de lo que la app hace de verdad exige cuenta salvo lo que cuesta
     // dinero (explicar una palabra en contexto, resumir, corregir la
     // pronunciación con IA): grabarse y ver el sonido que falla no la piden.
-    texto: 'Con cuenta guardamos tu progreso y puedes pedir explicaciones en contexto. Sin cuenta también puedes leer, buscar, medir tu nivel, grabarte y ver qué sonido falla.',
+    texto: 'Con cuenta guardamos tu progreso. Sin cuenta también puedes leer, buscar y grabarte.',
     opciones: [
       { etiqueta: 'Entrar', accion: 'abrir-perfil' },
       { etiqueta: 'Continuar sin cuenta', siguienteId: 'intencion' },
@@ -189,18 +189,26 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
     texto: 'Cuando quieras, pasa a practicar cómo suena esa frase.',
     objetivo: '[data-tutorial="lexico-pronunciar"]',
   },
+  // Copy y objetivo NO son estos de aquí en la práctica (D1.V, corrección de
+  // UX confirmada por prueba humana): `pasoActual` los sustituye según si
+  // «Corrígeme» está disponible y si ya hubo un error, para no mandar nunca
+  // a un botón que va a fallar seguro. Esta entrada es solo el valor base
+  // (caso disponible, recién llegado, sin error) — ver `pasoPronunciarGrabar`.
   {
     id: 'pronunciar-grabar',
-    titulo: 'Grábate y después pide la corrección',
-    texto: 'Pulsa el micrófono, lee la frase y toca «Corrígeme».',
+    titulo: 'Grábate',
+    texto: 'Pulsa el micrófono y lee la frase.',
     objetivo: '[data-tutorial="pronunciar-practica"]',
   },
-  // Sin objetivo a propósito (Miguel, D1.4): «Escuchar y ver» solo tiene
-  // sentido si hubo un sonido fallado que enseñar, y no siempre lo hay.
+  // Con objetivo hacia «Continuar leyendo» (D1.V): el resultado ya está a la
+  // vista, así que la siguiente acción evidente deja de ser el micrófono.
+  // «Escuchar y ver» sigue sin objetivo propio a propósito (Miguel, D1.4):
+  // solo tiene sentido si hubo un sonido fallado que enseñar.
   {
     id: 'pronunciar-resultado',
     titulo: 'Aquí ves el resultado',
-    texto: 'Si hay un sonido marcado, puedes escucharlo y ver cómo se mueve la boca con «Escuchar y ver». Cuando quieras, continúa leyendo.',
+    texto: 'Si hay un sonido marcado, puedes escucharlo con «Escuchar y ver».',
+    objetivo: '[data-tutorial="pronunciar-continuar"]',
   },
   { id: 'practicar-inicio', silencioso: true, texto: 'Practicando' },
   // Checkpoint de D1.4, con comportamiento real desde D1.5.
@@ -210,7 +218,7 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
     titulo: 'Vuelve a lo que vas aprendiendo',
     // Sin prometer una palabra concreta (Miguel, D1.5): no hay garantía de
     // que la última consultada ya se haya guardado (etapa completa, IA).
-    texto: 'En Mis palabras puedes volver al vocabulario que se haya guardado durante tus lecturas y, cuando haya material disponible, repasarlo.',
+    texto: 'Tus palabras quedan aquí para repasarlas después.',
     // Sin `siguienteId`: no hay ningún enlace real y permanente a /palabras
     // que señalar (Miguel, D1.5 — motivo para D3/Mi espacio), así que el
     // tutorial ofrece su propio botón, pero el paso solo avanza cuando el
@@ -261,8 +269,51 @@ export class Tutorial {
     if (!this.activo()) return null;
     const id = this.pasoIdActual();
     if (id === 'cuenta-eleccion' && !this.sesion.sesionConocida()) return null;
-    return this.pasos.find(p => p.id === id) ?? null;
+    const base = this.pasos.find(p => p.id === id) ?? null;
+    if (!base) return null;
+    return id === 'pronunciar-grabar' ? this.pasoPronunciarGrabar(base) : base;
   });
+
+  /** Si «Corrígeme» está disponible en esta visita (sesión/perfil/OpenAI):
+   *  lo notifica `pronunciar.ts` desde su propio `bloqueada()`, el tutorial
+   *  no decide nada de la disponibilidad, solo la recuerda (D1.V). */
+  private readonly correccionDisponible = signal(true);
+  /** Si ya hay una grabación lista para corregir (refleja `estado()` de
+   *  Pronunciar): decide si el paso dice «Grábate» o «Pide tu corrección». */
+  private readonly grabacionLista = signal(false);
+  /** Un intento de corrección (o de grabación) acaba de fallar: micrófono,
+   *  backend, 429 o bloqueo pulsado a mano. Se olvida en cuanto se arranca
+   *  un intento nuevo (`notificarPronunciar('inicio')`). */
+  private readonly errorPronunciar = signal(false);
+
+  /** `pronunciar-grabar` es el único paso cuyo copy y objetivo dependen de
+   *  algo que el tutorial no decide (D1.V, corrección de UX confirmada por
+   *  prueba humana): nunca instruye a pulsar «Corrígeme» si ya se sabe que
+   *  va a fallar, y en cuanto hay un resultado, un error, o una corrección
+   *  no disponible, señala la acción real evidente: «Continuar leyendo». */
+  private pasoPronunciarGrabar(base: PasoTutorial): PasoTutorial {
+    if (this.errorPronunciar()) {
+      return {
+        ...base,
+        titulo: 'Vuelve al punto donde estabas',
+        texto: 'Puedes intentarlo de nuevo, o seguir leyendo.',
+        objetivo: '[data-tutorial="pronunciar-continuar"]',
+      };
+    }
+    if (!this.correccionDisponible()) {
+      return this.grabacionLista()
+        ? {
+            ...base,
+            titulo: 'Puedes escucharte y explorar los sonidos',
+            texto: 'La corrección automática está disponible con perfil.',
+            objetivo: '[data-tutorial="pronunciar-continuar"]',
+          }
+        : { ...base, titulo: 'Grábate para escucharte', texto: undefined };
+    }
+    return this.grabacionLista()
+      ? { ...base, titulo: 'Pide tu corrección', texto: 'Toca «Corrígeme» para ver el resultado.' }
+      : base;
+  }
 
   readonly puedeAtras = computed(() => this.historial().length > 0 && !this.pasoActual()?.sinAtras);
 
@@ -468,14 +519,35 @@ export class Tutorial {
     this.origenPronunciar = contexto;
   }
 
-  /** Lo que llama `pronunciar.ts` al empezar/terminar una corrección, o al
-   *  descubrir que está bloqueada (sin cuenta, sin OpenAI) — D1.4. Mismo
-   *  contrato que `notificarBusqueda`: solo actúa en `pronunciar-grabar`. */
+  /** Lo que llama `pronunciar.ts` al empezar una grabación o una corrección,
+   *  al tener resultado, o al fallar (micrófono, backend, 429, o un bloqueo
+   *  pulsado a mano) — D1.4/D1.V. Mismo contrato que `notificarBusqueda`:
+   *  solo actúa en `pronunciar-grabar`. El mensaje de error ya no se guarda
+   *  aparte en `avisoTransitorio`: lo dice el propio paso (`pasoPronunciarGrabar`),
+   *  que también señala «Continuar leyendo» en vez del micrófono. */
   notificarPronunciar(resultado: 'inicio' | 'resultado' | 'error'): void {
     if (!this.activo() || this.pasoIdActual() !== 'pronunciar-grabar') return;
-    if (resultado === 'inicio') { this.avisoTransitorio.set(null); return; }
-    if (resultado === 'resultado') { this.avisoTransitorio.set(null); this.irA('pronunciar-resultado'); return; }
-    this.avisoTransitorio.set('No se pudo completar la corrección. Puedes intentarlo de nuevo, o continuar leyendo.');
+    if (resultado === 'inicio') { this.avisoTransitorio.set(null); this.errorPronunciar.set(false); return; }
+    if (resultado === 'resultado') { this.avisoTransitorio.set(null); this.errorPronunciar.set(false); this.irA('pronunciar-resultado'); return; }
+    this.errorPronunciar.set(true);
+  }
+
+  /** Si «Corrígeme» está disponible en esta visita: lo notifica `pronunciar.ts`
+   *  desde su propio `bloqueada()`, reactivamente, en cuanto se sabe (antes de
+   *  cualquier intento) — D1.V. El tutorial nunca decide la disponibilidad,
+   *  solo la recuerda para no instruir a pulsar un botón que va a fallar. */
+  notificarDisponibilidadCorregir(disponible: boolean): void {
+    if (!this.activo()) return;
+    this.correccionDisponible.set(disponible);
+  }
+
+  /** Si ya hay una grabación lista para corregir, reflejando `estado()` de
+   *  Pronunciar (D1.V): decide si el paso dice «Grábate» o «Pide tu
+   *  corrección», y si la corrección no está disponible, cuándo mostrar el
+   *  aviso completo en vez del genérico. */
+  notificarGrabacionLista(lista: boolean): void {
+    if (!this.activo()) return;
+    this.grabacionLista.set(lista);
   }
 
   atras(): void {
@@ -510,8 +582,10 @@ export class Tutorial {
     const actual = this.pasoIdActual();
     if ((opciones.registrar ?? true) && actual !== id) this.historial.update(h => [...h, actual]);
     this.pasoIdActual.set(id);
-    // Un aviso de `encontrar-busqueda` nunca sobrevive a salir de ese paso.
+    // Un aviso de `encontrar-busqueda` nunca sobrevive a salir de ese paso;
+    // igual el error de `pronunciar-grabar` (D1.V), por si «Atrás» vuelve.
     this.avisoTransitorio.set(null);
+    this.errorPronunciar.set(false);
     this.persistir('activo');
     // Resolución inmediata, sin esperar al `effect`: si la condición de avance
     // de este paso ya se cumple AHORA (p. ej. llega a `nivel-inicio` con un

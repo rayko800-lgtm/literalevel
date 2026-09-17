@@ -20,11 +20,15 @@ describe('Pronunciar: notificaciones al tutorial y regreso contextual', () => {
 
   let notificarPronunciar: ReturnType<typeof vi.fn>;
   let registrarContextoPronunciar: ReturnType<typeof vi.fn>;
+  let notificarDisponibilidadCorregir: ReturnType<typeof vi.fn>;
+  let notificarGrabacionLista: ReturnType<typeof vi.fn>;
   let apiPracticar: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     notificarPronunciar = vi.fn();
     registrarContextoPronunciar = vi.fn();
+    notificarDisponibilidadCorregir = vi.fn();
+    notificarGrabacionLista = vi.fn();
     apiPracticar = vi.fn();
     await TestBed.configureTestingModule({
       imports: [Pronunciar],
@@ -46,7 +50,7 @@ describe('Pronunciar: notificaciones al tutorial y regreso contextual', () => {
             ajustesAbiertos: signal(false), abrirPerfil: vi.fn(),
           },
         },
-        { provide: Tutorial, useValue: { notificarPronunciar, registrarContextoPronunciar } },
+        { provide: Tutorial, useValue: { notificarPronunciar, registrarContextoPronunciar, notificarDisponibilidadCorregir, notificarGrabacionLista } },
       ],
     }).compileComponents();
   });

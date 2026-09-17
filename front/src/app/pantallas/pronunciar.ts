@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, Injector, OnDestroy, OnInit, afterNextRender, computed, inject, input, signal, viewChild,
+  ChangeDetectionStrategy, Component, Injector, OnDestroy, OnInit, afterNextRender, computed, effect, inject, input, signal, viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -129,6 +129,14 @@ export class Pronunciar implements OnInit, OnDestroy {
     return this.acento() === 'ga' ? f.ga : f.rp;
   });
 
+  constructor() {
+    // D1.V: notifica al tutorial, reactivamente, si «Corrígeme» está
+    // disponible y si ya hay una grabación lista — nunca al revés, Pronunciar
+    // no lee nada del tutorial. Sin efecto si el tutorial no está activo.
+    effect(() => this.tutorial.notificarDisponibilidadCorregir(!this.bloqueada()));
+    effect(() => this.tutorial.notificarGrabacionLista(this.estado() === 'grabada'));
+  }
+
   ngOnInit(): void {
     const f = (this.frase_() ?? '').trim();
     if (f) this.frase = f.slice(0, 300);
@@ -229,6 +237,8 @@ export class Pronunciar implements OnInit, OnDestroy {
     // El micrófono ya no va desactivado sin frase: un toque que no hace nada es lo que contó Ismael.
     if (!this.frase.trim()) { this.error.set(this.avisoSinFrase); return; }
     if (!this.puedeGrabar()) { this.error.set(this.textoSinGrabacion()); return; }
+    // Un intento nuevo: si el anterior falló (D1.V), el tutorial lo olvida.
+    this.tutorial.notificarPronunciar('inicio');
     this.pidiendo.set(true);
     this.relojPermiso = setTimeout(() => this.pidiendoLento.set(true), 5000);
     let flujo: MediaStream;
@@ -236,6 +246,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
       this.error.set(this.mensajeMicrofono(e));
+      this.tutorial.notificarPronunciar('error');
       return;
     } finally {
       clearTimeout(this.relojPermiso);
@@ -280,6 +291,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       // El permiso ya se dio: lo que falló es MediaRecorder. Se suelta el micrófono.
       flujo.getTracks().forEach(t => t.stop());
       this.error.set('No se pudo empezar a grabar. Vuelve a intentar.');
+      this.tutorial.notificarPronunciar('error');
     }
   }
 

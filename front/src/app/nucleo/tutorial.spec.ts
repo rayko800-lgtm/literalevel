@@ -624,12 +624,12 @@ describe('Tutorial (D1.2)', () => {
           expect(t.pasoActual()?.id).toBe('lexico-abierto'); // sin cambios
         });
 
-        it('"inicio" limpia el aviso de un intento anterior', async () => {
+        it('"inicio" olvida un error anterior (D1.V: el paso deja de señalar «Continuar leyendo»)', async () => {
           const { t } = await irAPronunciarGrabar();
           t.notificarPronunciar('error');
-          expect(t.avisoTransitorio()).not.toBeNull();
+          expect(t.pasoActual()?.objetivo).toBe('[data-tutorial="pronunciar-continuar"]');
           t.notificarPronunciar('inicio');
-          expect(t.avisoTransitorio()).toBeNull();
+          expect(t.pasoActual()?.objetivo).toBe('[data-tutorial="pronunciar-practica"]');
         });
 
         it('"resultado" avanza a pronunciar-resultado', async () => {
@@ -639,12 +639,35 @@ describe('Tutorial (D1.2)', () => {
           expect(t.activo()).toBe(true);
         });
 
-        it('"error" (incluida la rama bloqueada de corregir()) deja el aviso, sin avanzar ni bloquear', async () => {
+        it('"error" (incluida la rama bloqueada de corregir()) señala «Continuar leyendo», sin avanzar ni bloquear (D1.V)', async () => {
           const { t } = await irAPronunciarGrabar();
           t.notificarPronunciar('error');
           expect(t.pasoActual()?.id).toBe('pronunciar-grabar');
-          expect(t.avisoTransitorio()).toContain('No se pudo completar la corrección');
+          expect(t.pasoActual()?.objetivo).toBe('[data-tutorial="pronunciar-continuar"]');
+          expect(t.pasoActual()?.titulo).toBe('Vuelve al punto donde estabas');
           expect(t.activo()).toBe(true);
+        });
+
+        it('sin «Corrígeme» disponible: antes de grabar, no instruye a pulsar Corrígeme (D1.V)', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.notificarDisponibilidadCorregir(false);
+          expect(t.pasoActual()?.titulo).toBe('Grábate para escucharte');
+          expect(t.pasoActual()?.objetivo).toBe('[data-tutorial="pronunciar-practica"]');
+        });
+
+        it('sin «Corrígeme» disponible: después de grabar, señala «Continuar leyendo» (D1.V)', async () => {
+          const { t } = await irAPronunciarGrabar();
+          t.notificarDisponibilidadCorregir(false);
+          t.notificarGrabacionLista(true);
+          expect(t.pasoActual()?.titulo).toBe('Puedes escucharte y explorar los sonidos');
+          expect(t.pasoActual()?.objetivo).toBe('[data-tutorial="pronunciar-continuar"]');
+        });
+
+        it('con «Corrígeme» disponible: el título cambia de «Grábate» a «Pide tu corrección» al grabar (D1.V)', async () => {
+          const { t } = await irAPronunciarGrabar();
+          expect(t.pasoActual()?.titulo).toBe('Grábate');
+          t.notificarGrabacionLista(true);
+          expect(t.pasoActual()?.titulo).toBe('Pide tu corrección');
         });
       });
 

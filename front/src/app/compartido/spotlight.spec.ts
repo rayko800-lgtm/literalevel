@@ -399,10 +399,11 @@ describe('Spotlight (D1.2)', () => {
       await TestBed.inject(Router).navigateByUrl('/pronunciar');
       fixture.detectChanges();
       expect(tutorial.pasoActual()?.id).toBe('pronunciar-grabar');
-      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Grábate y después pide la corrección');
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Grábate');
       tutorial.notificarPronunciar('error');
       fixture.detectChanges();
-      expect(dialogo()?.textContent).toContain('No se pudo completar la corrección');
+      // D1.V: el error ya no se anuncia aparte, señala «Continuar leyendo».
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Vuelve al punto donde estabas');
       marca.remove();
     });
 
