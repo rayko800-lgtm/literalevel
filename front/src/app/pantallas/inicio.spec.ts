@@ -29,14 +29,19 @@ describe('Inicio: Mi espacio (D3.1) y CTA de continuar leyendo', () => {
   });
 
   let apiFalladas: ReturnType<typeof vi.fn>;
+  let apiProgreso: ReturnType<typeof vi.fn>;
 
   function proveer(inicio: ReturnType<typeof signal<InicioApi | null>>, perfil: Perfil | null = null) {
     apiFalladas = vi.fn(() => of({ palabras: [] }));
+    apiProgreso = vi.fn(() => of({
+      palabras_por_dia: Array.from({ length: 14 }, (_, i) => ({ fecha: `2026-09-${String(i + 1).padStart(2, '0')}`, consultas: 0 })),
+      repasos: { si: 0, dude: 0, no: 0, total: 0 },
+    }));
     return TestBed.configureTestingModule({
       imports: [Inicio],
       providers: [
         provideRouter([]),
-        { provide: Api, useValue: { falladas: apiFalladas } },
+        { provide: Api, useValue: { falladas: apiFalladas, miProgreso: apiProgreso } },
         {
           provide: Sesion,
           useValue: {
@@ -160,6 +165,103 @@ describe('Inicio: Mi espacio (D3.1) y CTA de continuar leyendo', () => {
       fixture.detectChanges();
       expect(raiz.querySelector('.cabecera-espacio')).toBeTruthy();
       expect(raiz.querySelectorAll('.tarjeta-mini').length).toBeGreaterThan(0);
+    });
+
+    describe('Mi progreso (D3.3)', () => {
+      it('pide /api/progreso con la zona IANA real del navegador', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+        const { fixture } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(apiProgreso).toHaveBeenCalledWith(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      });
+
+      it('sin consultas en los 14 días: mensaje breve, sin barras en cero', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.textContent).toContain('Todavía no has consultado palabras.');
+        expect(raiz.querySelector('.barras-dias')).toBeNull();
+      });
+
+      it('con consultas: dibuja las barras y el dato accesible por día', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 3, palabras: 2, libros: 1 } })));
+        apiProgreso.mockReturnValue(of({
+          palabras_por_dia: [
+            ...Array.from({ length: 13 }, (_, i) => ({ fecha: `2026-09-${String(i + 1).padStart(2, '0')}`, consultas: 0 })),
+            { fecha: '2026-09-18', consultas: 3 },
+          ],
+          repasos: { si: 0, dude: 0, no: 0, total: 0 },
+        }));
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.querySelectorAll('.barra-dia').length).toBe(14);
+        expect(raiz.textContent).toContain('2026-09-18: 3 consultas');
+      });
+
+      it('sin repasos: CTA a /repasar, sin gráfica vacía', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.textContent).toContain('Haz tu primer repaso para empezar a ver tus resultados.');
+        const cta = [...raiz.querySelectorAll('a')].find(a => a.getAttribute('href') === '/repasar' && a.textContent?.trim() === 'Repasar');
+        expect(cta).toBeTruthy();
+        expect(raiz.querySelector('.barra-segmentada')).toBeNull();
+      });
+
+      it('con repasos: título con el total real y las tres cifras, nunca solo el porcentaje', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+        apiProgreso.mockReturnValue(of({
+          palabras_por_dia: Array.from({ length: 14 }, (_, i) => ({ fecha: `d${i}`, consultas: 0 })),
+          repasos: { si: 7, dude: 3, no: 2, total: 12 },
+        }));
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.textContent).toContain('Resultados de tus últimos 12 repasos');
+        expect(raiz.textContent).toContain('Sí');
+        expect(raiz.textContent).toContain('7');
+        expect(raiz.textContent).toContain('Dudé');
+        expect(raiz.textContent).toContain('3');
+        expect(raiz.textContent).toContain('No');
+        expect(raiz.textContent).toContain('2');
+      });
+
+      it('mientras carga: no muestra ceros falsos (ni barras ni "0 repasos")', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+        apiProgreso.mockReturnValue({ subscribe: () => {} }); // nunca resuelve
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.querySelector('.esqueleto-progreso')).toBeTruthy();
+        expect(raiz.textContent).not.toContain('Todavía no has consultado palabras.');
+        expect(raiz.textContent).not.toContain('Haz tu primer repaso');
+      });
+
+      it('si /api/progreso falla: aviso discreto solo en esa tarjeta, el resto de Mi espacio sigue', async () => {
+        await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+        apiProgreso.mockReturnValue(throwError(() => new Error('sin red')));
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.querySelector('.cabecera-espacio')).toBeTruthy();
+        expect(raiz.querySelectorAll('.tarjeta-mini').length).toBeGreaterThan(0);
+        const tarjetaProgreso = raiz.querySelector('.mi-progreso') as HTMLElement;
+        expect(tarjetaProgreso.textContent).toContain('No se pudo cargar tu progreso.');
+      });
+
+      it('no duplica la barra de avance del libro actual: solo una en toda la pantalla', async () => {
+        await proveer(signal(inicioBase({
+          seguir: SEGUIR, libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 },
+        })));
+        const { fixture, raiz } = montar();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(raiz.querySelectorAll('[role=progressbar]').length).toBe(1);
+      });
     });
   });
 });

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { RouterLink } from '@angular/router';
 import { Bienvenida } from '../compartido/bienvenida';
 import { Icono } from '../compartido/icono';
-import { Api, PalabraFallada } from '../nucleo/api';
+import { Api, PalabraFallada, Progreso, mensajeError } from '../nucleo/api';
 import { cefr, miles, num } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
 
@@ -39,7 +39,11 @@ import { Sesion } from '../nucleo/sesion';
             <div class="avance" role="progressbar" [attr.aria-valuenow]="Math.round(s.avance * 100)" aria-valuemin="0" aria-valuemax="100">
               <i [style.width.%]="s.avance * 100"></i>
             </div>
-            <span class="fila seguir-pie"><span class="tenue pequeno">{{ Math.round(s.avance * 100) }}% del libro</span>
+            <!-- «Avance por capítulos», no «% leído» (Miguel, D3.3): avance
+                 es capítulo/(capítulos-1), progreso estructural, no una
+                 medida real de texto leído — el capítulo de al lado ya lo
+                 deja claro, esto solo lo remacha en el propio número. -->
+            <span class="fila seguir-pie"><span class="tenue pequeno">Avance por capítulos: {{ Math.round(s.avance * 100) }}%</span>
               <span class="enlace">Seguir leyendo <app-icono nombre="flecha" /></span></span>
           </a>
         }
@@ -84,6 +88,56 @@ import { Sesion } from '../nucleo/sesion';
             </a>
           </section>
         }
+
+        <!-- D3.3: agregados de /api/progreso, nunca anotaciones completas.
+             Una sola tarjeta con las dos gráficas — si la llamada falla,
+             solo esta tarjeta lo dice, el resto de Mi espacio sigue igual. -->
+        <section class="tarjeta mi-progreso">
+          <h2>Mi progreso</h2>
+          @if (progreso(); as p) {
+            <div class="bloque-progreso">
+              <h3>Palabras consultadas · 14 días</h3>
+              @if (totalConsultas14() === 0) {
+                <p class="tenue pequeno">Todavía no has consultado palabras.</p>
+              } @else {
+                <div class="barras-dias" aria-hidden="true">
+                  @for (d of p.palabras_por_dia; track d.fecha) {
+                    <span class="barra-dia" [style.height.%]="alturaBarra(d.consultas)"></span>
+                  }
+                </div>
+                <!-- El dato real, para quien no puede ver la altura/color de la barra. -->
+                <ul class="oculto-visual">
+                  @for (d of p.palabras_por_dia; track d.fecha) {
+                    <li>{{ d.fecha }}: {{ d.consultas }} {{ d.consultas === 1 ? 'consulta' : 'consultas' }}</li>
+                  }
+                </ul>
+              }
+            </div>
+            <div class="bloque-progreso">
+              @if (p.repasos.total === 0) {
+                <h3>Resultados de repaso</h3>
+                <p class="tenue pequeno">Haz tu primer repaso para empezar a ver tus resultados.</p>
+                <a class="boton pequeno secundario" routerLink="/repasar">Repasar</a>
+              } @else {
+                <h3>Resultados de tus últimos {{ p.repasos.total }} {{ p.repasos.total === 1 ? 'repaso' : 'repasos' }}</h3>
+                <div class="barra-segmentada" aria-hidden="true">
+                  <i class="seg si" [style.width.%]="pct(p.repasos.si, p.repasos.total)"></i>
+                  <i class="seg dude" [style.width.%]="pct(p.repasos.dude, p.repasos.total)"></i>
+                  <i class="seg no" [style.width.%]="pct(p.repasos.no, p.repasos.total)"></i>
+                </div>
+                <ul class="leyenda-repasos">
+                  <li><span class="punto si"></span>Sí <strong>{{ p.repasos.si }}</strong></li>
+                  <li><span class="punto dude"></span>Dudé <strong>{{ p.repasos.dude }}</strong></li>
+                  <li><span class="punto no"></span>No <strong>{{ p.repasos.no }}</strong></li>
+                </ul>
+              }
+            </div>
+          } @else if (progresoError()) {
+            <p class="tenue pequeno">{{ progresoError() }}</p>
+          } @else {
+            <div class="esqueleto-progreso" aria-hidden="true"></div>
+          }
+        </section>
 
         <a class="tarjeta-mini ancho" routerLink="/nivel">
           <span class="icono-mini"><app-icono nombre="diana" /></span>
@@ -215,6 +269,22 @@ import { Sesion } from '../nucleo/sesion';
     .tarjeta-mini.ancho { grid-template-columns: auto 1fr auto; margin-bottom: 1.75rem; }
     .tarjeta-mini.ancho div { grid-column: 2; }
     .tarjeta-mini.ancho .enlace { grid-column: 3; }
+    /* Mi progreso (D3.3): dos bloques compactos, CSS puro, sin librería de gráficas. */
+    .mi-progreso { margin-bottom: 1.75rem; display: grid; gap: 1.25rem; }
+    .mi-progreso h2 { margin: 0 0 .25rem; }
+    .bloque-progreso h3 { margin: 0 0 .6rem; font-size: 1rem; }
+    .barras-dias { display: flex; align-items: flex-end; gap: 3px; height: 56px; }
+    .barra-dia { flex: 1 1 0; min-width: 4px; border-radius: 3px 3px 0 0; background: var(--acento); opacity: .85; }
+    .esqueleto-progreso { height: 56px; border-radius: var(--radio-sm, 8px); background: var(--superficie-3); }
+    .barra-segmentada { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--superficie-3); }
+    .seg.si { background: var(--verde); }
+    .seg.dude { background: var(--ambar); }
+    .seg.no { background: var(--rojo); }
+    .leyenda-repasos { list-style: none; display: flex; gap: 1rem; margin: .6rem 0 0; padding: 0; font-size: .88rem; flex-wrap: wrap; }
+    .leyenda-repasos .punto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: .35rem; }
+    .punto.si { background: var(--verde); }
+    .punto.dude { background: var(--ambar); }
+    .punto.no { background: var(--rojo); }
     @media (max-width: 900px) {
       .heroe { grid-template-columns: 1fr; }
       .demo { max-width: 560px; }
@@ -274,6 +344,15 @@ export class Inicio {
   protected readonly falladas = signal<PalabraFallada[]>([]);
   private falladasPedidas = false;
 
+  /** D3.3: agregados de `/api/progreso` — solo se pide una vez, y solo en
+   *  modo Mi espacio (igual que `falladas`). Si falla, se dice en la
+   *  propia tarjeta «Mi progreso»; el resto de la pantalla no se entera. */
+  protected readonly progreso = signal<Progreso | null>(null);
+  protected readonly progresoError = signal('');
+  private progresoPedido = false;
+  protected readonly totalConsultas14 = computed(() =>
+    (this.progreso()?.palabras_por_dia ?? []).reduce((s, d) => s + d.consultas, 0));
+
   constructor() {
     if (this.sesion.motor() === 'listo') void this.sesion.refrescar();
     effect(() => {
@@ -281,5 +360,28 @@ export class Inicio {
       this.falladasPedidas = true;
       this.api.falladas().subscribe({ next: r => this.falladas.set(r.palabras), error: () => {} });
     });
+    effect(() => {
+      if (!this.modoEspacio() || this.progresoPedido) return;
+      this.progresoPedido = true;
+      // La zona real del navegador, nunca la del servidor (D3.3, Miguel):
+      // si falla incluso leerla, se manda sin `tz` y el backend cae a UTC.
+      let tz: string | undefined;
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { /* sin Intl */ }
+      this.api.miProgreso(tz).subscribe({
+        next: p => this.progreso.set(p),
+        error: e => this.progresoError.set(mensajeError(e, 'No se pudo cargar tu progreso.')),
+      });
+    });
+  }
+
+  /** Altura de la barra del día, con un mínimo visible para los días en 0
+   *  (una barra invisible se lee como "no hay dato", no como "cero"). */
+  protected alturaBarra(consultas: number): number {
+    const max = Math.max(1, ...(this.progreso()?.palabras_por_dia ?? []).map(d => d.consultas));
+    return Math.max(8, (consultas / max) * 100);
+  }
+
+  protected pct(n: number, total: number): number {
+    return total > 0 ? (n / total) * 100 : 0;
   }
 }

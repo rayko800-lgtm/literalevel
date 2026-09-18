@@ -376,6 +376,11 @@ export interface Repaso { palabras: TarjetaRepaso[]; voz: { palabra: string; fal
 
 export type EvaluacionRepaso = 'no' | 'dude' | 'si';
 
+/** D3.3: "Mi progreso" — agregados nunca anotaciones completas. */
+export interface DiaConsultas { fecha: string; consultas: number; }
+export interface ResumenRepasos { si: number; dude: number; no: number; total: number; }
+export interface Progreso { palabras_por_dia: DiaConsultas[]; repasos: ResumenRepasos; }
+
 export interface EntradaBiblioteca {
   id: string;
   titulo: string;
@@ -504,6 +509,13 @@ export class Api {
    *  front (ver `app/api.py:evaluar_repaso`). */
   evaluarRepaso(consulta_id: number, evaluacion: EvaluacionRepaso): Observable<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`${this.base}/repaso`, { consulta_id, evaluacion });
+  }
+  /** D3.3: agregados para «Mi progreso» — sin relación con `progreso()`
+   *  (D2, `PUT .../progreso`, el marcapáginas de un libro). `tz` es la zona
+   *  IANA real del navegador, nunca la del servidor — si se omite o no es
+   *  válida, el backend degrada a UTC. */
+  miProgreso(tz?: string): Observable<Progreso> {
+    return this.http.get<Progreso>(`${this.base}/progreso`, { params: tz ? { tz } : {} });
   }
   biblioteca(): Observable<{ libros: EntradaBiblioteca[] }> {
     return this.http.get<{ libros: EntradaBiblioteca[] }>(`${this.base}/biblioteca`);

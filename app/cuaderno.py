@@ -26,8 +26,9 @@ from __future__ import annotations
 import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 RUTA_POR_DEFECTO = Path(os.path.expanduser("~")) / ".literalevel" / "cuaderno.db"
 
@@ -218,3 +219,67 @@ def registrar_repaso(*, consulta_id: int, evaluacion: str,
         return True
     except (sqlite3.Error, OSError):
         return False
+
+
+def _zona(iana: str | None):
+    """La zona IANA real del navegador, o UTC si falta/no es valida.
+
+    Nunca la zona del SERVIDOR (D3.3, Miguel): sin `zoneinfo` estandar, sin
+    dependencias nuevas. `ZoneInfo` valida el nombre al construirla; un
+    nombre inventado o vacio degrada a UTC, nunca lanza."""
+    if not iana:
+        return timezone.utc
+    try:
+        return ZoneInfo(iana)
+    except (ZoneInfoNotFoundError, ValueError, KeyError):
+        return timezone.utc
+
+
+def por_dia(iana: str | None, dias: int = 14,
+            ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> list[tuple[str, int]]:
+    """[(fecha ISO 'AAAA-MM-DD', consultas)] de cada uno de los ultimos
+    `dias` dias del calendario LOCAL de `iana`, mas antiguo primero,
+    siempre `dias` entradas (los dias sin nada quedan en 0).
+
+    Cada FILA de `consultas` cuenta una vez, aunque el lema se repita
+    (D3.3: es "consultas", no "palabras distintas"). El agrupado es en
+    Python, no en SQL: SQLite no conoce zonas IANA (solo desfases fijos),
+    y una fecha de calendario con DST solo se calcula bien convirtiendo
+    cada marca de tiempo de verdad con `zoneinfo`.
+    """
+    zona = _zona(iana)
+    hoy = datetime.now(zona).date()
+    # Margen de un dia extra en UTC: una consulta de las 23:50 UTC puede
+    # caer en el dia siguiente en una zona muy adelantada, y una de las
+    # 00:10 UTC en el dia anterior en una muy atrasada.
+    desde_utc = (datetime.now(timezone.utc) - timedelta(days=dias + 1)).isoformat()
+    try:
+        with _conectar(ruta) as con:
+            filas = con.execute(
+                "SELECT creado FROM consultas WHERE creado >= ?", (desde_utc,)).fetchall()
+    except (sqlite3.Error, OSError):
+        filas = []
+    cuentas: dict[date, int] = {}
+    for (creado,) in filas:
+        try:
+            dt = datetime.fromisoformat(creado)
+        except (TypeError, ValueError):
+            continue  # fecha corrupta: se ignora, nunca rompe la grafica
+        dia_local = dt.astimezone(zona).date()
+        cuentas[dia_local] = cuentas.get(dia_local, 0) + 1
+    return [((hoy - timedelta(days=i)).isoformat(), cuentas.get(hoy - timedelta(days=i), 0))
+            for i in range(dias - 1, -1, -1)]
+
+
+def ultimos_repasos(n: int = 20, ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> list[str]:
+    """Las evaluaciones ('no'/'dude'/'si') de los ultimos `n` eventos de
+    repaso, mas recientes primero. Vacia si no hay ninguno o si la DB no
+    se puede leer — nunca lanza."""
+    try:
+        with _conectar(ruta) as con:
+            filas = con.execute(
+                "SELECT evaluacion FROM repasos ORDER BY id DESC LIMIT ?",
+                (max(1, int(n)),)).fetchall()
+    except (sqlite3.Error, OSError):
+        return []
+    return [f[0] for f in filas]

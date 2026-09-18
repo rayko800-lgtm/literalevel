@@ -2123,6 +2123,29 @@ def evaluar_repaso(datos: RepasoEvaluacion, pet: Lector) -> dict:
     return {"ok": True}
 
 
+@app.get("/api/progreso")
+def progreso(pet: Lector, tz: str | None = None) -> dict:
+    """Agregados para «Mi progreso» (D3.3): nunca anotaciones completas, solo
+    lo mínimo para dibujar dos gráficas pequeñas.
+
+    `tz` es la zona IANA real del navegador
+    (`Intl.DateTimeFormat().resolvedOptions().timeZone`), nunca la zona del
+    servidor; si falta o no es una zona válida, `cuaderno.por_dia` degrada a
+    UTC sola, sin lanzar.
+    """
+    db = ui._archivo_lector("cuaderno.db", pet)
+    dias = cuaderno.por_dia(tz, 14, db)
+    evaluaciones = cuaderno.ultimos_repasos(20, db)
+    conteo = {"si": 0, "dude": 0, "no": 0}
+    for e in evaluaciones:
+        if e in conteo:
+            conteo[e] += 1
+    return {
+        "palabras_por_dia": [{"fecha": f, "consultas": c} for f, c in dias],
+        "repasos": {**conteo, "total": len(evaluaciones)},
+    }
+
+
 def _estanteria(pet: _Lector) -> list[dict]:
     db = ui._archivo_lector("cuaderno.db", pet)
     por_libro: dict[str, int] = {}
