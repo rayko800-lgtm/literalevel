@@ -47,11 +47,33 @@ CREATE TABLE IF NOT EXISTS consultas (
 );
 CREATE INDEX IF NOT EXISTS idx_cuaderno_lema ON consultas(lema);
 CREATE INDEX IF NOT EXISTS idx_cuaderno_creado ON consultas(creado);
+-- D3.2: eventos de repaso, aparte de `consultas` (append-only, nunca se
+-- reescribe ni se borra una fila). `consulta_id` identifica la tarjeta
+-- exacta que se evaluo (la fila de `consultas` vigente en ese momento);
+-- `lema` se repite aqui para que D3.3 pueda agregar por palabra sin tener
+-- que volver a `consultas` (que puede tener varias filas por lema y sigue
+-- cambiando). El resto es una foto de lo que se enseño al evaluar.
+CREATE TABLE IF NOT EXISTS repasos (
+    id          INTEGER PRIMARY KEY,
+    consulta_id INTEGER NOT NULL,
+    lema        TEXT NOT NULL,
+    evaluacion  TEXT NOT NULL CHECK (evaluacion IN ('no', 'dude', 'si')),
+    palabra     TEXT,
+    oracion     TEXT,
+    sentido     TEXT,
+    libro       TEXT,
+    capitulo    INTEGER,
+    creado      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_repasos_lema ON repasos(lema);
+CREATE INDEX IF NOT EXISTS idx_repasos_consulta ON repasos(consulta_id);
+CREATE INDEX IF NOT EXISTS idx_repasos_creado ON repasos(creado);
 """
 
 
 @dataclass
 class Anotacion:
+    id: int
     palabra: str
     lema: str
     categoria: str | None
@@ -115,12 +137,12 @@ def _filas(sql: str, args: tuple, ruta) -> list[Anotacion]:
             filas = con.execute(sql, args).fetchall()
     except (sqlite3.Error, OSError):
         return []
-    return [Anotacion(palabra=f[0], lema=f[1], categoria=f[2], sentido=f[3],
-                      oracion=f[4], libro=f[5], capitulo=f[6], zipf=f[7], creado=f[8])
+    return [Anotacion(id=f[0], palabra=f[1], lema=f[2], categoria=f[3], sentido=f[4],
+                      oracion=f[5], libro=f[6], capitulo=f[7], zipf=f[8], creado=f[9])
             for f in filas]
 
 
-_COLUMNAS = ("palabra, lema, categoria, sentido, oracion, libro, capitulo, "
+_COLUMNAS = ("id, palabra, lema, categoria, sentido, oracion, libro, capitulo, "
              "zipf, creado")
 
 
@@ -153,3 +175,46 @@ def contar(ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> tuple[int, int, int]:
                 " COUNT(DISTINCT COALESCE(libro,'')) FROM consultas").fetchone())
     except (sqlite3.Error, OSError):
         return (0, 0, 0)
+
+
+def por_id(consulta_id: int, ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> Anotacion | None:
+    """La consulta exacta con ese id, o `None` si no existe EN ESTE cuaderno.
+
+    Como cada lector tiene su propio archivo (D2: por `X-Lector`, nunca por
+    cuenta), buscar aqui ya implica "es de este lector": un id que exista en
+    el cuaderno de otro lector simplemente no aparece en este archivo.
+    """
+    filas = _filas(f"SELECT {_COLUMNAS} FROM consultas WHERE id = ?", (int(consulta_id),), ruta)
+    return filas[0] if filas else None
+
+
+EVALUACIONES = ("no", "dude", "si")
+
+
+def registrar_repaso(*, consulta_id: int, evaluacion: str,
+                      ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> bool:
+    """Evento de repaso, append-only: nunca reescribe ni borra nada.
+
+    La foto (palabra/oracion/sentido/libro/capitulo) se toma AQUI, de la
+    propia consulta en este cuaderno — nunca de lo que mande el front, que
+    solo trae `consulta_id` y `evaluacion` (D3.2, decision de Miguel: el
+    front no es la fuente de verdad de que se enseño). Si `consulta_id` no
+    existe en este cuaderno, no se guarda nada y se devuelve `False`: quien
+    llama (la API) lo convierte en 404, no en un evento a medias.
+    """
+    if evaluacion not in EVALUACIONES:
+        return False
+    a = por_id(consulta_id, ruta)
+    if a is None:
+        return False
+    try:
+        with _conectar(ruta) as con:
+            con.execute(
+                "INSERT INTO repasos (consulta_id, lema, evaluacion, palabra, oracion,"
+                " sentido, libro, capitulo, creado) VALUES (?,?,?,?,?,?,?,?,?)",
+                (a.id, a.lema, evaluacion, a.palabra, a.oracion, a.sentido,
+                 a.libro, a.capitulo, _ahora()),
+            )
+        return True
+    except (sqlite3.Error, OSError):
+        return False

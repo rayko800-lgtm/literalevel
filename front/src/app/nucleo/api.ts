@@ -367,7 +367,14 @@ export interface Anotacion {
 
 export interface Cuaderno { consultas: number; palabras: number; libros: number; entradas: Anotacion[]; }
 
-export interface Repaso { palabras: Anotacion[]; voz: { palabra: string; fallos: number }[]; aviso_voz?: string | null; }
+/** D3.2: la tarjeta de repaso trae `consulta_id` — la identidad real que
+ *  hay que devolver al evaluar (`Api.evaluarRepaso`), nunca la palabra ni
+ *  la frase: el servidor recalcula esa foto desde su propio cuaderno. */
+export interface TarjetaRepaso extends Anotacion { consulta_id: number; }
+
+export interface Repaso { palabras: TarjetaRepaso[]; voz: { palabra: string; fallos: number }[]; aviso_voz?: string | null; }
+
+export type EvaluacionRepaso = 'no' | 'dude' | 'si';
 
 export interface EntradaBiblioteca {
   id: string;
@@ -492,6 +499,12 @@ export class Api {
 
   cuaderno(n = 60): Observable<Cuaderno> { return this.http.get<Cuaderno>(`${this.base}/cuaderno`, { params: { n } }); }
   repaso(): Observable<Repaso> { return this.http.get<Repaso>(`${this.base}/repaso`); }
+  /** D3.2: solo `consulta_id` + `evaluacion` — nunca la palabra/frase, que
+   *  el servidor recalcula de su propio cuaderno, no de lo que mande el
+   *  front (ver `app/api.py:evaluar_repaso`). */
+  evaluarRepaso(consulta_id: number, evaluacion: EvaluacionRepaso): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.base}/repaso`, { consulta_id, evaluacion });
+  }
   biblioteca(): Observable<{ libros: EntradaBiblioteca[] }> {
     return this.http.get<{ libros: EntradaBiblioteca[] }>(`${this.base}/biblioteca`);
   }

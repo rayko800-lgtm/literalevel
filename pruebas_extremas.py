@@ -879,7 +879,7 @@ prueba("repasar agrupa por lema",
                         if a.lema == "fetter"]) == 1)
        and "una sola entrada para fetter y fetters")
 prueba("rareza sin zipf", lambda: repr(cuaderno.Anotacion(
-    "x", "x", None, None, "o", None, None, None, "2026").rareza))
+    1, "x", "x", None, None, "o", None, None, None, "2026").rareza))
 
 titulo("Reanudar la sesion")
 
