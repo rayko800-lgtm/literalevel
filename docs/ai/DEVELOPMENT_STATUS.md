@@ -480,7 +480,55 @@ contextual no aparece — igual que hoy.
 
 ## D3 — Mi espacio + repaso interactivo
 
-**Status:** ⬜ PENDING
+**Status:** 🟡 RUNNING
+
+**Rama/worktree aislado:** `dev/mi-espacio-v2`, en
+`.claude/worktrees/mi-espacio-v2`, creada desde `5ab6555` (checkpoint
+D1+H1+D2 de `dev/navigation-v2`). `dev/navigation-v2` no se ha tocado:
+sigue en `5ab6555`, limpio (los dos archivos temporales de la prueba en
+vivo revertidos antes de empezar D3). `master` intacto en `004eb28`.
+
+Diseño aprobado por Miguel con decisiones concretas: D3 se implementa en
+incrementos (D3.1 → D3.2 → D3.3 → D3.V), cada uno con su propio informe y
+aprobación antes de seguir.
+
+### UX0 — Continuar leyendo fijo en Pronunciar
+
+**Status:** ✅ PASSED
+
+**Commit:** `d5abe8f` en `dev/mi-espacio-v2` (sobre `3f89f35`).
+
+Microajuste previo a D3.1: el CTA contextual "Continuar leyendo" de
+Pronunciar (D1.4) se repite ahora dentro de `.grabadora` (la barra fija en
+móvil), reutilizando el mismo `contexto()` sin lógica de navegación nueva.
+Visible en cualquier estado (grabando, error, resultado, explorando IPA).
+El enlace antiguo al final de la página se oculta solo en móvil cuando es
+la variante contextual (evita el doble CTA); se conserva en escritorio.
+`data-tutorial="pronunciar-continuar"` pasa a vivir solo en el CTA fijo.
+3 tests nuevos.
+
+### D3.1 — Inicio evoluciona a Mi espacio
+
+**Status:** ✅ PASSED
+
+**Commit:** `a0c75ec` en `dev/mi-espacio-v2` (sobre `d5abe8f`).
+
+Decisión: sin pantalla `/espacio` nueva, sin quinta pestaña. `inicio.ts`
+gana un segundo estado (`modoEspacio()`), decidido con los datos ya
+cargados de `/api/inicio` (libros, consultas o un perfil medido — no solo
+libros/consultas), sin introducir un flash nuevo respecto al
+comportamiento previo de esta pantalla. Sin historial: Inicio actual
+intacto. Con historial: cabecera "Mi espacio" + tarjeta "Donde lo dejaste"
+(D2, reutilizada literalmente) + rejilla 2×2 (Mis libros, Mis palabras,
+Repasar, Pronunciación) + tarjeta de nivel, cada casilla con su propio
+empty-state CTA. Arquitectura: `/api/inicio` + `/api/voz/falladas` (nuevo,
+solo el conteo de pronunciación, una vez, solo en modo Mi espacio); sin
+`/api/espacio`; Repasar no llama a `/api/repaso` para pintar el dashboard.
+9 tests (5 nuevos). Suite completa: 38/38 archivos, 298/298 pruebas, 0
+errores.
+
+D3.2 (Repaso v2, con persistencia server-side real) pendiente de que
+Miguel apruebe este informe.
 
 **Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
 implementar:** la ficha de un libro de un solo capítulo no debe dibujar una
