@@ -589,7 +589,51 @@ link real (mismo inodo, sin duplicar los 233 MB en disco) — se conserva,
 sigue haciendo falta para las pruebas del worktree. Único cambio de este
 cierre: copy "Continuar sin guardar" (commit `5785336`, ver D3.2b).
 
-D3.3 (Progreso/gráficas) pendiente de que Miguel apruebe este informe.
+### D3.3 — Progreso real (Mi progreso + ficha de libro único)
+
+**Status:** ✅ PASSED
+
+**Commits:** `0bfdbb7` (D3.3a, agregados + "Mi progreso") y `12fbc59`
+(D3.3b, ficha de libro de un solo capítulo) en `dev/mi-espacio-v2`, sobre
+`947612e`.
+
+**D3.3a:** `GET /api/progreso(tz)` nuevo — agregados mínimos, nunca
+anotaciones completas: `palabras_por_dia` (14 entradas fijas, agrupadas
+por el **día local real** del navegador vía `zoneinfo.ZoneInfo`, nunca la
+zona del servidor; zona ausente/inválida degrada a UTC sin lanzar) y
+`repasos` (conteo de los últimos 20 eventos append-only, sin necesitar
+`consulta_id`). `app/cuaderno.py`: `por_dia()`, `ultimos_repasos()`
+nuevas, sin tocar el esquema ni las funciones existentes. Front: sección
+"Mi progreso" en Mi espacio — barras CSS (sin Chart.js/D3), lista
+`.oculto-visual` con el dato real de cada día (accesible más allá de
+color/altura), barra segmentada de repasos con las cifras SIEMPRE
+visibles junto al porcentaje, empty states en vez de gráficas en cero,
+esqueleto en carga (nunca ceros falsos), degradación aislada a la propia
+tarjeta si `/api/progreso` falla. Copy de "Donde lo dejaste" ajustado a
+"Avance por capítulos: NN%" (antes "NN% del libro") para no leerse como
+"% leído". `pruebas_progreso.py` (nuevo, 22 pruebas): agrupación por día,
+huecos, corte exacto de 14 días, zona UTC/offset negativo/medianoche/
+inválida, horizonte de repasos, aislamiento por `X-Lector` vía API.
+
+**D3.3b:** la ficha de un libro de 1 capítulo ya no dejaba solo una frase
+de texto — ahora compara, en la misma escala pública 0–2, el nivel del
+lector (si existe) contra la dificultad del libro, con dos marcadores;
+sin nivel medido, solo el marcador del libro, sin forzar la comparación.
+Libros de más de un capítulo: `<app-curva>` intacto. Sin tocar
+`scoring.py`. 2 tests nuevos en `libro.curva.spec.ts`.
+
+Prohibido explícitamente y ausente en todo el copy nuevo: palabras
+aprendidas, retención, dominio, tiempo estudiado, horas de lectura,
+capítulos leídos, "nivel mejoró", sonidos que más cuestan.
+
+**Verificación:** `pruebas_progreso.py` 22/22; `pruebas_api.py` 66/66 y
+`pruebas_repaso.py` 15/15 sin regresión. Suite del front: 39/39 archivos,
+**321/321 pruebas**, 0 errores. `pruebas_extremas.py` no se repitió en
+esta ronda (cambios puramente aditivos sobre `cuaderno.py`/`api.py`, ya
+verificado el patrón en D3.2).
+
+D4 y D3.V pendientes de que Miguel los pida — no se empiezan
+automáticamente.
 
 **Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
 implementar:** la ficha de un libro de un solo capítulo no debe dibujar una
