@@ -527,8 +527,57 @@ solo el conteo de pronunciación, una vez, solo en modo Mi espacio); sin
 9 tests (5 nuevos). Suite completa: 38/38 archivos, 298/298 pruebas, 0
 errores.
 
-D3.2 (Repaso v2, con persistencia server-side real) pendiente de que
-Miguel apruebe este informe.
+### D3.2 — Repaso persistente (recuerdo activo + evaluación real)
+
+**Status:** ✅ PASSED
+
+**Commits:** `1eddb57` (D3.2a, backend/persistencia) y `ecdda82` (D3.2b,
+UX/ruta `/repasar`) en `dev/mi-espacio-v2`, sobre `a0c75ec`.
+
+Contrato corregido durante el diseño (Miguel): la evaluación identifica la
+**consulta exacta** (`consulta_id`), no solo el `lema` — `POST /api/repaso
+{consulta_id, evaluacion}`. El snapshot (palabra/oración/sentido/libro/
+capítulo) se recalcula siempre en el servidor desde el cuaderno de ese
+`X-Lector`, nunca de lo que mande el front.
+
+**D3.2a (backend):** `app/cuaderno.py` expone `id` en `Anotacion` (nunca
+antes expuesto), tabla nueva `repasos` (append-only, mismo `_ESQUEMA`/
+`_conectar()` que ya migra `consultas` — sin migración explícita, sin
+tocar filas existentes), `por_id()` (la búsqueda en el archivo de ESTE
+lector ya es la comprobación de propiedad) y `registrar_repaso()`.
+`app/api.py`: `GET /api/repaso` añade `consulta_id` por tarjeta; `POST
+/api/repaso` valida el enum (422 automático), 404 si la consulta no es de
+este lector, 500 legible si falla la escritura (a diferencia del resto
+del cuaderno, que se calla y sigue). Sin SRS: `para_repasar()` sigue
+eligiendo sus 5 tarjetas exactamente igual. `pruebas_repaso.py` (nuevo,
+15 pruebas): esquema, migración de una DB antigua sin perder `consultas`,
+identidad por `consulta_id`, enum inválido rechazado, aislamiento real
+entre `X-Lector` vía API, DB corrupta degrada sin lanzar.
+
+**D3.2b (front):** pantalla nueva `/repasar` (ruta propia, como
+Pronunciar — no una sección dentro de `/palabras`). "Mostrar respuesta"
+revela el sentido al instante (ya viene en la tarjeta) y pide audio/IPA
+aparte con `etapa:'diccionario'` (nunca cuesta, nunca registra una
+consulta fantasma). Evaluar deshabilita los tres botones y solo avanza
+tras un 200 real; si falla, aviso + Reintentar, y tras dos fallos
+seguidos aparece "Saltar esta palabra" como salida de emergencia. Resumen
+final: conteo exacto de lo evaluado con éxito, sin porcentaje ni racha.
+El CTA "Repasar" de Mi espacio (D3.1) enlaza directo a `/repasar`.
+
+**Verificación:** `pruebas_repaso.py` 15/15 (backend, con diccionario
+real vía hardlink de `kaikki_diccionario.db` al worktree — sin él,
+fallaba igual que las pruebas equivalentes ya existentes en
+`pruebas_api.py`, limitación de entorno preexistente, no de este
+cambio). `pruebas_api.py` 66/66 sin regresión. `pruebas_integracion.py`,
+sección del cuaderno en verde (2 fallos ajenos, por el modelo v4 no
+disponible en este worktree). Suite del front: 39/39 archivos, **310/310
+pruebas**, 0 errores. `pruebas_extremas.py` (la suite más pesada del
+proyecto) quedó corriendo en segundo plano al cerrar esta ronda; el único
+punto que la tocaba (un uso posicional de `Anotacion()`) ya está
+corregido y comprometido — se reportará aparte si trajera algo
+inesperado.
+
+D3.3 (Progreso/gráficas) pendiente de que Miguel apruebe este informe.
 
 **Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
 implementar:** la ficha de un libro de un solo capítulo no debe dibujar una
