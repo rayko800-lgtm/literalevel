@@ -45,7 +45,7 @@ function cargarGlb(url: string, alLlegar: (gltf: GLTF) => void, alFallar: () => 
 }
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Linea } from './animacion';
-import { Labios, PoseSonido, REPOSO } from './poses';
+import { Familia, Labios, PoseSonido, REPOSO } from './poses';
 
 export interface Colores {
   lengua: string; labios: string; dientes: string; encia: string; velo: string; hueso: string; faringe: string;
@@ -183,12 +183,74 @@ export const LIMITES_GIRO = {
   polarMax: 96 * Math.PI / 180,
 } as const;
 
-export function aplicarLimitesGiro(controles: OrbitControls): void {
-  controles.minAzimuthAngle = LIMITES_GIRO.azimutMin;
-  controles.maxAzimuthAngle = LIMITES_GIRO.azimutMax;
-  controles.minPolarAngle = LIMITES_GIRO.polarMin;
-  controles.maxPolarAngle = LIMITES_GIRO.polarMax;
+export function aplicarLimitesGiro(controles: OrbitControls, limites: typeof LIMITES_GIRO = LIMITES_GIRO): void {
+  controles.minAzimuthAngle = limites.azimutMin;
+  controles.maxAzimuthAngle = limites.azimutMax;
+  controles.minPolarAngle = limites.polarMin;
+  controles.maxPolarAngle = limites.polarMax;
 }
+
+const GR = Math.PI / 180;
+/** El polar por defecto (85,4°, el centro ya calibrado de `LIMITES_GIRO`):
+ *  ningún preset lo cambia, solo el azimut, el zoom y el rango de giro. Subir
+ *  o bajar la elevación no está verificado y es lo que más cerca deja los
+ *  planos de corte (comentario de `LIMITES_GIRO` arriba). */
+const POLAR_DEFECTO = 1.49;
+
+export interface PresetFamilia {
+  /** Azimut inicial (radianes); ver `vista()`. */
+  azimut: number;
+  /** Multiplica la distancia de encuadre: <1 acerca. */
+  zoom: number;
+  /** Rango de giro de ESTA familia, siempre un subconjunto de `LIMITES_GIRO`
+   *  (los únicos ángulos absolutos ya verificados sin planos de corte
+   *  visibles): nunca se amplía más allá de esos extremos. */
+  limites: { azimutMin: number; azimutMax: number; polarMin: number; polarMax: number };
+  /** La mejilla translúcida estorba más de lo que ayuda en bilabiales y
+   *  labiodentales (tapa justo lo que hay que ver): se esconde solo ahí. */
+  mejilla: boolean;
+}
+
+/** D4.2 (Miguel, 18 sep): una vista inicial por FAMILIA articulatoria, no una
+ *  por fonema. Cada `limites` es un subconjunto de `LIMITES_GIRO`: ningún
+ *  preset gira más lejos de lo que ya está verificado sin revelar los planos
+ *  de corte de la media cabeza (no se ha vuelto a comprobar visualmente con
+ *  cada centro nuevo; ampliar estos rangos requiere esa comprobación, no solo
+ *  código: ver D4.2-V). */
+export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
+  bilabial: {
+    azimut: -30 * GR, zoom: 0.6, mejilla: false,
+    limites: { azimutMin: LIMITES_GIRO.azimutMin, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  labiodental: {
+    azimut: -24 * GR, zoom: 0.68, mejilla: false,
+    limites: { azimutMin: -32 * GR, azimutMax: -10 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  dental: {
+    azimut: -2 * GR, zoom: 0.82, mejilla: true,
+    limites: { azimutMin: -18 * GR, azimutMax: 12 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  alveolar: {
+    azimut: 0.02, zoom: 0.85, mejilla: true,
+    limites: { azimutMin: -16 * GR, azimutMax: 16 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  postalveolar: {
+    azimut: 5 * GR, zoom: 0.85, mejilla: true,
+    limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  rotico: {
+    azimut: 6 * GR, zoom: 0.85, mejilla: true,
+    limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  velar: {
+    azimut: 10 * GR, zoom: 0.92, mejilla: true,
+    limites: { azimutMin: -10 * GR, azimutMax: LIMITES_GIRO.azimutMax, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  vocal: {
+    azimut: 0.02, zoom: 1, mejilla: true,
+    limites: { ...LIMITES_GIRO },
+  },
+};
 
 const INCISIVO_SUP = new THREE.Vector2(-2.55, 0.45);   // borde inferior del incisivo superior
 const INCISIVO_INF_LOCAL = new THREE.Vector2(-2.5, 0.35); // borde superior, en la mandíbula
@@ -232,8 +294,13 @@ function liberarModelo(raiz: THREE.Object3D): void {
 
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos, aire oral]. */
 const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, I_MORFOS = I_NUDOS + N_NUDOS * 2;
-const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
-const TAMANO = I_AIRE_ORAL + 1;
+export const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
+/** D4.2: punto de contacto real (x, y) y si lo hay (0/1), interpolado igual
+ *  que todo lo demás: al mezclar dos poses el «hay contacto» pasa por
+ *  fracciones, que es lo que se usa como opacidad del marcador (mismo
+ *  criterio que el aro `_TOCA` del 2D, que también se apaga en rampa). */
+const I_CONTACTO = I_AIRE_ORAL + 1;
+const TAMANO = I_CONTACTO + 3;
 type PoseNumerica = Float64Array;
 
 /** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
@@ -252,6 +319,19 @@ function morfosDe(pose: PoseSonido): number[] {
     pose.dorso_velo ? 1 : Math.min(1, pose.dorso_alto),
     Math.min(1, Math.max(0, pose.raiz)),
   ];
+}
+
+/** El punto donde algo toca de verdad en esta pose, o `null` (mismo criterio
+ *  que `_contacto()` del 2D): dorso contra el velo, punta interdental, punta
+ *  que toca en alveolar/postalveolar, o labios cerrados/labiodental. `J` son
+ *  los nudos de la lengua ya resueltos (coordenadas del mundo) y `ls`, el
+ *  labio superior (también del mundo: no vive dentro de la mandíbula). */
+function puntoDeContacto(pose: PoseSonido, J: [number, number][], ls: [number, number]): [number, number] | null {
+  if (pose.dorso_velo) return [J[2][0], J[2][1]];
+  if (pose.punta === 'interdental') return [J[5][0], J[5][1]];
+  if (pose.punta_toca && (pose.punta === 'alveolar' || pose.punta === 'postalveolar')) return [J[5][0], J[5][1]];
+  if (pose.labios === 'cerrados' || pose.labios === 'labiodental') return [ls[0], ls[1]];
+  return null;
 }
 
 function paladarEn(x: number): number {
@@ -403,6 +483,10 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   // El aire por la boca se marca en la /h/: sale de la garganta y no hay
   // nada en la boca que lo pare, que es lo que la distingue del reposo.
   n[I_AIRE_ORAL] = pose.lugar === 'glotal' ? 1 : 0;
+  const contacto = puntoDeContacto(pose, J, [n[I_LS], n[I_LS + 1]]);
+  n[I_CONTACTO] = contacto ? contacto[0] : 0;
+  n[I_CONTACTO + 1] = contacto ? contacto[1] : 0;
+  n[I_CONTACTO + 2] = contacto ? 1 : 0;
   return n;
 }
 
@@ -723,6 +807,10 @@ export class EscenaBoca {
   private readonly mejilla: THREE.Mesh;
   private readonly aireNasal: THREE.Mesh;
   private readonly aireOral: THREE.Mesh;
+  /** D4.2: marcador discreto del punto de contacto real (aro `_TOCA` del 2D,
+   *  en 3D). Misma familia de material que aireOral/aireNasal: una malla
+   *  minúscula, transparente y sin sombra, no una capa nueva cara. */
+  private readonly marcaContacto: THREE.Mesh;
   /** Las piezas que van dentro de la mandíbula, en coordenadas del mundo con la boca cerrada. */
   private readonly dentroMandibula: THREE.Group;
   /** La lengua modelada (si se pidió y ya cargó) y sus morfos por índice. */
@@ -759,6 +847,17 @@ export class EscenaBoca {
    *  mitad del ciclo y vuelve al final. Negativo mira hacia la cara. */
   private giroLinea = 0;
   private giroBase = { azimut: 0, polar: 1.49, distancia: 13 };
+  /** D4.2: zoom del preset activo (multiplica `distanciaEncuadre()`); se
+   *  conserva al redimensionar (`redimensionar()` lo aplica también). */
+  private zoomActual = 1;
+  /** La familia con la vista puesta ahora: `restablecerVista()` vuelve a ESA,
+   *  no a un azimut fijo universal. */
+  private familiaActual: Familia = 'vocal';
+  /** Lo que pide quien integra (input `mejilla`, pensado para rendimiento) y
+   *  lo que permite el preset de la familia activa (pensado para pedagogía):
+   *  la mejilla solo se ve si las dos lo permiten. */
+  private mejillaExterna = true;
+  private mejillaFamilia = true;
   private arrastrando = false;
   private sucio = true;
   private vivo = true;
@@ -927,6 +1026,11 @@ export class EscenaBoca {
     }));
     this.aireOral.renderOrder = 4;
     this.escena.add(this.aireOral);
+    this.marcaContacto = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), material('#2f9cc0', {
+      transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#2f9cc0'), emissiveIntensity: 0.7,
+    }));
+    this.marcaContacto.renderOrder = 6;
+    this.escena.add(this.marcaContacto);
 
     // Mandíbula: gira en el pivote y arrastra hueso, dientes inferiores y labio
     // inferior. `dentro` deshace el desplazamiento del pivote para que las
@@ -965,7 +1069,8 @@ export class EscenaBoca {
     }));
     this.mejilla.position.z = ANCHO / 2 + 0.12;
     this.mejilla.renderOrder = 5;
-    this.mejilla.visible = opciones.mejilla !== false;
+    this.mejillaExterna = opciones.mejilla !== false;
+    this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
     this.escena.add(this.mejilla);
 
     this.actual = poseNumerica(REPOSO);
@@ -1076,8 +1181,9 @@ export class EscenaBoca {
   /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
    *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
    *  la altura de la boca. */
-  vista(azimut: number, polar = 1.49): void {
-    const distancia = this.distanciaEncuadre();
+  vista(azimut: number, polar = 1.49, zoom = 1): void {
+    this.zoomActual = zoom;
+    const distancia = this.distanciaEncuadre() * zoom;
     // Con la cara modelada se mira al mismo punto que con la cabeza entera: mirando a la
     // boca (0,1) el perfil se salía por la izquierda y los labios tocaban el borde del
     // lienzo a 390 px (Miguel, 16 sep; auditoria/boca3d_y_frase_2026-09-16.md).
@@ -1091,7 +1197,19 @@ export class EscenaBoca {
   }
 
   restablecerVista(): void {
-    this.vista(0.02);
+    this.vistaParaFamilia(this.familiaActual);
+  }
+
+  /** D4.2: la vista pedagógica inicial de una familia articulatoria (cámara,
+   *  zoom, rango de giro y mejilla). No cambia la pose ni la anima; quien
+   *  llama decide cuándo (al elegir un sonido nuevo, o al restablecer). */
+  vistaParaFamilia(familia: Familia): void {
+    this.familiaActual = familia;
+    const preset = PRESETS_FAMILIA[familia];
+    this.mejillaFamilia = preset.mejilla;
+    this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
+    aplicarLimitesGiro(this.controles, preset.limites);
+    this.vista(preset.azimut, POLAR_DEFECTO, preset.zoom);
   }
 
   private distanciaEncuadre(): number {
@@ -1116,8 +1234,13 @@ export class EscenaBoca {
     return this.libre;
   }
 
+  /** Lo que pide quien integra (rendimiento/preferencia). El preset de la
+   *  familia activa (`vistaParaFamilia`) puede esconderla igualmente si
+   *  estorba más de lo que ayuda en esa familia (bilabiales, labiodentales):
+   *  se ve solo si las dos partes lo permiten. */
   mostrarMejilla(visible: boolean): void {
-    this.mejilla.visible = visible;
+    this.mejillaExterna = visible;
+    this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
     this.sucio = true;
   }
 
@@ -1387,7 +1510,7 @@ export class EscenaBoca {
     this.camara.aspect = w / h;
     this.camara.updateProjectionMatrix();
     const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
-    this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
+    this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre() * this.zoomActual);
     this.controles.update();
     this.sucio = true;
   }
@@ -1542,6 +1665,12 @@ export class EscenaBoca {
     const abierto = (n[I_VELO] - VELO_CERRADO) / (VELO_ABIERTO - VELO_CERRADO);
     (this.aireNasal.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, abierto));
     (this.aireOral.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, n[I_AIRE_ORAL]));
+    // D4.2: el marcador de contacto se apaga en rampa igual que el aire (la
+    // fraccion viene de interpolar el 0/1 de `puntoDeContacto` entre poses).
+    const contactoActivo = Math.min(1, Math.max(0, n[I_CONTACTO + 2]));
+    this.marcaContacto.position.set(n[I_CONTACTO], n[I_CONTACTO + 1], 0);
+    (this.marcaContacto.material as THREE.MeshStandardMaterial).opacity = contactoActivo;
+    this.marcaContacto.visible = contactoActivo > 0.02;
     // Las comisuras: el labio de abajo baja con la mandíbula y el de arriba
     // no; lo que se separan sus extremos más de lo normal (0,6 entre los
     // centros de los dos tubos) lo cubren a medias las shape keys de comisura,

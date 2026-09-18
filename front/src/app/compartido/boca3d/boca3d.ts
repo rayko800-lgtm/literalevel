@@ -8,7 +8,7 @@ import posesCompletas from './poses.ejemplo.json';
 import { Linea, Velocidad, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
-import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
+import { CatalogoPoses, DURACION_S, PoseSonido, familiaDe, poseDe, trocearIpa } from './poses';
 
 /** La boca en 3D esquemático, girable con el dedo.
  *
@@ -202,7 +202,10 @@ export class Boca3d {
         });
         this.modo.set('3d');
         const p = this.pose();
-        if (p) this.escena.irA(p, 0);
+        if (p) {
+          this.escena.vistaParaFamilia(familiaDe(p));
+          this.escena.irA(p, 0);
+        }
       } catch {
         this.modo.set('2d');
       }
@@ -212,6 +215,9 @@ export class Boca3d {
       const p = this.pose();
       const escena = this.escena;
       if (!p || !escena) return;
+      // D4.2: cada sonido pone primero la vista pedagógica de su familia
+      // (sin interacción), y luego la pose/animación como hasta ahora.
+      escena.vistaParaFamilia(familiaDe(p));
       if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
     });

@@ -10,6 +10,12 @@ export type Movimiento = 'oclusiva' | 'fricativa' | 'africada' | 'nasal' | 'apro
 export type Labios = 'neutros' | 'cerrados' | 'redondeados' | 'muy_redondeados' | 'estirados' | 'labiodental';
 export type Punta = 'reposo' | 'interdental' | 'dental' | 'alveolar' | 'postalveolar' | 'retrofleja';
 
+/** Familia articulatoria por articulador protagonista (D4.2, diseño
+ *  aprobado 18 sep): agrupa fonemas que enseñan el mismo gesto, para elegir
+ *  un preset de cámara por familia y no uno por cada símbolo. */
+export type Familia =
+  | 'bilabial' | 'labiodental' | 'dental' | 'alveolar' | 'postalveolar' | 'rotico' | 'velar' | 'vocal';
+
 export type CampoLibre = 'mandibula' | 'labios' | 'punta' | 'cuerpo';
 
 export interface PoseSonido {
@@ -111,6 +117,27 @@ export function poseDe(catalogo: CatalogoPoses, simbolo: string, acento: 'ga' | 
   if (acento === 'rp' && catalogo.rp?.[s]) return catalogo.rp[s];
   const corto = s.replace(/ː/g, '');
   return catalogo.sonidos[s] ?? catalogo.sonidos[corto] ?? catalogo.sonidos[PARECIDOS[corto] ?? ''] ?? null;
+}
+
+/** La familia de una pose: el mismo criterio que agrupa `PARAMETROS` en el
+ *  2D por articulador protagonista. Los róticos (punta retrofleja: /ɹ ɝ ɚ/)
+ *  se separan de alveolares/postalveolares aunque compartan `lugar`, porque
+ *  lo que hay que enseñar es justo que la punta se curva sin tocar. `/h/`
+ *  (glotal) y el reposo no tienen articulador protagonista: caen en la
+ *  vista general de `vocal`. */
+export function familiaDe(pose: PoseSonido): Familia {
+  if (pose.punta === 'retrofleja') return 'rotico';
+  switch (pose.lugar) {
+    case 'bilabial': return 'bilabial';
+    case 'labiodental': return 'labiodental';
+    case 'interdental': return 'dental';
+    case 'alveolar': return 'alveolar';
+    case 'postalveolar': return 'postalveolar';
+    case 'velar': return 'velar';
+    // Vocales y diptongos (lugar vacío), /h/ (glotal) y el reposo: sin
+    // articulador protagonista, vista general.
+    default: return 'vocal';
+  }
 }
 
 /** Rellena los campos libres de `pose` con los del vecino (una vocal, o el

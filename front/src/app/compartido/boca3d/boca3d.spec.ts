@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import { silencioInicial } from './audio';
 import { Boca3d } from './boca3d';
-import { poseNumerica } from './escena';
+import { I_AIRE_ORAL, poseNumerica } from './escena';
 import { POSES_PROTOTIPO, REPOSO, poseDe, resolver, trocearIpa, CATALOGO_PROTOTIPO } from './poses';
 
 // Distribución de la pose numérica (ver escena.ts): mandíbula, velo, labio
@@ -107,8 +107,8 @@ describe('líneas de tiempo', () => {
     expect(l.quieta.mandibula).toBeGreaterThan(REPOSO.mandibula + 0.2);
     expect(l.claves.some(c => c.pose.mandibula > REPOSO.mandibula + 0.2)).toBe(true);
     const n = poseNumerica(l.quieta);
-    expect(n[n.length - 1]).toBe(1);                   // el aire oral, último valor de la pose numérica
-    expect(poseNumerica(REPOSO)[n.length - 1]).toBe(0);
+    expect(n[I_AIRE_ORAL]).toBe(1);                     // el aire oral
+    expect(poseNumerica(REPOSO)[I_AIRE_ORAL]).toBe(0);
   });
 
   it('el ciclo de un sonido dura 2,8 s, empieza y acaba en reposo y pasa por el sonido', () => {
