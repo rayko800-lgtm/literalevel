@@ -202,6 +202,12 @@ export interface PresetFamilia {
   azimut: number;
   /** Multiplica la distancia de encuadre: <1 acerca. */
   zoom: number;
+  /** D4.2.1 (Miguel, 18 sep): dónde mira la cámara (x, y), no el punto
+   *  universal de siempre. `null` = el comportamiento heredado (el punto
+   *  medio de la cavidad oral, distinto si hay cabeza/cara modelada o no).
+   *  Coordenadas en el mismo espacio que `LABIO_X`, `INCISIVO_SUP`, etc.
+   *  (la anatomía interna no cambia de sitio con la cabeza de MakeHuman). */
+  target: readonly [number, number] | null;
   /** Rango de giro de ESTA familia, siempre un subconjunto de `LIMITES_GIRO`
    *  (los únicos ángulos absolutos ya verificados sin planos de corte
    *  visibles): nunca se amplía más allá de esos extremos. */
@@ -211,43 +217,59 @@ export interface PresetFamilia {
   mejilla: boolean;
 }
 
-/** D4.2 (Miguel, 18 sep): una vista inicial por FAMILIA articulatoria, no una
- *  por fonema. Cada `limites` es un subconjunto de `LIMITES_GIRO`: ningún
- *  preset gira más lejos de lo que ya está verificado sin revelar los planos
- *  de corte de la media cabeza (no se ha vuelto a comprobar visualmente con
- *  cada centro nuevo; ampliar estos rangos requiere esa comprobación, no solo
- *  código: ver D4.2-V). */
+/** D4.2/D4.2.1 (Miguel, 18 sep): una vista inicial por FAMILIA articulatoria,
+ *  no una por fonema. Cada `limites` es un subconjunto de `LIMITES_GIRO`:
+ *  ningún preset gira más lejos de lo que ya está verificado sin revelar los
+ *  planos de corte de la media cabeza. `target` centra el foco en el
+ *  articulador protagonista (labios ≈ -2,95 en x, alveolo ≈ -2,0, velo ≈
+ *  2,0 y atrás): D4.2 solo acercaba la cámara al punto universal de
+ *  siempre, que para bilabiales queda dentro de la cavidad, no en los
+ *  labios — de ahí el recorte que vio Miguel. Estos numeros son una
+ *  primera corrección a partir de las constantes de geometría (LABIO_X,
+ *  INCISIVO_SUP, los `case` de `punta` en `poseNumerica`, `PIVOTE_VELO`),
+ *  verificada visualmente en esta ronda (D4.2.1) para bilabial/labiodental;
+ *  el resto queda a falta de la misma comprobación con capturas. */
 export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
   bilabial: {
-    azimut: -30 * GR, zoom: 0.6, mejilla: false,
+    // Foco en los labios (LABIO_X = -2,95); zoom recalibrado tras corregir
+    // el target (antes acercaba al punto universal, dentro de la boca).
+    azimut: -30 * GR, zoom: 0.5, target: [-2.75, 0.15], mejilla: false,
     limites: { azimutMin: LIMITES_GIRO.azimutMin, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   labiodental: {
-    azimut: -24 * GR, zoom: 0.68, mejilla: false,
+    // Foco en el labio inferior + incisivos superiores (INCISIVO_SUP = (-2,55; 0,45)).
+    azimut: -24 * GR, zoom: 0.58, target: [-2.55, 0.2], mejilla: false,
     limites: { azimutMin: -32 * GR, azimutMax: -10 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   dental: {
-    azimut: -2 * GR, zoom: 0.82, mejilla: true,
+    // Foco en la zona anterior (interdental: J[5] ronda x=-2,8 en poseNumerica).
+    azimut: -2 * GR, zoom: 0.72, target: [-2.6, 0.35], mejilla: true,
     limites: { azimutMin: -18 * GR, azimutMax: 12 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   alveolar: {
-    azimut: 0.02, zoom: 0.85, mejilla: true,
+    // Foco en la zona anterior (alveolar: J[5] en x=-2,05).
+    azimut: 0.02, zoom: 0.75, target: [-2.0, 0.5], mejilla: true,
     limites: { azimutMin: -16 * GR, azimutMax: 16 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   postalveolar: {
-    azimut: 5 * GR, zoom: 0.85, mejilla: true,
+    // Foco en la zona anterior (postalveolar: J[5] en x=-1,75).
+    azimut: 5 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true,
     limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   rotico: {
-    azimut: 6 * GR, zoom: 0.85, mejilla: true,
+    // Mismo foco que postalveolar (Miguel, D4.2: "igual que alveolares"; no
+    // se crea un target propio solo para /ɹ/).
+    azimut: 6 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true,
     limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   velar: {
-    azimut: 10 * GR, zoom: 0.92, mejilla: true,
+    // Foco mas posterior (dorso contra el velo: cerca de PIVOTE_VELO = (2,05; 1,22)).
+    azimut: 10 * GR, zoom: 0.85, target: [1.6, 0.85], mejilla: true,
     limites: { azimutMin: -10 * GR, azimutMax: LIMITES_GIRO.azimutMax, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   vocal: {
-    azimut: 0.02, zoom: 1, mejilla: true,
+    // Sin target propio: vista general, el comportamiento de siempre.
+    azimut: 0.02, zoom: 1, target: null, mejilla: true,
     limites: { ...LIMITES_GIRO },
   },
 };
@@ -848,8 +870,12 @@ export class EscenaBoca {
   private giroLinea = 0;
   private giroBase = { azimut: 0, polar: 1.49, distancia: 13 };
   /** D4.2: zoom del preset activo (multiplica `distanciaEncuadre()`); se
-   *  conserva al redimensionar (`redimensionar()` lo aplica también). */
+   *  conserva al redimensionar (`redimensionar()` lo aplica también) y al
+   *  terminar de cargar `cara.glb` (D4.2.1: antes se perdía ahí). */
   private zoomActual = 1;
+  /** D4.2.1: target del preset activo, o `null` para el comportamiento
+   *  heredado (`objetivoActual()`). */
+  private targetFamilia: readonly [number, number] | null = null;
   /** La familia con la vista puesta ahora: `restablecerVista()` vuelve a ESA,
    *  no a un azimut fijo universal. */
   private familiaActual: Familia = 'vocal';
@@ -1178,16 +1204,28 @@ export class EscenaBoca {
     return claves[claves.length - 1].n;
   }
 
+  /** D4.2.1: dónde mira la cámara ahora. El target de `targetFamilia` si el
+   *  preset activo define uno; si no (vocal), el punto universal de
+   *  siempre, que cambia con la cara/cabeza modelada (comentario de
+   *  `vista()` de siempre). Un método, para que ni `vista()` ni la
+   *  reconstrucción del target al cargar la cara (`cargarCara`) puedan
+   *  desincronizarse entre sí. */
+  private objetivoActual(): THREE.Vector2 {
+    if (this.targetFamilia) return new THREE.Vector2(this.targetFamilia[0], this.targetFamilia[1]);
+    // Con la cara modelada se mira al mismo punto que con la cabeza entera: mirando a la
+    // boca (0,1) el perfil se salía por la izquierda y los labios tocaban el borde del
+    // lienzo a 390 px (Miguel, 16 sep; auditoria/boca3d_y_frase_2026-09-16.md).
+    return new THREE.Vector2(this.cabezaEntera || this.caraModelada ? 0.9 : 0.1, 0.05);
+  }
+
   /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
    *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
    *  la altura de la boca. */
   vista(azimut: number, polar = 1.49, zoom = 1): void {
     this.zoomActual = zoom;
     const distancia = this.distanciaEncuadre() * zoom;
-    // Con la cara modelada se mira al mismo punto que con la cabeza entera: mirando a la
-    // boca (0,1) el perfil se salía por la izquierda y los labios tocaban el borde del
-    // lienzo a 390 px (Miguel, 16 sep; auditoria/boca3d_y_frase_2026-09-16.md).
-    this.controles.target.set(this.cabezaEntera || this.caraModelada ? 0.9 : 0.1, 0.05, 0);
+    const o = this.objetivoActual();
+    this.controles.target.set(o.x, o.y, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
       this.controles.target.y + distancia * Math.cos(polar),
@@ -1200,16 +1238,25 @@ export class EscenaBoca {
     this.vistaParaFamilia(this.familiaActual);
   }
 
-  /** D4.2: la vista pedagógica inicial de una familia articulatoria (cámara,
-   *  zoom, rango de giro y mejilla). No cambia la pose ni la anima; quien
-   *  llama decide cuándo (al elegir un sonido nuevo, o al restablecer). */
+  /** D4.2/D4.2.1: la vista pedagógica inicial de una familia articulatoria
+   *  (cámara, zoom, target, rango de giro y mejilla). No cambia la pose ni
+   *  la anima; quien llama decide cuándo (al elegir un sonido nuevo, o al
+   *  restablecer). */
   vistaParaFamilia(familia: Familia): void {
     this.familiaActual = familia;
     const preset = PRESETS_FAMILIA[familia];
+    this.targetFamilia = preset.target;
     this.mejillaFamilia = preset.mejilla;
     this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
     aplicarLimitesGiro(this.controles, preset.limites);
     this.vista(preset.azimut, POLAR_DEFECTO, preset.zoom);
+  }
+
+  /** D4.2.1 (registro para depuración, solo lo lee quien integra en modo
+   *  desarrollo — ver `boca3d.ts`): la familia, el zoom y el target activos
+   *  ahora mismo. */
+  get diagnostico(): { familia: Familia; zoom: number; target: { x: number; y: number } } {
+    return { familia: this.familiaActual, zoom: this.zoomActual, target: { x: this.controles.target.x, y: this.controles.target.y } };
   }
 
   private distanciaEncuadre(): number {
@@ -1349,9 +1396,10 @@ export class EscenaBoca {
       if (labiosEnPiel) {
         this.labioSup.visible = false; this.labioInf.visible = false;
         // Una cabeza entera es más grande que el loft: la cámara se aleja y
-        // mira un poco más atrás, y la piel translúcida se aclara.
+        // mira un poco más atrás (el target se recalcula mas abajo, con
+        // `objetivoActual()`: si hay un target de familia activo, D4.2.1 no
+        // lo pisa aqui), y la piel translúcida se aclara.
         this.cabezaEntera = true;
-        this.controles.target.x = 0.9;
         (this.mejilla.material as THREE.MeshStandardMaterial).opacity = 0;
       }
       const menton = piezas.get('menton');
@@ -1449,11 +1497,34 @@ export class EscenaBoca {
       this.caraModelada = true;
       this.sombrear();
       this.contenedor.dataset['cara'] = 'blender';
-      const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
-      this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
-      this.controles.update();
+      this.recentrarConservandoAngulo();
       this.aplicar(this.actual);
     }, () => { /* Las piezas simples siguen visibles. */ });
+  }
+
+  /** D4.2.1: recoloca target y distancia tras un evento que puede cambiar
+   *  `distanciaEncuadre()` (cargar `cara.glb`, que activa `caraModelada`/
+   *  `cabezaEntera`), conservando el ángulo de vista actual (azimut y
+   *  polar). Antes esto se hacía con `distanciaEncuadre()` a secas, sin
+   *  `zoomActual` (a diferencia de `redimensionar()`, que sí lo aplicaba):
+   *  el zoom del preset de familia se podía perder justo al terminar de
+   *  cargar la cara, según qué evento llegara antes. `objetivoActual()` ya
+   *  respeta el target de la familia activa, así que tampoco hace falta
+   *  tratar aquí el caso bilabial/labiodental aparte. */
+  private recentrarConservandoAngulo(): void {
+    const objetivoViejo = this.controles.target.clone();
+    const direccion = this.camara.position.clone().sub(objetivoViejo);
+    const distanciaVieja = direccion.length() || 1;
+    const polar = Math.acos(Math.max(-1, Math.min(1, direccion.y / distanciaVieja)));
+    const azimut = Math.atan2(direccion.x, direccion.z);
+    const o = this.objetivoActual();
+    this.controles.target.set(o.x, o.y, 0);
+    const distancia = this.distanciaEncuadre() * this.zoomActual;
+    this.camara.position.set(
+      o.x + distancia * Math.sin(polar) * Math.sin(azimut),
+      o.y + distancia * Math.cos(polar),
+      distancia * Math.sin(polar) * Math.cos(azimut));
+    this.controles.update();
   }
 
   get tieneCaraModelada(): boolean {

@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal,
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, isDevMode, signal,
   viewChild,
 } from '@angular/core';
 import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
@@ -72,6 +72,12 @@ import { CatalogoPoses, DURACION_S, PoseSonido, familiaDe, poseDe, trocearIpa } 
     @if (aviso(); as a) {
       <p class="leyenda aviso" role="status">{{ a }}</p>
     }
+    <!-- D4.2.1 (Miguel, 18 sep): saber con certeza qué esta viendo quien prueba
+         -- GLB o respaldo, familia/zoom/target activos --, solo en desarrollo. -->
+    @if (modoDesarrollo && diagnostico(); as d) {
+      <pre class="diagnostico">cara: {{ d.cara }} · lengua: {{ d.lengua }} · familia: {{ d.familia }}
+zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
+    }
   `,
   styles: `
     :host { display: block; min-width: 0; margin-top: 12px; }
@@ -99,6 +105,9 @@ import { CatalogoPoses, DURACION_S, PoseSonido, familiaDe, poseDe, trocearIpa } 
     .boton.principal { background: var(--acento, #2f5bea); border-color: var(--acento, #2f5bea); color: #fff; padding: 8px 14px; }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
     .leyenda.aviso { font-size: .9em; color: var(--texto-tenue, #647189); }
+    /* Solo en desarrollo (isDevMode()): nunca en el build de produccion. */
+    .diagnostico { margin: 6px 0 0; font-size: .78em; line-height: 1.4; color: var(--texto-tenue, #647189);
+      background: var(--tarjeta, rgba(127,127,127,.08)); border-radius: 6px; padding: 6px 8px; white-space: pre-wrap; }
   `,
 })
 export class Boca3d {
@@ -145,6 +154,13 @@ export class Boca3d {
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
+  /** D4.2.1: solo en desarrollo (`isDevMode()`), nunca en el build de
+   *  producción — «no mostrar esta información en producción». */
+  readonly modoDesarrollo = isDevMode();
+  /** Cara/lengua GLB cargados o de respaldo, y familia/zoom/target activos:
+   *  para saber con certeza qué geometría se está viendo en una prueba. */
+  readonly diagnostico = signal<{ cara: string; lengua: string; familia: string; zoom: string; target: string } | null>(null);
+  private diagnosticoId = 0;
   /** Un aviso bajo la leyenda (el audio no se pudo ralentizar), o vacío. */
   readonly aviso = signal('');
   /** El lienzo captura también los gestos verticales (sin scroll sobre la boca). */
@@ -206,6 +222,24 @@ export class Boca3d {
           this.escena.vistaParaFamilia(familiaDe(p));
           this.escena.irA(p, 0);
         }
+        if (this.modoDesarrollo) {
+          // D4.2.1: refresco simple por sondeo (no hay evento de "GLB listo"
+          // ni señal reactiva en EscenaBoca) para que el panel de depuración
+          // refleje la carga asíncrona de cara.glb/lengua.glb, no solo el
+          // instante de montar.
+          const actualizar = () => {
+            if (!this.escena) return;
+            const d = this.escena.diagnostico;
+            this.diagnostico.set({
+              cara: this.escena.tieneCaraModelada ? 'GLB' : 'respaldo geométrico',
+              lengua: this.escena.tieneLenguaModelada ? 'GLB' : 'respaldo geométrico',
+              familia: d.familia, zoom: d.zoom.toFixed(2),
+              target: `${d.target.x.toFixed(2)}, ${d.target.y.toFixed(2)}`,
+            });
+          };
+          actualizar();
+          this.diagnosticoId = window.setInterval(actualizar, 500);
+        }
       } catch {
         this.modo.set('2d');
       }
@@ -228,6 +262,7 @@ export class Boca3d {
       this.sonador.destruir();
       this.escena?.destruir();
       this.escena = null;
+      if (this.diagnosticoId) window.clearInterval(this.diagnosticoId);
     });
   }
 

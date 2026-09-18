@@ -88,7 +88,7 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
       camara, controles, mejilla, sucio: false,
       cabezaEntera: false, caraModelada: false,
-      zoomActual: 1, familiaActual: 'vocal', mejillaExterna: true, mejillaFamilia: true,
+      zoomActual: 1, targetFamilia: null, familiaActual: 'vocal', mejillaExterna: true, mejillaFamilia: true,
       giroBase: { azimut: 0, polar: 1.49, distancia: 13 },
     }) as EscenaBoca;
     return { instancia, camara, controles, mejilla };
@@ -120,7 +120,7 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     expect(mejilla.visible).toBe(false);                // pero el input del componente la apagó
   });
 
-  it('restablecerVista() vuelve a la familia activa, no a un azimut universal', () => {
+  it('restablecerVista() vuelve a la familia activa (azimut, zoom, target y límites), no a un azimut universal', () => {
     const { instancia, controles } = escena();
     instancia.vistaParaFamilia('bilabial');
     controles.getAzimuthalAngle();                       // fuerza a leer el estado tras vistaParaFamilia
@@ -128,6 +128,103 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     instancia.restablecerVista();
     expect(controles.minAzimuthAngle).toBeCloseTo(PRESETS_FAMILIA.bilabial.limites.azimutMin, 6);
     expect(controles.maxAzimuthAngle).toBeCloseTo(PRESETS_FAMILIA.bilabial.limites.azimutMax, 6);
+    expect(controles.target.x).toBeCloseTo(PRESETS_FAMILIA.bilabial.target![0], 6);
+    expect(controles.target.y).toBeCloseTo(PRESETS_FAMILIA.bilabial.target![1], 6);
+    expect(instancia.diagnostico.zoom).toBeCloseTo(PRESETS_FAMILIA.bilabial.zoom, 6);
+  });
+
+  it('diagnostico refleja la familia, el zoom y el target activos (D4.2.1, panel de depuración)', () => {
+    const { instancia } = escena();
+    instancia.vistaParaFamilia('velar');
+    const d = instancia.diagnostico;
+    expect(d.familia).toBe('velar');
+    expect(d.zoom).toBeCloseTo(PRESETS_FAMILIA.velar.zoom, 6);
+    expect(d.target.x).toBeCloseTo(PRESETS_FAMILIA.velar.target![0], 6);
+    expect(d.target.y).toBeCloseTo(PRESETS_FAMILIA.velar.target![1], 6);
+  });
+
+  for (const familia of ['bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar'] as Familia[]) {
+    it(`${familia}: el target de la cámara es el del preset, no el punto universal (0,9/0,1)`, () => {
+      const { instancia, controles } = escena();
+      instancia.vistaParaFamilia(familia);
+      const [tx, ty] = PRESETS_FAMILIA[familia].target!;
+      expect(controles.target.x).toBeCloseTo(tx, 6);
+      expect(controles.target.y).toBeCloseTo(ty, 6);
+    });
+  }
+
+  it('vocal: sin target propio, usa el punto universal de siempre', () => {
+    const { instancia, controles } = escena();
+    expect(PRESETS_FAMILIA.vocal.target).toBeNull();
+    instancia.vistaParaFamilia('vocal');
+    expect(controles.target.x).toBeCloseTo(0.1, 6);        // sin cabezaEntera/caraModelada en esta escena de mentira
+  });
+});
+
+/** D4.2.1 (Miguel, 18 sep): el bug de zoom -- `cargarCara()` recolocaba la
+ *  cámara con `distanciaEncuadre()` a secas al terminar de cargar `cara.glb`,
+ *  sin `zoomActual`, a diferencia de `redimensionar()` -- se corrigió
+ *  extrayendo la misma lógica a `recentrarConservandoAngulo()`, que ahora
+ *  usan los dos sitios. Aquí se prueba esa lógica sola, sin depender de
+ *  cargar un GLB de verdad. */
+describe('EscenaBoca.recentrarConservandoAngulo: no pierde el zoom ni el target al cargar cara.glb', () => {
+  function escenaConPreset(familia: Familia, zoom: number, target: readonly [number, number] | null) {
+    const camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
+    const controles = new OrbitControls(camara, document.createElement('canvas'));
+    const mejilla = { visible: true };
+    const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
+      camara, controles, mejilla, sucio: false,
+      cabezaEntera: false, caraModelada: false,       // como antes de que cara.glb termine de cargar
+      zoomActual: zoom, targetFamilia: target, familiaActual: familia,
+      mejillaExterna: true, mejillaFamilia: true,
+      giroBase: { azimut: 0, polar: 1.49, distancia: 13 },
+    }) as unknown as { recentrarConservandoAngulo(): void; diagnostico: EscenaBoca['diagnostico'] };
+    // Coloca la cámara como si `vistaParaFamilia` ya hubiera puesto el
+    // preset (mismo cálculo que `vista()`, sin llamarlo para no depender
+    // de él en esta prueba).
+    const o = target ? { x: target[0], y: target[1] } : { x: 0.1, y: 0.05 };
+    controles.target.set(o.x, o.y, 0);
+    const distancia = 13 * zoom;                        // distanciaEncuadre() sin cabezaEntera/caraModelada
+    camara.position.set(o.x + distancia * Math.sin(1.49) * Math.sin(-30 * Math.PI / 180),
+      o.y + distancia * Math.cos(1.49), distancia * Math.sin(1.49) * Math.cos(-30 * Math.PI / 180));
+    controles.update();
+    return { instancia, camara, controles };
+  }
+
+  it('al activarse caraModelada (cara.glb recién cargado), conserva el zoom del preset, no lo pierde', () => {
+    const { instancia, camara, controles } = escenaConPreset('bilabial', 0.5, [-2.75, 0.15]);
+    const distanciaAntes = camara.position.distanceTo(controles.target);
+    (instancia as unknown as { caraModelada: boolean }).caraModelada = true;   // simula que cara.glb acaba de cargar
+    instancia.recentrarConservandoAngulo();
+    const distanciaDespues = camara.position.distanceTo(controles.target);
+    // Antes del fix: distanciaDespues habria sido distanciaEncuadre() SIN
+    // zoom (17,5, mucho mayor). Con el fix, sigue habiendo zoom.
+    expect(distanciaDespues).toBeCloseTo(17.5 * 0.5, 1);
+    expect(distanciaDespues).toBeLessThan(17.5 * 0.9);
+  });
+
+  it('al activarse caraModelada, conserva el target de la familia (no lo pisa con 0,9 universal)', () => {
+    const { instancia, controles } = escenaConPreset('bilabial', 0.5, [-2.75, 0.15]);
+    (instancia as unknown as { caraModelada: boolean }).caraModelada = true;
+    instancia.recentrarConservandoAngulo();
+    expect(controles.target.x).toBeCloseTo(-2.75, 6);
+    expect(controles.target.y).toBeCloseTo(0.15, 6);
+  });
+
+  it('familia vocal (sin target propio): al activarse caraModelada SÍ pasa al punto universal 0,9, como siempre', () => {
+    const { instancia, controles } = escenaConPreset('vocal', 1, null);
+    (instancia as unknown as { caraModelada: boolean }).caraModelada = true;
+    instancia.recentrarConservandoAngulo();
+    expect(controles.target.x).toBeCloseTo(0.9, 6);
+  });
+
+  it('conserva el ángulo de vista (azimut) al recentrar, no vuelve a un azimut de perfil', () => {
+    const { instancia, camara, controles } = escenaConPreset('bilabial', 0.5, [-2.75, 0.15]);
+    const azimutAntes = Math.atan2(camara.position.x - controles.target.x, camara.position.z - controles.target.z);
+    (instancia as unknown as { caraModelada: boolean }).caraModelada = true;
+    instancia.recentrarConservandoAngulo();
+    const azimutDespues = Math.atan2(camara.position.x - controles.target.x, camara.position.z - controles.target.z);
+    expect(azimutDespues).toBeCloseTo(azimutAntes, 6);
   });
 });
 
