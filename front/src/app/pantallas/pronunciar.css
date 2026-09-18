@@ -34,6 +34,12 @@
   box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--acento) 80%, transparent);
 }
 .microfono[disabled], .microfono[aria-disabled="true"] { opacity: .45; cursor: not-allowed; box-shadow: none; }
+/* UX0: fila propia encima del resto de la barra, igual que `.linea-barra`. */
+.continuar-sticky { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: .4rem;
+  margin: 0 0 .2rem; padding: .3rem; font-size: .85rem; font-weight: 650; color: var(--acento-texto);
+  text-decoration: none; border-radius: 10px; }
+.continuar-sticky:hover, .continuar-sticky:focus-visible { background: var(--acento-suave); }
+.continuar-sticky app-icono { font-size: 1.05rem; }
 /* La línea de estado ocupa su propia fila encima del micrófono, dentro de la barra. */
 .linea-barra { grid-column: 1 / -1; margin: 0; padding: .35rem .7rem; border-radius: 12px; text-align: center;
   font-size: .9rem; line-height: 1.35; color: var(--texto-suave); }
@@ -203,6 +209,8 @@
   /* Con el teclado abierto sobre la frase, la barra estorba: fuera. */
   :host:has(textarea:focus) .grabadora { display: none; }
   .otra { display: none; }
+  /* UX0: redundante con `.continuar-sticky`, siempre visible en la barra fija. */
+  .volver-contextual { display: none; }
 }
 
 @media (max-width: 560px) {

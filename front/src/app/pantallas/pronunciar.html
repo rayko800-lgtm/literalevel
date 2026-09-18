@@ -76,6 +76,17 @@
          (investigacion/una_mano.md §3.4). El botón del centro no se mueve entre
          estados: grabar, parar y corregir caen en el mismo sitio. -->
     <div class="grabadora" data-tutorial="pronunciar-practica">
+      <!-- UX0 (Miguel, 18 sep): el mismo contexto de D1.4, repetido aquí para
+           que «Continuar leyendo» no dependa de bajar hasta el final de la
+           página. Sin lógica de navegación nueva: mismo [routerLink] que el
+           enlace de abajo. Visible en cualquier estado (grabando, error,
+           resultado, explorando IPA/3D): la barra entera es `position: fixed`
+           en móvil. Sin contexto, no se muestra nada aquí. -->
+      @if (contexto(); as c) {
+        <a class="continuar-sticky" [routerLink]="['/leer', c.id, c.cap]" data-tutorial="pronunciar-continuar">
+          <app-icono nombre="libro" />Continuar leyendo
+        </a>
+      }
       @if (lineaBarra(); as l) {
         <p class="linea-barra" [class.error]="l.tipo === 'error'" [class.aviso]="l.tipo === 'aviso'" [class.grabando]="l.tipo === 'grabando'"
            [attr.role]="l.tipo === 'error' ? 'alert' : 'status'">{{ l.texto }}
@@ -423,9 +434,13 @@
 
   <p class="tenue pequeno volver">
     @if (contexto(); as c) {
-      <a [routerLink]="['/leer', c.id, c.cap]" data-tutorial="pronunciar-continuar">Continuar leyendo</a>
+      <!-- En móvil, este enlace queda redundante con el de la barra fija de
+           abajo (UX0, Miguel: quedaba enterrado bajo IPA/sonidos) — se
+           oculta solo ahí. En escritorio no hay ese problema de scroll, así
+           que se conserva. -->
+      <a class="volver-contextual" [routerLink]="['/leer', c.id, c.cap]">Continuar leyendo</a>
     } @else {
-      <a routerLink="/leer" data-tutorial="pronunciar-continuar">Volver al libro</a>
+      <a routerLink="/leer">Volver al libro</a>
     }
   </p>
 </div>

@@ -153,6 +153,49 @@ describe('Pronunciar: notificaciones al tutorial y regreso contextual', () => {
       expect(enlace.getAttribute('href')).toBe('/leer/PG27/5');
     });
 
+    // UX0 (Miguel, 18 sep): en móvil "Continuar leyendo" quedaba enterrado
+    // bajo IPA/sonidos. Ahora se repite en la barra fija (`.grabadora`),
+    // reutilizando el mismo `contexto()`, visible en cualquier estado.
+    describe('UX0: CTA fijo en la barra de acciones', () => {
+      it('con contexto: aparece dentro de la barra fija, con un único data-tutorial="pronunciar-continuar"', async () => {
+        const { raiz } = await montar('PG11', '3');
+        const barra = raiz.querySelector('.grabadora') as HTMLElement;
+        const sticky = barra.querySelector('.continuar-sticky') as HTMLAnchorElement;
+        expect(sticky).toBeTruthy();
+        expect(sticky.getAttribute('href')).toBe('/leer/PG11/3');
+        // Un único objetivo para el tutorial: no dos CTAs con el mismo selector.
+        expect(raiz.querySelectorAll('[data-tutorial="pronunciar-continuar"]').length).toBe(1);
+        expect(sticky.getAttribute('data-tutorial')).toBe('pronunciar-continuar');
+      });
+
+      it('sin contexto: no aparece nada en la barra fija (solo el genérico de abajo)', async () => {
+        const { raiz } = await montar();
+        expect(raiz.querySelector('.grabadora .continuar-sticky')).toBeNull();
+      });
+
+      it('sigue visible grabando, con error, y con resultado (misma barra fija en todo momento)', async () => {
+        const { raiz, c, fixture } = await montar('PG11', '3');
+        c.estado.set('grabando');
+        fixture.detectChanges();
+        expect(raiz.querySelector('.grabadora .continuar-sticky')).toBeTruthy();
+
+        c.estado.set('lista');
+        c.error.set('No se pudo empezar a grabar. Vuelve a intentar.');
+        fixture.detectChanges();
+        expect(raiz.querySelector('.grabadora .continuar-sticky')).toBeTruthy();
+
+        c.error.set('');
+        c.estado.set('grabada');
+        c.corregida.set(true);
+        c.resultado.set({
+          puntuacion: 90, transcripcion_ok: true, transcripcion: 'hi', palabras: [],
+          entendidas: [], resumen: null, detalles: [], audio_correcto: null, restantes: 4, ritmo: null,
+        });
+        fixture.detectChanges();
+        expect(raiz.querySelector('.grabadora .continuar-sticky')).toBeTruthy();
+      });
+    });
+
     it('con libro/cap explícitos Y seguir presente: el contexto explícito manda, no el fallback', async () => {
       TestBed.overrideProvider(Sesion, {
         useValue: {
