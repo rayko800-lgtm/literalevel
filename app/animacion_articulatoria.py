@@ -507,7 +507,9 @@ DURACION_MINIMA, DURACION_MAXIMA = 0.3, 30.0
 # con `_escalar()` a la linea entera ya construida a las proporciones de
 # siempre (2,8 s de diseno) y a `_LENTO` (palabras), que ya es un factor por
 # segmento: la misma cifra gobierna ambos.
-FACTOR_VELOCIDAD_V2 = 2.2 / 2.8
+# D4 (Miguel, prueba humana 18 sep): con 2,2 s todavia pide "un poco mas" —
+# ~10% adicional, 2,2 -> 2,0 s. Mismo mecanismo, no una constante aparte.
+FACTOR_VELOCIDAD_V2 = 2.0 / 2.8
 
 
 def _duracion_valida(duracion) -> float | None:
@@ -930,18 +932,21 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
         f'<path {p}ls" d="M50,87C42,92 36,99 39,105C41,110 49,111 57,109C59,102 58,94 55,89Z" '
         f'fill="#c77b7b" fill-opacity=".6" stroke="{_TRAZO}" stroke-width="1.4"/>')
     # Marcas: aire por la boca y por la nariz, ruido, explosion y vibracion.
+    # D4 (Miguel, 18 sep, prueba humana: «solicita visualizar el movimiento
+    # del aire»): ya existian pero eran finas y pequenas para un movil; un
+    # chevron mas y mas trazo, sin cambiar donde se colocan ni su temporizacion.
     partes.append(
-        f'<path class="{P}-ab" d="M28,111l-6,5 6,5M19,111l-6,5 6,5M10,111l-6,5 6,5" fill="none" '
-        f'stroke="{_ACENTO}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>')
+        f'<path class="{P}-ab" d="M34,111l-6,5 6,5M25,111l-6,5 6,5M16,111l-6,5 6,5M7,111l-6,5 6,5" fill="none" '
+        f'stroke="{_ACENTO}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>')
     partes.append(
         f'<path class="{P}-an" d="M42,84C36,90 30,95 22,102M22,95V102H29M36,85C32,92 26,98 16,106" fill="none" '
-        f'stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+        f'stroke="{_ACENTO}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" '
         f'stroke-dasharray="4 3"/>')
     for i, lugar in enumerate(lugares_ruido):
         x, y = _RUIDO.get(lugar, _RUIDO["alveolar"])
         partes.append(f'<path class="{P}-r{i}" transform="translate({_n(x)},{_n(y)})" '
-                      f'd="M-7,-3c2-3 4-3 6,0s4,3 6,0M-7,3c2-3 4-3 6,0s4,3 6,0" fill="none" stroke="{_ACENTO}" '
-                      f'stroke-width="1.5" stroke-linecap="round"/>')
+                      f'd="M-8,-3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0M-8,3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0" '
+                      f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
     for i, lugar in enumerate(lugares_golpe):
         x, y = _LUGARES.get(lugar, _LUGARES["alveolar"])
         partes.append(f'<path class="{P}-g{i}" transform="translate({_n(x)},{_n(y)})" '
@@ -986,21 +991,35 @@ def _partir(texto: str, ancho: int = 46) -> list[str]:
 
 
 def _contacto(art: Articulacion) -> tuple[float, float] | None:
-    """El punto donde una parte toca otra en la posicion del sonido, o None.
+    """El punto donde una parte TOCA otra de verdad, o None (D4, Miguel 18 sep:
+    no todo sonido tiene cierre completo; esto es solo para el que sí lo tiene).
 
-    La punta en el alveolo (/t d n l/) o detras (/ʃ tʃ/ si toca), el dorso en el
-    velo (/k ɡ ŋ/), la punta entre los dientes (/θ ð/), el labio en los dientes
-    (/f v/) o los labios juntos (/p b m/)."""
+    El dorso en el velo (/k ɡ ŋ/, cierre), la punta en el alveolo o detras
+    cuando `punta_toca` (/t d n l/, /tʃ dʒ/ en su fase de cierre), el labio en
+    los dientes (/f v/: la ficha ya dice «toca suavemente») o los labios
+    juntos (/p b m/). El interdental (/θ ð/) no entra aqui: su propia ficha
+    dice «sin cerrar el paso» — ver `_constriccion`."""
     if art.dorso_velo:
         return _velo_superficie(art.velo_abierto)[3]
-    if art.punta == "interdental":
-        return _LUGARES["interdental"]
     if art.punta_toca and art.punta in ("alveolar", "postalveolar"):
         return _LUGARES[art.punta]
     if art.labios == "labiodental":
         return _LUGARES["labiodental"]
     if art.labios == "cerrados":
         return _LUGARES["bilabial"]
+    return None
+
+
+def _constriccion(art: Articulacion) -> tuple[float, float] | None:
+    """El punto donde algo se ACERCA sin tocar, o None: el paso estrecho por
+    el que sale el aire en una fricativa sin cierre. Interdental (/θ ð/,
+    siempre: nunca tocan) y alveolar/postalveolar cuando NO hay cierre (/s z
+    ʃ ʒ/: sus propias fichas dicen «cerca del alvéolo sin tocarlo»). Nunca
+    coincide con `_contacto`: uno u otro, no los dos."""
+    if art.punta == "interdental":
+        return _LUGARES["interdental"]
+    if not art.punta_toca and art.punta in ("alveolar", "postalveolar") and art.movimiento == "fricativa":
+        return _LUGARES[art.punta]
     return None
 
 
@@ -1041,26 +1060,42 @@ def _construir(simbolo: str, acento: str, animado: bool,
             f"Labios: {f.labios}. Lengua: {f.lengua}. Cuerdas vocales: {_cuerdas(art)}.")
     if animado:
         desc += " La animación va del reposo a la posición del sonido y vuelve."
+    if "ab" in marcas or "an" in marcas or "ruido" in marcas:
+        desc += " Flechas y trazos esquemáticos marcan por dónde sale el aire; no son una medición física."
     if fantasma:
         desc += " La línea discontinua marca adónde llega la lengua al final del deslizamiento."
     P = _prefijo(acento, sonido.simbolo, "a" if animado else "q",
                  *(() if duracion is None and repetir else (f"{duracion}", f"{repetir}")))
     estilo_toca = cuerpo_toca = ""
-    punto = _contacto(a)
+    punto_contacto, punto_constriccion = _contacto(a), None
+    if punto_contacto is None:
+        punto_constriccion = _constriccion(a)
+    punto = punto_contacto if punto_contacto is not None else punto_constriccion
     if punto is not None:
         x, y = punto
         clase = f"{P}-ct"
-        cuerpo_toca = (f'<g class="{clase}" transform="translate({_n(x)},{_n(y)})">'
-                       f'<circle r="6" fill="none" stroke="{_TOCA}" stroke-width="1.8"/>'
-                       f'<circle r="1.6" fill="{_TOCA}"/></g>')
+        if punto_contacto is not None:
+            # Toca de verdad: aro solido con un punto relleno.
+            cuerpo_toca = (f'<g class="{clase}" transform="translate({_n(x)},{_n(y)})">'
+                           f'<circle r="6" fill="none" stroke="{_TOCA}" stroke-width="1.8"/>'
+                           f'<circle r="1.6" fill="{_TOCA}"/></g>')
+            desc += " Un aro marca dónde toca."
+        else:
+            # Se acerca sin tocar: aro discontinuo y sin relleno, para no
+            # decir «contacto» donde solo hay un paso estrecho.
+            cuerpo_toca = (f'<g class="{clase}" transform="translate({_n(x)},{_n(y)})">'
+                           f'<circle r="6.5" fill="none" stroke="{_ACENTO}" stroke-width="1.6" '
+                           f'stroke-dasharray="2.2 2.2"/></g>')
+            desc += " Un aro discontinuo marca dónde se acerca, sin llegar a tocar."
         if linea:
-            # Encendido solo mientras se sostiene la posicion del sonido; con
-            # «reducir movimiento» la figura se queda en esa posicion y el aro, visible.
+            # Encendido solo mientras se sostiene la posicion del sonido (contacto
+            # o constriccion, segun el caso); con «reducir movimiento» la figura
+            # se queda en esa posicion y el aro, visible. Nunca se queda encendido
+            # una vez que los articuladores ya se separaron.
             quietas = [tt for tt, pose in linea.poses if pose == fija]
             tramos = [(min(quietas), max(quietas))] if quietas else []
             estilo_toca = (_kf(clase, _opacidad(tramos, linea.total), linea.total, "opacity")
                            + f".{P} .{clase}{{opacity:1;animation:{clase} {linea.total:.2f}s linear infinite}}")
-        desc += " Un aro marca dónde toca."
     return _svg(P, titulo, desc, linea, fija, marcas, leyenda, f"/{sonido.simbolo}/",
                 extra_estilo=estilo_toca, extra_cuerpo=cuerpo_toca,
                 fantasma=fantasma, alto_texto=12 * len(leyenda) + 2, repetir=repetir)

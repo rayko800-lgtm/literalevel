@@ -234,14 +234,30 @@ comprobar("el suelo de la boca no es de la tinta de la lengua",
 comprobar("el suelo va debajo de la lengua", t_quieto.index(f'fill="{aa._SUELO}"') < t_quieto.index(f'fill="{aa._LENGUA}"'))
 comprobar("dientes blancos con borde oscuro", t_quieto.count(f'fill="{aa._DIENTE}" stroke="{aa._DIENTE_BORDE}"') == 2)
 comprobar("la punta de la lengua va resaltada", re.search(r'-j0"><circle r="2\.3"', t_quieto) is not None)
-contactos = {"t": aa._LUGARES["alveolar"], "k": aa._velo_superficie(False)[3], "θ": aa._LUGARES["interdental"],
+contactos = {"t": aa._LUGARES["alveolar"], "k": aa._velo_superficie(False)[3],
              "v": aa._LUGARES["labiodental"], "p": aa._LUGARES["bilabial"]}
 for s, (x, y) in contactos.items():
     for modo, funcion in (("quieto", aa.svg_articulacion_quieto), ("animado", aa.svg_articulacion)):
-        comprobar(f"/{s}/ {modo}: un aro marca donde toca",
-                  f'-ct" transform="translate({aa._n(x)},{aa._n(y)})"' in funcion(s))
-for s in ("i", "s", "ɹ", "ə"):
-    comprobar(f"/{s}/: sin aro de contacto, porque no toca", '-ct"' not in aa.svg_articulacion(s))
+        svg = funcion(s)
+        comprobar(f"/{s}/ {modo}: un aro SOLIDO marca donde toca",
+                  f'-ct" transform="translate({aa._n(x)},{aa._n(y)})">'
+                  f'<circle r="6" fill="none" stroke="{aa._TOCA}"' in svg)
+# D4 (Miguel, 18 sep): /θ ð/ y las sibilantes sin cierre (/s z ʃ ʒ/) no tocan
+# nada -- sus propias fichas lo dicen ("sin cerrar el paso", "sin tocarlo") --
+# asi que llevan un aro discontinuo (constriccion), no el solido de contacto.
+constricciones = {"θ": aa._LUGARES["interdental"], "ð": aa._LUGARES["interdental"], "s": aa._LUGARES["alveolar"],
+                  "ʃ": aa._LUGARES["postalveolar"]}
+for s, (x, y) in constricciones.items():
+    svg = aa.svg_articulacion_quieto(s)
+    comprobar(f"/{s}/: aro DISCONTINUO de constriccion, sin punto de contacto",
+              f'-ct" transform="translate({aa._n(x)},{aa._n(y)})">'
+              f'<circle r="6.5" fill="none" stroke="{aa._ACENTO}" stroke-width="1.6" '
+              f'stroke-dasharray="2.2 2.2"' in svg)
+    comprobar(f"/{s}/: el aro de constriccion no lleva el color/relleno del de contacto",
+              aa._TOCA not in svg)
+for s in ("i", "ɹ", "ə"):
+    comprobar(f"/{s}/: sin ningun aro, porque ni toca ni hay paso estrecho marcado",
+              '-ct"' not in aa.svg_articulacion(s))
 t_animado = aa.svg_articulacion("t")
 comprobar("el aro se enciende solo con la posicion del sonido",
           re.search(r"@keyframes ll[0-9a-f]+-ct\{", t_animado) is not None)
@@ -315,6 +331,76 @@ comprobar("el quieto ignora duracion y repetir",
           aa.svg_articulacion_quieto("t") == aa._construir("t", "ga", False, 4.0, False))
 comprobar("la vibracion sigue en bucle aunque no se repita",
           ".09s linear infinite alternate" in aa.svg_articulacion("d", dur=3.0, repetir=False))
+
+# --- D4 (18 sep): un poco mas de velocidad, aire y aros de contacto/constriccion ---
+
+comprobar("el ciclo base bajo otra vez: ahora 2,0 s (antes 2,2 s), mismo mecanismo",
+          round(aa._linea_sonido(aa.parametros("t")).total, 3) == 2.0)
+comprobar("duracion explicita sigue mandando sobre el ciclo base nuevo",
+          duraciones(aa.svg_articulacion("t", dur=5.0, repetir=False)) == {"5.00"})
+
+# Oclusivas: nada de aire por la boca durante el cierre, solo en la liberacion.
+for simbolo in ("p", "t", "k"):
+    L = aa._linea_sonido(aa.parametros(simbolo))
+    cierre = next(t for t, pose in L.poses if pose == aa._pose(aa._resolver(aa.parametros(simbolo), aa.REPOSO)))
+    solapa = any(a <= cierre <= b for a, b in L.boca)
+    comprobar(f"/{simbolo}/: el aire de boca NO cae dentro del cierre sostenido", not solapa)
+    comprobar(f"/{simbolo}/: hay una salida breve de aire (la liberacion)", len(L.boca) == 1 and (L.boca[0][1] - L.boca[0][0]) < 0.6)
+
+# Fricativas con paso estrecho: aire continuo durante casi toda la constriccion
+# sostenida (el tramo empieza 0,05 s despues de llegar a la posicion -- el
+# mismo margen de fundido que usa el resto del modulo -- y cubre hasta que se
+# suelta: no es un parpadeo puntual).
+MARGEN_INICIO = 0.06
+for simbolo in ("θ", "f", "s"):
+    L = aa._linea_sonido(aa.parametros(simbolo))
+    fija = aa._pose(aa._resolver(aa.parametros(simbolo), aa.REPOSO))
+    quietas = [t for t, pose in L.poses if pose == fija]
+    duracion_sostenida = max(quietas) - min(quietas)
+    comprobar(f"/{simbolo}/: el aire de boca cubre casi toda la constriccion sostenida (no un parpadeo)",
+              any(a <= min(quietas) + MARGEN_INICIO and b >= max(quietas)
+                  and (b - a) >= duracion_sostenida - MARGEN_INICIO for a, b in L.boca))
+
+# Nasales: sale por la nariz, no por la boca, durante la fase nasal.
+for simbolo in ("m", "n", "ŋ"):
+    L = aa._linea_sonido(aa.parametros(simbolo))
+    comprobar(f"/{simbolo}/: usa la via nasal (an), no la oral (ab)", bool(L.nariz) and not L.boca)
+    svg = aa.svg_articulacion(simbolo)
+    comprobar(f"/{simbolo}/: la marca -an esta en el SVG", "-an{" in svg or "-an\"" in svg)
+
+# Sonoridad y aire son cosas distintas: nunca el mismo simbolo/clase.
+comprobar("vibracion (-vi) y aire (-ab/-an) son clases distintas en el mismo SVG",
+          all(c in aa.svg_articulacion("v") for c in ("-vi", "-ab")))
+
+# El resaltado (contacto o constriccion) sigue exactamente la fase sostenida,
+# tambien para una constriccion (no solo para un cierre completo).
+for simbolo in ("t", "s"):
+    svg = aa.svg_articulacion(simbolo)
+    fija = aa._pose(aa._resolver(aa.parametros(simbolo), aa.REPOSO))
+    L = aa._linea_sonido(aa.parametros(simbolo))
+    quietas = [t for t, pose in L.poses if pose == fija]
+    # La rampa de encendido (ver _opacidad) empieza justo en ese instante, con
+    # un margen de solo 0,05 s: no antes de llegar ni despues de separarse.
+    ini_borde_pct = round(max(0.0, min(quietas) - 0.05) / L.total * 100, 1)
+    comprobar(f"/{simbolo}/: la rampa de encendido del aro empieza junto a la posicion sostenida, no antes",
+              f"{aa._n(ini_borde_pct)}%" in svg or f"{aa._n(round(ini_borde_pct))}%" in svg)
+
+# reduced-motion apaga tambien el aro nuevo (contacto o constriccion), como todo lo demas.
+for simbolo in ("t", "s"):
+    svg = aa.svg_articulacion(simbolo)
+    comprobar(f"/{simbolo}/: reduced-motion tambien apaga el aro (-ct incluido en «.{{P}} *»)",
+              "prefers-reduced-motion:reduce){." in svg and "*{animation:none!important}" in svg)
+
+# Smoke test permanente: los 85 sonidos documentados, en los dos acentos, siguen renderizando.
+fallos_inventario = []
+for acento in articulacion.ACENTOS:
+    for sonido in articulacion.inventario(acento):
+        ok = (aa.svg_articulacion(sonido.simbolo, acento) or "").startswith("<svg") and \
+             (aa.svg_articulacion_quieto(sonido.simbolo, acento) or "").startswith("<svg")
+        if not ok:
+            fallos_inventario.append(f"{acento}:{sonido.simbolo}")
+comprobar(f"los {sum(len(articulacion.inventario(a)) for a in articulacion.ACENTOS)} sonidos (ga+rp) siguen renderizando",
+          not fallos_inventario, str(fallos_inventario))
 
 print()
 print(f"pesos de los SVG de sonido: minimo {min(pesos)}, medio {sum(pesos) // len(pesos)}, maximo {max(pesos)} bytes")
