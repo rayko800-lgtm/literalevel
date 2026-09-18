@@ -163,6 +163,40 @@ describe('Repasar (D3.2)', () => {
     expect(raiz.textContent).toContain('Repasaste 1 palabra');
   });
 
+  it('«Continuar sin guardar» aparece solo tras dos fallos seguidos: no es una cuarta evaluación', async () => {
+    await proveer([tarjeta({ consulta_id: 1 }), tarjeta({ consulta_id: 2, palabra: 'raincoat' })]);
+    apiEvaluar.mockReturnValue(throwError(() => new Error('sin red')));
+    const { fixture, raiz } = await montar();
+    const boton = (texto: string) => [...raiz.querySelectorAll('button')].find(b => b.textContent?.trim() === texto) as HTMLButtonElement;
+    (raiz.querySelector('button.boton.bloque') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    boton('No').click();
+    fixture.detectChanges();
+    expect(boton('Continuar sin guardar')).toBeFalsy(); // solo 1 fallo todavía
+    boton('Reintentar').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const continuar = boton('Continuar sin guardar');
+    expect(continuar).toBeTruthy(); // 2 fallos seguidos
+    const llamadasAntes = apiEvaluar.mock.calls.length;
+    continuar.click();
+    fixture.detectChanges();
+    expect(apiEvaluar.mock.calls.length).toBe(llamadasAntes); // "Continuar sin guardar" no llama a la API
+    expect(raiz.textContent).toContain('2 de 2'); // avanzó igual
+    // Termina la sesión y confirma que no cuenta como No/Dudé/Sí.
+    apiEvaluar.mockReturnValue(of({ ok: true }));
+    boton('Mostrar respuesta').click();
+    fixture.detectChanges();
+    boton('Sí').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const filaNo = [...raiz.querySelectorAll('.cifras-resumen > div')].find(d => d.querySelector('dt')?.textContent === 'No');
+    expect(filaNo?.querySelector('dd')?.textContent).toBe('0'); // sin ese "No" fantasma
+    expect(raiz.textContent).toContain('1 palabra continuó sin guardarse');
+  });
+
   it('resumen final: cuenta exactamente lo evaluado con éxito, nada más', async () => {
     await proveer([
       tarjeta({ consulta_id: 1, palabra: 'a' }), tarjeta({ consulta_id: 2, palabra: 'b' }),

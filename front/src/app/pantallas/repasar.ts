@@ -37,6 +37,11 @@ import { Preferencias } from '../nucleo/preferencias';
               <div><dt>Dudé</dt><dd>{{ resultados().dude }}</dd></div>
               <div><dt>No</dt><dd>{{ resultados().no }}</dd></div>
             </dl>
+            @if (sinGuardar(); as s) {
+              <p class="tenue pequeno">
+                {{ s }} {{ s === 1 ? 'palabra continuó' : 'palabras continuaron' }} sin guardarse (no se pudo conectar).
+              </p>
+            }
             <a class="boton bloque" routerLink="/">Volver a Mi espacio</a>
           </section>
         } @else if (!tarjetas().length) {
@@ -71,7 +76,10 @@ import { Preferencias } from '../nucleo/preferencias';
                   <p>{{ errorGuardado() }}</p>
                   <button type="button" class="boton pequeno" (click)="reintentar()">Reintentar</button>
                   @if (fallosSeguidos() >= 2) {
-                    <button type="button" class="boton pequeno fantasma" (click)="saltar()">Saltar esta palabra</button>
+                    <!-- "Saltar" podía leerse como una cuarta respuesta junto a
+                         No/Dudé/Sí (Miguel): el copy deja claro que esto NO es
+                         una evaluación, es renunciar a guardar esta tarjeta. -->
+                    <button type="button" class="boton pequeno fantasma" (click)="continuarSinGuardar()">Continuar sin guardar</button>
                   }
                 </div>
               }
@@ -128,6 +136,10 @@ export class Repasar implements OnInit {
   protected readonly fallosSeguidos = signal(0);
   protected readonly terminado = signal(false);
   protected readonly resultados = signal<Record<EvaluacionRepaso, number>>({ no: 0, dude: 0, si: 0 });
+  /** Cuántas tarjetas se continuaron sin guardar (fallo persistente tras
+   *  reintentar): no son un "No" ni ninguna evaluación real, así que no
+   *  entran en `resultados` — el resumen las explica aparte. */
+  protected readonly sinGuardar = signal(0);
 
   protected readonly actual = computed<TarjetaRepaso | null>(() => this.tarjetas()[this.indice()] ?? null);
   protected readonly total = computed(() => {
@@ -202,11 +214,15 @@ export class Repasar implements OnInit {
 
   /** Salida de emergencia: solo aparece tras dos intentos fallidos
    *  seguidos, para que una caída del backend no deje la sesión atascada.
-   *  No cuenta como evaluación: no llama a la API, no suma al resumen. */
-  protected saltar(): void {
+   *  No es una cuarta evaluación (Miguel: "Saltar" se confundía con una
+   *  respuesta más junto a No/Dudé/Sí) — no llama a la API, no suma a
+   *  Sí/Dudé/No del resumen, solo queda contado aparte como "sin
+   *  guardar" para que el resumen pueda explicarlo si hace falta. */
+  protected continuarSinGuardar(): void {
     this.fallosSeguidos.set(0);
     this.errorGuardado.set('');
     this.evaluacionElegida.set(null);
+    this.sinGuardar.update(n => n + 1);
     this.siguiente();
   }
 
