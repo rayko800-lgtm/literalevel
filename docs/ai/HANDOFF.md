@@ -102,9 +102,23 @@ distinto al de H1 (rAF de `restaurarPosicion()` sin invalidar en
 `f26c548` (preservación de `docs/ai/` operativo, sin trackear hasta ahora)
 y `7ee50f9` (D2). Detalle: `docs/ai/DEVELOPMENT_STATUS.md` (sección D2).
 
-Próximo: D3 (Mi espacio, reorganización de Mis libros, Mis palabras,
-Repasar, progreso/gráficas), D4 (visualización articulatoria), pendientes
-de que Miguel los pida — no se empiezan automáticamente.
+**D3 → 🟡 RUNNING (rama `dev/mi-espacio-v2`, creada desde el checkpoint
+`5ab6555` de `dev/navigation-v2`, no desde `master`).** UX0 → ✅ PASSED
+("Continuar leyendo" fijo en la barra de acciones de Pronunciar, móvil).
+D3.1 → ✅ PASSED (Inicio evoluciona a "Mi espacio" para el lector
+recurrente — sin `/espacio` nueva, sin quinta pestaña; criterio: libros,
+consultas o un nivel ya medido). **D3.2 → ✅ PASSED**: Repaso pasa de
+"voltear tarjetas" a recuerdo activo con persistencia real — evaluación
+identificada por `consulta_id` (la consulta exacta, no solo el lema),
+tabla nueva `repasos` (append-only, migración automática vía el mismo
+`_ESQUEMA` que ya crea `consultas`, sin tocar ninguna fila existente),
+ruta propia `/repasar`. Sin repetición espaciada todavía (`para_repasar()`
+intacto). Verificado con las cuatro suites en verde, incluida
+`pruebas_extremas.py` completa (354/354). Detalle:
+`docs/ai/DEVELOPMENT_STATUS.md` (sección D3).
+
+Próximo: D3.3 (Progreso/gráficas), D4 (visualización articulatoria),
+pendientes de que Miguel los pida — no se empiezan automáticamente.
 
 **Nota:** los ensayos completos de D1.4 (grabar + Corrígeme de verdad)
 consumen cupo real de Corrígeme; evitar repeticiones innecesarias al
