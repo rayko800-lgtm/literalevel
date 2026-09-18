@@ -85,9 +85,26 @@ limitación de jsdom. Corregido con el mismo patrón que los demás. Suite
 completa: 35/35, 274/274, **0 errores** (antes 6). Detalle:
 `docs/ai/DEVELOPMENT_STATUS.md` (sección H1).
 
-Próximo: D2 (Navegación + Continuar leyendo, generalizado), D3 (Mi espacio),
-D4 (visualización articulatoria), pendientes de que Miguel los pida — no se
-empiezan automáticamente.
+**D2 → ✅ PASSED (rama `dev/navigation-v2`, creada desde el checkpoint
+`2cd01a8` de `dev/onboarding-v2`, no desde `master`).** Diseño aprobado con
+correcciones: D2 fue hardening, no reconstrucción — "Continuar leyendo" ya
+existía en Inicio, `LeerEntrada` y Pronunciar (D1.4), todos reutilizando
+`sesion.inicio()?.seguir` (cache del front, no canónica), alimentado
+exclusivamente por `PUT /api/libros/:id/progreso` (`biblioteca.json` por
+`X-Lector`, la fuente canónica — **sin relación con la cuenta/login**: la
+estantería no sincroniza entre dispositivos aunque haya cuenta). Sin
+estado "Terminado" (registrado para D3: requiere evento explícito, no
+inferible de `avance`). 23 tests nuevos/extendidos cierran el hueco de
+cobertura; un test con temporizadores reales reprodujo un bug real
+distinto al de H1 (rAF de `restaurarPosicion()` sin invalidar en
+`ngOnDestroy`), corregido con el mismo mecanismo de `token` que ya usaba
+`cargar()`. Suite completa: 38/38, **290/290**, 0 errores. Commits:
+`f26c548` (preservación de `docs/ai/` operativo, sin trackear hasta ahora)
+y `7ee50f9` (D2). Detalle: `docs/ai/DEVELOPMENT_STATUS.md` (sección D2).
+
+Próximo: D3 (Mi espacio, reorganización de Mis libros, Mis palabras,
+Repasar, progreso/gráficas), D4 (visualización articulatoria), pendientes
+de que Miguel los pida — no se empiezan automáticamente.
 
 **Nota:** los ensayos completos de D1.4 (grabar + Corrígeme de verdad)
 consumen cupo real de Corrígeme; evitar repeticiones innecesarias al
