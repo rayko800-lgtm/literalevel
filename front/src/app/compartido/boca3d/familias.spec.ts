@@ -268,3 +268,81 @@ describe('D4.2, casos de aceptación: /b/ /θ/ /t/ /k/', () => {
     expect(n[I_CONTACTO + 2]).toBe(0);
   });
 });
+
+/** D4.3b (Miguel, 18 sep): el 3D reutiliza el significado del aire y la
+ *  vibración del 2D -- continuo en fricativas y en /h/, señal de
+ *  sonoridad aparte del aire, nunca lo mismo. */
+describe('poseNumerica: aire oral y sonoridad (D4.3b)', () => {
+  // I_SONORA tampoco se exporta; su posición sí está documentada en
+  // escena.ts, tres después de I_CONTACTO (x, y, activo).
+  const I_SONORA = I_CONTACTO + 3;
+
+  it('fricativas sordas y sonoras: aire oral activo por igual', () => {
+    for (const s of ['θ', 'ð', 'f', 'v', 's', 'z']) {
+      expect(poseNumerica(poseReal(s))[I_AIRE_ORAL]).toBe(1);
+    }
+  });
+
+  it('/h/ (glotal): aire oral activo, igual que las fricativas', () => {
+    expect(poseNumerica(poseReal('h'))[I_AIRE_ORAL]).toBe(1);
+  });
+
+  it('oclusivas, nasales y vocales: sin aire oral continuo (no son fricativas)', () => {
+    for (const s of ['p', 't', 'k', 'm', 'n', 'i']) {
+      expect(poseNumerica(poseReal(s))[I_AIRE_ORAL]).toBe(0);
+    }
+  });
+
+  it('sonoridad: /v z ð/ (sonoras) marcan 1; /f s θ/ (sordas) marcan 0', () => {
+    for (const s of ['v', 'z', 'ð']) expect(poseNumerica(poseReal(s))[I_SONORA]).toBe(1);
+    for (const s of ['f', 's', 'θ']) expect(poseNumerica(poseReal(s))[I_SONORA]).toBe(0);
+  });
+
+  it('aire y sonoridad son independientes: /f/ tiene aire sin sonoridad, /v/ tiene las dos', () => {
+    const f = poseNumerica(poseReal('f')), v = poseNumerica(poseReal('v'));
+    expect(f[I_AIRE_ORAL]).toBe(1);
+    expect(f[I_SONORA]).toBe(0);
+    expect(v[I_AIRE_ORAL]).toBe(1);
+    expect(v[I_SONORA]).toBe(1);
+  });
+});
+
+describe('EscenaBoca.aplicar: el pulso de vibración sigue la pose activa (D4.3b)', () => {
+  // Una escena mínima con solo lo que `aplicar()` toca para I_SONORA/marcaVibracion:
+  // el resto de piezas, como objetos vacíos que aceptan cualquier propiedad.
+  function escenaMinima() {
+    const pieza = () => ({ position: { set: () => {} }, rotation: { z: 0 }, geometry: { dispose: () => {} },
+      material: { opacity: 0 }, userData: {}, visible: true, scale: { set: () => {} } });
+    const marcaVibracion = pieza();
+    const marcaContacto = pieza();
+    const aireNasal = pieza(), aireOral = pieza();
+    const labioSup = pieza(), labioInf = pieza();
+    // deformarLengua necesita una BufferGeometry real, con el numero exacto
+    // de vertices que espera (MUESTRAS+1)*LADOS+2 = 57*16+2 (ver escena.ts).
+    const geometriaLengua = new THREE.BufferGeometry();
+    geometriaLengua.setAttribute('position', new THREE.BufferAttribute(new Float32Array(914 * 3), 3));
+    const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
+      marcaVibracion, marcaContacto, aireNasal, aireOral, labioSup, labioInf,
+      mandibula: { rotation: { z: 0 } }, velo: { rotation: { z: 0 } },
+      pielesDeformables: [], pielesConLabios: [], lenguaGlb: null,
+      lengua: { geometry: geometriaLengua, visible: true }, sucio: false, sonoroActivo: false,
+    }) as unknown as { aplicar(n: Float64Array): void; sonoroActivo: boolean; marcaVibracion: ReturnType<typeof pieza> };
+    return instancia;
+  }
+
+  it('pose sonora: sonoroActivo pasa a true (bucle() la hará pulsar)', () => {
+    const instancia = escenaMinima();
+    const n = poseNumerica(poseReal('v'));
+    instancia.aplicar(n);
+    expect(instancia.sonoroActivo).toBe(true);
+  });
+
+  it('pose sorda: sonoroActivo pasa a false y la vibración se apaga de inmediato', () => {
+    const instancia = escenaMinima();
+    const n = poseNumerica(poseReal('f'));
+    instancia.aplicar(n);
+    expect(instancia.sonoroActivo).toBe(false);
+    expect(instancia.marcaVibracion.material.opacity).toBe(0);
+    expect(instancia.marcaVibracion.visible).toBe(false);
+  });
+});

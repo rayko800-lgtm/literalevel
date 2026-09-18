@@ -322,7 +322,9 @@ export const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
  *  fracciones, que es lo que se usa como opacidad del marcador (mismo
  *  criterio que el aro `_TOCA` del 2D, que también se apaga en rampa). */
 const I_CONTACTO = I_AIRE_ORAL + 1;
-const TAMANO = I_CONTACTO + 3;
+/** D4.3b: 1 si la pose es sonora (para el pulso de vibración), 0 si no. */
+const I_SONORA = I_CONTACTO + 3;
+const TAMANO = I_SONORA + 1;
 type PoseNumerica = Float64Array;
 
 /** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
@@ -502,13 +504,19 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
     n[I_NUDOS + 2 * i] = J[i][0]; n[I_NUDOS + 2 * i + 1] = J[i][1];
   }
   morfosDe(pose).forEach((v, i) => { n[I_MORFOS + i] = v; });
-  // El aire por la boca se marca en la /h/: sale de la garganta y no hay
-  // nada en la boca que lo pare, que es lo que la distingue del reposo.
-  n[I_AIRE_ORAL] = pose.lugar === 'glotal' ? 1 : 0;
+  // El aire por la boca (D4.3b, Miguel 18 sep: «mismo significado que en
+  // 2D»): continuo en /h/ (sale de la garganta, nada en la boca que lo
+  // pare) y en toda fricativa con constriccion oral (el mismo criterio que
+  // `marcas["ab"]`/`"fl"` del 2D: no en el interdental/alveolar sordo o
+  // sonoro por separado, en cualquiera con paso estrecho por la boca).
+  n[I_AIRE_ORAL] = pose.lugar === 'glotal' || pose.movimiento === 'fricativa' ? 1 : 0;
   const contacto = puntoDeContacto(pose, J, [n[I_LS], n[I_LS + 1]]);
   n[I_CONTACTO] = contacto ? contacto[0] : 0;
   n[I_CONTACTO + 1] = contacto ? contacto[1] : 0;
   n[I_CONTACTO + 2] = contacto ? 1 : 0;
+  // D4.3b: sonoridad, para el pulso de vibracion -- una señal aparte del
+  // aire, igual que en 2D (`marcas["vi"]` nunca es lo mismo que `"ab"`).
+  n[I_SONORA] = pose.sonora ? 1 : 0;
   return n;
 }
 
@@ -833,6 +841,14 @@ export class EscenaBoca {
    *  en 3D). Misma familia de material que aireOral/aireNasal: una malla
    *  minúscula, transparente y sin sombra, no una capa nueva cara. */
   private readonly marcaContacto: THREE.Mesh;
+  /** D4.3b: pulso discreto de vibración (glotal, no toda la cabeza) para
+   *  sonidos sonoros. Se enciende/apaga con la pose (como los demás) y,
+   *  mientras está encendido, también respira con el reloj (`bucle()`),
+   *  ritmo fijo aparte del ciclo del sonido -- igual que `-fluir` en 2D. */
+  private readonly marcaVibracion: THREE.Mesh;
+  /** Si la pose activa es sonora: `bucle()` solo pulsa (y sigue pintando)
+   *  cuando esto es cierto. */
+  private sonoroActivo = false;
   /** Las piezas que van dentro de la mandíbula, en coordenadas del mundo con la boca cerrada. */
   private readonly dentroMandibula: THREE.Group;
   /** La lengua modelada (si se pidió y ya cargó) y sus morfos por índice. */
@@ -1057,6 +1073,14 @@ export class EscenaBoca {
     }));
     this.marcaContacto.renderOrder = 6;
     this.escena.add(this.marcaContacto);
+    // D4.3b: el pulso de vibración, junto a la garganta (misma zona que la
+    // cavidad `garganta` de arriba): discreto, no toda la cabeza.
+    this.marcaVibracion = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), material('#e39b3a', {
+      transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#e39b3a'), emissiveIntensity: 0.8,
+    }));
+    this.marcaVibracion.position.set(2.5, -2.0, 0);
+    this.marcaVibracion.renderOrder = 6;
+    this.escena.add(this.marcaVibracion);
 
     // Mandíbula: gira en el pivote y arrastra hueso, dientes inferiores y labio
     // inferior. `dentro` deshace el desplazamiento del pivote para que las
@@ -1614,6 +1638,15 @@ export class EscenaBoca {
     }
     this.controles.update();
     this.ocultarLaterales();
+    // D4.3b: el pulso de vibración respira con el reloj (no con el ciclo
+    // del sonido), aparte de la pose: por eso sigue pintando mientras esté
+    // encendido, aunque la pose ya no se mueva.
+    if (this.sonoroActivo) {
+      const pulso = 0.35 + 0.3 * (0.5 + 0.5 * Math.sin((performance.now() / 1000) * 2 * Math.PI * 2.2));
+      (this.marcaVibracion.material as THREE.MeshStandardMaterial).opacity = pulso;
+      this.marcaVibracion.visible = true;
+      this.sucio = true;
+    }
     // La guarda de fluidez pinta todos los cuadros mientras mide.
     if (this.guarda.midiendo) this.sucio = true;
     if (this.sucio) {
@@ -1742,6 +1775,13 @@ export class EscenaBoca {
     this.marcaContacto.position.set(n[I_CONTACTO], n[I_CONTACTO + 1], 0);
     (this.marcaContacto.material as THREE.MeshStandardMaterial).opacity = contactoActivo;
     this.marcaContacto.visible = contactoActivo > 0.02;
+    // D4.3b: si la pose es sonora, `bucle()` hace pulsar marcaVibracion con
+    // el reloj; si no, se apaga aquí (sin esperar al siguiente pulso).
+    this.sonoroActivo = n[I_SONORA] > 0.5;
+    if (!this.sonoroActivo) {
+      (this.marcaVibracion.material as THREE.MeshStandardMaterial).opacity = 0;
+      this.marcaVibracion.visible = false;
+    }
     // Las comisuras: el labio de abajo baja con la mandíbula y el de arriba
     // no; lo que se separan sus extremos más de lo normal (0,6 entre los
     // centros de los dos tubos) lo cubren a medias las shape keys de comisura,
