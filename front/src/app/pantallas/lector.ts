@@ -139,6 +139,21 @@ export class Lector implements OnDestroy {
   protected readonly siguiente = computed(() => (this.indice() + 1 < this.total() ? this.indice() + 1 : null));
   protected readonly sugeridos = computed(() => new Set((this.libro()?.sugeridos ?? []).map(s => s.indice)));
   protected readonly entrada = this.sesion.entrada;
+  /** Mismo criterio ya usado en Pronunciar (D1.4/D1.5) para saber, sin
+   *  esperar respuesta del servidor, si la explicación de contexto va a
+   *  estar bloqueada: sin cuenta cuando la puerta la exige, o sin OpenAI.
+   *  No cambia el contrato de cuenta/OpenAI, solo lo lee para dar feedback
+   *  inmediato (UX-F1, Miguel: el aviso ya existente tardaba en notarse). */
+  protected readonly sinPerfilParaExplicar = computed(() => {
+    const e = this.entrada();
+    return !!e && ((e.puerta && !e.dentro) || !e.openai);
+  });
+  /** Toast breve al pulsar «Consultar» (o al seleccionar una palabra) sin
+   *  perfil: no espera a que la etapa completa resuelva para avisar. */
+  protected readonly avisoRapidoPerfil = signal(false);
+  /** Pulso corto sobre la tarjeta de aviso ya existente, una vez llega. */
+  protected readonly pulsarAvisoPerfil = signal(false);
+  private avisoRapidoTimeout: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly num = num;
   protected readonly cefr = cefr;
@@ -186,6 +201,7 @@ export class Lector implements OnDestroy {
     clearTimeout(this.reloj);
     clearTimeout(this.relojPosicion);
     clearTimeout(this.relojRecolocar);
+    clearTimeout(this.avisoRapidoTimeout);
     this.observador?.disconnect();
     this.audio?.pause();
   }
@@ -482,6 +498,12 @@ export class Lector implements OnDestroy {
     // Una palabra o un phrasal verb corto; más que eso es subrayar para leer.
     if (!txt || txt.split(/\s+/).length > 4 || txt.length > 40) return;
     if (txt.toLowerCase() === this.consultada().toLowerCase() && this.panelAbierto()) return;
+    // UX-F2: solo ahora, con la selección ya aceptada, se limpia el menú
+    // nativo (Copiar/Seleccionar todo/tiradores) — nunca antes de saber que
+    // se va a usar (una selección inválida se deja tal cual, sin tocarla).
+    // Un nuevo long-press/doble clic crea su propio rango: quitar este no
+    // le afecta.
+    sel.removeAllRanges();
     void this.consultar(txt);
   }
 
@@ -503,6 +525,16 @@ export class Lector implements OnDestroy {
     this.errorPalabra.set('');
     this.buscandoPalabra.set(true);
     this.explicando.set(false);
+    // UX-F1: feedback al instante, sin esperar la respuesta — el diccionario
+    // sigue funcionando igual, solo se avisa de antemano que la explicación
+    // de contexto no va a llegar.
+    if (this.sinPerfilParaExplicar()) {
+      clearTimeout(this.avisoRapidoTimeout);
+      this.avisoRapidoPerfil.set(true);
+      this.pulsarAvisoPerfil.set(true);
+      this.avisoRapidoTimeout = setTimeout(() => this.avisoRapidoPerfil.set(false), 4000);
+      setTimeout(() => this.pulsarAvisoPerfil.set(false), 900);
+    }
     const cuerpo = { palabra: texto, libro_id: this.id(), capitulo: this.indice(), idioma: this.prefs.idioma() };
     try {
       const rapida = await firstValueFrom(this.api.palabra({ ...cuerpo, etapa: 'diccionario' }));

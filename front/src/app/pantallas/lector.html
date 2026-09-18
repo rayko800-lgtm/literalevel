@@ -287,7 +287,7 @@
         }
 
         @if (w.motivo_sin_explicacion && !w.definicion_contextual && !explicando()) {
-          <div class="aviso">
+          <div class="aviso" [class.pulso]="pulsarAvisoPerfil()">
             <p>{{ w.motivo_sin_explicacion }}
               @if (entrada()?.puerta && !entrada()?.dentro) {
                 <button type="button" class="boton pequeno fantasma" (click)="entrar()">Entrar</button>
@@ -309,6 +309,19 @@
           <!-- Para que se sepa que repetir la consulta no gastó cupo (como en Gradio). -->
           <p class="tenue pequeno guardada"><app-icono nombre="check" />Respuesta guardada: esta consulta no ha gastado usos.</p>
         }
+      }
+
+      <!-- UX-F1: feedback inmediato al pulsar «Consultar» sin perfil, no
+           bloqueante, sin esperar a la respuesta — pegado a la zona de
+           acciones (el propio pie), no un modal, no impide cerrar la hoja. -->
+      @if (avisoRapidoPerfil()) {
+        <p class="aviso ambar toast-perfil" role="status">
+          Para la explicación contextual, entra con tu perfil.
+          El diccionario sigue disponible sin cuenta.
+          @if (entrada()?.puerta && !entrada()?.dentro) {
+            <button type="button" class="boton pequeno fantasma" (click)="entrar()">Entrar</button>
+          }
+        </p>
       }
 
       <!-- El pie, fijo abajo: cerrar al alcance del pulgar (la X de arriba queda de duplicado). -->
