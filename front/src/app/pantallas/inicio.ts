@@ -62,7 +62,11 @@ import { Sesion } from '../nucleo/sesion';
                 <strong>Mis palabras</strong><span class="tenue">Consulta palabras mientras lees</span>
               }
             </a>
-            <a class="tarjeta-mini" routerLink="/palabras">
+            <!-- Directo a la sesión (D3.2): el CTA de Mi espacio no debe
+                 obligar a encontrarla dentro de /palabras. La propia
+                 pantalla de repaso resuelve su empty state si no hay nada
+                 que repasar todavía. -->
+            <a class="tarjeta-mini" routerLink="/repasar">
               <span class="icono-mini"><app-icono nombre="recargar" /></span>
               @if (i.cuaderno.consultas > 0) {
                 <strong>Repasar</strong><span class="tenue">Recuerda lo que has consultado</span>

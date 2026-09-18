@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'nivel', title: 'Tu nivel · LiteraLevel', loadComponent: () => import('./pantallas/nivel').then(m => m.Nivel) },
   { path: 'pronunciar', title: 'Pronunciar · LiteraLevel', loadComponent: () => import('./pantallas/pronunciar').then(m => m.Pronunciar) },
   { path: 'palabras', title: 'Mis palabras · LiteraLevel', loadComponent: () => import('./pantallas/palabras').then(m => m.Palabras) },
+  { path: 'repasar', title: 'Repasar · LiteraLevel', loadComponent: () => import('./pantallas/repasar').then(m => m.Repasar) },
   { path: 'estado', title: 'Estado · LiteraLevel', loadComponent: () => import('./pantallas/estado').then(m => m.Estado) },
   // Compatibilidad con los enlaces del esqueleto anterior.
   { path: 'buscar', redirectTo: 'encontrar' },

@@ -104,6 +104,15 @@ describe('Inicio: Mi espacio (D3.1) y CTA de continuar leyendo', () => {
       expect(palabras!.getAttribute('href')).toBe('/palabras');
     });
 
+    it('el CTA «Repasar» de Mi espacio lleva directo a /repasar (D3.2), no a /palabras', async () => {
+      await proveer(signal(inicioBase({ libros: 1, cuaderno: { consultas: 1, palabras: 1, libros: 1 } })));
+      const { raiz } = montar();
+      const tarjetas = [...raiz.querySelectorAll<HTMLAnchorElement>('.tarjeta-mini')];
+      const repasar = tarjetas.find(t => t.textContent?.includes('Repasar'));
+      expect(repasar).toBeTruthy();
+      expect(repasar!.getAttribute('href')).toBe('/repasar');
+    });
+
     it('solo con perfil medido (sin libros ni consultas): ya es Mi espacio, con CTA de empty state en cada tarjeta', async () => {
       await proveer(signal(inicioBase({ perfil: PERFIL })), PERFIL);
       const { raiz } = montar();
