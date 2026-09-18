@@ -102,8 +102,8 @@ distinto al de H1 (rAF de `restaurarPosicion()` sin invalidar en
 `f26c548` (preservación de `docs/ai/` operativo, sin trackear hasta ahora)
 y `7ee50f9` (D2). Detalle: `docs/ai/DEVELOPMENT_STATUS.md` (sección D2).
 
-**D3 🔵 VERIFY — desarrollo terminado, pendiente D3.V** (rama `dev/mi-espacio-v2`, creada desde el checkpoint
-`5ab6555` de `dev/navigation-v2`, no desde `master`).** UX0 → ✅ PASSED
+**D3 → ✅ COMPLETE** (rama `dev/mi-espacio-v2`, creada desde el checkpoint
+`5ab6555` de `dev/navigation-v2`, no desde `master`). UX0 → ✅ PASSED
 ("Continuar leyendo" fijo en la barra de acciones de Pronunciar, móvil).
 D3.1 → ✅ PASSED (Inicio evoluciona a "Mi espacio" para el lector
 recurrente — sin `/espacio` nueva, sin quinta pestaña; criterio: libros,
@@ -121,12 +121,22 @@ de los últimos 20 repasos — nunca anotaciones completas. Sección "Mi
 progreso" en Mi espacio (barras CSS, sin librería), y en la ficha de un
 libro de un solo capítulo, comparación real nivel-vs-dificultad en vez de
 una curva falsa de un punto. Nada de "palabras aprendidas"/"retención"/
-"dominio" en ningún copy. Detalle: `docs/ai/DEVELOPMENT_STATUS.md`
-(sección D3).
+"dominio" en ningún copy. **D3.V → ✅ PASSED**: Miguel completó el
+recorrido conjunto (Inicio→Mi espacio→Continuar leyendo→Mis palabras→
+Repasar→resumen→Mi progreso) más los spot checks; funcionalidad principal
+correcta, dos fricciones de UX en móvil resueltas aparte (ver más abajo).
+Detalle: `docs/ai/DEVELOPMENT_STATUS.md` (sección D3).
 
-Próximo: D3.V (prueba humana conjunta de todo D3), D4 (visualización
-articulatoria), pendientes de que Miguel los pida — no se empiezan
-automáticamente.
+**UX post-D3 (microfixes, commit `1fba1c9`) → ✅ PASSED:** dos fricciones
+de D3.V resueltas antes de D4 — UX-F1 (toast inmediato, no modal, al
+pedir explicación contextual sin perfil/cuenta, mismo criterio que ya usa
+Pronunciar) y UX-F2 (`capturar()` limpia la selección nativa de Android/
+Chrome con `removeAllRanges()` solo tras aceptar la palabra, nunca
+antes). Suite del front: 41/41, **329/329**, 0 errores. Detalle:
+`docs/ai/DEVELOPMENT_STATUS.md` (sección "UX post-D3").
+
+Próximo: D4 (visualización articulatoria), pendiente de que Miguel lo
+pida — no se empieza automáticamente.
 
 **Nota:** los ensayos completos de D1.4 (grabar + Corrígeme de verdad)
 consumen cupo real de Corrígeme; evitar repeticiones innecesarias al

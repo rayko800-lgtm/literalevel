@@ -480,9 +480,9 @@ contextual no aparece — igual que hoy.
 
 ## D3 — Mi espacio + repaso interactivo
 
-**Status:** 🔵 VERIFY — desarrollo terminado (UX0/D3.1/D3.2/D3.3, todos ✅
-PASSED abajo), pendiente D3.V (prueba humana conjunta) antes de D3 ✅
-COMPLETE.
+**Status:** ✅ COMPLETE — UX0/D3.1/D3.2/D3.3/D3.V, todos ✅ PASSED (detalle
+abajo). Dos fricciones de UX post-D3.V resueltas como microfixes, ver
+sección propia al final de D3.
 
 **Rama/worktree aislado:** `dev/mi-espacio-v2`, en
 `.claude/worktrees/mi-espacio-v2`, creada desde `5ab6555` (checkpoint
@@ -636,10 +636,44 @@ verificado el patrón en D3.2).
 
 ### D3.V — Prueba humana conjunta
 
-**Status:** ⬜ PENDING (preparación lista, sin ejecutar todavía)
+**Status:** ✅ PASSED
 
-D4 pendiente de que Miguel lo pida — no se empieza automáticamente hasta
-que D3.V apruebe D3 como ✅ COMPLETE.
+Miguel completó el recorrido (Inicio → Mi espacio → Continuar leyendo →
+Mis palabras → Repasar → resumen → Mi progreso) más los spot checks
+(Pronunciar, libro de un capítulo, Mi progreso en móvil). Funcionalidad
+principal correcta. Dos fricciones de UX en móvil quedaron registradas y
+resueltas aparte — ver "UX post-D3 (microfixes)" más abajo.
+
+**D3 → ✅ COMPLETE.** UX0 + D3.1 + D3.2 + D3.3 + D3.V, todos ✅ PASSED.
+
+### UX post-D3 (microfixes, tras D3.V)
+
+**Status:** ✅ PASSED
+
+**Commit:** `1fba1c9` en `dev/mi-espacio-v2`, sobre `67e3605`.
+
+Dos fricciones detectadas en móvil durante D3.V, resueltas antes de D4:
+- **UX-F1** — sin cuenta, pedir la explicación contextual en el léxico no
+  daba feedback evidente de que necesita perfil (la tarjeta ya existente,
+  `w.motivo_sin_explicacion`, solo llegaba al resolver la etapa completa).
+  Ahora un toast breve, no modal, aparece al instante junto al pie de la
+  hoja (mismo criterio que ya usa Pronunciar para saber si está
+  bloqueado: `entrada().puerta && !dentro` o `!openai`), con "Entrar" y
+  sin bloquear "Cerrar"; la tarjeta ya existente recibe un pulso corto al
+  llegar. Sin cambio de contrato de cuenta/OpenAI. Diccionario local
+  intacto con o sin perfil.
+- **UX-F2** — en Android/Chrome, el menú nativo de selección (Copiar/
+  Seleccionar todo/tiradores azules) quedaba visible encima de la hoja
+  léxica tras capturar la palabra. `capturar()` ahora limpia la selección
+  (`removeAllRanges()`) solo tras pasar TODAS las validaciones, nunca
+  antes de saber que se va a usar; una selección inválida no se toca; una
+  selección posterior (otra palabra) no se ve afectada.
+
+8 tests nuevos (`lector.perfil.spec.ts`, `lector.seleccion.spec.ts`), con
+Selection/Range reales de jsdom en UX-F2, no mockeados. Suite del front:
+41/41 archivos, **329/329 pruebas**, 0 errores.
+
+D4 pendiente de que Miguel lo pida — no se empieza automáticamente.
 
 **Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
 implementar:** la ficha de un libro de un solo capítulo no debe dibujar una
