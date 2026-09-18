@@ -253,8 +253,17 @@ _PALADAR = (((64, 97), (70, 99), (74, 97), (78, 92)),
 # siguiente. La union se ve como una sola lengua con el contorno continuo.
 _JUNTAS = ((74.0, 124.0), (86.0, 116.0), (104.0, 106.0), (130.0, 100.0),
            (157.0, 106.0), (176.0, 134.0), (182.0, 166.0))
-_RADIOS = (4.5, 8.0, 13.0, 17.0, 18.0, 16.0, 12.0)
-_NUCLEO = (134.0, 124.0, 44.0, 20.0)      # relleno bajo el contorno: cx, cy, rx, ry
+_RADIOS_BASE = (4.5, 8.0, 13.0, 17.0, 18.0, 16.0, 12.0)
+_NUCLEO_BASE = (134.0, 124.0, 44.0, 20.0)  # relleno bajo el contorno: cx, cy, rx, ry
+# D4.1 (Miguel, 18 sep): mas presencia visual de la lengua, +7% (dentro del
+# 5-10% pedido). `_pose()` calcula contactos y separacion contra el paladar en
+# funcion de `_RADIOS`, asi que un radio mayor no atraviesa dientes/paladar ni
+# desplaza los puntos de contacto: se reajusta solo (`separar`, `dorso_velo`,
+# los `elif art.punta ==` de mas abajo).
+_FACTOR_LENGUA_V2 = 1.07
+_RADIOS = tuple(r * _FACTOR_LENGUA_V2 for r in _RADIOS_BASE)
+_NUCLEO = (_NUCLEO_BASE[0], _NUCLEO_BASE[1],
+           _NUCLEO_BASE[2] * _FACTOR_LENGUA_V2, _NUCLEO_BASE[3] * _FACTOR_LENGUA_V2)
 _INCISIVO_SUP = (57.0, 120.0)
 _INCISIVO_INF = (64.5, 113.0)             # con los dientes juntos
 _LABIO_INF_ARRIBA = (47.0, 110.5)
@@ -492,6 +501,14 @@ class _Linea:
 # desincronizada del audio lento (e6, 14 sep).
 DURACION_MINIMA, DURACION_MAXIMA = 0.3, 30.0
 
+# D4.1 (Miguel, 18 sep): el ciclo por defecto (sin «Escuchar y ver») se sentia
+# lento; ~25-30% mas rapido. En vez de acortar solo la duracion final y dejar
+# los offsets de golpe/ruido/vibracion desproporcionados, el factor se aplica
+# con `_escalar()` a la linea entera ya construida a las proporciones de
+# siempre (2,8 s de diseno) y a `_LENTO` (palabras), que ya es un factor por
+# segmento: la misma cifra gobierna ambos.
+FACTOR_VELOCIDAD_V2 = 2.2 / 2.8
+
 
 def _duracion_valida(duracion) -> float | None:
     """`duracion` en segundos si es un numero razonable; si no, None (se ignora)."""
@@ -526,7 +543,9 @@ def _objetivos(art: Articulacion, vecino: Articulacion):
 
 
 def _linea_sonido(art: Articulacion) -> _Linea:
-    """Reposo -> sonido -> reposo, en un ciclo de 2,8 s."""
+    """Reposo -> sonido -> reposo. Las proporciones de abajo estan pensadas
+    para un ciclo de 2,8 s; `FACTOR_VELOCIDAD_V2` las reescala al final
+    (D4.1) a ~2,2 s sin desproporcionar golpe/ruido/vibracion entre si."""
     L = _nueva_linea(2.8)
     a, b = _objetivos(art, REPOSO)
     R, PA = _pose(REPOSO), _pose(a)
@@ -566,7 +585,7 @@ def _linea_sonido(art: Articulacion) -> _Linea:
         voz = (t[0] + 0.08, t[2] + 0.25)
     if art.sonora:
         L.vib = [voz]
-    return L
+    return _escalar(L, FACTOR_VELOCIDAD_V2)
 
 
 # ---------------------------------------------------------------------------
@@ -658,7 +677,11 @@ def trocear(ipa: str, acento: str = "ga") -> tuple[str, list[Segmento]]:
 
 _DURACION = {"vocal": 0.34, "diptongo": 0.46, "oclusiva": 0.2, "africada": 0.28,
              "fricativa": 0.22, "nasal": 0.2, "aproximante": 0.18}
-_LENTO = 1.6
+# D4.1: mismo factor que el ciclo de un sonido (FACTOR_VELOCIDAD_V2), para que
+# la palabra sin audio (sin `dur`) acelere en la misma proporcion que el
+# sonido suelto. Cada duracion ya se multiplica una por una mas abajo, asi
+# que esto es un factor por segmento, no una duracion final recortada.
+_LENTO = 1.6 * FACTOR_VELOCIDAD_V2
 
 
 def _linea_palabra(segs: list[Segmento]) -> tuple[_Linea, list[tuple[float, float]], int]:
@@ -876,11 +899,14 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
             piezas.append(f'<g {p}j{i}"><circle r="{_n(_RADIOS[i] + margen)}"/>{tramo}</g>')
         return "".join(piezas)
 
-    partes.append(f'<g fill="{_BORDE_LENGUA}">{piezas_lengua(1.5)}</g>')
+    # D4.1: contorno un poco mas grueso (1.5->1.7) para que se lea como un
+    # borde, no una linea; misma logica de relleno-sobre-borde de siempre.
+    partes.append(f'<g fill="{_BORDE_LENGUA}">{piezas_lengua(1.7)}</g>')
     partes.append(f'<g fill="{_LENGUA}">{piezas_lengua(0.0)}</g>')
-    # La punta, resaltada: se mueve con su articulacion.
-    partes.append(f'<g {p}j0"><circle r="2.1" fill="#ffffff" stroke="{_BORDE_LENGUA}" '
-                  f'stroke-width="1.1"/></g>')
+    # La punta, resaltada: se mueve con su articulacion. Radio a juego con el
+    # aumento de `_RADIOS[0]` (D4.1).
+    partes.append(f'<g {p}j0"><circle r="2.3" fill="#ffffff" stroke="{_BORDE_LENGUA}" '
+                  f'stroke-width="1.2"/></g>')
     if fantasma:
         puntos = " ".join(f"{_n(fantasma[f'j{i}'][0])},{_n(fantasma[f'j{i}'][1] - _RADIOS[i])}" for i in range(1, 6))
         partes.append(f'<path d="M{puntos}" fill="none" stroke="{_LENGUA}" stroke-width="1.6" '

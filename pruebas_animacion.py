@@ -233,7 +233,7 @@ comprobar("el suelo de la boca no es de la tinta de la lengua",
           f'rx="48" ry="20" fill="{aa._SUELO}"' in t_quieto and f'rx="48" ry="20" fill="{aa._LENGUA}"' not in t_quieto)
 comprobar("el suelo va debajo de la lengua", t_quieto.index(f'fill="{aa._SUELO}"') < t_quieto.index(f'fill="{aa._LENGUA}"'))
 comprobar("dientes blancos con borde oscuro", t_quieto.count(f'fill="{aa._DIENTE}" stroke="{aa._DIENTE_BORDE}"') == 2)
-comprobar("la punta de la lengua va resaltada", re.search(r'-j0"><circle r="2\.1"', t_quieto) is not None)
+comprobar("la punta de la lengua va resaltada", re.search(r'-j0"><circle r="2\.3"', t_quieto) is not None)
 contactos = {"t": aa._LUGARES["alveolar"], "k": aa._velo_superficie(False)[3], "θ": aa._LUGARES["interdental"],
              "v": aa._LUGARES["labiodental"], "p": aa._LUGARES["bilabial"]}
 for s, (x, y) in contactos.items():
