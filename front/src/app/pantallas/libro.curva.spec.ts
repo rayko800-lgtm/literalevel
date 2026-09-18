@@ -60,6 +60,38 @@ describe('Ficha: dificultad capítulo a capítulo', () => {
     expect(tarjeta.querySelector('app-curva')).toBeNull();
   });
 
+  it('un capítulo, con nivel medido: comparación con dos marcadores (D3.3)', async () => {
+    const { tarjeta } = await montar(1, { fuente: 'catalogo', filas: [fila(1, 0.85)], forma: 'se_suelta', facil: fila(1, 0.85), dificil: fila(1, 0.85) });
+    const tu = tarjeta.querySelector('.marca.tu') as HTMLElement;
+    const libroMarca = tarjeta.querySelector('.marca.libro') as HTMLElement;
+    expect(tu).toBeTruthy();
+    expect(libroMarca).toBeTruthy();
+    expect(tu.style.left).toBe('47.5%'); // nivel 0,95 de 2 → 47,5%
+    expect(libroMarca.style.left).toBe('42.5%'); // dificultad 0,85 de 2 → 42,5%
+    expect(tarjeta.textContent).toContain('Tú: 0,95');
+  });
+
+  it('un capítulo, sin nivel medido: solo el marcador del libro, sin forzar comparación (D3.3)', async () => {
+    if (typeof ResizeObserver === 'undefined') {
+      (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class { observe() {} disconnect() {} };
+    }
+    const api = { curva: vi.fn(() => of({ fuente: 'catalogo', filas: [fila(1, 0.85)], forma: 'se_suelta', facil: fila(1, 0.85), dificil: fila(1, 0.85) })), biblioteca: vi.fn(() => of({ libros: [] })) };
+    const sesion = { perfil: signal(null), libro: vi.fn(async () => libro(1)), ajustesAbiertos: signal(false) };
+    await TestBed.configureTestingModule({
+      imports: [FichaLibro],
+      providers: [provideRouter([]), { provide: Api, useValue: api }, { provide: Sesion, useValue: sesion }],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(FichaLibro);
+    fixture.componentRef.setInput('id', 'SW-KIAN');
+    fixture.detectChanges();
+    for (let i = 0; i < 3; i++) { await fixture.whenStable(); fixture.detectChanges(); }
+    const tarjeta = (fixture.nativeElement as HTMLElement).querySelector('section.curva') as HTMLElement;
+    expect(tarjeta.querySelector('.marca.tu')).toBeNull();
+    expect(tarjeta.querySelector('.marca.libro')).toBeTruthy();
+    expect(tarjeta.textContent).toContain('Dificultad del libro: 0,85 (B1)');
+    expect(tarjeta.textContent).not.toContain('Tú:');
+  });
+
   it('dos capítulos: tendencia, capítulos extremos y gráfica', async () => {
     const a = fila(1, 1.3), b = fila(2, 0.9);
     const { tarjeta, texto } = await montar(2, { fuente: 'catalogo', filas: [a, b], forma: 'se_suelta', facil: b, dificil: a });
