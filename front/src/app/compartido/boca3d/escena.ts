@@ -1310,7 +1310,12 @@ export class EscenaBoca {
     // estaba (`cargarLengua` lo esconde al cargar) y no lo reactiva esta vista.
     if (this.lenguaGlb) this.lenguaGlb.visible = !ocultar; else this.lengua.visible = !ocultar;
     this.velo.visible = !ocultar;
-    for (const o of this.piezasCorte) o.visible = !ocultar;
+    // D4.3c, corregido tras verlo en el navegador: las caras del corte
+    // (corte_craneo/nariz/maxilar/mandibula) y la pared del fondo CIERRAN
+    // la cavidad -- esconderlas deja huecos reales en la cabeza, no
+    // "menos detalle". `piezasCorte` se queda sin usar aquí a propósito:
+    // solo se esconden dientes/lengua/velo, piezas sueltas dentro de la
+    // cavidad que no cierran nada al desaparecer.
     for (const o of this.piezasDentalesInferiores) o.visible = !ocultar;
     const ocultarSuperiores = modo === 'bilabial';
     for (const o of this.piezasDentalesSuperiores) o.visible = !ocultarSuperiores;

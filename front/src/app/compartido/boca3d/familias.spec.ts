@@ -193,22 +193,27 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
       dientesSup: [dientesSup1, dientesSup2] };
   }
 
-  it('bilabial: esconde lengua, velo, corte Y los dos arcos de dientes (no hacen falta para /p b m/)', () => {
+  // Las caras del corte (corte_craneo/nariz/maxilar/mandibula, pared del
+  // fondo) NO se esconden: cierran la cavidad, y esconderlas dejaba huecos
+  // reales en la cabeza (visto en el navegador tras el primer intento).
+  // Solo dientes/lengua/velo, piezas sueltas dentro de la cavidad.
+
+  it('bilabial: esconde lengua, velo y los dos arcos de dientes (no hacen falta para /p b m/); el corte se queda', () => {
     const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
     instancia.vistaParaFamilia('bilabial');
     expect(lengua.visible).toBe(false);
     expect(velo.visible).toBe(false);
-    expect(corte.every(o => !o.visible)).toBe(true);
+    expect(corte.every(o => o.visible)).toBe(true);
     expect(dientesInf.every(o => !o.visible)).toBe(true);
     expect(dientesSup.every(o => !o.visible)).toBe(true);
   });
 
-  it('labiodental: esconde lengua/velo/corte y el arco INFERIOR, pero deja el SUPERIOR (incisivos de /f v/)', () => {
+  it('labiodental: esconde lengua/velo y el arco INFERIOR, pero deja el SUPERIOR (incisivos de /f v/) y el corte', () => {
     const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
     instancia.vistaParaFamilia('labiodental');
     expect(lengua.visible).toBe(false);
     expect(velo.visible).toBe(false);
-    expect(corte.every(o => !o.visible)).toBe(true);
+    expect(corte.every(o => o.visible)).toBe(true);
     expect(dientesInf.every(o => !o.visible)).toBe(true);
     expect(dientesSup.every(o => o.visible)).toBe(true);
   });
@@ -224,12 +229,11 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
   });
 
   it('cambiar de bilabial a alveolar restaura todo lo escondido', () => {
-    const { instancia, lengua, corte, dientesInf } = escenaConPiezas();
+    const { instancia, lengua, dientesInf } = escenaConPiezas();
     instancia.vistaParaFamilia('bilabial');
     expect(lengua.visible).toBe(false);
     instancia.vistaParaFamilia('alveolar');
     expect(lengua.visible).toBe(true);
-    expect(corte.every(o => o.visible)).toBe(true);
     expect(dientesInf.every(o => o.visible)).toBe(true);
   });
 });
