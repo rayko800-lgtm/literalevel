@@ -47,6 +47,16 @@ las correcciones A2/A4 de esta ronda de auditorías). Ningún archivo de
 `.claude/worktrees/onboarding-v2`, creada desde `004eb28` (el baseline D0).
 `master` no se ha tocado; sigue en `004eb28`, recuperable.
 
+**Feedback visual/UX adicional (Miguel, 18 sep), registrado sin implementar
+— D1 sigue ✅ COMPLETE, esto es refinamiento futuro, no una reapertura:**
+Miguel aprueba la introducción actual pero la quiere más directiva
+*visualmente*, no más restrictiva: spotlight más evidente, una acción
+dominante por paso, copy mínimo, posible pulso/resaltado del target,
+autoavance por acción real (ya así desde D1.2-D1.5), conservar siempre
+Saltar. Principio explícito: "más directiva visualmente, no más
+restrictiva". Pendiente de que Miguel lo priorice como una ronda propia
+sobre `dev/onboarding-v2`.
+
 ### D1.1 — Motor (tutorial state machine, overlay, persistencia)
 
 **Status:** ✅ PASSED
@@ -453,17 +463,54 @@ comportamiento en producción.
 **Verificación final:** suite completa, 38/38 archivos, **290/290 pruebas**,
 0 errores. Ningún test de D1 roto.
 
+**Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
+implementar — D2 sigue ✅ PASSED, esto es un refinamiento pendiente sobre
+Pronunciar, no una reapertura de D2:** en móvil, el CTA contextual
+"Continuar leyendo" de `pronunciar.html` (D1.4, `data-tutorial=
+"pronunciar-continuar"` desde D1.V) queda debajo de toda la zona IPA/
+sonidos, y hace falta mucho scroll para encontrarlo. Propuesta a evaluar:
+cuando exista `contexto()` `{libro, cap}`, repetir ese mismo CTA real (no
+crear una segunda lógica de navegación — reutilizar el contexto de D1.4
+tal cual) en la barra sticky de acciones (`.grabadora`, junto a "Otra vez"/
+"Corrígeme"), visible durante grabación, error, resultado y exploración
+IPA/2D/3D. Si Pronunciar no viene de un libro (`contexto()` null), el CTA
+contextual no aparece — igual que hoy.
+
 ---
 
 ## D3 — Mi espacio + repaso interactivo
 
 **Status:** ⬜ PENDING
 
+**Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
+implementar:** la ficha de un libro de un solo capítulo no debe dibujar una
+curva de dificultad falsa con un único punto. Cuando solo existe un score
+global/capítulo, mostrar en su lugar una **comparación gráfica entre el
+nivel del lector y la dificultad del libro** (p. ej. escala 0-2 con ambos
+marcadores, o dos barras comparables) — usando únicamente datos ya
+disponibles (`perfil.nivel` y la dificultad del libro/capítulo, ambos ya
+servidos hoy). Si en el futuro existieran scores internos por segmentos del
+capítulo, ahí sí un perfil interno más fino; no inferirlo ahora sin ese
+dato. Relacionado con el diseño de D3 (sección de gráficas), pero es una
+pantalla distinta (ficha del libro, `libro.ts`/`libro.curva.spec.ts`), no
+Mi espacio — a evaluar si entra en D3 o queda como incremento propio.
+
 ---
 
 ## D4 — Visualización articulatoria v2
 
 **Status:** ⬜ PENDING
+
+**Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
+implementar:** hallazgo confirmado por Miguel — en `/b/`, los labios
+deberían ser el articulador principal y la vista 3D actual apenas permite
+verlos. D4 debe considerar vistas/encuadre específicos según el tipo de
+fonema, no una cámara universal: bilabiales `/p b m/` → labios claramente
+visibles, preferencia frontal/¾; dentales `/θ ð/` → lengua + dientes;
+alveolares → punta de lengua + alveolos; velares → parte posterior de
+lengua + velo. Principio explícito: "la cámara y la geometría visible
+deben servir al sonido concreto. Claridad pedagógica > una vista 3D
+universal."
 
 Feedback de UX ya registrado en D1.V (2D: velocidad; 3D: mejora pedagógica
 considerable) — pendiente de implementar cuando Miguel lo pida.
