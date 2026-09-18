@@ -176,6 +176,12 @@ export class Lector implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Invalida cualquier `token === this.carga` todavía pendiente (D2: lo
+    // reprodujo un test con temporizadores reales) — en particular el doble
+    // requestAnimationFrame de más abajo, que si no se destruye a tiempo
+    // sigue viendo su propio token como vigente y llama recolocar()/
+    // aplicarPagina() sobre un componente ya destruido.
+    this.carga++;
     clearTimeout(this.espera);
     clearTimeout(this.reloj);
     clearTimeout(this.relojPosicion);

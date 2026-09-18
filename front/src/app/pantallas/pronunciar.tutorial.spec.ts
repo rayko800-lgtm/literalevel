@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { throwError, of } from 'rxjs';
 import { vi } from 'vitest';
-import { Api, Entrada } from '../nucleo/api';
+import { Api, Entrada, EntradaBiblioteca } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
 import { Tutorial } from '../nucleo/tutorial';
 import { Pronunciar } from './pronunciar';
@@ -130,6 +130,40 @@ describe('Pronunciar: notificaciones al tutorial y regreso contextual', () => {
       expect(enlace).toBeTruthy();
       expect(enlace.getAttribute('href')).toBe('/leer');
       expect(raiz.textContent).not.toContain('Continuar leyendo');
+    });
+
+    // D2 (hardening): `contexto()` ya caía a `sesion.inicio()?.seguir` desde
+    // D1.4 cuando no llegan `libro`/`cap` por query param — sin tocar
+    // `pronunciar.ts`, solo cerrando el hueco de cobertura.
+    const SEGUIR: EntradaBiblioteca = {
+      id: 'PG27', titulo: 'Otro libro', autor: 'Autor', capitulo: 5, capitulos: 9,
+      avance: 0.5, palabras: 100, visto: '', consultadas: 0,
+    };
+
+    it('sin libro/cap explícitos: cae a sesion.inicio()?.seguir para «Continuar leyendo»', async () => {
+      TestBed.overrideProvider(Sesion, {
+        useValue: {
+          entrada: signal<Entrada | null>(AUTENTICADA), perfil: signal(null), inicio: signal({ seguir: SEGUIR }),
+          ajustesAbiertos: signal(false), abrirPerfil: vi.fn(),
+        },
+      });
+      const { raiz } = await montar(); // sin libro/cap en la ruta
+      const enlace = [...raiz.querySelectorAll('a')].find(a => a.textContent?.trim() === 'Continuar leyendo') as HTMLAnchorElement;
+      expect(enlace).toBeTruthy();
+      expect(enlace.getAttribute('href')).toBe('/leer/PG27/5');
+    });
+
+    it('con libro/cap explícitos Y seguir presente: el contexto explícito manda, no el fallback', async () => {
+      TestBed.overrideProvider(Sesion, {
+        useValue: {
+          entrada: signal<Entrada | null>(AUTENTICADA), perfil: signal(null), inicio: signal({ seguir: SEGUIR }),
+          ajustesAbiertos: signal(false), abrirPerfil: vi.fn(),
+        },
+      });
+      const { raiz } = await montar('PG11', '3'); // llega por query param, distinto de seguir (PG27)
+      const enlace = [...raiz.querySelectorAll('a')].find(a => a.textContent?.trim() === 'Continuar leyendo') as HTMLAnchorElement;
+      expect(enlace).toBeTruthy();
+      expect(enlace.getAttribute('href')).toBe('/leer/PG11/3'); // el explícito, no PG27
     });
   });
 });

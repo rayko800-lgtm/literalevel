@@ -403,7 +403,55 @@ lanzar excepción, preexistentes y ajenos a este bug.
 
 ## D2 — Navegación + Continuar leyendo
 
-**Status:** ⬜ PENDING
+**Status:** ✅ PASSED
+
+Diseño aprobado por Miguel con correcciones: D2 fue hardening, no
+reconstrucción — la inspección de la ronda de diseño mostró que "Continuar
+leyendo" ya existía y estaba bien repartido (Inicio, `LeerEntrada`,
+Pronunciar D1.4), todos reutilizando la misma fuente canónica
+(`biblioteca.json` por `X-Lector`, servida al front como
+`sesion.inicio()?.seguir`). Trabajado en `dev/navigation-v2`, creado desde
+el checkpoint `2cd01a8` de `dev/onboarding-v2` (D1+H1), no desde `master`.
+
+**Contrato confirmado (sin cambios de arquitectura):**
+- Canónico: `biblioteca.json` por `X-Lector`, actualizado exclusivamente
+  por `PUT /api/libros/:id/progreso` (única llamada en todo el front,
+  desde `lector.ts` al abrir un capítulo real — nunca desde ficha ni
+  búsqueda).
+- Cache del front: `sesion.inicio()?.seguir`, no canónica, requiere
+  refetch explícito (`sesion.refrescar()`), ya disparado en los puntos
+  correctos (arranque, Inicio, `LeerEntrada`, tras cada PUT progreso).
+- Posición dentro del capítulo: `literalevel.pos.<id>.<cap>`, solo
+  `localStorage`, complementaria (no redundante) a `avance` del backend.
+- **`X-Lector` no tiene relación con la cuenta/login** — la estantería NO
+  sincroniza entre dispositivos aunque haya cuenta. Ningún copy debe
+  prometerlo.
+- Estado "Terminado" explícitamente NO implementado: `avance ≥ 0,98` o
+  último capítulo no demuestra finalización real (un libro de 1 capítulo
+  tiene `avance = 1.0` por construcción desde la primera página). Registrado
+  para D3/posterior: requiere un evento explícito de fin de lectura.
+
+**Cobertura añadida (commit `[pendiente]` en `dev/navigation-v2`):** 23
+tests nuevos/extendidos — `inicio.spec.ts` (4, nuevo), `leer-entrada.spec.ts`
+(4, nuevo), `lector.progreso.spec.ts` (6, nuevo), `pronunciar.tutorial.spec.ts`
+(+2, prioridad de contexto explícito sobre el fallback a `seguir`). Sin
+tocar D1 (`tutorial.ts`/`spotlight.ts`), sin mover Mis libros, sin nueva
+tarjeta ni botón de nav.
+
+**Bug real reproducido y corregido (mismo commit):** un test con
+temporizadores reales (`lector.progreso.spec.ts`) reprodujo una fuga
+distinta a la de H1: el doble `requestAnimationFrame` de `cargar()` que
+llama `restaurarPosicion()` no se invalidaba en `ngOnDestroy()` (a
+diferencia de los `setTimeout` ya cubiertos), así que un componente
+destruido antes de que ambos rAF resolvieran seguía llamando
+`aplicarPagina()` → `el.scrollTo()` sobre un elemento ya sin uso. Corregido
+incrementando `this.carga` en `ngOnDestroy()`, invalidando de una vez todos
+los `token === this.carga` pendientes (el mismo mecanismo que ya usaba
+`cargar()` para sus propias condiciones de carrera). Sin cambio de
+comportamiento en producción.
+
+**Verificación final:** suite completa, 38/38 archivos, **290/290 pruebas**,
+0 errores. Ningún test de D1 roto.
 
 ---
 
