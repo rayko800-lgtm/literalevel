@@ -85,11 +85,17 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     controles.target.set(0.1, 0.05, 0);
     controles.update();
     const mejilla = { visible: true };
+    // D4.3c: vistaParaFamilia() ya llama a vistaExterior(), que toca lengua/
+    // velo/las listas de piezas internas -- objetos/arrays de mentira, sin
+    // WebGL de verdad.
     const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
       camara, controles, mejilla, sucio: false,
       cabezaEntera: false, caraModelada: false,
       zoomActual: 1, targetFamilia: null, familiaActual: 'vocal', mejillaExterna: true, mejillaFamilia: true,
       giroBase: { azimut: 0, polar: 1.49, distancia: 13 },
+      lengua: { visible: true }, lenguaGlb: null, velo: { visible: true },
+      piezasCorte: [], piezasDentalesInferiores: [], piezasDentalesSuperiores: [],
+      dentalSimple: [], dentalesModelados: false,
     }) as EscenaBoca;
     return { instancia, camara, controles, mejilla };
   }
@@ -158,6 +164,73 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     expect(PRESETS_FAMILIA.vocal.target).toBeNull();
     instancia.vistaParaFamilia('vocal');
     expect(controles.target.x).toBeCloseTo(0.1, 6);        // sin cabezaEntera/caraModelada en esta escena de mentira
+  });
+});
+
+/** D4.3c (Miguel, 18 sep): "vista exterior" sin Blender -- esconder lo que
+ *  compite con el gesto labial en vez de solo acercar la camara. */
+describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
+  function escenaConPiezas() {
+    const camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
+    const controles = new OrbitControls(camara, document.createElement('canvas'));
+    const pieza = () => ({ visible: true });
+    const corte1 = pieza(), corte2 = pieza();
+    const dientesInf1 = pieza(), dientesInf2 = pieza();
+    const dientesSup1 = pieza(), dientesSup2 = pieza();
+    const lengua = pieza(), velo = pieza();
+    const mejilla = { visible: true };
+    const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
+      camara, controles, mejilla, sucio: false, cabezaEntera: false, caraModelada: false,
+      zoomActual: 1, targetFamilia: null, familiaActual: 'vocal', mejillaExterna: true, mejillaFamilia: true,
+      giroBase: { azimut: 0, polar: 1.49, distancia: 13 },
+      lengua, lenguaGlb: null, velo,
+      piezasCorte: [corte1, corte2],
+      piezasDentalesInferiores: [dientesInf1, dientesInf2],
+      piezasDentalesSuperiores: [dientesSup1, dientesSup2],
+      dentalSimple: [], dentalesModelados: true,
+    }) as EscenaBoca;
+    return { instancia, lengua, velo, corte: [corte1, corte2], dientesInf: [dientesInf1, dientesInf2],
+      dientesSup: [dientesSup1, dientesSup2] };
+  }
+
+  it('bilabial: esconde lengua, velo, corte Y los dos arcos de dientes (no hacen falta para /p b m/)', () => {
+    const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
+    instancia.vistaParaFamilia('bilabial');
+    expect(lengua.visible).toBe(false);
+    expect(velo.visible).toBe(false);
+    expect(corte.every(o => !o.visible)).toBe(true);
+    expect(dientesInf.every(o => !o.visible)).toBe(true);
+    expect(dientesSup.every(o => !o.visible)).toBe(true);
+  });
+
+  it('labiodental: esconde lengua/velo/corte y el arco INFERIOR, pero deja el SUPERIOR (incisivos de /f v/)', () => {
+    const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
+    instancia.vistaParaFamilia('labiodental');
+    expect(lengua.visible).toBe(false);
+    expect(velo.visible).toBe(false);
+    expect(corte.every(o => !o.visible)).toBe(true);
+    expect(dientesInf.every(o => !o.visible)).toBe(true);
+    expect(dientesSup.every(o => o.visible)).toBe(true);
+  });
+
+  it('alveolar (y el resto de familias sin vista exterior): nada se esconde', () => {
+    const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
+    instancia.vistaParaFamilia('alveolar');
+    expect(lengua.visible).toBe(true);
+    expect(velo.visible).toBe(true);
+    expect(corte.every(o => o.visible)).toBe(true);
+    expect(dientesInf.every(o => o.visible)).toBe(true);
+    expect(dientesSup.every(o => o.visible)).toBe(true);
+  });
+
+  it('cambiar de bilabial a alveolar restaura todo lo escondido', () => {
+    const { instancia, lengua, corte, dientesInf } = escenaConPiezas();
+    instancia.vistaParaFamilia('bilabial');
+    expect(lengua.visible).toBe(false);
+    instancia.vistaParaFamilia('alveolar');
+    expect(lengua.visible).toBe(true);
+    expect(corte.every(o => o.visible)).toBe(true);
+    expect(dientesInf.every(o => o.visible)).toBe(true);
   });
 });
 

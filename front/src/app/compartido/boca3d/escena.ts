@@ -215,6 +215,12 @@ export interface PresetFamilia {
   /** La mejilla translúcida estorba más de lo que ayuda en bilabiales y
    *  labiodentales (tapa justo lo que hay que ver): se esconde solo ahí. */
   mejilla: boolean;
+  /** D4.3c: "vista exterior" — esconde lo que compite con el gesto labial.
+   *  `bilabial` esconde tambien los dientes (no hacen falta para /p b m/);
+   *  `labiodental` los deja (hacen falta los incisivos superiores) y solo
+   *  esconde lengua/velo/corte/pared; `ninguna` es el comportamiento de
+   *  siempre (dental/alveolar/postalveolar/rótico/velar/vocal). */
+  exterior: 'ninguna' | 'bilabial' | 'labiodental';
 }
 
 /** D4.2/D4.2.1 (Miguel, 18 sep): una vista inicial por FAMILIA articulatoria,
@@ -233,43 +239,43 @@ export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
   bilabial: {
     // Foco en los labios (LABIO_X = -2,95); zoom recalibrado tras corregir
     // el target (antes acercaba al punto universal, dentro de la boca).
-    azimut: -30 * GR, zoom: 0.5, target: [-2.75, 0.15], mejilla: false,
+    azimut: -30 * GR, zoom: 0.5, target: [-2.75, 0.15], mejilla: false, exterior: 'bilabial',
     limites: { azimutMin: LIMITES_GIRO.azimutMin, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   labiodental: {
     // Foco en el labio inferior + incisivos superiores (INCISIVO_SUP = (-2,55; 0,45)).
-    azimut: -24 * GR, zoom: 0.58, target: [-2.55, 0.2], mejilla: false,
+    azimut: -24 * GR, zoom: 0.58, target: [-2.55, 0.2], mejilla: false, exterior: 'labiodental',
     limites: { azimutMin: -32 * GR, azimutMax: -10 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   dental: {
     // Foco en la zona anterior (interdental: J[5] ronda x=-2,8 en poseNumerica).
-    azimut: -2 * GR, zoom: 0.72, target: [-2.6, 0.35], mejilla: true,
+    azimut: -2 * GR, zoom: 0.72, target: [-2.6, 0.35], mejilla: true, exterior: 'ninguna',
     limites: { azimutMin: -18 * GR, azimutMax: 12 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   alveolar: {
     // Foco en la zona anterior (alveolar: J[5] en x=-2,05).
-    azimut: 0.02, zoom: 0.75, target: [-2.0, 0.5], mejilla: true,
+    azimut: 0.02, zoom: 0.75, target: [-2.0, 0.5], mejilla: true, exterior: 'ninguna',
     limites: { azimutMin: -16 * GR, azimutMax: 16 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   postalveolar: {
     // Foco en la zona anterior (postalveolar: J[5] en x=-1,75).
-    azimut: 5 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true,
+    azimut: 5 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true, exterior: 'ninguna',
     limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   rotico: {
     // Mismo foco que postalveolar (Miguel, D4.2: "igual que alveolares"; no
     // se crea un target propio solo para /ɹ/).
-    azimut: 6 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true,
+    azimut: 6 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true, exterior: 'ninguna',
     limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   velar: {
     // Foco mas posterior (dorso contra el velo: cerca de PIVOTE_VELO = (2,05; 1,22)).
-    azimut: 10 * GR, zoom: 0.85, target: [1.6, 0.85], mejilla: true,
+    azimut: 10 * GR, zoom: 0.85, target: [1.6, 0.85], mejilla: true, exterior: 'ninguna',
     limites: { azimutMin: -10 * GR, azimutMax: LIMITES_GIRO.azimutMax, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   vocal: {
     // Sin target propio: vista general, el comportamiento de siempre.
-    azimut: 0.02, zoom: 1, target: null, mejilla: true,
+    azimut: 0.02, zoom: 1, target: null, mejilla: true, exterior: 'ninguna',
     limites: { ...LIMITES_GIRO },
   },
 };
@@ -846,6 +852,20 @@ export class EscenaBoca {
    *  mientras está encendido, también respira con el reloj (`bucle()`),
    *  ritmo fijo aparte del ciclo del sonido -- igual que `-fluir` en 2D. */
   private readonly marcaVibracion: THREE.Mesh;
+  /** D4.3c: las caras del corte y la pared del fondo -- lo que revela que
+   *  esto es un corte sagital, no una cara entera -- se esconden en
+   *  bilabial Y labiodental. No incluye `cabeza_lejana`, ojo/iris ni
+   *  nariz/mentón: dan contexto de cara y no compiten con los labios. */
+  private readonly piezasCorte: THREE.Object3D[] = [];
+  /** D4.3c: dientes/encía/mandíbula modelados del arco INFERIOR (se
+   *  esconden en bilabial y labiodental: no hacen falta en ninguno de los
+   *  dos). Los del arco superior se dejan aparte (`piezasDentalesSuperiores`):
+   *  /f v/ necesita verlos junto al labio inferior. */
+  private readonly piezasDentalesInferiores: THREE.Object3D[] = [];
+  private readonly piezasDentalesSuperiores: THREE.Object3D[] = [];
+  /** Si cargaron los dientes/encías modelados (D4.3c): entonces
+   *  `vistaExterior()` no toca `dentalSimple`, que ya se dejó escondido. */
+  private dentalesModelados = false;
   /** Si la pose activa es sonora: `bucle()` solo pulsa (y sigue pintando)
    *  cuando esto es cierto. */
   private sonoroActivo = false;
@@ -1274,6 +1294,30 @@ export class EscenaBoca {
     this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
     aplicarLimitesGiro(this.controles, preset.limites);
     this.vista(preset.azimut, POLAR_DEFECTO, preset.zoom);
+    this.vistaExterior(preset.exterior);
+  }
+
+  /** D4.3c (Miguel, 18 sep): "vista exterior" sin tocar geometría ni GLB —
+   *  esconde lo que compite con el gesto labial (lengua, velo, caras del
+   *  corte, pared del fondo, y en bilabial también los dientes: /f v/
+   *  necesita los incisivos superiores, /p b m/ no necesita ninguno). No
+   *  ensancha `LIMITES_GIRO`: la media cabeza sigue siendo media cabeza,
+   *  solo se deja de mostrar su interior. */
+  private vistaExterior(modo: 'ninguna' | 'bilabial' | 'labiodental'): void {
+    const ocultar = modo !== 'ninguna';
+    // Solo se toca la geometria que esta realmente activa: si ya cargo el
+    // GLB (lengua modelada), el respaldo simple se queda escondido como ya
+    // estaba (`cargarLengua` lo esconde al cargar) y no lo reactiva esta vista.
+    if (this.lenguaGlb) this.lenguaGlb.visible = !ocultar; else this.lengua.visible = !ocultar;
+    this.velo.visible = !ocultar;
+    for (const o of this.piezasCorte) o.visible = !ocultar;
+    for (const o of this.piezasDentalesInferiores) o.visible = !ocultar;
+    const ocultarSuperiores = modo === 'bilabial';
+    for (const o of this.piezasDentalesSuperiores) o.visible = !ocultarSuperiores;
+    // Respaldo sin GLB: no hay arco superior/inferior por separado que
+    // valga la pena distinguir; se deja como estaba salvo en bilabial.
+    if (!this.dentalesModelados) for (const o of this.dentalSimple) o.visible = !(modo === 'bilabial');
+    this.sucio = true;
   }
 
   /** D4.2.1 (registro para depuración, solo lo lee quien integra en modo
@@ -1342,6 +1386,9 @@ export class EscenaBoca {
       this.contenedor.dataset['lengua'] = 'blender';
       liberarModelo(gltf.scene);
       this.sombrear();
+      // D4.3c: si la lengua modelada llega después de aplicar la vista
+      // exterior, no debe reaparecer (nace visible por defecto).
+      this.vistaExterior(PRESETS_FAMILIA[this.familiaActual].exterior);
       this.aplicar(this.actual);
     }, () => { /* sin lengua modelada: se queda el tubo */ });
   }
@@ -1455,6 +1502,10 @@ export class EscenaBoca {
           : materialDe('piel', col.piel, nombre === 'cabeza_lejana' && labiosEnPiel ? { side: THREE.DoubleSide } : {});
         const pieza = new THREE.Mesh(geometria, mat);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
+        // D4.3c: las caras del corte y la pared del fondo son justo lo que
+        // revela que esto es un corte sagital, no una cara entera: se
+        // esconden en la vista exterior (bilabiales/labiodentales).
+        if (tejido === 'corte' || tejido === 'pared') this.piezasCorte.push(pieza);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
         if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
@@ -1487,6 +1538,7 @@ export class EscenaBoca {
         ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
       if (dentales.every(n => piezas.has(n))) {
         this.dentalSimple.forEach(o => { o.visible = false; });
+        this.dentalesModelados = true;
         this.dientesLaterales.length = 0;
         for (const nombre of dentales) {
           const fuente = piezas.get(nombre)!;
@@ -1501,6 +1553,10 @@ export class EscenaBoca {
           fuente.matrixWorld.decompose(pieza.position, pieza.quaternion, pieza.scale);
           (inferior ? this.dentroMandibula : this.escena).add(pieza);
           if (nombre.startsWith('diente_') && Math.abs(pieza.position.z) > 0.42) this.dientesLaterales.push(pieza);
+          // D4.3c: dientes/encía/mandíbula tapan el gesto labial de cerca;
+          // el arco inferior se esconde siempre en vista exterior, el
+          // superior solo en bilabial (/f v/ necesita verlo).
+          (inferior ? this.piezasDentalesInferiores : this.piezasDentalesSuperiores).push(pieza);
         }
         this.lateralesOcultos = 'ninguno';
       }
@@ -1522,6 +1578,9 @@ export class EscenaBoca {
       this.sombrear();
       this.contenedor.dataset['cara'] = 'blender';
       this.recentrarConservandoAngulo();
+      // D4.3c: los dientes/encías/mandíbula/corte modelados nacen visibles;
+      // si la familia activa pide vista exterior, se esconden tambien.
+      this.vistaExterior(PRESETS_FAMILIA[this.familiaActual].exterior);
       this.aplicar(this.actual);
     }, () => { /* Las piezas simples siguen visibles. */ });
   }

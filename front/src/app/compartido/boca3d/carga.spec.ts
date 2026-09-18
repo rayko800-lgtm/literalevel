@@ -26,6 +26,10 @@ describe('carga de lengua Blender', () => {
     const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
       vivo, contenedor: document.createElement('div'), lengua: { visible: true },
       dentroMandibula: new THREE.Group(), actual: poseNumerica(REPOSO), aplicar: vi.fn(),
+      // D4.3c: cargarLengua() ya llama a vistaExterior() al terminar.
+      familiaActual: 'vocal', velo: { visible: true },
+      piezasCorte: [], piezasDentalesInferiores: [], piezasDentalesSuperiores: [],
+      dentalSimple: [], dentalesModelados: false,
     });
     instancia.cargarLengua('/boca3d/lengua.glb', '#d9727f');
     await tanda();
