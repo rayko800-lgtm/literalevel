@@ -102,7 +102,7 @@ distinto al de H1 (rAF de `restaurarPosicion()` sin invalidar en
 `f26c548` (preservación de `docs/ai/` operativo, sin trackear hasta ahora)
 y `7ee50f9` (D2). Detalle: `docs/ai/DEVELOPMENT_STATUS.md` (sección D2).
 
-**D3 → 🟡 RUNNING (rama `dev/mi-espacio-v2`, creada desde el checkpoint
+**D3 🔵 VERIFY — desarrollo terminado, pendiente D3.V** (rama `dev/mi-espacio-v2`, creada desde el checkpoint
 `5ab6555` de `dev/navigation-v2`, no desde `master`).** UX0 → ✅ PASSED
 ("Continuar leyendo" fijo en la barra de acciones de Pronunciar, móvil).
 D3.1 → ✅ PASSED (Inicio evoluciona a "Mi espacio" para el lector
@@ -123,8 +123,6 @@ libro de un solo capítulo, comparación real nivel-vs-dificultad en vez de
 una curva falsa de un punto. Nada de "palabras aprendidas"/"retención"/
 "dominio" en ningún copy. Detalle: `docs/ai/DEVELOPMENT_STATUS.md`
 (sección D3).
-
-D3 (Mi espacio) queda completo: UX0 + D3.1 + D3.2 + D3.3, todos ✅ PASSED.
 
 Próximo: D3.V (prueba humana conjunta de todo D3), D4 (visualización
 articulatoria), pendientes de que Miguel los pida — no se empiezan

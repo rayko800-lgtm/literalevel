@@ -480,7 +480,9 @@ contextual no aparece — igual que hoy.
 
 ## D3 — Mi espacio + repaso interactivo
 
-**Status:** 🟡 RUNNING
+**Status:** 🔵 VERIFY — desarrollo terminado (UX0/D3.1/D3.2/D3.3, todos ✅
+PASSED abajo), pendiente D3.V (prueba humana conjunta) antes de D3 ✅
+COMPLETE.
 
 **Rama/worktree aislado:** `dev/mi-espacio-v2`, en
 `.claude/worktrees/mi-espacio-v2`, creada desde `5ab6555` (checkpoint
@@ -632,8 +634,12 @@ capítulos leídos, "nivel mejoró", sonidos que más cuestan.
 esta ronda (cambios puramente aditivos sobre `cuaderno.py`/`api.py`, ya
 verificado el patrón en D3.2).
 
-D4 y D3.V pendientes de que Miguel los pida — no se empiezan
-automáticamente.
+### D3.V — Prueba humana conjunta
+
+**Status:** ⬜ PENDING (preparación lista, sin ejecutar todavía)
+
+D4 pendiente de que Miguel lo pida — no se empieza automáticamente hasta
+que D3.V apruebe D3 como ✅ COMPLETE.
 
 **Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
 implementar:** la ficha de un libro de un solo capítulo no debe dibujar una
