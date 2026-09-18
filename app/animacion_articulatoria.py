@@ -472,6 +472,25 @@ _LUGARES = {
 _RUIDO = {**_LUGARES, "alveolar": (64.0, 104.0), "postalveolar": (68.0, 100.0),
           "interdental": (45.0, 113.0), "labiodental": (48.0, 121.0), "glotal": (201.0, 190.0)}
 
+# D4.3a (Miguel, 18 sep): flujo de aire COMPLETO, no solo un tramo cerca de
+# los labios. Esquematico (una guia visual, no una medicion): un solo trazo
+# desde la faringe visible (dentro de la pared de la faringe de `_ANATOMIA`,
+# x~200) hasta la constriccion/salida de cada lugar, pasando por el hueco
+# entre paladar y lengua (nunca por encima del paladar ni dentro de la
+# lengua). Coherente con lo que ya dicen las fichas ("sale continuo por
+# encima de la lengua").
+_AIRE_ORIGEN = (198.0, 155.0)
+_AIRE_CONTROL = (140.0, 100.0)
+_AIRE_CONTROL_NASAL = (172.0, 68.0)   # cerca de _PIVOTE_VELO: por donde se desvia a la nariz
+
+
+def _trayectoria_aire(destino: tuple[float, float], control: tuple[float, float] = _AIRE_CONTROL,
+                       origen: tuple[float, float] = _AIRE_ORIGEN) -> str:
+    """Un trazo curvo esquematico de `origen` a `destino` pasando por
+    `control` (bezier cuadratica: una guia, no una simulacion de fluidos)."""
+    return (f"M{_n(origen[0])},{_n(origen[1])}Q{_n(control[0])},{_n(control[1])} "
+            f"{_n(destino[0])},{_n(destino[1])}")
+
 
 @dataclass
 class _Linea:
@@ -852,19 +871,46 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
             css.append(_kf(clase, puntos, linea.total, "opacity"))
         css.append(regla + "}")
 
+    def marca_flujo(clase, opac_fija, puntos):
+        """Como `marca()`, pero además el trazo "fluye" (stroke-dashoffset,
+        D4.3a): un bucle a ritmo fijo, aparte del ciclo del sonido -- solo
+        importa que se vea correr, no que sincronice con la pose. Con
+        «reducir movimiento» esta animación se apaga igual que las demás
+        (regla global de abajo); el trazo se queda fijo y visible."""
+        regla = f".{P} .{clase}{{opacity:{opac_fija};stroke-dasharray:7 5"
+        animaciones = []
+        if linea and puntos is not None:
+            animaciones.append(f"{clase} {linea.total:.2f}s linear infinite")
+            css.append(_kf(clase, puntos, linea.total, "opacity"))
+        if linea:
+            animaciones.append(f"{P}-fluir .6s linear infinite")
+        if animaciones:
+            regla += f";animation:{','.join(animaciones)}"
+        css.append(regla + "}")
+
     marca(f"{P}-vi", marcas_fijas.get("vi", 0), _opacidad(linea.vib, linea.total) if linea else None)
-    marca(f"{P}-ab", marcas_fijas.get("ab", 0), _opacidad(linea.boca, linea.total) if linea else None)
+    # D4.3a: `linea.boca` sigue teniendo el tramo de una fricativa (lo usan
+    # el flujo -fl{i} y el ruido -r{i}, con su propia ventana via
+    # `linea.ruido`), pero el chevron generico -ab ya no es su sitio: solo
+    # anima si `marcas_fijas` lo pide (vocal/diptongo/aproximante/liberacion
+    # de oclusiva), o se quedaria encendiendo un chevron sin trayectoria.
+    marca(f"{P}-ab", marcas_fijas.get("ab", 0),
+          _opacidad(linea.boca, linea.total) if linea and marcas_fijas.get("ab") else None)
     marca(f"{P}-an", marcas_fijas.get("an", 0), _opacidad(linea.nariz, linea.total) if linea else None)
+    marca_flujo(f"{P}-fn", marcas_fijas.get("an", 0), _opacidad(linea.nariz, linea.total) if linea else None)
     lugares_ruido = sorted(set(linea.ruido) if linea else set(k for k in marcas_fijas.get("ruido", ())))
     lugares_golpe = sorted(set(linea.golpe) if linea else set())
     for i, lugar in enumerate(lugares_ruido):
         marca(f"{P}-r{i}", 1 if lugar in marcas_fijas.get("ruido", ()) else 0,
               _opacidad(linea.ruido[lugar], linea.total) if linea else None)
+        marca_flujo(f"{P}-fl{i}", 1 if lugar in marcas_fijas.get("ruido", ()) else 0,
+                    _opacidad(linea.ruido[lugar], linea.total) if linea else None)
     for i, lugar in enumerate(lugares_golpe):
         marca(f"{P}-g{i}", 0, _golpes(linea.golpe[lugar], linea.total))
     if linea:
         css.append(f"@keyframes {P}-w{{from{{transform:translateX(-1.2px)}}to{{transform:translateX(1.2px)}}}}")
         css.append(f".{P} .{P}-w{{animation:{P}-w .09s linear infinite alternate}}")
+        css.append(f"@keyframes {P}-fluir{{from{{stroke-dashoffset:0}}to{{stroke-dashoffset:-24}}}}")
         css.append(f"@media (prefers-reduced-motion:reduce){{.{P} *{{animation:none!important}}}}")
     else:
         css.append(f"@media (prefers-reduced-motion:reduce){{.{P} *{{animation:none!important}}}}")
@@ -942,11 +988,20 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
         f'<path class="{P}-an" d="M42,84C36,90 30,95 22,102M22,95V102H29M36,85C32,92 26,98 16,106" fill="none" '
         f'stroke="{_ACENTO}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" '
         f'stroke-dasharray="4 3"/>')
+    # D4.3a: el tramo de faringe a donde empieza el remolino de la nariz (de
+    # ahi hacia la punta de la nariz sigue el trazo -an de arriba): asi se ve
+    # de un vistazo por donde se desvia el aire, no solo el ultimo tramo.
+    partes.append(f'<path class="{P}-fn" d="{_trayectoria_aire((42.0, 84.0), _AIRE_CONTROL_NASAL)}" '
+                  f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
     for i, lugar in enumerate(lugares_ruido):
         x, y = _RUIDO.get(lugar, _RUIDO["alveolar"])
         partes.append(f'<path class="{P}-r{i}" transform="translate({_n(x)},{_n(y)})" '
                       f'd="M-8,-3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0M-8,3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0" '
                       f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
+        # D4.3a: el trazo completo, de la faringe hasta esta constriccion (el
+        # rizo -r{i} de arriba marca la turbulencia justo en el punto).
+        partes.append(f'<path class="{P}-fl{i}" d="{_trayectoria_aire((x, y))}" fill="none" '
+                      f'stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
     for i, lugar in enumerate(lugares_golpe):
         x, y = _LUGARES.get(lugar, _LUGARES["alveolar"])
         partes.append(f'<path class="{P}-g{i}" transform="translate({_n(x)},{_n(y)})" '
@@ -1039,7 +1094,11 @@ def _construir(simbolo: str, acento: str, animado: bool,
     fija = _pose(a)
     marcas = {"vi": 1 if art.sonora else 0}
     m = art.movimiento
-    if m in ("fricativa", "vocal", "diptongo", "aproximante"):
+    # D4.3a: las fricativas ya no usan el chevron generico -ab (que no
+    # seguia ninguna trayectoria): llevan el flujo completo -fl{i}, con la
+    # misma temporizacion que el ruido (`marcas["ruido"]`, mas abajo). Las
+    # oclusivas si lo llevan: es su salida breve en la liberacion.
+    if m in ("vocal", "diptongo", "aproximante", "oclusiva"):
         marcas["ab"] = 1
     if m == "nasal":
         marcas["an"] = 1

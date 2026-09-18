@@ -402,6 +402,60 @@ for acento in articulacion.ACENTOS:
 comprobar(f"los {sum(len(articulacion.inventario(a)) for a in articulacion.ACENTOS)} sonidos (ga+rp) siguen renderizando",
           not fallos_inventario, str(fallos_inventario))
 
+# --- D4.3a: flujo de aire completo (fricativas y nasales) --------------------
+
+def _bezier_cuadratica(p0, p1, p2, pasos=9):
+    puntos = []
+    for i in range(pasos + 1):
+        t = i / pasos
+        x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
+        y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
+        puntos.append((x, y))
+    return puntos
+
+for simbolo in ("θ", "ð", "f", "v", "s", "z"):
+    svg = aa.svg_articulacion(simbolo)
+    lugar = aa.parametros(simbolo).lugar
+    x, y = aa._RUIDO[lugar]
+    d_esperado = aa._trayectoria_aire((x, y))
+    comprobar(f"/{simbolo}/: lleva el trazo de flujo completo (faringe -> {lugar})", f'd="{d_esperado}"' in svg)
+    comprobar(f"/{simbolo}/: el flujo fluye (stroke-dasharray + animacion propia, no solo el ciclo)",
+              "stroke-dasharray:7 5" in svg and "-fluir " in svg)
+    # No cruza dientes/paladar/lengua: se queda dentro del hueco entre
+    # paladar (y approx 70-99 en el tramo medio) y el suelo de la boca.
+    puntos = _bezier_cuadratica(aa._AIRE_ORIGEN, aa._AIRE_CONTROL, (x, y))
+    comprobar(f"/{simbolo}/: la trayectoria no sube por encima del paladar (y >= 90 en todo el trazo)",
+              all(py >= 90 for _, py in puntos), str(puntos))
+
+for simbolo in ("θ", "s"):
+    svg_animado, svg_quieto = aa.svg_articulacion(simbolo), aa.svg_articulacion_quieto(simbolo)
+    comprobar(f"/{simbolo}/ quieto: el flujo esta pero sin animar (reducir movimiento y sin JS)",
+              "stroke-dasharray:7 5" in svg_quieto and "-fluir " not in svg_quieto)
+    comprobar(f"/{simbolo}/: ya no usa el chevron generico -ab (sin trayectoria propia)",
+              re.search(r"\.ll[0-9a-f]+-ab\{opacity:0\}", svg_animado) is not None)
+
+for simbolo in ("p", "t", "k"):
+    svg = aa.svg_articulacion(simbolo)
+    comprobar(f"/{simbolo}/: la oclusiva SIGUE mostrando su salida breve (-ab con animacion)",
+              re.search(r"\.ll[0-9a-f]+-ab\{opacity:1;animation:", svg) is not None)
+
+for simbolo in ("m", "n", "ŋ"):
+    svg = aa.svg_articulacion(simbolo)
+    d_nasal = aa._trayectoria_aire((42.0, 84.0), aa._AIRE_CONTROL_NASAL)
+    comprobar(f"/{simbolo}/: lleva el trazo de flujo nasal completo (faringe -> velo -> nariz)",
+              f'd="{d_nasal}"' in svg)
+
+# Sonoridad: /v/ (sonora) lleva flujo Y vibracion a la vez; /f/ (sorda) solo flujo.
+v_svg, f_svg = aa.svg_articulacion("v"), aa.svg_articulacion("f")
+comprobar("/v/: el flujo anima (constriccion labiodental)",
+          re.search(r"\.ll[0-9a-f]+-fl0\{opacity:1;[^}]*animation:", v_svg) is not None)
+comprobar("/v/: la vibracion TAMBIEN anima a la vez (no son excluyentes)",
+          re.search(r"\.ll[0-9a-f]+-vi\{opacity:1;animation:", v_svg) is not None)
+comprobar("/f/: el flujo anima igual que en /v/",
+          re.search(r"\.ll[0-9a-f]+-fl0\{opacity:1;[^}]*animation:", f_svg) is not None)
+comprobar("/f/: sin vibracion (-vi en 0 todo el ciclo, aunque lleve una animacion vacia)",
+          re.search(r"@keyframes ll[0-9a-f]+-vi\{0%,100%\{opacity:0\}\}", f_svg) is not None)
+
 print()
 print(f"pesos de los SVG de sonido: minimo {min(pesos)}, medio {sum(pesos) // len(pesos)}, maximo {max(pesos)} bytes")
 if FALLOS:
