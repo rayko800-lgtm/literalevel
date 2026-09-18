@@ -114,11 +114,21 @@ tabla nueva `repasos` (append-only, migración automática vía el mismo
 `_ESQUEMA` que ya crea `consultas`, sin tocar ninguna fila existente),
 ruta propia `/repasar`. Sin repetición espaciada todavía (`para_repasar()`
 intacto). Verificado con las cuatro suites en verde, incluida
-`pruebas_extremas.py` completa (354/354). Detalle:
-`docs/ai/DEVELOPMENT_STATUS.md` (sección D3).
+`pruebas_extremas.py` completa (354/354). **D3.3 → ✅ PASSED**: `GET
+/api/progreso` agrega palabras consultadas por día (14 días, **día LOCAL
+real del navegador** vía `zoneinfo`, nunca UTC del servidor) y resultados
+de los últimos 20 repasos — nunca anotaciones completas. Sección "Mi
+progreso" en Mi espacio (barras CSS, sin librería), y en la ficha de un
+libro de un solo capítulo, comparación real nivel-vs-dificultad en vez de
+una curva falsa de un punto. Nada de "palabras aprendidas"/"retención"/
+"dominio" en ningún copy. Detalle: `docs/ai/DEVELOPMENT_STATUS.md`
+(sección D3).
 
-Próximo: D3.3 (Progreso/gráficas), D4 (visualización articulatoria),
-pendientes de que Miguel los pida — no se empiezan automáticamente.
+D3 (Mi espacio) queda completo: UX0 + D3.1 + D3.2 + D3.3, todos ✅ PASSED.
+
+Próximo: D3.V (prueba humana conjunta de todo D3), D4 (visualización
+articulatoria), pendientes de que Miguel los pida — no se empiezan
+automáticamente.
 
 **Nota:** los ensayos completos de D1.4 (grabar + Corrígeme de verdad)
 consumen cupo real de Corrígeme; evitar repeticiones innecesarias al
