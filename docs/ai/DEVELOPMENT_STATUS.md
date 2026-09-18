@@ -560,9 +560,12 @@ revela el sentido al instante (ya viene en la tarjeta) y pide audio/IPA
 aparte con `etapa:'diccionario'` (nunca cuesta, nunca registra una
 consulta fantasma). Evaluar deshabilita los tres botones y solo avanza
 tras un 200 real; si falla, aviso + Reintentar, y tras dos fallos
-seguidos aparece "Saltar esta palabra" como salida de emergencia. Resumen
-final: conteo exacto de lo evaluado con éxito, sin porcentaje ni racha.
-El CTA "Repasar" de Mi espacio (D3.1) enlaza directo a `/repasar`.
+seguidos aparece **"Continuar sin guardar"** (copy corregido en el cierre
+de verificación: "Saltar" podía leerse como una cuarta respuesta junto a
+No/Dudé/Sí) como salida de emergencia — no cuenta como evaluación, queda
+aparte en un contador propio que el resumen explica si hizo falta.
+Resumen final: conteo exacto de lo evaluado con éxito, sin porcentaje ni
+racha. El CTA "Repasar" de Mi espacio (D3.1) enlaza directo a `/repasar`.
 
 **Verificación:** `pruebas_repaso.py` 15/15 (backend, con diccionario
 real vía hardlink de `kaikki_diccionario.db` al worktree — sin él,
@@ -570,12 +573,21 @@ fallaba igual que las pruebas equivalentes ya existentes en
 `pruebas_api.py`, limitación de entorno preexistente, no de este
 cambio). `pruebas_api.py` 66/66 sin regresión. `pruebas_integracion.py`,
 sección del cuaderno en verde (2 fallos ajenos, por el modelo v4 no
-disponible en este worktree). Suite del front: 39/39 archivos, **310/310
-pruebas**, 0 errores. `pruebas_extremas.py` (la suite más pesada del
-proyecto) quedó corriendo en segundo plano al cerrar esta ronda; el único
-punto que la tocaba (un uso posicional de `Anotacion()`) ya está
-corregido y comprometido — se reportará aparte si trajera algo
-inesperado.
+disponible en este worktree). **`pruebas_extremas.py` (354 pruebas, la
+suite más pesada del proyecto) terminó en verde: 354/354, sin ninguna
+excepción, ningún fallo relacionado con D3.2** — recogido del proceso ya
+en marcha, sin relanzarlo. Suite del front: 39/39 archivos, **311/311
+pruebas**, 0 errores (con el commit del copy `5785336`, +1 sobre las 310
+anteriores).
+
+**Cierre de verificación (Miguel, 18 sep):** contrato de `Anotacion.id`
+confirmado sin fuga — `_anotacion_json()` (la que sirve `/api/cuaderno`)
+sigue sin `id`; `consulta_id` solo se añade en el propio handler de
+`/api/repaso`, en ningún otro sitio. `kaikki_diccionario.db` confirmado
+ignorado por git, sin stagear, fuera de cualquier commit, y como hard
+link real (mismo inodo, sin duplicar los 233 MB en disco) — se conserva,
+sigue haciendo falta para las pruebas del worktree. Único cambio de este
+cierre: copy "Continuar sin guardar" (commit `5785336`, ver D3.2b).
 
 D3.3 (Progreso/gráficas) pendiente de que Miguel apruebe este informe.
 
