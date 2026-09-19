@@ -480,8 +480,9 @@ _RUIDO = {**_LUGARES, "alveolar": (64.0, 104.0), "postalveolar": (68.0, 100.0),
 # lengua). Coherente con lo que ya dicen las fichas ("sale continuo por
 # encima de la lengua").
 _AIRE_ORIGEN = (198.0, 155.0)
-_AIRE_CONTROL = (140.0, 100.0)
+_AIRE_CONTROL = (140.0, 60.0)       # arquea el tramo oral por el hueco paladar-lengua
 _AIRE_CONTROL_NASAL = (172.0, 68.0)   # cerca de _PIVOTE_VELO: por donde se desvia a la nariz
+_CORTE_AIRE_NASAL = .72                # el tramo visible empieza ya en la bifurcacion nasal
 
 
 def _trayectoria_aire(destino: tuple[float, float], control: tuple[float, float] = _AIRE_CONTROL,
@@ -490,6 +491,26 @@ def _trayectoria_aire(destino: tuple[float, float], control: tuple[float, float]
     `control` (bezier cuadratica: una guia, no una simulacion de fluidos)."""
     return (f"M{_n(origen[0])},{_n(origen[1])}Q{_n(control[0])},{_n(control[1])} "
             f"{_n(destino[0])},{_n(destino[1])}")
+
+
+def _segmentos_trayectoria_aire(destino: tuple[float, float], control: tuple[float, float] = _AIRE_CONTROL,
+                                  origen: tuple[float, float] = _AIRE_ORIGEN,
+                                  corte: float = .58) -> tuple[str, str]:
+    """La misma Bézier, dividida sin alterar su geometría (de Casteljau).
+
+    El tramo interno se pinta bajo la lengua; el tramo desde la cavidad al
+    punto de constricción, sobre ella. Así el aire no atraviesa visualmente la
+    masa de la lengua ni desaparece justo donde se necesita verlo.
+    """
+    def interpola(a, b):
+        return (a[0] + (b[0] - a[0]) * corte, a[1] + (b[1] - a[1]) * corte)
+    q0, q1 = interpola(origen, control), interpola(control, destino)
+    medio = interpola(q0, q1)
+    interno = (f"M{_n(origen[0])},{_n(origen[1])}Q{_n(q0[0])},{_n(q0[1])} "
+               f"{_n(medio[0])},{_n(medio[1])}")
+    canal = (f"M{_n(medio[0])},{_n(medio[1])}Q{_n(q1[0])},{_n(q1[1])} "
+             f"{_n(destino[0])},{_n(destino[1])}")
+    return interno, canal
 
 
 @dataclass
@@ -929,6 +950,22 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
                   f'stroke-linejoin="round">{_ANATOMIA}</g>')
     # Pliegues vocales.
     partes.append(f'<path d="M192,197L200,200 192,203ZM210,197L202,200 210,203Z" fill="{_TRAZO}"/>')
+    # Primera mitad del flujo: está dentro del tracto y se pinta BAJO la
+    # lengua. La segunda mitad se añade después de la lengua, ya en el canal
+    # oral/nasal visible. Ambas comparten clase y animación: es una sola ruta.
+    nasal_interno, nasal_canal = _segmentos_trayectoria_aire(
+        (42.0, 84.0), _AIRE_CONTROL_NASAL, corte=_CORTE_AIRE_NASAL)
+    partes.append(f'<path class="{P}-fn" data-tramo="interno" d="{nasal_interno}" '
+                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                  f'stroke-linecap="round"/>')
+    canales_orales = []
+    for i, lugar in enumerate(lugares_ruido):
+        x, y = _RUIDO.get(lugar, _RUIDO["alveolar"])
+        interno, canal = _segmentos_trayectoria_aire((x, y))
+        partes.append(f'<path class="{P}-fl{i}" data-tramo="interno" d="{interno}" fill="none" '
+                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                      f'stroke-linecap="round"/>')
+        canales_orales.append((i, lugar, x, y, canal))
     # Lengua: raiz, cuerpo, dorso y punta, con un contorno oscuro. El contorno es
     # una copia de las mismas piezas con trazo grueso, pintada debajo: por fuera
     # asoma el borde y por dentro la tapa la copia de relleno, sin costuras.
@@ -988,20 +1025,18 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
         f'<path class="{P}-an" d="M42,84C36,90 30,95 22,102M22,95V102H29M36,85C32,92 26,98 16,106" fill="none" '
         f'stroke="{_ACENTO}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" '
         f'stroke-dasharray="4 3"/>')
-    # D4.3a: el tramo de faringe a donde empieza el remolino de la nariz (de
-    # ahi hacia la punta de la nariz sigue el trazo -an de arriba): asi se ve
-    # de un vistazo por donde se desvia el aire, no solo el ultimo tramo.
-    partes.append(f'<path class="{P}-fn" d="{_trayectoria_aire((42.0, 84.0), _AIRE_CONTROL_NASAL)}" '
-                  f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
-    for i, lugar in enumerate(lugares_ruido):
-        x, y = _RUIDO.get(lugar, _RUIDO["alveolar"])
+    # Segunda mitad: solo el canal pedagógicamente importante va DELANTE de
+    # la lengua. No se pone todo el flujo en una única capa.
+    partes.append(f'<path class="{P}-fn" data-tramo="canal" d="{nasal_canal}" '
+                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                  f'stroke-linecap="round"/>')
+    for i, lugar, x, y, canal in canales_orales:
         partes.append(f'<path class="{P}-r{i}" transform="translate({_n(x)},{_n(y)})" '
                       f'd="M-8,-3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0M-8,3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0" '
                       f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
-        # D4.3a: el trazo completo, de la faringe hasta esta constriccion (el
-        # rizo -r{i} de arriba marca la turbulencia justo en el punto).
-        partes.append(f'<path class="{P}-fl{i}" d="{_trayectoria_aire((x, y))}" fill="none" '
-                      f'stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
+        partes.append(f'<path class="{P}-fl{i}" data-tramo="canal" d="{canal}" fill="none" '
+                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                      f'stroke-linecap="round"/>')
     for i, lugar in enumerate(lugares_golpe):
         x, y = _LUGARES.get(lugar, _LUGARES["alveolar"])
         partes.append(f'<path class="{P}-g{i}" transform="translate({_n(x)},{_n(y)})" '

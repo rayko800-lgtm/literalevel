@@ -417,8 +417,15 @@ for simbolo in ("θ", "ð", "f", "v", "s", "z"):
     svg = aa.svg_articulacion(simbolo)
     lugar = aa.parametros(simbolo).lugar
     x, y = aa._RUIDO[lugar]
-    d_esperado = aa._trayectoria_aire((x, y))
-    comprobar(f"/{simbolo}/: lleva el trazo de flujo completo (faringe -> {lugar})", f'd="{d_esperado}"' in svg)
+    d_interno, d_canal = aa._segmentos_trayectoria_aire((x, y))
+    comprobar(f"/{simbolo}/: lleva el trazo completo en dos segmentos (faringe -> {lugar})",
+              f'data-tramo="interno" d="{d_interno}"' in svg and f'data-tramo="canal" d="{d_canal}"' in svg)
+    comprobar(f"/{simbolo}/: el flujo completo es secundario (mas fino y translucido)",
+              f'd="{d_canal}" fill="none" stroke="{aa._ACENTO}" '
+              f'stroke-width="1.7" stroke-opacity=".68"' in svg)
+    comprobar(f"/{simbolo}/: el tramo interno queda bajo la lengua y el canal visible sobre ella",
+              svg.index(f'd="{d_interno}"') < svg.index(f'<g fill="{aa._LENGUA}">')
+              < svg.index(f'd="{d_canal}"'))
     comprobar(f"/{simbolo}/: el flujo fluye (stroke-dasharray + animacion propia, no solo el ciclo)",
               "stroke-dasharray:7 5" in svg and "-fluir " in svg)
     # No cruza dientes/paladar/lengua: se queda dentro del hueco entre
@@ -441,9 +448,17 @@ for simbolo in ("p", "t", "k"):
 
 for simbolo in ("m", "n", "ŋ"):
     svg = aa.svg_articulacion(simbolo)
-    d_nasal = aa._trayectoria_aire((42.0, 84.0), aa._AIRE_CONTROL_NASAL)
+    d_interno, d_nasal = aa._segmentos_trayectoria_aire(
+        (42.0, 84.0), aa._AIRE_CONTROL_NASAL, corte=aa._CORTE_AIRE_NASAL)
     comprobar(f"/{simbolo}/: lleva el trazo de flujo nasal completo (faringe -> velo -> nariz)",
-              f'd="{d_nasal}"' in svg)
+              f'd="{d_interno}"' in svg and f'd="{d_nasal}"' in svg)
+    comprobar(f"/{simbolo}/: el flujo nasal se divide entre interior y canal visible",
+              f'd="{d_nasal}" fill="none" stroke="{aa._ACENTO}" '
+              f'stroke-width="1.7" stroke-opacity=".68"' in svg
+              and svg.index(f'd="{d_interno}"') < svg.index(f'<g fill="{aa._LENGUA}">')
+              < svg.index(f'd="{d_nasal}"'))
+    comprobar(f"/{simbolo}/: no presenta salida oral antes de la nasal",
+              re.search(r"\.ll[0-9a-f]+-ab\{opacity:0", svg) is not None)
 
 # Sonoridad: /v/ (sonora) lleva flujo Y vibracion a la vez; /f/ (sorda) solo flujo.
 v_svg, f_svg = aa.svg_articulacion("v"), aa.svg_articulacion("f")
