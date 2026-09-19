@@ -39,6 +39,11 @@ import { CatalogoPoses, DURACION_S, PoseSonido, familiaDe, poseDe, trocearIpa } 
            [attr.aria-label]="descripcion() + '. Flechas izquierda y derecha para girar.'"
            aria-keyshortcuts="ArrowLeft ArrowRight" (keydown)="teclaGiro($event)"
            [attr.data-acento-sonido]="acento()" [attr.data-acento-palabra]="acentoIpa() ?? acento()"></div>
+      @if (modo() === '3d' && vibracionVisible()) {
+        <div class="indicador-vibracion" role="status" aria-label="Vibración: sonido sonoro">
+          <span class="pulso" aria-hidden="true"></span><span>Vibración · sonora</span>
+        </div>
+      }
       @if (modo() === '2d' && urlRespaldo(); as url) {
         <img class="respaldo" [src]="url" [alt]="descripcion()" />
       } @else if (modo() === '2d') {
@@ -93,6 +98,13 @@ zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
     .lienzo { width: 100%; height: var(--boca3d-alto, 420px); max-height: 65vh; min-height: 220px; }
     .lienzo[hidden] { display: none; }
     .respaldo { display: block; width: 100%; height: 360px; object-fit: contain; }
+    .indicador-vibracion { position: absolute; z-index: 2; top: 10px; right: 10px; display: inline-flex;
+      align-items: center; gap: 6px; max-width: calc(100% - 20px); padding: 5px 9px; border-radius: 999px;
+      color: #613708; background: rgba(255, 244, 216, .94); border: 1px solid rgba(154, 94, 18, .42);
+      box-shadow: 0 2px 8px rgba(65, 39, 14, .16); font-size: .78rem; font-weight: 700; line-height: 1;
+      pointer-events: none; }
+    .indicador-vibracion .pulso { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%;
+      background: #d98216; box-shadow: 0 0 0 3px rgba(217, 130, 22, .2); }
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }
     .pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
       margin-top: 8px; font-size: .9em; color: var(--texto-tenue, #647189); }
@@ -190,6 +202,9 @@ export class Boca3d {
     if (!p) return `No sé cómo se articula /${s}/`;
     return s ? `La boca diciendo /${s}/: ${p.leyenda}` : 'La boca en reposo';
   });
+  /** Refuerzo fijo dentro del visor: el pulso glótico 3D puede quedar fuera
+   *  del encuadre al acercar, pero la relación vibración = sonoridad no. */
+  readonly vibracionVisible = computed(() => !!this.elegido() && this.pose()?.sonora === true);
 
   private readonly lienzo = viewChild.required<ElementRef<HTMLDivElement>>('lienzo');
   private escena: EscenaBoca | null = null;

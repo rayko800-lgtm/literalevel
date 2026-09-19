@@ -255,4 +255,17 @@ describe('Boca3d', () => {
     expect(c.segmentos()[0].pose).toEqual(poseDe(c.catalogo(), 'əʊ', 'rp'));
     expect(c.pose()).toEqual(poseDe(c.catalogo(), 'ɚ', 'ga'));
   });
+
+  it('mantiene el indicador compacto para sonoros aunque la glotis quede fuera de cámara', () => {
+    const fixture = TestBed.createComponent(Boca3d);
+    const c = fixture.componentInstance;
+    for (const simbolo of ['b', 'm', 'v', 'ð', 'z', 'ʒ']) {
+      c.elegir(simbolo);
+      expect(c.vibracionVisible(), `/${simbolo}/ debe indicar vibración`).toBe(true);
+    }
+    for (const simbolo of ['p', 'f', 'θ', 's', 'ʃ']) {
+      c.elegir(simbolo);
+      expect(c.vibracionVisible(), `/${simbolo}/ no debe indicar vibración`).toBe(false);
+    }
+  });
 });

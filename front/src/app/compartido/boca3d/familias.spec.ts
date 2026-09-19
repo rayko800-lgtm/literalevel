@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { EscenaBoca, I_AIRE_ORAL, LIMITES_GIRO, PRESETS_FAMILIA, poseNumerica } from './escena';
+import {
+  COLORES_POR_DEFECTO, EscenaBoca, I_AIRE_ORAL, LIMITES_GIRO, PRESETS_FAMILIA, materialDe, poseNumerica,
+} from './escena';
 import { CatalogoPoses, Familia, PoseSonido, REPOSO, familiaDe, poseDe } from './poses';
 import posesCompletas from './poses.ejemplo.json';
 
@@ -84,6 +86,28 @@ describe('PRESETS_FAMILIA: cada preset es un subconjunto seguro de LIMITES_GIRO'
     expect(PRESETS_FAMILIA['nasal-bilabial'].zoom).toBeGreaterThan(PRESETS_FAMILIA.bilabial.zoom);
     expect(PRESETS_FAMILIA['nasal-bilabial'].exterior).toBe('ninguna');
     expect(PRESETS_FAMILIA['nasal-bilabial'].target![0]).toBeGreaterThan(PRESETS_FAMILIA.bilabial.target![0]);
+  });
+
+  it('cada familia de D4.4a declara su perfil dental semántico', () => {
+    expect(PRESETS_FAMILIA.bilabial.dentadura).toBe('oculta');
+    expect(PRESETS_FAMILIA['nasal-bilabial'].dentadura).toBe('contexto-nasal');
+    expect(PRESETS_FAMILIA.labiodental.dentadura).toBe('incisivos-superiores');
+    expect(PRESETS_FAMILIA.dental.dentadura).toBe('incisivos-relevantes');
+    expect(PRESETS_FAMILIA.alveolar.dentadura).toBe('referencia-alveolar');
+    expect(PRESETS_FAMILIA.postalveolar.dentadura).toBe('subordinada');
+    expect(PRESETS_FAMILIA.velar.dentadura).toBe('sin-anteriores');
+  });
+});
+
+describe('D4.4a: material de lengua', () => {
+  it('la lengua es más mate y cromáticamente distinta de la encía', () => {
+    const lengua = materialDe('lengua', COLORES_POR_DEFECTO.lengua);
+    const encia = materialDe('encia', COLORES_POR_DEFECTO.encia);
+    expect(lengua.roughness).toBeGreaterThan(encia.roughness);
+    expect(lengua.clearcoat).toBeLessThan(encia.clearcoat);
+    const distancia = Math.hypot(lengua.color.r - encia.color.r, lengua.color.g - encia.color.g, lengua.color.b - encia.color.b);
+    expect(distancia).toBeGreaterThan(0.12);
+    lengua.dispose(); encia.dispose();
   });
 });
 
@@ -199,16 +223,23 @@ describe('EscenaBoca: modo guiado y explorar', () => {
   });
 });
 
-/** D4.3c (Miguel, 18 sep): "vista exterior" sin Blender -- esconder lo que
- *  compite con el gesto labial en vez de solo acercar la camara. */
-describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
+/** D4.4a: perfiles dentales de runtime, por familia y sin tocar el GLB. */
+describe('EscenaBoca.vistaParaFamilia: perfiles dentales', () => {
   function escenaConPiezas() {
     const camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
     const controles = new OrbitControls(camara, document.createElement('canvas'));
-    const pieza = (z = 0) => ({ visible: true, position: { z } });
+    const pieza = (grupo?: string, indice = -1, z = 0) => ({
+      visible: true, position: { z }, userData: grupo ? { grupoDental: grupo, indiceDental: indice } : {},
+    });
     const corte1 = pieza(), corte2 = pieza();
-    const dientesInf1 = pieza(1), dientesInf2 = pieza(-1);
-    const dientesSup1 = pieza(1), dientesSup2 = pieza(-1);
+    const soporteSup = pieza('soporte-superior');
+    const soporteInf = pieza('soporte-inferior');
+    const incisivosSup = [pieza('incisivo-superior', 4), pieza('incisivo-superior', 5)];
+    const incisivosInf = [pieza('incisivo-inferior', 5), pieza('incisivo-inferior', 7)];
+    const posterioresSup = [pieza('posterior-superior', 2, 1), pieza('posterior-superior', 9, -1)];
+    const posterioresInf = [pieza('posterior-inferior', 2, 1), pieza('posterior-inferior', 9, -1)];
+    const dientesInf = [soporteInf, ...incisivosInf, ...posterioresInf];
+    const dientesSup = [soporteSup, ...incisivosSup, ...posterioresSup];
     const lengua = pieza(), velo = pieza();
     const mejilla = { visible: true, material: { opacity: 0.14 } };
     const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
@@ -217,14 +248,16 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
       giroBase: { azimut: 0, polar: 1.49, distancia: 13 },
       lengua, lenguaGlb: null, velo,
       piezasCorte: [corte1, corte2],
-      piezasDentalesInferiores: [dientesInf1, dientesInf2],
-      piezasDentalesSuperiores: [dientesSup1, dientesSup2],
-      dientesLaterales: [dientesInf1, dientesInf2, dientesSup1, dientesSup2],
-      lateralesOcultos: 'ninguno', exteriorActual: 'ninguna',
+      piezasDentalesInferiores: dientesInf,
+      piezasDentalesSuperiores: dientesSup,
+      dientesLaterales: [...posterioresInf, ...posterioresSup],
+      lateralesOcultos: 'ninguno', perfilDentalActual: 'completa',
       dentalSimple: [], dentalesModelados: true,
     }) as EscenaBoca;
-    return { instancia, lengua, velo, corte: [corte1, corte2], dientesInf: [dientesInf1, dientesInf2],
-      dientesSup: [dientesSup1, dientesSup2] };
+    return {
+      instancia, lengua, velo, corte: [corte1, corte2], soporteSup, soporteInf,
+      incisivosSup, incisivosInf, posterioresSup, posterioresInf, dientesInf, dientesSup,
+    };
   }
 
   // Las caras del corte (corte_craneo/nariz/maxilar/mandibula, pared del
@@ -242,42 +275,67 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
     expect(dientesSup.every(o => !o.visible)).toBe(true);
   });
 
-  it('labiodental: esconde lengua/velo y el arco INFERIOR, pero deja el SUPERIOR (incisivos de /f v/) y el corte', () => {
-    const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
+  it('labiodental: deja soporte e incisivos superiores, no la hilera completa ni el arco inferior', () => {
+    const { instancia, lengua, velo, corte, soporteSup, incisivosSup, posterioresSup, dientesInf } = escenaConPiezas();
     instancia.vistaParaFamilia('labiodental');
     expect(lengua.visible).toBe(false);
     expect(velo.visible).toBe(false);
     expect(corte.every(o => o.visible)).toBe(true);
     expect(dientesInf.every(o => !o.visible)).toBe(true);
-    expect(dientesSup.every(o => o.visible)).toBe(true);
+    expect(soporteSup.visible).toBe(true);
+    expect(incisivosSup.every(o => o.visible)).toBe(true);
+    expect(posterioresSup.every(o => !o.visible)).toBe(true);
   });
 
-  it('nasal-bilabial (/m/): conserva lengua, velo y dientes para enseñar la vía nasal además del cierre labial', () => {
-    const { instancia, lengua, velo, dientesInf, dientesSup } = escenaConPiezas();
+  it('nasal-bilabial (/m/): conserva lengua, velo y techo; la dentadura no compite', () => {
+    const { instancia, lengua, velo, soporteSup, dientesInf, incisivosSup, posterioresSup } = escenaConPiezas();
     instancia.vistaParaFamilia('nasal-bilabial');
     expect(lengua.visible).toBe(true);
     expect(velo.visible).toBe(true);
-    expect(dientesInf.every(o => o.visible)).toBe(true);
-    expect(dientesSup.every(o => o.visible)).toBe(true);
+    expect(soporteSup.visible).toBe(true);
+    expect(dientesInf.every(o => !o.visible)).toBe(true);
+    expect([...incisivosSup, ...posterioresSup].every(o => !o.visible)).toBe(true);
   });
 
-  it('alveolar (y el resto de familias sin vista exterior): nada se esconde', () => {
-    const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
+  it('dental: conserva incisivos superiores y solo los inferiores centrales; posteriores fuera', () => {
+    const { instancia, incisivosSup, incisivosInf, posterioresSup, posterioresInf } = escenaConPiezas();
+    instancia.vistaParaFamilia('dental');
+    expect(incisivosSup.every(o => o.visible)).toBe(true);
+    expect(incisivosInf[0].visible).toBe(true);   // índice 5: central
+    expect(incisivosInf[1].visible).toBe(false);  // índice 7: lateral que tapa la punta
+    expect([...posterioresSup, ...posterioresInf].every(o => !o.visible)).toBe(true);
+  });
+
+  it('alveolar: soporte superior y referencia central mínima; sin arco inferior ni posteriores', () => {
+    const { instancia, lengua, velo, corte, soporteSup, incisivosSup, dientesInf, posterioresSup } = escenaConPiezas();
     instancia.vistaParaFamilia('alveolar');
     expect(lengua.visible).toBe(true);
     expect(velo.visible).toBe(true);
     expect(corte.every(o => o.visible)).toBe(true);
-    expect(dientesInf.every(o => o.visible)).toBe(true);
-    expect(dientesSup.every(o => o.visible)).toBe(true);
+    expect(soporteSup.visible).toBe(true);
+    expect(incisivosSup[0].visible).toBe(false);  // índice 4
+    expect(incisivosSup[1].visible).toBe(true);   // índice 5
+    expect(dientesInf.every(o => !o.visible)).toBe(true);
+    expect(posterioresSup.every(o => !o.visible)).toBe(true);
   });
 
-  it('cambiar de bilabial a alveolar restaura todo lo escondido', () => {
-    const { instancia, lengua, dientesInf } = escenaConPiezas();
+  it.each(['postalveolar', 'velar'] as const)('%s: lengua/velo dominan y solo queda el soporte superior', familia => {
+    const { instancia, lengua, velo, soporteSup, dientesInf, incisivosSup, posterioresSup } = escenaConPiezas();
+    instancia.vistaParaFamilia(familia);
+    expect(lengua.visible).toBe(true);
+    expect(velo.visible).toBe(true);
+    expect(soporteSup.visible).toBe(true);
+    expect([...dientesInf, ...incisivosSup, ...posterioresSup].every(o => !o.visible)).toBe(true);
+  });
+
+  it('cambiar a una familia completa restaura todas las piezas ocultadas', () => {
+    const { instancia, lengua, dientesInf, dientesSup } = escenaConPiezas();
     instancia.vistaParaFamilia('bilabial');
     expect(lengua.visible).toBe(false);
-    instancia.vistaParaFamilia('alveolar');
+    instancia.vistaParaFamilia('vocal');
     expect(lengua.visible).toBe(true);
     expect(dientesInf.every(o => o.visible)).toBe(true);
+    expect(dientesSup.every(o => o.visible)).toBe(true);
   });
 
   it('restaurar el mismo preset recalcula los molares laterales y no los deja reaparecer por la caché', () => {
