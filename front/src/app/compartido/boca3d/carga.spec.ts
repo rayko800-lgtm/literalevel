@@ -19,6 +19,7 @@ describe('carga de lengua Blender', () => {
     grupo.add(malla);
     const liberarGeometria = vi.spyOn(malla.geometry, 'dispose');
     const liberarMaterial = vi.spyOn(malla.material, 'dispose');
+    const alTerminar = vi.fn();
     vi.stubGlobal('fetch', vi.fn(async () => respuesta()));
     vi.spyOn(GLTFLoader.prototype, 'parse').mockImplementation((_bytes, _ruta, cargar) => {
       cargar({ scene: grupo } as never);
@@ -31,33 +32,36 @@ describe('carga de lengua Blender', () => {
       piezasCorte: [], piezasDentalesInferiores: [], piezasDentalesSuperiores: [],
       dentalSimple: [], dentalesModelados: false,
     });
-    instancia.cargarLengua('/boca3d/lengua.glb', '#d9727f');
+    instancia.cargarLengua('/boca3d/lengua.glb', '#d9727f', alTerminar);
     await tanda();
-    return { instancia, malla, liberarGeometria, liberarMaterial };
+    return { instancia, malla, liberarGeometria, liberarMaterial, alTerminar };
   }
 
   it('libera un modelo que llega despues de desmontar el visor', async () => {
-    const { instancia, liberarGeometria, liberarMaterial } = await ensayo(false, true);
+    const { instancia, liberarGeometria, liberarMaterial, alTerminar } = await ensayo(false, true);
     expect(liberarGeometria).toHaveBeenCalledOnce();
     expect(liberarMaterial).toHaveBeenCalledOnce();
     expect(instancia.lengua.visible).toBe(true);
+    expect(alTerminar).toHaveBeenCalledOnce();
   });
 
   it('no sustituye el respaldo si falta un morfo del contrato', async () => {
-    const { instancia, liberarGeometria } = await ensayo(true, false);
+    const { instancia, liberarGeometria, alTerminar } = await ensayo(true, false);
     expect(instancia.lengua.visible).toBe(true);
     expect(instancia.dentroMandibula.children.length).toBe(0);
     expect(liberarGeometria).toHaveBeenCalledOnce();
+    expect(alTerminar).toHaveBeenCalledOnce();
   });
 
   it('conserva la geometria valida, libera material anterior y aplica la pose vigente', async () => {
-    const { instancia, malla, liberarGeometria, liberarMaterial } = await ensayo(true, true);
+    const { instancia, malla, liberarGeometria, liberarMaterial, alTerminar } = await ensayo(true, true);
     expect(instancia.lengua.visible).toBe(false);
     expect(malla.parent).toBe(instancia.dentroMandibula);
     expect(liberarMaterial).toHaveBeenCalledOnce();
     expect(liberarGeometria).not.toHaveBeenCalled();
     expect(instancia.contenedor.dataset.lengua).toBe('blender');
     expect(instancia.aplicar).toHaveBeenCalledWith(instancia.actual);
+    expect(alTerminar).toHaveBeenCalledOnce();
   });
 });
 

@@ -60,9 +60,9 @@ import { CatalogoPoses, DURACION_S, PoseSonido, familiaDe, poseDe, trocearIpa } 
               <app-icono [nombre]="urlAudioPalabra() && conEscuchar() ? 'altavoz' : 'play'" />{{ urlAudioPalabra() && conEscuchar() ? 'Escuchar y ver' : 'Palabra' }}
               <span class="ipa">/{{ textoIpa() }}/</span></button>
           }
-          <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
-                  (click)="alternarGiro()" title="Giro libre" aria-label="Giro libre"><app-icono nombre="girar" /></button>
-          <button type="button" class="boton" (click)="restablecer()" title="Restablecer vista de lado" aria-label="Restablecer vista de lado"><app-icono nombre="recargar" /></button>
+          <button type="button" class="boton compacto" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
+                  (click)="alternarGiro()"><app-icono nombre="girar" />Explorar</button>
+          <button type="button" class="boton compacto" (click)="restablecer()"><app-icono nombre="recargar" />Restaurar vista</button>
         </span>
       </div>
     }
@@ -96,13 +96,14 @@ zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }
     .pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
       margin-top: 8px; font-size: .9em; color: var(--texto-tenue, #647189); }
-    .botones { display: flex; flex-wrap: wrap; gap: 8px; }
+    .botones { display: flex; flex-wrap: wrap; gap: 4px; }
     .boton { font: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       padding: 8px; border-radius: 6px; border: 1px solid var(--borde, #d6deeb);
       background: transparent; color: inherit; cursor: pointer; min-height: 48px; min-width: 48px; }
     .boton.activo { background: var(--acento-suave, #e6ecff); border-color: var(--acento, #2f5bea);
       color: var(--acento-texto, #2449c9); }
     .boton.principal { background: var(--acento, #2f5bea); border-color: var(--acento, #2f5bea); color: #fff; padding: 8px 14px; }
+    .boton.compacto { min-width: 0; padding: 4px 6px; gap: 3px; font-size: .82em; }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
     .leyenda.aviso { font-size: .9em; color: var(--texto-tenue, #647189); }
     /* Solo en desarrollo (isDevMode()): nunca en el build de produccion. */
@@ -214,9 +215,13 @@ export class Boca3d {
           mejilla: this.mejilla(),
           lenguaGlb: new URL('boca3d/lengua.glb', document.baseURI).href,
           caraGlb: new URL('boca3d/cara.glb', document.baseURI).href,
+          // La primera apertura no debe enseñar como composicion final las
+          // piezas geometricas de respaldo mientras llegan los GLB: al
+          // reabrir, la cache las sustituia casi de inmediato y parecia que
+          // labios/estructuras habian desaparecido.
+          alPreparar: () => { if (this.escena) this.modo.set('3d'); },
           alPerderContexto: () => this.perdioContexto(),
         });
-        this.modo.set('3d');
         const p = this.pose();
         if (p) {
           this.escena.vistaParaFamilia(familiaDe(p));
@@ -252,6 +257,8 @@ export class Boca3d {
       // D4.2: cada sonido pone primero la vista pedagógica de su familia
       // (sin interacción), y luego la pose/animación como hasta ahora.
       escena.vistaParaFamilia(familiaDe(p));
+      this.giroLibre.set(false);
+      escena.girarLibre(false);
       if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
     });
@@ -274,7 +281,7 @@ export class Boca3d {
   /** Reposo → sonido → reposo, una vez. */
   verMovimiento(): void {
     const p = this.pose();
-    if (p && this.escena) this.escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
+    if (p && this.escena) this.escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), this.opcionesGiro(p));
   }
 
   /** El sonido: su audio y su ciclo arrancan en el mismo instante, con el
@@ -285,7 +292,7 @@ export class Boca3d {
     if (!p || !this.escena) return;
     const url = this.urlAudioSonido();
     if (!url) { this.verMovimiento(); return; }
-    void this.conAudio(url, () => cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
+    void this.conAudio(url, () => cicloSonido(p, this.catalogo()), this.opcionesGiro(p));
   }
 
   /** La palabra de `ipa` entera: con audio, la línea se escala a la duración
@@ -333,12 +340,20 @@ export class Boca3d {
   }
 
   restablecer(): void {
+    this.giroLibre.set(false);
+    this.escena?.girarLibre(false);
     this.escena?.restablecerVista();
   }
 
   alternarGiro(): void {
     this.giroLibre.update(v => !v);
     this.escena?.girarLibre(this.giroLibre());
+  }
+
+  /** En explorar, repetir conserva la orientación elegida; en guiado puede
+   *  usar el pequeño giro pedagógico asociado al gesto. */
+  private opcionesGiro(p: PoseSonido): { giro?: number } {
+    return this.giroLibre() ? {} : { giro: giroPara(p) };
   }
 
   /** Flechas izquierda y derecha con el foco en el lienzo: un cuarto de vuelta

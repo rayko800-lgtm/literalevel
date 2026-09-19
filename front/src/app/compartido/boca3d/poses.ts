@@ -14,7 +14,7 @@ export type Punta = 'reposo' | 'interdental' | 'dental' | 'alveolar' | 'postalve
  *  aprobado 18 sep): agrupa fonemas que enseñan el mismo gesto, para elegir
  *  un preset de cámara por familia y no uno por cada símbolo. */
 export type Familia =
-  | 'bilabial' | 'labiodental' | 'dental' | 'alveolar' | 'postalveolar' | 'rotico' | 'velar' | 'vocal';
+  | 'bilabial' | 'nasal-bilabial' | 'labiodental' | 'dental' | 'alveolar' | 'postalveolar' | 'rotico' | 'velar' | 'vocal';
 
 export type CampoLibre = 'mandibula' | 'labios' | 'punta' | 'cuerpo';
 
@@ -127,6 +127,7 @@ export function poseDe(catalogo: CatalogoPoses, simbolo: string, acento: 'ga' | 
  *  vista general de `vocal`. */
 export function familiaDe(pose: PoseSonido): Familia {
   if (pose.punta === 'retrofleja') return 'rotico';
+  if (pose.movimiento === 'nasal' && pose.lugar === 'bilabial') return 'nasal-bilabial';
   switch (pose.lugar) {
     case 'bilabial': return 'bilabial';
     case 'labiodental': return 'labiodental';

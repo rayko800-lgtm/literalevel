@@ -28,6 +28,12 @@ describe('familiaDe: agrupar por articulador protagonista', () => {
     expect(familiaDe(pose({ lugar: 'velar' }))).toBe('velar');
   });
 
+  it('/m/ tiene preset nasal-bilabial; /p b/ conservan el bilabial exterior', () => {
+    expect(familiaDe(poseReal('m'))).toBe('nasal-bilabial');
+    expect(familiaDe(poseReal('p'))).toBe('bilabial');
+    expect(familiaDe(poseReal('b'))).toBe('bilabial');
+  });
+
   it('róticos (punta retrofleja) aunque compartan lugar con postalveolares', () => {
     expect(familiaDe(pose({ lugar: 'postalveolar', punta: 'retrofleja' }))).toBe('rotico');
   });
@@ -45,10 +51,10 @@ describe('familiaDe: agrupar por articulador protagonista', () => {
 
 describe('PRESETS_FAMILIA: cada preset es un subconjunto seguro de LIMITES_GIRO', () => {
   const FAMILIAS: Familia[] = [
-    'bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar', 'vocal',
+    'bilabial', 'nasal-bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar', 'vocal',
   ];
 
-  it('las ocho familias tienen preset', () => {
+  it('las nueve familias tienen preset', () => {
     expect(Object.keys(PRESETS_FAMILIA).sort()).toEqual([...FAMILIAS].sort());
   });
 
@@ -73,6 +79,12 @@ describe('PRESETS_FAMILIA: cada preset es un subconjunto seguro de LIMITES_GIRO'
       expect(PRESETS_FAMILIA[familia].mejilla).toBe(true);
     }
   });
+
+  it('el preset de /m/ abre el encuadre y conserva la anatomía interna', () => {
+    expect(PRESETS_FAMILIA['nasal-bilabial'].zoom).toBeGreaterThan(PRESETS_FAMILIA.bilabial.zoom);
+    expect(PRESETS_FAMILIA['nasal-bilabial'].exterior).toBe('ninguna');
+    expect(PRESETS_FAMILIA['nasal-bilabial'].target![0]).toBeGreaterThan(PRESETS_FAMILIA.bilabial.target![0]);
+  });
 });
 
 describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
@@ -84,7 +96,7 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     const controles = new OrbitControls(camara, document.createElement('canvas'));
     controles.target.set(0.1, 0.05, 0);
     controles.update();
-    const mejilla = { visible: true };
+    const mejilla = { visible: true, material: { opacity: 0.14 } };
     // D4.3c: vistaParaFamilia() ya llama a vistaExterior(), que toca lengua/
     // velo/las listas de piezas internas -- objetos/arrays de mentira, sin
     // WebGL de verdad.
@@ -149,7 +161,7 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     expect(d.target.y).toBeCloseTo(PRESETS_FAMILIA.velar.target![1], 6);
   });
 
-  for (const familia of ['bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar'] as Familia[]) {
+  for (const familia of ['bilabial', 'nasal-bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar'] as Familia[]) {
     it(`${familia}: el target de la cámara es el del preset, no el punto universal (0,9/0,1)`, () => {
       const { instancia, controles } = escena();
       instancia.vistaParaFamilia(familia);
@@ -167,18 +179,38 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
   });
 });
 
+describe('EscenaBoca: modo guiado y explorar', () => {
+  it('solo Explorar habilita rotación y zoom; el pan se mantiene bloqueado', () => {
+    const controles = { enableRotate: true, enableZoom: true, enablePan: true, update: vi.fn() };
+    const canvas = document.createElement('canvas');
+    const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
+      controles, canvas, libre: true, sucio: false,
+    }) as EscenaBoca;
+    instancia.girarLibre(false);
+    expect(controles.enableRotate).toBe(false);
+    expect(controles.enableZoom).toBe(false);
+    expect(controles.enablePan).toBe(false);
+    expect(canvas.style.touchAction).toBe('pan-y');
+    instancia.girarLibre(true);
+    expect(controles.enableRotate).toBe(true);
+    expect(controles.enableZoom).toBe(true);
+    expect(controles.enablePan).toBe(false);
+    expect(canvas.style.touchAction).toBe('none');
+  });
+});
+
 /** D4.3c (Miguel, 18 sep): "vista exterior" sin Blender -- esconder lo que
  *  compite con el gesto labial en vez de solo acercar la camara. */
 describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
   function escenaConPiezas() {
     const camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
     const controles = new OrbitControls(camara, document.createElement('canvas'));
-    const pieza = () => ({ visible: true });
+    const pieza = (z = 0) => ({ visible: true, position: { z } });
     const corte1 = pieza(), corte2 = pieza();
-    const dientesInf1 = pieza(), dientesInf2 = pieza();
-    const dientesSup1 = pieza(), dientesSup2 = pieza();
+    const dientesInf1 = pieza(1), dientesInf2 = pieza(-1);
+    const dientesSup1 = pieza(1), dientesSup2 = pieza(-1);
     const lengua = pieza(), velo = pieza();
-    const mejilla = { visible: true };
+    const mejilla = { visible: true, material: { opacity: 0.14 } };
     const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
       camara, controles, mejilla, sucio: false, cabezaEntera: false, caraModelada: false,
       zoomActual: 1, targetFamilia: null, familiaActual: 'vocal', mejillaExterna: true, mejillaFamilia: true,
@@ -187,6 +219,8 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
       piezasCorte: [corte1, corte2],
       piezasDentalesInferiores: [dientesInf1, dientesInf2],
       piezasDentalesSuperiores: [dientesSup1, dientesSup2],
+      dientesLaterales: [dientesInf1, dientesInf2, dientesSup1, dientesSup2],
+      lateralesOcultos: 'ninguno', exteriorActual: 'ninguna',
       dentalSimple: [], dentalesModelados: true,
     }) as EscenaBoca;
     return { instancia, lengua, velo, corte: [corte1, corte2], dientesInf: [dientesInf1, dientesInf2],
@@ -218,6 +252,15 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
     expect(dientesSup.every(o => o.visible)).toBe(true);
   });
 
+  it('nasal-bilabial (/m/): conserva lengua, velo y dientes para enseñar la vía nasal además del cierre labial', () => {
+    const { instancia, lengua, velo, dientesInf, dientesSup } = escenaConPiezas();
+    instancia.vistaParaFamilia('nasal-bilabial');
+    expect(lengua.visible).toBe(true);
+    expect(velo.visible).toBe(true);
+    expect(dientesInf.every(o => o.visible)).toBe(true);
+    expect(dientesSup.every(o => o.visible)).toBe(true);
+  });
+
   it('alveolar (y el resto de familias sin vista exterior): nada se esconde', () => {
     const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
     instancia.vistaParaFamilia('alveolar');
@@ -235,6 +278,18 @@ describe('EscenaBoca.vistaParaFamilia: vista exterior (D4.3c)', () => {
     instancia.vistaParaFamilia('alveolar');
     expect(lengua.visible).toBe(true);
     expect(dientesInf.every(o => o.visible)).toBe(true);
+  });
+
+  it('restaurar el mismo preset recalcula los molares laterales y no los deja reaparecer por la caché', () => {
+    const { instancia, dientesInf, dientesSup } = escenaConPiezas();
+    instancia.vistaParaFamilia('dental');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (instancia as any).ocultarLaterales();
+    const primera = [...dientesInf, ...dientesSup].map(o => o.visible);
+    instancia.vistaParaFamilia('dental');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (instancia as any).ocultarLaterales();
+    expect([...dientesInf, ...dientesSup].map(o => o.visible)).toEqual(primera);
   });
 });
 

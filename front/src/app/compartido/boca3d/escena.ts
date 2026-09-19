@@ -242,6 +242,12 @@ export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
     azimut: -30 * GR, zoom: 0.5, target: [-2.75, 0.15], mejilla: false, exterior: 'bilabial',
     limites: { azimutMin: LIMITES_GIRO.azimutMin, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
+  'nasal-bilabial': {
+    // /m/: caben a la vez el cierre de labios y el desvío posterior por el
+    // velo. No usa la vista exterior bilabial, que ocultaría justo el velo.
+    azimut: -4 * GR, zoom: 0.9, target: [-0.25, 0.45], mejilla: true, exterior: 'ninguna',
+    limites: { azimutMin: -18 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
   labiodental: {
     // Foco en el labio inferior + incisivos superiores (INCISIVO_SUP = (-2,55; 0,45)).
     azimut: -24 * GR, zoom: 0.58, target: [-2.55, 0.2], mejilla: false, exterior: 'labiodental',
@@ -794,6 +800,9 @@ export interface OpcionesEscena {
   lenguaGlb?: string;
   /** Labios y perfil seccionado de Blender; conserva las piezas simples si falla. */
   caraGlb?: string;
+  /** Los modelos pedidos ya cargaron o fallaron y la composicion visible es
+   *  definitiva. Evita enseñar como estado final el respaldo transitorio. */
+  alPreparar?: () => void;
   /** El navegador perdió el contexto WebGL (móvil con poca memoria, GPU reiniciada):
    *  quien integra cae al corte 2D en vez de dejar el lienzo en blanco. */
   alPerderContexto?: () => void;
@@ -915,6 +924,7 @@ export class EscenaBoca {
   /** La familia con la vista puesta ahora: `restablecerVista()` vuelve a ESA,
    *  no a un azimut fijo universal. */
   private familiaActual: Familia = 'vocal';
+  private exteriorActual: 'ninguna' | 'bilabial' | 'labiodental' = 'ninguna';
   /** Lo que pide quien integra (input `mejilla`, pensado para rendimiento) y
    *  lo que permite el preset de la familia activa (pensado para pedagogía):
    *  la mejilla solo se ve si las dos lo permiten. */
@@ -1146,8 +1156,14 @@ export class EscenaBoca {
     this.actual = poseNumerica(REPOSO);
     this.aplicar(this.actual);
     this.sombrear();
-    if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua);
-    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col);
+    let modelosPendientes = Number(!!opciones.lenguaGlb) + Number(!!opciones.caraGlb);
+    const modeloTerminado = () => {
+      modelosPendientes--;
+      if (modelosPendientes === 0 && this.vivo) opciones.alPreparar?.();
+    };
+    if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua, modeloTerminado);
+    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col, modeloTerminado);
+    if (modelosPendientes === 0) opciones.alPreparar?.();
 
     if (typeof ResizeObserver !== 'undefined') {
       this.observador = new ResizeObserver(() => this.redimensionar());
@@ -1199,7 +1215,7 @@ export class EscenaBoca {
     this.lineaT0 = performance.now();
     // El giro de cámara que acompaña al sonido (labios redondeados o
     // estirados se ven de frente): solo si el usuario no está arrastrando.
-    if (opciones.giro && !this.arrastrando) {
+    if (opciones.giro && !this.arrastrando && !this.libre) {
       const d = this.camara.position.clone().sub(this.controles.target);
       this.giroBase = { azimut: Math.atan2(d.x, d.z), polar: Math.acos(Math.min(1, Math.max(-1, d.y / d.length()))), distancia: d.length() };
       this.giroLinea = opciones.giro;
@@ -1269,6 +1285,10 @@ export class EscenaBoca {
     this.zoomActual = zoom;
     const distancia = this.distanciaEncuadre() * zoom;
     const o = this.objetivoActual();
+    // `reset()` limpia también los deltas/inercia privados de OrbitControls.
+    // Sin esto, tras explorar la cámara llegaba al preset y el siguiente
+    // `update()` volvía a desplazarla con el gesto anterior.
+    this.controles.reset();
     this.controles.target.set(o.x, o.y, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
@@ -1304,6 +1324,7 @@ export class EscenaBoca {
    *  ensancha `LIMITES_GIRO`: la media cabeza sigue siendo media cabeza,
    *  solo se deja de mostrar su interior. */
   private vistaExterior(modo: 'ninguna' | 'bilabial' | 'labiodental'): void {
+    this.exteriorActual = modo;
     const ocultar = modo !== 'ninguna';
     // Solo se toca la geometria que esta realmente activa: si ya cargo el
     // GLB (lengua modelada), el respaldo simple se queda escondido como ya
@@ -1322,6 +1343,10 @@ export class EscenaBoca {
     // Respaldo sin GLB: no hay arco superior/inferior por separado que
     // valga la pena distinguir; se deja como estaba salvo en bilabial.
     if (!this.dentalesModelados) for (const o of this.dentalSimple) o.visible = !(modo === 'bilabial');
+    // Fuerza a `ocultarLaterales()` a recombinar este preset con el lado de
+    // cámara. Antes conservaba su caché y Restaurar podía dejar reaparecer
+    // molares que estaban ocultos en la misma vista guiada.
+    this.lateralesOcultos = 'ninguno';
     this.sucio = true;
   }
 
@@ -1347,7 +1372,12 @@ export class EscenaBoca {
    *  haciendo scroll. */
   girarLibre(activo: boolean): void {
     this.libre = activo;
+    this.controles.enableRotate = activo;
+    this.controles.enableZoom = activo;
+    this.controles.enablePan = false;
     this.canvas.style.touchAction = activo ? 'none' : 'pan-y';
+    this.controles.update();
+    this.sucio = true;
   }
 
   get giraLibre(): boolean {
@@ -1366,15 +1396,15 @@ export class EscenaBoca {
 
   /** Carga la lengua de Blender y, cuando llega, esconde el tubo. Si falla,
    *  se queda el tubo y no pasa nada. */
-  private cargarLengua(url: string, color: string): void {
+  private cargarLengua(url: string, color: string, alTerminar: () => void = () => {}): void {
     cargarGlb(url, gltf => {
-      if (!this.vivo) { liberarModelo(gltf.scene); return; }
+      if (!this.vivo) { liberarModelo(gltf.scene); alTerminar(); return; }
       let malla: THREE.Mesh | null = null;
       gltf.scene.traverse(o => {
         if (!malla && o instanceof THREE.Mesh && o.morphTargetInfluences &&
             MORFOS_LENGUA.every(n => Number.isInteger(o.morphTargetDictionary?.[n]))) malla = o;
       });
-      if (!malla) { liberarModelo(gltf.scene); return; }
+      if (!malla) { liberarModelo(gltf.scene); alTerminar(); return; }
       const m = malla as THREE.Mesh;
       // Mucosa húmeda con papilas de relieve: el material físico de la
       // lengua más el mapa procedimental (si la malla trae UV).
@@ -1395,7 +1425,8 @@ export class EscenaBoca {
       // exterior, no debe reaparecer (nace visible por defecto).
       this.vistaExterior(PRESETS_FAMILIA[this.familiaActual].exterior);
       this.aplicar(this.actual);
-    }, () => { /* sin lengua modelada: se queda el tubo */ });
+      alTerminar();
+    }, () => { alTerminar(); /* sin lengua modelada: se queda el tubo */ });
   }
 
   get tieneLenguaModelada(): boolean {
@@ -1425,7 +1456,7 @@ export class EscenaBoca {
     });
   }
 
-  private cargarCara(url: string, col: Colores): void {
+  private cargarCara(url: string, col: Colores, alTerminar: () => void = () => {}): void {
     cargarGlb(url, gltf => {
       const piezas = new Map<string, THREE.Mesh>();
       gltf.scene.updateMatrixWorld(true);
@@ -1436,6 +1467,7 @@ export class EscenaBoca {
           m.geometry.dispose();
           (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
         }
+        alTerminar();
         return;
       }
       const materialAnterior = this.labioSup.material;
@@ -1587,7 +1619,8 @@ export class EscenaBoca {
       // si la familia activa pide vista exterior, se esconden tambien.
       this.vistaExterior(PRESETS_FAMILIA[this.familiaActual].exterior);
       this.aplicar(this.actual);
-    }, () => { /* Las piezas simples siguen visibles. */ });
+      alTerminar();
+    }, () => { alTerminar(); /* Las piezas simples siguen visibles. */ });
   }
 
   /** D4.2.1: recoloca target y distancia tras un evento que puede cambiar
@@ -1796,7 +1829,9 @@ export class EscenaBoca {
     this.lateralesOcultos = ahora;
     for (const diente of this.dientesLaterales) {
       const lado = diente.position.z >= 0 ? 'z+' : 'z-';
-      diente.visible = ahora !== lado;
+      const porFamilia = this.exteriorActual === 'ninguna'
+        || (this.exteriorActual === 'labiodental' && this.piezasDentalesSuperiores.includes(diente));
+      diente.visible = porFamilia && ahora !== lado;
     }
     this.sucio = true;
   }
