@@ -135,8 +135,19 @@ Chrome con `removeAllRanges()` solo tras aceptar la palabra, nunca
 antes). Suite del front: 41/41, **329/329**, 0 errores. Detalle:
 `docs/ai/DEVELOPMENT_STATUS.md` (sección "UX post-D3").
 
-Próximo: D4 (visualización articulatoria), pendiente de que Miguel lo
-pida — no se empieza automáticamente.
+**D4 2D articulatorio → ✅ COMPLETE / FROZEN.** Miguel aprobó la
+geometría en el checkpoint `f8db895`: quedan congeladas la lengua, las
+rutas de aire, contactos, constricciones, timings internos, el ciclo base
+de 2.0 s y la lógica fonética, salvo que una auditoría futura demuestre un
+error real. El selector discreto de velocidad (`44d25f9`) ofrece 0.25×,
+0.50×, 1.00× y 1.25× y gobierna audio, SVG 2D y reproducción sincronizada
+3D sin cambiar anatomía ni tono. Verificación: 44/44 archivos y 388/388
+pruebas del front, más comprobación móvil real a 390 px. **D4 global no
+está COMPLETE:** continúa con la auditoría enfocada D4.4 del 3D actual.
+
+Próximo: D4.4, decidir por familia qué puede resolverse en runtime
+(visibilidad, cámara/target y material) y qué requiere Blender
+(geometría/shape keys), sin remodelar todavía.
 
 **Nota:** los ensayos completos de D1.4 (grabar + Corrígeme de verdad)
 consumen cupo real de Corrígeme; evitar repeticiones innecesarias al

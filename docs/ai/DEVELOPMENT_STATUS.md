@@ -692,10 +692,30 @@ Mi espacio — a evaluar si entra en D3 o queda como incremento propio.
 
 ## D4 — Visualización articulatoria v2
 
-**Status:** ⬜ PENDING
+**Status:** 🟡 RUNNING — 2D COMPLETE / FROZEN; 3D pendiente de D4.4
 
-**Feedback visual/UX adicional (Miguel, 18 sep), registrado sin
-implementar:** hallazgo confirmado por Miguel — en `/b/`, los labios
+### D4 2D articulatorio — ✅ COMPLETE / FROZEN
+
+Miguel aprobó la geometría 2D en el checkpoint `f8db895`. Desde ese
+checkpoint quedan congeladas la geometría de lengua, rutas de aire,
+contactos, constricciones, timings internos, ciclo base de 2.0 s y lógica
+fonética. Solo se reabrirán si una auditoría futura demuestra un error
+real.
+
+El commit `44d25f9` añade un selector discreto y móvil de cuatro velocidades:
+0.25× (Muy despacio), 0.50× (Despacio), 1.00× (Normal) y 1.25× (Rápido).
+Una única selección gobierna audio, SVG 2D y reproducción sincronizada 3D;
+se conserva `preservesPitch`, se rechazan valores ajenos al contrato y la
+velocidad solo altera duración/playback, nunca geometría. Verificación:
+44/44 archivos y 388/388 pruebas del front; prueba móvil real a 390 px con
+los cuatro blancos táctiles visibles y duraciones SVG sincronizadas.
+
+**D4 global no está COMPLETE.** La siguiente fase es D4.4: auditoría
+enfocada del 3D actual para separar arreglos de runtime de trabajo real en
+Blender, sin remodelar aún.
+
+**Feedback visual/UX adicional (Miguel, 18 sep), pendiente de D4.4:**
+hallazgo confirmado por Miguel — en `/b/`, los labios
 deberían ser el articulador principal y la vista 3D actual apenas permite
 verlos. D4 debe considerar vistas/encuadre específicos según el tipo de
 fonema, no una cámara universal: bilabiales `/p b m/` → labios claramente
@@ -705,8 +725,8 @@ lengua + velo. Principio explícito: "la cámara y la geometría visible
 deben servir al sonido concreto. Claridad pedagógica > una vista 3D
 universal."
 
-Feedback de UX ya registrado en D1.V (2D: velocidad; 3D: mejora pedagógica
-considerable) — pendiente de implementar cuando Miguel lo pida.
+La mejora de velocidad 2D ya está cerrada; la mejora pedagógica 3D sigue
+pendiente de D4.4.
 
 ---
 
@@ -720,6 +740,7 @@ Fuera del alcance de esta fase salvo que sobre tiempo tras D1-D4.
 
 ## Próximo paso
 
-Esperar decisión de Miguel sobre el diseño de D1.1 (rama/worktree, y si el
-nuevo tutorial convive con `Bienvenida` o la sustituye de una vez). No se
-marca D1.1 como RUNNING hasta esa aprobación.
+Ejecutar D4.4 como auditoría enfocada del 3D actual: `/p b m/`, `/f v/`,
+`/θ ð/`, `/t k ŋ/` y `/ʃ ʒ/`. Clasificar cada hallazgo entre ocultación
+selectiva, cámara/target, material, geometría/shape keys y Blender. No
+iniciar todavía una remodelación grande.
