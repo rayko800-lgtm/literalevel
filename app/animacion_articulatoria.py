@@ -480,7 +480,8 @@ _RUIDO = {**_LUGARES, "alveolar": (64.0, 104.0), "postalveolar": (68.0, 100.0),
 # lengua). Coherente con lo que ya dicen las fichas ("sale continuo por
 # encima de la lengua").
 _AIRE_ORIGEN = (198.0, 155.0)
-_AIRE_CONTROL = (140.0, 60.0)       # arquea el tramo oral por el hueco paladar-lengua
+_AIRE_CONTROL = (140.0, 35.0)       # mantiene el tramo visible dentro del canal paladar-lengua
+_CORTE_AIRE_ORAL = .65              # el tramo delantero empieza cuando la curva ya salio de la lengua
 _AIRE_CONTROL_NASAL = (172.0, 68.0)   # cerca de _PIVOTE_VELO: por donde se desvia a la nariz
 _CORTE_AIRE_NASAL = .72                # el tramo visible empieza ya en la bifurcacion nasal
 
@@ -956,14 +957,14 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
     nasal_interno, nasal_canal = _segmentos_trayectoria_aire(
         (42.0, 84.0), _AIRE_CONTROL_NASAL, corte=_CORTE_AIRE_NASAL)
     partes.append(f'<path class="{P}-fn" data-tramo="interno" d="{nasal_interno}" '
-                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".28" '
                   f'stroke-linecap="round"/>')
     canales_orales = []
     for i, lugar in enumerate(lugares_ruido):
         x, y = _RUIDO.get(lugar, _RUIDO["alveolar"])
-        interno, canal = _segmentos_trayectoria_aire((x, y))
+        interno, canal = _segmentos_trayectoria_aire((x, y), corte=_CORTE_AIRE_ORAL)
         partes.append(f'<path class="{P}-fl{i}" data-tramo="interno" d="{interno}" fill="none" '
-                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".36" '
                       f'stroke-linecap="round"/>')
         canales_orales.append((i, lugar, x, y, canal))
     # Lengua: raiz, cuerpo, dorso y punta, con un contorno oscuro. El contorno es
@@ -1022,20 +1023,20 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
         f'<path class="{P}-ab" d="M34,111l-6,5 6,5M25,111l-6,5 6,5M16,111l-6,5 6,5M7,111l-6,5 6,5" fill="none" '
         f'stroke="{_ACENTO}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>')
     partes.append(
-        f'<path class="{P}-an" d="M42,84C36,90 30,95 22,102M22,95V102H29M36,85C32,92 26,98 16,106" fill="none" '
+        f'<path class="{P}-an" d="M42,84C34,82 25,80 16,82M24,76L16,82 24,88" fill="none" '
         f'stroke="{_ACENTO}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" '
         f'stroke-dasharray="4 3"/>')
     # Segunda mitad: solo el canal pedagógicamente importante va DELANTE de
     # la lengua. No se pone todo el flujo en una única capa.
     partes.append(f'<path class="{P}-fn" data-tramo="canal" d="{nasal_canal}" '
-                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".78" '
                   f'stroke-linecap="round"/>')
     for i, lugar, x, y, canal in canales_orales:
         partes.append(f'<path class="{P}-r{i}" transform="translate({_n(x)},{_n(y)})" '
                       f'd="M-8,-3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0M-8,3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0" '
                       f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
         partes.append(f'<path class="{P}-fl{i}" data-tramo="canal" d="{canal}" fill="none" '
-                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".68" '
+                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".78" '
                       f'stroke-linecap="round"/>')
     for i, lugar in enumerate(lugares_golpe):
         x, y = _LUGARES.get(lugar, _LUGARES["alveolar"])

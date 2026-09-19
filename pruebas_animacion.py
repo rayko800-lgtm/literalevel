@@ -413,26 +413,31 @@ def _bezier_cuadratica(p0, p1, p2, pasos=9):
         puntos.append((x, y))
     return puntos
 
-for simbolo in ("θ", "ð", "f", "v", "s", "z"):
+for simbolo in ("θ", "ð", "f", "v", "s", "z", "ʃ", "ʒ", "dʒ"):
     svg = aa.svg_articulacion(simbolo)
-    lugar = aa.parametros(simbolo).lugar
+    art = aa.parametros(simbolo)
+    lugar = (art.hacia.lugar if art.hacia else art.lugar)
     x, y = aa._RUIDO[lugar]
-    d_interno, d_canal = aa._segmentos_trayectoria_aire((x, y))
+    d_interno, d_canal = aa._segmentos_trayectoria_aire(
+        (x, y), corte=aa._CORTE_AIRE_ORAL)
     comprobar(f"/{simbolo}/: lleva el trazo completo en dos segmentos (faringe -> {lugar})",
               f'data-tramo="interno" d="{d_interno}"' in svg and f'data-tramo="canal" d="{d_canal}"' in svg)
-    comprobar(f"/{simbolo}/: el flujo completo es secundario (mas fino y translucido)",
+    comprobar(f"/{simbolo}/: el canal es claro y el tramo interno queda subordinado",
+              f'd="{d_interno}" fill="none" stroke="{aa._ACENTO}" '
+              f'stroke-width="1.7" stroke-opacity=".36"' in svg and
               f'd="{d_canal}" fill="none" stroke="{aa._ACENTO}" '
-              f'stroke-width="1.7" stroke-opacity=".68"' in svg)
+              f'stroke-width="1.7" stroke-opacity=".78"' in svg)
     comprobar(f"/{simbolo}/: el tramo interno queda bajo la lengua y el canal visible sobre ella",
               svg.index(f'd="{d_interno}"') < svg.index(f'<g fill="{aa._LENGUA}">')
               < svg.index(f'd="{d_canal}"'))
     comprobar(f"/{simbolo}/: el flujo fluye (stroke-dasharray + animacion propia, no solo el ciclo)",
               "stroke-dasharray:7 5" in svg and "-fluir " in svg)
-    # No cruza dientes/paladar/lengua: se queda dentro del hueco entre
-    # paladar (y approx 70-99 en el tramo medio) y el suelo de la boca.
-    puntos = _bezier_cuadratica(aa._AIRE_ORIGEN, aa._AIRE_CONTROL, (x, y))
-    comprobar(f"/{simbolo}/: la trayectoria no sube por encima del paladar (y >= 90 en todo el trazo)",
-              all(py >= 90 for _, py in puntos), str(puntos))
+    # El tramo que se pinta delante nace ya en el canal (no sobre la masa de
+    # la lengua): queda bajo el paladar y llega desde ahi a la constriccion.
+    puntos = _bezier_cuadratica(aa._AIRE_ORIGEN, aa._AIRE_CONTROL, (x, y), pasos=100)
+    canal = puntos[round(aa._CORTE_AIRE_ORAL * 100):]
+    comprobar(f"/{simbolo}/: el canal visible nace alto, entre paladar y lengua",
+              75 <= canal[0][1] <= 88 and all(py >= 74 for _, py in canal), str(canal[:5]))
 
 for simbolo in ("θ", "s"):
     svg_animado, svg_quieto = aa.svg_articulacion(simbolo), aa.svg_articulacion_quieto(simbolo)
@@ -453,12 +458,21 @@ for simbolo in ("m", "n", "ŋ"):
     comprobar(f"/{simbolo}/: lleva el trazo de flujo nasal completo (faringe -> velo -> nariz)",
               f'd="{d_interno}"' in svg and f'd="{d_nasal}"' in svg)
     comprobar(f"/{simbolo}/: el flujo nasal se divide entre interior y canal visible",
+              f'd="{d_interno}" fill="none" stroke="{aa._ACENTO}" '
+              f'stroke-width="1.7" stroke-opacity=".28"' in svg
+              and
               f'd="{d_nasal}" fill="none" stroke="{aa._ACENTO}" '
-              f'stroke-width="1.7" stroke-opacity=".68"' in svg
+              f'stroke-width="1.7" stroke-opacity=".78"' in svg
               and svg.index(f'd="{d_interno}"') < svg.index(f'<g fill="{aa._LENGUA}">')
               < svg.index(f'd="{d_nasal}"'))
     comprobar(f"/{simbolo}/: no presenta salida oral antes de la nasal",
               re.search(r"\.ll[0-9a-f]+-ab\{opacity:0", svg) is not None)
+    comprobar(f"/{simbolo}/: la flecha exterior sale a la altura de la nariz, no baja hacia la boca",
+              'd="M42,84C34,82 25,80 16,82M24,76L16,82 24,88"' in svg)
+
+dzh_svg = aa.svg_articulacion("dʒ")
+comprobar("/dʒ/: el flujo aparece durante la fase fricativa de la africada",
+          re.search(r"\.ll[0-9a-f]+-fl0\{opacity:0;[^}]*animation:", dzh_svg) is not None)
 
 # Sonoridad: /v/ (sonora) lleva flujo Y vibracion a la vez; /f/ (sorda) solo flujo.
 v_svg, f_svg = aa.svg_articulacion("v"), aa.svg_articulacion("f")
