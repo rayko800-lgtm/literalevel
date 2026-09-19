@@ -348,7 +348,7 @@
         <div class="rejilla-fonemas">
           @for (f of g.sonidos; track f.simbolo) {
             <button type="button" class="celda" [class.activo]="elegido()?.simbolo === f.simbolo"
-                    [attr.aria-pressed]="elegido()?.simbolo === f.simbolo" (click)="tocarSonido(f)">
+                    [attr.aria-pressed]="elegido()?.simbolo === f.simbolo" (click)="tocarSonido(f, $event)">
               <strong>/{{ f.simbolo }}/</strong>
               <span class="pequeno" lang="en">{{ f.ejemplos[0] }}</span>
               <span class="tenue diminuto">{{ f.nombre }}</span>

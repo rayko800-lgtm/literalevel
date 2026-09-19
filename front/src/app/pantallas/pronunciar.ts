@@ -413,6 +413,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   private colocarALaVista(boton: HTMLElement | null): void {
     const grupo = boton?.closest?.('details.boca, .ficha-sonido');
     const blanco = grupo?.querySelector<HTMLElement>('app-boca3d') ?? grupo?.querySelector<HTMLElement>('.cortes, img.corte');
+    this.colocarElementoALaVista(blanco, boton);
+  }
+
+  private colocarElementoALaVista(blanco: HTMLElement | null | undefined, boton: HTMLElement | null): void {
     if (!blanco || typeof window === 'undefined') return;
     const r = blanco.getBoundingClientRect();
     const arriba = 64;                                   // la cabecera fija
@@ -426,6 +430,17 @@ export class Pronunciar implements OnInit, OnDestroy {
     // Si no cabe entera, arriba pegada a la cabecera: lo que se pierde es el pie, no la lengua.
     const destino = r.height <= abajo - arriba ? r.top + r.height / 2 - (arriba + abajo) / 2 : r.top - arriba;
     window.scrollBy({ top: destino, behavior: this.sinMovimiento ? 'auto' : 'smooth' });
+  }
+
+  /** La ficha se inserta después del clic. Espera al siguiente pintado y lleva
+   *  SU corte 2D a la zona visible; no toma otro corte anterior de la pantalla. */
+  private mostrarCorteSeleccionado(boton: HTMLElement | null): void {
+    if (!boton || typeof requestAnimationFrame !== 'function') return;
+    requestAnimationFrame(() => {
+      const corte = boton.closest('details.afi')
+        ?.querySelector<HTMLElement>('.ficha-sonido img.corte');
+      this.colocarElementoALaVista(corte, boton);
+    });
   }
 
   /** Con el audio del sonido, su corte dura lo que el mp3; con el de la palabra,
@@ -553,9 +568,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   /** Tocar un símbolo: suena, abre su ficha debajo de su grupo y su corte arranca con el audio. */
-  protected tocarSonido(sonido: Fonema): void {
+  protected tocarSonido(sonido: Fonema, ev?: Event): void {
     const otro = this.elegido()?.simbolo !== sonido.simbolo;
     this.elegido.set(sonido);
+    this.mostrarCorteSeleccionado(ev?.currentTarget as HTMLElement | null);
     // Con otro sonido, el 3D abierto aún tiene el anterior: suena por aquí.
     if (otro) this.eyv.escuchar(this.pedidoSonido(sonido));
     else this.escucharSonido(sonido);
