@@ -39,7 +39,9 @@ export interface EntornoEscuchar {
 const entornoNavegador: EntornoEscuchar = {
   crearAudio: url => { const a = new Audio(url); a.preload = 'auto'; return a; },
   traerSvg: async url => {
-    const r = await fetch(url);
+    // La anatomía debe venir del motor actual: una respuesta antigua de la
+    // caché HTTP no puede reaparecer al convertirla en blob en cada replay.
+    const r = await fetch(url, { cache: 'no-store' });
     if (!r.ok) throw new Error(String(r.status));
     return r.blob();
   },

@@ -15,6 +15,10 @@ function leerBase(): string {
 
 export const BASE_API = leerBase();
 
+/** Versión de la geometría 2D. Invalida en una sola vez los SVG anatómicos que
+ *  un navegador hubiera guardado antes de que el motor dejara de cachearlos. */
+export const VERSION_CORTE_2D = 'd4-canal-20260919';
+
 /** Un audio o recurso del motor: Wiktionary viene entero; lo nuestro, relativo. */
 export function urlMotor(ruta: string | null | undefined): string | null {
   if (!ruta) return null;
@@ -24,7 +28,7 @@ export function urlMotor(ruta: string | null | undefined): string | null {
 /** El corte de la boca de un sonido (SVG de animacion_articulatoria), animado o
  *  quieto para quien pide reducir el movimiento. */
 export function urlCorteSonido(simbolo: string, acento: Acento, quieto = false, pasada?: number | null): string {
-  const q = new URLSearchParams(quieto ? { quieto: '1' } : pasadaUnica(pasada));
+  const q = new URLSearchParams({ v: VERSION_CORTE_2D, ...(quieto ? { quieto: '1' } : pasadaUnica(pasada)) });
   return `${BASE_API}/api/articulacion/${acento}/${encodeURIComponent(simbolo)}.svg${q.size ? '?' + q : ''}`;
 }
 
@@ -38,7 +42,7 @@ function pasadaUnica(pasada: number | null | undefined): Record<string, string> 
 
 /** La boca diciendo una palabra entera, a partir de su IPA. */
 export function urlCortePalabra(ipa: string, acento: Acento, pasada?: number | null): string {
-  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento, ...pasadaUnica(pasada) })}`;
+  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento, v: VERSION_CORTE_2D, ...pasadaUnica(pasada) })}`;
 }
 
 /** Lo que se le enseña al lector cuando algo falla: una frase, nunca un código. */

@@ -247,6 +247,11 @@ _VELO_CERRADO, _VELO_ABIERTO = -24.0, 12.0
 _PALADAR = (((64, 97), (70, 99), (74, 97), (78, 92)),
             ((78, 92), (84, 82), (104, 72), (130, 71)),
             ((130, 71), (150, 71), (162, 73), (170, 77)))
+# Las dos paredes de la cavidad nasal ya dibujadas en `_ANATOMIA`. Se guardan
+# también como geometría para que la ruta nasal use el espacio entre ambas, no
+# una curva elegida a ojo.
+_FOSA_NASAL_SUELO = ((52, 78), (80, 72), (140, 66), (172, 68))
+_FOSA_NASAL_TECHO = ((46, 62), (70, 44), (140, 40), (182, 48))
 # La lengua es una cadena de articulaciones (circulos) unidas por trapecios:
 # punta, lamina, frente, centro, dorso, raiz alta y raiz baja. Cada circulo solo
 # se traslada; cada trapecio va dentro de su circulo y gira y se estira hasta el
@@ -277,7 +282,154 @@ def _bezier(seg, t):
             u**3 * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t**3 * y3)
 
 
+def _muestra_bezier(seg, pasos: int = 40):
+    return [_bezier(seg, i / pasos) for i in range(pasos + 1)]
+
+
 _PUNTOS_PALADAR = [_bezier(s, i / 40) for s in _PALADAR for i in range(41)]
+_PUNTOS_FOSA_SUELO = _muestra_bezier(_FOSA_NASAL_SUELO)
+_PUNTOS_FOSA_TECHO = _muestra_bezier(_FOSA_NASAL_TECHO)
+
+
+def _interpolar_y(puntos, x: float) -> float:
+    """Interpola una superficie muestreada y monótona en x."""
+    ordenados = sorted(puntos, key=lambda p: p[0])
+    if x <= ordenados[0][0]:
+        return ordenados[0][1]
+    if x >= ordenados[-1][0]:
+        return ordenados[-1][1]
+    for a, b in zip(ordenados, ordenados[1:]):
+        if a[0] <= x <= b[0] and b[0] > a[0]:
+            t = (x - a[0]) / (b[0] - a[0])
+            return a[1] + (b[1] - a[1]) * t
+    return min(ordenados, key=lambda p: abs(p[0] - x))[1]
+
+
+def _punto_en_poligono(punto, poligono) -> bool:
+    """Ray casting, incluyendo el borde como parte del tejido."""
+    x, y = punto
+    dentro = False
+    for a, b in zip(poligono, poligono[1:] + poligono[:1]):
+        ax, ay = a
+        bx, by = b
+        dx, dy = bx - ax, by - ay
+        largo2 = dx * dx + dy * dy
+        if largo2:
+            t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / largo2))
+            if math.hypot(x - (ax + t * dx), y - (ay + t * dy)) < 1e-6:
+                return True
+        if ((ay > y) != (by > y)) and x < (bx - ax) * (y - ay) / (by - ay) + ax:
+            dentro = not dentro
+    return dentro
+
+
+def _poligono_tramo_lengua(pose, i: int, margen: float = 0.0):
+    """El trapecio exacto que SVG pinta entre las juntas i e i+1."""
+    a, b = pose[f"j{i}"], pose[f"j{i + 1}"]
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    largo = math.hypot(dx, dy) or 1.0
+    # rotate(angulo) aplicado al eje y local negativo/positivo del trapecio.
+    nx, ny = dy / largo, -dx / largo
+    r0, r1 = _RADIOS[i] + margen, _RADIOS[i + 1] + margen
+    return [(a[0] + nx * r0, a[1] + ny * r0),
+            (b[0] + nx * r1, b[1] + ny * r1),
+            (b[0] - nx * r1, b[1] - ny * r1),
+            (a[0] - nx * r0, a[1] - ny * r0)]
+
+
+def _punto_en_lengua(punto, pose, margen: float = 0.0) -> bool:
+    """Pertenencia a la unión real de círculos, trapecios y núcleo."""
+    x, y = punto
+    for i, radio in enumerate(_RADIOS):
+        cx, cy = pose[f"j{i}"]
+        if math.hypot(x - cx, y - cy) <= radio + margen:
+            return True
+    if any(_punto_en_poligono(punto, _poligono_tramo_lengua(pose, i, margen)) for i in range(6)):
+        return True
+    cx, cy, rx, ry = _NUCLEO
+    tx, ty = pose["nu"]
+    rx, ry = rx + margen, ry + margen
+    return ((x - cx - tx) / rx) ** 2 + ((y - cy - ty) / ry) ** 2 <= 1.0
+
+
+def _superficie_lengua(pose, x: float, margen: float = 0.0) -> float | None:
+    """Y superior de la silueta de lengua para una abscisa dada."""
+    candidatos = []
+    for i, radio in enumerate(_RADIOS):
+        cx, cy = pose[f"j{i}"]
+        r = radio + margen
+        dx = x - cx
+        if abs(dx) <= r:
+            candidatos.append(cy - math.sqrt(max(0.0, r * r - dx * dx)))
+    for i in range(6):
+        poligono = _poligono_tramo_lengua(pose, i, margen)
+        for a, b in zip(poligono, poligono[1:] + poligono[:1]):
+            if (a[0] <= x < b[0]) or (b[0] <= x < a[0]):
+                t = (x - a[0]) / (b[0] - a[0])
+                candidatos.append(a[1] + (b[1] - a[1]) * t)
+    cx, cy, rx, ry = _NUCLEO
+    tx, ty = pose["nu"]
+    rx, ry = rx + margen, ry + margen
+    dx = x - cx - tx
+    if abs(dx) <= rx:
+        candidatos.append(cy + ty - ry * math.sqrt(max(0.0, 1.0 - (dx / rx) ** 2)))
+    return min(candidatos) if candidatos else None
+
+
+def _poligono_paladar():
+    # Cara inferior: `_PALADAR`; cara superior/suelo nasal: el Bezier inverso
+    # de `_PALADAR_FORMA`, más el cierre anterior que ya usa ese SVG.
+    superior = _muestra_bezier(((172, 68), (140, 66), (80, 72), (52, 78)))
+    return list(_PUNTOS_PALADAR) + [(172.0, 68.0)] + superior[1:]
+
+
+_POLIGONO_PALADAR = _poligono_paladar()
+
+
+def _punto_en_paladar(punto) -> bool:
+    return _punto_en_poligono(punto, _POLIGONO_PALADAR)
+
+
+def _poligono_incisivo_superior():
+    a = _muestra_bezier(((60, 96), (58, 104), (56, 114), (57, 120)), 20)
+    b = _muestra_bezier(((57, 120), (60, 121), (62, 118), (64, 112)), 20)
+    c = _muestra_bezier(((64, 112), (66, 106), (68, 100), (70, 96)), 20)
+    return a + b[1:] + c[1:]
+
+
+_POLIGONO_INCISIVO_SUPERIOR = _poligono_incisivo_superior()
+
+
+def _poligono_incisivo_inferior(pose):
+    a = _muestra_bezier(((63, 113), (60, 119), (59, 128), (60, 138)), 20)
+    b = _muestra_bezier(((69, 138), (69, 128), (68, 120), (66, 113)), 20)
+    local = a + [(69.0, 138.0)] + b[1:] + [(63.0, 113.0)]
+    ty, ang = pose["mand"]
+    return [(q[0], q[1] + ty) for q in (_rotar(p, ang, _PIVOTE_MAND) for p in local)]
+
+
+def _punto_en_dientes(punto, pose) -> bool:
+    return (_punto_en_poligono(punto, _POLIGONO_INCISIVO_SUPERIOR)
+            or _punto_en_poligono(punto, _poligono_incisivo_inferior(pose)))
+
+
+def _poligono_velo(art: Articulacion):
+    """Contorno del mismo path del velo, con su rotación activa aplicada."""
+    segmentos = (
+        ((0, -4), (16, -2), (28, 8), (32, 22)),
+        ((32, 22), (34, 30), (28, 32), (24, 26)),
+        ((24, 26), (16, 16), (8, 8), (-2, 4)),
+    )
+    locales = [p for seg in segmentos for p in _muestra_bezier(seg, 24)[:-1]]
+    locales.append(segmentos[-1][-1])
+    ang = math.radians(_VELO_ABIERTO if art.velo_abierto else _VELO_CERRADO)
+    ca, sa = math.cos(ang), math.sin(ang)
+    px, py = _PIVOTE_VELO
+    return [(px + x * ca - y * sa, py + x * sa + y * ca) for x, y in locales]
+
+
+def _punto_en_velo(punto, art: Articulacion) -> bool:
+    return _punto_en_poligono(punto, _poligono_velo(art))
 
 
 def _rotar(p, ang, centro):
@@ -472,46 +624,101 @@ _LUGARES = {
 _RUIDO = {**_LUGARES, "alveolar": (64.0, 104.0), "postalveolar": (68.0, 100.0),
           "interdental": (45.0, 113.0), "labiodental": (48.0, 121.0), "glotal": (201.0, 190.0)}
 
-# D4.3a (Miguel, 18 sep): flujo de aire COMPLETO, no solo un tramo cerca de
-# los labios. Esquematico (una guia visual, no una medicion): un solo trazo
-# desde la faringe visible (dentro de la pared de la faringe de `_ANATOMIA`,
-# x~200) hasta la constriccion/salida de cada lugar, pasando por el hueco
-# entre paladar y lengua (nunca por encima del paladar ni dentro de la
-# lengua). Coherente con lo que ya dicen las fichas ("sale continuo por
-# encima de la lengua").
-_AIRE_ORIGEN = (198.0, 155.0)
-_AIRE_CONTROL = (140.0, 35.0)       # mantiene el tramo visible dentro del canal paladar-lengua
-_CORTE_AIRE_ORAL = .65              # el tramo delantero empieza cuando la curva ya salio de la lengua
-_AIRE_CONTROL_NASAL = (172.0, 68.0)   # cerca de _PIVOTE_VELO: por donde se desvia a la nariz
-_CORTE_AIRE_NASAL = .72                # el tramo visible empieza ya en la bifurcacion nasal
+@dataclass(frozen=True)
+class _RutaAire:
+    """Centerline pedagógica que vive en el espacio libre del tracto."""
+    via: str
+    familia: str
+    puntos: tuple[tuple[float, float], ...]
+    constriccion: tuple[float, float] | None = None
+    salida: tuple[tuple[float, float], ...] = ()
 
 
-def _trayectoria_aire(destino: tuple[float, float], control: tuple[float, float] = _AIRE_CONTROL,
-                       origen: tuple[float, float] = _AIRE_ORIGEN) -> str:
-    """Un trazo curvo esquematico de `origen` a `destino` pasando por
-    `control` (bezier cuadratica: una guia, no una simulacion de fluidos)."""
-    return (f"M{_n(origen[0])},{_n(origen[1])}Q{_n(control[0])},{_n(control[1])} "
-            f"{_n(destino[0])},{_n(destino[1])}")
+def _d_polilinea(puntos) -> str:
+    return "M" + "L".join(f"{_n(x)},{_n(y)}" for x, y in puntos)
 
 
-def _segmentos_trayectoria_aire(destino: tuple[float, float], control: tuple[float, float] = _AIRE_CONTROL,
-                                  origen: tuple[float, float] = _AIRE_ORIGEN,
-                                  corte: float = .58) -> tuple[str, str]:
-    """La misma Bézier, dividida sin alterar su geometría (de Casteljau).
+def _muestrear_polilinea(puntos, paso: float = .5):
+    """Muestrea incluso los vértices: base de las pruebas geométricas."""
+    muestra = []
+    for a, b in zip(puntos, puntos[1:]):
+        largo = math.dist(a, b)
+        n = max(1, math.ceil(largo / paso))
+        muestra.extend((a[0] + (b[0] - a[0]) * i / n,
+                        a[1] + (b[1] - a[1]) * i / n) for i in range(n))
+    return muestra + ([puntos[-1]] if puntos else [])
 
-    El tramo interno se pinta bajo la lengua; el tramo desde la cavidad al
-    punto de constricción, sobre ella. Así el aire no atraviesa visualmente la
-    masa de la lengua ni desaparece justo donde se necesita verlo.
-    """
-    def interpola(a, b):
-        return (a[0] + (b[0] - a[0]) * corte, a[1] + (b[1] - a[1]) * corte)
-    q0, q1 = interpola(origen, control), interpola(control, destino)
-    medio = interpola(q0, q1)
-    interno = (f"M{_n(origen[0])},{_n(origen[1])}Q{_n(q0[0])},{_n(q0[1])} "
-               f"{_n(medio[0])},{_n(medio[1])}")
-    canal = (f"M{_n(medio[0])},{_n(medio[1])}Q{_n(q1[0])},{_n(q1[1])} "
-             f"{_n(destino[0])},{_n(destino[1])}")
-    return interno, canal
+
+def _techo_canal(art: Articulacion, x: float) -> float:
+    """Superficie inferior que limita el canal: paladar o velo."""
+    if x <= 170:
+        return _interpolar_y(_PUNTOS_PALADAR, x)
+    return _interpolar_y(_velo_superficie(art.velo_abierto), x)
+
+
+def _centro_canal(art: Articulacion, pose, x: float) -> tuple[float, float]:
+    """Centro del hueco real entre techo oral y superficie de la lengua."""
+    techo = _techo_canal(art, x)
+    lengua = _superficie_lengua(pose, x, .35)
+    # En el extremo faríngeo la silueta de lengua puede no alcanzar esa x.
+    # Ahí el centro queda 14 px bajo el techo, todavía dentro de la faringe.
+    y = techo + 14 if lengua is None else (techo + lengua) / 2
+    return (x, y)
+
+
+def _familia_aire(art: Articulacion) -> str:
+    lugar = art.lugar or "glotal"
+    if lugar == "labiodental":
+        return "labiodental"
+    if lugar == "interdental":
+        return "interdental"
+    if lugar == "alveolar":
+        return "alveolar"
+    if lugar == "postalveolar":
+        return "postalveolar"
+    if lugar == "glotal":
+        return "glotal"
+    return lugar
+
+
+def _ruta_oral(art: Articulacion, pose) -> _RutaAire:
+    """Ruta por el canal oral de la pose, no una curva fija por fonema."""
+    familia = _familia_aire(art)
+    fin_x = {"postalveolar": 84.0, "alveolar": 78.0,
+             "interdental": 68.0, "labiodental": 70.0,
+             "glotal": 72.0}.get(familia, 78.0)
+    xs = [196.0, 190.0, 184.0, 178.0, 170.0, 160.0, 150.0, 140.0,
+          130.0, 120.0, 110.0, 100.0, 92.0, 84.0, 78.0, 72.0, 68.0]
+    xs = [x for x in xs if x >= fin_x]
+    if xs[-1] != fin_x:
+        xs.append(fin_x)
+    puntos = [(201.0, 194.0), (201.0, 165.0), (199.0, 136.0)]
+    puntos.extend(_centro_canal(art, pose, x) for x in xs)
+
+    # La constricción es el último punto libre antes del articulador. El
+    # tramo exterior se dibuja por separado porque en un corte sagital los
+    # incisivos son una barrera 2D, aunque el chorro real pase entre ellos.
+    constriccion = puntos[-1]
+    y_salida = {"labiodental": 121.0, "interdental": 113.0,
+                "alveolar": 109.0, "postalveolar": 107.0,
+                "glotal": 111.0}.get(familia, 111.0)
+    salida = ((34.0, y_salida), (25.0, y_salida), (16.0, y_salida), (7.0, y_salida))
+    return _RutaAire("oral", familia, tuple(puntos), constriccion, salida)
+
+
+def _ruta_nasal(art: Articulacion, pose) -> _RutaAire:
+    """Vía única: faringe -> apertura velofaríngea -> nariz -> exterior."""
+    # Sube por detrás del velo descendido; al llegar a la fosa sigue el centro
+    # entre su techo y su suelo. No hay ningún ramal hacia la boca.
+    puntos = [(202.0, 194.0), (203.0, 164.0), (202.0, 136.0),
+              (200.0, 116.0), (199.0, 96.0), (196.0, 78.0),
+              (190.0, 64.0), (182.0, 58.0)]
+    for x in (172.0, 160.0, 145.0, 130.0, 112.0, 94.0, 76.0, 60.0, 48.0):
+        techo = _interpolar_y(_PUNTOS_FOSA_TECHO, x)
+        suelo = _interpolar_y(_PUNTOS_FOSA_SUELO, x)
+        puntos.append((x, (techo + suelo) / 2))
+    puntos.extend(((38.0, 70.0), (28.0, 76.0), (16.0, 80.0)))
+    return _RutaAire("nasal", "nasal", tuple(puntos), puntos[-1])
 
 
 @dataclass
@@ -603,8 +810,9 @@ def _linea_sonido(art: Articulacion) -> _Linea:
     elif m == "africada":
         L.poses = [(0, R), (0.4, R), (0.9, PA), (1.3, PA), (1.7, PB), (1.95, PB), (2.45, R), (2.8, R)]
         L.golpe[art.lugar] = [1.33]
-        L.ruido[b.lugar or art.lugar] = [(1.4, 1.95)]
-        L.boca = [(1.36, 1.95)]
+        # El chorro/fricación empieza al llegar a PB, no durante el cierre PA.
+        L.ruido[b.lugar or art.lugar] = [(1.7, 1.95)]
+        L.boca = [(1.7, 1.95)]
         voz = (0.5, 2.25)
     elif m == "diptongo":
         L.poses = [(0, R), (0.35, R), (0.8, PA), (1.05, PA), (1.7, PB), (1.95, PB), (2.45, R), (2.8, R)]
@@ -768,8 +976,8 @@ def _linea_palabra(segs: list[Segmento]) -> tuple[_Linea, list[tuple[float, floa
             PB = _pose(b)
             L.poses += [(t + 0.3 * d, PA), (t + 0.5 * d, PA), (t + 0.8 * d, PB), (t + 0.95 * d, PB)]
             L.golpe.setdefault(art.lugar, []).append(t + 0.53 * d)
-            L.ruido.setdefault(b.lugar or art.lugar, []).append((t + 0.56 * d, t + d))
-            L.boca.append((t + 0.53 * d, t + d))
+            L.ruido.setdefault(b.lugar or art.lugar, []).append((t + 0.8 * d, t + d))
+            L.boca.append((t + 0.8 * d, t + d))
         elif m == "diptongo":
             PB = _pose(b)
             L.poses += [(t + 0.2 * d, PA), (t + 0.35 * d, PA), (t + 0.85 * d, PB)]
@@ -872,7 +1080,9 @@ def _golpes(instantes: list[float], total: float) -> list[tuple[float, str]]:
 def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
          marcas_fijas: dict, leyenda: list[str], simbolo_grande: str,
          extra_estilo: str = "", extra_cuerpo: str = "", fantasma: dict | None = None,
-         alto_texto: int = 0, repetir: bool = True) -> str:
+         alto_texto: int = 0, repetir: bool = True,
+         rutas_aire: dict[str, _RutaAire] | None = None,
+         ruta_nasal: _RutaAire | None = None) -> str:
     P = prefijo
     alto = 222 + alto_texto
     css = [f".{P} .{P}-p{{transform-box:view-box;transform-origin:0 0}}"]
@@ -951,22 +1161,6 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
                   f'stroke-linejoin="round">{_ANATOMIA}</g>')
     # Pliegues vocales.
     partes.append(f'<path d="M192,197L200,200 192,203ZM210,197L202,200 210,203Z" fill="{_TRAZO}"/>')
-    # Primera mitad del flujo: está dentro del tracto y se pinta BAJO la
-    # lengua. La segunda mitad se añade después de la lengua, ya en el canal
-    # oral/nasal visible. Ambas comparten clase y animación: es una sola ruta.
-    nasal_interno, nasal_canal = _segmentos_trayectoria_aire(
-        (42.0, 84.0), _AIRE_CONTROL_NASAL, corte=_CORTE_AIRE_NASAL)
-    partes.append(f'<path class="{P}-fn" data-tramo="interno" d="{nasal_interno}" '
-                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".28" '
-                  f'stroke-linecap="round"/>')
-    canales_orales = []
-    for i, lugar in enumerate(lugares_ruido):
-        x, y = _RUIDO.get(lugar, _RUIDO["alveolar"])
-        interno, canal = _segmentos_trayectoria_aire((x, y), corte=_CORTE_AIRE_ORAL)
-        partes.append(f'<path class="{P}-fl{i}" data-tramo="interno" d="{interno}" fill="none" '
-                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".36" '
-                      f'stroke-linecap="round"/>')
-        canales_orales.append((i, lugar, x, y, canal))
     # Lengua: raiz, cuerpo, dorso y punta, con un contorno oscuro. El contorno es
     # una copia de las mismas piezas con trazo grueso, pintada debajo: por fuera
     # asoma el borde y por dentro la tapa la copia de relleno, sin costuras.
@@ -1023,21 +1217,30 @@ def _svg(prefijo: str, titulo: str, desc: str, linea: _Linea | None, fija: dict,
         f'<path class="{P}-ab" d="M34,111l-6,5 6,5M25,111l-6,5 6,5M16,111l-6,5 6,5M7,111l-6,5 6,5" fill="none" '
         f'stroke="{_ACENTO}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>')
     partes.append(
-        f'<path class="{P}-an" d="M42,84C34,82 25,80 16,82M24,76L16,82 24,88" fill="none" '
+        f'<path class="{P}-an" d="M25,74L16,80 25,84" fill="none" '
         f'stroke="{_ACENTO}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" '
         f'stroke-dasharray="4 3"/>')
-    # Segunda mitad: solo el canal pedagógicamente importante va DELANTE de
-    # la lengua. No se pone todo el flujo en una única capa.
-    partes.append(f'<path class="{P}-fn" data-tramo="canal" d="{nasal_canal}" '
-                  f'fill="none" stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".78" '
-                  f'stroke-linecap="round"/>')
-    for i, lugar, x, y, canal in canales_orales:
-        partes.append(f'<path class="{P}-r{i}" transform="translate({_n(x)},{_n(y)})" '
-                      f'd="M-8,-3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0M-8,3.5c2.3-3.5 4.7-3.5 7,0s4.7,3.5 7,0" '
-                      f'fill="none" stroke="{_ACENTO}" stroke-width="2" stroke-linecap="round"/>')
-        partes.append(f'<path class="{P}-fl{i}" data-tramo="canal" d="{canal}" fill="none" '
+    # Rutas calculadas en el espacio libre. No dependen de poner el aire
+    # globalmente delante o detrás: las pruebas geométricas garantizan que el
+    # centerline no coincide con lengua, paladar ni dientes.
+    if ruta_nasal is not None:
+        partes.append(f'<path class="{P}-fn" data-via="nasal" data-familia="nasal" '
+                      f'data-tramo="canal" d="{_d_polilinea(ruta_nasal.puntos)}" fill="none" '
                       f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".78" '
-                      f'stroke-linecap="round"/>')
+                      f'stroke-linecap="round" stroke-linejoin="round"/>')
+    rutas_aire = rutas_aire or {}
+    for i, lugar in enumerate(lugares_ruido):
+        ruta = rutas_aire.get(lugar)
+        if ruta is None:
+            continue
+        partes.append(f'<path class="{P}-fl{i}" data-via="oral" data-familia="{ruta.familia}" '
+                      f'data-tramo="canal" d="{_d_polilinea(ruta.puntos)}" fill="none" '
+                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".78" '
+                      f'stroke-linecap="round" stroke-linejoin="round"/>')
+        partes.append(f'<path class="{P}-fl{i}" data-via="oral" data-familia="{ruta.familia}" '
+                      f'data-tramo="salida" d="{_d_polilinea(ruta.salida)}" fill="none" '
+                      f'stroke="{_ACENTO}" stroke-width="1.7" stroke-opacity=".78" '
+                      f'stroke-linecap="round" stroke-linejoin="round"/>')
     for i, lugar in enumerate(lugares_golpe):
         x, y = _LUGARES.get(lugar, _LUGARES["alveolar"])
         partes.append(f'<path class="{P}-g{i}" transform="translate({_n(x)},{_n(y)})" '
@@ -1191,9 +1394,19 @@ def _construir(simbolo: str, acento: str, animado: bool,
             tramos = [(min(quietas), max(quietas))] if quietas else []
             estilo_toca = (_kf(clase, _opacidad(tramos, linea.total), linea.total, "opacity")
                            + f".{P} .{clase}{{opacity:1;animation:{clase} {linea.total:.2f}s linear infinite}}")
+    rutas_aire = {}
+    ruta_nasal = None
+    if m == "nasal":
+        ruta_nasal = _ruta_nasal(a, fija)
+    elif m == "fricativa":
+        rutas_aire[a.lugar] = _ruta_oral(a, fija)
+    elif m == "africada" and b is not None:
+        pose_fricativa = _pose(b)
+        rutas_aire[b.lugar or a.lugar] = _ruta_oral(b, pose_fricativa)
     return _svg(P, titulo, desc, linea, fija, marcas, leyenda, f"/{sonido.simbolo}/",
                 extra_estilo=estilo_toca, extra_cuerpo=cuerpo_toca,
-                fantasma=fantasma, alto_texto=12 * len(leyenda) + 2, repetir=repetir)
+                fantasma=fantasma, alto_texto=12 * len(leyenda) + 2, repetir=repetir,
+                rutas_aire=rutas_aire, ruta_nasal=ruta_nasal)
 
 
 def svg_articulacion(simbolo: str, acento: str = "ga", dur: float | None = None,
@@ -1302,5 +1515,17 @@ def _construir_palabra(ipa: str, acento: str, duracion: float | None = None,
     titulo = f"Articulación de /{texto}/ ({articulacion.ACENTOS[acento]})"
     desc = ("Corte lateral de la cabeza animado que recorre los sonidos de la palabra: "
             + "; ".join(f"/{s.simbolo}/ {s.articulacion.leyenda}" for s in segs) + ".")
+    rutas_aire = {}
+    ruta_nasal = None
+    for s in segs:
+        art = s.articulacion
+        a, b = _objetivos(art, REPOSO)
+        if art.movimiento == "nasal" and ruta_nasal is None:
+            ruta_nasal = _ruta_nasal(a, _pose(a))
+        elif art.movimiento == "fricativa":
+            rutas_aire.setdefault(a.lugar, _ruta_oral(a, _pose(a)))
+        elif art.movimiento == "africada" and b is not None:
+            rutas_aire.setdefault(b.lugar or a.lugar, _ruta_oral(b, _pose(b)))
     return _svg(P, titulo, desc, linea, fija, marcas, [], "", extra_estilo="".join(css),
-                extra_cuerpo="".join(cuerpo), alto_texto=52, repetir=repetir)
+                extra_cuerpo="".join(cuerpo), alto_texto=52, repetir=repetir,
+                rutas_aire=rutas_aire, ruta_nasal=ruta_nasal)

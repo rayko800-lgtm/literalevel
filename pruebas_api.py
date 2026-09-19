@@ -1532,7 +1532,7 @@ def corte_de_la_boca_en_svg():
     r = cliente.get(theta)
     assert r.status_code == 200, (r.status_code, r.text[:200])
     assert r.headers["content-type"].startswith("image/svg+xml"), r.headers
-    assert "max-age=2592000" in r.headers["cache-control"], r.headers
+    assert "no-store" in r.headers["cache-control"], r.headers
     assert r.headers["x-content-type-options"] == "nosniff", r.headers
     assert "default-src 'none'" in r.headers["content-security-policy"], r.headers
     assert r.text.lstrip().startswith("<svg"), r.text[:80]
@@ -1570,6 +1570,20 @@ def corte_de_una_pasada_con_la_duracion_del_audio():
     # «Más lento»: un audio de 8,6 s a 0,5× son 17,2 s, y tiene que llegar.
     lenta = cliente.get(theta, params={"dur": "17.24", "una": "1"})
     assert lenta.text == aa.svg_articulacion("θ", "ga", dur=17.2, repetir=False), "dur de más de 10 s no llega"
+    # Regresión D4: normal -> replay -> replay -> Despacio -> normal conserva
+    # exactamente los paths anatómicos; solo puede cambiar el tiempo del CSS.
+    def geometria_aire(svg):
+        import re
+        return re.findall(r'<path[^>]*data-via="(?:oral|nasal)"[^>]*\bd="([^"]+)"', svg)
+
+    secuencia = [
+        cliente.get(theta, params={"dur": "7.1", "una": "1", "r": str(vuelta)}).text
+        for vuelta in (1, 2, 3)
+    ]
+    secuencia.append(cliente.get(theta, params={"dur": "14.2", "una": "1", "r": "4"}).text)
+    secuencia.append(cliente.get(theta, params={"dur": "7.1", "una": "1", "r": "5"}).text)
+    rutas = [geometria_aire(svg) for svg in secuencia]
+    assert rutas[0] and all(ruta == rutas[0] for ruta in rutas), rutas
     en_bucle = cliente.get(theta, params={"dur": "1.4"})
     assert en_bucle.text == aa.svg_articulacion("θ", "ga", dur=1.4, repetir=True)
     assert cliente.get(theta).text == aa.svg_articulacion("θ", "ga")

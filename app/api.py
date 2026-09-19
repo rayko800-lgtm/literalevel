@@ -1742,7 +1742,10 @@ def audio_fonema(archivo: str):
 # --- El corte de la boca (animacion_articulatoria, entrega-4e) --------------------
 
 _CABECERAS_SVG = {
-    "Cache-Control": "public, max-age=2592000",
+    # El corte depende del código anatómico actual. Una copia pública fresca
+    # durante 30 días hacía que el móvil siguiera pintando una geometría vieja
+    # en la URL normal aunque «Despacio» (otro ?dur=) ya recibiera la nueva.
+    "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
     # Se sirve desde el dominio del Space y la IPA de la palabra la manda el
     # cliente: aunque alguien abra el SVG suelto, no puede ejecutar ni pedir nada.

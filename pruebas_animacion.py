@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import sys
+import math
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, "app")
@@ -391,53 +392,154 @@ for simbolo in ("t", "s"):
     comprobar(f"/{simbolo}/: reduced-motion tambien apaga el aro (-ct incluido en «.{{P}} *»)",
               "prefers-reduced-motion:reduce){." in svg and "*{animation:none!important}" in svg)
 
-# Smoke test permanente: los 85 sonidos documentados, en los dos acentos, siguen renderizando.
-fallos_inventario = []
+# Auditoría permanente del inventario completo (41 GA + 44 RP). No compara
+# solo que exista un <path>: conserva sus `d`, vía y tramo entre base, replays,
+# Despacio y reduced motion.
+def geometria_aire(svg):
+    return re.findall(
+        r'<path[^>]*data-via="(oral|nasal)" data-familia="([^"]+)" '
+        r'data-tramo="([^"]+)" d="([^"]+)"', svg or "")
+
+
+def fallo_inventario(fallos, simbolo, mensaje):
+    fallos.append(f"/{simbolo}/ {mensaje}")
+
+
+auditoria_por_acento = {}
 for acento in articulacion.ACENTOS:
-    for sonido in articulacion.inventario(acento):
-        ok = (aa.svg_articulacion(sonido.simbolo, acento) or "").startswith("<svg") and \
-             (aa.svg_articulacion_quieto(sonido.simbolo, acento) or "").startswith("<svg")
-        if not ok:
-            fallos_inventario.append(f"{acento}:{sonido.simbolo}")
-comprobar(f"los {sum(len(articulacion.inventario(a)) for a in articulacion.ACENTOS)} sonidos (ga+rp) siguen renderizando",
-          not fallos_inventario, str(fallos_inventario))
+    fallos_inventario = []
+    inventario = articulacion.inventario(acento)
+    for sonido in inventario:
+        simbolo = sonido.simbolo
+        art = aa.parametros(simbolo, acento)
+        base = aa.svg_articulacion(simbolo, acento)
+        replay_1 = aa.svg_articulacion(simbolo, acento, dur=7.1, repetir=False)
+        replay_2 = aa.svg_articulacion(simbolo, acento, dur=7.1, repetir=False)
+        despacio = aa.svg_articulacion(simbolo, acento, dur=14.2, repetir=False)
+        normal_otra_vez = aa.svg_articulacion(simbolo, acento, dur=7.1, repetir=False)
+        quieto = aa.svg_articulacion_quieto(simbolo, acento)
+        svgs = (base, replay_1, replay_2, despacio, normal_otra_vez, quieto)
+        if not all((svg or "").startswith("<svg") for svg in svgs):
+            fallo_inventario(fallos_inventario, simbolo, "no renderiza todos los estados")
+            continue
 
-# --- D4.3a: flujo de aire completo (fricativas y nasales) --------------------
+        rutas = [geometria_aire(svg) for svg in svgs]
+        if not all(ruta == rutas[0] for ruta in rutas[1:5]):
+            fallo_inventario(fallos_inventario, simbolo, "cambia la geometría entre replay/Despacio/normal")
+        # Una africada quieta representa el cierre inicial (sin inventar aire);
+        # las rutas sostenidas sí deben conservar su centerline en estático.
+        if art.movimiento != "africada" and rutas[5] != rutas[0]:
+            fallo_inventario(fallos_inventario, simbolo, "reduced motion cambia la geometría estática")
 
-def _bezier_cuadratica(p0, p1, p2, pasos=9):
-    puntos = []
-    for i in range(pasos + 1):
-        t = i / pasos
-        x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
-        y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
-        puntos.append((x, y))
-    return puntos
+        lleva_canal = art.movimiento in ("fricativa", "africada", "nasal")
+        via_esperada = "nasal" if art.movimiento == "nasal" else "oral"
+        if lleva_canal:
+            if not rutas[0] or {ruta[0] for ruta in rutas[0]} != {via_esperada}:
+                fallo_inventario(fallos_inventario, simbolo, f"no usa exclusivamente la vía {via_esperada}")
+            a, b = aa._objetivos(art, aa.REPOSO)
+            objetivo = a if art.movimiento != "africada" else b
+            pose = aa._pose(objetivo)
+            ruta = aa._ruta_nasal(objetivo, pose) if via_esperada == "nasal" else aa._ruta_oral(objetivo, pose)
+            puntos = aa._muestrear_polilinea(ruta.puntos, .35)
+            if ruta.salida:
+                puntos += aa._muestrear_polilinea(ruta.salida, .35)
+            tejidos = (
+                any(aa._punto_en_lengua(p, pose, .05) for p in puntos),
+                any(aa._punto_en_paladar(p) for p in puntos),
+                any(aa._punto_en_dientes(p, pose) for p in puntos),
+                any(aa._punto_en_velo(p, objetivo) for p in puntos),
+            )
+            if any(tejidos):
+                fallo_inventario(fallos_inventario, simbolo, f"el aire entra en tejido {tejidos}")
+        elif rutas[0]:
+            fallo_inventario(fallos_inventario, simbolo, "inventa un canal oral/nasal que no corresponde")
 
-for simbolo in ("θ", "ð", "f", "v", "s", "z", "ʃ", "ʒ", "dʒ"):
-    svg = aa.svg_articulacion(simbolo)
+        # Centros de la lengua fuera de paladar/dientes y contactos con una
+        # penetración máxima de 2 px: tocar sí, atravesar la estructura no.
+        a, b = aa._objetivos(art, aa.REPOSO)
+        for objetivo in (a, b):
+            if objetivo is None:
+                continue
+            pose = aa._pose(objetivo)
+            if any(aa._punto_en_paladar(pose[f"j{i}"]) for i in range(7)):
+                fallo_inventario(fallos_inventario, simbolo, "centro de lengua dentro del paladar")
+            dientes = [i for i in range(7) if aa._punto_en_dientes(pose[f"j{i}"], pose)]
+            if dientes and not (simbolo in ("θ", "ð") and set(dientes) <= {0, 1}):
+                fallo_inventario(fallos_inventario, simbolo, f"centro de lengua dentro de dientes {dientes}")
+            holguras = []
+            for i in range(5):
+                x, y = pose[f"j{i}"]
+                holguras.append(min(math.hypot(x - px, y - py) for px, py in aa._PUNTOS_PALADAR)
+                                  - aa._RADIOS[i])
+            if min(holguras) < -2.05:
+                fallo_inventario(fallos_inventario, simbolo, f"lengua atraviesa paladar ({min(holguras):.2f}px)")
+            if objetivo.punta_toca and min(holguras[:2]) > 0:
+                fallo_inventario(fallos_inventario, simbolo, "punta declarada en contacto sin tocar paladar")
+            if objetivo.dorso_velo:
+                x, y = pose["j4"]
+                gap = min(math.hypot(x - px, y - py) for px, py in aa._velo_superficie(objetivo.velo_abierto)) \
+                    - aa._RADIOS[4]
+                if not -2.05 <= gap <= 0:
+                    fallo_inventario(fallos_inventario, simbolo, f"cierre velar incoherente ({gap:.2f}px)")
+
+        vibracion = re.search(r"\.ll[0-9a-f]+-vi\{opacity:1;animation:", base) is not None
+        if vibracion != art.sonora:
+            fallo_inventario(fallos_inventario, simbolo, f"vibración={vibracion}, sonora={art.sonora}")
+        if abs(aa._linea_sonido(art).total - 2.0) > 1e-9 or duraciones(base) != {"2.00"}:
+            fallo_inventario(fallos_inventario, simbolo, "ciclo base distinto de 2,0 s")
+        if duraciones(replay_1) != {"7.10"} or duraciones(despacio) != {"14.20"}:
+            fallo_inventario(fallos_inventario, simbolo, "duración explícita no respetada")
+        if "@keyframes" in quieto or re.search(r"animation:(?!none)", quieto):
+            fallo_inventario(fallos_inventario, simbolo, "reduced motion conserva animación")
+
+    auditoria_por_acento[acento] = (len(inventario), fallos_inventario)
+    comprobar(f"inventario {acento.upper()}: {len(inventario)} sonidos, anatomía/aire/sonoridad/timing/replay/reduced motion",
+              not fallos_inventario, "; ".join(fallos_inventario))
+
+comprobar("los 85 sonidos (GA+RP) pasan la auditoría completa",
+          sum(n for n, _ in auditoria_por_acento.values()) == 85
+          and not any(f for _, f in auditoria_por_acento.values()))
+
+# --- D4.3b: centerline geométrica en el espacio libre -----------------------
+
+def ruta_activa(simbolo):
     art = aa.parametros(simbolo)
-    lugar = (art.hacia.lugar if art.hacia else art.lugar)
-    x, y = aa._RUIDO[lugar]
-    d_interno, d_canal = aa._segmentos_trayectoria_aire(
-        (x, y), corte=aa._CORTE_AIRE_ORAL)
-    comprobar(f"/{simbolo}/: lleva el trazo completo en dos segmentos (faringe -> {lugar})",
-              f'data-tramo="interno" d="{d_interno}"' in svg and f'data-tramo="canal" d="{d_canal}"' in svg)
-    comprobar(f"/{simbolo}/: el canal es claro y el tramo interno queda subordinado",
-              f'd="{d_interno}" fill="none" stroke="{aa._ACENTO}" '
-              f'stroke-width="1.7" stroke-opacity=".36"' in svg and
-              f'd="{d_canal}" fill="none" stroke="{aa._ACENTO}" '
-              f'stroke-width="1.7" stroke-opacity=".78"' in svg)
-    comprobar(f"/{simbolo}/: el tramo interno queda bajo la lengua y el canal visible sobre ella",
-              svg.index(f'd="{d_interno}"') < svg.index(f'<g fill="{aa._LENGUA}">')
-              < svg.index(f'd="{d_canal}"'))
-    comprobar(f"/{simbolo}/: el flujo fluye (stroke-dasharray + animacion propia, no solo el ciclo)",
+    a, b = aa._objetivos(art, aa.REPOSO)
+    if art.movimiento == "nasal":
+        pose = aa._pose(a)
+        return aa._ruta_nasal(a, pose), pose
+    objetivo = b if art.movimiento == "africada" else a
+    pose = aa._pose(objetivo)
+    return aa._ruta_oral(objetivo, pose), pose
+
+
+for simbolo in ("m", "n", "ŋ", "f", "v", "θ", "ð", "s", "z", "ʃ", "ʒ", "h", "dʒ"):
+    ruta, pose = ruta_activa(simbolo)
+    puntos = aa._muestrear_polilinea(ruta.puntos, .35)
+    comprobar(f"/{simbolo}/: ningún punto del aire entra en la lengua",
+              not any(aa._punto_en_lengua(p, pose, .05) for p in puntos))
+    comprobar(f"/{simbolo}/: ningún punto del aire atraviesa el paladar",
+              not any(aa._punto_en_paladar(p) for p in puntos))
+    comprobar(f"/{simbolo}/: ningún punto del aire atraviesa los dientes",
+              not any(aa._punto_en_dientes(p, pose) for p in puntos))
+    comprobar(f"/{simbolo}/: ningún punto del aire atraviesa el velo",
+              not any(aa._punto_en_velo(p, aa.parametros(simbolo)) for p in puntos))
+
+for simbolo, familia in (("f", "labiodental"), ("v", "labiodental"),
+                         ("θ", "interdental"), ("ð", "interdental"),
+                         ("s", "alveolar"), ("z", "alveolar"),
+                         ("ʃ", "postalveolar"), ("ʒ", "postalveolar"),
+                         ("h", "glotal"), ("dʒ", "postalveolar")):
+    ruta, _ = ruta_activa(simbolo)
+    svg = aa.svg_articulacion(simbolo)
+    comprobar(f"/{simbolo}/: la ruta termina en la familia de constricción correcta",
+              ruta.via == "oral" and ruta.familia == familia and ruta.constriccion == ruta.puntos[-1])
+    comprobar(f"/{simbolo}/: el SVG declara vía oral y no una salida nasal",
+              f'data-via="oral" data-familia="{familia}"' in svg and 'data-via="nasal"' not in svg)
+    comprobar(f"/{simbolo}/: conserva un tramo exterior separado de los incisivos del corte sagital",
+              'data-tramo="salida"' in svg and bool(ruta.salida))
+    comprobar(f"/{simbolo}/: el flujo fluye (trazo discontinuo + animación propia)",
               "stroke-dasharray:7 5" in svg and "-fluir " in svg)
-    # El tramo que se pinta delante nace ya en el canal (no sobre la masa de
-    # la lengua): queda bajo el paladar y llega desde ahi a la constriccion.
-    puntos = _bezier_cuadratica(aa._AIRE_ORIGEN, aa._AIRE_CONTROL, (x, y), pasos=100)
-    canal = puntos[round(aa._CORTE_AIRE_ORAL * 100):]
-    comprobar(f"/{simbolo}/: el canal visible nace alto, entre paladar y lengua",
-              75 <= canal[0][1] <= 88 and all(py >= 74 for _, py in canal), str(canal[:5]))
 
 for simbolo in ("θ", "s"):
     svg_animado, svg_quieto = aa.svg_articulacion(simbolo), aa.svg_articulacion_quieto(simbolo)
@@ -453,26 +555,28 @@ for simbolo in ("p", "t", "k"):
 
 for simbolo in ("m", "n", "ŋ"):
     svg = aa.svg_articulacion(simbolo)
-    d_interno, d_nasal = aa._segmentos_trayectoria_aire(
-        (42.0, 84.0), aa._AIRE_CONTROL_NASAL, corte=aa._CORTE_AIRE_NASAL)
-    comprobar(f"/{simbolo}/: lleva el trazo de flujo nasal completo (faringe -> velo -> nariz)",
-              f'd="{d_interno}"' in svg and f'd="{d_nasal}"' in svg)
-    comprobar(f"/{simbolo}/: el flujo nasal se divide entre interior y canal visible",
-              f'd="{d_interno}" fill="none" stroke="{aa._ACENTO}" '
-              f'stroke-width="1.7" stroke-opacity=".28"' in svg
-              and
-              f'd="{d_nasal}" fill="none" stroke="{aa._ACENTO}" '
-              f'stroke-width="1.7" stroke-opacity=".78"' in svg
-              and svg.index(f'd="{d_interno}"') < svg.index(f'<g fill="{aa._LENGUA}">')
-              < svg.index(f'd="{d_nasal}"'))
-    comprobar(f"/{simbolo}/: no presenta salida oral antes de la nasal",
-              re.search(r"\.ll[0-9a-f]+-ab\{opacity:0", svg) is not None)
-    comprobar(f"/{simbolo}/: la flecha exterior sale a la altura de la nariz, no baja hacia la boca",
-              'd="M42,84C34,82 25,80 16,82M24,76L16,82 24,88"' in svg)
+    ruta, _ = ruta_activa(simbolo)
+    comprobar(f"/{simbolo}/: lleva una única ruta faringe -> apertura velofaríngea -> nariz",
+              ruta.via == "nasal" and ruta.puntos[0][0] >= 200 and ruta.puntos[-1] == (16.0, 80.0))
+    comprobar(f"/{simbolo}/: el SVG nasal no contiene ninguna ruta oral",
+              'data-via="nasal" data-familia="nasal"' in svg and 'data-via="oral"' not in svg)
+    comprobar(f"/{simbolo}/: no presenta salida oral competitiva",
+              re.search(r"\.ll[0-9a-f]+-ab\{opacity:0", svg) is not None
+              and 'data-tramo="salida"' not in svg)
+    comprobar(f"/{simbolo}/: la flecha final sale por la nariz",
+              'd="M25,74L16,80 25,84"' in svg)
 
 dzh_svg = aa.svg_articulacion("dʒ")
-comprobar("/dʒ/: el flujo aparece durante la fase fricativa de la africada",
-          re.search(r"\.ll[0-9a-f]+-fl0\{opacity:0;[^}]*animation:", dzh_svg) is not None)
+L_dzh = aa._linea_sonido(aa.parametros("dʒ"))
+art_dzh = aa.parametros("dʒ")
+_, objetivo_dzh = aa._objetivos(art_dzh, aa.REPOSO)
+pose_fricativa_dzh = aa._pose(objetivo_dzh)
+inicio_fricativa_dzh = min(t for t, pose in L_dzh.poses if pose == pose_fricativa_dzh)
+inicio_aire_dzh = min(a for intervalos in L_dzh.ruido.values() for a, _ in intervalos)
+comprobar("/dʒ/: el aire empieza al llegar a la fase fricativa, no durante el cierre",
+          abs(inicio_aire_dzh - inicio_fricativa_dzh) < 1e-9)
+comprobar("/dʒ/: el flujo visual usa la geometría postalveolar de la fase fricativa",
+          'data-via="oral" data-familia="postalveolar"' in dzh_svg)
 
 # Sonoridad: /v/ (sonora) lleva flujo Y vibracion a la vez; /f/ (sorda) solo flujo.
 v_svg, f_svg = aa.svg_articulacion("v"), aa.svg_articulacion("f")

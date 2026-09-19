@@ -1,4 +1,5 @@
 import { CorteEnPantalla, EntornoEscuchar, EscucharYVer, VozNavegador, duracionParaCorte } from './escuchar-y-ver';
+import { vi } from 'vitest';
 
 /** Un <audio> de mentira: guarda los oyentes y deja disparar los eventos a mano. */
 class AudioFalso {
@@ -40,6 +41,19 @@ const corte = (quieto = false): CorteEnPantalla => ({
 const esperar = () => new Promise(r => setTimeout(r));
 
 describe('Escuchar y ver', () => {
+  it('descarga el SVG actual sin aceptar una copia HTTP antigua', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['<svg/>']) });
+    vi.stubGlobal('fetch', fetch);
+    try {
+      const eyv = new EscucharYVer();
+      eyv.preparar({ audio: null, cortes: [corte()] });
+      await esperar();
+      expect(fetch).toHaveBeenCalledWith('/api/articulacion/ga/θ.svg?una=1', { cache: 'no-store' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('redondea la duración a 0,1 s dentro de 0,3..10', () => {
     expect(duracionParaCorte(3.04)).toBe(3);
     expect(duracionParaCorte(1.26)).toBe(1.3);
