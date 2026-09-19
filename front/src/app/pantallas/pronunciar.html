@@ -252,8 +252,27 @@
                             [attr.aria-label]="'Escuchar y ver cómo se mueve la boca al decir ' + d.palabra">
                       <app-icono nombre="altavoz" />Escuchar y ver
                     </button>
-                    <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
-                            aria-label="Despacio">{{ etiquetaVelocidad() }}</button>
+                    <div class="control-velocidad">
+                      <button type="button" class="boton secundario disparador-velocidad"
+                              (click)="abrirVelocidad('detalle-' + $index, $event)"
+                              [attr.aria-expanded]="selectorVelocidad() === 'detalle-' + $index"
+                              [attr.aria-label]="'Despacio. Velocidad actual: ' + opcionVelocidad().etiqueta + ', ' + opcionVelocidad().multiplicador">
+                        <span>🐢 Despacio</span>
+                        <small>{{ opcionVelocidad().etiqueta }} · {{ opcionVelocidad().multiplicador }}</small>
+                      </button>
+                      @if (selectorVelocidad() === 'detalle-' + $index) {
+                        <div class="selector-velocidad" role="radiogroup" aria-label="Velocidad de reproducción">
+                          @for (o of opcionesVelocidad; track o.valor; let i = $index) {
+                            <button type="button" role="radio" [attr.aria-checked]="velocidad() === o.valor"
+                                    [attr.tabindex]="velocidad() === o.valor ? 0 : -1"
+                                    [attr.data-velocidad]="o.valor" [class.elegida]="velocidad() === o.valor"
+                                    (click)="elegirVelocidad(o.valor)" (keydown)="teclaVelocidad($event, i)">
+                              <strong>{{ o.multiplicador }}</strong><span>{{ o.etiqueta }}</span>
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
                     @if (boca3d) {
                     <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index, $event)"
                             [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
@@ -390,8 +409,27 @@
                         [attr.aria-label]="'Escuchar y ver cómo se mueve la boca con /' + s.simbolo + '/'">
                   <app-icono nombre="altavoz" />Escuchar y ver
                 </button>
-                <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
-                        aria-label="Despacio">{{ etiquetaVelocidad() }}</button>
+                <div class="control-velocidad">
+                  <button type="button" class="boton secundario disparador-velocidad"
+                          (click)="abrirVelocidad('sonido', $event)"
+                          [attr.aria-expanded]="selectorVelocidad() === 'sonido'"
+                          [attr.aria-label]="'Despacio. Velocidad actual: ' + opcionVelocidad().etiqueta + ', ' + opcionVelocidad().multiplicador">
+                    <span>🐢 Despacio</span>
+                    <small>{{ opcionVelocidad().etiqueta }} · {{ opcionVelocidad().multiplicador }}</small>
+                  </button>
+                  @if (selectorVelocidad() === 'sonido') {
+                    <div class="selector-velocidad" role="radiogroup" aria-label="Velocidad de reproducción">
+                      @for (o of opcionesVelocidad; track o.valor; let i = $index) {
+                        <button type="button" role="radio" [attr.aria-checked]="velocidad() === o.valor"
+                                [attr.tabindex]="velocidad() === o.valor ? 0 : -1"
+                                [attr.data-velocidad]="o.valor" [class.elegida]="velocidad() === o.valor"
+                                (click)="elegirVelocidad(o.valor)" (keydown)="teclaVelocidad($event, i)">
+                          <strong>{{ o.multiplicador }}</strong><span>{{ o.etiqueta }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
                 @if (boca3d) {
                 <button type="button" class="boton secundario" (click)="alternarBoca('sonido', $event)"
                         [attr.aria-expanded]="visor3d() === 'sonido'">

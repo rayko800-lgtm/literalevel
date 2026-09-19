@@ -16,7 +16,7 @@ export interface AudioListo {
   /** Segundos de silencio al principio (medidos, o 0,12 si no se pudo). */
   silencio: number;
   /** Arranca el audio dentro de `retrasoS` segundos (negativo: ya empezado,
-   *  salta ese tramo) a `velocidad` (1, 0,5, 0,25) conservando el tono.
+   *  salta ese tramo) a `velocidad` (0,25, 0,5, 1 o 1,25) conservando el tono.
    *  Devuelve la función que lo para y la velocidad a la que de verdad suena:
    *  1 si el navegador no sabe ralentizar sin cambiar el tono (entonces la
    *  boca va despacio y el audio no; quien llama lo avisa). */
@@ -119,7 +119,7 @@ export class Sonador {
         this.parar();
         if (this.destruido) return { parar: () => {}, velocidad };
         if (velocidad !== 1) {
-          // Despacio: un <audio> con preservesPitch; Web Audio cambiaría el tono.
+          // Fuera de 1×: un <audio> con preservesPitch; Web Audio cambiaría el tono.
           const a = new Audio(url);
           const r = tocarElemento(a, retrasoS, velocidad);
           this.parando = r.parar;

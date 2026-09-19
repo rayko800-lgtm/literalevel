@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import { VELOCIDADES, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import { silencioInicial } from './audio';
 import { Boca3d } from './boca3d';
 import { I_AIRE_ORAL, poseNumerica } from './escena';
@@ -156,7 +156,7 @@ describe('líneas de tiempo', () => {
     expect(lentoParaAudio(segmentos, CATALOGO_PROTOTIPO, 0)).toBe(1.6);
   });
 
-  it('a media velocidad la línea dura el doble, el sonido cae al doble y el audio se retrasa en proporción', () => {
+  it('las cuatro velocidades escalan solo el tiempo y conservan poses y sincronía', () => {
     const l = cicloSonido(POSES_PROTOTIPO['p'], CATALOGO_PROTOTIPO);
     const lenta = aVelocidad(l, 0.5);
     expect(lenta.total).toBeCloseTo(5.6, 6);
@@ -165,6 +165,9 @@ describe('líneas de tiempo', () => {
     expect(lenta.claves[2].pose).toBe(l.claves[2].pose);          // las poses no cambian
     expect(aVelocidad(l, 1)).toBe(l);                              // a 1× es la misma línea
     expect(aVelocidad(l, 0.25).total).toBeCloseTo(11.2, 6);
+    expect(aVelocidad(l, 1.25).total).toBeCloseTo(2.24, 6);
+    expect(aVelocidad(l, 1.25).claves.map(c => c.pose)).toEqual(l.claves.map(c => c.pose));
+    expect(VELOCIDADES).toEqual([0.25, 0.5, 1, 1.25]);
     // Audio con 0,2 s de silencio: a 0,5× ese silencio dura 0,4 s, así que
     // arranca 0,4 s antes del sonido; si el navegador no lo ralentiza (1×), 0,2 s antes.
     expect(retrasoAudio(lenta.sonidoEn, 0.2, 0.5)).toBeCloseTo(1.5, 6);

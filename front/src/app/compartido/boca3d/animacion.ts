@@ -26,8 +26,8 @@ export interface Linea {
 /** El factor de «despacio» de las palabras del 2D. */
 export const LENTO = 1.6;
 
-/** Las velocidades que ofrece el visor: normal, media y un cuarto. */
-export const VELOCIDADES = [1, 0.5, 0.25] as const;
+/** Las cuatro velocidades discretas que ofrece Pronunciar. */
+export const VELOCIDADES = [0.25, 0.5, 1, 1.25] as const;
 export type Velocidad = (typeof VELOCIDADES)[number];
 
 /** La misma línea, `velocidad` veces más rápida (0,5 = el doble de larga):

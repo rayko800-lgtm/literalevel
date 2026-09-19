@@ -143,8 +143,8 @@ export class Boca3d {
   readonly conEscuchar = input<boolean>(true);
   /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
   readonly autoReproducir = input<boolean>(true);
-  /** Velocidad de la boca y del audio: 1 (normal), 0,5 o 0,25. La línea de
-   *  tiempo (ciclo y palabra) se estira y el audio suena con `playbackRate`
+  /** Velocidad de la boca y del audio: 0,25, 0,5, 1 o 1,25. La línea de
+   *  tiempo (ciclo y palabra) se escala y el audio suena con `playbackRate`
    *  igual y `preservesPitch`; si el navegador no sabe ralentizar sin
    *  cambiar el tono, el audio va a 1× y la boca despacio, y se avisa en
    *  `aviso` (Miguel, 14 sep: «va muy rápida; que se pueda ver cada movimiento»). */
@@ -330,7 +330,7 @@ export class Boca3d {
     if (r.velocidad !== v) {
       r.parar();
       listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1), 1);
-      this.aviso.set('Este navegador no puede ralentizar el audio sin cambiar el tono: el audio suena a velocidad normal y la boca va despacio.');
+      this.aviso.set('Este navegador no puede usar esta velocidad sin cambiar el tono: el audio y la boca vuelven a velocidad normal.');
     }
   }
 

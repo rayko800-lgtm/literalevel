@@ -132,15 +132,21 @@ describe('Escuchar y ver', () => {
     expect(eyv.src('ficha', corte().base)).toBe('/dos.svg?una=1&r=1');
   });
 
-  it('más lento: el audio a esa velocidad sin cambiar el tono, y el corte dura lo que el audio así', () => {
+  it('las cuatro velocidades conservan tono y sincronizan duración de audio y SVG', () => {
+    for (const [velocidad, duracion] of [[0.25, 16], [0.5, 8], [1, 4], [1.25, 3.2]] as const) {
+      const { eyv, audios } = montar();
+      eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad });
+      expect(audios[0].playbackRate).toBe(velocidad);
+      expect(audios[0].preservesPitch).toBe(true);
+      audios[0].duration = 4;
+      audios[0].disparar('playing');
+      expect(eyv.src('ficha', corte().base)).toBe(`/api/articulacion/ga/θ.svg?dur=${duracion}&una=1&r=1`);
+    }
+  });
+
+  it('rechaza velocidades fuera del conjunto y conserva 0,25× en la voz del navegador', () => {
     const { eyv, audios, habladas } = montar();
-    eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad: 0.5 });
-    expect(audios[0].playbackRate).toBe(0.5);
-    expect(audios[0].preservesPitch).toBe(true);
-    audios[0].duration = 3.4;
-    audios[0].disparar('playing');
-    expect(eyv.src('ficha', corte().base)).toBe('/api/articulacion/ga/θ.svg?dur=6.8&una=1&r=1');
-    // Una velocidad que no es de las tres vuelve a 1×.
+    // Una velocidad que no está entre las cuatro vuelve a 1×.
     eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad: 3 });
     expect(audios[0].playbackRate).toBe(1);
     eyv.escuchar({ audio: null, texto: 'war', cortes: [corte()], velocidad: 0.25 });

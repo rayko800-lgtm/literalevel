@@ -11,7 +11,10 @@ import { Icono } from '../compartido/icono';
 // Pronunciar en vez de bajar al pulsar «Boca en 3D».
 import { Boca3d } from '../compartido/boca3d/boca3d';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
-import { CorteEnPantalla, EscucharYVer, PeticionEscuchar, duracionParaCorte } from '../compartido/escuchar-y-ver';
+import {
+  CorteEnPantalla, EscucharYVer, PeticionEscuchar, VelocidadReproduccion,
+  VELOCIDADES_REPRODUCCION, duracionParaCorte,
+} from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
@@ -79,15 +82,19 @@ export class Pronunciar implements OnInit, OnDestroy {
   private reloj: ReturnType<typeof setInterval> | undefined;
   /** «Escuchar y ver»: el audio y el corte 2D arrancan juntos (compartido/escuchar-y-ver.ts). */
   protected readonly eyv = new EscucharYVer();
-  /** «🐢 Despacio» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»): 1× o
-   *  0,5× para el audio, el corte 2D y el 3D. El tipo admite 0,25×, que el 3D y
-   *  escuchar-y-ver siguen sabiendo hacer, pero la pantalla ya no lo ofrece. */
-  protected readonly velocidad = signal<1 | 0.5 | 0.25>(1);   // el tipo `Velocidad` del 3D (b9, 6b2579b)
-  // Un interruptor con nombre de estado y no de orden: «Más lento» se leía como un
-  // consejo («tienes que ir más lento», Esmeralda) y chocaba con las marcas de ritmo.
-  // Encendido va a 0,5× (propuesta A de Pronunciar, Miguel, 15 sep), y la etiqueta lo
-  // dice a la vista además del estilo de activado (condición de 4e y la Central).
-  protected readonly etiquetaVelocidad = computed(() => (this.velocidad() === 1 ? '🐢 Despacio' : '🐢 Despacio · activado'));
+  /** Una sola velocidad gobierna audio, SVG 2D y visor 3D. */
+  protected readonly velocidad = signal<VelocidadReproduccion>(1);
+  protected readonly opcionesVelocidad = [
+    { valor: 0.25, multiplicador: '0.25×', etiqueta: 'Muy despacio' },
+    { valor: 0.5, multiplicador: '0.50×', etiqueta: 'Despacio' },
+    { valor: 1, multiplicador: '1.00×', etiqueta: 'Normal' },
+    { valor: 1.25, multiplicador: '1.25×', etiqueta: 'Rápido' },
+  ] as const;
+  /** Solo se abre el selector de la barra pulsada: puede haber una ficha y
+   *  varios detalles de corrección en el DOM al mismo tiempo. */
+  protected readonly selectorVelocidad = signal<string | null>(null);
+  protected readonly opcionVelocidad = computed(() =>
+    this.opcionesVelocidad.find(o => o.valor === this.velocidad()) ?? this.opcionesVelocidad[2]);
   /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
    *  `viewChild(Boca3d)` usaría la clase como valor y el @defer dejaría de
    *  separar three.js. */
@@ -398,9 +405,31 @@ export class Pronunciar implements OnInit, OnDestroy {
       cortes: this.cortesDelDetalle(d, i), velocidad: this.velocidad() };
   }
 
-  /** Interruptor: 1× ↔ 0,5×. */
-  protected cambiarVelocidad(): void {
-    this.velocidad.update(v => (v === 1 ? 0.5 : 1));
+  /** El botón heredado «Despacio» abre su selector en 0,50× y lleva ahí el foco. */
+  protected abrirVelocidad(clave: string, ev?: Event): void {
+    this.velocidad.set(0.5);
+    this.selectorVelocidad.set(clave);
+    const boton = ev?.currentTarget as HTMLElement | null;
+    requestAnimationFrame(() => boton?.closest('.control-velocidad')
+      ?.querySelector<HTMLElement>('[data-velocidad="0.5"]')?.focus());
+  }
+
+  protected elegirVelocidad(valor: number): void {
+    if (!VELOCIDADES_REPRODUCCION.includes(valor as VelocidadReproduccion)) return;
+    this.velocidad.set(valor as VelocidadReproduccion);
+  }
+
+  /** Flechas/Home/End siguen el patrón ARIA de un radiogroup. */
+  protected teclaVelocidad(ev: KeyboardEvent, indice: number): void {
+    let siguiente = indice;
+    if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') siguiente = (indice + 1) % this.opcionesVelocidad.length;
+    else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') siguiente = (indice - 1 + this.opcionesVelocidad.length) % this.opcionesVelocidad.length;
+    else if (ev.key === 'Home') siguiente = 0;
+    else if (ev.key === 'End') siguiente = this.opcionesVelocidad.length - 1;
+    else return;
+    ev.preventDefault();
+    this.elegirVelocidad(this.opcionesVelocidad[siguiente].valor);
+    (ev.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>('[role="radio"]')[siguiente]?.focus();
   }
 
   /** Al pulsar, que la animación quede a la vista entre la cabecera y la barra
