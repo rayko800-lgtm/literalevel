@@ -618,6 +618,34 @@ function mezclar(a: PoseNumerica, b: PoseNumerica, t: number): PoseNumerica {
 
 const suavizar = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
+/** Mezcla de dos poses en una transición o entre dos claves de la línea.
+ *  D4.4b v6: al salir de un cierre bilabial (compresión > 0,3 → < 0,1) la
+ *  mandíbula, el cierre y la compresión van por delante con una curva
+ *  brusca (Miguel: de 0 a ≈10 mm en menos de 70 ms), dentro del mismo
+ *  tramo de tiempo; el resto de la pose sigue con el suavizado de siempre. */
+function mezclarPose(a: PoseNumerica, b: PoseNumerica, f: number): PoseNumerica {
+  const r = mezclar(a, b, suavizar(f));
+  if (a[I_COMPRESION_LABIOS] > 0.3 && b[I_COMPRESION_LABIOS] < 0.1) {
+    const t = Math.min(1, Math.max(0, f));
+    const brusco = 1 - Math.pow(1 - t, 5);
+    for (const i of [I_MAND, I_CIERRE_LABIOS, I_COMPRESION_LABIOS]) r[i] = a[i] + (b[i] - a[i]) * brusco;
+    if (b[I_CIERRE_LABIOS] > 0.9) {
+      // Vuelta a una pose sellada (el ciclo de /p b m/ acaba en reposo): sin
+      // esto los labios nunca se separaban al soltar, solo se veía el soplo.
+      // Rebote de la explosión dentro del mismo tramo: en el primer 45 % el
+      // cierre cae a cero y la mandíbula abre hasta ~0,4 (≈11 mm en los
+      // labios), y luego vuelven al sello.
+      const rebote = t < 0.45 ? Math.sin(Math.PI * t / 0.45) : 0;
+      r[I_CIERRE_LABIOS] *= 1 - rebote;
+      r[I_MAND] += rebote * 0.32 * MAND_MAX;
+      // Compresión negativa: los bordes del bermellón se separan de la línea
+      // de contacto (el de arriba sube ~2 mm y asoma el borde de los incisivos).
+      r[I_COMPRESION_LABIOS] -= 0.6 * rebote;
+    }
+  }
+  return r;
+}
+
 // --- Geometrías --------------------------------------------------------------
 
 function material(color: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}): THREE.MeshStandardMaterial {
@@ -747,6 +775,10 @@ interface PielDeformable {
   geometria: THREE.BufferGeometry;
   reposo: Float32Array;
   pesos: Float32Array;
+  /** v6 (escaneo): cuánto de `pesos` es labio que se retrasa respecto al hueso
+   *  (1 junto a la ranura, 0 en la barbilla). El peso efectivo es
+   *  `pesos - retraso * (1 - k(mandíbula))`, con k = 0,2 en reposo y 0,6 en las vocales. */
+  retraso: Float32Array;
   ultimoGiro: number;
 }
 
@@ -756,6 +788,7 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
   const pos = geometria.getAttribute('position') as THREE.BufferAttribute;
   const reposo = new Float32Array(pos.array as Float32Array);
   const pesos = new Float32Array(pos.count);
+  const retraso = new Float32Array(pos.count);
   for (let i = 0; i < pos.count; i++) {
     const x = reposo[3 * i], y = reposo[3 * i + 1], z = reposo[3 * i + 2];
     // Solo dos rampas, las dos en el plano del giro: la vertical estira la
@@ -774,11 +807,19 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
       // corte va justo ahí, seco, para que cada labio caiga entero de su lado.
       const bajoLabio = ranuraSeca ? suave01((0.15 - y) / 0.02) : suave01((0.2 - y) / 0.1);
       bajo = bajo + (bajoLabio - bajo) * frente;
+      // D4.4b v6: bajo la ranura el labio se RETRASA respecto al hueso (sigue
+      // un 20 % en reposo y un 60 % en las vocales, `deformarPiel`), y el
+      // retraso muere linealmente hacia la barbilla (-1,2), que va con el
+      // hueso: el giro de reposo (1 cm en los labios) se reparte como un
+      // estirón uniforme en vez de rasgar el bermellón (la «herida» de v5).
+      // Misma fórmula que `peso_labio_inferior_lps` en cara.py.
+      if (ranuraSeca) retraso[i] = frente * bajoLabio * Math.min(1, Math.max(0, (y + 1.2) / 1.35));
     }
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
     pesos[i] = bajo * delante;
+    retraso[i] *= delante;
   }
-  return { geometria, reposo, pesos, ultimoGiro: NaN };
+  return { geometria, reposo, pesos, retraso, ultimoGiro: NaN };
 }
 
 /** Gira cada vértice alrededor del pivote de la mandíbula por su peso. */
@@ -787,9 +828,11 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
   piel.ultimoGiro = giro;
   const pos = piel.geometria.getAttribute('position') as THREE.BufferAttribute;
   const salida = pos.array as Float32Array;
-  const { reposo, pesos } = piel;
+  const { reposo, pesos, retraso } = piel;
+  // v6: k(mandíbula): 0,2 hasta la mandíbula de reposo (0,2) y 0,6 desde 0,5.
+  const k = 0.2 + 0.4 * suave01((giro / MAND_MAX - 0.2) / 0.3);
   for (let i = 0; i < pos.count; i++) {
-    const w = pesos[i];
+    const w = pesos[i] - retraso[i] * (1 - k);
     const x = reposo[3 * i], y = reposo[3 * i + 1];
     if (w <= 0) { salida[3 * i] = x; salida[3 * i + 1] = y; continue; }
     const a = giro * w, c = Math.cos(a), s = Math.sin(a);
@@ -1383,7 +1426,7 @@ export class EscenaBoca {
       const a = claves[i], b = claves[i + 1];
       if (t < b.t) {
         const f = b.t > a.t ? (t - a.t) / (b.t - a.t) : 1;
-        return mezclar(a.n, b.n, suavizar(f));
+        return mezclarPose(a.n, b.n, f);
       }
     }
     return claves[claves.length - 1].n;
@@ -1914,7 +1957,7 @@ export class EscenaBoca {
       this.sucio = true;
     } else if (this.hacia && this.desde) {
       const t = Math.min(1, (performance.now() - this.t0) / this.duracion);
-      this.actual = mezclar(this.desde, this.hacia, suavizar(t));
+      this.actual = mezclarPose(this.desde, this.hacia, t);
       this.aplicar(this.actual);
       if (t >= 1) this.desde = this.hacia = null;
       this.sucio = true;
