@@ -261,3 +261,25 @@ Miguel.
 3. Recorrer o saltar ambas bienvenidas antes de compartir pantalla.
 4. Grabar vídeo y demo el 19-20 sep.
 5. No iniciar trabajo nuevo de código sin petición explícita de Miguel.
+
+### Audio D4 · publicado · 21 sep 2026, ~22:40
+
+**Estado: los 85 fonemas del AFI suenan con la voz de Miguel en producción.**
+
+- Grabación terminada: 61 fichas con 5/5 piezas + 24 consonantes cubiertas por su pareja GA/RP (`build/grabador/compartidos.json`). 0 fichas sin cubrir. Las 305 piezas en verde, sin hashes repetidos entre tomas.
+- Montaje: `build/grabador/montar2.py` → `candidate/{ga,rp}/<hex>.mp3` + `manifiesto2.json`. Formato A de Miguel sin cambios (sostenido · 0,7 s · corto 0,45 s · 0,7 s · palabra; mono 24 kHz; pico −1,0 ±0,3 dBFS medido sobre el mp3).
+  - Reglas fijas, no juicios: oclusivas/africadas = las tres tomas en orden como tres golpes (hueco 0,5 s); sostenidos = la toma en verde con mejor SNR; palabra = la de mejor SNR de las dos. Qué toma se usó en cada asset: `manifiesto2.json`, campos `fonema_piezas` y `palabra_pieza`.
+  - Recorte de silencios nuevo (grupo de sonido más energético ±60 ms): el de `montar.py` dejaba hasta 2 s delante en /t/ y /k/ y vaciaba el «corto». Piloto de 4 antes del lote.
+  - Encoder forzado a mono (el de `montar.py` sacaba estéreo).
+- Verificación (`verificar2.py` → `verificacion2.json`): **85/85** pasan pico, clipping, 24 kHz mono, estructura de eventos y silencio inicial < 0,5 s (tope del visor 3D). 24 hashes repetidos = exactamente los 24 pares compartidos.
+- Sincronía con la boca, medida a 390 px:
+  - dev (`dev/articulacion-v2`, front 4200 + API local): el corte 2D dura lo que el mp3 dividido por la velocidad a 0,25/0,5/1/1,25×; el audio suena a esa velocidad con `preservesPitch`; el 3D decodifica el mp3 nuevo entero (5,19 s en /p/). Los 85 servidos = candidatos por sha256.
+  - producción: /s/ 5,01 s → corte 5,00 s; /p/ 5,19 → 5,20; /æ/ 4,51 → 4,50; con «Despacio» /s/ → 10,00 s y audio a 0,5× con tono conservado.
+- Commits: `ed2cce6` en `dev/articulacion-v2` y `cbd12f4` en `master` (solo los 85 mp3, `git diff --cached` sin nada más). Sin push.
+- Space `MikeMaki1763/literalevel`: revisión antes `72f3cdce0225a8ddd24d2ee68bfcf7332e23e75f` → después `8c8f7f17e17a140a791002d44d918f64e17adbab` (subido con `desplegar_app.py --solo` y las 85 rutas). RUNNING; `/api/salud` `{"estado":"ok"}`; `/api/fonemas?acento=ga|rp` 200; **85/85 mp3 servidos = locales por sha256**; Gradio `/` 200; front 302 → index.html.
+- **Vuelta atrás**: `python tools/desplegar_app.py --commit 004eb28 --solo <las 85 rutas>` (bytes del commit anterior), o las copias de `build/grabador/produccion_anterior/{ga,rp}` (sha256 del conjunto `a7eae0af…1bb4`).
+- Respaldo: `C:\Users\laura\Downloads\literalevel_grabador_2026-09-21_final.zip` (20 778 393 B, md5 `95132e8c2a1d23c0c7324357eb5b3ecc`, 523 archivos, 329 en `crudo/`).
+- **Para Miguel por la mañana**: página de escucha `https://fraser-newest-assessing-glance.trycloudflare.com/escucha.html`, con nuevo y anterior, las 5 tomas (las usadas en azul), Bien/Mal y nota, y «Copiar resultado».
+- A oír con atención: /dʒ/ (GA y RP comparten), cuyas tres tomas duran ~1,4 s cada una frente a 0,1–0,4 s de /tʃ/, y el asset sale de 8,4 s.
+- Sigue abierto: el ciclo único del 2D/3D se estira sobre todo el mp3 (sostenido + corto + palabra), igual que con los audios anteriores. Es consecuencia del formato A y no se ha tocado.
+- Procesos del grabador vivos (29844 servidor, 34412 vigilante, 37196 túnel): no cerrar hasta que Miguel termine la escucha.
