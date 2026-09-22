@@ -291,3 +291,11 @@ Miguel.
 - Vuelta atrás: `python tools/desplegar_app.py --commit 004eb28 --solo <las 85 rutas>` o `build/grabador/produccion_anterior/{ga,rp}`.
 - Infraestructura del grabador **cerrada** el 22 sep: cloudflared 37196, servidor 29844 y vigilante 34412 parados y comprobados. El puerto 8989 ya no escucha y la URL trycloudflare responde 530. `crudo/`, masters y respaldos intactos (zip en `Downloads\literalevel_grabador_2026-09-21_final.zip`).
 - Siguiente fase: **D4.4b (Blender), sin empezar.**
+
+### D4.4b · piloto v4 (22 sep 2026, [ejecutora], Fable 5.1)
+
+- Implementado sobre v3 (`9544250`) según `auditoria/d4_4b_v4/especificacion_d44b_v4.md` (y las dos investigaciones, copiadas ahí), con el ajuste de Dirección: nada de piel de MakeHuman (se sustituye en v5). Informe: `auditoria/d4_4b_piloto4_2026-09-22.md`; evidencia en `build/d4_4b_piloto4/`.
+- `/θ ð/`: punta roma (superelipse N=3,2) y clave interdental por cizalla y avance, sin recorte por vértice: volumen +2 % (v3 +15 %), punta 0,74 / lámina 0,92, toca el borde de los incisivos. `/k ŋ/`: cúpula ancha, volumen +9,6 % (v3 +79 %). Reposo con los labios casi juntos (`cierreLabial`), sección de los labios en el corte (`corte_labio_*` con las shape keys de la piel), soplo de aspiración en `/p t k/` (`Linea.aspiracion`), recuadro por textura (0,7×, MSAA, uno de cada dos cuadros en movimiento).
+- Comprobaciones nuevas: hidrostato en `lengua.py` y en `tools/boca3d_demo/medir_lengua.mjs` (lo llama `comprobar_modelos.mjs`); `v4.spec.ts`. Pruebas: boca3d 120/120, front 416/416, tsc OK, build OK, Blender 53/53.
+- FPS bilabial frente a `8bd4a66`: ver la tabla del informe. Lo que queda por debajo es enseñar el interior en `/p b m/`, no el recuadro.
+- **Siguiente**: Miguel mira la vista previa; si aprueba, lote (primero `cuerpo_alto`/`raiz_atras`/`punta_arriba` con el hidrostato: `/l w j i u ɪ ʊ ɝ/` siguen fuera de ±10 %). v5: cabeza escaneada (sección «Preparación v5» del informe).

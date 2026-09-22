@@ -938,14 +938,26 @@ def cabeza_makehuman():
     nariz_corte = [(x_frente(Y_NARIZ), Y_NARIZ)] + frente_entre(Y_NARIZ, Y_PUENTE) + [(-2.5, 3.0), (-2.5, 1.72), (-2.55, 1.6)]
     # Maxilar: del labio superior (linea de la boca) a la base de la nariz por
     # delante; el paladar y la nasofaringe por dentro.
-    maxilar = [(x_frente(Y_BOCA), Y_BOCA)] + frente_entre(Y_BOCA, Y_NARIZ) + [(-2.55, 1.6), (-2.5, 1.72)] + PALADAR_CORTE + [(-2.6, 0.45)]
+    # D4.4b v4: la seccion de cada labio va aparte, del color del labio y con
+    # las MISMAS shape keys que la piel (los campos de `labios_en_piel` se
+    # evaluan sobre sus vertices): en el corte sagital cada labio es un
+    # volumen que se mueve con la boca, no la lamina roja de la piel vista de
+    # canto sobre hueso. El de arriba llega hasta la base del filtrum; el de
+    # abajo, hasta el surco mentolabial; por dentro, hasta el hueso alveolar.
+    Y_LABIO_SUP, Y_LABIO_INF = Y_BOCA + 0.7, -0.35
+    labio_sup = [(-2.62, Y_BOCA), (x_frente(Y_BOCA), Y_BOCA)] + frente_entre(Y_BOCA, Y_LABIO_SUP) + [(-2.62, Y_LABIO_SUP)]
+    labio_inf = [(-2.55, Y_LABIO_INF), (x_frente(Y_LABIO_INF), Y_LABIO_INF)] + frente_entre(Y_LABIO_INF, Y_BOCA) + [(-2.55, -0.05)]
+    maxilar = ([(-2.62, Y_LABIO_SUP), (x_frente(Y_LABIO_SUP), Y_LABIO_SUP)] + frente_entre(Y_LABIO_SUP, Y_NARIZ)
+               + [(-2.55, 1.6), (-2.5, 1.72)] + PALADAR_CORTE + [(-2.6, 0.45)])
     # Mandibula: del labio inferior al cuello por delante, el corte del cuello,
     # la garganta y el suelo de la boca por dentro.
-    mandibula = list(reversed(frente_entre(Y_CORTE_ABAJO, Y_BOCA))) + [(2.04, Y_CORTE_ABAJO)] + SUELO_CORTE
+    mandibula = list(reversed(frente_entre(Y_CORTE_ABAJO, Y_LABIO_INF))) + [(2.04, Y_CORTE_ABAJO)] + SUELO_CORTE[:-1]
     placa("corte_craneo", craneo, -0.01, CORTE)
     placa("corte_nariz", nariz_corte, -0.01, CORTE)
     placa("corte_maxilar", maxilar, -0.01, CORTE)
     placa("corte_mandibula", mandibula, -0.01, CORTE)
+    for nombre, poligono in (("corte_labio_sup", labio_sup), ("corte_labio_inf", labio_inf)):
+        labios_en_piel(placa(nombre, poligono, -0.01, LABIOS))
     # Las paredes del fondo de las cavidades, a tres profundidades (de tres
     # cuartos, a traves de la mitad translucida, se veia el reves oscuro de
     # la piel y la cabeza parecia hueca). Cada una con el contorno REAL de la

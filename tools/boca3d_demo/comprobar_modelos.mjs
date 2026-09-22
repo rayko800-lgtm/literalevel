@@ -46,4 +46,16 @@ for (const [nombre, antes] of [['cara.glb', 1902952], ['lengua.glb', 769224]]) {
   console.log(`${cumple ? 'OK   ' : 'EXCESO'} ${nombre}: ${bytes} bytes, limite ${Math.floor(antes * 1.15)}`);
   if (!cumple) fallos++;
 }
+// D4.4b v4: hidrostato de la lengua en las poses del piloto (misma regla que
+// medir_lengua.mjs --exigir): volumen ±10 % y punta ≥ 0,75 de la lámina.
+{
+  const { execFileSync } = await import('node:child_process');
+  try {
+    const salida = execFileSync(process.execPath, [resolve(RAIZ, 'tools', 'boca3d_demo', 'medir_lengua.mjs'), '--exigir'], { encoding: 'utf8' });
+    console.log('OK    lengua.glb: ' + (salida.trim().split(/\r?\n/).pop() ?? ''));
+  } catch (e) {
+    console.log('FALLA lengua.glb: hidrostato ' + String(e.stderr ?? e.message).trim().slice(0, 300));
+    fallos++;
+  }
+}
 process.exit(fallos ? 1 : 0);

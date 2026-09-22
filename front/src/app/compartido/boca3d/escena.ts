@@ -73,7 +73,7 @@ export function materialDe(tejido: Tejido, color: string, extra: Partial<THREE.M
   const base: Record<Tejido, Partial<THREE.MeshPhysicalMaterialParameters>> = {
     piel: { roughness: 0.87, clearcoat: 0, sheen: 0 },
     mucosa: { roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.32, sheen: 0.45, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffb0b4') },
-    encia: { roughness: 0.42, clearcoat: 0.45, clearcoatRoughness: 0.3, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
+    encia: { roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.25, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
     diente: { roughness: 0.3, clearcoat: 0.65, clearcoatRoughness: 0.18, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color('#fff4dc'), ior: 1.6 },
     hueso: { roughness: 0.72, clearcoat: 0, sheen: 0.2, sheenRoughness: 0.9, sheenColor: new THREE.Color('#fff3e0') },
     labio: { roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.35, sheen: 0.5, sheenRoughness: 0.65, sheenColor: new THREE.Color('#ffb6b0') },
@@ -370,6 +370,16 @@ export const I_COMPRESION_LABIOS = I_CIERRE_LABIOS + 1;
 const TAMANO = I_COMPRESION_LABIOS + 1;
 type PoseNumerica = Float64Array;
 
+/** Cuánto se juntan los labios: del todo en /p b m/; con los labios neutros,
+ *  del todo con la mandíbula casi cerrada (reposo: 0,2) y nada a partir de
+ *  media apertura (las vocales abiertas). Fruncidos, estirados y el
+ *  labiodental tienen su propia forma y no se cierran. */
+export function cierreLabial(pose: PoseSonido): number {
+  if (pose.labios === 'cerrados') return 1;
+  if (pose.labios !== 'neutros') return 0;
+  return Math.min(1, Math.max(0, (0.55 - pose.mandibula) / 0.3));
+}
+
 /** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
 function morfosDe(pose: PoseSonido): number[] {
   const [alt, ade] = pose.cuerpo;
@@ -560,7 +570,10 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   // D4.3b: sonoridad, para el pulso de vibracion -- una señal aparte del
   // aire, igual que en 2D (`marcas["vi"]` nunca es lo mismo que `"ab"`).
   n[I_SONORA] = pose.sonora ? 1 : 0;
-  n[I_CIERRE_LABIOS] = pose.labios === 'cerrados' ? 1 : 0;
+  // D4.4b v4: los labios neutros se juntan al cerrar la mandibula (en reposo,
+  // casi juntos; no la boca abierta de la malla). Es una regla de POSE, no de
+  // malla: con otra cabeza basta con darle su propia shape key `cierre_labios`.
+  n[I_CIERRE_LABIOS] = cierreLabial(pose);
   n[I_COMPRESION_LABIOS] = pose.labios === 'cerrados' ? (pose.movimiento === 'nasal' ? 0.35 : 1) : 0;
   return n;
 }
@@ -852,6 +865,14 @@ export interface OpcionesEscena {
 export class EscenaBoca {
   /** Segundo encuadre del mismo gesto; no tiene una animación independiente. */
   private readonly camaraLabios = new THREE.PerspectiveCamera(32, 1.25, 0.1, 60);
+  /** D4.4b v4: el detalle frontal se pinta en una textura pequeña (0,6 de la
+   *  resolución del recuadro, MSAA ×2) y solo cada tres cuadros mientras hay movimiento;
+   *  en el canvas se copia con un plano, que cuesta nada. Con la pasada
+   *  completa a resolución entera el recuadro se llevaba un 26 % de los fps. */
+  private detalle: { rt: THREE.WebGLRenderTarget; escena: THREE.Scene; camara: THREE.OrthographicCamera; material: THREE.MeshBasicMaterial } | null = null;
+  private detalleCuadro = 0;
+  private detalleListo = false;
+  private lucesEnDetalle = false;
   private static webgl: boolean | null = null;
   /** El renderer que reutilizan los visores sucesivos (ver el constructor). */
   private static compartido: THREE.WebGLRenderer | null = null;
@@ -949,7 +970,7 @@ export class EscenaBoca {
   private t0 = 0;
   private duracion = 0;
   /** La línea de tiempo en marcha (ciclo de un sonido o palabra entera). */
-  private linea: { claves: { t: number; n: PoseNumerica }[]; total: number } | null = null;
+  private linea: { claves: { t: number; n: PoseNumerica }[]; total: number; aspiracion?: { en: number; dura: number }[] } | null = null;
   private lineaT0 = 0;
   /** Giro de cámara (radianes de azimut) que acompaña a la línea: sube a
    *  mitad del ciclo y vuelve al final. Negativo mira hacia la cara. */
@@ -1252,7 +1273,7 @@ export class EscenaBoca {
       const n = poseNumerica(c.pose);
       return { t: c.t, n: c.hacia ? mezclar(n, poseNumerica(c.hacia), c.f ?? 0.5) : n };
     });
-    this.linea = { claves, total: linea.total };
+    this.linea = { claves, total: linea.total, aspiracion: linea.aspiracion };
     this.lineaT0 = performance.now();
     // El giro de cámara que acompaña al sonido (labios redondeados o
     // estirados se ven de frente): solo si el usuario no está arrastrando.
@@ -1290,6 +1311,21 @@ export class EscenaBoca {
   /** Corta la línea en marcha y se queda donde está. */
   detener(): void {
     this.linea = null;
+  }
+
+  /** D4.4b v4: el soplo de aspiración de una oclusiva sorda. Tras la
+   *  liberación, el aire oral se enciende del todo y se apaga en rampa
+   *  durante `dura` (0,55 s a 1×, lo mismo que la ráfaga del 2D). Una
+   *  sonora no lo tiene: en /b/ lo que se ve es la vibración, que ya venía
+   *  encendida durante el cierre. */
+  private soplar(t: number): void {
+    const soplo = (this.linea?.aspiracion ?? []).reduce((mejor, a) => {
+      const f = (t - a.en) / a.dura;
+      return f >= 0 && f < 1 ? Math.max(mejor, 1 - f * f) : mejor;
+    }, 0);
+    if (soplo <= 0) return;
+    const mat = this.aireOral.material as THREE.MeshStandardMaterial;
+    mat.opacity = Math.max(mat.opacity, 0.85 * soplo);
   }
 
   private poseDeLinea(t: number): PoseNumerica {
@@ -1574,6 +1610,10 @@ export class EscenaBoca {
         ['pared_lejana_2', 'pared', false], ['pared_lejana_3', 'pared', false],
         ['ojo_lejano', 'ojo', false], ['iris_lejano', 'iris', false],
         ['ojo_cercano', 'ojo', false], ['iris_cercano', 'iris', false],
+        // D4.4b v4: la sección de cada labio en el corte, con las mismas shape
+        // keys que la piel (cara.py las evalúa sobre sus vértices): en el
+        // corte sagital los labios son dos volúmenes, no dos láminas.
+        ['corte_labio_sup', 'labio', false], ['corte_labio_inf', 'labio', true],
       ];
       for (const [nombre, tejido, enMandibula] of cabeza) {
         const fuente = piezas.get(nombre);
@@ -1587,6 +1627,7 @@ export class EscenaBoca {
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0, side: THREE.DoubleSide })
           : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
+          : tejido === 'labio' ? materialDe('labio', col.labios, { side: THREE.DoubleSide })
           : materialDe('piel', geometria.hasAttribute('color') ? '#ffffff' : col.piel,
             { side: THREE.DoubleSide, vertexColors: geometria.hasAttribute('color') });
         const pieza = new THREE.Mesh(geometria, mat);
@@ -1596,7 +1637,8 @@ export class EscenaBoca {
         // D4.3c: las caras del corte y la pared del fondo son justo lo que
         // revela que esto es un corte sagital, no una cara entera: se
         // esconden en la vista exterior (bilabiales/labiodentales).
-        if (tejido === 'corte' || tejido === 'pared') this.piezasCorte.push(pieza);
+        if (tejido === 'corte' || tejido === 'pared' || tejido === 'labio') this.piezasCorte.push(pieza);
+        if (tejido === 'labio') this.conMorfosDeLabios(pieza, fuente);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
         if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
@@ -1746,6 +1788,12 @@ export class EscenaBoca {
     });
     texturas.forEach(t => t.dispose());
     this.papilas?.dispose();
+    if (this.detalle) {
+      this.detalle.rt.dispose();
+      this.detalle.material.dispose();
+      this.detalle.escena.traverse(o => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
+      this.detalle = null;
+    }
     this.hueso?.dispose();
     this.escena.environment?.dispose();
     this.luzPrincipal.shadow.dispose();
@@ -1781,6 +1829,7 @@ export class EscenaBoca {
       const t = (performance.now() - this.lineaT0) / 1000;
       this.actual = this.poseDeLinea(t);
       this.aplicar(this.actual);
+      this.soplar(t);
       if (this.giroLinea) {
         // Sube y baja con una campana suave: en mitad del ciclo está girada del todo.
         const f = Math.min(1, Math.max(0, t / this.linea.total));
@@ -1834,25 +1883,62 @@ export class EscenaBoca {
     if (!this.cabezaEntera || !['bilabial', 'nasal-bilabial'].includes(this.familiaActual)) return;
     const tam = r.getSize(new THREE.Vector2());
     const w = Math.min(138, tam.x * 0.48), h = w / 1.25;
+    const fondo = r.getClearColor(new THREE.Color()), alfa = r.getClearAlpha();
+    // Quieta, cada cuadro (es uno); en movimiento, uno de cada tres: el gesto
+    // de los labios dura 0,5 s y a 10 fps son 5 cuadros; 3 con recuadro nuevo bastan.
+    const animando = this.linea !== null || this.hacia !== null;
+    this.detalleCuadro++;
+    if (!this.detalleListo || !animando || this.detalleCuadro % 3 === 0) this.pintarDetalle(w, h);
+    if (!this.detalle) return;
+    r.setScissorTest(true);
+    r.setScissor(8, 8, w + 4, h + 4); r.setViewport(8, 8, w + 4, h + 4);
+    r.setClearColor('#b4a497', 1); r.clear();
+    r.setScissor(10, 10, w, h); r.setViewport(10, 10, w, h);
+    r.render(this.detalle.escena, this.detalle.camara);
+    r.setScissorTest(false); r.setViewport(0, 0, tam.x, tam.y);
+    r.setClearColor(fondo, alfa);
+  }
+
+  /** La pasada del detalle frontal, a su textura. */
+  private pintarDetalle(w: number, h: number): void {
+    const r = this.renderer;
+    const ancho = Math.max(32, Math.round(w * r.getPixelRatio() * 0.6)), alto = Math.max(32, Math.round(h * r.getPixelRatio() * 0.6));
+    if (!this.detalle || this.detalle.rt.width !== ancho || this.detalle.rt.height !== alto) {
+      this.detalle?.rt.dispose();
+      // MSAA en la textura (WebGL2): sin él, la silueta de la cara salía a
+      // escalones. La pasada ya aplica el tone mapping al escribir en la
+      // textura: la copia no debe volver a aplicarlo (salía gris).
+      const rt = new THREE.WebGLRenderTarget(ancho, alto, { depthBuffer: true, samples: 2 });
+      if (this.detalle) {
+        this.detalle.material.map = rt.texture;
+        this.detalle.rt = rt;
+      } else {
+        const material = new THREE.MeshBasicMaterial({ map: rt.texture, toneMapped: false });
+        const escena = new THREE.Scene();
+        escena.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+        this.detalle = { rt, escena, camara: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), material };
+      }
+    }
+    if (!this.lucesEnDetalle) {
+      this.escena.traverse(o => { if (o instanceof THREE.Light) o.layers.enable(1); });
+      this.lucesEnDetalle = true;
+    }
     const mat = this.mejilla.material as THREE.MeshPhysicalMaterial;
     const estado = [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] as const;
-    const fondo = r.getClearColor(new THREE.Color()), alfa = r.getClearAlpha();
     const sombras = r.shadowMap.autoUpdate;
-    this.escena.traverse(o => { if (o instanceof THREE.Light) o.layers.enable(1); });
     this.mejilla.visible = true; mat.opacity = 1; mat.transparent = false; mat.depthWrite = true;
     this.camaraLabios.layers.set(1);
     this.camaraLabios.position.set(-11.8, 0.25, 0);
     this.camaraLabios.lookAt(-3, 0.05, 0);
     this.camaraLabios.updateMatrixWorld();
     r.shadowMap.autoUpdate = false;
-    r.setScissorTest(true);
-    r.setScissor(8, 8, w + 4, h + 4); r.setViewport(8, 8, w + 4, h + 4);
-    r.setClearColor('#b4a497', 1); r.clear();
-    r.setScissor(10, 10, w, h); r.setViewport(10, 10, w, h);
-    r.setClearColor('#f1e8df', 1); r.render(this.escena, this.camaraLabios);
-    r.setScissorTest(false); r.setViewport(0, 0, tam.x, tam.y);
-    r.setClearColor(fondo, alfa); r.shadowMap.autoUpdate = sombras;
+    r.setRenderTarget(this.detalle.rt);
+    r.setClearColor('#f1e8df', 1); r.clear();
+    r.render(this.escena, this.camaraLabios);
+    r.setRenderTarget(null);
+    r.shadowMap.autoUpdate = sombras;
     [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] = estado;
+    this.detalleListo = true;
   }
 
   /** Guarda automática de fluidez (criterio de Central, 14 sep): los dos
