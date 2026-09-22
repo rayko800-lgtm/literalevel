@@ -633,11 +633,11 @@ function mezclarPose(a: PoseNumerica, b: PoseNumerica, f: number): PoseNumerica 
       // Vuelta a una pose sellada (el ciclo de /p b m/ acaba en reposo): sin
       // esto los labios nunca se separaban al soltar, solo se veía el soplo.
       // Rebote de la explosión dentro del mismo tramo: en el primer 45 % el
-      // cierre cae a cero y la mandíbula abre hasta ~0,4 (≈11 mm en los
-      // labios), y luego vuelven al sello.
+      // cierre cae a cero y la mandíbula abre hasta ~0,55 (v7: con el labio
+      // siguiendo al hueso se ven los dientes en el rebote), y luego vuelven al sello.
       const rebote = t < 0.45 ? Math.sin(Math.PI * t / 0.45) : 0;
       r[I_CIERRE_LABIOS] *= 1 - rebote;
-      r[I_MAND] += rebote * 0.32 * MAND_MAX;
+      r[I_MAND] += rebote * 0.5 * MAND_MAX;
       // Compresión negativa: los bordes del bermellón se separan de la línea
       // de contacto (el de arriba sube ~2 mm y asoma el borde de los incisivos).
       r[I_COMPRESION_LABIOS] -= 0.6 * rebote;
@@ -777,7 +777,7 @@ interface PielDeformable {
   pesos: Float32Array;
   /** v6 (escaneo): cuánto de `pesos` es labio que se retrasa respecto al hueso
    *  (1 junto a la ranura, 0 en la barbilla). El peso efectivo es
-   *  `pesos - retraso * (1 - k(mandíbula))`, con k = 0,2 en reposo y 0,6 en las vocales. */
+   *  `pesos - retraso * (1 - k(mandíbula))`, con k = 0,2 en reposo y 1 en las vocales (v7). */
   retraso: Float32Array;
   ultimoGiro: number;
 }
@@ -805,7 +805,14 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
       // D4.4b v5: la cabeza escaneada trae los labios sellados y cara.py les
       // abre una ranura en y = 0,15 con los dos lados separados 0,012: el
       // corte va justo ahí, seco, para que cada labio caiga entero de su lado.
-      const bajoLabio = ranuraSeca ? suave01((0.15 - y) / 0.02) : suave01((0.2 - y) / 0.1);
+      const seco = suave01((0.15 - y) / 0.02);
+      // D4.4b v7: por encima de la ranura el labio de arriba SUBE con la
+      // apertura (peso negativo, −0,22 en su bermellón): el borde incisal
+      // superior está 7 mm por encima de la línea de contacto y sin esto los
+      // dientes de arriba no se veían nunca. Misma fórmula que
+      // `peso_labio_inferior_lps` en cara.py.
+      const arriba = suave01((y - 0.15) / 0.02) * (1 - suave01((y - 0.55) / 0.25));
+      const bajoLabio = ranuraSeca ? seco - 0.22 * arriba : suave01((0.2 - y) / 0.1);
       bajo = bajo + (bajoLabio - bajo) * frente;
       // D4.4b v6: bajo la ranura el labio se RETRASA respecto al hueso (sigue
       // un 20 % en reposo y un 60 % en las vocales, `deformarPiel`), y el
@@ -813,7 +820,7 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
       // hueso: el giro de reposo (1 cm en los labios) se reparte como un
       // estirón uniforme en vez de rasgar el bermellón (la «herida» de v5).
       // Misma fórmula que `peso_labio_inferior_lps` en cara.py.
-      if (ranuraSeca) retraso[i] = frente * bajoLabio * Math.min(1, Math.max(0, (y + 1.2) / 1.35));
+      if (ranuraSeca) retraso[i] = frente * seco * Math.min(1, Math.max(0, (y + 1.2) / 1.35));
     }
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
     pesos[i] = bajo * delante;
@@ -829,12 +836,15 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
   const pos = piel.geometria.getAttribute('position') as THREE.BufferAttribute;
   const salida = pos.array as Float32Array;
   const { reposo, pesos, retraso } = piel;
-  // v6: k(mandíbula): 0,2 hasta la mandíbula de reposo (0,2) y 0,6 desde 0,5.
-  const k = 0.2 + 0.4 * suave01((giro / MAND_MAX - 0.2) / 0.3);
+  // v6: k(mandíbula): 0,2 hasta la mandíbula de reposo (0,2); v7: 1 desde
+  // 0,5 (con 0,6 los incisivos de abajo quedaban siempre detrás del labio y
+  // con 0,9 asomaban 1,6 mm; con 1, 4,6 mm).
+  const k = 0.2 + 0.8 * suave01((giro / MAND_MAX - 0.2) / 0.3);
   for (let i = 0; i < pos.count; i++) {
     const w = pesos[i] - retraso[i] * (1 - k);
     const x = reposo[3 * i], y = reposo[3 * i + 1];
-    if (w <= 0) { salida[3 * i] = x; salida[3 * i + 1] = y; continue; }
+    // v7: el peso puede ser NEGATIVO (el labio de arriba sube al abrir).
+    if (w === 0) { salida[3 * i] = x; salida[3 * i + 1] = y; continue; }
     const a = giro * w, c = Math.cos(a), s = Math.sin(a);
     const dx = x - PIVOTE_MAND.x, dy = y - PIVOTE_MAND.y;
     salida[3 * i] = PIVOTE_MAND.x + dx * c - dy * s;
@@ -1056,6 +1066,10 @@ export class EscenaBoca {
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
   private hacia: PoseNumerica | null = null;
+  /** v7: los globos oculares del escaneo (`ojo_*` en cara.glb), si los trae. */
+  private ojos: THREE.Mesh[] = [];
+  /** v7: el fondo oscuro de la boca en el recuadro (solo capa 1). */
+  private interiorBoca: THREE.Mesh | null = null;
   private t0 = 0;
   private duracion = 0;
   /** La línea de tiempo en marcha (ciclo de un sonido o palabra entera). */
@@ -1293,6 +1307,7 @@ export class EscenaBoca {
     this.papilas = texturaPapilas();
     this.hueso = texturaHueso();
     this.lengua = new THREE.Mesh(geometriaLengua(), materialDe('lengua', col.lengua));
+    this.lengua.layers.enable(1);                     // v7: también en el recuadro
     this.escena.add(this.lengua);
 
     // La mejilla del lado de la cámara: translúcida, se pinta la última y no
@@ -1590,6 +1605,7 @@ export class EscenaBoca {
       const dic = m.morphTargetDictionary ?? {};
       this.indicesMorfos = MORFOS_LENGUA.map(nombre => dic[nombre]);
       this.lenguaGlb = m;
+      m.layers.enable(1);                             // v7: la lengua del .glb también en el recuadro
       this.lengua.visible = false;
       // La lengua va sobre el suelo de la boca: baja y gira con la mandíbula
       // (consejo de entrega-4e); el morfo `mandibula` solo añade un poco.
@@ -1768,6 +1784,34 @@ export class EscenaBoca {
         if (fuente) this.escena.add(new THREE.Mesh(
           fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), materialDe('piel', col.piel)));
       }
+      // D4.4b v7: los globos oculares del escaneo (esclerótica, iris y pupila
+      // por colores de vértice), detrás de los párpados abiertos. El del lado
+      // de la cámara solo se ve cuando la piel de ese lado es opaca
+      // (`ocultarLaterales`): tras la piel de cristal flotaría una bola blanca.
+      // D4.4b v7: un elipsoide oscuro con las caras hacia dentro, SOLO en la
+      // capa 1 (el recuadro): tapa el reverso beige de la piel que se veía por
+      // la boca abierta y deja delante dientes, encías y lengua. El corte
+      // (capa 0) no lo ve.
+      if (this.interiorBoca) { this.escena.remove(this.interiorBoca); this.interiorBoca.geometry.dispose(); (this.interiorBoca.material as THREE.Material).dispose(); }
+      this.interiorBoca = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16),
+        new THREE.MeshStandardMaterial({ color: '#4a1a1e', roughness: 1, metalness: 0, side: THREE.BackSide }));
+      // Dentro de la cabeza: el frente en x = −2,4 (tras las tiras de mucosa),
+      // el fondo en −1,6 (la barbilla va por debajo) y 1,5 a los lados.
+      this.interiorBoca.scale.set(2.6, 2.0, 1.5);
+      this.interiorBoca.position.set(0.2, 0.4, 0);
+      this.interiorBoca.layers.set(1);
+      this.escena.add(this.interiorBoca);
+      this.ojos.length = 0;
+      for (const nombre of ['ojo_izq', 'ojo_der']) {
+        const fuente = piezas.get(nombre);
+        if (!fuente) continue;
+        const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
+        geometria.computeBoundingSphere();
+        const ojo = new THREE.Mesh(geometria, materialDe('piel', '#ffffff', { vertexColors: true, roughness: 0.25 }));
+        ojo.userData['lateral'] = geometria.boundingSphere?.center.z ?? 0;
+        this.ojos.push(ojo);
+        this.escena.add(ojo);
+      }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
       const papilas = Array.from(piezas.keys()).filter(n => n.startsWith('papila_'));
       const dentales = ['paladar_modelado', 'encia_superior', 'encia_inferior', 'mandibula_modelada',
@@ -1796,6 +1840,12 @@ export class EscenaBoca {
             ? `${esIncisivo ? 'incisivo' : 'posterior'}-${esInferior ? 'inferior' : 'superior'}`
             : `soporte-${esInferior ? 'inferior' : 'superior'}`;
           pieza.userData['indiceDental'] = indice;
+          // D4.4b v7: el recuadro (capa 1) solo veía la piel: al abrir la boca
+          // enseñaba el reverso beige de la piel y ningún diente. Dientes,
+          // incisivos y caninos (3–8) entran en la capa 1; molares, encías,
+          // papilas, paladar y hueso no (no se ven por la boca y con todo en
+          // la capa el preset bilabial caía por debajo de la base 8bd4a66).
+          if (coincidencia && indice >= 3 && indice <= 8) pieza.layers.enable(1);
           (inferior ? this.dentroMandibula : this.escena).add(pieza);
           if (nombre.startsWith('diente_') && Math.abs(pieza.position.z) > 0.42) this.dientesLaterales.push(pieza);
           // Los dos arcos se conservan separados; el perfil dental de D4.4a
@@ -2047,7 +2097,19 @@ export class EscenaBoca {
     r.shadowMap.autoUpdate = false;
     r.setRenderTarget(this.detalle.rt);
     r.setClearColor('#f1e8df', 1); r.clear();
+    // D4.4b v7: el recuadro enseña toda la dentadura aunque el perfil dental
+    // del corte esconda parte (en las bilabiales los incisivos, para no tapar
+    // la lengua): sin esto al abrir la boca no se veía ningún diente.
+    const dentales = [...new Set([...(this.piezasDentalesInferiores ?? []), ...(this.piezasDentalesSuperiores ?? []), ...(this.dientesLaterales ?? [])])];
+    const visibles = dentales.map(o => o.visible);
+    for (const o of dentales) o.visible = true;
+    // v7: el recuadro reutiliza el mapa de sombras de la pasada principal (misma
+    // luz, misma escena): volver a dibujarlo para el recuadro costaba fps.
+    const sombrasAuto = r.shadowMap.autoUpdate;
+    r.shadowMap.autoUpdate = false;
     r.render(this.escena, this.camaraLabios);
+    r.shadowMap.autoUpdate = sombrasAuto;
+    dentales.forEach((o, i) => { o.visible = visibles[i]; });
     r.setRenderTarget(null);
     r.shadowMap.autoUpdate = sombras;
     [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] = estado;
@@ -2131,6 +2193,11 @@ export class EscenaBoca {
       : base - (base - 0.04) * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
     const matMejilla = this.mejilla.material as THREE.MeshStandardMaterial;
     if (Math.abs(matMejilla.opacity - opacidad) > 0.002) { matMejilla.opacity = opacidad; this.sucio = true; }
+    for (const ojo of this.ojos ?? []) {
+      const cercano = (ojo.userData['lateral'] as number) > 0;
+      const visible = !cercano || opacidad >= 0.5;
+      if (ojo.visible !== visible) { ojo.visible = visible; this.sucio = true; }
+    }
     if (ahora === this.lateralesOcultos) return;
     this.lateralesOcultos = ahora;
     for (const diente of this.dientesLaterales) {

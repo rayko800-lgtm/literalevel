@@ -718,8 +718,16 @@ def peso_labio_inferior_lps(y, mandibula=0.2):
         return t * t * (3 - 2 * t)
     seco = suave((0.15 - y) / 0.02)
     retraso = max(0.0, min(1.0, (y + 1.2) / 1.35))
-    k = 0.2 + 0.4 * suave((mandibula - 0.2) / 0.3)
-    return seco * (1 - retraso * (1 - k))
+    # v7: 1 en las vocales (con 0,6 los incisivos de abajo, que van con el
+    # hueso, quedaban siempre detras del labio; se ven si k > 0,83 y con 1
+    # asoman 4,6 mm). Las claves se calculan a mandibula 0,2 (k = 0,2): este
+    # tramo solo documenta la formula del visor.
+    k = 0.2 + 0.8 * suave((mandibula - 0.2) / 0.3)
+    # v7: el labio de arriba SUBE con la apertura (peso negativo -0,22): el
+    # borde incisal superior esta en y = 0,46, 7 mm por encima de la linea de
+    # contacto; con la mandibula de reposo sube 0,106 y el sello lo baja.
+    arriba = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.55) / 0.25))
+    return seco * (1 - retraso * (1 - k)) - 0.22 * arriba
 
 
 def perfil_lps():
@@ -779,10 +787,43 @@ def labios_en_piel(ob, perfil=None):
         d = math.sqrt(((x + 1.9) / 1.0) ** 2 + ((y - 0.7) / 1.0) ** 2 + ((abs(z) - 2.0) / 0.9) ** 2)
         return suave(1 - d)
 
+    grupo_mucosa = ob.vertex_groups.get("mucosa")
+    es_mucosa = set()
+    if grupo_mucosa is not None:
+        for v in ob.data.vertices:
+            if any(g.group == grupo_mucosa.index and g.weight > 0.5 for g in v.groups):
+                es_mucosa.add(v.index)
+    # v7: la mucosa (tiras) evalua las claves en su vertice de BORDE real mas
+    # cercano (por lateral, en su lado de la ranura), no en la curva ajustada
+    # `frente(z)`: en la mitad lejana la comisura del escaneo esta 0,3 mas
+    # adelante que la curva y con la curva la tira quedaba 0,1 mas afuera que
+    # el borde al fruncir (/u/ pasaba de -31,6 % a -25,7 % de anchura).
+    import bisect
+    bordes = {True: [], False: []}
+    for i, (x, y, z) in enumerate(base):
+        if i not in es_mucosa and x < -2.4 and abs(z) < perfil.get("ancho", 1.2) + 0.1 and abs(abs(y - 0.15) - RANURA) < 1e-4:
+            bordes[y >= 0.15].append((z, x, y))
+    for lado_borde in bordes:
+        bordes[lado_borde].sort()
+    zs_borde = {lado_borde: [t[0] for t in bordes[lado_borde]] for lado_borde in bordes}
+
+    def punto_borde(y, z):
+        lista = bordes[y >= 0.15]
+        if not lista:
+            return (-3.15 + perfil["curva"] * z * z, 0.15 + (RANURA if y >= 0.15 else -RANURA), z)
+        zs = zs_borde[y >= 0.15]
+        j = bisect.bisect_left(zs, z)
+        candidatos = [lista[m] for m in (j - 1, j) if 0 <= m < len(lista)]
+        zb, xb, yb = min(candidatos, key=lambda t: abs(t[0] - z))
+        return (xb, yb, zb)
+
     def clave(nombre, delta):
         k = ob.shape_key_add(name=nombre, from_mix=False)
         for i, (x, y, z) in enumerate(base):
-            dx, dy, dz = delta(x, y, z)
+            if i in es_mucosa:
+                dx, dy, dz = delta(*punto_borde(y, z))
+            else:
+                dx, dy, dz = delta(x, y, z)
             k.data[i].co = (x + dx, -(z + dz), y + dy)
 
     abre = lambda y: (1.0 if y > 0.15 else -1.0) * max(0.0, 1 - abs(y - 0.15) / 0.5)
@@ -823,7 +864,7 @@ def labios_en_piel(ob, perfil=None):
         # Eversion contenida: la mucosa de detras del borde (las tiras) asoma
         # una pizca hacia delante y se separa de la linea de contacto.
         frente = -3.15 + perfil["curva"] * z * z
-        tira = suave((x - frente - 0.02) / 0.10) * (1 - suave((x - frente - 0.42) / 0.15)) * (1 - suave((abs(z) - perfil["ancho"]) / 0.3))
+        tira = suave((x - frente - 0.02) / 0.10) * (1 - suave((x - frente - 0.16) / 0.08)) * (1 - suave((abs(z) - perfil["ancho"]) / 0.3))
         return (dx - 0.12 * tira, dy + (0.06 if y > 0.15 else -0.06) * tira, dz)
 
     def estirar_escaneo(x, y, z):
@@ -832,9 +873,16 @@ def labios_en_piel(ob, perfil=None):
         b = peso_boca(x, y, z)
         a = anillo(x, y, z)
         m = mejilla(x, y, z)
+        # v7: +33 % (medido +28,5 % con 0,66) y el labio de arriba sube 0,36
+        # en su bermellon (el borde incisal superior esta 0,31 por encima de
+        # la linea de contacto); el de abajo baja una pizca.
+        lateral = 1 - suave((abs(z) - perfil["ancho"]) / 0.35)
+        frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
+        sube = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.6) / 0.3)) * lateral * frente
+        baja = suave((0.15 - y) / 0.02) * (1 - suave((-0.15 - y) / 0.3)) * lateral * frente
         return (0.2 * b + 0.05 * a - 0.2 * m,
-                0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m + 0.08 * abre(y) * peso_boca(x, y, z, 0.8, 0.6, 0.9),
-                0.66 * z * b + 0.22 * z * a + 0.06 * lado(z) * m)
+                0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m + 0.50 * sube - 0.10 * baja,
+                0.76 * z * b + 0.25 * z * a + 0.06 * lado(z) * m)
 
     clave("fruncir", fruncir_escaneo if escaneo else fruncir)
     clave("estirar", estirar_escaneo if escaneo else estirar)
@@ -876,13 +924,16 @@ def labios_en_piel(ob, perfil=None):
         # labio de abajo que no deben moverse hacia los incisivos.
         frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
         if y >= contacto:
-            w = max(0.0, 1 - (y - contacto) / (arriba + 0.45)) * lateral * frente
-            return (0.0, -0.05 * w, 0.0)
+            # La misma banda `arriba` de peso_labio_inferior_lps: asi la bajada
+            # del sello cancela exactamente la subida de reposo (0,22 * 0,48) en
+            # cada vertice; con otra rampa los labios se solapaban 1,6 mm.
+            banda = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.55) / 0.25))
+            return (0.0, -0.106 * banda * lateral * frente, 0.0)
         a = MANDIBULA_CIERRE * 0.42 * peso_mandibula(x, y, z)
         gy = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
         caida = y - gy                                   # lo que baja este punto en reposo
         w = max(0.0, 1 - (contacto - y) / (abajo + 0.1)) * lateral * frente
-        return (0.0, (caida - 0.04) * w, 0.0)
+        return (0.0, (caida + 0.005) * w, 0.0)
 
     def cierre(x, y, z):
         if escaneo:
@@ -1200,10 +1251,30 @@ def corte_y_paredes(ob, ojos, caras_quitadas=0, perfil_labios=None):
     print("MH_OK", {"vertices_lejana": len(ob.data.vertices), "caras_quitadas": caras_quitadas, "frente": frente[::11], "nuca": nuca[::11]})
 
 
-DECIMADO_LPS = 0.62
+DECIMADO_LPS = 0.55
 
 
-def tiras_de_mucosa_bm(bm, ancho):
+def uv_mas_oscuro(imagen, u0, u1, v0, v1, rojez_min):
+    """La UV del texel mas oscuro de la textura en la caja (u0..u1, v0..v1)
+    con rojez (r - (g+b)/2) >= rojez_min, muestreando cada 4 px. Sirve para
+    dar a la mucosa y a las tapas un color oscuro de la propia textura."""
+    W, H = imagen.size
+    px = imagen.pixels[:]
+    mejor, mejor_uv = 9.0, (0.5, 0.5)
+    for j in range(int(v0 * H), int(v1 * H), 4):
+        for i in range(int(u0 * W), int(u1 * W), 4):
+            k = 4 * (j * W + i)
+            r, g, b = px[k], px[k + 1], px[k + 2]
+            if r - (g + b) / 2 >= rojez_min and (r + g + b) / 3 < mejor:
+                mejor, mejor_uv = (r + g + b) / 3, ((i + 0.5) / W, (j + 0.5) / H)
+    print("UV_OSCURO", round(mejor, 3), mejor_uv)
+    return mejor_uv
+
+
+TIRAS_VERTS = []                       # los BMVert de las tiras (para el grupo "mucosa")
+
+
+def tiras_de_mucosa_bm(bm, ancho, uv_mucosa=None):
     """v6: el escaneo trae los labios como una sola superficie sin grosor: al
     abrirse la ranura se veia el interior de la cabeza por un canto de cero.
     Detras de cada borde de la ranura se extruye una tira de tres anillos
@@ -1223,12 +1294,19 @@ def tiras_de_mucosa_bm(bm, ancho):
         anillos = [borde]
         # Cortas (0,16 hacia atras como maximo): con 0,30 el tercer anillo
         # tocaba las coronas de los incisivos laterales (banda labios-dientes).
-        for dx, dz, encoge in ((0.05, 0.0, 0.99), (0.11, 0.06, 0.965), (0.16, 0.15, 0.93)):
+        # v7: cuatro anillos hasta el surco vestibular (0,22 hacia atras y
+        # 0,40 hacia la encia, 0,36 abajo): por encima de la tira corta se
+        # veia el reverso beige de la piel del labio al abrir la boca.
+        # (con el cuarto anillo a 0,32 hacia atras rozaba las coronas de los
+        # laterales: 25 roces en la banda labios-dientes; a 0,22, ninguno)
+        # (y a 0,40 de altura el ultimo anillo asomaba por el filtrum al fruncir: 0,30 / 0,28)
+        for dx, dz, encoge in ((0.05, 0.0, 0.99), (0.12, 0.07, 0.965), (0.20, 0.18, 0.93), (0.22, 0.30 if signo > 0 else 0.28, 0.90)):
             anillo = []
             for v in borde:
                 afina = max(0.0, 1 - (abs(v.co.y) / (ancho + 0.02)) ** 2) ** 0.5   # las tiras mueren en las comisuras
                 nv = bm.verts.new((v.co.x + dx * (0.35 + 0.65 * afina), v.co.y * encoge, v.co.z + signo * dz * afina))
                 anillo.append(nv)
+                TIRAS_VERTS.append(nv)
             anillos.append(anillo)
         bm.verts.ensure_lookup_table()
         for a, b in zip(anillos, anillos[1:]):
@@ -1241,20 +1319,23 @@ def tiras_de_mucosa_bm(bm, ancho):
                 f.smooth = True
                 nuevas += 1
                 for bucle in f.loops:
+                    if uv_mucosa is not None:
+                        bucle[uv_lay].uv = uv_mucosa
+                        continue
                     origen = borde[min(i + (0 if bucle.vert in (a[i], b[i]) else 1), len(borde) - 1)]
                     bucle[uv_lay].uv = origen.link_loops[0][uv_lay].uv if origen.link_loops else (0.5, 0.5)
     return nuevas
 
 
-def tapar_agujeros_bm(bm):
-    """v6: las fosas nasales del escaneo son tuneles abiertos por dentro y la
-    base de la nariz tiene otro boquete: desde abajo se veia el fondo. Se
-    tapan los bucles de borde CERRADOS y pequenos (6-80 aristas) cuyos
-    vertices caen todos en la region de la nariz (visor: x < -1,6,
-    0,3 < altura < 2,8, |lateral| < 1,9; el hueco interior de la boca llega
-    a la ranura y es mucho mayor, y los parpados quedan por encima) con caras
-    que toman la UV del propio borde. Devuelve cuantas tapas."""
+def tapar_agujeros_bm(bm, uv_oscuro=(0.5, 0.5)):
+    """v7: el boquete bajo la nariz del escaneo (una cadena ABIERTA de ~66
+    aristas de borde en la region de la nariz) se cierra con geometria
+    propia: un abanico desde el borde hasta un centro metido 0,15 hacia
+    dentro, con la UV mas oscura de la textura (sombreado hacia dentro).
+    Los bucles cerrados de la region se rellenan con holes_fill.
+    Devuelve cuantas tapas."""
     import bmesh
+    from mathutils import Vector
     uv_lay = bm.loops.layers.uv.active
     bm.edges.ensure_lookup_table()
     borde = [e for e in bm.edges if e.is_boundary]
@@ -1283,27 +1364,144 @@ def tapar_agujeros_bm(bm):
     tapas = 0
     for comp in bucles:
         verts = {v for e in comp for v in e.verts}
-        cerrado = all(len([g for g in ady[v] if g in comp]) == 2 for v in verts)
         if not (6 <= len(comp) <= 80 and all(en_nariz(v) for v in verts)):
             continue
-        if not cerrado:
-            # Cadena abierta (el boquete bajo la nariz, 66 aristas): se cierra
-            # uniendo sus dos extremos y se rellena como un bucle.
-            extremos = [v for v in verts if len([g for g in ady[v] if g in comp]) == 1]
+        grados = {v: len([g for g in ady[v] if g in comp]) for v in verts}
+        extremos = [v for v in verts if grados[v] == 1]
+        if extremos:
             if len(extremos) != 2:
                 continue
+            # recorrer la cadena desde un extremo
+            orden, actual, previa = [extremos[0]], extremos[0], None
+            while True:
+                siguiente = None
+                for g in ady[actual]:
+                    if g in comp and g is not previa:
+                        siguiente = g
+                        break
+                if siguiente is None:
+                    break
+                previa = siguiente
+                actual = siguiente.other_vert(actual)
+                orden.append(actual)
+                if actual is extremos[1]:
+                    break
+            centro = sum((v.co for v in orden), Vector()) / len(orden) + Vector((0.15, 0.0, 0.0))
+            vc = bm.verts.new(centro)
+            nuevas = []
+            for a, b in zip(orden, orden[1:]):
+                try:
+                    nuevas.append(bm.faces.new((a, b, vc)))
+                except ValueError:
+                    continue
             try:
-                comp = comp + [bm.edges.new((extremos[0], extremos[1]))]
+                nuevas.append(bm.faces.new((orden[-1], orden[0], vc)))
             except ValueError:
-                continue
-        res = bmesh.ops.holes_fill(bm, edges=comp, sides=0)
-        for f in res["faces"]:
+                pass
+        else:
+            nuevas = bmesh.ops.holes_fill(bm, edges=comp, sides=0)["faces"]
+        for f in nuevas:
             f.smooth = True
             for bucle in f.loops:
-                otros = [l for l in bucle.vert.link_loops if l.face is not f]
-                bucle[uv_lay].uv = otros[0][uv_lay].uv if otros else (0.5, 0.5)
+                bucle[uv_lay].uv = uv_oscuro
             tapas += 1
+        print("NARIZ_LPS", {"bucle": len(comp), "abierto": bool(extremos), "caras": len(nuevas)})
     return tapas
+
+
+OJOS_LPS = (("ojo_der", 4.11, 1.53), ("ojo_izq", 4.10, -1.12))   # (nombre, altura, lateral) del centro del hueco de los parpados (medido)
+
+
+def ranura_parpados_bm(bm):
+    """v7: los parpados del escaneo son UNA superficie continua (deformarla
+    solo estiraba la piel del ojo). Como con la boca: bisect por el plano de
+    la linea del parpado (altura cy) en la banda de cada ojo, split de las
+    aristas del corte y los dos lados separados 0,01. Devuelve las aristas."""
+    import bmesh
+    total = 0
+    for _, cy, cz in OJOS_LPS:
+        banda = [f for f in bm.faces if f.calc_center_median().x < -1.5 and abs(-f.calc_center_median().y - cz) < 0.55
+                 and abs(f.calc_center_median().z - cy) < 0.45]
+        geom = list({g for f in banda for g in (f.verts[:] + f.edges[:])}) + banda
+        corte = bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0.0, 0.0, cy), plane_no=(0.0, 0.0, 1.0),
+                                       clear_outer=False, clear_inner=False)
+        aristas = [g for g in corte["geom_cut"] if isinstance(g, bmesh.types.BMEdge)
+                   and all(abs(-v.co.y - cz) < 0.55 and v.co.x < -1.5 for v in g.verts)]
+        bmesh.ops.split_edges(bm, edges=aristas)
+        for v in bm.verts:
+            if abs(v.co.z - cy) < 1e-4 and abs(-v.co.y - cz) < 0.55 and v.co.x < -1.5 and v.link_faces:
+                medio = sum(f.calc_center_median().z for f in v.link_faces) / len(v.link_faces)
+                v.co.z += 0.01 if medio > cy else -0.01
+        total += len(aristas)
+    return total
+
+
+def abrir_parpados(ob):
+    """v7: tras `ranura_parpados_bm`, el parpado de arriba sube 0,26 y el de
+    abajo baja 0,10 con una campana en lateral (0,75) y en altura, solo en
+    la piel de delante: queda el hueco y detras el globo. Devuelve cuantos
+    vertices se mueven."""
+    n = 0
+    for v in ob.data.vertices:
+        x, y, lateral = v.co.x, v.co.z, -v.co.y
+        if x > -1.4:
+            continue
+        for _, cy, cz in OJOS_LPS:
+            campana = max(0.0, 1 - ((lateral - cz) / 0.75) ** 2)
+            if campana <= 0:
+                continue
+            if y >= cy:
+                w = campana * max(0.0, 1 - ((y - cy - 0.05) / 0.5) ** 2)
+                if w > 0:
+                    v.co.z += 0.26 * w
+                    n += 1
+            else:
+                w = campana * max(0.0, 1 - ((cy - y) / 0.35) ** 2)
+                if w > 0:
+                    v.co.z -= 0.10 * w
+                    n += 1
+    ob.data.update()
+    return n
+
+
+def ojos_lps():
+    """v7: dos globos oculares (esclerotica, iris y pupila por colores de
+    vertice, `ojo_*` en el visor) detras de los parpados abiertos. La
+    superficie del parpado en el centro del ojo esta en x ~ -2,3 (medido):
+    el globo (radio 0,53 = 12 mm) va con el frente en -2,2."""
+    r = 0.53
+    for nombre, cy, cz in OJOS_LPS:
+        cx = -2.25 + r
+        vertices, caras = [], []
+        seg, anillos = 24, 12
+        for i in range(anillos + 1):
+            t = math.pi * i / anillos
+            for j in range(seg):
+                a = math.tau * j / seg
+                vx, vy, vz = -math.cos(t), math.sin(t) * math.sin(a), math.sin(t) * math.cos(a)   # eje hacia delante (-x)
+                vertices.append((cx + r * vx, cy + r * vy, cz + r * vz))
+        for i in range(anillos):
+            for j in range(seg):
+                a, b = i * seg + j, i * seg + (j + 1) % seg
+                caras.append((a, b, b + seg, a + seg))
+        ob = malla(nombre, vertices, caras, PIEL)
+        colores = ob.data.vertex_colors.new(name="ojo")
+        for poly in ob.data.polygons:
+            poly.use_smooth = True
+            for li in poly.loop_indices:
+                v = ob.data.vertices[ob.data.loops[li].vertex_index].co
+                frente = -(v.x - cx) / r
+                # pupila 4 mm (cos 9,6 grados), iris 12 mm (cos 30 grados), limbo, esclerotica
+                if frente > 0.975:
+                    c = (0.02, 0.02, 0.02)
+                elif frente > 0.87:
+                    f = (frente - 0.87) / 0.105
+                    c = (0.32 - 0.14 * f, 0.20 - 0.10 * f, 0.09 - 0.05 * f)
+                elif frente > 0.85:
+                    c = (0.14, 0.09, 0.06)
+                else:
+                    c = (0.90, 0.87, 0.84)
+                colores.data[li].color = (c[0], c[1], c[2], 1.0)
 
 
 def cabeza_escaneada():
@@ -1376,11 +1574,23 @@ def cabeza_escaneada():
         if abs(v.co.z - 0.15) < 1e-4 and abs(v.co.y) < ancho and v.co.x < -2.4 and v.link_faces:
             medio = sum(f.calc_center_median().z for f in v.link_faces) / len(v.link_faces)
             v.co.z += RANURA if medio > 0.15 else -RANURA
-    n_tiras = tiras_de_mucosa_bm(bm, ancho)
-    n_tapas = tapar_agujeros_bm(bm)
+    # v7: la ranura se subdivide x3 (19 -> 57 aristas por lado) para que las
+    # tiras de mucosa no salgan facetadas.
+    ranura_aristas = [e for e in bm.edges if all(abs(abs(v.co.z - 0.15) - RANURA) < 1e-4 and abs(v.co.y) < ancho and v.co.x < -2.4 for v in e.verts)]
+    bmesh.ops.subdivide_edges(bm, edges=ranura_aristas, cuts=2, use_grid_fill=False)
+    n_parpados = ranura_parpados_bm(bm)
+    n_tiras = tiras_de_mucosa_bm(bm, ancho, uv_mucosa=uv_mas_oscuro(color.image, 0.30, 0.70, 0.55, 0.80, 0.12))
+    n_tapas = tapar_agujeros_bm(bm, uv_oscuro=uv_mas_oscuro(color.image, 0.30, 0.70, 0.55, 0.95, 0.0))
+    bm.verts.index_update()
+    indices_mucosa = [v.index for v in TIRAS_VERTS if v.is_valid]
     bm.to_mesh(ob.data)
     bm.free()
     ob.data.update()
+    # v7: las tiras van al grupo "mucosa" (sobrevive a la copia, al Decimate y
+    # al bisect de `recortar`): `labios_en_piel` les evalua las shape keys en
+    # su borde, no en su posicion, y asi se mueven rigidas con el labio (si
+    # no, con fruncir se plegaban en zigzag y asomaban por el filtrum).
+    ob.vertex_groups.new(name="mucosa").add(indices_mucosa, 1.0, 'REPLACE')
     n_ranura = len(aristas)
     # Presupuesto de bytes (cara.glb <= 1,9 MB + 15 %, texturas incluidas):
     # la nuca, el cuello y la coronilla (x > 0,6 o y > 2,6) se decimán al 35 %;
@@ -1402,6 +1612,7 @@ def cabeza_escaneada():
     bpy.context.view_layer.objects.active = ob
     bpy.ops.object.modifier_apply(modifier=decimar.name)
     ob.vertex_groups.remove(grupo)
+    print("OJOS_LPS", {"aristas_ranura_parpados": n_parpados, "vertices_movidos": abrir_parpados(ob)})
     # Mitad cercana: copia entera antes de recortar.
     espejo = ob.copy()
     espejo.data = ob.data.copy()
@@ -1427,6 +1638,7 @@ def cabeza_escaneada():
                      "aristas_ranura": n_ranura, "caras_interiores_quitadas": n_interior,
                      "vertices_cara_lejana": sum(1 for v in ob.data.vertices if v.co.x < 0.2),
                      "vertices_cara_antes_de_decimar": n_cara_antes, "tiras": n_tiras, "tapas": n_tapas})
+    ojos_lps()
     corte_y_paredes(ob, None, 0, perfil)
 
 
