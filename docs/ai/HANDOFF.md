@@ -283,3 +283,11 @@ Miguel.
 - A oír con atención: /dʒ/ (GA y RP comparten), cuyas tres tomas duran ~1,4 s cada una frente a 0,1–0,4 s de /tʃ/, y el asset sale de 8,4 s.
 - Sigue abierto: el ciclo único del 2D/3D se estira sobre todo el mp3 (sostenido + corto + palabra), igual que con los audios anteriores. Es consecuencia del formato A y no se ha tocado.
 - Procesos del grabador vivos (29844 servidor, 34412 vigilante, 37196 túnel): no cerrar hasta que Miguel termine la escucha.
+
+### Audio D4 · CERRADO · 22 sep 2026
+
+- **Validado de oído por Miguel: 85/85 OK** (41 GA + 44 RP) en `escucha.html`. Pegó el resultado de «Copiar resultado» en la sesión [ejecutora]. Registro: `build/grabador/validacion_miguel_2026-09-22.json`. No se cambia ninguna toma.
+- En producción: commit `cbd12f4` (master, solo los 85 mp3) y Space `MikeMaki1763/literalevel` en la revisión `8c8f7f17e17a140a791002d44d918f64e17adbab`. En dev: `ed2cce6`.
+- Vuelta atrás: `python tools/desplegar_app.py --commit 004eb28 --solo <las 85 rutas>` o `build/grabador/produccion_anterior/{ga,rp}`.
+- Infraestructura del grabador **cerrada** el 22 sep: cloudflared 37196, servidor 29844 y vigilante 34412 parados y comprobados. El puerto 8989 ya no escucha y la URL trycloudflare responde 530. `crudo/`, masters y respaldos intactos (zip en `Downloads\literalevel_grabador_2026-09-21_final.zip`).
+- Siguiente fase: **D4.4b (Blender), sin empezar.**
