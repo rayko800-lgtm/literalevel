@@ -32,6 +32,8 @@ import bpy
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, "..", ".."))
 SALIDA = os.environ.get("SALIDA_GLB", os.path.join(AQUI, "..", "boca3d_demo", "lengua.glb"))
+MAND_MAX = 0.21   # radianes con mandibula = 1: el MISMO valor que MAND_MAX en escena.ts y cara.py
+                  # (cierre de cara, 22 sep: 0,42 -> 0,21; la lengua tiene menos sitio al abrir)
 POSES = os.path.join(RAIZ, "front", "src", "app", "compartido", "boca3d", "poses.ejemplo.json")
 
 # --- El techo de la boca, igual que en escena.ts -----------------------------
@@ -295,6 +297,12 @@ def interdental(x, y, z):
     return (-avance, -0.035 * y * fino, alza - 0.035 * (z - CENTRO[2]) * fino)
 
 
+# Cierre de cara (22 sep): con MAND_MAX 0,21 y la mandibula de /θ ð/ en 0,36 la
+# punta (0,64 de grosor) no cabia entre los bordes incisales (hueco 0,54): o
+# chocaba arriba (alza 1,25 -> y 0,63 > 0,45) o se hundia en las coronas de
+# abajo (alza 0,88-0,93 -> roce +0,037). Decision de e6/Miguel: la mandibula
+# de /θ ð/ sube a 0,6 en poses.ejemplo.json (dato, no excepcion en codigo) y la
+# alza aprobada en v4 se conserva.
 INTERDENTAL_ALZA = 1.25
 clave("punta_interdental", interdental, libre=True)
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
@@ -349,14 +357,21 @@ def morfos_de(p):
     punta = p["punta"]
     return [
         0.3 * min(1.0, max(0.0, p["mandibula"])),
-        (1.0 if toca else 0.75) if punta in ("alveolar", "postalveolar") else 0.45 if punta == "dental" else 0.0,
+        # Cierre de cara: postalveolar con toque 0,85 (era 1,0): con la mandibula
+        # de 0,21 rad la suma punta_arriba + cuerpo_alto de /tʃ dʒ/ entraba
+        # 0,155 en el paladar (toque permitido 0,08). Mismo valor en escena.ts
+        # (morfosDe) y en tools/boca3d_demo/medir_lengua.mjs.
+        (1.0 if toca and punta == "alveolar" else 0.85 if toca else 0.75) if punta in ("alveolar", "postalveolar") else 0.45 if punta == "dental" else 0.0,
         1.0 if punta == "retrofleja" else 0.0,
         1.0 if punta == "interdental" else 0.0,
         max(0.0, (alt - 0.45) / 0.55),
         max(0.0, (0.45 - alt) / 0.45),
         max(0.0, (ade - 0.5) / 0.5),
         max(0.0, (0.5 - ade) / 0.5),
-        1.0 if p["dorso_velo"] else min(1.0, p["dorso_alto"]),
+        # Cierre de cara: sin toque, el dorso sube un 10 % menos (/w/ entraba
+        # 0,013 en el velo con la mandibula de 0,21). Mismo factor en escena.ts
+        # (morfosDe) y en medir_lengua.mjs.
+        1.0 if p["dorso_velo"] else 0.9 * min(1.0, p["dorso_alto"]),
         min(1.0, max(0.0, p["raiz"])),
     ]
 
@@ -409,7 +424,7 @@ for nombre, p in poses.items():
     permitido = TOLERANCIA_TOQUE if toca else 0.0
     entra = 0.0
     pos, pos_local = [], []
-    angulo = min(1.0, max(0.0, p["mandibula"])) * 0.42
+    angulo = min(1.0, max(0.0, p["mandibula"])) * MAND_MAX
     coseno, seno = math.cos(angulo), math.sin(angulo)
     roce_sup = roce_inf = -9.0
     for i, (x, y, z) in enumerate(base):

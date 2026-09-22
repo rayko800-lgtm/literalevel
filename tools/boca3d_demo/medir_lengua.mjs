@@ -51,14 +51,16 @@ export function morfosDe(p) {
   const punta = p.punta;
   return [
     0.3 * Math.min(1, Math.max(0, p.mandibula)),
-    ['alveolar', 'postalveolar'].includes(punta) ? (p.punta_toca ? 1 : 0.75) : punta === 'dental' ? 0.45 : 0,
+    // Cierre de cara: postalveolar con toque 0,85 (era 1); mismo valor en lengua.py y escena.ts.
+    ['alveolar', 'postalveolar'].includes(punta) ? (p.punta_toca ? (p.punta === 'alveolar' ? 1 : 0.85) : 0.75) : punta === 'dental' ? 0.45 : 0,
     punta === 'retrofleja' ? 1 : 0,
     punta === 'interdental' ? 1 : 0,
     Math.max(0, (alt - 0.45) / 0.55),
     Math.max(0, (0.45 - alt) / 0.45),
     Math.max(0, (ade - 0.5) / 0.5),
     Math.max(0, (0.5 - ade) / 0.5),
-    p.dorso_velo ? 1 : Math.min(1, p.dorso_alto),
+    // Cierre de cara: sin toque el dorso sube un 10 % menos (/w/); mismo factor en lengua.py y escena.ts.
+    p.dorso_velo ? 1 : 0.9 * Math.min(1, p.dorso_alto),
     Math.min(1, Math.max(0, p.raiz)),
   ];
 }

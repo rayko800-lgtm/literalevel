@@ -36,6 +36,9 @@ LPS_LINEA = (-2.262, -0.10)            # (y, z) del escaneo importado en Blender
 LPS_X_LINEA = -3.15                    # x del visor de la linea de los labios
 RANURA = 0.012                         # medio hueco de la ranura entre los labios (0,5 mm)
 MANDIBULA_CIERRE = 0.2                 # mandibula para la que se calcula `cierre_labios` (= reposo)
+MAND_MAX = 0.21                        # radianes con mandibula = 1: el MISMO valor que MAND_MAX en escena.ts
+                                       # y en lengua.py (cierre de cara, 22 sep: 0,42 -> 0,21 para que /ae/
+                                       # abra ~30 mm entre los labios como la boca de Miguel, no 53)
 
 
 def lps_a_visor(x, y, z):
@@ -873,15 +876,17 @@ def labios_en_piel(ob, perfil=None):
         b = peso_boca(x, y, z)
         a = anillo(x, y, z)
         m = mejilla(x, y, z)
-        # v7: +33 % (medido +28,5 % con 0,66) y el labio de arriba sube 0,36
-        # en su bermellon (el borde incisal superior esta 0,31 por encima de
-        # la linea de contacto); el de abajo baja una pizca.
+        # v7: +33 % (medido +28,5 % con 0,66) y el labio de arriba sube en su
+        # bermellon (el borde incisal superior esta 0,31 por encima de la linea
+        # de contacto); el de abajo baja una pizca. Cierre de cara: la subida
+        # baja de 0,50 a 0,40, porque en /ae/ (estirados + mandibula 1) sumaba
+        # ~8 mm fijos a la abertura y se pasaba de los 30 mm de Miguel.
         lateral = 1 - suave((abs(z) - perfil["ancho"]) / 0.35)
         frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
         sube = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.6) / 0.3)) * lateral * frente
         baja = suave((0.15 - y) / 0.02) * (1 - suave((-0.15 - y) / 0.3)) * lateral * frente
         return (0.2 * b + 0.05 * a - 0.2 * m,
-                0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m + 0.50 * sube - 0.10 * baja,
+                0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m + 0.40 * sube - 0.10 * baja,
                 0.76 * z * b + 0.25 * z * a + 0.06 * lado(z) * m)
 
     clave("fruncir", fruncir_escaneo if escaneo else fruncir)
@@ -928,8 +933,10 @@ def labios_en_piel(ob, perfil=None):
             # del sello cancela exactamente la subida de reposo (0,22 * 0,48) en
             # cada vertice; con otra rampa los labios se solapaban 1,6 mm.
             banda = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.55) / 0.25))
-            return (0.0, -0.106 * banda * lateral * frente, 0.0)
-        a = MANDIBULA_CIERRE * 0.42 * peso_mandibula(x, y, z)
+            # 0,106 era 0,22 (peso) x la caida del labio a mandibula 0,2 con 0,42 rad;
+            # con MAND_MAX se escala igual que el giro del visor.
+            return (0.0, -0.106 * (MAND_MAX / 0.42) * banda * lateral * frente, 0.0)
+        a = MANDIBULA_CIERRE * MAND_MAX * peso_mandibula(x, y, z)
         gy = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
         caida = y - gy                                   # lo que baja este punto en reposo
         w = max(0.0, 1 - (contacto - y) / (abajo + 0.1)) * lateral * frente
@@ -948,7 +955,7 @@ def labios_en_piel(ob, perfil=None):
         # influencia por mandibula/0,2 (`REFERENCIA_CIERRE` en escena.ts): en
         # reposo los labios se tocan; en /p b m/ (0,08) la influencia es 0,4 y
         # cierran exactos; a partir de media apertura no hay cierre.
-        a = MANDIBULA_CIERRE * 0.42 * peso_mandibula(x, y, z)
+        a = MANDIBULA_CIERRE * MAND_MAX * peso_mandibula(x, y, z)
         mandibula_y = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
         # Llevar el borde al frente del bermellon: cerrar solo en altura
         # hundia la sutura entre dos crestas y duplicaba el surco oscuro.
@@ -1578,7 +1585,10 @@ def cabeza_escaneada():
     # tiras de mucosa no salgan facetadas.
     ranura_aristas = [e for e in bm.edges if all(abs(abs(v.co.z - 0.15) - RANURA) < 1e-4 and abs(v.co.y) < ancho and v.co.x < -2.4 for v in e.verts)]
     bmesh.ops.subdivide_edges(bm, edges=ranura_aristas, cuts=2, use_grid_fill=False)
-    n_parpados = ranura_parpados_bm(bm)
+    # Cierre de cara (22 sep): los ojos se dejan CERRADOS como los trae el
+    # escaneo (abiertos quedaban bizcos de frente y el alumno no los ve);
+    # `ranura_parpados_bm`, `abrir_parpados` y `ojos_lps` quedan sin llamar.
+    n_parpados = 0
     n_tiras = tiras_de_mucosa_bm(bm, ancho, uv_mucosa=uv_mas_oscuro(color.image, 0.30, 0.70, 0.55, 0.80, 0.12))
     n_tapas = tapar_agujeros_bm(bm, uv_oscuro=uv_mas_oscuro(color.image, 0.30, 0.70, 0.55, 0.95, 0.0))
     bm.verts.index_update()
@@ -1612,7 +1622,6 @@ def cabeza_escaneada():
     bpy.context.view_layer.objects.active = ob
     bpy.ops.object.modifier_apply(modifier=decimar.name)
     ob.vertex_groups.remove(grupo)
-    print("OJOS_LPS", {"aristas_ranura_parpados": n_parpados, "vertices_movidos": abrir_parpados(ob)})
     # Mitad cercana: copia entera antes de recortar.
     espejo = ob.copy()
     espejo.data = ob.data.copy()
@@ -1638,7 +1647,6 @@ def cabeza_escaneada():
                      "aristas_ranura": n_ranura, "caras_interiores_quitadas": n_interior,
                      "vertices_cara_lejana": sum(1 for v in ob.data.vertices if v.co.x < 0.2),
                      "vertices_cara_antes_de_decimar": n_cara_antes, "tiras": n_tiras, "tapas": n_tapas})
-    ojos_lps()
     corte_y_paredes(ob, None, 0, perfil)
 
 
@@ -1770,7 +1778,7 @@ def comprobar_labios_dientes():
     for cierre in [0, 0.25, 0.5, 0.75, 1]:
         # Transicion reposo -> /p/: la mandibula va de 0,2 a 0,08 y la
         # influencia del cierre, de 1 a 0,4 (mandibula / 0,2, como el visor).
-        angulo = (0.2 - 0.12 * cierre) * 0.42
+        angulo = (0.2 - 0.12 * cierre) * MAND_MAX
         influencia = min(1.0, (0.2 - 0.12 * cierre) / MANDIBULA_CIERRE)
         dientes = []
         for diente in bpy.context.scene.objects:

@@ -13,11 +13,14 @@ describe('D4.4b v4: reposo con los labios casi juntos', () => {
     expect(n[I_CIERRE_LABIOS]).toBeGreaterThanOrEqual(0.9);
     expect(n[I_COMPRESION_LABIOS]).toBe(0);
   });
-  it('se abren con la mandíbula: /æ/ (muy abierta) no cierra; /θ/ (semiabierta) a medias', () => {
+  it('se abren con la mandíbula: /æ/ (muy abierta) y /θ/ (0,6) no cierran; /ɜː/ (semiabierta) a medias', () => {
     expect(cierreLabial(poseDe(catalogo, 'æ')!)).toBe(0);
-    const theta = cierreLabial(poseDe(catalogo, 'θ')!);
-    expect(theta).toBeGreaterThan(0.3);
-    expect(theta).toBeLessThan(0.9);
+    // Cierre de cara (22 sep): /θ ð/ pasan de mandíbula 0,36 a 0,6 para que la
+    // punta quepa entre los incisivos con MAND_MAX 0,21: ya no cierran a medias.
+    expect(cierreLabial(poseDe(catalogo, 'θ')!)).toBe(0);
+    const media = cierreLabial(poseDe(catalogo, 'ɜː')!);
+    expect(media).toBeGreaterThan(0.3);
+    expect(media).toBeLessThan(0.9);
   });
   it('los labios con forma propia (fruncidos, estirados, labiodental) no usan el cierre', () => {
     for (const s of ['u', 'i', 'f', 'v', 'w']) expect(cierreLabial(poseDe(catalogo, s)!)).toBe(0);

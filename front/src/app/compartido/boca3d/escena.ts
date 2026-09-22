@@ -184,7 +184,11 @@ const PIVOTE_VELO = new THREE.Vector2(2.05, 1.22);
 const LARGO_VELO = 1.2;
 const VELO_CERRADO = -0.44, VELO_ABIERTO = -1.22;   // radianes desde +x hacia abajo
 const PIVOTE_MAND = new THREE.Vector2(2.6, 0.9);
-const MAND_MAX = 0.42;                          // radianes con mandibula = 1
+// Cierre de cara (22 sep 2026): 0,42 → 0,21 para que /æ/ abra ~30 mm entre los
+// labios como la boca de Miguel (≈24–30), no 53, con el labio de abajo siguiendo
+// al hueso (k = 1). El MISMO valor vive en cara.py (clave de cierre y banda
+// labios-dientes) y en lengua.py (comprobación del techo y la punta interdental).
+const MAND_MAX = 0.21;                          // radianes con mandibula = 1
 const FARINGE_X = 3.15;
 
 /** Hasta dónde deja girar el visor (Miguel, 16 sep; auditoria/boca3d_giro_2026-09-16.md).
@@ -414,14 +418,18 @@ function morfosDe(pose: PoseSonido): number[] {
   const toca = pose.punta_toca;
   return [
     0.3 * Math.min(1, Math.max(0, pose.mandibula)),   // el resto lo pone el giro de la mandíbula
-    pose.punta === 'alveolar' || pose.punta === 'postalveolar' ? (toca ? 1 : 0.75) : pose.punta === 'dental' ? 0.45 : 0,
+    // Cierre de cara: postalveolar con toque 0,85 (era 1): con MAND_MAX 0,21 la suma
+    // punta_arriba + cuerpo_alto de /tʃ dʒ/ entraba 0,155 en el paladar (lengua.py).
+    // Mismo valor en lengua.py (morfos_de) y en medir_lengua.mjs.
+    pose.punta === 'alveolar' || pose.punta === 'postalveolar' ? (toca ? (pose.punta === 'alveolar' ? 1 : 0.85) : 0.75) : pose.punta === 'dental' ? 0.45 : 0,
     pose.punta === 'retrofleja' ? 1 : 0,
     pose.punta === 'interdental' ? 1 : 0,
     Math.max(0, (alt - 0.45) / 0.55),
     Math.max(0, (0.45 - alt) / 0.45),
     Math.max(0, (ade - 0.5) / 0.5),
     Math.max(0, (0.5 - ade) / 0.5),
-    pose.dorso_velo ? 1 : Math.min(1, pose.dorso_alto),
+    // Cierre de cara: sin toque el dorso sube un 10 % menos (/w/); mismo factor en lengua.py y medir_lengua.mjs.
+    pose.dorso_velo ? 1 : 0.9 * Math.min(1, pose.dorso_alto),
     Math.min(1, Math.max(0, pose.raiz)),
   ];
 }
