@@ -22,8 +22,11 @@ describe('D4.4b v4: reposo con los labios casi juntos', () => {
   it('los labios con forma propia (fruncidos, estirados, labiodental) no usan el cierre', () => {
     for (const s of ['u', 'i', 'f', 'v', 'w']) expect(cierreLabial(poseDe(catalogo, s)!)).toBe(0);
   });
-  it('/p b m/ cierran del todo; solo /m/ comprime menos', () => {
-    for (const s of ['p', 'b', 'm']) expect(cierreLabial(poseDe(catalogo, s)!)).toBe(1);
+  it('/p b m/ cierran del todo (con 0,4 de la shape key, calculada para el reposo); solo /m/ comprime menos', () => {
+    for (const s of ['p', 'b', 'm']) {
+      expect(cierreLabial(poseDe(catalogo, s)!)).toBe(1);
+      expect(poseNumerica(poseDe(catalogo, s)!)[I_CIERRE_LABIOS]).toBeCloseTo(0.4);
+    }
     expect(poseNumerica(poseDe(catalogo, 'm')!)[I_COMPRESION_LABIOS]).toBe(0.35);
   });
 });

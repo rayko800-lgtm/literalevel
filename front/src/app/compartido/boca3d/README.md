@@ -22,6 +22,22 @@ Fuera de la carpeta: `tools/exportar_poses_boca3d.py` genera el JSON;
 `tools/boca3d_demo.mjs` empaqueta una demo sin router (`tools/boca3d_demo/demo.ts`)
 y `tools/boca3d_demo/medir_fps.mjs` mide los cuadros por segundo con la CPU frenada.
 
+## Créditos y licencias de los modelos
+
+- **Cabeza (piel de la cara)**: «Infinite, 3D Head Scan» de **Lee Perry-Smith**
+  (Infinite Realities, [ir-ltd.net](http://www.ir-ltd.net/)), licencia
+  **Creative Commons Attribution 3.0 Unported (CC BY 3.0)**, basada en un trabajo
+  de [triplegangers.com](https://www.triplegangers.com). Se usa la versión decimada
+  con texturas de 1024 px que distribuye three.js
+  (`examples/models/gltf/LeePerrySmith/`, archivo `LeePerrySmith_License.txt`).
+  Copia local: `tools/boca3d_blender/lps/` (GLB, `Map-COL.jpg`,
+  `Infinite-Level_02_Tangent_SmoothUV.jpg` y la licencia). `cara.py` la recorta,
+  la escala a la cavidad, le abre la ranura de los labios y le añade las shape
+  keys labiales; el escaneo original no se modifica en disco.
+- **Cabeza anterior (respaldo)**: MakeHuman 1.3.0, CC0 (`makehuman_cabeza.obj`);
+  se usa solo si falta el escaneo (`SIN_LPS=1`).
+- El resto (dientes, encías, paladar, velo, lengua) es procedimental, hecho aquí.
+
 ## Cómo se usa
 
 ```html

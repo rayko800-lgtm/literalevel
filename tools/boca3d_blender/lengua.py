@@ -166,9 +166,9 @@ ob.name = "lengua"
 ob.data.name = "lengua"
 bpy.ops.object.shade_smooth()
 
-LARGO, ANCHO, ALTO = 2.2, 1.0, 0.42   # semiejes
+LARGO, ANCHO, ALTO = 2.2, 1.0, 0.39   # semiejes (v5: 0,42 -> 0,39, la lengua se veia gruesa)
 CENTRO = (0.2, 0.0, -0.45)            # la punta queda en x=-2.0, la raiz en 2.4
-PUNTA_N = 3.2
+PUNTA_N = 2.9                          # v5: 3,2 -> 2,9, punta algo menos roma
 
 
 def suave(t):
@@ -333,7 +333,7 @@ def elevar_dorso(x, y, z):
     # recoge y baja: la masa que sube al velo sale de la lamina, no se crea.
     recoge = 1 - rampa(x, -1.7, 0.3)
     return (-0.55 * base_raiz + 0.5 * recoge, -0.08 * y * recoge,
-            alza * (1 - 0.12 * inferior) - 0.32 * recoge - 0.65 * rampa(x, 1.85, 2.4))
+            alza * (1 - 0.07 * inferior) - 0.36 * recoge - 0.65 * rampa(x, 1.85, 2.4))
 
 clave("dorso_velo", elevar_dorso, velo_abierto=True, toca=True, margen_x=(-0.1, 0.28))
 clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), -0.06 * y * raiz_w(x), -0.08 * raiz_w(x)))

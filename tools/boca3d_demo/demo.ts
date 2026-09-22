@@ -11,7 +11,7 @@
  *  una palabra en bucle y lo escribe en la leyenda). */
 import { aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from '../../front/src/app/compartido/boca3d/animacion';
 import { Sonador } from '../../front/src/app/compartido/boca3d/audio';
-import { EscenaBoca } from '../../front/src/app/compartido/boca3d/escena';
+import { EscenaBoca, usarMaterialesBaratos } from '../../front/src/app/compartido/boca3d/escena';
 import { CatalogoPoses, PoseSonido, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
 import catalogoJson from '../../front/src/app/compartido/boca3d/poses.ejemplo.json';
 
@@ -47,12 +47,15 @@ function arrancar(): void {
   }
   const params = new URLSearchParams(location.search);
   const velocidad = Number(params.get('velocidad')) || 1;
+  if (params.get('opt') === '0') usarMaterialesBaratos(false);
   const escena = new EscenaBoca(visor, {
     reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
     mejilla: params.get('mejilla') !== '0',
     sombras: params.get('sombras') !== '0',
     entorno: params.get('entorno') === '1',
     guarda: params.get('guarda') !== '0',
+    // v5: ?opt=0 desactiva las optimizaciones (pixel ratio en movimiento y materiales baratos) para medirlas.
+    menosPixelesEnMovimiento: params.get('opt') !== '0',
     // El modelado es el predeterminado en la demo, nunca en la app pública.
     lenguaGlb: params.get('lengua') !== '0' ? 'lengua.glb' : undefined,
     caraGlb: params.get('cara') !== '0' ? 'cara.glb' : undefined,

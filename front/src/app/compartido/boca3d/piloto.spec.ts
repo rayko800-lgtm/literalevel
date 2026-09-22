@@ -26,11 +26,13 @@ describe('D4.4b: cierre bilabial en la linea existente', () => {
       it(`/${simbolo}/ cierra, mantiene y libera a ${velocidad}x`, () => {
         // v4: en reposo los labios ya están casi juntos (cierre 1 con la
         // mandíbula de reposo); lo que va y viene en /p b/ es la COMPRESIÓN.
+        // v5: en reposo (mandíbula 0,2) el cierre vale 1; en /p b/ (0,08), 0,4
+        // (la shape key se calculó para el reposo y se escala por mandíbula/0,2).
         expect(en(simbolo, velocidad, 0.42)[I_CIERRE_LABIOS]).toBe(1);
         expect(en(simbolo, velocidad, 0.42)[I_COMPRESION_LABIOS]).toBe(0);
         expect(en(simbolo, velocidad, 0.70)[I_COMPRESION_LABIOS]).toBeGreaterThan(0);
         expect(en(simbolo, velocidad, 0.70)[I_COMPRESION_LABIOS]).toBeLessThan(1);
-        expect(en(simbolo, velocidad, 1.2)[I_CIERRE_LABIOS]).toBe(1);
+        expect(en(simbolo, velocidad, 1.2)[I_CIERRE_LABIOS]).toBeCloseTo(0.4);
         expect(en(simbolo, velocidad, 1.2)[I_COMPRESION_LABIOS]).toBe(1);
         expect(en(simbolo, velocidad, 1.5)[I_COMPRESION_LABIOS]).toBe(1);
         expect(en(simbolo, velocidad, 1.6)[I_COMPRESION_LABIOS]).toBeCloseTo(0.5);
@@ -38,8 +40,8 @@ describe('D4.4b: cierre bilabial en la linea existente', () => {
       });
     }
     it(`/m/ mantiene contacto con menor compresion a ${velocidad}x`, () => {
-      expect(en('m', velocidad, 1.6)[I_CIERRE_LABIOS]).toBe(1);
-      expect(en('m', velocidad, 1.9)[I_CIERRE_LABIOS]).toBe(1);
+      expect(en('m', velocidad, 1.6)[I_CIERRE_LABIOS]).toBeCloseTo(0.4);
+      expect(en('m', velocidad, 1.9)[I_CIERRE_LABIOS]).toBeCloseTo(0.4);
       expect(en('m', velocidad, 1.6)[I_COMPRESION_LABIOS]).toBe(0.35);
       expect(en('p', velocidad, 1.2)[I_COMPRESION_LABIOS]).toBe(1);
     });
@@ -48,7 +50,7 @@ describe('D4.4b: cierre bilabial en la linea existente', () => {
     for (const s of ['θ','k','t','ŋ']) {
       const n = poseNumerica(poseDe(catalogo,s)!);
       expect(n[I_COMPRESION_LABIOS]).toBe(0);
-      expect(n[I_CIERRE_LABIOS]).toBe(cierreLabial(poseDe(catalogo,s)!));
+      expect(n[I_CIERRE_LABIOS]).toBeCloseTo(cierreLabial(poseDe(catalogo,s)!) * Math.min(1, poseDe(catalogo,s)!.mandibula / 0.2));
     }
   });
 });

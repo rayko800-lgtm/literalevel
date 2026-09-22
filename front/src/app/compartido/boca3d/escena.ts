@@ -69,19 +69,34 @@ export type Tejido = 'piel' | 'mucosa' | 'encia' | 'diente' | 'hueso' | 'labio' 
  *  atraviesa el tejido; la mucosa, la encía y la lengua, un barniz fino y
  *  poco rugoso (húmedas); los dientes, barniz duro y un velo cálido que
  *  imita la leve translucidez del esmalte. */
+/** v5: los tejidos sin clearcoat ni sheen (piel, hueso) van en
+ *  `MeshStandardMaterial`; `usarMaterialesBaratos(false)` vuelve a lo físico
+ *  en todos (para medir). El tipo devuelto sigue siendo el físico: el
+ *  estándar es su superclase y nadie usa aquí propiedades exclusivas. */
+let MATERIALES_BARATOS = true;
+export function usarMaterialesBaratos(si: boolean): void { MATERIALES_BARATOS = si; }
+
 export function materialDe(tejido: Tejido, color: string, extra: Partial<THREE.MeshPhysicalMaterialParameters> = {}): THREE.MeshPhysicalMaterial {
   const base: Record<Tejido, Partial<THREE.MeshPhysicalMaterialParameters>> = {
     piel: { roughness: 0.87, clearcoat: 0, sheen: 0 },
     mucosa: { roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.32, sheen: 0.45, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffb0b4') },
     encia: { roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.25, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
     diente: { roughness: 0.3, clearcoat: 0.65, clearcoatRoughness: 0.18, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color('#fff4dc'), ior: 1.6 },
-    hueso: { roughness: 0.72, clearcoat: 0, sheen: 0.2, sheenRoughness: 0.9, sheenColor: new THREE.Color('#fff3e0') },
+    // v5: sin sheen (era un brillo apenas visible en las caras del corte y la
+    // pared del fondo, que ocupan media pantalla): con clearcoat y sheen a 0
+    // el material baja a MeshStandardMaterial, más barato por píxel.
+    hueso: { roughness: 0.72, clearcoat: 0, sheen: 0 },
     labio: { roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.35, sheen: 0.5, sheenRoughness: 0.65, sheenColor: new THREE.Color('#ffb6b0') },
     // La lengua es el articulador, no una superficie barnizada: más mate que
     // encía/paladar, con un rojo algo más profundo para separarla de ambos.
     lengua: { roughness: 0.72, clearcoat: 0.08, clearcoatRoughness: 0.82, sheen: 0.22, sheenRoughness: 0.85, sheenColor: new THREE.Color('#f2a0aa') },
   };
-  return new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), metalness: 0, ...base[tejido], ...extra });
+  const parametros = { color: new THREE.Color(color), metalness: 0, ...base[tejido], ...extra };
+  if (MATERIALES_BARATOS && !(parametros.clearcoat ?? 0) && !(parametros.sheen ?? 0) && !parametros.transmission) {
+    const { clearcoat, clearcoatRoughness, sheen, sheenRoughness, sheenColor, ior, ...estandar } = parametros;
+    return new THREE.MeshStandardMaterial(estandar) as unknown as THREE.MeshPhysicalMaterial;
+  }
+  return new THREE.MeshPhysicalMaterial(parametros);
 }
 
 /** Un canvas cuadrado pintado por `pintar`, como textura repetida. Sin
@@ -349,9 +364,19 @@ function liberarModelo(raiz: THREE.Object3D): void {
   raiz.traverse(o => {
     if (o instanceof THREE.Mesh) {
       o.geometry.dispose();
+      // Sin soltar sus mapas: la piel escaneada (v5) los sigue usando.
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
     }
   });
+}
+
+/** D4.4b v5: las texturas que trae la piel escaneada en el GLB (color y
+ *  normales, JPEG de 1024 px); `materialDe('piel')` las monta sobre el mismo
+ *  material físico. Sin texturas (MakeHuman), `null`. */
+function texturasDe(fuente: THREE.Mesh): { map: THREE.Texture; normalMap?: THREE.Texture; normalScale?: THREE.Vector2 } | null {
+  const m = (Array.isArray(fuente.material) ? fuente.material[0] : fuente.material) as THREE.MeshStandardMaterial;
+  if (!m?.map) return null;
+  return { map: m.map, normalMap: m.normalMap ?? undefined, normalScale: m.normalMap ? new THREE.Vector2(0.8, 0.8) : undefined };
 }
 
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos, aire oral]. */
@@ -369,6 +394,9 @@ export const I_CIERRE_LABIOS = I_SONORA + 1;
 export const I_COMPRESION_LABIOS = I_CIERRE_LABIOS + 1;
 const TAMANO = I_COMPRESION_LABIOS + 1;
 type PoseNumerica = Float64Array;
+
+/** Mandíbula para la que cara.py calcula `cierre_labios` (la de reposo). */
+export const REFERENCIA_CIERRE = 0.2;
 
 /** Cuánto se juntan los labios: del todo en /p b m/; con los labios neutros,
  *  del todo con la mandíbula casi cerrada (reposo: 0,2) y nada a partir de
@@ -573,7 +601,11 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   // D4.4b v4: los labios neutros se juntan al cerrar la mandibula (en reposo,
   // casi juntos; no la boca abierta de la malla). Es una regla de POSE, no de
   // malla: con otra cabeza basta con darle su propia shape key `cierre_labios`.
-  n[I_CIERRE_LABIOS] = cierreLabial(pose);
+  // La shape key `cierre_labios` (cara.py) compensa el descenso del labio de
+  // abajo con la mandíbula de REPOSO (0,2): con menos apertura hace falta
+  // menos (0,4 en /p b m/, que van a 0,08); con más, se queda en 1 y el resto
+  // lo decide `cierreLabial`.
+  n[I_CIERRE_LABIOS] = cierreLabial(pose) * Math.min(1, Math.max(0, pose.mandibula) / REFERENCIA_CIERRE);
   n[I_COMPRESION_LABIOS] = pose.labios === 'cerrados' ? (pose.movimiento === 'nasal' ? 0.35 : 1) : 0;
   return n;
 }
@@ -647,11 +679,14 @@ function geometriaAireOral(): THREE.BufferGeometry {
   return new THREE.TubeGeometry(curva, 40, 0.09, 8, false);
 }
 
-/** El aire nasal: de la faringe, por detrás del velo, sube a la nariz y sale. */
-function geometriaAireNasal(): THREE.BufferGeometry {
+/** El aire nasal: de la faringe, por detrás del velo, sube a la nariz y sale.
+ *  `salida` (v5): la ventana de la nariz de la cabeza cargada, si la declara
+ *  (`nariz_salida` en los extras del GLB); la del escaneo está más alta que
+ *  la de MakeHuman y el hilo salía por el labio de arriba. */
+function geometriaAireNasal(salida: [number, number] = [-3.0, 1.95]): THREE.BufferGeometry {
   const curva = new THREE.CatmullRomCurve3([
     new THREE.Vector3(2.6, -0.6, 0), new THREE.Vector3(2.7, 0.6, 0), new THREE.Vector3(2.6, 1.7, 0),
-    new THREE.Vector3(1.5, 2.05, 0), new THREE.Vector3(-1.0, 2.05, 0), new THREE.Vector3(-3.0, 1.95, 0),
+    new THREE.Vector3(1.5, 2.05, 0), new THREE.Vector3(-1.0, (2.05 + salida[1]) / 2, 0), new THREE.Vector3(salida[0], salida[1], 0),
   ]);
   return new THREE.TubeGeometry(curva, 40, 0.09, 8, false);
 }
@@ -717,7 +752,7 @@ interface PielDeformable {
 
 const suave01 = (t: number) => { const s = Math.min(1, Math.max(0, t)); return s * s * (3 - 2 * s); };
 
-export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosEnPiel = false): PielDeformable {
+export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosEnPiel = false, ranuraSeca = false): PielDeformable {
   const pos = geometria.getAttribute('position') as THREE.BufferAttribute;
   const reposo = new Float32Array(pos.array as Float32Array);
   const pesos = new Float32Array(pos.count);
@@ -734,7 +769,10 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
       // y el de arriba se queda; los labios son una ranura, así que no se
       // rasga nada. Hacia las mejillas vuelve la rampa suave.
       const frente = suave01((-1.6 - x) / 0.8) * (1 - suave01((Math.abs(z) - 0.85) / 0.5));   // no en las comisuras
-      const bajoLabio = suave01((0.2 - y) / 0.1);
+      // D4.4b v5: la cabeza escaneada trae los labios sellados y cara.py les
+      // abre una ranura en y = 0,15 con los dos lados separados 0,012: el
+      // corte va justo ahí, seco, para que cada labio caiga entero de su lado.
+      const bajoLabio = ranuraSeca ? suave01((0.15 - y) / 0.02) : suave01((0.2 - y) / 0.1);
       bajo = bajo + (bajoLabio - bajo) * frente;
     }
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
@@ -761,7 +799,7 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
   }
   pos.needsUpdate = true;
   piel.geometria.computeVertexNormals();
-  if (piel.geometria.hasAttribute('color')) {
+  {
     const normales = piel.geometria.getAttribute('normal');
     for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getZ(i)) < 1e-5) {
       const x = normales.getX(i), y = normales.getY(i), largo = Math.hypot(x, y) || 1;
@@ -849,6 +887,11 @@ export interface OpcionesEscena {
   guarda?: boolean;
   /** Reflejos de un entorno neutro precalculado (por defecto, sí). */
   entorno?: boolean;
+  /** v5: mientras la boca se mueve, el lienzo se pinta a un pixel ratio
+   *  menor (1,25 como mucho) y vuelve al nativo al pararse: el coste por
+   *  píxel manda en el móvil y en movimiento el ojo no distingue la mitad
+   *  de resolución. Por defecto, sí. */
+  menosPixelesEnMovimiento?: boolean;
   /** URL de una lengua modelada en Blender (.glb con las shape keys de
    *  `MORFOS_LENGUA`): sustituye al tubo cuando carga. */
   lenguaGlb?: string;
@@ -871,6 +914,9 @@ export class EscenaBoca {
    *  completa a resolución entera el recuadro se llevaba un 26 % de los fps. */
   private detalle: { rt: THREE.WebGLRenderTarget; escena: THREE.Scene; camara: THREE.OrthographicCamera; material: THREE.MeshBasicMaterial } | null = null;
   private detalleCuadro = 0;
+  private pixelRatioNativo = 1;
+  private menosPixelesEnMovimiento = true;
+  private pixelRatioBajo = false;
   private detalleListo = false;
   private lucesEnDetalle = false;
   private static webgl: boolean | null = null;
@@ -1017,7 +1063,9 @@ export class EscenaBoca {
     this.propio = ocupado;
     this.renderer = libre ?? EscenaBoca.nuevoRenderer();
     if (!this.propio) EscenaBoca.compartido = this.renderer;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.pixelRatioNativo = Math.min(window.devicePixelRatio || 1, 2);
+    this.menosPixelesEnMovimiento = opciones.menosPixelesEnMovimiento ?? true;
+    this.renderer.setPixelRatio(this.pixelRatioNativo);
     // Tono fotográfico (ACES): los brillos del barniz húmedo no se queman.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -1586,7 +1634,14 @@ export class EscenaBoca {
       // La cabeza de MakeHuman trae sus propios labios en la piel: los tubos
       // se esconden (hasta que la piel tenga sus shape keys, el labio de abajo
       // se mueve con la mandíbula por pesos y el de arriba se queda).
-      const labiosEnPiel = piezas.get('cabeza_lejana')?.userData?.['labios_en_piel'] === 1;
+      const marcaLabios = piezas.get('cabeza_lejana')?.userData?.['labios_en_piel'];
+      const salidaNariz = piezas.get('cabeza_lejana')?.userData?.['nariz_salida'] as [number, number] | undefined;
+      if (Array.isArray(salidaNariz) && salidaNariz.length === 2) {
+        this.aireNasal.geometry.dispose();
+        this.aireNasal.geometry = geometriaAireNasal(salidaNariz);
+      }
+      const labiosEnPiel = marcaLabios === 1 || marcaLabios === 2;
+      const ranuraSeca = marcaLabios === 2;
       if (labiosEnPiel) {
         this.labioSup.visible = false; this.labioInf.visible = false;
         // Una cabeza entera es más grande que el loft: la cámara se aleja y
@@ -1627,9 +1682,10 @@ export class EscenaBoca {
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0, side: THREE.DoubleSide })
           : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
-          : tejido === 'labio' ? materialDe('labio', col.labios, { side: THREE.DoubleSide })
-          : materialDe('piel', geometria.hasAttribute('color') ? '#ffffff' : col.piel,
-            { side: THREE.DoubleSide, vertexColors: geometria.hasAttribute('color') });
+          : tejido === 'labio' ? materialDe('labio', geometria.hasAttribute('color') ? '#ffffff' : col.labios,
+            { side: THREE.DoubleSide, vertexColors: geometria.hasAttribute('color') })
+          : materialDe('piel', texturasDe(fuente) || geometria.hasAttribute('color') ? '#ffffff' : col.piel,
+            { side: THREE.DoubleSide, vertexColors: !texturasDe(fuente) && geometria.hasAttribute('color'), ...texturasDe(fuente) });
         const pieza = new THREE.Mesh(geometria, mat);
         if (tejido === 'piel' || tejido === 'ojo' || tejido === 'iris') pieza.layers.enable(1);
         if (nombre === 'ojo_cercano' || nombre === 'iris_cercano') pieza.layers.set(1);
@@ -1641,7 +1697,7 @@ export class EscenaBoca {
         if (tejido === 'labio') this.conMorfosDeLabios(pieza, fuente);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
-        if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
+        if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel, ranuraSeca));
         // El revés de la piel lejana (a dos caras) no recibe sombras: a la
         // sombra de sí misma se veía negro por dentro desde tres cuartos.
         if ((nombre === 'cabeza_lejana' && labiosEnPiel) || tejido === 'pared') pieza.userData['sinSombraRecibida'] = true;
@@ -1656,11 +1712,11 @@ export class EscenaBoca {
         this.mejilla.geometry = cercana.geometry.clone().applyMatrix4(cercana.matrixWorld);
         this.mejilla.position.z = 0;
         (Array.isArray(this.mejilla.material) ? this.mejilla.material : [this.mejilla.material]).forEach(m => m.dispose());
-        this.mejilla.material = materialDe('piel', this.mejilla.geometry.hasAttribute('color') ? '#ffffff' : col.piel,
-          { vertexColors: this.mejilla.geometry.hasAttribute('color'), transparent: true, opacity: 0,
-            depthWrite: false, side: THREE.DoubleSide });
+        this.mejilla.material = materialDe('piel', texturasDe(cercana) || this.mejilla.geometry.hasAttribute('color') ? '#ffffff' : col.piel,
+          { vertexColors: !texturasDe(cercana) && this.mejilla.geometry.hasAttribute('color'), transparent: true, opacity: 0,
+            depthWrite: false, side: THREE.DoubleSide, ...texturasDe(cercana) });
         this.mejilla.layers.enable(1);
-        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel));
+        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel, ranuraSeca));
         this.conMorfosDeLabios(this.mejilla, cercana);
       }
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
@@ -1822,9 +1878,23 @@ export class EscenaBoca {
     this.sucio = true;
   }
 
+  /** (A) v5: pixel ratio bajo mientras hay una línea o una transición en marcha. */
+  private ajustarPixelRatio(): void {
+    if (!this.menosPixelesEnMovimiento) return;
+    const moviendo = this.linea !== null || this.hacia !== null;
+    const bajo = moviendo && this.pixelRatioNativo > 1.25;
+    if (bajo === this.pixelRatioBajo) return;
+    this.pixelRatioBajo = bajo;
+    this.renderer.setPixelRatio(bajo ? 1.25 : this.pixelRatioNativo);
+    const tam = this.renderer.getSize(new THREE.Vector2());
+    this.renderer.setSize(tam.x, tam.y, false);
+    this.sucio = true;
+  }
+
   private bucle = (): void => {
     if (!this.vivo) return;
     this.rafId = requestAnimationFrame(this.bucle);
+    this.ajustarPixelRatio();
     if (this.linea) {
       const t = (performance.now() - this.lineaT0) / 1000;
       this.actual = this.poseDeLinea(t);
