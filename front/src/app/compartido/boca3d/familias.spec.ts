@@ -51,7 +51,7 @@ describe('familiaDe: agrupar por articulador protagonista', () => {
   });
 });
 
-describe('PRESETS_FAMILIA: cada preset es un subconjunto seguro de LIMITES_GIRO', () => {
+describe('PRESETS_FAMILIA: solo las bilabiales amplían el giro hacia la cara', () => {
   const FAMILIAS: Familia[] = [
     'bilabial', 'nasal-bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar', 'vocal',
   ];
@@ -63,7 +63,9 @@ describe('PRESETS_FAMILIA: cada preset es un subconjunto seguro de LIMITES_GIRO'
   for (const familia of FAMILIAS) {
     it(`${familia}: rango y azimut inicial dentro de los topes ya verificados`, () => {
       const p = PRESETS_FAMILIA[familia];
-      expect(p.limites.azimutMin).toBeGreaterThanOrEqual(LIMITES_GIRO.azimutMin);
+      const bilabial = familia === 'bilabial' || familia === 'nasal-bilabial';
+      expect(p.limites.azimutMin).toBeGreaterThanOrEqual(bilabial ? -Math.PI / 2 : LIMITES_GIRO.azimutMin);
+      if (bilabial) expect(p.azimut).toBeLessThan(-Math.PI / 3);
       expect(p.limites.azimutMax).toBeLessThanOrEqual(LIMITES_GIRO.azimutMax);
       expect(p.limites.polarMin).toBeGreaterThanOrEqual(LIMITES_GIRO.polarMin);
       expect(p.limites.polarMax).toBeLessThanOrEqual(LIMITES_GIRO.polarMax);
@@ -74,8 +76,8 @@ describe('PRESETS_FAMILIA: cada preset es un subconjunto seguro de LIMITES_GIRO'
     });
   }
 
-  it('bilabiales y labiodentales esconden la mejilla; el resto la deja', () => {
-    expect(PRESETS_FAMILIA.bilabial.mejilla).toBe(false);
+  it('las bilabiales muestran ambas mitades de los labios; labiodentales esconden la mejilla', () => {
+    expect(PRESETS_FAMILIA.bilabial.mejilla).toBe(true);
     expect(PRESETS_FAMILIA.labiodental.mejilla).toBe(false);
     for (const familia of FAMILIAS.filter(f => f !== 'bilabial' && f !== 'labiodental')) {
       expect(PRESETS_FAMILIA[familia].mejilla).toBe(true);
@@ -136,13 +138,13 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     return { instancia, camara, controles, mejilla };
   }
 
-  it('bilabial: acerca la cámara (zoom < 1) y esconde la mejilla', () => {
+  it('bilabial: acerca la cámara y conserva la mitad cercana de los labios', () => {
     const { instancia, camara, controles, mejilla } = escena();
     const antes = camara.position.distanceTo(controles.target);
     instancia.vistaParaFamilia('bilabial');
     const despues = camara.position.distanceTo(controles.target);
     expect(despues).toBeLessThan(antes);
-    expect(mejilla.visible).toBe(false);
+    expect(mejilla.visible).toBe(true);
     expect(controles.minAzimuthAngle).toBeCloseTo(PRESETS_FAMILIA.bilabial.limites.azimutMin, 6);
     expect(controles.maxAzimuthAngle).toBeCloseTo(PRESETS_FAMILIA.bilabial.limites.azimutMax, 6);
   });
@@ -204,6 +206,16 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
 });
 
 describe('EscenaBoca: modo guiado y explorar', () => {
+  it('la guarda conserva ambas mitades de los labios bilabiales al bajar calidad', () => {
+    for (const familia of ['bilabial', 'nasal-bilabial', 'alveolar']) {
+      const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
+        familiaActual: familia, mejilla: { visible: true },
+        guarda: { midiendo: true, t0: performance.now() - 3000, cuadros: 1, etapa: 2 },
+      });
+      instancia.medirGuarda();
+      expect(instancia.mejilla.visible).toBe(familia !== 'alveolar');
+    }
+  });
   it('solo Explorar habilita rotación y zoom; el pan se mantiene bloqueado', () => {
     const controles = { enableRotate: true, enableZoom: true, enablePan: true, update: vi.fn() };
     const canvas = document.createElement('canvas');

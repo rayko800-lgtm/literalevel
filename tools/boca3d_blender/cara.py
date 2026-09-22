@@ -705,7 +705,12 @@ def labios_en_piel(ob):
         # ese giro para mantener el sello en toda la linea, no solo al centro.
         a = 0.08 * 0.42 * peso_mandibula(x, y, z)
         mandibula_y = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
-        return (-0.045 * w, (objetivo - mandibula_y) * w, 0.0)
+        # Llevar el borde al frente del bermellon: cerrar solo en altura
+        # hundia la sutura entre dos crestas y duplicaba el surco oscuro.
+        sutura = math.exp(-((y - borde) / 0.14) ** 2)
+        frente_contacto = -3.36 + 0.5 * z * z
+        dx = (-0.045 + min(0.0, frente_contacto - x) * sutura) * w
+        return (dx, (objetivo - mandibula_y) * w, 0.0)
 
     clave("cierre_labios", cierre)
     # Compresion separada del contacto: /m/ mantiene el sello con menos

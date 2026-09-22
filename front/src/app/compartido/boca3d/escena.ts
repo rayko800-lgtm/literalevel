@@ -210,12 +210,11 @@ export interface PresetFamilia {
    *  Coordenadas en el mismo espacio que `LABIO_X`, `INCISIVO_SUP`, etc.
    *  (la anatomía interna no cambia de sitio con la cabeza de MakeHuman). */
   target: readonly [number, number] | null;
-  /** Rango de giro de ESTA familia, siempre un subconjunto de `LIMITES_GIRO`
-   *  (los únicos ángulos absolutos ya verificados sin planos de corte
-   *  visibles): nunca se amplía más allá de esos extremos. */
+  /** Rango de ESTA familia. D4.4b: solo las bilabiales admiten ¾ frontal
+   *  para que el alumno vea ambas masas labiales y su liberación. */
   limites: { azimutMin: number; azimutMax: number; polarMin: number; polarMax: number };
-  /** La mejilla translúcida estorba más de lo que ayuda en bilabiales y
-   *  labiodentales (tapa justo lo que hay que ver): se esconde solo ahí. */
+  /** Piel cercana: en bilabiales completa los labios al mirar de frente;
+   *  en labiodentales se oculta para mostrar el incisivo. */
   mejilla: boolean;
   /** D4.3c: "vista exterior" — esconde lo que compite con el gesto labial.
    *  `bilabial` y `labiodental` esconden lengua/velo; `ninguna` conserva el
@@ -268,16 +267,15 @@ function visibleEnPerfilDental(perfil: PerfilDental, grupo: GrupoDental, indice 
  *  el resto queda a falta de la misma comprobación con capturas. */
 export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
   bilabial: {
-    // Foco en los labios (LABIO_X = -2,95); zoom recalibrado tras corregir
-    // el target (antes acercaba al punto universal, dentro de la boca).
-    azimut: -30 * GR, zoom: 0.5, target: [-2.75, 0.15], mejilla: false, exterior: 'bilabial', dentadura: 'oculta',
-    limites: { azimutMin: LIMITES_GIRO.azimutMin, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+    // D4.4b: ambas masas labiales visibles desde la primera apertura.
+    azimut: -70 * GR, zoom: 0.35, target: [-2.75, 0.15], mejilla: true, exterior: 'bilabial', dentadura: 'oculta',
+    limites: { azimutMin: -90 * GR, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   'nasal-bilabial': {
-    // /m/: caben a la vez el cierre de labios y el desvío posterior por el
-    // velo. No usa la vista exterior bilabial, que ocultaría justo el velo.
-    azimut: -4 * GR, zoom: 0.9, target: [-0.25, 0.45], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
-    limites: { azimutMin: -18 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+    // /m/: prioridad inicial al sello labial; al explorar hacia el perfil
+    // reaparece el interior y sigue disponible la ruta nasal sin modificarla.
+    azimut: -70 * GR, zoom: 0.48, target: [-2.3, 0.3], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
+    limites: { azimutMin: -90 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   labiodental: {
     // Foco en el labio inferior + incisivos superiores (INCISIVO_SUP = (-2,55; 0,45)).
@@ -1823,7 +1821,9 @@ export class EscenaBoca {
     } else if (g.etapa === 2) {
       this.apagarSombras();
     } else {
-      this.mejilla.visible = false;
+      // En bilabiales ya no es una transparencia decorativa: contiene la
+      // mitad cercana de los labios. La guarda no debe borrar el articulador.
+      if (this.familiaActual !== 'bilabial' && this.familiaActual !== 'nasal-bilabial') this.mejilla.visible = false;
       g.midiendo = false;
     }
     this.sucio = true;
@@ -1868,7 +1868,10 @@ export class EscenaBoca {
     // cubre la cavidad (opacidad cero) y aparece al girar hacia la cara o la
     // nuca; con el loft, al revés: se aclara al pasar de 45°.
     const base = this.cabezaEntera ? 0.09 : 0.14;
-    const opacidad = this.cabezaEntera
+    const bilabial = this.familiaActual === 'bilabial' || this.familiaActual === 'nasal-bilabial';
+    const opacidad = bilabial
+      ? Math.min(1, Math.max(0, (giro - 25 * GR) / (30 * GR)))
+      : this.cabezaEntera
       ? base * Math.min(1, Math.max(0, (giro - (25 * Math.PI) / 180) / ((20 * Math.PI) / 180)))
       : base - (base - 0.04) * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
     const matMejilla = this.mejilla.material as THREE.MeshStandardMaterial;
