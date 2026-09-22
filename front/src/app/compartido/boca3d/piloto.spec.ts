@@ -1,10 +1,11 @@
 import { EscenaBoca, I_CIERRE_LABIOS, I_COMPRESION_LABIOS, cierreLabial, poseNumerica } from './escena';
 import { aVelocidad, cicloSonido } from './animacion';
-import { CatalogoPoses, poseDe } from './poses';
+import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe } from './poses';
 import poses from './poses.ejemplo.json';
+import ajustes3d from './poses.ajustes3d.json';
 import * as THREE from 'three';
 
-const catalogo = poses as unknown as CatalogoPoses;
+const catalogo = conAjustes3d(poses as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d);
 // Prueba la interpolacion que utiliza la escena real sin crear WebGL.
 const en = (simbolo: string, velocidad: number, tiempo: number) => {
   const escena = Object.create(EscenaBoca.prototype);

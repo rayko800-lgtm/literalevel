@@ -5,10 +5,11 @@ import {
 import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
+import ajustes3d from './poses.ajustes3d.json';
 import { Linea, Velocidad, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
-import { CatalogoPoses, DURACION_S, PoseSonido, familiaDe, poseDe, trocearIpa } from './poses';
+import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, familiaDe, poseDe, trocearIpa } from './poses';
 
 /** La boca en 3D esquemático, girable con el dedo.
  *
@@ -131,7 +132,7 @@ export class Boca3d {
    *  corrección, el elegido en la tabla del AFI). */
   readonly acento = input<Acento>('ga');
   /** Snapshot reproducible del mismo inventario que sirve el corte 2D. */
-  readonly catalogo = input<CatalogoPoses>(posesCompletas as unknown as CatalogoPoses);
+  readonly catalogo = input<CatalogoPoses>(conAjustes3d(posesCompletas as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d));
   /** El corte 2D para cuando no hay WebGL. Por defecto, el SVG de la API del
    *  sonido elegido (`/api/articulacion/{acento}/{símbolo}.svg`, quieto si se
    *  pide reducir el movimiento); `''` lo apaga y deja solo una frase. */

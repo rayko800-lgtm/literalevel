@@ -12,10 +12,11 @@
 import { aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from '../../front/src/app/compartido/boca3d/animacion';
 import { Sonador } from '../../front/src/app/compartido/boca3d/audio';
 import { EscenaBoca, usarMaterialesBaratos } from '../../front/src/app/compartido/boca3d/escena';
-import { CatalogoPoses, PoseSonido, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
+import { AjustesPoses3d, CatalogoPoses, PoseSonido, conAjustes3d, poseDe, trocearIpa } from '../../front/src/app/compartido/boca3d/poses';
 import catalogoJson from '../../front/src/app/compartido/boca3d/poses.ejemplo.json';
+import ajustes3d from '../../front/src/app/compartido/boca3d/poses.ajustes3d.json';
 
-const CATALOGO = catalogoJson as unknown as CatalogoPoses;
+const CATALOGO = conAjustes3d(catalogoJson as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d);
 const PALABRA_FPS = 'ˌɪntəˈnæʃənəl ˈpɑvɚti';
 
 declare global {

@@ -10,7 +10,7 @@
 // volumen o la punta (a 0,2 unidades, ≈4,5 mm, del ápice) queda por debajo de
 // 0,75 veces la lámina (a 0,75 unidades): constante de diseño para un extremo
 // redondeado, no una cifra publicada.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -107,6 +107,14 @@ export function medir(glb, catalogo, poses = POSES_PILOTO) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const catalogo = JSON.parse(readFileSync(resolve(RAIZ, 'front', 'src', 'app', 'compartido', 'boca3d', 'poses.ejemplo.json'), 'utf8'));
+  // Lote fase 1: los ajustes del 3D encima de la exportación (misma regla que conAjustes3d en poses.ts).
+  const rutaAjustes = resolve(RAIZ, 'front', 'src', 'app', 'compartido', 'boca3d', 'poses.ajustes3d.json');
+  if (existsSync(rutaAjustes)) {
+    const ajustes = JSON.parse(readFileSync(rutaAjustes, 'utf8'));
+    for (const [s, extra] of Object.entries(ajustes.sonidos ?? {})) if (catalogo.sonidos[s]) catalogo.sonidos[s] = { ...catalogo.sonidos[s], ...extra };
+    catalogo.rp ??= {};
+    for (const [s, extra] of Object.entries(ajustes.rp ?? {})) { const base = catalogo.rp[s] ?? catalogo.sonidos[s]; if (base) catalogo.rp[s] = { ...base, ...extra }; }
+  }
   const r = medir(leerGlb(readFileSync(ruta)), catalogo, soloPoses.length ? soloPoses : POSES_PILOTO);
   console.log(JSON.stringify(r));
   if (exigir) {

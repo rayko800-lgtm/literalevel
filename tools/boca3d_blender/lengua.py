@@ -35,6 +35,7 @@ SALIDA = os.environ.get("SALIDA_GLB", os.path.join(AQUI, "..", "boca3d_demo", "l
 MAND_MAX = 0.21   # radianes con mandibula = 1: el MISMO valor que MAND_MAX en escena.ts y cara.py
                   # (cierre de cara, 22 sep: 0,42 -> 0,21; la lengua tiene menos sitio al abrir)
 POSES = os.path.join(RAIZ, "front", "src", "app", "compartido", "boca3d", "poses.ejemplo.json")
+AJUSTES_3D = os.path.join(RAIZ, "front", "src", "app", "compartido", "boca3d", "poses.ajustes3d.json")
 
 # --- El techo de la boca, igual que en escena.ts -----------------------------
 
@@ -44,7 +45,22 @@ GROSOR_PALADAR = 0.26
 PIVOTE_VELO, LARGO_VELO = (2.05, 1.22), 1.2
 VELO_CERRADO, VELO_ABIERTO = -0.44, -1.22
 SUELO_Y = -1.1                                  # cara de arriba del suelo de la boca
-FARINGE_X = 3.0                                 # cara delantera de la pared
+FARINGE_X = 3.0                                 # cara delantera de la pared (referencia; la comprobacion usa PARED_FARINGE)
+# Lote fase 1 (22 sep): la cara delantera de la pared faringea de cara.glb
+# (pieza `faringe`, |lateral| < 0,3), medida en la demo por franjas de altura:
+# (altura, x). Las roticas de GA llevan la raiz contra ella (constriccion).
+PARED_FARINGE = [(1.6, 2.82), (1.2, 2.94), (0.8, 2.99), (0.4, 3.0), (0.0, 2.97), (-0.4, 2.93),
+                 (-0.8, 2.89), (-1.2, 2.84), (-1.6, 2.78), (-2.0, 2.70)]
+
+
+def pared_faringe(alt):
+    """x de la cara delantera de la pared faringea a la altura `alt` (interpolada)."""
+    if alt >= PARED_FARINGE[0][0]:
+        return PARED_FARINGE[0][1]
+    for (a0, x0), (a1, x1) in zip(PARED_FARINGE, PARED_FARINGE[1:]):
+        if a1 <= alt <= a0:
+            return x1 + (x0 - x1) * (alt - a1) / (a0 - a1)
+    return PARED_FARINGE[-1][1]
 HOLGURA = 0.06                                  # separacion minima con el techo
 TOLERANCIA_TOQUE = 0.08                         # lo que puede entrar cuando toca (punta_toca, dorso_velo)
 
@@ -380,6 +396,19 @@ def morfos_de(p):
 
 with open(POSES, encoding="utf-8") as f:
     catalogo = json.load(f)
+# Lote fase 1: los ajustes del 3D (poses.ajustes3d.json) encima de la
+# exportacion, con la misma regla que `conAjustes3d` en poses.ts: campos
+# sueltos por simbolo; un simbolo RP sin entrada propia parte de su pose de GA.
+if os.path.exists(AJUSTES_3D):
+    with open(AJUSTES_3D, encoding="utf-8") as f:
+        ajustes = json.load(f)
+    for simbolo, extra in ajustes.get("sonidos", {}).items():
+        if simbolo in catalogo["sonidos"]:
+            catalogo["sonidos"][simbolo] = {**catalogo["sonidos"][simbolo], **extra}
+    for simbolo, extra in ajustes.get("rp", {}).items():
+        pose_base = catalogo["rp"].get(simbolo) or catalogo["sonidos"].get(simbolo)
+        if pose_base:
+            catalogo["rp"][simbolo] = {**pose_base, **extra}
 poses = dict(catalogo["sonidos"])
 poses.update({f"rp:{k}": v for k, v in catalogo["rp"].items()})
 poses["reposo"] = catalogo["reposo"]
@@ -415,6 +444,8 @@ informe = []
 peor = 0.0
 peor_pliegue = 0.0
 peor_roce = -9.0        # cuanto entra la lengua en dientes, encias o hueso (negativo = holgura)
+peor_faringe = -9.0     # cuanto entra la raiz en la pared faringea (negativo = holgura); las roticas toleran un toque
+faringes = {}
 interdentales = []
 ES_PUNTA = [punta_w(x) > 0.6 for x, _, _ in base]
 ES_CUERPO = [punta_w(x) < 0.15 for x, _, _ in base]
@@ -474,6 +505,15 @@ for nombre, p in poses.items():
     # En /θ ð/ la lengua DESCANSA sobre los incisivos de abajo (es la postura):
     # se tolera el mismo toque que contra el paladar cuando la punta toca.
     roce = max(roce_sup, roce_inf) - (TOLERANCIA_TOQUE if p["punta"] == "interdental" else 0.0)
+    # Lote fase 1: la raiz contra la pared faringea, en coordenadas del mundo
+    # (`pos` es (x, lateral, altura)). Una rotica de GA la roza a proposito
+    # (constriccion faringea): se le tolera lo mismo que a un toque.
+    faringe = max((x - pared_faringe(alt) for x, lat, alt in pos if x > 2.0 and abs(lat) < 0.3), default=-9.0)
+    # Una rotica de GA la roza a proposito (toque); a las demas se les deja el
+    # grosor de la banda de la pared (radio 0,075): nada asoma por detras.
+    faringe -= TOLERANCIA_TOQUE if p.get("rotica") else 0.06
+    faringes[nombre] = round(faringe, 3)
+    peor_faringe = max(peor_faringe, faringe)
     informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3), round(roce, 3)))
     volumenes[nombre] = round(volumen(pos) / VOLUMEN_BASE - 1, 4)
     frente_x = min(v[0] for v in pos_local)
@@ -514,6 +554,8 @@ print("LENGUA_OK", json.dumps({
     "targetNames": malla.get("extras", {}).get("targetNames"),
     "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3), "peor_pliegue": round(peor_pliegue, 3),
     "peor_roce_dientes": round(peor_roce, 3),
+    "peor_faringe": round(peor_faringe, 3),
+    "faringe (pose: entra en la pared, negativo = holgura)": {k: v for k, v in sorted(faringes.items(), key=lambda t: -t[1])[:8]},
     "interdentales (nombre, x, ymin, ymax)": interdentales,
     "peores (nombre, entra, exceso, pliegue, roce)": sorted(informe, key=lambda r: -max(r[2], r[3], r[4]))[:6],
     "volumen_base": round(VOLUMEN_BASE, 4),
@@ -527,6 +569,6 @@ print("HIDROSTATO", json.dumps({"fuera_de_volumen": fuera_volumen, "punta_mas_fi
 if os.environ.get("EXIGIR_HIDROSTATO") == "1" and (fuera_volumen or punta_fina):
     print("HIDROSTATO: volumen fuera de ±10 % o punta mas fina que la lamina", file=sys.stderr)
     sys.exit(1)
-if peor > 0.005 or peor_pliegue > 0.005 or peor_roce > 0.005:
-    print("COLISION: alguna pose entra en el techo, en los dientes, o la punta se dobla sobre el cuerpo", file=sys.stderr)
+if peor > 0.005 or peor_pliegue > 0.005 or peor_roce > 0.005 or peor_faringe > 0.005:
+    print("COLISION: alguna pose entra en el techo, en los dientes, en la pared faringea, o la punta se dobla sobre el cuerpo", file=sys.stderr)
     sys.exit(1)

@@ -3,10 +3,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
   COLORES_POR_DEFECTO, EscenaBoca, I_AIRE_ORAL, LIMITES_GIRO, PRESETS_FAMILIA, materialDe, poseNumerica,
 } from './escena';
-import { CatalogoPoses, Familia, PoseSonido, REPOSO, familiaDe, poseDe } from './poses';
+import { AjustesPoses3d, CatalogoPoses, Familia, PoseSonido, REPOSO, conAjustes3d, familiaDe, poseDe } from './poses';
 import posesCompletas from './poses.ejemplo.json';
+import ajustes3d from './poses.ajustes3d.json';
 
-const CATALOGO = posesCompletas as unknown as CatalogoPoses;
+const CATALOGO = conAjustes3d(posesCompletas as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d);
 const poseReal = (simbolo: string) => poseDe(CATALOGO, simbolo, 'ga')!;
 // I_CONTACTO no se exporta (es un detalle interno de escena.ts), pero su
 // posición sí está documentada: justo después de I_AIRE_ORAL (ver escena.ts).
@@ -38,6 +39,10 @@ describe('familiaDe: agrupar por articulador protagonista', () => {
 
   it('róticos (punta retrofleja) aunque compartan lugar con postalveolares', () => {
     expect(familiaDe(pose({ lugar: 'postalveolar', punta: 'retrofleja' }))).toBe('rotico');
+    // Lote fase 1: la rótica abombada (punta en reposo) va por el campo `rotica`.
+    expect(familiaDe(pose({ lugar: 'postalveolar', punta: 'reposo', rotica: true }))).toBe('rotico');
+    expect(familiaDe(pose({ lugar: '', punta: 'reposo', rotica: true, movimiento: 'vocal' }))).toBe('rotico');
+    expect(familiaDe(pose({ lugar: '', punta: 'reposo', movimiento: 'vocal' }))).toBe('vocal');
   });
 
   it('vocales y diptongos, aunque tengan lugar vacío', () => {

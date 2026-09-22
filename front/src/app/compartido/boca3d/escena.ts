@@ -316,9 +316,12 @@ export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
     limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   rotico: {
-    // Mismo foco que postalveolar (Miguel, D4.2: "igual que alveolares"; no
-    // se crea un target propio solo para /ɹ/).
-    azimut: 6 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true, exterior: 'ninguna', dentadura: 'completa',
+    // D4.2 lo dejaba como postalveolar (Miguel: "igual que alveolares"). Lote
+    // fase 1 (22 sep): la /ɹ/ de GA es lengua abombada + raíz contra la
+    // faringe (investigación fonética §9.2), y con el foco anterior la pared
+    // faríngea (x ≈ 2,9) quedaba fuera del encuadre: el target va al centro
+    // de la lengua y el zoom a 1 para ver joroba, punta y faringe a la vez.
+    azimut: 6 * GR, zoom: 1.0, target: [-0.3, 0.4], mejilla: true, exterior: 'ninguna', dentadura: 'completa',
     limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   velar: {

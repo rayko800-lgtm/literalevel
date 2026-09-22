@@ -37,6 +37,10 @@ export interface PoseSonido {
   dorso_alto: number;
   /** Retracción de la raíz hacia la faringe, 0..1. */
   raiz: number;
+  /** Lote fase 1 (3D solo, no viene del 2D): rótica de GA (/ɹ ɝ ɚ/, lengua
+   *  abombada con la raíz contra la faringe) o /r/ de RP; manda la pose a la
+   *  familia `rotico`, que desde el lote encuadra también la faringe. */
+  rotica?: boolean;
   /** El velo baja y abre la nariz (nasales). */
   velo_abierto: boolean;
   sonora: boolean;
@@ -55,6 +59,31 @@ export interface CatalogoPoses {
   sonidos: Record<string, PoseSonido>;
   /** Lo que el británico articula distinto, por símbolo RP. */
   rp?: Record<string, PoseSonido>;
+}
+
+/** Lote fase 1 (22 sep 2026): lo que el 3D cambia sobre la exportación del 2D
+ *  congelado, por símbolo (campos sueltos de la pose). Vive en
+ *  `poses.ajustes3d.json` para que `poses.ejemplo.json` siga siendo la
+ *  exportación intacta de `tools/exportar_poses_boca3d.py`; cada entrada está
+ *  justificada en `auditoria/d4_4b_lote/divergencias_2d_3d.md`. */
+export interface AjustesPoses3d {
+  origen?: string;
+  sonidos?: Record<string, Partial<PoseSonido>>;
+  /** Un símbolo RP sin entrada propia en `rp` parte de su pose de GA. */
+  rp?: Record<string, Partial<PoseSonido>>;
+}
+
+/** El catálogo exportado con los ajustes del 3D encima. La misma regla en
+ *  `lengua.py` (comprobación) y `tools/boca3d_demo/medir_lengua.mjs`. */
+export function conAjustes3d(catalogo: CatalogoPoses, ajustes: AjustesPoses3d): CatalogoPoses {
+  const sonidos: Record<string, PoseSonido> = { ...catalogo.sonidos };
+  for (const [s, extra] of Object.entries(ajustes.sonidos ?? {})) if (sonidos[s]) sonidos[s] = { ...sonidos[s], ...extra };
+  const rp: Record<string, PoseSonido> = { ...(catalogo.rp ?? {}) };
+  for (const [s, extra] of Object.entries(ajustes.rp ?? {})) {
+    const base = rp[s] ?? sonidos[s];
+    if (base) rp[s] = { ...base, ...extra };
+  }
+  return { ...catalogo, sonidos, rp };
 }
 
 export const REPOSO: PoseSonido = {
@@ -126,7 +155,9 @@ export function poseDe(catalogo: CatalogoPoses, simbolo: string, acento: 'ga' | 
  *  (glotal) y el reposo no tienen articulador protagonista: caen en la
  *  vista general de `vocal`. */
 export function familiaDe(pose: PoseSonido): Familia {
-  if (pose.punta === 'retrofleja') return 'rotico';
+  // Lote fase 1: la /ɹ/ de GA pasa de retrofleja a abombada (punta en reposo),
+  // así que la familia la decide el campo `rotica`; la retrofleja sigue siendo rótica.
+  if (pose.punta === 'retrofleja' || pose.rotica) return 'rotico';
   if (pose.movimiento === 'nasal' && pose.lugar === 'bilabial') return 'nasal-bilabial';
   switch (pose.lugar) {
     case 'bilabial': return 'bilabial';

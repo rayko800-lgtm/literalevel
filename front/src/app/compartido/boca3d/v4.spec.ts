@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { EscenaBoca, I_CIERRE_LABIOS, I_COMPRESION_LABIOS, cierreLabial, poseNumerica } from './escena';
 import { SOPLO_S, aVelocidad, cicloSonido, lineaPalabra } from './animacion';
-import { CatalogoPoses, poseDe, trocearIpa } from './poses';
+import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe, trocearIpa } from './poses';
 import poses from './poses.ejemplo.json';
+import ajustes3d from './poses.ajustes3d.json';
 
-const catalogo = poses as unknown as CatalogoPoses;
+const catalogo = conAjustes3d(poses as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d);
 
 describe('D4.4b v4: reposo con los labios casi juntos', () => {
   it('en reposo los labios neutros se cierran del todo, sin compresión', () => {

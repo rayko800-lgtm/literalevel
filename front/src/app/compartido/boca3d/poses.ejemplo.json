@@ -248,7 +248,7 @@
    "libres": [
     "labios"
    ],
-   "mandibula": 0.6,
+   "mandibula": 0.36,
    "labios": "neutros",
    "punta": "interdental",
    "punta_toca": false,
@@ -270,7 +270,7 @@
    "libres": [
     "labios"
    ],
-   "mandibula": 0.6,
+   "mandibula": 0.36,
    "labios": "neutros",
    "punta": "interdental",
    "punta_toca": false,
