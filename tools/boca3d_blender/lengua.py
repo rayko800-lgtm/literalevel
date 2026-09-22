@@ -250,13 +250,13 @@ raiz_w = lambda x: rampa(x, 0.8, 2.4)
 arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas que la de abajo
 
 clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))), margen_x=(-0.7, 0.6))
-clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.10 * y * punta_w(x) - 0.16 * y * (1 - punta_w(x)), 1.15 * punta_w(x) ** 1.3 - 0.10 * (z - CENTRO[2]) * punta_w(x)), toca=True, margen_x=(-0.3, 0.1))
+clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.16 * y * punta_w(x) - 0.16 * y * (1 - punta_w(x)), 1.15 * punta_w(x) ** 1.3 + 0.65 * min(0, z - CENTRO[2]) * punta_w(x)), toca=True, margen_x=(-0.3, 0.1))
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
 # Compensa lateralmente el alargamiento: el volumen de /theta/ queda cerca
 # del reposo, conservando la nueva punta gruesa y el frente x=-3,03.
-clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), -0.09 * y, 1.25 * punta_w(x) + 0.65 * (z - CENTRO[2]) * punta_w(x)), margen_x=(-0.5, 0.1))
+clave("punta_interdental", lambda x, y, z: (-1.12 * punta_w(x), 0.18 * y * punta_w(x), 1.25 * punta_w(x) + 1.15 * (z - CENTRO[2]) * punta_w(x)), margen_x=(-0.5, 0.1))
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)), margen_x=(-0.7, 0.6))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
@@ -270,7 +270,7 @@ def elevar_dorso(x, y, z):
     ascenso = rampa(x, -0.8, 1.0)
     descenso = 1 - rampa(x, 1.85, 2.4)
     # El predorso debe dejar espacio a cuerpo_alto cuando ambos se suman.
-    alza = 2.05 * ascenso * descenso - 0.58 * campana(x, 0.8, 0.55)
+    alza = 2.05 * ascenso * descenso - 0.60 * campana(x, 0.8, 0.55)
     # Limitar el desplazamiento de TODA la seccion, no recortar sus vertices
     # superiores por separado: eso aplastaba el grosor y producia una aleta.
     u = (x - CENTRO[0]) / LARGO
@@ -280,12 +280,15 @@ def elevar_dorso(x, y, z):
             - 0.55 * rampa(x - CENTRO[0], 0.35, 2.4) + CENTRO[2] + 0.03)
     limite = min(techo(x + d, True) for d in [-0.1, -0.005, 0.09, 0.185, 0.28]) + TOLERANCIA_TOQUE
     alza = min(alza, limite - cima)
-    alza += 0.13 * rampa(x, 1.0, 1.25) * (1 - rampa(x, 1.65, 1.9))
+    alza += 0.10 * rampa(x, 1.0, 1.25) * (1 - rampa(x, 1.65, 1.9))
     # El extremo queda enterrado en el suelo: no acaba en una punta flotante.
     # La cara inferior se prolonga hacia delante al bajar: espesor horizontal
     # de la raiz, que en una esfera simplemente estirada se vuelve una aleta.
     base_raiz = rampa(x, 0.9, 2.2) * rampa(-z, 0.45, 1.15)
-    return (-0.45 * base_raiz, 0.0, alza - 0.65 * rampa(x, 1.85, 2.4))
+    # El suelo se queda bajo la cúpula: levantar toda la sección creaba
+    # un tubo arqueado. La cara inferior conserva masa hasta la raíz.
+    inferior = rampa(-z, 0.5, 0.95)
+    return (-0.55 * base_raiz, 0.12 * y * ascenso, alza * (1 - 0.60 * inferior) - 0.65 * rampa(x, 1.85, 2.4))
 
 clave("dorso_velo", elevar_dorso, velo_abierto=True, toca=True, margen_x=(-0.1, 0.28))
 clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), -0.06 * y * raiz_w(x), -0.08 * raiz_w(x)))

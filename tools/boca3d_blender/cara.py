@@ -1,4 +1,4 @@
-"""Labios y perfil seccionado propios, sin texturas ni modelos de terceros.
+"""Perfil seccionado y labios sobre la cabeza CC0 de MakeHuman.
 
 Blender 2.93: blender -b --python tools/boca3d_blender/cara.py
 Exporta cara.glb junto a la demo. Es una ilustracion didactica, no un modelo
@@ -564,21 +564,45 @@ def leer_obj_mh():
 
 
 def sin_boca_interior(vertices, caras):
-    """Quita el saco de la boca de MakeHuman (la cara interior de los labios y
-    la cavidad): un vertice es interior si, en su celda (lateral, altura),
-    queda claramente por detras de la piel mas adelantada."""
-    celda = 0.22
-    delante = {}
-    for x, y, z in vertices:
-        k = (round(z / celda), round(y / celda))
-        delante[k] = min(delante.get(k, 9.0), x)
-    def interior(i):
-        x, y, z = vertices[i]
+    """Quita el saco interior mediante rayos sobre las caras originales;
+    conserva la piel exterior y sus anillos labiales conectados."""
+    from mathutils.bvhtree import BVHTree
+    arbol = BVHTree.FromPolygons(vertices, caras)
+    def interior(c):
+        centro = tuple(sum(vertices[i][k] for i in c)/len(c) for k in range(3))
+        x, y, z = centro
         if not (abs(z) < 2.7 and -1.4 < y < 1.6 and x < 1.4):
             return False
-        k = (round(z / celda), round(y / celda))
-        return x > delante[k] + 0.35
-    return [c for c in caras if sum(interior(i) for i in c) < 3]
+        # Muestreo sobre la cara exacta, sin celdas ni vértices de otra altura.
+        for i in c:
+            q = tuple(0.9*vertices[i][k]+0.1*centro[k] for k in range(3))
+            hit, _, _, _ = arbol.ray_cast((-10, q[1], q[2]), (1, 0, 0))
+            if hit is None or q[0] - hit.x < 0.18:
+                return False
+        return True
+    conservadas = [c for c in caras if not interior(c)]
+    # El saco puede dejar islotes ocultos: conservar la superficie conectada
+    # de la cabeza, sin triángulos sueltos en el interior del corte.
+    por_vertice = {}
+    for j, c in enumerate(conservadas):
+        for i in c:
+            por_vertice.setdefault(i, []).append(j)
+    pendientes = set(range(len(conservadas)))
+    componentes = []
+    while pendientes:
+        cola = [pendientes.pop()]
+        grupo = []
+        while cola:
+            j = cola.pop()
+            grupo.append(j)
+            for i in conservadas[j]:
+                for k in por_vertice[i]:
+                    if k in pendientes:
+                        pendientes.remove(k)
+                        cola.append(k)
+        componentes.append(grupo)
+    mayor = max(componentes, key=len)
+    return [conservadas[j] for j in sorted(mayor)]
 
 
 def malla_mh(nombre, vertices, caras, mat):
@@ -680,7 +704,7 @@ def labios_en_piel(ob):
     def peso_labial(x, y, z):
         # Banda completa, incluidas comisuras: no una campana solo central.
         frente = -3.15 + 0.5 * z * z
-        return suave((frente + 0.20 - x) / 0.12) * (1 - suave((abs(z) - 0.95) / 0.30)) * (1 - suave((abs(y - 0.15) - 0.20) / 0.50))
+        return suave((frente + 0.48 - x) / 0.18) * (1 - suave((abs(z) - 0.95) / 0.30)) * (1 - suave((abs(y - 0.15) - 0.20) / 0.50))
 
     def linea_labial(z):
         # Contornos del bermellon de la base CC0, muestreados en el piloto.
@@ -700,7 +724,7 @@ def labios_en_piel(ob):
         w = peso_labial(x, y, z)
         superior, inferior, contacto = linea_labial(z)
         borde = superior if y >= contacto else inferior
-        objetivo = contacto + 0.88 * (y - borde)
+        objetivo = contacto + 0.88 * (y - borde) + (-0.025 if y >= contacto else 0.025)
         # El morfo se suma DESPUES del giro ponderado de la piel. Compensa
         # ese giro para mantener el sello en toda la linea, no solo al centro.
         a = 0.08 * 0.42 * peso_mandibula(x, y, z)
@@ -806,37 +830,75 @@ def contorno_a_profundidad(ob, z):
     return [(x, y) for x, y in zip(cara_x, alturas)] + [(x, y) for x, y in reversed(list(zip(nuca_x, alturas)))]
 
 
+def acabado_piel(ob, ojos):
+    """Bermellón integrado y párpados relajados sobre la topología CC0."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    def perioral(v):
+        return abs(v.co.y) < 1.45 and -0.55 < v.co.z < 0.68 and v.co.x < -2.35
+    aristas = [e for e in bm.edges if all(perioral(v) for v in e.verts)]
+    bmesh.ops.subdivide_edges(bm, edges=aristas, cuts=1, use_grid_fill=True, smooth=0.35)
+    bm.to_mesh(ob.data)
+    bm.free()
+    for v in ob.data.vertices:
+        x, y, z = v.co.x, v.co.z, -v.co.y
+        for ox, oy, oz in ojos.values():
+            d = ((z - oz) / 0.95) ** 2 + ((y - oy) / 0.82) ** 2
+            if x < ox and d < 1:
+                v.co.z -= 0.20 * (y - oy) * (1 - d) ** 2
+    colores = ob.data.vertex_colors.new(name="piel_bermellon")
+    for bucle in ob.data.loops:
+        v = ob.data.vertices[bucle.vertex_index].co
+        x, y, z = v.x, v.z, -v.y
+        ancho = max(0, 1 - (z / 1.2) ** 2)
+        centro = 0.12 + 0.035 * math.sin(math.pi * min(1, abs(z)))
+        alto = 0.24 * ancho ** 0.6 + 0.025
+        f = max(0, min(1, (alto - abs(y - centro)) / 0.065))
+        f *= max(0, min(1, (-2.7 + 0.45 * z*z - x) / 0.25))
+        # Colores lineales; variación suave, sin maquillaje ni ruido pintado.
+        piel, labio = (0.78, 0.57, 0.46), (0.57, 0.25, 0.24)
+        colores.data[bucle.index].color = tuple(a + (b-a)*f for a,b in zip(piel,labio)) + (1,)
+    ob.data.update()
+    # Normales comunes en el plano medio: las dos mitades no se solapan.
+    normales = []
+    for v in ob.data.vertices:
+        n = v.normal.copy()
+        if abs(v.co.y) < 1e-5:
+            n.y = 0
+            n.normalize()
+        normales.append(tuple(n))
+    ob.data.use_auto_smooth = True
+    ob.data.normals_split_custom_set_from_vertices(normales)
+
+
 def cabeza_makehuman():
     vertices, caras, ojos = leer_obj_mh()
+    # Conservar los anillos originales: el filtro por celdas arrancaba también
+    # piel exterior de nariz, comisuras y mentón y dejaba bordes dentados.
     caras = sin_boca_interior(vertices, caras)
     # La mitad lejana se corta por el plano sagital con bisect (quedarse solo
     # con las caras enteras dejaba una franja sin piel por el centro de la
     # cara, donde las caras cruzan el plano). Lateral del visor = -y en Blender.
     ob = malla_mh("cabeza_lejana", vertices, caras, PIEL)
-    # El corte sagital pasa un poco del plano (0,08 hacia la camara): la piel
-    # tapa el canto de las caras del corte, que de frente asomaban como una
-    # raya clara por el centro de la cara (el plano se ve casi de canto).
-    recortar(ob, -0.08, arriba=True, plano=(0, -1, 0))   # fuera lo de y_blender < -0,08, es decir z_visor > 0,08
+    # Mitades complementarias sin solapamiento. El detalle frontal no dibuja
+    # planos de corte; no hace falta taparlos duplicando piel sobre el centro.
+    recortar(ob, 0, arriba=True, plano=(0, -1, 0))
     recortar(ob, Y_CORTE_ARRIBA, arriba=True)
     recortar(ob, Y_CORTE_ABAJO, arriba=False)
+    acabado_piel(ob, ojos)
     ob["labios_en_piel"] = 1                  # el visor esconde sus tubos de labios
     labios_en_piel(ob)
-    # La piel cercana: la misma, reflejada (MakeHuman es simetrica), con las
-    # mismas shape keys reflejadas.
-    espejo = ob.copy()
-    espejo.data = ob.data.copy()
-    espejo.name = "cabeza_cercana"
-    bpy.context.collection.objects.link(espejo)
-    for v in espejo.data.vertices:
-        v.co.y = -v.co.y                       # el lateral del visor es -y en Blender
-    for bloque in espejo.data.shape_keys.key_blocks:
-        for punto in bloque.data:
-            punto.co.y = -punto.co.y
-    espejo.data.flip_normals()
-    espejo.data.update()
+    # Segunda mitad del original, con el mismo acabado y deformaciones.
+    espejo = malla_mh("cabeza_cercana", vertices, caras, PIEL)
+    recortar(espejo, 0, arriba=False, plano=(0, -1, 0))
+    recortar(espejo, Y_CORTE_ARRIBA, arriba=True)
+    recortar(espejo, Y_CORTE_ABAJO, arriba=False)
+    acabado_piel(espejo, ojos)
+    labios_en_piel(espejo)
     # El perfil del corte: por cada altura, el punto mas adelantado (la cara) y
     # el mas atrasado (la nuca) de los vertices que quedan en el plano.
-    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y + 0.08) < 1e-3]
+    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y) < 1e-3]
     # Dos ramas: la cara (x < 1,5) y la nuca; cada una, ordenada por altura e
     # interpolada en alturas regulares (la nuca del cuello tiene pocos vertices).
     def rama(puntos, elegir):
@@ -894,12 +956,14 @@ def cabeza_makehuman():
         if contorno:
             # Un solo poligono (n-gon): la teselacion de Blender al exportar
             # aguanta los contornos concavos; tessellate_polygon dejaba huecos.
-            placa(nombre, contorno, z, PARED, escala=0.97, centro=centroide(contorno), ngon=True)
+            placa(nombre, contorno, z, PARED, escala=0.90, centro=centroide(contorno), ngon=True)
     # El ojo del lado lejano: globo blanco e iris oscuro; el hueco de la cuenca
     # de MakeHuman queda cubierto.
     x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]
     elipsoide("ojo_lejano", (x, y, z), (0.62, 0.62, 0.62), ESMALTE, segmentos=20)
     elipsoide("iris_lejano", (x - 0.42, y, z), (0.22, 0.27, 0.27), HUESO, segmentos=16)
+    elipsoide("ojo_cercano", (x, y, -z), (0.62, 0.62, 0.62), ESMALTE, segmentos=20)
+    elipsoide("iris_cercano", (x - 0.42, y, -z), (0.22, 0.27, 0.27), HUESO, segmentos=16)
     print("MH_OK", {"vertices_lejana": len(ob.data.vertices), "caras_quitadas": len(caras), "frente": frente[::11], "nuca": nuca[::11]})
 
 
@@ -985,7 +1049,7 @@ for ob in bpy.context.scene.objects:
     assert all(p.area > 1e-10 for p in ob.data.polygons), ob.name
 
 bpy.ops.export_scene.gltf(filepath=os.path.abspath(SALIDA), export_format="GLB", export_yup=True,
-                          export_materials="EXPORT", export_morph=True, export_morph_normal=True, export_extras=True)
+                          export_materials="EXPORT", export_morph=True, export_morph_normal=False, export_extras=True)
 # El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
 # dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
 PUBLICO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "front", "public", "boca3d", "cara.glb"))

@@ -51,7 +51,7 @@ describe('familiaDe: agrupar por articulador protagonista', () => {
   });
 });
 
-describe('PRESETS_FAMILIA: solo las bilabiales amplían el giro hacia la cara', () => {
+describe('PRESETS_FAMILIA: corte principal dentro de los topes verificados', () => {
   const FAMILIAS: Familia[] = [
     'bilabial', 'nasal-bilabial', 'labiodental', 'dental', 'alveolar', 'postalveolar', 'rotico', 'velar', 'vocal',
   ];
@@ -64,8 +64,8 @@ describe('PRESETS_FAMILIA: solo las bilabiales amplían el giro hacia la cara', 
     it(`${familia}: rango y azimut inicial dentro de los topes ya verificados`, () => {
       const p = PRESETS_FAMILIA[familia];
       const bilabial = familia === 'bilabial' || familia === 'nasal-bilabial';
-      expect(p.limites.azimutMin).toBeGreaterThanOrEqual(bilabial ? -Math.PI / 2 : LIMITES_GIRO.azimutMin);
-      if (bilabial) expect(p.azimut).toBeLessThan(-Math.PI / 3);
+      expect(p.limites.azimutMin).toBeGreaterThanOrEqual(LIMITES_GIRO.azimutMin);
+      if (bilabial) expect(Math.abs(p.azimut)).toBeLessThan(10 * Math.PI / 180);
       expect(p.limites.azimutMax).toBeLessThanOrEqual(LIMITES_GIRO.azimutMax);
       expect(p.limites.polarMin).toBeGreaterThanOrEqual(LIMITES_GIRO.polarMin);
       expect(p.limites.polarMax).toBeLessThanOrEqual(LIMITES_GIRO.polarMax);
@@ -85,13 +85,13 @@ describe('PRESETS_FAMILIA: solo las bilabiales amplían el giro hacia la cara', 
   });
 
   it('el preset de /m/ abre el encuadre y conserva la anatomía interna', () => {
-    expect(PRESETS_FAMILIA['nasal-bilabial'].zoom).toBeGreaterThan(PRESETS_FAMILIA.bilabial.zoom);
+    expect(PRESETS_FAMILIA['nasal-bilabial'].zoom).toBeGreaterThanOrEqual(PRESETS_FAMILIA.bilabial.zoom);
     expect(PRESETS_FAMILIA['nasal-bilabial'].exterior).toBe('ninguna');
-    expect(PRESETS_FAMILIA['nasal-bilabial'].target![0]).toBeGreaterThan(PRESETS_FAMILIA.bilabial.target![0]);
+    expect(PRESETS_FAMILIA['nasal-bilabial'].target![0]).toBeGreaterThanOrEqual(PRESETS_FAMILIA.bilabial.target![0]);
   });
 
   it('cada familia de D4.4a declara su perfil dental semántico', () => {
-    expect(PRESETS_FAMILIA.bilabial.dentadura).toBe('oculta');
+    expect(PRESETS_FAMILIA.bilabial.dentadura).toBe('contexto-nasal');
     expect(PRESETS_FAMILIA['nasal-bilabial'].dentadura).toBe('contexto-nasal');
     expect(PRESETS_FAMILIA.labiodental.dentadura).toBe('incisivos-superiores');
     expect(PRESETS_FAMILIA.dental.dentadura).toBe('incisivos-relevantes');
@@ -138,12 +138,12 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     return { instancia, camara, controles, mejilla };
   }
 
-  it('bilabial: acerca la cámara y conserva la mitad cercana de los labios', () => {
+  it('bilabial: encuadra el interior completo para acompañar al detalle labial', () => {
     const { instancia, camara, controles, mejilla } = escena();
     const antes = camara.position.distanceTo(controles.target);
     instancia.vistaParaFamilia('bilabial');
     const despues = camara.position.distanceTo(controles.target);
-    expect(despues).toBeLessThan(antes);
+    expect(despues).toBeCloseTo(13 * PRESETS_FAMILIA.bilabial.zoom, 6);
     expect(mejilla.visible).toBe(true);
     expect(controles.minAzimuthAngle).toBeCloseTo(PRESETS_FAMILIA.bilabial.limites.azimutMin, 6);
     expect(controles.maxAzimuthAngle).toBeCloseTo(PRESETS_FAMILIA.bilabial.limites.azimutMax, 6);
@@ -175,6 +175,19 @@ describe('EscenaBoca.vistaParaFamilia: cámara, límites y mejilla', () => {
     expect(controles.target.x).toBeCloseTo(PRESETS_FAMILIA.bilabial.target![0], 6);
     expect(controles.target.y).toBeCloseTo(PRESETS_FAMILIA.bilabial.target![1], 6);
     expect(instancia.diagnostico.zoom).toBeCloseTo(PRESETS_FAMILIA.bilabial.zoom, 6);
+  });
+
+  it('Restaurar consume la inercia de un arrastre antes de colocar la cámara', () => {
+    const { instancia, controles } = escena();
+    controles.enableDamping = true;
+    controles.dampingFactor = 0.12;
+    instancia.vistaParaFamilia('nasal-bilabial');
+    controles.rotateLeft(0.6);
+    instancia.restablecerVista();
+    for (let i = 0; i < 12; i++) controles.update();
+    expect(controles.getAzimuthalAngle()).toBeCloseTo(PRESETS_FAMILIA['nasal-bilabial'].azimut, 8);
+    expect(controles.enableDamping).toBe(true);
+    controles.dispose();
   });
 
   it('diagnostico refleja la familia, el zoom y el target activos (D4.2.1, panel de depuración)', () => {
@@ -277,14 +290,15 @@ describe('EscenaBoca.vistaParaFamilia: perfiles dentales', () => {
   // reales en la cabeza (visto en el navegador tras el primer intento).
   // Solo dientes/lengua/velo, piezas sueltas dentro de la cavidad.
 
-  it('bilabial: esconde lengua, velo y los dos arcos de dientes (no hacen falta para /p b m/); el corte se queda', () => {
-    const { instancia, lengua, velo, corte, dientesInf, dientesSup } = escenaConPiezas();
+  it('bilabial: mantiene el interior en el corte principal y subordina los dientes', () => {
+    const { instancia, lengua, velo, corte, dientesInf, soporteSup, incisivosSup, posterioresSup } = escenaConPiezas();
     instancia.vistaParaFamilia('bilabial');
-    expect(lengua.visible).toBe(false);
-    expect(velo.visible).toBe(false);
+    expect(lengua.visible).toBe(true);
+    expect(velo.visible).toBe(true);
     expect(corte.every(o => o.visible)).toBe(true);
     expect(dientesInf.every(o => !o.visible)).toBe(true);
-    expect(dientesSup.every(o => !o.visible)).toBe(true);
+    expect(soporteSup.visible).toBe(true);
+    expect([...incisivosSup, ...posterioresSup].every(o => !o.visible)).toBe(true);
   });
 
   it('labiodental: deja soporte e incisivos superiores, no la hilera completa ni el arco inferior', () => {
@@ -343,7 +357,7 @@ describe('EscenaBoca.vistaParaFamilia: perfiles dentales', () => {
   it('cambiar a una familia completa restaura todas las piezas ocultadas', () => {
     const { instancia, lengua, dientesInf, dientesSup } = escenaConPiezas();
     instancia.vistaParaFamilia('bilabial');
-    expect(lengua.visible).toBe(false);
+    expect(lengua.visible).toBe(true);
     instancia.vistaParaFamilia('vocal');
     expect(lengua.visible).toBe(true);
     expect(dientesInf.every(o => o.visible)).toBe(true);

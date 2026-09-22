@@ -15,6 +15,9 @@ try {
   await cdp.send('Emulation.setCPUThrottlingRate',{rate});
   await page.goto(ruta.startsWith('http')||ruta.startsWith('file:')?ruta:pathToFileURL(ruta).href);
   await page.waitForFunction(()=>window.escenaBoca?.tieneCaraModelada&&window.escenaBoca?.tieneLenguaModelada);
+  // Comparación opcional del encuadre real de una familia, incluido el
+  // detalle frontal. El mismo parámetro se aplica a base y candidato.
+  if (process.env.FAMILIA_FPS) await page.evaluate(f=>window.escenaBoca.vistaParaFamilia(f),process.env.FAMILIA_FPS);
   const fps=await page.evaluate(s=>window.medirFps(s),Number(segundos));
   console.log(`cpu x${rate}: ${await page.locator('.leyenda').textContent()}`);
   valores[`cpu_x${rate}`]=Number(fps.toFixed(1));

@@ -71,7 +71,7 @@ export type Tejido = 'piel' | 'mucosa' | 'encia' | 'diente' | 'hueso' | 'labio' 
  *  imita la leve translucidez del esmalte. */
 export function materialDe(tejido: Tejido, color: string, extra: Partial<THREE.MeshPhysicalMaterialParameters> = {}): THREE.MeshPhysicalMaterial {
   const base: Record<Tejido, Partial<THREE.MeshPhysicalMaterialParameters>> = {
-    piel: { roughness: 0.62, clearcoat: 0.04, clearcoatRoughness: 0.6, sheen: 0.55, sheenRoughness: 0.75, sheenColor: new THREE.Color('#ffd6c4') },
+    piel: { roughness: 0.87, clearcoat: 0, sheen: 0 },
     mucosa: { roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.32, sheen: 0.45, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffb0b4') },
     encia: { roughness: 0.42, clearcoat: 0.45, clearcoatRoughness: 0.3, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
     diente: { roughness: 0.3, clearcoat: 0.65, clearcoatRoughness: 0.18, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color('#fff4dc'), ior: 1.6 },
@@ -210,8 +210,8 @@ export interface PresetFamilia {
    *  Coordenadas en el mismo espacio que `LABIO_X`, `INCISIVO_SUP`, etc.
    *  (la anatomía interna no cambia de sitio con la cabeza de MakeHuman). */
   target: readonly [number, number] | null;
-  /** Rango de ESTA familia. D4.4b: solo las bilabiales admiten ¾ frontal
-   *  para que el alumno vea ambas masas labiales y su liberación. */
+  /** Rango de la cámara principal de ESTA familia, dentro de los topes
+   *  del corte. El detalle frontal bilabial tiene una cámara independiente. */
   limites: { azimutMin: number; azimutMax: number; polarMin: number; polarMax: number };
   /** Piel cercana: en bilabiales completa los labios al mirar de frente;
    *  en labiodentales se oculta para mostrar el incisivo. */
@@ -267,15 +267,14 @@ function visibleEnPerfilDental(perfil: PerfilDental, grupo: GrupoDental, indice 
  *  el resto queda a falta de la misma comprobación con capturas. */
 export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
   bilabial: {
-    // D4.4b: ambas masas labiales visibles desde la primera apertura.
-    azimut: -70 * GR, zoom: 0.35, target: [-2.75, 0.15], mejilla: true, exterior: 'bilabial', dentadura: 'oculta',
-    limites: { azimutMin: -90 * GR, azimutMax: -14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+    // Corte completo; el detalle frontal simultáneo muestra el sello labial.
+    azimut: -4 * GR, zoom: 0.88, target: [-0.1, 0.35], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
+    limites: { azimutMin: -18 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   'nasal-bilabial': {
-    // /m/: prioridad inicial al sello labial; al explorar hacia el perfil
-    // reaparece el interior y sigue disponible la ruta nasal sin modificarla.
-    azimut: -70 * GR, zoom: 0.48, target: [-2.3, 0.3], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
-    limites: { azimutMin: -90 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+    // /m/: labios, velo y aire nasal visibles sin pedir un giro al alumno.
+    azimut: -4 * GR, zoom: 0.88, target: [-0.1, 0.35], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
+    limites: { azimutMin: -18 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
   },
   labiodental: {
     // Foco en el labio inferior + incisivos superiores (INCISIVO_SUP = (-2,55; 0,45)).
@@ -749,6 +748,14 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
   }
   pos.needsUpdate = true;
   piel.geometria.computeVertexNormals();
+  if (piel.geometria.hasAttribute('color')) {
+    const normales = piel.geometria.getAttribute('normal');
+    for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getZ(i)) < 1e-5) {
+      const x = normales.getX(i), y = normales.getY(i), largo = Math.hypot(x, y) || 1;
+      normales.setXYZ(i, x / largo, y / largo, 0);
+    }
+    normales.needsUpdate = true;
+  }
 }
 
 const MUESTRAS = 56, LADOS = 16;
@@ -843,6 +850,8 @@ export interface OpcionesEscena {
 }
 
 export class EscenaBoca {
+  /** Segundo encuadre del mismo gesto; no tiene una animación independiente. */
+  private readonly camaraLabios = new THREE.PerspectiveCamera(32, 1.25, 0.1, 60);
   private static webgl: boolean | null = null;
   /** El renderer que reutilizan los visores sucesivos (ver el constructor). */
   private static compartido: THREE.WebGLRenderer | null = null;
@@ -1317,10 +1326,13 @@ export class EscenaBoca {
     this.zoomActual = zoom;
     const distancia = this.distanciaEncuadre() * zoom;
     const o = this.objetivoActual();
-    // `reset()` limpia también los deltas/inercia privados de OrbitControls.
-    // Sin esto, tras explorar la cámara llegaba al preset y el siguiente
-    // `update()` volvía a desplazarla con el gesto anterior.
+    // OrbitControls.reset() llama a update(), pero con amortiguación activa
+    // conserva parte de la inercia. Consumirla sin amortiguación antes de
+    // colocar el preset evita que Restaurar vuelva a arrastrar la cámara.
+    const amortiguar = this.controles.enableDamping;
+    this.controles.enableDamping = false;
     this.controles.reset();
+    this.controles.enableDamping = amortiguar;
     this.controles.target.set(o.x, o.y, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
@@ -1561,6 +1573,7 @@ export class EscenaBoca {
         ['corte_mandibula', 'corte', true], ['pared_lejana', 'pared', false],
         ['pared_lejana_2', 'pared', false], ['pared_lejana_3', 'pared', false],
         ['ojo_lejano', 'ojo', false], ['iris_lejano', 'iris', false],
+        ['ojo_cercano', 'ojo', false], ['iris_cercano', 'iris', false],
       ];
       for (const [nombre, tejido, enMandibula] of cabeza) {
         const fuente = piezas.get(nombre);
@@ -1574,8 +1587,11 @@ export class EscenaBoca {
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0, side: THREE.DoubleSide })
           : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
-          : materialDe('piel', col.piel, nombre === 'cabeza_lejana' && labiosEnPiel ? { side: THREE.DoubleSide } : {});
+          : materialDe('piel', geometria.hasAttribute('color') ? '#ffffff' : col.piel,
+            { side: THREE.DoubleSide, vertexColors: geometria.hasAttribute('color') });
         const pieza = new THREE.Mesh(geometria, mat);
+        if (tejido === 'piel' || tejido === 'ojo' || tejido === 'iris') pieza.layers.enable(1);
+        if (nombre === 'ojo_cercano' || nombre === 'iris_cercano') pieza.layers.set(1);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
         // D4.3c: las caras del corte y la pared del fondo son justo lo que
         // revela que esto es un corte sagital, no una cara entera: se
@@ -1597,6 +1613,11 @@ export class EscenaBoca {
         this.mejilla.geometry.dispose();
         this.mejilla.geometry = cercana.geometry.clone().applyMatrix4(cercana.matrixWorld);
         this.mejilla.position.z = 0;
+        (Array.isArray(this.mejilla.material) ? this.mejilla.material : [this.mejilla.material]).forEach(m => m.dispose());
+        this.mejilla.material = materialDe('piel', this.mejilla.geometry.hasAttribute('color') ? '#ffffff' : col.piel,
+          { vertexColors: this.mejilla.geometry.hasAttribute('color'), transparent: true, opacity: 0,
+            depthWrite: false, side: THREE.DoubleSide });
+        this.mejilla.layers.enable(1);
         this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel));
         this.conMorfosDeLabios(this.mejilla, cercana);
       }
@@ -1794,10 +1815,45 @@ export class EscenaBoca {
     if (this.guarda.midiendo) this.sucio = true;
     if (this.sucio) {
       this.sucio = false;
-      this.renderer.render(this.escena, this.camara);
+      this.dibujar();
       this.medirGuarda();
     }
   };
+
+  /** Corte principal y detalle frontal simultáneo, dentro del mismo canvas.
+   * Solo la piel se vuelve opaca durante la segunda pasada: no se duplican
+   * mallas, morfos, tiempos ni trayectorias de aire. */
+  private dibujar(): void {
+    const r = this.renderer;
+    // Opacidad cero también ejecutaba el shader físico sobre media cabeza.
+    // No dibujar esa superficie invisible ahorra trabajo sin rebajar detalle.
+    const visiblePrincipal = this.mejilla.visible;
+    if ((this.mejilla.material as THREE.MeshStandardMaterial).opacity <= 0.002) this.mejilla.visible = false;
+    r.render(this.escena, this.camara);
+    this.mejilla.visible = visiblePrincipal;
+    if (!this.cabezaEntera || !['bilabial', 'nasal-bilabial'].includes(this.familiaActual)) return;
+    const tam = r.getSize(new THREE.Vector2());
+    const w = Math.min(138, tam.x * 0.48), h = w / 1.25;
+    const mat = this.mejilla.material as THREE.MeshPhysicalMaterial;
+    const estado = [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] as const;
+    const fondo = r.getClearColor(new THREE.Color()), alfa = r.getClearAlpha();
+    const sombras = r.shadowMap.autoUpdate;
+    this.escena.traverse(o => { if (o instanceof THREE.Light) o.layers.enable(1); });
+    this.mejilla.visible = true; mat.opacity = 1; mat.transparent = false; mat.depthWrite = true;
+    this.camaraLabios.layers.set(1);
+    this.camaraLabios.position.set(-11.8, 0.25, 0);
+    this.camaraLabios.lookAt(-3, 0.05, 0);
+    this.camaraLabios.updateMatrixWorld();
+    r.shadowMap.autoUpdate = false;
+    r.setScissorTest(true);
+    r.setScissor(8, 8, w + 4, h + 4); r.setViewport(8, 8, w + 4, h + 4);
+    r.setClearColor('#b4a497', 1); r.clear();
+    r.setScissor(10, 10, w, h); r.setViewport(10, 10, w, h);
+    r.setClearColor('#f1e8df', 1); r.render(this.escena, this.camaraLabios);
+    r.setScissorTest(false); r.setViewport(0, 0, tam.x, tam.y);
+    r.setClearColor(fondo, alfa); r.shadowMap.autoUpdate = sombras;
+    [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] = estado;
+  }
 
   /** Guarda automática de fluidez (criterio de Central, 14 sep): los dos
    *  primeros segundos se pintan todos los cuadros y se cuentan; por debajo
