@@ -186,10 +186,11 @@ def campana(x, c, w):
 for v in ob.data.vertices:
     ux, uy, uz = v.co.x, v.co.y, v.co.z          # en la esfera unidad
     x, y, z = ux * LARGO, uy * ANCHO, uz * ALTO
-    # Afinar hacia la punta (mas estrecha y mas plana).
-    f = 0.42 + 0.58 * rampa(x, -2.2, -0.3)
+    # Piloto D4.4b: punta redondeada con espesor, no una lamina.
+    # Se conserva la topologia; el ensanchamiento acaba en el predorso.
+    f = 0.76 + 0.24 * rampa(x, -2.2, -0.3)
     y *= f
-    z *= 0.55 + 0.45 * rampa(x, -2.2, -0.9)
+    z *= 0.92 + 0.08 * rampa(x, -2.2, -0.9)
     # Seccion con bordes: arriba plano y las esquinas marcadas, abajo mas redondo.
     lateral = abs(uy)
     if z > 0:
@@ -197,8 +198,9 @@ for v in ob.data.vertices:
         z += 0.03 * campana(lateral, 0.78, 0.16) * rampa(x, -1.8, -0.8)   # el borde lateral, suave
         z -= 0.05 * campana(y, 0.0, 0.16) * rampa(x, -1.6, -0.6) * (1 - rampa(x, 1.2, 2.2))  # surco
     # La raiz baja hacia el suelo de la boca y engorda: no queda flotando.
-    z -= 0.7 * rampa(x, 1.0, 2.4)
-    y *= 1 + 0.15 * rampa(x, 0.6, 2.0)
+    z *= 1 + 0.35 * rampa(x, 0.3, 2.1)
+    z -= 0.55 * rampa(x, 0.35, 2.4)
+    y *= 1 + 0.28 * rampa(x, 0.3, 2.0)
     v.co = (x + CENTRO[0], y + CENTRO[1], z + CENTRO[2])
 
 # La forma base tampoco roza dientes ni encias.
@@ -243,22 +245,26 @@ def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0)):
 
 punta_w = lambda x: 1 - rampa(x, -2.0, -0.6)
 cuerpo_w = lambda x: campana(x, 0.1, 1.3)
-dorso_w = lambda x: campana(x, 1.45, 0.75)
+dorso_w = lambda x: campana(x, 1.45, 1.05)
 raiz_w = lambda x: rampa(x, 0.8, 2.4)
 arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas que la de abajo
 
 clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))), margen_x=(-0.7, 0.6))
-clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) ** 1.3), toca=True, margen_x=(-0.3, 0.1))
+clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.10 * y * punta_w(x) - 0.16 * y * (1 - punta_w(x)), 1.15 * punta_w(x) ** 1.3 - 0.10 * (z - CENTRO[2]) * punta_w(x)), toca=True, margen_x=(-0.3, 0.1))
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
-clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)), margen_x=(-0.5, 0.1))
+# Compensa lateralmente el alargamiento: el volumen de /theta/ queda cerca
+# del reposo, conservando la nueva punta gruesa y el frente x=-3,03.
+clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), -0.09 * y, 1.25 * punta_w(x)), margen_x=(-0.5, 0.1))
 clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)), margen_x=(-0.7, 0.6))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
 clave("cuerpo_atras", lambda x, y, z: (0.7 * campana(x, 0.3, 2.0), 0.0, 0.0))
-clave("dorso_velo", lambda x, y, z: (0.15 * dorso_w(x), 0.0, 1.6 * dorso_w(x) * arriba(z)), velo_abierto=True, toca=True, margen_x=(-0.1, 0.4))
-clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), 0.0, -0.1 * raiz_w(x)))
+# La cara inferior acompaña al dorso: el antiguo salto 0,6/1,0 estiraba
+# solo el techo de la lengua y estrangulaba el puente hacia la raiz.
+clave("dorso_velo", lambda x, y, z: (0.15 * dorso_w(x), 0.0, 1.6 * dorso_w(x) * (0.92 + 0.08 * rampa(z, -0.8, -0.2))), velo_abierto=True, toca=True, margen_x=(-0.1, 0.4))
+clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), -0.06 * y * raiz_w(x), -0.08 * raiz_w(x)))
 
 MORFOS = ["mandibula", "punta_arriba", "punta_atras", "punta_interdental", "cuerpo_alto", "cuerpo_bajo",
           "cuerpo_delante", "cuerpo_atras", "dorso_velo", "raiz_atras"]

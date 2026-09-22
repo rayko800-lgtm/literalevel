@@ -367,7 +367,10 @@ export const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
 const I_CONTACTO = I_AIRE_ORAL + 1;
 /** D4.3b: 1 si la pose es sonora (para el pulso de vibración), 0 si no. */
 const I_SONORA = I_CONTACTO + 3;
-const TAMANO = I_SONORA + 1;
+/** Morfos propios del 3D, interpolados por la linea existente. */
+export const I_CIERRE_LABIOS = I_SONORA + 1;
+export const I_COMPRESION_LABIOS = I_CIERRE_LABIOS + 1;
+const TAMANO = I_COMPRESION_LABIOS + 1;
 type PoseNumerica = Float64Array;
 
 /** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
@@ -560,6 +563,8 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
   // D4.3b: sonoridad, para el pulso de vibracion -- una señal aparte del
   // aire, igual que en 2D (`marcas["vi"]` nunca es lo mismo que `"ab"`).
   n[I_SONORA] = pose.sonora ? 1 : 0;
+  n[I_CIERRE_LABIOS] = pose.labios === 'cerrados' ? 1 : 0;
+  n[I_COMPRESION_LABIOS] = pose.labios === 'cerrados' ? (pose.movimiento === 'nasal' ? 0.35 : 1) : 0;
   return n;
 }
 
@@ -1946,7 +1951,8 @@ export class EscenaBoca {
     // (la pose lo coloca 0,3 detrás de LABIO_X).
     if (this.pielesConLabios.length) {
       const largo = n[I_LS + 2];
-      const fruncir = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05)));
+      // La pequeña diferencia de largo del cierre no es redondeamiento.
+      const fruncir = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05))) * (1 - n[I_CIERRE_LABIOS]);
       const estirar = Math.min(1, Math.max(0, (largo - 2.3) / (2.9 - 2.3)));
       const atras = Math.min(1, Math.max(0, (n[I_LI] - LABIO_X) / 0.3));
       for (const piel of this.pielesConLabios) {
@@ -1954,6 +1960,8 @@ export class EscenaBoca {
         inf[dic['fruncir']] = fruncir;
         inf[dic['estirar']] = estirar;
         if ('labio_atras' in dic) inf[dic['labio_atras']] = atras;
+        if ('cierre_labios' in dic) inf[dic['cierre_labios']] = n[I_CIERRE_LABIOS];
+        if ('compresion_labios' in dic) inf[dic['compresion_labios']] = n[I_COMPRESION_LABIOS];
       }
     }
     if (this.lenguaGlb?.morphTargetInfluences) {

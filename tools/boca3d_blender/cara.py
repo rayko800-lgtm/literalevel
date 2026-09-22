@@ -677,6 +677,47 @@ def labios_en_piel(ob):
     clave("labio_atras", lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
                                           0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0))
 
+    def peso_labial(x, y, z):
+        # Banda completa, incluidas comisuras: no una campana solo central.
+        frente = -3.15 + 0.5 * z * z
+        return suave((frente + 0.20 - x) / 0.12) * (1 - suave((abs(z) - 0.95) / 0.30)) * (1 - suave((abs(y - 0.15) - 0.20) / 0.50))
+
+    def linea_labial(z):
+        # Contornos del bermellon de la base CC0, muestreados en el piloto.
+        lateral = min(1.0, abs(z) / 1.05)
+        superior = 0.149 + 0.055 * math.sin(math.pi * lateral)
+        inferior = 0.054 + 0.065 * lateral
+        return superior, inferior, (superior + inferior) / 2
+
+    def peso_mandibula(x, y, z):
+        # Misma transformacion de pielQueSigueLaMandibula en escena.ts.
+        bajo = suave((0.45 - y) / 1.35)
+        frente = suave((-1.6 - x) / 0.8) * (1 - suave((abs(z) - 0.85) / 0.5))
+        bajo += (suave((0.2 - y) / 0.1) - bajo) * frente
+        return bajo * suave((2.3 - x) / 0.9)
+
+    def cierre(x, y, z):
+        w = peso_labial(x, y, z)
+        superior, inferior, contacto = linea_labial(z)
+        borde = superior if y >= contacto else inferior
+        objetivo = contacto + 0.88 * (y - borde)
+        # El morfo se suma DESPUES del giro ponderado de la piel. Compensa
+        # ese giro para mantener el sello en toda la linea, no solo al centro.
+        a = 0.08 * 0.42 * peso_mandibula(x, y, z)
+        mandibula_y = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
+        return (-0.045 * w, (objetivo - mandibula_y) * w, 0.0)
+
+    clave("cierre_labios", cierre)
+    # Compresion separada del contacto: /m/ mantiene el sello con menos
+    # presion que /p b/. El visor interpola ambos con los tiempos congelados.
+    def compresion(x, y, z):
+        superior, inferior, contacto = linea_labial(z)
+        borde = superior if y >= contacto else inferior
+        w = peso_labial(x, y, z)
+        return (-0.025 * w, -0.08 * (y - borde) * w, 0.0)
+
+    clave("compresion_labios", compresion)
+
 
 def pared_por_corte(ob, nombre, z):
     """La pared del fondo a la profundidad z del visor: la seccion EXACTA de
@@ -861,6 +902,78 @@ if CON_MH:
     cabeza_makehuman()
 else:
     cabeza_loft()
+
+
+def comprobar_labios_dientes():
+    """Intersecciones de triangulos: labios deformados frente a las coronas.
+
+    Muestrea la transicion reposo-cierre a cinco fracciones, y las dos
+    compresiones del piloto. No sustituye la revision visual del sello.
+    """
+    from mathutils.bvhtree import BVHTree
+    from mathutils import Vector
+
+    def suave(t):
+        t = min(1.0, max(0.0, t))
+        return t * t * (3 - 2 * t)
+
+    def rotar(v, angulo):
+        x, lat, y = v
+        c, s = math.cos(angulo), math.sin(angulo)
+        return Vector((2.6 + (x - 2.6) * c - (y - 0.9) * s, lat,
+                       0.9 + (x - 2.6) * s + (y - 0.9) * c))
+
+    comprobaciones, max_heredadas = 0, 0
+    for cierre in [0, 0.25, 0.5, 0.75, 1]:
+        angulo = (0.2 - 0.12 * cierre) * 0.42
+        dientes = []
+        for diente in bpy.context.scene.objects:
+            if not diente.name.startswith('diente_'):
+                continue
+            puntos = [diente.matrix_world @ v.co for v in diente.data.vertices]
+            if diente.name.startswith('diente_inf_'):
+                puntos = [rotar(v, angulo) for v in puntos]
+            dientes.append(BVHTree.FromPolygons(puntos, [list(p.vertices) for p in diente.data.polygons]))
+        for presion in [1.0, 0.35]:
+            for nombre in ['cabeza_lejana', 'cabeza_cercana']:
+                ob = bpy.data.objects[nombre]
+                claves = ob.data.shape_keys.key_blocks
+                base = claves['Basis'].data
+                puntos, puntos_antes, activos = [], [], set()
+                for i, p in enumerate(base):
+                    x, lat, y = p.co
+                    bajo = suave((0.45-y)/1.35)
+                    frente = suave((-1.6-x)/0.8) * (1-suave((abs(lat)-0.85)/0.5))
+                    peso = (bajo + (suave((0.2-y)/0.1)-bajo)*frente) * suave((2.3-x)/0.9)
+                    v = rotar(p.co, angulo*peso)
+                    puntos_antes.append(v + 0.08*cierre*(claves['fruncir'].data[i].co-p.co))
+                    for clave, valor in [('cierre_labios', cierre), ('compresion_labios', presion*cierre), ('fruncir', 0.08*cierre*(1-cierre))]:
+                        delta = claves[clave].data[i].co - p.co
+                        v += valor * delta
+                        if clave == 'cierre_labios' and delta.length > 0.002:
+                            activos.add(i)
+                    puntos.append(v)
+                caras = [list(p.vertices) for p in ob.data.polygons if any(i in activos for i in p.vertices)]
+                piel = BVHTree.FromPolygons(puntos, caras)
+                antes = BVHTree.FromPolygons(puntos_antes, caras)
+                nuevos = 0
+                heredadas = 0
+                for d in dientes:
+                    anteriores = set(antes.overlap(d))
+                    actuales = set(piel.overlap(d))
+                    if actuales - anteriores:
+                        print('ROCE_NUEVO', cierre, nombre, [[tuple(round(c, 4) for c in base[i].co) for i in caras[a]] for a, b in actuales - anteriores])
+                    nuevos += len(actuales - anteriores)
+                    heredadas += len(actuales & anteriores)
+                assert nuevos == 0, ('labios-dientes-nuevos', cierre, presion, nombre, nuevos)
+                max_heredadas = max(max_heredadas, heredadas)
+                comprobaciones += 1
+    print('LABIOS_DIENTES_OK', {'comprobaciones': comprobaciones, 'intersecciones_nuevas': 0,
+                              'max_pares_heredados_en_borde_de_banda': max_heredadas})
+
+
+if CON_MH:
+    comprobar_labios_dientes()
 
 for ob in bpy.context.scene.objects:
     assert all(math.isfinite(c) for v in ob.data.vertices for c in v.co)

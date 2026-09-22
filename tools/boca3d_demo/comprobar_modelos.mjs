@@ -30,11 +30,19 @@ for (const nombre of ['lengua.glb', 'cara.glb']) {
 const glb = readFileSync(resolve(RAIZ, 'front', 'public', 'boca3d', 'cara.glb'));
 const largoJson = glb.readUInt32LE(12);
 const doc = JSON.parse(glb.subarray(20, 20 + largoJson).toString('utf8'));
-for (const [malla, esperadas] of [['labio_superior', ['fruncir', 'estirar', 'comisura_abajo']], ['labio_inferior', ['fruncir', 'estirar', 'comisura_arriba']]]) {
+for (const [malla, esperadas] of [['labio_superior', ['fruncir', 'estirar', 'comisura_abajo']], ['labio_inferior', ['fruncir', 'estirar', 'comisura_arriba']],
+  ['cabeza_lejana', ['fruncir', 'estirar', 'labio_atras', 'cierre_labios', 'compresion_labios']],
+  ['cabeza_lejana.001', ['fruncir', 'estirar', 'labio_atras', 'cierre_labios', 'compresion_labios']]]) {
   const m = doc.meshes.find(x => x.name === malla);
   const nombres = m?.extras?.targetNames ?? [];
   const faltan = esperadas.filter(n => !nombres.includes(n));
   console.log(`${faltan.length ? 'FALTAN' : 'OK   '} ${malla}: shape keys ${JSON.stringify(nombres)}`);
   if (faltan.length) fallos++;
+}
+for (const [nombre, antes] of [['cara.glb', 1902952], ['lengua.glb', 769224]]) {
+  const bytes = readFileSync(resolve(RAIZ, 'front', 'public', 'boca3d', nombre)).length;
+  const cumple = bytes <= antes * 1.15;
+  console.log(`${cumple ? 'OK   ' : 'EXCESO'} ${nombre}: ${bytes} bytes, limite ${Math.floor(antes * 1.15)}`);
+  if (!cumple) fallos++;
 }
 process.exit(fallos ? 1 : 0);
