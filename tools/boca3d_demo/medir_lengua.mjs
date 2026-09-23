@@ -6,7 +6,7 @@
 //
 //   node tools/boca3d_demo/medir_lengua.mjs [ruta.glb] [--exigir] [--poses θ,k,...]
 //
-// --exigir: sale con 1 si alguna pose del piloto se va más de un 10 % de
+// --exigir: sale con 1 si alguna pose del catálogo se va más de un 10 % de
 // volumen o la punta (a 0,2 unidades, ≈4,5 mm, del ápice) queda por debajo de
 // 0,75 veces la lámina (a 0,75 unidades): constante de diseño para un extremo
 // redondeado, no una cifra publicada.
@@ -21,6 +21,13 @@ const exigir = args.includes('--exigir');
 const soloPoses = (args.includes('--poses') ? args[args.indexOf('--poses') + 1] ?? '' : '').split(',').filter(Boolean);
 const POSES_PILOTO = ['reposo', 'θ', 'ð', 'p', 'b', 'm', 'k', 'ɡ', 'ŋ', 't', 's', 'f', 'n'];
 export const TOL_VOLUMEN = 0.10, PUNTA_MIN_RELATIVA = 0.75;
+// Lote fase 2 (22 sep): --exigir comprueba el VOLUMEN en todas las poses del
+// catálogo (antes solo las 13 del piloto, y /ɹ ɝ ɚ/ se iban hasta +43 % sin que
+// nada fallara). El criterio de la punta es para puntas activas; estas poses la
+// tienen en reposo con el cuerpo alto o atrás, la lámina engorda y la punta
+// queda por debajo de 0,75 de ella: se listan aquí, a la vista, y la salida las
+// nombra. Si una sale de la lista porque pasa, mejor.
+export const PUNTA_NO_EXIGIDA = ['u', 'ʊ', 'ʊə', 'w', 'ɹ', 'ɝ', 'ɚ'];
 
 export function leerGlb(buf) {
   const largoJson = buf.readUInt32LE(12);
@@ -115,11 +122,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     catalogo.rp ??= {};
     for (const [s, extra] of Object.entries(ajustes.rp ?? {})) { const base = catalogo.rp[s] ?? catalogo.sonidos[s]; if (base) catalogo.rp[s] = { ...base, ...extra }; }
   }
-  const r = medir(leerGlb(readFileSync(ruta)), catalogo, soloPoses.length ? soloPoses : POSES_PILOTO);
+  const todas = ['reposo', ...Object.keys(catalogo.sonidos), ...Object.keys(catalogo.rp ?? {}).map(k => 'rp:' + k)];
+  const r = medir(leerGlb(readFileSync(ruta)), catalogo, soloPoses.length ? soloPoses : exigir ? todas : POSES_PILOTO);
   console.log(JSON.stringify(r));
   if (exigir) {
-    const malas = Object.entries(r.poses).filter(([, m]) => Math.abs(m.volumen) > TOL_VOLUMEN || (m.punta_relativa ?? 1) < PUNTA_MIN_RELATIVA);
+    const sinPunta = n => PUNTA_NO_EXIGIDA.includes(n);
+    const malas = Object.entries(r.poses).filter(([n, m]) => Math.abs(m.volumen) > TOL_VOLUMEN || (!sinPunta(n) && (m.punta_relativa ?? 1) < PUNTA_MIN_RELATIVA));
     if (malas.length) { console.error('HIDROSTATO: fuera de tolerancia', malas.map(([n, m]) => `${n} vol ${m.volumen} punta/lamina ${m.punta_relativa}`).join('; ')); process.exit(1); }
-    console.log(`HIDROSTATO_OK ${Object.keys(r.poses).length} poses: volumen ±${TOL_VOLUMEN * 100} %, punta ≥ ${PUNTA_MIN_RELATIVA} lamina`);
+    const n = Object.keys(r.poses).length, exentas = Object.keys(r.poses).filter(sinPunta);
+    console.log(`HIDROSTATO_OK volumen ±${TOL_VOLUMEN * 100} % en ${n}/${n} poses; punta ≥ ${PUNTA_MIN_RELATIVA} lámina en ${n - exentas.length}/${n} (sin exigir: ${exentas.join(' ')})`);
   }
 }

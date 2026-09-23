@@ -892,8 +892,38 @@ def labios_en_piel(ob, perfil=None):
     clave("fruncir", fruncir_escaneo if escaneo else fruncir)
     clave("estirar", estirar_escaneo if escaneo else estirar)
     abajo = lambda y: max(0.0, min(1.0, (0.15 - y) / 0.08))
-    clave("labio_atras", lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
-                                          0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0))
+
+    def labio_atras_escaneo(x, y, z):
+        """/f v/ (lote fase 2): el labio de ABAJO entero sube contra el filo de
+        los incisivos de arriba y se mete hacia dentro. La version de MakeHuman
+        pesaba por `abajo(y)`, que vale 0,1 justo en el BORDE de la ranura (y
+        0,142 con el borde en 0,15): movia el cuerpo del labio 1 mm y dejaba su
+        linea donde estaba, 7,3 mm por debajo del filo incisal (medido en la
+        demo el 22 sep). Ahora el peso es 1 en el borde y muere 0,45 mas abajo,
+        hacia el surco mentolabial."""
+        contacto = perfil["contacto"](z)
+        lateral = 1 - suave((abs(z) - perfil["ancho"]) / 0.35)
+        frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
+        arco = max(0.0, 1 - (z / 0.75) ** 2)
+        if y >= contacto:
+            # El labio de ARRIBA se levanta un poco en su bermellon (0,14 en el
+            # borde, 0 a 0,4 por encima) para que asome el filo de los incisivos
+            # de arriba apoyado en el labio de abajo: la imagen de /f v/.
+            sube = max(0.0, 1 - (y - contacto) / 0.4)
+            return (0.0, 0.14 * sube * lateral * frente * arco, 0.0)
+        w = max(0.0, min(1.0, 1 - (contacto - y) / 0.45))     # 1 en el borde, 0 a 0,45 por debajo
+        # El labio de abajo se arquea hacia arriba en el centro, contra los
+        # incisivos centrales, y menos hacia las comisuras: con la subida entera
+        # hasta |lateral| 0,5 su mucosa entraba en los incisivos laterales de abajo.
+        w *= lateral * frente * arco
+        # Sube 0,24 hacia el filo incisal (y 0,45) y retrocede solo 0,08: el labio
+        # de abajo sube POR DELANTE de los incisivos de abajo (con 0,22 atras su
+        # mucosa entraba en ellos: 26 caras en la banda labios-dientes).
+        return (0.08 * w, 0.24 * w, 0.0)
+
+    clave("labio_atras", labio_atras_escaneo if escaneo else
+          (lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
+                            0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0)))
 
     def peso_labial(x, y, z):
         # Banda completa, incluidas comisuras: no una campana solo central.
@@ -1823,6 +1853,47 @@ def comprobar_labios_dientes():
                 assert nuevos == 0, ('labios-dientes-nuevos', cierre, presion, nombre, nuevos)
                 max_heredadas = max(max_heredadas, heredadas)
                 comprobaciones += 1
+    # Lote fase 2: /f v/ (mandibula 0,14, solo `labio_atras`, sin cierre ni
+    # compresion): el labio de abajo sube hasta el filo de los incisivos de
+    # arriba y no debe atravesar ninguna corona. Cinco fracciones del gesto.
+    angulo_fv = 0.14 * MAND_MAX
+    dientes_fv = []
+    for diente in bpy.context.scene.objects:
+        if not diente.name.startswith('diente_'):
+            continue
+        puntos = [diente.matrix_world @ v.co for v in diente.data.vertices]
+        if diente.name.startswith('diente_inf_'):
+            puntos = [rotar(v, angulo_fv) for v in puntos]
+        dientes_fv.append(BVHTree.FromPolygons(puntos, [list(p.vertices) for p in diente.data.polygons]))
+    for nombre in ['cabeza_lejana', 'cabeza_cercana']:
+        ob = bpy.data.objects[nombre]
+        claves = ob.data.shape_keys.key_blocks
+        base = claves['Basis'].data
+        movidos = {i for i, p in enumerate(base) if (claves['labio_atras'].data[i].co - p.co).length > 0.002}
+        caras = [list(p.vertices) for p in ob.data.polygons if any(i in movidos for i in p.vertices)]
+        for fraccion in [0.25, 0.5, 0.75, 1.0]:
+            pts, pts_antes = [], []
+            for i, p in enumerate(base):
+                x, lat, y = p.co
+                bajo = suave((0.45-y)/1.35)
+                frente = suave((-1.6-x)/0.8) * (1-suave((abs(lat)-0.85)/0.5))
+                seco = peso_labio_inferior_lps(y, 0.14) if CON_LPS else suave((0.2-y)/0.1)
+                peso = (bajo + (seco-bajo)*frente) * suave((2.3-x)/0.9)
+                v = rotar(p.co, angulo_fv*peso)
+                pts_antes.append(v.copy())
+                pts.append(v + fraccion * (claves['labio_atras'].data[i].co - p.co))
+            ahora, antes = BVHTree.FromPolygons(pts, caras), BVHTree.FromPolygons(pts_antes, caras)
+            nuevos = 0
+            for d, nd in zip(dientes_fv, [o.name for o in bpy.context.scene.objects if o.name.startswith('diente_')]):
+                pares = set(ahora.overlap(d)) - set(antes.overlap(d))
+                nuevos += len(pares)
+                if pares and os.environ.get('DEBUG_FV'):
+                    for a, _ in list(pares)[:3]:
+                        cara = caras[a]; c = [sum(pts[i][k] for i in cara) / len(cara) for k in range(3)]
+                        c0 = [sum(base[i].co[k] for i in cara) / len(cara) for k in range(3)]
+                        print('ROCE_FV', fraccion, nombre, nd, 'centro', [round(v, 3) for v in c], 'base', [round(v, 3) for v in c0])
+            assert nuevos == 0, ('labio_atras-dientes', fraccion, nombre, nuevos)
+            comprobaciones += 1
     print('LABIOS_DIENTES_OK', {'comprobaciones': comprobaciones, 'intersecciones_nuevas': 0,
                               'max_pares_heredados_en_borde_de_banda': max_heredadas})
 

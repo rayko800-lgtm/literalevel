@@ -10,22 +10,22 @@
   "ɹ": {
    "punta": "reposo",
    "cuerpo": [
-    0.85,
+    0.82,
     0.35
    ],
    "dorso_alto": 0.3,
-   "raiz": 0.9,
+   "raiz": 0.6,
    "rotica": true,
    "leyenda": "lengua abombada hacia el paladar, raíz atrás contra la faringe; la punta no toca"
   },
   "ɝ": {
    "punta": "reposo",
    "cuerpo": [
-    0.82,
+    0.78,
     0.38
    ],
    "dorso_alto": 0.3,
-   "raiz": 0.85,
+   "raiz": 0.65,
    "rotica": true
   },
   "ɚ": {
@@ -58,6 +58,12 @@
     0.3,
     0.35
    ]
+  },
+  "ɪ": {
+   "mandibula": 0.36
+  },
+  "l": {
+   "leyenda": "l oscura, la de final de sílaba (feel, ball): punta en el alvéolo, aire por los lados y el dorso alzado hacia el velo"
   }
  },
  "rp": {

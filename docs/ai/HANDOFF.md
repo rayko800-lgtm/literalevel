@@ -348,3 +348,11 @@ Miguel.
 - Comprobaciones: lengua.py 54/54 (exceso 0, pliegue 0, roce −0,039, faringe −0,022), banda 20/20, hidrostato 13/13, comprobar_modelos OK; pruebas boca3d 119/119, front 416/416, tsc, build. fps base → fase 1: bilabial 13,8/14,0 → 14,7/15,4; defecto 7,9/9,1 → 12,7/14,0; rótico 6,6/7,6 → 12,0/13,8.
 - RP no rótica en coda: viene de las transcripciones (medido en local con `app/fonemas.py`: car /kɑː/, hard /hɑːd/, teacher /ˈtiː.t͡ʃəː/…); aviso: bird sale /ˈbɝd/ también en UK (catálogo).
 - **Siguiente**: fases 2 y 3 del lote (otra orden).
+
+### D4.4b · lote fase 2 (23 sep 2026, [ejecutora]) — /f v/, vocales, /l/ e hidrostato
+
+- Encargo de e6 (ahora literalevel-6c), prioridades 4–7 de §9. Informe: `auditoria/d4_4b_lote/fase2_2026-09-23.md`; divergencias: `auditoria/d4_4b_lote/divergencias_2d_3d.md`; evidencia en `build/d4_4b_lote/fase2/`. Sin deploy, push ni merge.
+- **Corrección de la fase 1**: su «hidrostato 13/13» solo miraba 13 poses; sobre todas, 17 de 47 estaban fuera de ±10 % (róticas hasta +43 %). Causa: tres claves de `lengua.py` (`cuerpo_alto` engordaba, `punta_arriba` estrechaba el cuerpo para compensarlo, `raiz_atras` alargaba sin adelgazar). Arregladas; `comprobar_modelos` exige ahora el volumen en las 54 poses (0 fuera) y la punta en 47/54 (sin exigir, nombradas: /ɹ w ʊ u ɝ ɚ ʊə/).
+- /f v/: `labio_atras` de `cara.py` reescrita (el borde del labio de abajo sube a 2,9 mm del filo incisal; antes 7,4) y recuadro frontal en la familia labiodental; banda labios-dientes 28/28. /ɪ/ mandíbula 0,36 (5,2 mm). /ɹ ɝ/ con menos raíz (0,6 / 0,65), joroba y constricción siguen visibles. /l/ de GA oscura por defecto con chip «clara · inicio de sílaba» en la ficha. Descartados, con cifras: recuadro en /s ʃ tʃ/, forzar el redondeo de /ʃ/, levantar el labio superior en /f v/.
+- Pruebas: boca3d 119/119, front 416/416, tsc, build, lengua.py 54/54 (exceso 0), comprobar_modelos OK. fps por encima de la base en bilabial, labiodental y defecto.
+- **Siguiente**: fase 3 del lote (otra orden).

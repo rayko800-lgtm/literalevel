@@ -72,6 +72,12 @@ import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, fa
         </span>
       </div>
     }
+    @if (modo() === '3d' && conVariantesL()) {
+      <div class="chips variantes" role="group" aria-label="Variante de /l/">
+        <button type="button" class="chip" [class.elegido]="!lClara()" [attr.aria-pressed]="!lClara()" (click)="elegirVarianteL(false)">oscura · final de sílaba</button>
+        <button type="button" class="chip" [class.elegido]="lClara()" [attr.aria-pressed]="lClara()" (click)="elegirVarianteL(true)">clara · inicio de sílaba</button>
+      </div>
+    }
     @if (leyenda() && pose()?.leyenda; as l) {
       <p class="leyenda"><strong class="ipa">{{ elegido() ? '/' + elegido() + '/' : 'reposo' }}</strong> · {{ l }}</p>
     }
@@ -90,6 +96,7 @@ zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
     /* Pastillas y controles con los mínimos de investigacion/una_mano.md: se tocan
        seguidos (un sonido tras otro), así que 44-48 px y 8 px de hueco. */
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .chips.variantes { margin: 10px 0 0; }
     .chip { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde, #d6deeb);
       background: var(--tarjeta, transparent); color: inherit; cursor: pointer; min-height: 44px; }
     .chip.elegido { background: var(--acento, #2f5bea); color: #fff; border-color: var(--acento, #2f5bea); }
@@ -182,7 +189,20 @@ export class Boca3d {
   private readonly elegidoPorChip = signal<string | null>(null);
   readonly elegido = computed(() => this.elegidoPorChip() ?? this.sonido());
   readonly simbolos = computed(() => Object.keys(this.catalogo().sonidos));
-  readonly pose = computed<PoseSonido | null>(() => poseDe(this.catalogo(), this.elegido(), this.acento()));
+  /** Lote fase 2: /l/ de GA tiene dos variantes y la ficha enseña las dos. La
+   *  pose del catálogo es la OSCURA (final de sílaba: dorso alzado hacia el velo
+   *  y raíz atrás), porque el error del hispanohablante es usar la clara en
+   *  todas partes; la clara (inicio de sílaba) es la misma sin alzar el dorso.
+   *  Guarda el símbolo para el que se eligió: al cambiar de sonido vuelve a la oscura. */
+  private readonly lClaraPara = signal<string | null>(null);
+  readonly conVariantesL = computed(() => this.elegido() === 'l' && this.acento() === 'ga');
+  readonly lClara = computed(() => this.lClaraPara() === this.elegido() && this.conVariantesL());
+  readonly pose = computed<PoseSonido | null>(() => {
+    const p = poseDe(this.catalogo(), this.elegido(), this.acento());
+    if (!p || !this.lClara()) return p;
+    return { ...p, dorso_alto: 0, raiz: 0,
+      leyenda: 'l clara, la de inicio de sílaba (light, like): punta en el alvéolo y aire por los lados, sin alzar el dorso' };
+  });
   private readonly troceada = computed(() => trocearIpa(this.ipa(), this.catalogo(), this.acentoIpa() ?? this.acento()));
   readonly segmentos = computed(() => this.troceada().segmentos);
   readonly textoIpa = computed(() => this.troceada().texto);
@@ -348,6 +368,11 @@ export class Boca3d {
       listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1), 1);
       this.aviso.set('Este navegador no puede usar esta velocidad sin cambiar el tono: el audio y la boca vuelven a velocidad normal.');
     }
+  }
+
+  /** Lote fase 2: /l/ oscura (final de sílaba) o clara (inicio de sílaba). */
+  elegirVarianteL(clara: boolean): void {
+    this.lClaraPara.set(clara ? this.elegido() : null);
   }
 
   elegir(simbolo: string): void {

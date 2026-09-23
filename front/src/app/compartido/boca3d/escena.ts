@@ -2054,7 +2054,9 @@ export class EscenaBoca {
     if ((this.mejilla.material as THREE.MeshStandardMaterial).opacity <= 0.002) this.mejilla.visible = false;
     r.render(this.escena, this.camara);
     this.mejilla.visible = visiblePrincipal;
-    if (!this.cabezaEntera || !['bilabial', 'nasal-bilabial'].includes(this.familiaActual)) return;
+    // Lote fase 2: /f v/ también llevan el recuadro frontal, para compararlas con
+    // /p b/ en el mismo sitio (labio de abajo contra los incisivos frente a cierre).
+    if (!this.cabezaEntera || !['bilabial', 'nasal-bilabial', 'labiodental'].includes(this.familiaActual)) return;
     const tam = r.getSize(new THREE.Vector2());
     const w = Math.min(138, tam.x * 0.48), h = w / 1.25;
     const fondo = r.getClearColor(new THREE.Color()), alfa = r.getClearAlpha();

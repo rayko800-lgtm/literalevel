@@ -294,7 +294,10 @@ raiz_w = lambda x: rampa(x, 0.8, 2.4)
 arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas que la de abajo
 
 clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))), margen_x=(-0.7, 0.6))
-clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.16 * y * punta_w(x) - 0.16 * y * (1 - punta_w(x)), 1.15 * punta_w(x) ** 1.3 + 0.65 * min(0, z - CENTRO[2]) * punta_w(x)), toca=True, margen_x=(-0.3, 0.1))
+# Lote fase 2 (hidrostato): `punta_arriba` estrechaba TODO el cuerpo un 16 %
+# (-0,16 y (1 - punta_w)), compensacion del engorde de la antigua `cuerpo_alto`;
+# sin ese engorde dejaba /t d n/ en -12 %. Ahora el cuerpo se estrecha un 4 %.
+clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.16 * y * punta_w(x) - 0.04 * y * (1 - punta_w(x)), 1.15 * punta_w(x) ** 1.3 + 0.65 * min(0, z - CENTRO[2]) * punta_w(x)), toca=True, margen_x=(-0.3, 0.1))
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
@@ -321,7 +324,12 @@ def interdental(x, y, z):
 # alza aprobada en v4 se conserva.
 INTERDENTAL_ALZA = 1.25
 clave("punta_interdental", interdental, libre=True)
-clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
+# Lote fase 2 (hidrostato): la cara de abajo subia 0,81 y la de arriba 1,35: la
+# lengua engordaba en vez de subir (17 de 47 poses fuera de +-10 %, /u i j/ hasta
+# +49 %). Ahora la de abajo sube 1,08 (80 %) y la seccion se estrecha a lo ancho
+# lo que engorda: el cuerpo sube y se hace mas alto y estrecho, como un hidrostato.
+arriba_alto = lambda z: 0.8 + 0.2 * (z > CENTRO[2])
+clave("cuerpo_alto", lambda x, y, z: (0.0, -0.20 * y * cuerpo_w(x), 1.35 * cuerpo_w(x) * arriba_alto(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)), margen_x=(-0.7, 0.6))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
 clave("cuerpo_atras", lambda x, y, z: (0.7 * campana(x, 0.3, 2.0), 0.0, 0.0))
@@ -360,7 +368,10 @@ def elevar_dorso(x, y, z):
             alza * (1 - 0.07 * inferior) - 0.36 * recoge - 0.65 * rampa(x, 1.85, 2.4))
 
 clave("dorso_velo", elevar_dorso, velo_abierto=True, toca=True, margen_x=(-0.1, 0.28))
-clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), -0.06 * y * raiz_w(x), -0.08 * raiz_w(x)))
+# Lote fase 2 (hidrostato): la raiz se va 0,5 atras y la lengua se alargaba sin
+# adelgazar (/ɹ/ +10,5 puntos de volumen solo por `raiz`); ahora estrecha a lo
+# ancho en la misma medida que se alarga.
+clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), -0.16 * y * raiz_w(x), -0.08 * raiz_w(x)))
 
 MORFOS = ["mandibula", "punta_arriba", "punta_atras", "punta_interdental", "cuerpo_alto", "cuerpo_bajo",
           "cuerpo_delante", "cuerpo_atras", "dorso_velo", "raiz_atras"]
