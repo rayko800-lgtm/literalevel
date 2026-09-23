@@ -386,6 +386,110 @@ function texturasDe(fuente: THREE.Mesh): { map: THREE.Texture; normalMap?: THREE
   return { map: m.map, normalMap: m.normalMap ?? undefined, normalScale: m.normalMap ? new THREE.Vector2(0.8, 0.8) : undefined };
 }
 
+/** D4.4b v8: el bermellón del escaneo (0..1) en coordenadas del visor, con el
+ *  mismo perfil que `perfil_lps` de cara.py: línea de contacto en y 0,15 (sube
+ *  0,04 hacia las comisuras), 0,22 de labio arriba y 0,28 abajo, que se afinan
+ *  hacia las comisuras, y solo en el frente de la cara (que se curva 0,69 z²).
+ *  Medido sobre la textura del escaneo: el rojo del labio en la línea media va
+ *  de y 0,36 a −0,08, dentro de esta banda. */
+export function bermellonEscaneo(x: number, y: number, z: number): number {
+  const ancho = 0.45 * 2.15;
+  const contacto = 0.15 + 0.04 * Math.min(1, (z / ancho) ** 2);
+  const afina = Math.sqrt(Math.max(0, 1 - (Math.abs(z) / (ancho + 0.1)) ** 2));
+  const dentro = y >= contacto ? 0.22 * afina - (y - contacto) : 0.28 * afina - (contacto - y);
+  const suave = (a: number, b: number, t: number) => { const u = Math.min(1, Math.max(0, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+  return suave(-0.012, 0.02, dentro) * suave(-2.55 + 0.69 * z * z, -2.7 + 0.69 * z * z, x);
+}
+
+/** D4.4b v8: la textura lisa del recuadro: piel de un tono cálido uniforme y
+ *  el bermellón donde la foto del escaneo es labio (rojo claro: R − G > 58 y
+ *  R > 105), solo dentro de la caja UV de la boca (los vértices con
+ *  `bermellonEscaneo` > 0,5) y con el borde suavizado (dos cajas de 7 px). Así
+ *  el labio conserva su contorno real y desaparecen barba, poros y manchas.
+ *  Sin lienzo (pruebas) devuelve null. */
+function texturaLisa(foto: THREE.Texture, mallas: THREE.Mesh[]): THREE.Texture | null {
+  const img = foto.image as CanvasImageSource & { width: number; height: number } | undefined;
+  if (typeof document === 'undefined' || !img?.width) return null;
+  const W = img.width, H = img.height;
+  const lienzo = document.createElement('canvas'); lienzo.width = W; lienzo.height = H;
+  const cx = lienzo.getContext('2d', { willReadFrequently: true });
+  if (!cx) return null;
+  cx.drawImage(img, 0, 0);
+  const datos = cx.getImageData(0, 0, W, H), px = datos.data;
+  // Percentiles 5–95 %: algún vértice del labio lleva la UV de otra isla
+  // (con el mínimo y el máximo la caja cogía nariz y ojos).
+  const us: number[] = [], vs: number[] = [];
+  for (const malla of mallas) {
+    const p = malla.geometry.getAttribute('position'), uv = malla.geometry.getAttribute('uv');
+    if (!uv) continue;
+    for (let i = 0; i < p.count; i++) {
+      if (bermellonEscaneo(p.getX(i), p.getY(i), p.getZ(i)) < 0.5) continue;
+      us.push(uv.getX(i)); vs.push(uv.getY(i));
+    }
+  }
+  if (us.length < 8) return null;
+  const q = (a: number[], f: number) => [...a].sort((x, y) => x - y)[Math.floor(f * (a.length - 1))];
+  const [u0, u1, v0, v1] = [q(us, 0.05) - 0.01, q(us, 0.95) + 0.01, q(vs, 0.05) - 0.01, q(vs, 0.95) + 0.01];
+  const mascara = new Float32Array(W * H), tmp = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = (x + 0.5) / W, v = foto.flipY ? 1 - (y + 0.5) / H : (y + 0.5) / H;
+    if (u < u0 || u > u1 || v < v0 || v > v1) continue;
+    const k = 4 * (y * W + x), R = px[k], G = px[k + 1];
+    mascara[y * W + x] = Math.min(1, Math.max(0, (R - G - 58) / 18)) * Math.min(1, Math.max(0, (R - 105) / 30));
+  }
+  const caja = (a: Float32Array, b: Float32Array, dx: number, dy: number) => {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let suma = 0, n = 0;
+      for (let k = -3; k <= 3; k++) {
+        const X = x + k * dx, Y = y + k * dy;
+        if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+        suma += a[Y * W + X]; n++;
+      }
+      b[y * W + x] = suma / n;
+    }
+  };
+  caja(mascara, tmp, 1, 0); caja(tmp, mascara, 0, 1);
+  const PIEL = [233, 196, 172], LABIO = [200, 108, 104];
+  for (let i = 0; i < W * H; i++) {
+    const f = Math.min(1, mascara[i] * 1.4);
+    for (let j = 0; j < 3; j++) px[4 * i + j] = PIEL[j] + (LABIO[j] - PIEL[j]) * f;
+    px[4 * i + 3] = 255;
+  }
+  cx.putImageData(datos, 0, 0);
+  const tex = new THREE.CanvasTexture(lienzo);
+  tex.flipY = foto.flipY; tex.colorSpace = foto.colorSpace; tex.wrapS = foto.wrapS; tex.wrapT = foto.wrapT;
+  return tex;
+}
+
+/** D4.4b v8: el material de la piel en el recuadro: la textura lisa, sin mapa
+ *  de normales (el relieve fino de la foto era barba y poros) y con un 30 % de
+ *  luz propia para un sombreado suave (con la piel lisa, las costuras de las
+ *  dos mitades y del giro de la mandíbula se marcaban). Sin textura, el tono
+ *  de piel plano. */
+function materialPielLisa(lisa: THREE.Texture | null, lado: THREE.Side): THREE.MeshPhysicalMaterial {
+  return lisa
+    ? materialDe('piel', '#ffffff', { map: lisa, emissiveMap: lisa, emissive: new THREE.Color(0.3, 0.3, 0.3), roughness: 0.75, side: lado, vertexColors: true })
+    : materialDe('piel', '#e9c4ac', { roughness: 0.75, side: lado, vertexColors: true });
+}
+
+/** D4.4b v8: la raya entre los labios. La foto del escaneo trae los labios
+ *  sellados (la ranura se abre en cara.py), así que la textura lisa no tiene
+ *  raya y el cierre de /p b m/ se leía como una mancha roja. Se oscurecen por
+ *  vértice los bordes de la ranura (|y − contacto| < 0,04 en el frente, hasta un 75 %), y el
+ *  color viaja con las shape keys. El material con la foto no lo usa. */
+function rayaDeLosLabios(malla: THREE.Mesh): void {
+  const p = malla.geometry.getAttribute('position'), colores = new Float32Array(p.count * 3);
+  const ancho = 0.45 * 2.15;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const contacto = 0.15 + 0.04 * Math.min(1, (z / ancho) ** 2);
+    const cerca = Math.max(0, 1 - Math.abs(y - contacto) / 0.04) * (bermellonEscaneo(x, contacto, z) > 0.5 ? 1 : 0);
+    const k = 1 - 0.75 * cerca;
+    colores.set([k, k * 0.82, k * 0.82], i * 3);
+  }
+  malla.geometry.setAttribute('color', new THREE.BufferAttribute(colores, 3));
+}
+
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos, aire oral]. */
 const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, I_MORFOS = I_NUDOS + N_NUDOS * 2;
 export const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
@@ -971,11 +1075,16 @@ export interface OpcionesEscena {
 
 export class EscenaBoca {
   /** Segundo encuadre del mismo gesto; no tiene una animación independiente. */
-  private readonly camaraLabios = new THREE.PerspectiveCamera(32, 1.25, 0.1, 60);
+  /** v8: 22° (antes 32): el recuadro se ciñe a la boca y deja fuera el borde
+   *  del escaneo bajo el mentón, que en el móvil parecía una segunda boca. */
+  private readonly camaraLabios = new THREE.PerspectiveCamera(22, 1.25, 0.1, 60);
   /** D4.4b v4: el detalle frontal se pinta en una textura pequeña (0,6 de la
    *  resolución del recuadro, MSAA ×2) y solo cada tres cuadros mientras hay movimiento;
    *  en el canvas se copia con un plano, que cuesta nada. Con la pasada
    *  completa a resolución entera el recuadro se llevaba un 26 % de los fps. */
+  /** v8: la piel del escaneo y su material liso para el recuadro. */
+  private readonly pielesNeutras: { malla: THREE.Mesh; neutro: THREE.Material | null }[] = [];
+  private texturaLisaActual: THREE.Texture | null = null;
   private detalle: { rt: THREE.WebGLRenderTarget; escena: THREE.Scene; camara: THREE.OrthographicCamera; material: THREE.MeshBasicMaterial } | null = null;
   private detalleCuadro = 0;
   private pixelRatioNativo = 1;
@@ -1746,6 +1855,7 @@ export class EscenaBoca {
         // corte sagital los labios son dos volúmenes, no dos láminas.
         ['corte_labio_sup', 'labio', false], ['corte_labio_inf', 'labio', true],
       ];
+      this.soltarPielesLisas();
       for (const [nombre, tejido, enMandibula] of cabeza) {
         const fuente = piezas.get(nombre);
         if (!fuente) continue;
@@ -1764,6 +1874,7 @@ export class EscenaBoca {
             { side: THREE.DoubleSide, vertexColors: !texturasDe(fuente) && geometria.hasAttribute('color'), ...texturasDe(fuente) });
         const pieza = new THREE.Mesh(geometria, mat);
         if (tejido === 'piel' || tejido === 'ojo' || tejido === 'iris') pieza.layers.enable(1);
+        if (tejido === 'piel' && texturasDe(fuente)) this.pielesNeutras.push({ malla: pieza, neutro: null });
         if (nombre === 'ojo_cercano' || nombre === 'iris_cercano') pieza.layers.set(1);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
         // D4.3c: las caras del corte y la pared del fondo son justo lo que
@@ -1792,6 +1903,18 @@ export class EscenaBoca {
           { vertexColors: !texturasDe(cercana) && this.mejilla.geometry.hasAttribute('color'), transparent: true, opacity: 0,
             depthWrite: false, side: THREE.DoubleSide, ...texturasDe(cercana) });
         this.mejilla.layers.enable(1);
+        if (texturasDe(cercana)) this.pielesNeutras.push({ malla: this.mejilla, neutro: null });
+        // v8: la textura lisa se hace una vez con las dos mitades y cada una
+        // lleva su material (la mejilla, a dos caras como en el corte).
+        const foto = texturasDe(cercana)?.map;
+        if (foto && this.pielesNeutras.length) {
+          const lisa = texturaLisa(foto, this.pielesNeutras.map(p => p.malla));
+          this.texturaLisaActual = lisa;
+          for (const p of this.pielesNeutras) {
+            rayaDeLosLabios(p.malla);
+            p.neutro = materialPielLisa(lisa, (p.malla.material as THREE.Material).side);
+          }
+        }
         this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel, ranuraSeca));
         this.conMorfosDeLabios(this.mejilla, cercana);
       }
@@ -1954,6 +2077,7 @@ export class EscenaBoca {
     });
     texturas.forEach(t => t.dispose());
     this.papilas?.dispose();
+    this.soltarPielesLisas();
     if (this.detalle) {
       this.detalle.rt.dispose();
       this.detalle.material.dispose();
@@ -2084,6 +2208,14 @@ export class EscenaBoca {
     r.setClearColor(fondo, alfa);
   }
 
+  /** v8: suelta los materiales y la textura de la piel lisa del recuadro. */
+  private soltarPielesLisas(): void {
+    (this.pielesNeutras ?? []).forEach(({ neutro }) => neutro?.dispose());
+    if (this.pielesNeutras) this.pielesNeutras.length = 0;
+    this.texturaLisaActual?.dispose();
+    this.texturaLisaActual = null;
+  }
+
   /** La pasada del detalle frontal, a su textura. */
   private pintarDetalle(w: number, h: number): void {
     const r = this.renderer;
@@ -2129,7 +2261,12 @@ export class EscenaBoca {
     // luz, misma escena): volver a dibujarlo para el recuadro costaba fps.
     const sombrasAuto = r.shadowMap.autoUpdate;
     r.shadowMap.autoUpdate = false;
+    // v8: en el recuadro, la piel lisa en vez de la foto del escaneo (el corte
+    // de perfil conserva su material).
+    const pieles = this.pielesNeutras ?? [];
+    const originales = pieles.map(({ malla, neutro }) => { const m = malla.material; if (neutro) malla.material = neutro; return m; });
     r.render(this.escena, this.camaraLabios);
+    pieles.forEach(({ malla }, i) => { malla.material = originales[i]; });
     r.shadowMap.autoUpdate = sombrasAuto;
     dentales.forEach((o, i) => { o.visible = visibles[i]; });
     r.setRenderTarget(null);

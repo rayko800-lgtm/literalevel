@@ -372,3 +372,10 @@ Miguel.
 - Vista previa: la build se comprobó en local (13/13 fonemas a 390 px). **El túnel no está abierto**: el clasificador de permisos lo bloquea en esta sesión; hace falta el permiso de Miguel.
 - Plan SSB: GOOSE como piloto, CURE → /ɔː/, la cadena FOOT/THOUGHT/DRESS, GOAT/FACE; unas 4 h 30. Hay un borrador del aviso esperando la aprobación de Miguel. El catálogo UK trae formas GA (sure /ʃʊɹ/…). No se ha tocado ninguna pose.
 - **Siguiente**: decisión de Miguel/6c sobre el túnel, el aviso y el plan SSB.
+
+### D4.4b · v8 cara neutra en el recuadro (23 sep 2026, [ejecutora], Opus 5.5)
+
+- Encargo de literalevel-9b (la Dirección; cambio de rumbo tras ver Miguel el 3D en el móvil). Informe: `auditoria/d4_4b_v8_2026-09-23.md`; evidencia en `build/d4_4b_v8/`.
+- En la pasada del recuadro, la piel del escaneo usa una textura lisa derivada de `Map-COL.jpg` (tono uniforme y el contorno del labio de la foto; sin barba, poros ni mapa de normales), con un 30 % de luz propia y una raya por vértice entre los labios. La cámara del recuadro pasa de 32° a 22° y deja fuera la «segunda boca» bajo el mentón. Bastaron las opciones 1 y 2b.
+- El corte de perfil no cambia: 0 % de píxeles distintos (0,03 % en /ɹ/). Tampoco cambian la mecánica labial ni los modelos. Pruebas: boca3d 125/125, front 422/422, tsc, build y comprobar_modelos; fps igual que v7.
+- **Siguiente**: que Miguel lo juzgue en la vista previa. Queda pendiente la raya de los labios cerrados (suave) y decidir si el perfil lleva también la piel lisa.

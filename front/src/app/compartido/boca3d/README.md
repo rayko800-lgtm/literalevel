@@ -33,7 +33,12 @@ y `tools/boca3d_demo/medir_fps.mjs` mide los cuadros por segundo con la CPU fren
   Copia local: `tools/boca3d_blender/lps/` (GLB, `Map-COL.jpg`,
   `Infinite-Level_02_Tangent_SmoothUV.jpg` y la licencia). `cara.py` la recorta,
   la escala a la cavidad, le abre la ranura de los labios y le añade las shape
-  keys labiales; el escaneo original no se modifica en disco.
+  keys labiales; el escaneo original no se modifica en disco. Cambios de v8
+  (23 sep 2026): el corte de perfil sigue usando la geometría y las dos texturas;
+  el recuadro frontal usa la geometría y una textura derivada de `Map-COL.jpg`,
+  hecha en el navegador (`texturaLisa` en `escena.ts`): piel de un tono uniforme
+  y el contorno del labio sacado de la foto, sin el mapa de normales. Las dos
+  son obra derivada y la atribución CC BY 3.0 se mantiene.
 - **Cabeza anterior (respaldo)**: MakeHuman 1.3.0, CC0 (`makehuman_cabeza.obj`);
   se usa solo si falta el escaneo (`SIN_LPS=1`).
 - El resto (dientes, encías, paladar, velo, lengua) es procedimental, hecho aquí.
