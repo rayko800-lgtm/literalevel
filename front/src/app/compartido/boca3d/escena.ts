@@ -1077,6 +1077,8 @@ export class EscenaBoca {
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
   private hacia: PoseNumerica | null = null;
+  /** Lote fase 3: dentro del soplo de una sorda la vibración espera (VOT). */
+  private vozRetenida = false;
   /** v7: los globos oculares del escaneo (`ojo_*` en cara.glb), si los trae. */
   private ojos: THREE.Mesh[] = [];
   /** v7: el fondo oscuro de la boca en el recuadro (solo capa 1). */
@@ -1440,6 +1442,10 @@ export class EscenaBoca {
       const f = (t - a.en) / a.dura;
       return f >= 0 && f < 1 ? Math.max(mejor, 1 - f * f) : mejor;
     }, 0);
+    // Lote fase 3: mientras sale el soplo, la vocal siguiente todavía no vibra
+    // (eso es el VOT): la marca de vibración espera a que acabe, y el soplo
+    // dura más en /k/ que en /t/ y más en /t/ que en /p/.
+    this.vozRetenida = soplo > 0;
     if (soplo <= 0) return;
     const mat = this.aireOral.material as THREE.MeshStandardMaterial;
     mat.opacity = Math.max(mat.opacity, 0.85 * soplo);
@@ -1999,6 +2005,7 @@ export class EscenaBoca {
     if (!this.vivo) return;
     this.rafId = requestAnimationFrame(this.bucle);
     this.ajustarPixelRatio();
+    this.vozRetenida = false;                         // `soplar` la vuelve a poner dentro de un soplo
     if (this.linea) {
       const t = (performance.now() - this.lineaT0) / 1000;
       this.actual = this.poseDeLinea(t);
@@ -2028,7 +2035,9 @@ export class EscenaBoca {
     // D4.3b: el pulso de vibración respira con el reloj (no con el ciclo
     // del sonido), aparte de la pose: por eso sigue pintando mientras esté
     // encendido, aunque la pose ya no se mueva.
-    if (this.sonoroActivo) {
+    if (this.sonoroActivo && this.vozRetenida) {
+      if (this.marcaVibracion.visible) { this.marcaVibracion.visible = false; this.sucio = true; }
+    } else if (this.sonoroActivo) {
       const pulso = 0.35 + 0.3 * (0.5 + 0.5 * Math.sin((performance.now() / 1000) * 2 * Math.PI * 2.2));
       (this.marcaVibracion.material as THREE.MeshStandardMaterial).opacity = pulso;
       this.marcaVibracion.visible = true;

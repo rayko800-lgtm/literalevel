@@ -28,6 +28,7 @@ Aviso previo (medido el 22 sep): el exportador da hoy `factor_lento` 1,143 y el 
 
 | 23 sep (lote fase 2) | /ɪ/ GA | `mandibula` | 0,26 | 0,36 | Con 0,26 la abertura entre labios era 1,4 mm y se leía como boca cerrada (el cierre labial de las vocales neutras se apaga con la mandíbula). A 0,36: 5,2 mm, entre el reposo y /ɛ/ (8,1 mm). Medido también 0,30 → 2,6 y 0,33 → 3,8. | `sonidos.ɪ` |
 | 23 sep (lote fase 2) | /l/ GA | `leyenda` | «punta en el alvéolo, aire por los lados; dorso alzado atrás (l oscura)» | «l oscura, la de final de sílaba (feel, ball): …» | La pose sigue siendo la del 2D (OSCURA). Decisión de e6: el error del hispanohablante es usar la /l/ clara en todas partes, así que la ficha enseña por defecto la oscura (el gesto que le falta) y, con un chip, la clara (misma pose sin dorso alzado ni raíz atrás; `boca3d.ts`). Ni el 2D ni el 3D saben la posición en la sílaba: el diccionario escribe casi siempre «l» (feel, milk, ball) y solo a veces «ɫ» (light US [ɫɐɪt], table UK [ˈt(ʰ)eɪbɫ̩]), que `app/fonemas.py` y `PARECIDOS` colapsan a «l». Si algún día el 3D conoce la posición en la sílaba, se puede afinar (clara en ataque, oscura en coda). | `sonidos.l`; `boca3d.ts` (`elegirVarianteL`) |
+| 22 sep (lote fase 3) | /ɒ/ RP | `mandibula` | 1,0 | 0,8 | Con 1,0 /ɒ/ abría **más** que /ɑ/ de GA (24,2 mm frente a 20,8, medido en la demo): al revés de lo descrito. /ɒ/ es baja, posterior, redondeada y breve, y en el SSB moderno está algo **elevada** respecto a la RP clásica (Wells 1982; Lindsey 2019, cap. 6; investigación §7 y §9.9). A 0,8: 19,9 mm, entre /ɑ/ (20,8) y /ɔ/ (17,3); redondeo sin cambio (anchura 34,3 mm frente a 43,2 de /ɑ/, labios 6 mm más adelante) y breve (`larga` false, la del 2D). Medido también 0,9 → 22,1 y 0,72 → 18,1. Faringe: holgura −0,12 (antes −0,02). | `sonidos.ɒ`; `auditoria/d4_4b_lote/fase3_2026-09-22.md` §2 |
 
 ## Campos que solo existen en el 3D
 
@@ -42,6 +43,7 @@ Aviso previo (medido el 22 sep): el exportador da hoy `factor_lento` 1,143 y el 
 | 22 sep (cierre) | `punta_arriba` con toque en postalveolar (/tʃ dʒ/) | 1,0 | 0,85 | Con la mandíbula de 0,21 rad la suma punta_arriba + cuerpo_alto entraba 0,155 en el paladar (toque permitido 0,08). | `lengua.py` `morfos_de`, `escena.ts` `morfosDe`, `medir_lengua.mjs` |
 | 22 sep (cierre) | `dorso_velo` sin toque (`dorso_alto` de /w l ɝ ɚ/) | 1,0 × dorso_alto | 0,9 × dorso_alto | /w/ entraba 0,013 en el velo. /ɝ ɚ/ ya revisadas en el lote fase 1 (abombadas); /l/ y /w/ pendientes de su fase. | mismos tres archivos |
 | 22 sep (lote fase 1) | comprobación nueva: raíz contra la pared faríngea | — | perfil medido de la pared (`PARED_FARINGE`), tolerancia 0,08 si `rotica` (roce a propósito) y 0,06 (grosor de la banda) para el resto | Entra en las comprobaciones de siempre de `lengua.py` (COLISION si falla). | `lengua.py` |
+| 22 sep (lote fase 3) | soplo de /p t k/ (encima del ciclo, sin tocar sus claves) | 0,55 s para las tres (`SOPLO_S`, v4) | `SOPLO_S` × VOT / 35 ms: /p/ 0,39 · /t/ 0,55 · /k/ 0,66 s a velocidad 1 (en palabras, × `lento`; con `aVelocidad`, escalado). Mientras sopla, la marca de vibración de la vocal siguiente espera (`vozRetenida`) | El VOT de las sordas aspiradas crece hacia atrás: labial < alveolar < velar, ≈25 / 35 / 42 ms (Lisker & Abramson 1964; resumen en PMC5665574, «VOT at 50», 2017; investigación §1 y §9.10). /t/ conserva el soplo aprobado en v4; el tiempo real (decenas de ms) está ampliado como todo el ciclo, se mantiene la proporción. /b d ɡ/ siguen sin soplo. | `animacion.ts` (`VOT_MS`, `soploDe`), `escena.ts` (`soplar`, `vozRetenida`) |
 
 ## Claves de los modelos (geometría del 3D; no son poses, pero cambian cómo se ven)
 
@@ -60,3 +62,31 @@ Aviso previo (medido el 22 sep): el exportador da hoy `factor_lento` 1,143 y el 
 | 23 sep (lote fase 2) | Recuadro de labios en /s ʃ tʃ/ (familias alveolar y postalveolar) | El corte ya enseña el contraste: la boca de /ʃ tʃ/ mide 34,3 mm frente a 57,4 de /s/ (23 mm menos) y los labios van 11 mm más adelante; un recuadro más cuesta fluidez en esas vistas. Decisión de e6. |
 | 23 sep (lote fase 2) | Forzar el redondeo de /ʃ ʒ tʃ dʒ/ a −30..−45 % | Esas cifras del vídeo de Miguel son de /kw u w/, no de /ʃ/. /ʃ/ queda en −20,6 % con 6,5 mm de avance (protrusión moderada de postalveolar); para −30 % habría que dejarla casi igual que /u/ (−32 %). |
 | 23 sep (lote fase 2) | Levantar el labio superior ≥ 7 mm en /f v/ para que asome el filo incisal | Sería una mueca; el contacto labiodental ya se lee con el labio de abajo a 2,9 mm de los incisivos. |
+
+## Cierre del D4.4b (22 sep, lote fase 3): motivo y fuente de cada fila
+
+Repaso fila por fila. «Medición» quiere decir que la cifra se midió en el modelo en esta rama (informe citado);
+«decisión» es de e6/Miguel y está escrita en su informe. Donde la fila de arriba no citaba la fuente fonética,
+la pongo aquí; ninguna fila queda sin motivo.
+
+| Fila | Motivo | Fuente |
+|---|---|---|
+| /θ ð/ mandíbula 0,6 | la punta interdental no cabía con `MAND_MAX` 0,21 | medición (cierre de cara §3) + decisión e6/Miguel; el gesto: investigación §2 (Dart) |
+| /ɹ/ GA punta en reposo | variante abombada | Delattre & Freeman 1968; Zhou et al. 2008 (investigación §5, §9.2, §10) |
+| /ɹ/ GA cuerpo, dorso, raíz | joroba y constricción faríngea; volumen | **añadida aquí**: investigación §5 y §9.2 (mismas fuentes); cifras: medición (fases 1 y 2) |
+| /ɝ/ GA | ídem, sostenida en la vocal | investigación §9.2 |
+| /ɚ/ GA | ídem, átona | **añadida aquí**: investigación §6 (/ɚ/, Delattre & Freeman 1968) y §9.2 |
+| /r/ RP | postalveolar, sin joroba ni raíz | investigación §5 (r RP: Wells 1982; Cruttenden 2014) y §9.3 |
+| /ɑ ɒ ɔ/ GA/RP, /ɔː/ RP raíz | la raíz entraba en la pared faríngea | medición (fase 1 §1); «baja y atrás» se conserva: investigación §6–7 |
+| /ɒ/ RP mandíbula 0,8 | abría más que /ɑ/ | Wells 1982 (§7: /ɒ/ «abierta», /ɑː/ «muy abierta»); Lindsey 2019 cap. 6 (elevación de LOT; la investigación solo pudo leer reseñas e índice, §10) |
+| /ɪ/ mandíbula 0,36 | a 0,26 la boca parecía cerrada | investigación §6 («algo más abierta que /i/», Ladefoged & Johnson 2011) + medición (fase 2) |
+| /l/ leyenda y chip | enseñar la oscura por defecto | investigación §5 y §9.7 + decisión e6 (fase 2) |
+| campo `rotica` | la familia ya no puede decidirse por la punta | mecanismo del visor (sin afirmación fonética) |
+| `punta_arriba` 0,85 en /tʃ dʒ/ | entraba en el paladar | medición (cierre §3) |
+| `dorso_velo` ×0,9 | /w/ entraba en el velo | medición (cierre §3) |
+| comprobación de la pared faríngea | la raíz no debe atravesarla | medición del perfil de `cara.glb` (fase 1) |
+| soplo por lugar (VOT) | labial < alveolar < velar | Lisker & Abramson 1964; PMC5665574 (investigación §1, §9.10, §10) |
+| claves `cuerpo_alto`, `punta_arriba`, `raiz_atras` | la lengua cambiaba de volumen | medición (fase 2 §1); el criterio ±10 % es el del encargo de e6 (la lengua es un hidrostato muscular: cambia de forma, no de volumen). **Sin fuente bibliográfica citada en la investigación**; queda como criterio de modelado |
+| clave `labio_atras` | el labio de abajo no llegaba a los incisivos en /f v/ | investigación §2 (/f v/ labiodental) + medición (fase 2) |
+| recuadro en labiodental | comparar /f v/ con /p b/ | decisión e6 (fase 2) |
+| tres opciones descartadas | — | cada una con sus cifras en su fila |

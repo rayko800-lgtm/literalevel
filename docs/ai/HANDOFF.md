@@ -356,3 +356,11 @@ Miguel.
 - /f v/: `labio_atras` de `cara.py` reescrita (el borde del labio de abajo sube a 2,9 mm del filo incisal; antes 7,4) y recuadro frontal en la familia labiodental; banda labios-dientes 28/28. /ɪ/ mandíbula 0,36 (5,2 mm). /ɹ ɝ/ con menos raíz (0,6 / 0,65), joroba y constricción siguen visibles. /l/ de GA oscura por defecto con chip «clara · inicio de sílaba» en la ficha. Descartados, con cifras: recuadro en /s ʃ tʃ/, forzar el redondeo de /ʃ/, levantar el labio superior en /f v/.
 - Pruebas: boca3d 119/119, front 416/416, tsc, build, lengua.py 54/54 (exceso 0), comprobar_modelos OK. fps por encima de la base en bilabial, labiodental y defecto.
 - **Siguiente**: fase 3 del lote (otra orden).
+
+### D4.4b · lote fase 3 (22 sep 2026, [ejecutora], Opus 5.5) — /ŋ/, /ɒ ɑ/, aspiración, barrido y cierre
+
+- Encargo de literalevel-6c, prioridades 8–10 de §9 + barrido + cierre. Informe: `auditoria/d4_4b_lote/fase3_2026-09-22.md`; divergencias (con la sección «Cierre del D4.4b: motivo y fuente de cada fila»): `auditoria/d4_4b_lote/divergencias_2d_3d.md`; evidencia en `build/d4_4b_lote/fase3/`. Sin deploy, push ni merge.
+- /ŋ/ ya estaba bien (sin suelta ni soplo; sing/singer sin [ɡ]); ahora con prueba. /ɒ/ RP mandíbula 1,0 → 0,8 (abría 24,2 mm, más que /ɑ/ 20,8; ahora 19,9). Soplo de /p t k/ por lugar (VOT 25/35/42 ms → 0,39/0,55/0,66 s), y la vibración de la vocal espera al soplo.
+- Pruebas: boca3d 122/122, front 419/419, tsc, build; lengua.py 54/54 (exceso 0), hidrostato 54/54 (punta 47/54), banda labios-dientes 28/28, comprobar_modelos OK; fps como la fase 2.
+- Pendiente para decidir antes del 3 oct (§5 del informe): fps en teléfono y guarda 534; soplo tras /s/ y en coda (recomendado arreglar, 3 líneas); posición en la sílaba; RP clásica o SSB. Propuesta de validación humana en §6 (~25 min de Miguel).
+- **Siguiente**: decisión de 6c/Miguel sobre §5 y la validación.

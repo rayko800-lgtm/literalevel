@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { EscenaBoca, I_CIERRE_LABIOS, I_COMPRESION_LABIOS, cierreLabial, poseNumerica } from './escena';
-import { SOPLO_S, aVelocidad, cicloSonido, lineaPalabra } from './animacion';
+import { SOPLO_S, VOT_MS, aVelocidad, cicloSonido, lineaPalabra, soploDe } from './animacion';
 import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe, trocearIpa } from './poses';
 import poses from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
@@ -39,7 +39,7 @@ describe('D4.4b v4: soplo de aspiración de las oclusivas sordas', () => {
   it('/p t k/ llevan el soplo en la liberación (1,6 s); /b d ɡ/ no', () => {
     for (const s of ['p', 't', 'k']) {
       const l = cicloSonido(poseDe(catalogo, s)!, catalogo);
-      expect(l.aspiracion).toEqual([{ en: 1.6, dura: SOPLO_S }]);
+      expect(l.aspiracion).toEqual([{ en: 1.6, dura: soploDe(poseDe(catalogo, s)!) }]);
     }
     for (const s of ['b', 'd', 'ɡ', 'm', 'θ', 's']) {
       expect(cicloSonido(poseDe(catalogo, s)!, catalogo).aspiracion).toBeUndefined();
@@ -47,7 +47,43 @@ describe('D4.4b v4: soplo de aspiración de las oclusivas sordas', () => {
   });
   it('se escala con la velocidad como el resto de la línea', () => {
     const l = aVelocidad(cicloSonido(poseDe(catalogo, 'p')!, catalogo), 0.5);
-    expect(l.aspiracion).toEqual([{ en: 3.2, dura: SOPLO_S * 2 }]);
+    expect(l.aspiracion).toEqual([{ en: 3.2, dura: soploDe(poseDe(catalogo, 'p')!) * 2 }]);
+  });
+  it('lote fase 3: el VOT crece hacia atrás, /p/ < /t/ < /k/ (25 / 35 / 42 ms), y /t/ conserva el soplo del 2D', () => {
+    const [p, t, k] = ['p', 't', 'k'].map(s => cicloSonido(poseDe(catalogo, s)!, catalogo).aspiracion![0].dura);
+    expect(p).toBeLessThan(t);
+    expect(t).toBeLessThan(k);
+    expect(t).toBeCloseTo(SOPLO_S);
+    expect(p / t).toBeCloseTo(VOT_MS['bilabial'] / VOT_MS['alveolar']);
+    expect(k / t).toBeCloseTo(VOT_MS['velar'] / VOT_MS['alveolar']);
+    // En las palabras, igual y con el factor de «despacio».
+    const pal = (ipa: string) => lineaPalabra(trocearIpa(ipa, catalogo).segmentos, catalogo, 2).aspiracion![0].dura;
+    expect(pal('pɪn')).toBeCloseTo(soploDe(poseDe(catalogo, 'p')!) * 2);
+    expect(pal('kɪn')).toBeGreaterThan(pal('tɪn'));
+    expect(pal('tɪn')).toBeGreaterThan(pal('pɪn'));
+  });
+  it('lote fase 3: /ŋ/ es nasal velar sin oclusiva añadida: ni soplo ni [ɡ] en «sing»', () => {
+    const ng = poseDe(catalogo, 'ŋ')!;
+    expect(ng.dorso_velo).toBe(true);
+    expect(ng.velo_abierto).toBe(true);
+    expect(cicloSonido(ng, catalogo).aspiracion).toBeUndefined();
+    // Sin suelta oclusiva: el cierre velar se deshace suave, como /m n/ (ninguna clave con `hacia`).
+    expect(cicloSonido(ng, catalogo).claves.some(c => c.hacia)).toBe(false);
+    const segs = trocearIpa('sɪŋ', catalogo).segmentos.map(x => x.simbolo);
+    expect(segs).toEqual(['s', 'ɪ', 'ŋ']);
+    // singer sin [ɡ]; finger lo trae escrito y lo enseña (app/fonemas.py, 22 sep).
+    expect(trocearIpa('ˈsɪŋ.ɚ', catalogo).segmentos.map(x => x.simbolo)).not.toContain('ɡ');
+    expect(trocearIpa('ˈfɪŋɡɚ', catalogo).segmentos.map(x => x.simbolo)).toContain('ɡ');
+  });
+  it('lote fase 3: hot RP /hɒt/ redondeada, breve y algo menos abierta que GA /hɑt/', () => {
+    const o = poseDe(catalogo, 'ɒ', 'rp')!, a = poseDe(catalogo, 'ɑ')!;
+    expect(o.labios).toBe('redondeados');
+    expect(a.labios).toBe('neutros');
+    expect(o.larga).toBe(false);
+    expect(a.larga).toBe(true);
+    expect(o.mandibula).toBeLessThan(a.mandibula);
+    const total = (ipa: string, ac: 'ga' | 'rp') => lineaPalabra(trocearIpa(ipa, catalogo, ac).segmentos, catalogo, 1).total;
+    expect(total('hɒt', 'rp')).toBeLessThan(total('hɑt', 'ga'));
   });
   it('en una palabra, cada oclusiva sorda suelta su soplo al final de su cierre', () => {
     const { segmentos } = trocearIpa('pæt', catalogo);

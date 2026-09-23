@@ -33,6 +33,18 @@ export interface Linea {
 /** Duración visible del soplo de una oclusiva sorda, a 1× (la del 2D). */
 export const SOPLO_S = 0.55;
 
+/** Lote fase 3: el VOT de las sordas crece cuanto más atrás se articulan,
+ *  labial < alveolar < velar (≈25 / 35 / 42 ms en inicio tónico, Lisker y
+ *  Abramson 1964; investigación fonética §1 y §9.10). El soplo visible y el
+ *  retraso de la vibración de la vocal siguiente se escalan en esa proporción
+ *  sobre la alveolar, que conserva los 0,55 s del 2D. */
+export const VOT_MS: Record<string, number> = { bilabial: 25, alveolar: 35, velar: 42 };
+
+/** Lo que se ve el soplo de una oclusiva sorda, a 1×. */
+export function soploDe(pose: PoseSonido): number {
+  return SOPLO_S * (VOT_MS[pose.lugar] ?? VOT_MS['alveolar']) / VOT_MS['alveolar'];
+}
+
 /** El factor de «despacio» de las palabras del 2D. */
 export const LENTO = 1.6;
 
@@ -111,7 +123,7 @@ export function cicloSonido(pose: PoseSonido, catalogo: CatalogoPoses): Linea {
   // todos los casos), no cuando arranca el movimiento.
   const linea: Linea = { total: 2.8, claves, quieta: PA, sonidoEn: claves[2].t };
   // La «suelta» de la oclusiva sorda (la clave con `hacia`) lleva el soplo.
-  if (m === 'oclusiva' && !pose.sonora) linea.aspiracion = [{ en: claves[4].t, dura: SOPLO_S }];
+  if (m === 'oclusiva' && !pose.sonora) linea.aspiracion = [{ en: claves[4].t, dura: soploDe(pose) }];
   return linea;
 }
 
@@ -165,7 +177,7 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
     const m = s.pose.movimiento;
     if (m === 'oclusiva') {
       claves.push({ t: t + 0.45 * d, pose: PA }, { t: t + 0.8 * d, pose: PA });
-      if (!s.pose.sonora) aspiracion.push({ en: t + 0.8 * d, dura: SOPLO_S * lento });
+      if (!s.pose.sonora) aspiracion.push({ en: t + 0.8 * d, dura: soploDe(s.pose) * lento });
     } else if (m === 'africada' && PB) {
       claves.push({ t: t + 0.3 * d, pose: PA }, { t: t + 0.5 * d, pose: PA }, { t: t + 0.8 * d, pose: PB }, { t: t + 0.95 * d, pose: PB });
     } else if (m === 'diptongo' && PB) {
