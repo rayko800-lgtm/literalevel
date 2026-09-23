@@ -364,3 +364,11 @@ Miguel.
 - Pruebas: boca3d 122/122, front 419/419, tsc, build; lengua.py 54/54 (exceso 0), hidrostato 54/54 (punta 47/54), banda labios-dientes 28/28, comprobar_modelos OK; fps como la fase 2.
 - Pendiente para decidir antes del 3 oct (§5 del informe): fps en teléfono y guarda 534; soplo tras /s/ y en coda (recomendado arreglar, 3 líneas); posición en la sílaba; RP clásica o SSB. Propuesta de validación humana en §6 (~25 min de Miguel).
 - **Siguiente**: decisión de 6c/Miguel sobre §5 y la validación.
+
+### D4.4b · aspiración por contexto y plan SSB (22 sep 2026, [ejecutora], Opus 5.5)
+
+- Encargo de 6c tras aceptar la fase 3. Informe: `auditoria/d4_4b_lote/aspiracion_contexto_2026-09-22.md`; plan: `auditoria/d4_4b_lote/ssb_moderno.md`. Decisión de Miguel: el acento británico será el SSB moderno (Lindsey 2019), con un aviso en la plataforma.
+- Soplo de /p t k/ solo si se suelta hacia una vocal o /l ɹ w j/ y no va tras /s/ (`seAspira`). Boca3d 123/123, front 420/420, tsc, build.
+- Vista previa: la build se comprobó en local (13/13 fonemas a 390 px). **El túnel no está abierto**: el clasificador de permisos lo bloquea en esta sesión; hace falta el permiso de Miguel.
+- Plan SSB: GOOSE como piloto, CURE → /ɔː/, la cadena FOOT/THOUGHT/DRESS, GOAT/FACE; unas 4 h 30. Hay un borrador del aviso esperando la aprobación de Miguel. El catálogo UK trae formas GA (sure /ʃʊɹ/…). No se ha tocado ninguna pose.
+- **Siguiente**: decisión de Miguel/6c sobre el túnel, el aviso y el plan SSB.

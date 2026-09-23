@@ -127,6 +127,19 @@ export function cicloSonido(pose: PoseSonido, catalogo: CatalogoPoses): Linea {
   return linea;
 }
 
+/** Si la oclusiva `i` de la palabra lleva soplo. Solo la sorda que se suelta
+ *  hacia una vocal o /l ɹ w j/ (pin, play, try); tras /s/ no hay aspiración
+ *  (spin, stop, sky) y al final, o ante otra consonante, no se suelta con
+ *  soplo (hot, act). Ladefoged y Johnson (2011, cap. 3); Cruttenden (2014).
+ *  El ciclo de un sonido suelto sí lo lleva: es la suelta ante el reposo. */
+export function seAspira(segmentos: Segmento[], i: number): boolean {
+  const s = segmentos[i];
+  if (s.pose.movimiento !== 'oclusiva' || s.pose.sonora) return false;
+  if (segmentos[i - 1]?.simbolo === 's') return false;
+  const sig = segmentos[i + 1]?.pose.movimiento;
+  return sig === 'vocal' || sig === 'diptongo' || sig === 'aproximante';
+}
+
 /** Cuánto duran los sonidos de una palabra (sin reposos), a `lento` = 1. */
 function duracionSegmentos(segmentos: Segmento[], catalogo: CatalogoPoses): number {
   return segmentos.reduce((suma, s) => {
@@ -177,7 +190,7 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
     const m = s.pose.movimiento;
     if (m === 'oclusiva') {
       claves.push({ t: t + 0.45 * d, pose: PA }, { t: t + 0.8 * d, pose: PA });
-      if (!s.pose.sonora) aspiracion.push({ en: t + 0.8 * d, dura: soploDe(s.pose) * lento });
+      if (seAspira(segmentos, i)) aspiracion.push({ en: t + 0.8 * d, dura: soploDe(s.pose) * lento });
     } else if (m === 'africada' && PB) {
       claves.push({ t: t + 0.3 * d, pose: PA }, { t: t + 0.5 * d, pose: PA }, { t: t + 0.8 * d, pose: PB }, { t: t + 0.95 * d, pose: PB });
     } else if (m === 'diptongo' && PB) {

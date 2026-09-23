@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { EscenaBoca, I_CIERRE_LABIOS, I_COMPRESION_LABIOS, cierreLabial, poseNumerica } from './escena';
-import { SOPLO_S, VOT_MS, aVelocidad, cicloSonido, lineaPalabra, soploDe } from './animacion';
+import { SOPLO_S, VOT_MS, aVelocidad, cicloSonido, lineaPalabra, seAspira, soploDe } from './animacion';
 import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe, trocearIpa } from './poses';
 import poses from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
@@ -62,6 +62,15 @@ describe('D4.4b v4: soplo de aspiración de las oclusivas sordas', () => {
     expect(pal('kɪn')).toBeGreaterThan(pal('tɪn'));
     expect(pal('tɪn')).toBeGreaterThan(pal('pɪn'));
   });
+  it('soplo por contexto: sí en pin, play, try, kin; no tras /s/ (spin, stop, sky) ni al final (hot) ni ante consonante (act)', () => {
+    const soplos = (ipa: string) => lineaPalabra(trocearIpa(ipa, catalogo).segmentos, catalogo, 1).aspiracion?.length ?? 0;
+    const cuales = (ipa: string) => { const g = trocearIpa(ipa, catalogo).segmentos; return g.map((x, i) => seAspira(g, i) ? x.simbolo : '').filter(Boolean); };
+    for (const ipa of ['pɪn', 'pleɪ', 'tɹaɪ', 'kɪn']) expect(soplos(ipa)).toBe(1);
+    for (const ipa of ['spɪn', 'skaɪ', 'hɑt', 'bɪɡ', 'ækt']) expect(soplos(ipa)).toBe(0);
+    expect(cuales('stɑp')).toEqual([]);
+    expect(cuales('ˈpeɪ.pɚ')).toEqual(['p', 'p']);
+    expect(cuales('ˈkæt')).toEqual(['k']);
+  });
   it('lote fase 3: /ŋ/ es nasal velar sin oclusiva añadida: ni soplo ni [ɡ] en «sing»', () => {
     const ng = poseDe(catalogo, 'ŋ')!;
     expect(ng.dorso_velo).toBe(true);
@@ -85,10 +94,11 @@ describe('D4.4b v4: soplo de aspiración de las oclusivas sordas', () => {
     const total = (ipa: string, ac: 'ga' | 'rp') => lineaPalabra(trocearIpa(ipa, catalogo, ac).segmentos, catalogo, 1).total;
     expect(total('hɒt', 'rp')).toBeLessThan(total('hɑt', 'ga'));
   });
-  it('en una palabra, cada oclusiva sorda suelta su soplo al final de su cierre', () => {
+  it('en una palabra, la oclusiva sorda que se suelta hacia la vocal sopla al final de su cierre', () => {
+    // Desde «aspiración por contexto»: la /t/ final de pat ya no sopla (antes eran 2).
     const { segmentos } = trocearIpa('pæt', catalogo);
     const l = lineaPalabra(segmentos, catalogo);
-    expect(l.aspiracion?.length).toBe(2);
+    expect(l.aspiracion?.length).toBe(1);
     for (const a of l.aspiracion!) expect(a.en).toBeGreaterThan(0);
     const sinSordas = lineaPalabra(trocearIpa('mæn', catalogo).segmentos, catalogo);
     expect(sinSordas.aspiracion).toBeUndefined();
