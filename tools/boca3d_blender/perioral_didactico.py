@@ -5,6 +5,13 @@ from pathlib import Path
 import bpy
 
 SUAVIDAD_MANDIBULA=[0.,0.,0.,.05,.13,.26,.42]
+# Fruncido de /u/ (anillos 2-3). Valores de diseño con la referencia privada.
+import os as _os
+FRUNCE_ANCHO=float(_os.environ.get('FRUNCE_ANCHO','.24'))
+FRUNCE_PROYECCION=float(_os.environ.get('FRUNCE_PROYECCION','1.8'))
+FRUNCE_ALTO_SUP=float(_os.environ.get('FRUNCE_ALTO_SUP','2.0'))
+FRUNCE_ALTO_INF=float(_os.environ.get('FRUNCE_ALTO_INF','1.7'))
+FRUNCE_EVERSION=float(_os.environ.get('FRUNCE_EVERSION','.06'))
 
 def desplazamiento_mandibula(p, apertura=.2, suavidad=0.):
     """Campo de piel del visor (x, altura, lateral), antes de sumar morfos.
@@ -313,9 +320,15 @@ def construir():
                 # comisuras. Los otros gestos no reciben esta corrección.
                 lateral=math.cos(start+math.pi*q/n)
                 signo=-1. if keys[0].data[i].co.y<0 else 1.
-                target.y=rounded.data[rim].co.y+delta.y+signo*.34*abs(lateral)*(.6 if ri==2 else 1.)
-                target.x=rounded.data[rim].co.x+1.5*delta.x+.46*(target.y**2-rounded.data[rim].co.y**2)
-                target.z=rounded.data[rim].co.z+(1.6 if s>0 else 1.20)*delta.z
+                # 24 sep: el video de referencia muestra una /u/ casi circular
+                # (altura del cuerpo ~ anchura) y el inferior evertido. Más
+                # alto, algo más estrecho y más proyectado; mismos anillos 0/1.
+                target.y=rounded.data[rim].co.y+delta.y+signo*FRUNCE_ANCHO*abs(lateral)*(.6 if ri==2 else 1.)
+                target.x=rounded.data[rim].co.x+FRUNCE_PROYECCION*delta.x+.46*(target.y**2-rounded.data[rim].co.y**2)
+                target.z=rounded.data[rim].co.z+(FRUNCE_ALTO_SUP if s>0 else FRUNCE_ALTO_INF)*delta.z
+                if s<0 and ri==3:
+                    # Eversión: el borde exterior del inferior rueda hacia delante.
+                    target.x-=FRUNCE_EVERSION*abs(s)
                 rounded.data[i].co=target
         # Tejido exterior en gestos no redondeados. La referencia mantiene
         # cuerpo en cierre, sonrisa y apertura; no sólo al fruncir. Es un

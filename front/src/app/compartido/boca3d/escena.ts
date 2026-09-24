@@ -1319,6 +1319,9 @@ export class EscenaBoca {
   private readonly alPerder: (e: Event) => void;
   private readonly mandibula = new THREE.Group();
   private readonly velo = new THREE.Group();
+  /** Cuánto fruncen los labios exteriores (0–1): lo leen los shaders de
+   *  labios y lengua para el brillo y la penumbra de /u/. */
+  private readonly fruncidoLabios = { value: 0 };
   private readonly labioSup: THREE.Mesh;
   private readonly labioInf: THREE.Mesh;
   private readonly lengua: THREE.Mesh;
@@ -1952,7 +1955,7 @@ export class EscenaBoca {
       const conUv = !!m.geometry.getAttribute('uv');
       m.material = materialDe('lengua', color, conUv && this.papilas
         ? (this.exploracionDidactica
-          ? { bumpMap: this.papilas, bumpScale: .025, roughness: .56, clearcoat: .14, clearcoatRoughness: .40, sheen: 0 }
+          ? { bumpMap: this.papilas, bumpScale: .008, roughness: .5, clearcoat: .32, clearcoatRoughness: .26, sheen: 0 }
           : { bumpMap: this.papilas, bumpScale: 0.36, roughnessMap: this.papilas })
         : {});
       if (this.exploracionDidactica) {
@@ -1967,27 +1970,60 @@ export class EscenaBoca {
         const material = m.material as THREE.MeshPhysicalMaterial;
         material.onBeforeCompile = shader => {
           shader.uniforms['vistaCavidad'] = cavidad;
-          shader.vertexShader = 'varying float profundidadBoca;\n' + shader.vertexShader;
+          shader.uniforms['fruncidoLabios'] = this.fruncidoLabios;
+          // Coordenadas de reposo: el dibujo del tejido viaja con la lengua.
+          shader.vertexShader = 'varying float profundidadBoca;\nvarying vec3 vLengua;\nvarying float vDorso;\n' + shader.vertexShader;
           shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>',
-            'profundidadBoca = transformed.x;\n#include <project_vertex>');
-          shader.fragmentShader = 'uniform float vistaCavidad;\nvarying float profundidadBoca;\n' + shader.fragmentShader;
+            'profundidadBoca = transformed.x;\nvLengua = position;\nvDorso = normal.y;\n#include <project_vertex>');
+          shader.fragmentShader = `uniform float vistaCavidad;
+            uniform float fruncidoLabios;
+            varying float profundidadBoca;
+            varying vec3 vLengua;
+            varying float vDorso;
+            float azarLengua(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+            float ruidoLengua(vec3 p) {
+              vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+              return mix(mix(mix(azarLengua(i), azarLengua(i + vec3(1,0,0)), f.x),
+                             mix(azarLengua(i + vec3(0,1,0)), azarLengua(i + vec3(1,1,0)), f.x), f.y),
+                         mix(mix(azarLengua(i + vec3(0,0,1)), azarLengua(i + vec3(1,0,1)), f.x),
+                             mix(azarLengua(i + vec3(0,1,1)), azarLengua(i + vec3(1,1,1)), f.x), f.y), f.z);
+            }
+            ` + shader.fragmentShader;
           shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
             `#include <color_fragment>
-            #ifdef USE_BUMPMAP
-              // Papilas sintéticas: pequeñas variaciones de color y brillo
-              // sobre el mismo relieve, sin incorporar imágenes privadas.
-              float papila = smoothstep(0.5, 0.94, texture2D(bumpMap, vBumpMapUv).r);
-              diffuseColor.rgb *= mix(vec3(0.94,0.87,0.89),vec3(1.03,1.01,1.02),papila);
-            #endif
+            // Mucosa lingual sintética (sin imágenes privadas): rosa pálido,
+            // saburra clara en el dorso central, bordes y punta más rosados,
+            // surco medio y papilas finas. Referencia visual, no clínica.
+            float dorso = smoothstep(0.15, 0.7, vDorso);
+            float borde = smoothstep(0.5, 0.92, abs(vLengua.z));
+            float punta = 1.0 - smoothstep(-1.95, -1.25, vLengua.x);
+            float papilaFina = smoothstep(0.58, 0.9, ruidoLengua(vLengua * 34.0));
+            float manchas = ruidoLengua(vLengua * 5.0 + 3.1);
+            float saburra = dorso * (1.0 - borde) * (1.0 - punta) * smoothstep(-1.5, -0.3, vLengua.x) * (0.45 + 0.55 * manchas);
+            float surco = exp(-pow(vLengua.z / 0.07, 2.0)) * dorso * smoothstep(-1.7, -1.0, vLengua.x) * (1.0 - smoothstep(0.6, 1.5, vLengua.x));
+            vec3 mucosa = mix(vec3(0.62, 0.21, 0.23), vec3(0.66, 0.15, 0.18), max(borde, punta));
+            mucosa = mix(mucosa, vec3(0.70, 0.45, 0.45), 0.6 * saburra);
+            mucosa *= mix(0.9, 1.07, papilaFina) * (1.0 - 0.3 * surco);
+            diffuseColor.rgb = mucosa;
             float profundidad = smoothstep(-2.9, -0.4, profundidadBoca);
             diffuseColor.rgb *= mix(1.0, 0.78 - 0.45 * profundidad, vistaCavidad);`);
+          shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>',
+            `#include <normal_fragment_maps>
+            #ifdef USE_BUMPMAP
+              float relieveLengua = 0.004 * papilaFina + 0.0015 * ruidoLengua(vLengua * 70.0) - 0.012 * surco;
+              normal = perturbNormalArb(-vViewPosition, normal, vec2(dFdx(relieveLengua), dFdy(relieveLengua)), faceDirection);
+            #endif`);
           shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>',
             `#include <roughnessmap_fragment>
-            #ifdef USE_BUMPMAP
-              roughnessFactor = mix(0.62,0.46,papila);
-            #endif`);
+            // Bordes húmedos y brillantes; la saburra y las papilas, mates.
+            roughnessFactor = mix(0.34, 0.62, saburra) + 0.08 * papilaFina;`);
+          // Con la abertura pequeña de /u/ casi no entra luz a la cavidad:
+          // desde fuera se ve oscura, como en la referencia. El corte no cambia.
+          shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>',
+            `outgoingLight *= mix(1.0, 0.22, fruncidoLabios * vistaCavidad);
+            #include <opaque_fragment>`);
         };
-        material.customProgramCacheKey = () => 'lengua-papilas-didactica-v2';
+        material.customProgramCacheKey = () => 'lengua-mucosa-didactica-v3';
         const plano = [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0)];
         this.renderer.localClippingEnabled = true;
         m.onBeforeRender = (_r, _s, camara) => {
@@ -2259,7 +2295,8 @@ export class EscenaBoca {
               shader.vertexShader='attribute vec3 pielDetalle; attribute vec3 pielReposo; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'+shader.vertexShader;
               shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
                 '#include <begin_vertex>\n vPielDetalle = pielDetalle; vPielReposo = pielReposo;');
-              shader.fragmentShader='varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'+shader.fragmentShader;
+              shader.uniforms['fruncidoLabios']=this.fruncidoLabios;
+              shader.fragmentShader='uniform float fruncidoLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'+shader.fragmentShader;
               shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
                 `#include <map_fragment>
                 #if defined(USE_MAP) && defined(USE_COLOR)
@@ -2283,6 +2320,31 @@ export class EscenaBoca {
                   float superior = smoothstep(0.15, 0.26, vPielReposo.y);
                   vec3 pigmentoLabio = mix(vec3(0.70,0.73,0.79),vec3(0.51,0.59,0.65),superior);
                   diffuseColor.rgb *= mix(vec3(0.54,0.47,0.42),pigmentoLabio,labioFoto);
+                  // Referencia /u/: superior seco y malva; la mucosa junto a la
+                  // abertura y el inferior evertido, rosados y húmedos. La
+                  // parte húmeda crece con el fruncido. No es colorimetría.
+                  float filo = 1.0-smoothstep(0.02,0.12,abs(vPielReposo.y-0.15));
+                  float humedo = labioFoto*clamp(filo*(0.55+0.45*fruncidoLabios)+(1.0-superior)*(0.25+0.55*fruncidoLabios),0.0,1.0);
+                  // Al fruncir, la foto estirada deja rayas radiales en el
+                  // inferior: se toma su color de un nivel de mip más suave.
+                  vec3 suavizado = texture2D(map, vMapUv, 1.5).rgb * mix(vec3(0.54,0.47,0.42),pigmentoLabio,labioFoto);
+                  diffuseColor.rgb = mix(diffuseColor.rgb, suavizado, labioFoto*(1.0-superior)*fruncidoLabios*0.8);
+                  float luzLabio = dot(diffuseColor.rgb, vec3(0.2126,0.7152,0.0722));
+                  // Malva seco (superior) y rosa húmedo (inferior), en lineal.
+                  vec3 seco = luzLabio*vec3(2.3,1.02,1.12);
+                  vec3 rosado = luzLabio*vec3(3.3,0.6,0.92);
+                  float arrugaColor = 0.0;
+                  {
+                    vec2 planoC = vec2(vPielReposo.z, (vPielReposo.y-0.15)*5.2);
+                    float angC = atan(planoC.y,planoC.x), radC = length(planoC);
+                    float surcoC = sin(angC*87.0 + 1.8*sin(angC*13.0) + radC*8.0 + 1.3*sin(radC*9.0+angC*7.0));
+                    float cruceC = sin(angC*131.0-radC*21.0+2.0*sin(radC*17.0));
+                    arrugaColor = smoothstep(0.35,1.0,max(surcoC,cruceC));
+                  }
+                  float secoPeso = labioFoto*superior*(1.0-filo)*(0.25+0.6*fruncidoLabios);
+                  diffuseColor.rgb = mix(diffuseColor.rgb, seco, secoPeso);
+                  diffuseColor.rgb *= 1.0 - 0.22*arrugaColor*secoPeso;
+                  diffuseColor.rgb = mix(diffuseColor.rgb, rosado, humedo*(0.35+0.4*fruncidoLabios));
                 #endif`);
               shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>',
                 `#include <normal_fragment_maps>
@@ -2296,7 +2358,13 @@ export class EscenaBoca {
                   float pliegue = sin(anguloLabial*87.0 + 1.8*sin(anguloLabial*13.0)
                     + radioLabial*8.0 + 1.3*sin(radioLabial*9.0+anguloLabial*7.0));
                   float tramos = 0.35+0.65*smoothstep(-0.5,0.55,sin(radioLabial*16.0+anguloLabial*9.0));
-                  float microLabial = tejidoLabial*(0.0016*pliegue*tramos
+                  // Al fruncir se marcan las arrugas finas del superior; el
+                  // inferior evertido queda liso y tenso, como en la referencia.
+                  float arribaLabio = smoothstep(0.14,0.2,vPielReposo.y);
+                  float fruncePliegue = mix(1.0-0.8*fruncidoLabios, 1.0+2.4*fruncidoLabios, arribaLabio);
+                  float cruce = sin(anguloLabial*131.0-radioLabial*21.0+2.0*sin(radioLabial*17.0));
+                  float microLabial = tejidoLabial*(0.0016*pliegue*tramos*fruncePliegue
+                    + 0.0013*arribaLabio*fruncidoLabios*cruce*tramos
                     + 0.00045*sin(anguloLabial*181.0+radioLabial*43.0));
                   normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(microLabial),dFdy(microLabial)),faceDirection);
                 #endif`);
@@ -2312,6 +2380,29 @@ export class EscenaBoca {
                   reflectedLight.directDiffuse += directLight.color * diffuseColor.rgb * vec3(1.0,0.38,0.22) * (0.035*contraLuz);
                 }`);
               shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>',luces);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <clearcoat_normal_fragment_maps>',
+                `#include <clearcoat_normal_fragment_maps>
+                #if defined(USE_COLOR) && defined(USE_BUMPMAP) && defined(USE_CLEARCOAT)
+                  float gotas = 0.0009*sin(vPielReposo.z*610.0+3.0*sin(vPielReposo.y*420.0))*sin(vPielReposo.y*540.0+2.0*sin(vPielReposo.z*380.0));
+                  clearcoatNormal = perturbNormalArb(-vViewPosition,clearcoatNormal,vec2(dFdx(gotas+microLabial),dFdy(gotas+microLabial)),faceDirection);
+                #endif`);
+              // Película húmeda: barniz sólo donde el labio está húmedo.
+              shader.fragmentShader = shader.fragmentShader.replace('#include <lights_physical_fragment>',
+                `#include <lights_physical_fragment>
+                #if defined(USE_MAP) && defined(USE_COLOR) && defined(USE_CLEARCOAT)
+                  // La costura de reposo más allá de las comisuras queda como
+                  // un pliegue al fruncir; con brillo se leía como raya clara.
+                  // Pliegue mate y en sombra, como el surco real de la comisura.
+                  float comisura = (1.0-smoothstep(0.0,0.04,abs(vPielReposo.y-0.15)))
+                    * smoothstep(0.45,0.8,abs(vPielReposo.z)) * fruncidoLabios;
+                  humedo *= 1.0-comisura;
+                  material.diffuseColor *= 1.0-0.3*comisura;
+                  material.specularColor *= 1.0-0.9*comisura;
+                  material.specularF90 *= 1.0-0.9*comisura;
+                  material.roughness = mix(material.roughness, 0.46, humedo);
+                  material.clearcoat = mix(material.clearcoat, 0.32, humedo);
+                  material.clearcoatRoughness = mix(material.clearcoatRoughness, 0.14, humedo);
+                #endif`);
             }
             shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>',
               `#include <roughnessmap_fragment>
@@ -2320,7 +2411,7 @@ export class EscenaBoca {
                 roughnessFactor = mix(roughnessFactor, 0.38, bermellon);
               #endif`);
           };
-          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-relieve-v2' : 'piel-didactica-bermellon-v1';
+          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-humedo-v3' : 'piel-didactica-bermellon-v1';
           const pieza = new THREE.Mesh(geometria, material);
           pieza.layers.set(1);
           pieza.userData['sinSombraRecibida'] = true;
@@ -2951,6 +3042,8 @@ export class EscenaBoca {
         const cierre = n[I_CIERRE_LABIOS] * (1 - neutro);
         const sello = 'sello_didactico' in dic ? Math.min(1, cierre / 0.4) : 0;
         inf[dic['fruncir']] = fruncir * (1 - sello);
+        // El medidor ejecuta aplicar() sobre un objeto mínimo sin este campo.
+        if (this.fruncidoLabios) this.fruncidoLabios.value = fruncir * (1 - sello);
         inf[dic['estirar']] = estirar;
         // Cuerpo en reposo, cierre y apertura, moderado al estirar. Fruncir
         // ya tiene su volumen propio aprobado y no recibe este correctivo.
