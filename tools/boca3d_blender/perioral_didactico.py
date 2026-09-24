@@ -195,11 +195,13 @@ def construir():
             rounded=keys['fruncir'].data[i]
             rounded.co=p.co
             dx,dy=desplazamiento_mandibula(p.co,.12,SUAVIDAD_MANDIBULA[ri])
-            rounded.co.x -= .46*band*(.75+.25*abs(s)) + dx*band
-            rounded.co.y *= 1-.66*band
+            rounded.co.y *= 1-.76*band
+            # La curvatura en profundidad acompaña el ancho nuevo. Conservar
+            # el arco ancho de reposo dejaba las comisuras muy atrás: embudo.
+            rounded.co.x = x-.46*lat*lat+.46*rounded.co.y**2-.48*band-dx*band
             # La abertura queda entre los bordes incisales, no delante de
             # toda la arcada inferior (que parecía una dentadura expuesta).
-            rounded.co.z += (.37+.145*s)*band - dy*band
+            rounded.co.z += (.21+.065*s)*band - dy*band
             if s<0 and 2<=ri<=4:
                 rounded.co.z += .06*abs(s)**4*[.4,1.,.7][ri-2]
             # /i/: comisuras arriba y afuera, labios finos y abertura corta.
@@ -297,23 +299,24 @@ def construir():
         # que pierde grosor al estrechar la abertura. Transporta el perfil de
         # reposo relativo al borde: la contracción anterior adelgazaba sobre
         # todo el superior. La piel exterior se resuelve después desde este
-        # perfil; los anillos 0/1 de abertura y contactos quedan intactos.
+        # perfil; los anillos 0/1 conservan la abertura definida arriba.
         rounded=keys['fruncir']
         for ri in (2,3):
             for q in range(n+1):
                 i=ri*(n+1)+q;rim=(n+1)+q
                 s=math.sin(start+math.pi*q/n)
-                peso=abs(s)**.8
                 delta=keys[0].data[i].co-keys[0].data[rim].co
                 target=rounded.data[i].co.copy()
-                # Transporta también el espesor lateral. Comprimirlo con la
-                # abertura y exagerar altura/proyección afilaba el labio
-                # superior en dos picos. Conserva el perfil de reposo arriba;
-                # abajo mantiene la compensación mandibular ya calibrada.
-                target.x=rounded.data[rim].co.x+delta.x
-                target.y=rounded.data[rim].co.y+delta.y
-                target.z=rounded.data[rim].co.z+(1. if s>0 else 1.08)*delta.z
-                rounded.data[i].co=rounded.data[i].co.lerp(target,peso)
+                # Una abertura pequeña se rodea de tejido recogido, no de
+                # una copia diminuta del labio entero. El cuerpo conserva
+                # anchura lateral y se engrosa al fruncir, también en las
+                # comisuras. Los otros gestos no reciben esta corrección.
+                lateral=math.cos(start+math.pi*q/n)
+                signo=-1. if keys[0].data[i].co.y<0 else 1.
+                target.y=rounded.data[rim].co.y+delta.y+signo*.34*abs(lateral)*(.6 if ri==2 else 1.)
+                target.x=rounded.data[rim].co.x+1.5*delta.x+.46*(target.y**2-rounded.data[rim].co.y**2)
+                target.z=rounded.data[rim].co.z+(1.6 if s>0 else 1.20)*delta.z
+                rounded.data[i].co=target
         for j,v in enumerate(mesh.vertices):v.co=keys[0].data[j].co
         mesh.update()
         normals=[]

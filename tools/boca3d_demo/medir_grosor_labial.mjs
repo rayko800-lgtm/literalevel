@@ -75,12 +75,22 @@ const perfiles=[['superior',.163,1],['inferior',.137,-1]].map(([nombre,y,s])=>{
  if(cuerpo.length!==1)throw new Error('Anillo central ambiguo: '+nombre);
  return {nombre,borde:nearest(new T.Vector3(-3.13,y,0)),cuerpo:cuerpo[0].i};
 });
+// Anchura del cuerpo completo (anillo3), además del grosor central. Un
+// centro grueso puede ocultar un estrechamiento excesivo en los laterales.
+const cuerpoIds=bases[0].map((p,i)=>i).filter(i=>Math.abs(rig.getX(i)-.05)<1e-6);
+if(cuerpoIds.length<60)throw new Error('Contorno de cuerpo incompleto');
+const comisuras=[-1,1].map(s=>nearest(new T.Vector3(-3.13+.46*1.03**2,.15,s*1.03)));
+function anchuras(){
+ const laterales=cuerpoIds.map(i=>exterior.getVertexPosition(i,new T.Vector3()).z);
+ const borde=comisuras.map(i=>exterior.getVertexPosition(i,new T.Vector3()).z);
+ return {cuerpo:Math.max(...laterales)-Math.min(...laterales),abertura:Math.abs(borde[1]-borde[0])};
+}
 function medir() { return Object.fromEntries(perfiles.map(({nombre,borde,cuerpo})=>{
  const a=exterior.getVertexPosition(borde,new T.Vector3()),b=exterior.getVertexPosition(cuerpo,new T.Vector3());
  return [nombre,{altura:Math.abs(b.y-a.y),sagital:Math.hypot(b.y-a.y,b.x-a.x),perfil:[a.toArray(),b.toArray()]}];
 })); }
 const catalog=conAjustes3d(JSON.parse(readFileSync(resolve(root,'front/src/app/compartido/boca3d/poses.ejemplo.json'))),JSON.parse(readFileSync(resolve(root,'front/src/app/compartido/boca3d/poses.ajustes3d.json'))));
-scene.aplicar(poseNumerica(catalog.reposo));const reposo=medir();
+scene.aplicar(poseNumerica(catalog.reposo));const reposo=medir(),anchurasReposo=anchuras();
 const line=cicloSonido(catalog.sonidos.u,catalog);
 scene.linea={total:line.total,claves:line.claves.map(c=>{
  const n=poseNumerica(c.pose);
@@ -88,8 +98,8 @@ scene.linea={total:line.total,claves:line.claves.map(c=>{
  return {t:c.t,n};
 })};
 const muestras=[];
-for(let i=0;i<=80;i++) { const t=line.total*i/80;scene.aplicar(scene.poseDeLinea(t));muestras.push({t,perfiles:medir()}); }
-scene.aplicar(poseNumerica(catalog.sonidos.u));const u=medir();
+for(let i=0;i<=80;i++) { const t=line.total*i/80;scene.aplicar(scene.poseDeLinea(t));muestras.push({t,perfiles:medir(),anchuras:anchuras()}); }
+scene.aplicar(poseNumerica(catalog.sonidos.u));const u=medir(),anchurasU=anchuras();
 const resumen=Object.fromEntries(perfiles.map(({nombre})=>[nombre,{
  reposo:reposo[nombre].altura,u:u[nombre].altura,
  minimo:Math.min(...muestras.map(m=>m.perfiles[nombre].altura)),
@@ -98,8 +108,10 @@ const resumen=Object.fromEntries(perfiles.map(({nombre})=>[nombre,{
  relacionMinima:Math.min(...muestras.map(m=>m.perfiles[nombre].altura))/reposo[nombre].altura
 }]));
 for(const p of Object.values(resumen))if(!Number.isFinite(p.relacionMinima)||p.minimo<=0)throw new Error('Perfil colapsado');
-writeFileSync(process.argv[3],JSON.stringify({modelo:path,resumen,muestras,perfiles},null,2));
+const contorno={reposo:anchurasReposo,u:anchurasU,cuerpoUReposo:anchurasU.cuerpo/anchurasReposo.cuerpo,cuerpoUAbertura:anchurasU.cuerpo/anchurasU.abertura};
+writeFileSync(process.argv[3],JSON.stringify({modelo:path,resumen,contorno,muestras,perfiles},null,2));
 console.log(JSON.stringify(resumen));
+console.log(JSON.stringify({contorno}));
 // Umbral de diseño del piloto: evita perder más del10% de altura central
 // durante el ciclo. No es una tolerancia anatómica ni una prueba de volumen.
 if(process.argv.includes('--exigir') && Object.values(resumen).some(p=>p.relacionMinima<.90))

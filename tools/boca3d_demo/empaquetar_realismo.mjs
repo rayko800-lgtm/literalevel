@@ -25,15 +25,15 @@ copyFileSync(join(root,'tools/boca3d_blender/texturas/README.md'),join(out,'ORIG
 if(process.env.INFORME_PILOTO)copyFileSync(resolve(process.env.INFORME_PILOTO),join(out,'INFORME.md'));
 if(process.env.CAPTURAS_PILOTO){
   const evidencia=join(out,'Comparacion');mkdirSync(evidencia);
-  const capturas=['i-antes.png','i-despues.png','ae-despues.png','u-antes.png','u-despues.png','corte-antes.png','corte-despues.png','u-corte-antes.png','u-corte-despues.png','f-corte-despues.png','p-corte-despues.png','f-despues.png','p-despues.png'];
+  const capturas=['i-antes','i-despues','ae-despues','u-antes','u-despues','u-transicion','corte-antes','corte-despues','u-corte-antes','u-corte-despues','f-corte-despues','p-corte-despues','f-despues','p-despues'].flatMap(n=>[n+'.png',n+'.jpg']);
   const incluidas=[];
   for(const name of capturas){const p=resolve(process.env.CAPTURAS_PILOTO,name);if(existsSync(p)){copyFileSync(p,join(evidencia,name));incluidas.push(name);}}
-  writeFileSync(join(evidencia,'index.html'),`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparación del piloto</title><style>body{background:#101b2c;color:#ecf4fa;font:16px system-ui;margin:24px}main{max-width:1040px;margin:auto}.grid{display:flex;flex-wrap:wrap;gap:24px}figure{margin:0;width:310px;max-width:100%}img{width:100%;height:auto}figcaption{padding:10px 0}</style><main><h1>Revisión del modelo</h1><p>Capturas reales del visor. Las comparaciones antes/después conservan cámara e iluminación. El informe incluido detalla los cambios de forma o material de esta entrega. El resto muestra el candidato.</p><div class="grid">${incluidas.map(name=>`<figure><figcaption>${name.replace('.png','').replaceAll('-',' · ')}</figcaption><img src="${name}" alt="${name}"></figure>`).join('')}</div></main></html>`);
+  writeFileSync(join(evidencia,'index.html'),`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparación del piloto</title><style>body{background:#101b2c;color:#ecf4fa;font:16px system-ui;margin:24px}main{max-width:1040px;margin:auto}.grid{display:flex;flex-wrap:wrap;gap:24px}figure{margin:0;width:310px;max-width:100%}img{width:100%;height:auto}figcaption{padding:10px 0}</style><main><h1>Revisión del modelo</h1><p>Capturas reales del visor. Las comparaciones antes/después conservan cámara e iluminación. El informe incluido detalla los cambios de forma o material de esta entrega. El resto muestra el candidato.</p><div class="grid">${incluidas.map(name=>`<figure><figcaption>${name.replace('.png','').replace('.jpg','').replaceAll('-',' · ')}</figcaption><img src="${name}" alt="${name}"></figure>`).join('')}</div></main></html>`);
 }
 if(process.env.EVIDENCIAS_PILOTO){
   const evidencia=join(out,'Evidencias');mkdirSync(evidencia);
   // Sólo resultados y fuentes de comprobación conocidos; nunca toda la carpeta.
-  for(const name of ['medidas_final.json','medidas_final.log','control_anterior.log','grosor.json','invariantes.json','raices_dientes.json','comprobar_raices_dientes.mjs','pruebas_front.log','build_front.log','interior_raiz25.py','anclas.json','validar_anclas.mjs','comprobar_invariantes.mjs','regeneracion.json']){
+  for(const name of ['medidas_final.json','medidas_final.log','control_anterior.log','grosor.json','grosor_antes.json','invariantes.json','raices_dientes.json','comprobar_raices_dientes.mjs','pruebas_front.log','build_front.log','interior_raiz25.py','anclas.json','validar_anclas.mjs','comprobar_invariantes.mjs','regeneracion.json']){
     const p=resolve(process.env.EVIDENCIAS_PILOTO,name);
     if(existsSync(p))copyFileSync(p,join(evidencia,name));
   }
