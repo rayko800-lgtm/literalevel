@@ -2313,7 +2313,8 @@ export class EscenaBoca {
           const original = fuente.material as THREE.MeshStandardMaterial;
           const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
           const pieza = new THREE.Mesh(geometria, nombre.startsWith('labio')
-            ? new THREE.MeshBasicMaterial({ color: '#bc8580', side: THREE.DoubleSide })
+            ? new THREE.MeshBasicMaterial({ color: geometria.hasAttribute('color') ? '#ffffff' : '#bc8580',
+              vertexColors: geometria.hasAttribute('color'), side: THREE.DoubleSide })
             : materialDe('mucosa', original.color.getStyle(), { roughness: .8, sheen: 0, side: THREE.DoubleSide }));
           if (nombre === 'velo' || nombre === 'uvula') this.velo.add(pieza);
           else if (nombre === 'suelo' || nombre === 'menton' || nombre === 'alveolo_inf') this.dentroMandibula.add(pieza);

@@ -293,6 +293,22 @@ def construir():
                     key.data[i].co.z+=altura
                     proyeccion=[.012,.052,.012,0.][ri-2]
                     key.data[i].co.x-=proyeccion*cuerpo*taper
+        # Fruncir desplaza el labio como tejido con cuerpo, no como una tira
+        # que pierde grosor al estrechar la abertura. Transporta el perfil de
+        # reposo relativo al borde: la contracción anterior adelgazaba sobre
+        # todo el superior. La piel exterior se resuelve después desde este
+        # perfil; los anillos 0/1 de abertura y contactos quedan intactos.
+        rounded=keys['fruncir']
+        for ri in (2,3):
+            for q in range(n+1):
+                i=ri*(n+1)+q;rim=(n+1)+q
+                s=math.sin(start+math.pi*q/n)
+                peso=abs(s)**.8
+                delta=keys[0].data[i].co-keys[0].data[rim].co
+                target=rounded.data[i].co.copy()
+                target.x=rounded.data[rim].co.x+1.25*delta.x
+                target.z=rounded.data[rim].co.z+(1.18 if s>0 else 1.08)*delta.z
+                rounded.data[i].co=rounded.data[i].co.lerp(target,peso)
         for j,v in enumerate(mesh.vertices):v.co=keys[0].data[j].co
         mesh.update()
         normals=[]

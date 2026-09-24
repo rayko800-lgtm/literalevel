@@ -95,8 +95,14 @@ def construir():
         from perioral_didactico import SUAVIDAD_MANDIBULA
         ob.data.uv_layers.new(name='UVMap')
         rig=ob.data.uv_layers.new(name='RigMandibula')
+        # Distinguir la raiz cutanea del bermellon sin cambiar el contorno.
+        # Son colores de ilustracion, no regiones histologicas.
+        region=ob.data.vertex_colors.new(name='region_labial')
+        colores=[(.72,.45,.44),(.72,.44,.43),(.68,.38,.39),(.72,.46,.44),
+                 (.77,.60,.54),(.78,.65,.58),(.78,.66,.59),(.78,.65,.58),(.72,.46,.44)]
         for loop in ob.data.loops:
             j=loop.vertex_index%len(contorno)
+            region.data[loop.index].color=(*colores[j],1.)
             rig.data[loop.index].uv=(SUAVIDAD_MANDIBULA[j] if j<7 else .45,0.)
         ob.shape_key_add(name='Basis')
         for key in list(keys)[1:]:
