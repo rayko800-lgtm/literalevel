@@ -2296,15 +2296,23 @@ export class EscenaBoca {
               shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
                 '#include <begin_vertex>\n vPielDetalle = pielDetalle; vPielReposo = pielReposo;');
               shader.uniforms['fruncidoLabios']=this.fruncidoLabios;
-              shader.fragmentShader='uniform float fruncidoLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'+shader.fragmentShader;
+              shader.fragmentShader='uniform float fruncidoLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'
+                +'float azarPiel(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n'
+                +'float ruidoPiel(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
+                +'return mix(mix(mix(azarPiel(i),azarPiel(i+vec3(1,0,0)),f.x),mix(azarPiel(i+vec3(0,1,0)),azarPiel(i+vec3(1,1,0)),f.x),f.y),'
+                +'mix(mix(azarPiel(i+vec3(0,0,1)),azarPiel(i+vec3(1,0,1)),f.x),mix(azarPiel(i+vec3(0,1,1)),azarPiel(i+vec3(1,1,1)),f.x),f.y),f.z);}\n'
+                +shader.fragmentShader;
               shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
                 `#include <map_fragment>
                 #if defined(USE_MAP) && defined(USE_COLOR)
                   // glTF convierte el color a lineal. La diferencia absoluta
                   // confundía el superior oscuro con piel y borraba su color.
-                  float labioFoto = smoothstep(0.33, 0.57, (vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
+                  float labioFoto = smoothstep(mix(0.33,0.40,fruncidoLabios), mix(0.57,0.50,fruncidoLabios), (vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
                   vec3 detallePiel = texture2D(map,vPielDetalle.xy).rgb;
                   diffuseColor.rgb = mix(diffuseColor.rgb,detallePiel,vPielDetalle.z*(1.0-labioFoto));
+                  float poroColor = smoothstep(0.62,0.9,ruidoPiel(vPielReposo*95.0));
+                  float manchaPiel = ruidoPiel(vPielReposo*11.0+7.3);
+                  diffuseColor.rgb *= 1.0 - vPielDetalle.z*(1.0-labioFoto)*(0.1*poroColor + 0.06*(manchaPiel-0.5));
                   // El borde inferior del mapa contiene una raya clara de la
                   // foto original. Tomar color del bermellón contiguo reduce
                   // estirarla como un contorno pintado al abrir la boca.
@@ -2366,7 +2374,10 @@ export class EscenaBoca {
                   float microLabial = tejidoLabial*(0.0016*pliegue*tramos*fruncePliegue
                     + 0.0013*arribaLabio*fruncidoLabios*cruce*tramos
                     + 0.00045*sin(anguloLabial*181.0+radioLabial*43.0));
-                  normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(microLabial),dFdy(microLabial)),faceDirection);
+                  float bandaPiel = vPielDetalle.z*(1.0-tejidoLabial);
+                  float relievePiel = bandaPiel*(-0.0009*smoothstep(0.62,0.9,ruidoPiel(vPielReposo*95.0))
+                    + 0.0005*ruidoPiel(vPielReposo*210.0));
+                  normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(microLabial+relievePiel),dFdy(microLabial+relievePiel)),faceDirection);
                 #endif`);
               // Translucidez de bajo coste inspirada en el ejemplo oficial
               // SubsurfaceScatteringShader. Es una aproximación local; no
