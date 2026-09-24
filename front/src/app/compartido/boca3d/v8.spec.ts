@@ -17,7 +17,7 @@ describe('D4.4b v8: cara neutra en el recuadro', () => {
     e.escena = new THREE.Scene();
     e.camara = new THREE.PerspectiveCamera();
     e.camaraLabios = new THREE.PerspectiveCamera(22, 1.25);
-    e.cabezaEntera = true; e.familiaActual = 'bilabial';
+    e.cabezaEntera = true; e.familiaActual = 'bilabial'; e.detalleFrontalActivo = true;
     const foto = new THREE.MeshPhysicalMaterial({ transparent: true, opacity: 0, depthWrite: false });
     const lisa = new THREE.MeshPhysicalMaterial();
     e.mejilla = new THREE.Mesh(new THREE.BufferGeometry(), foto);

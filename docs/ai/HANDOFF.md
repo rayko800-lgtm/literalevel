@@ -2,6 +2,26 @@
 
 Keep this document short and current.
 
+## Boca3D — 23 sep 2026, Astra, Nico
+
+VIGENTE auditoria/astra_realismo_2026-09-23.md. Referencia privada autorizada revisada localmente; presupuesto0, sin publicar fotogramas. Piel morena cálida y detalle labial en visor; coronas v3 con960 anclajes exactos; lengua continua sin pestaña /æ/.135 tests, tsc/build,2227 estados y260 contactos linguales OK; nuevas normales sin cambio geométrico verificado. Cara6033132B SHA256FBD6C1C31AADFCCE84D8C876DB1C8F6C5FCAC2EC6F0ADE77753AE2E4F28C5DB2; lengua444212B SHA256451CEEA3BE66B4DA43CE1D38B837AB91A77D2413FC39FB738E5D05E982611F64; públicos idénticos. Vista city-gabriel-tier-nickel hasta~23:02CDMX; servidor8771 exec79767, túnel2150 hijo49452. No fotorrealismo: coronas parcialmente ocultas, interior ilustrativo, shader no horneado en Blender. Piloto pendiente de percepción del usuario; no pedir otra grabación. Sin producción/commit/push; angular.json ajeno intacto.
+
+## Boca3D — 23 sep 2026, dental v2, Nico
+
+VIGENTE auditoria/dental_v2_2026-09-23.md. Corona/encía anterior reconstruidas visualmente;320 anclajes incisales exactos. Fisura superior /æ/ corregida con rig y mezcla de morfos; cámara de retrato, reflejos sólo exterior y normales linguales por gesto.135 casos validados (repetición dirigida22), build y2227 estados OK; /fv/ central .002024/lateral .005401. Nuevo GLB5732880B SHA256DF5655001173CF4CA51E472F47AB2A76DBBCBCFAE14CAFB4161EE48B291BC048, público idéntico. Enlace possibilities-supported-skiing-fourth hasta~21:20CDMX; apr-button cerrado. Servidor exec20570/túnel2017 hijo47556. Respaldo antes_dental_v2/. NO fotorrealismo: lengua rectangular y materiales aún ilustrativos; feedback pendiente. Sin producción/commit/push; angular.json ajeno preservado.
+
+## Boca 3D — 23 sep 2026, corrección del rostro, Nico
+
+Vigente: auditoria/correccion_rostro_2026-09-23.md. Nariz recentrada y normales continuas, labios con volumen/color corregido, deformación /i u/ suavizada,24 coronas diferenciadas y fondo bucal corregido. **Nuevo piloto; fotorrealismo aún no alcanzado**. 135 pruebas, TypeScript/build y2227 estados correctos; costura labial52 vértices/error0. Capturas móviles /i u f/ y corte/k/,57.6rAF/s escritorio. GLB5482744B SHA25691491B0E36BFD3403B08F099C96580110C734073325889D0CE8D3EA6CE4BA109; público idéntico. Respaldo antes_correccion_rostro/. Mismo enlace temporal hasta~19:37CDMX; servidor exec16753. Persiste raya en mentón de/i/ y lengua geométrica; aceptación de Miguel pendiente. Sin commit/push/producción; angular.json ajeno intacto.
+
+## Boca 3D — 23 sep 2026, exterior realista, Nico
+
+Miguel aprobó anatomía y autorizó avanzar hacia fotorrealismo. Piloto nuevo: rostro escaneado adaptado a labios funcionales, textura afeitada image_gen1254px, continuidad de malla/UV y normales por gesto. **Exterior más realista; no fotorrealismo completo**: /u/ aún pinzado, dientes/lengua ilustrativos. 133 pruebas, TypeScript/build y2227 estados correctos; costura0. Móvil emulado sin overflow, ~58rAF/s; falta teléfono real. Informe vigente: `auditoria/realismo_exterior_2026-09-23.md`, enlace temporal hasta~19:37CDMX, hashes y límites. Respaldo exacto anterior `build/boca_didactica/aprobado_anatomia/`. Fundido cutáneo del visor no horneado en .blend/PNG. Sin commit/push/producción; angular.json ajeno intacto. Pendiente feedback visual de Miguel.
+
+## Boca 3D — 23 sep 2026, relevo Nico
+
+Miguel aprobó el catálogo y pidió continuar. Nuevo corte anatómico: paladar/velo/suelo continuos, sección lingual con apoyo ilustrativo y labios derivados del exterior aprobado. Frente/Lado explícitos: exterior 360°, corte ±35°, sin cambio automático al girar. 46 sonidos + siete variantes británicas. 2227 estados, costura labial <1e-15; 132 pruebas Boca3D, TypeScript y build OK. Piloto sin audio ni integración. No es fotorrealismo; cabeza aún no unificada. Informe vigente: `auditoria/anatomia_didactica_2026-09-23.md`; anterior: `auditoria/piloto_didactico_2026-09-23.md`. Rama dev/articulacion-v2, base0421f0d; angular.json ajeno intacto. El estado histórico siguiente no sustituye el piloto actual.
+
 It is operational state, not a historical diary.
 
 ## Current objective
