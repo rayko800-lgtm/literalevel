@@ -86,3 +86,11 @@ y compilación WebGL correctos; no repetir geometría ni ensayar otra hipótesis
 en esta ejecución. Fuentes del intento y detalles de reproducción en
 experimentos/boca3d_superficie_2026-09-24.md y su patch. Evidencia adicional
 en la misma release privada; respaldo anterior sin reemplazar.
+
+## Revisión 01:25 CDMX del24sep: correspondencia de color
+
+Nuevo candidato de material: remuestrea sólo el bermellón inferior para reducir
+el borde blanquecino de la fotografía. Mallas y dientes v4 idénticos; cierre y
+contactos conservados.22 pruebas pertinentes, TypeScript/build y revisión móvil
+correctos. No reintroduce el acabado de rugosidad descartado. Informe vigente
+completo: color_labial_2026-09-24.md. Mejora parcial, sobre todo/i/; no fotorrealismo.

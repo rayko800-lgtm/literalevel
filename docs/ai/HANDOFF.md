@@ -2,6 +2,16 @@
 
 Keep this document short and current.
 
+## Boca3D — 24 sep 2026, 01:25 CDMX, Nico
+
+Informe vigente auditoria/color_labial_2026-09-24.md. Corrección acotada del
+muestreo de color inferior: reduce raya blanca visible en/i/, mismas mallas,
+dientes v4, piel morena y contactos.22 pruebas/TSC/build pasan, WebGL sin errores,
+390x844 sin overflow y poses/i f p u æ/ revisadas. Geometría no se repite.
+Paquete adicional en release privada boca3d-noche-2026-09-23, sin sustituir los
+anteriores. No fotorrealismo ni producción; aprobación estética pendiente.
+No aplicar patch de rugosidad descartado. Límite de iteración07:00CDMX24sep.
+
 ## Boca3D — 23 sep 2026, 23:24 CDMX, Nico
 
 Se conserva74c9941 como candidato vigente. Prueba acotada de acabado labial

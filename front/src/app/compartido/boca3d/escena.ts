@@ -2249,6 +2249,14 @@ export class EscenaBoca {
                   float labioFoto = smoothstep(0.33, 0.57, (vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
                   vec3 detallePiel = texture2D(map,vPielDetalle.xy).rgb;
                   diffuseColor.rgb = mix(diffuseColor.rgb,detallePiel,vPielDetalle.z*(1.0-labioFoto));
+                  // El borde inferior del mapa contiene una raya clara de la
+                  // foto original. Tomar color del bermellón contiguo reduce
+                  // estirarla como un contorno pintado al abrir la boca.
+                  // Sólo cambia el muestreo de color, nunca el borde del rig.
+                  float labioInferior = 1.0-smoothstep(0.145,0.155,vPielReposo.y);
+                  vec2 uvLabioInferior = vec2(vMapUv.x,0.467+(vMapUv.y-0.467)*0.75);
+                  vec3 colorLabioInferior = texture2D(map,uvLabioInferior).rgb;
+                  diffuseColor.rgb = mix(diffuseColor.rgb,colorLabioInferior,labioFoto*labioInferior);
                   // Tono moreno cálido elegido con la referencia autorizada.
                   // Ajuste de reflectancia, no exposición global: dientes,
                   // luz especular y tejido húmedo conservan su respuesta.
@@ -2288,7 +2296,7 @@ export class EscenaBoca {
                 roughnessFactor = mix(roughnessFactor, 0.38, bermellon);
               #endif`);
           };
-          material.customProgramCacheKey = () => fotografica ? 'piel-morena-astra-v1' : 'piel-didactica-bermellon-v1';
+          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-color-v1' : 'piel-didactica-bermellon-v1';
           const pieza = new THREE.Mesh(geometria, material);
           pieza.layers.set(1);
           pieza.userData['sinSombraRecibida'] = true;
