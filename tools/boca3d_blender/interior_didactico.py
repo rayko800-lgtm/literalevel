@@ -98,6 +98,117 @@ def seccion_labial(nombre, puntos, profundidad=.025, lado=None):
 FRANJA={'piel':(.40,.24,.18),'bermellon':(.62,.20,.24),'mucosa':(.80,.42,.46)}
 
 
+def lamina(nombre, contorno, color, borde=None, ancho=0., y=-.008):
+    """Pieza plana del corte (una cara), con franja de borde opcional."""
+    n=len(contorno)
+    poly=[Vector((x,z,0)) for x,z in contorno]
+    tris=tessellate_polygon([poly])
+    vertices=[(x,y,z) for x,z in contorno];faces=[tuple(t) for t in tris];colores=[color]*n
+    if borde and ancho:
+        area=sum(contorno[i][0]*contorno[(i+1)%n][1]-contorno[(i+1)%n][0]*contorno[i][1] for i in range(n))
+        signo=1. if area>0 else -1.
+        base=len(vertices)
+        for j in range(n):
+            a,b=contorno[(j-1)%n],contorno[(j+1)%n]
+            tx,tz=b[0]-a[0],b[1]-a[1];l=math.hypot(tx,tz) or 1.
+            nx,nz=signo*tz/l,-signo*tx/l
+            x,z=contorno[j]
+            vertices+=[(x,y-.001,z),(x-nx*ancho,y-.001,z-nz*ancho)];colores+=[borde,borde]
+        for j in range(n):
+            k=(j+1)%n
+            faces.append((base+2*j,base+2*k,base+2*k+1,base+2*j+1))
+    mesh=bpy.data.meshes.new(nombre);mesh.from_pydata(vertices,[],faces);mesh.update()
+    ob=bpy.data.objects.new(nombre,mesh);bpy.context.collection.objects.link(ob)
+    mat=bpy.data.materials.new(nombre+'_tejido');mat.diffuse_color=(*color,1);mesh.materials.append(mat)
+    region=mesh.vertex_colors.new(name='region_labial')
+    for loop in mesh.loops:region.data[loop.index].color=(*colores[loop.vertex_index],1.)
+    return ob
+
+
+def redondeado(x0,z0,x1,z1,r=.06,pasos=4):
+    """Rectángulo de esquinas redondas (x0<x1, z0<z1)."""
+    out=[]
+    for cx,cz,a0 in ((x1-r,z0+r,-math.pi/2),(x1-r,z1-r,0.),(x0+r,z1-r,math.pi/2),(x0+r,z0+r,math.pi)):
+        for k in range(pasos+1):
+            a=a0+k*(math.pi/2)/pasos
+            out.append((cx+r*math.cos(a),cz+r*math.sin(a)))
+    return out
+
+
+def cerrada(puntos, pasos=6):
+    """Curva Catmull-Rom cerrada por los puntos dados."""
+    n=len(puntos);out=[]
+    for i in range(n):
+        a,b,c,d=puntos[(i-1)%n],puntos[i],puntos[(i+1)%n],puntos[(i+2)%n]
+        for k in range(pasos):
+            t=k/pasos
+            out.append(tuple(.5*(2*q1+(-q0+q2)*t+(2*q0-5*q1+4*q2-q3)*t*t+(-q0+3*q1-3*q2+q3)*t*t*t)
+                             for q0,q1,q2,q3 in zip(a,b,c,d)))
+    return out
+
+
+def anatomia_de_apoyo(medial,contorno,pared_exterior):
+    HUESO=(.93,.88,.78);CORTICAL=(.66,.58,.46);DISCO=(.70,.77,.80)
+    CEREBRO=(.84,.70,.68);CEREBELO=(.78,.62,.60);NERVIO=(.90,.84,.74);MUSCULO=(.60,.27,.27)
+    # Interior del cráneo: piel (0.12) y hueso (0.33) por dentro del contorno.
+    pts=[(medial[i].x,medial[i].z) for i in contorno]
+    arco=[j for j,(x,z) in enumerate(pts) if (x<1 and z>3.45) or (x>=1 and z>3.0 and not (x<3 and z<5))]
+    tramo_=pts[arco[0]:arco[-1]+1]
+    centro=(1.3,4.2)
+    def adentro(lista,d):
+        out=[]
+        for i,(x,z) in enumerate(lista):
+            a,b=lista[max(0,i-1)],lista[min(len(lista)-1,i+1)]
+            tx,tz=b[0]-a[0],b[1]-a[1];l=math.hypot(tx,tz) or 1.
+            nx,nz=tz/l,-tx/l
+            if nx*(centro[0]-x)+nz*(centro[1]-z)<0:nx,nz=-nx,-nz
+            out.append((x+nx*d,z+nz*d))
+        return out
+    interior=adentro(tramo_,.45)[::3]
+    # Cerebro: bóveda, tentorio sobre el cerebelo y base media y anterior.
+    delante=[p for p in interior if not (p[0]>3.0 and p[1]<3.9)]
+    cerebro=delante+[(3.9,3.95),(3.1,3.62),(2.45,3.62),(1.95,3.35),(1.2,3.0),(.3,3.05),(-.8,3.38),(-1.9,3.6)]
+    lamina('anatomia_cerebro',cerebro,CEREBRO,(.62,.46,.45),.035)
+    lamina('anatomia_cerebelo',cerrada([(3.25,3.35),(3.95,3.78),(4.75,3.72),(5.3,3.3),(5.38,2.7),(5.0,2.18),(4.35,2.0),(3.72,2.25),(3.35,2.75)]),
+           CEREBELO,(.55,.40,.39),.03)
+    # Tronco del encéfalo y médula: del cerebro al agujero occipital y al cuello.
+    def pared_x(z):
+        pe=[q for q in pared_exterior]
+        for (x0,z0),(x1,z1) in zip(pe,pe[1:]):
+            if min(z0,z1)<=z<=max(z0,z1) and z0!=z1:return x0+(z-z0)/(z1-z0)*(x1-x0)
+        return pe[-1][0]
+    def piel_x(z):
+        atras=[(x,zz) for x,zz in pts if x>3.8]
+        return min(atras,key=lambda q:abs(q[1]-z))[0]
+    cuerpo=lambda z:pared_x(z)+.10
+    tronco_d=[(1.85,3.4),(2.45,2.65),(3.2,1.95),(cuerpo(1.5)+.66,1.45)]
+    tronco_t=[(cuerpo(1.5)+.92,1.6),(3.85,2.2),(3.05,3.0),(2.5,3.62)]
+    medula_d=[(cuerpo(z)+.66,z) for z in (1.2,.4,-.6,-1.6,-2.6,-3.2)]
+    medula_t=[(cuerpo(z)+.88,z) for z in (-3.2,-2.6,-1.6,-.6,.4,1.2)]
+    lamina('anatomia_medula',tronco_d+medula_d+medula_t+tronco_t,NERVIO,(.70,.62,.52),.025,y=-.009)
+    # Vértebras cervicales: C1 (arco anterior), C2 con apófisis odontoides,
+    # C3–C7 y el comienzo de T1, con discos intervertebrales.
+    lamina('anatomia_c1',cerrada([(pared_x(1.35)+.06,1.3),(pared_x(1.35)+.12,1.46),(pared_x(1.35)+.26,1.42),(pared_x(1.35)+.25,1.24)],4),
+           HUESO,CORTICAL,.025)
+    x2=cuerpo(.6)
+    lamina('anatomia_c2',[(x2+.30,1.62),(x2+.42,1.55),(x2+.44,1.12),(x2+.6,1.05),(x2+.6,.3),(x2+.52,.24),
+                          (x2+.06,.24),(x2,.3),(x2,1.0),(x2+.18,1.1),(x2+.18,1.5)],HUESO,CORTICAL,.025)
+    alto,disco=.5,.12
+    for k,techo in enumerate([.12,-.5,-1.12,-1.74,-2.36,-2.98]):
+        base=max(techo-alto,-3.2);xc=cuerpo(techo-alto/2)
+        lamina('anatomia_vertebra_%d'%(k+3),redondeado(xc,base,xc+.6,techo),HUESO,CORTICAL,.025)
+        if techo+disco<=1.1:lamina('anatomia_disco_%d'%(k+3),redondeado(xc+.03,techo+.01,xc+.57,techo+disco-.01,.03,2),DISCO)
+        # Apófisis espinosa detrás del conducto, sin salir de la nuca.
+        z=techo-alto/2;xa=cuerpo(z)+.95;xb=min(xa+.45,piel_x(z)-.14)
+        if xb>xa+.08:lamina('anatomia_espinosa_%d'%(k+3),cerrada([(xa,z+.16),(xb,z+.02),(xb,z-.12),(xa,z-.14)],4),HUESO,CORTICAL,.02)
+    # Músculos de la nuca, entre las apófisis y la piel.
+    nuca=[p for p in adentro([q for q in pts if q[0]>3.8 and -3.2<q[1]<2.1],.14)][::2]
+    nuca_int=[(cuerpo(z)+1.0,z) for z in (-3.2,-2.0,-.8,.4,1.4)]+[(4.75,2.0)]
+    if len(nuca)>3:lamina('anatomia_nuca',nuca+nuca_int,MUSCULO,(.46,.18,.19),.02,y=-.007)
+    # Hioides.
+    lamina('anatomia_hioides',cerrada([(.7,-2.26),(1.35,-2.06),(1.47,-2.18),(.82,-2.4)],4),HUESO,CORTICAL,.02)
+
+
 def construir():
     paladar=[(-2.55,.5),(-2.3,.75),(-2.05,.92),(-1.7,1.15),(-1.2,1.35),
              (-.6,1.48),(0,1.52),(.6,1.5),(1.2,1.42),(1.7,1.32),(2.05,1.22)]
@@ -208,7 +319,8 @@ def construir():
             hueso=[(-1.56,-1.80),(-1.90,-1.77),(-2.26,-1.70),(-2.52,-1.60),(-2.71,-1.48),
                    (-2.83,-1.32),(-2.91,-1.12),(-2.945,-.90),(-2.945,-.69)]
             puntos+=[(x,z,None,-2.,GRASA,0,None) for x,z in hueso]
-            puntos+=[(-2.63,-.50,None,-2.,MUSCULO,0,None),(-2.72,-.12,None,-2.,MUSCULO,.035,'mucosa')]
+            puntos+=[(-2.63,-.50,None,-2.,MUSCULO,0,None),(-2.72,-.12,None,-2.,MUSCULO,.035,'mucosa'),
+                     (-2.80,.02,None,0.,MUSCULO,.035,'mucosa')]
         # Quitar duplicados exactos consecutivos del escaneo.
         limpio=[]
         for q in puntos:
@@ -224,13 +336,20 @@ def construir():
         # cada gesto (se interpola la posición final, no sólo el reposo).
         def cr(a,b,c,d,t):
             return .5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t)
-        anillo=lambda q:q[2] is not None and q[2]<7*65
+        n_p=len(puntos)
+        interp={j for j,q in enumerate(puntos) if q[2] is not None and q[2]<7*65}
+        if not sup:
+            # Mucosa interior: sigue al 30 % del borde y del bermellón medio.
+            r0=next(j for j,q in enumerate(puntos) if q[2]==0)
+            r2=next(j for j,q in enumerate(puntos) if q[2]==130)
+            deltas[-1]={g:.3*(deltas[r0][g]+deltas[r2][g]) for g in nombres_gesto}
+            interp.add(n_p-1)
         nuevos=[];nuevos_d=[]
         for j,q in enumerate(puntos):
             nuevos.append(q);nuevos_d.append(deltas[j])
-            k=j+1
-            if k<len(puntos) and anillo(q) and anillo(puntos[k]):
-                h,m=max(0,j-1),min(len(puntos)-1,k+1)
+            k=(j+1)%n_p
+            if j in interp and k in interp and (k==j+1 or not sup):
+                h,m=(j-1)%n_p,(k+1)%n_p
                 for paso in (1,2,3):
                     t=paso/4
                     x=cr(puntos[h][0],q[0],puntos[k][0],puntos[m][0],t)
@@ -242,6 +361,14 @@ def construir():
                     for g in nombres_gesto:
                         fin=[Vector((pp[0],0,pp[1]))+dd[g] for pp,dd in ((puntos[h],deltas[h]),(q,deltas[j]),(puntos[k],deltas[k]),(puntos[m],deltas[m]))]
                         d[g]=cr(*fin,t)-Vector((x,0,z))
+                        # /f v/: el labio recogido era una cuña recta. Se abomba
+                        # hacia delante entre el bermellón medio y el borde
+                        # externo, sólo en el corte (el exterior no cambia).
+                        if g=='labio_atras' and not sup and {q[2],puntos[k][2]}<={65,130,195}:
+                            a_,b_=fin[1],fin[2];tx,tz=b_.x-a_.x,b_.z-a_.z;l=math.hypot(tx,tz) or 1.
+                            nx,nz=tz/l,-tx/l
+                            if nx>0:nx,nz=-nx,-nz
+                            d[g]+=Vector((nx,0,nz))*.07*math.sin(math.pi*t)
                     rig=q[3]+(puntos[k][3]-q[3])*t
                     nuevos.append((x,z,None,rig,q[4],q[5],q[6]));nuevos_d.append(d)
         puntos,deltas=nuevos,nuevos_d
@@ -271,4 +398,5 @@ def construir():
     craneo+=[(x,z,None,-1.,MARFIL,0,None) for x,z in reversed(pared_exterior) if z>-3.2]
     craneo.append((-2.2,3.16,None,-1.,MARFIL,0,None))
     seccion_labial('anatomia_craneo',craneo)
+    anatomia_de_apoyo(medial,contorno_cabeza,pared_exterior)
     print('INTERIOR_DIDACTICO_OK')

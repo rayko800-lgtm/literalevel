@@ -151,6 +151,58 @@ function texturaTejidoCortado(): THREE.CanvasTexture | null {
   const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;
 }
 
+/** Texturas del corte sagital (ilustración, no imágenes médicas): surcos
+ *  del cerebro, láminas del cerebelo, hueso esponjoso y tejido blando. Se
+ *  multiplican por el color de cada región. Sin canvas (pruebas), null. */
+type ClaseCorte = 'cerebro' | 'cerebelo' | 'hueso' | 'blando';
+const TEXTURAS_CORTE = new Map<ClaseCorte, THREE.Texture | null>();
+function texturaCorte(clase: ClaseCorte): THREE.Texture | null {
+  if (TEXTURAS_CORTE.has(clase)) return TEXTURAS_CORTE.get(clase)!;
+  const t = texturaCanvas(512, [1, 1], (ctx, azar) => {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 512, 512);
+    const trazo = (color: string, ancho: number) => { ctx.strokeStyle = color; ctx.lineWidth = ancho; ctx.lineCap = 'round'; ctx.stroke(); };
+    if (clase === 'cerebro') {
+      // Circunvoluciones: surcos sinuosos que se ramifican.
+      ctx.fillStyle = '#efe2df'; ctx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 260; i++) {
+        let x = azar() * 512, y = azar() * 512, a = azar() * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let k = 0; k < 9; k++) { a += (azar() - .5) * 2.2; x += Math.cos(a) * 9; y += Math.sin(a) * 9; ctx.lineTo(x, y); }
+        trazo('rgba(255,250,248,.9)', 9);
+        trazo('rgba(105,58,60,.65)', 2.4);
+      }
+    } else if (clase === 'cerebelo') {
+      // Láminas finas casi paralelas (folias).
+      for (let i = 0; i < 46; i++) {
+        ctx.beginPath(); const y0 = i * 11.5;
+        for (let x = 0; x <= 512; x += 16) ctx.lineTo(x, y0 + 5 * Math.sin(x / 40 + i) + (azar() - .5) * 2);
+        trazo('rgba(110,60,62,.5)', 2);
+      }
+    } else if (clase === 'hueso') {
+      // Esponjoso: celdillas claras y oscuras.
+      for (let i = 0; i < 900; i++) {
+        const x = azar() * 512, y = azar() * 512, r = 1.5 + azar() * 4;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = azar() < .5 ? 'rgba(150,120,90,.18)' : 'rgba(255,250,235,.25)'; ctx.fill();
+      }
+    } else {
+      // Tejido blando: grano fino y fibras suaves.
+      for (let i = 0; i < 1800; i++) {
+        ctx.fillStyle = `rgba(90,40,40,${.03 + azar() * .06})`;
+        ctx.fillRect(azar() * 512, azar() * 512, 1 + azar() * 2, 1 + azar() * 2);
+      }
+      for (let i = 0; i < 60; i++) {
+        ctx.beginPath(); const y0 = azar() * 512; ctx.moveTo(0, y0);
+        ctx.bezierCurveTo(170, y0 + (azar() - .5) * 60, 340, y0 + (azar() - .5) * 60, 512, y0 + (azar() - .5) * 40);
+        trazo('rgba(110,50,50,.06)', 1);
+      }
+    }
+  });
+  if (t) t.colorSpace = THREE.SRGBColorSpace;
+  TEXTURAS_CORTE.set(clase, t);
+  return t;
+}
+
 /** Sección medial de la lengua, con los mismos deltas que su superficie.
  * No remodela la lengua ni altera contactos; cierra visualmente el corte. */
 export function seccionSagitalLengua(fuente: THREE.Mesh): (THREE.Mesh & { actualizar: () => void }) | null {
@@ -1327,6 +1379,8 @@ export class EscenaBoca {
   /** Cuánto fruncen los labios exteriores (0–1): lo leen los shaders de
    *  labios y lengua para el brillo y la penumbra de /u/. */
   private readonly fruncidoLabios = { value: 0 };
+  /** Cuánto se recoge el labio inferior bajo los incisivos en /f v/ (0–1). */
+  private readonly labiodentalLabios = { value: 0 };
   private readonly labioSup: THREE.Mesh;
   private readonly labioInf: THREE.Mesh;
   private readonly lengua: THREE.Mesh;
@@ -2304,7 +2358,8 @@ export class EscenaBoca {
               shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
                 '#include <begin_vertex>\n vPielDetalle = pielDetalle; vPielReposo = pielReposo;');
               shader.uniforms['fruncidoLabios']=this.fruncidoLabios;
-              shader.fragmentShader='uniform float fruncidoLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'
+              shader.uniforms['labiodentalLabios']=this.labiodentalLabios;
+              shader.fragmentShader='uniform float fruncidoLabios; uniform float labiodentalLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'
                 +'float azarPiel(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n'
                 +'float ruidoPiel(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
                 +'return mix(mix(mix(azarPiel(i),azarPiel(i+vec3(1,0,0)),f.x),mix(azarPiel(i+vec3(0,1,0)),azarPiel(i+vec3(1,1,0)),f.x),f.y),'
@@ -2361,6 +2416,13 @@ export class EscenaBoca {
                   diffuseColor.rgb = mix(diffuseColor.rgb, seco, secoPeso);
                   diffuseColor.rgb *= 1.0 - 0.22*arrugaColor*secoPeso;
                   diffuseColor.rgb = mix(diffuseColor.rgb, rosado, humedo*(0.35+0.4*fruncidoLabios));
+                  // /f v/: los incisivos apoyan sobre la cara interna del labio
+                  // inferior. Sombra de contacto y mucosa húmeda en esa franja
+                  // para que el apoyo se lea de frente (no cambia la forma).
+                  float bajoDiente = labiodentalLabios*(1.0-superior)*labioFoto
+                    *(1.0-smoothstep(0.02,0.2,0.15-vPielReposo.y));
+                  diffuseColor.rgb *= 1.0-0.55*bajoDiente;
+                  humedo = max(humedo, 0.8*bajoDiente);
                 #endif`);
               shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>',
                 `#include <normal_fragment_maps>
@@ -2441,14 +2503,29 @@ export class EscenaBoca {
         }
       }
       if (interiorDidactico) {
-        for (const nombre of ['craneo', 'nariz', 'paladar', 'pared', 'suelo', 'velo', 'uvula', 'labio_sup', 'labio_inf', 'maxilar', 'menton', 'alveolo_sup', 'alveolo_inf']) {
+        // Anatomía de apoyo (cerebro, vértebras…): láminas fijas del corte.
+        const apoyo = [...piezas.keys()].filter(n => /^anatomia_(cerebro|cerebelo|medula|nuca|hioides|c1|c2|vertebra_|disco_|espinosa_)/.test(n))
+          .map(n => n.slice('anatomia_'.length));
+        for (const nombre of ['craneo', 'nariz', ...apoyo, 'paladar', 'pared', 'suelo', 'velo', 'uvula', 'labio_sup', 'labio_inf', 'maxilar', 'menton', 'alveolo_sup', 'alveolo_inf']) {
           const fuente = piezas.get('anatomia_' + nombre);
           if (!fuente) continue;
           const original = fuente.material as THREE.MeshStandardMaterial;
           const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
-          const pieza = new THREE.Mesh(geometria, nombre.startsWith('labio') || nombre === 'craneo' || nombre === 'nariz'
+          const lamina = nombre.startsWith('labio') || nombre === 'craneo' || nombre === 'nariz' || apoyo.includes(nombre);
+          const clase: ClaseCorte = nombre === 'cerebro' ? 'cerebro' : nombre === 'cerebelo' ? 'cerebelo'
+            : /^(c1|c2|vertebra_|espinosa_|hioides|craneo)/.test(nombre) ? 'hueso' : 'blando';
+          const textura = lamina && nombre !== 'medula' && !nombre.startsWith('disco_') ? texturaCorte(clase) : null;
+          if (textura) {
+            // Coordenadas planas del corte: el dibujo no se estira con el gesto.
+            const pos = geometria.getAttribute('position'), escala = clase === 'cerebro' ? .22 : clase === 'cerebelo' ? .5 : .35;
+            const uv = new Float32Array(pos.count * 2);
+            for (let i = 0; i < pos.count; i++) { uv[2 * i] = pos.getX(i) * escala; uv[2 * i + 1] = pos.getY(i) * escala; }
+            geometria.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+            textura.wrapS = textura.wrapT = THREE.RepeatWrapping;
+          }
+          const pieza = new THREE.Mesh(geometria, lamina
             ? new THREE.MeshBasicMaterial({ color: geometria.hasAttribute('color') ? '#ffffff' : '#bc8580',
-              vertexColors: geometria.hasAttribute('color'), side: THREE.DoubleSide })
+              vertexColors: geometria.hasAttribute('color'), side: THREE.DoubleSide, ...(textura ? { map: textura } : {}) })
             : materialDe('mucosa', original.color.getStyle(), { roughness: .8, sheen: 0, side: THREE.DoubleSide }));
           if (nombre === 'velo' || nombre === 'uvula') this.velo.add(pieza);
           else if (nombre === 'suelo' || nombre === 'menton' || nombre === 'alveolo_inf') this.dentroMandibula.add(pieza);
@@ -3068,6 +3145,7 @@ export class EscenaBoca {
         // ya tiene su volumen propio aprobado y no recibe este correctivo.
         if ('cuerpo_labial' in dic) inf[dic['cuerpo_labial']] = (1-fruncir*(1-sello))*(1-.35*estirar);
         if ('labio_atras' in dic) inf[dic['labio_atras']] = atras * (1 - sello) * ('sello_didactico' in dic ? 1 - estirar : 1);
+        if (this.labiodentalLabios && 'labio_atras' in dic) this.labiodentalLabios.value = inf[dic['labio_atras']];
         if ('sello_didactico' in dic) inf[dic['sello_didactico']] = sello;
         // Estirar y fruncir ya abren su propio borde. Sumarlos a la apertura
         // neutra doblaba el labio superior sobre el filtrum en /æ/ y /ɛ/.
