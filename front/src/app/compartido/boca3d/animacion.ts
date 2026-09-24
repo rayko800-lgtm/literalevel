@@ -2,7 +2,7 @@
  *  reposo, 2,8 s) y una palabra entera, con los mismos instantes y las mismas
  *  duraciones que el corte 2D (`_linea_sonido` y `_linea_palabra` de
  *  `app/animacion_articulatoria`). Sin three.js: solo poses y segundos. */
-import { CatalogoPoses, DURACION_S, PoseSonido, Segmento, resolver } from './poses';
+import { CatalogoPoses, DURACION_S, Movimiento, PoseSonido, Segmento, resolver } from './poses';
 
 /** Un instante de la línea: la boca está en `pose`, o a la fracción `f` del
  *  camino entre `pose` y `hacia` (la «suelta» de una oclusiva). */
@@ -66,6 +66,78 @@ export function aVelocidad(linea: Linea, velocidad: number): Linea {
  *  que su primera energía caiga en `sonidoEn` de la línea ya ralentizada:
  *  el silencio inicial del archivo dura `silencio / velocidadAudio` al
  *  reproducirlo a esa velocidad (1 si el navegador no pudo ralentizarlo). */
+/** Ajusta el ciclo de un sonido a lo que de verdad dura su audio (Miguel,
+ *  24 sep: «que la animación vaya al mismo tiempo que el sonido»). El tramo
+ *  que suena se estira o acorta a `sonora` segundos (a 1×) y lo que viene
+ *  después se desplaza; `sonidoEn` pasa al comienzo de ese tramo:
+ *  - vocales, fricativas, nasales, aproximantes: la pose sostenida;
+ *  - oclusivas: desde la explosión (fin del cierre) hasta volver al reposo;
+ *  - africadas: desde la suelta del cierre hasta el final de la fricción;
+ *  - diptongos: del primer objetivo al final del segundo. */
+export function alAudio(linea: Linea, movimiento: Movimiento, sonora: number): Linea {
+  const c = linea.claves;
+  if (c.length < 5 || !(sonora > 0)) return linea;
+  const [ia, ib] = movimiento === 'oclusiva' ? [3, 5]
+    : movimiento === 'africada' || movimiento === 'diptongo' ? (c.length >= 7 ? (movimiento === 'africada' ? [3, 5] : [2, 5]) : [2, 3])
+    : [2, 3];
+  const a = c[ia].t, b = c[ib].t, largo = Math.min(4, Math.max(0.2, sonora));
+  const escala = largo / Math.max(1e-6, b - a), desplazar = largo - (b - a);
+  const mover = (t: number) => t <= a ? t : t <= b ? a + (t - a) * escala : t + desplazar;
+  return {
+    ...linea,
+    claves: c.map(k => ({ ...k, t: mover(k.t) })),
+    total: linea.total + desplazar,
+    sonidoEn: a,
+    aspiracion: linea.aspiracion?.map(x => ({ en: mover(x.en), dura: x.dura })),
+  };
+}
+
+/** El gesto de un sonido repetido en cada tramo que suena de su audio (en
+ *  segundos del archivo). La línea va `ADELANTO` por delante del archivo
+ *  para que la boca llegue a la pose justo cuando empieza cada tramo:
+ *  `sonidoEn - silencio` es ese adelanto (ver `retrasoAudio`). Oclusivas:
+ *  cierre antes del tramo y explosión al empezar; africadas: cierre y luego
+ *  la fricción durante el tramo; diptongos: del primer objetivo al segundo. */
+export const ADELANTO = 0.45;
+export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
+                                 tramos: { inicio: number; fin: number }[], silencio: number, duracion: number): Linea | null {
+  if (!tramos.length) return null;
+  const R = catalogo.reposo;
+  const [PA0, PB] = objetivos(pose, R, R);
+  const PA = conAlgoQueVer(pose, PA0, R);
+  const m = pose.movimiento, L = ADELANTO;
+  const claves: Clave[] = [{ t: 0, pose: R }];
+  const aspiracion: { en: number; dura: number }[] = [];
+  let libre = 0;          // instante desde el que se puede empezar a mover
+  for (const { inicio, fin } of tramos) {
+    const a = L + inicio, b = Math.max(a + 0.08, L + fin);
+    const ir = Math.max(libre, a - 0.35);
+    if (m === 'oclusiva') {
+      const cierre = Math.max(libre + 0.05, a - 0.3);
+      claves.push({ t: Math.max(libre, cierre - 0.3), pose: R }, { t: cierre, pose: PA }, { t: a, pose: PA },
+        { t: a + 0.08, pose: PA, hacia: R, f: 0.5 }, { t: Math.max(a + 0.35, b), pose: R });
+      if (!pose.sonora) aspiracion.push({ en: a + 0.08, dura: soploDe(pose) });
+      libre = Math.max(a + 0.35, b);
+    } else if (m === 'africada' && PB) {
+      claves.push({ t: ir, pose: R }, { t: a - 0.05, pose: PA }, { t: a + 0.05, pose: PB }, { t: b, pose: PB }, { t: b + 0.3, pose: R });
+      libre = b + 0.3;
+    } else if (m === 'diptongo' && PB) {
+      claves.push({ t: ir, pose: R }, { t: a, pose: PA }, { t: b, pose: PB }, { t: b + 0.3, pose: R });
+      libre = b + 0.3;
+    } else {
+      claves.push({ t: ir, pose: R }, { t: a, pose: PA }, { t: b, pose: PA }, { t: b + 0.3, pose: R });
+      libre = b + 0.3;
+    }
+  }
+  const total = Math.max(libre, L + duracion) + 0.2;
+  claves.push({ t: total, pose: R });
+  // Instantes estrictamente crecientes (huecos muy cortos entre tramos).
+  for (let i = 1; i < claves.length; i++) if (claves[i].t <= claves[i - 1].t) claves[i] = { ...claves[i], t: claves[i - 1].t + 0.01 };
+  const linea: Linea = { total: claves[claves.length - 1].t, claves, quieta: PA, sonidoEn: L + silencio };
+  if (aspiracion.length) linea.aspiracion = aspiracion;
+  return linea;
+}
+
 export function retrasoAudio(sonidoEnLento: number, silencio: number, velocidadAudio: number): number {
   return sonidoEnLento - silencio / (velocidadAudio > 0 ? velocidadAudio : 1);
 }

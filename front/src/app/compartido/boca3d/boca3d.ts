@@ -6,7 +6,8 @@ import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
-import { Linea, Velocidad, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import { Linea, Velocidad, aVelocidad, alAudio, alCompasDeTramos, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import type { Tramo } from './audio';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
 import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, familiaDe, poseDe, trocearIpa } from './poses';
@@ -351,7 +352,11 @@ export class Boca3d {
     if (!p || !this.escena) return;
     const url = this.urlAudioSonido();
     if (!url) { this.verMovimiento(); return; }
-    void this.conAudio(url, () => cicloSonido(p, this.catalogo()), this.opcionesGiro(p));
+    // La boca repite el gesto en cada tramo que suena del audio medido; si no
+    // se pudo medir, el ciclo de siempre ajustado a lo que suena.
+    void this.conAudio(url, listo => alCompasDeTramos(p, this.catalogo(), listo.tramos, listo.silencio, listo.duracion)
+      ?? alAudio(cicloSonido(p, this.catalogo()), p.movimiento, listo.fin - listo.silencio),
+      this.opcionesGiro(p));
   }
 
   /** La palabra de `ipa` entera: con audio, la línea se escala a la duración
@@ -366,7 +371,7 @@ export class Boca3d {
       listo.duracion > 0 ? lentoParaAudio(segs, this.catalogo(), listo.duracion, listo.silencio) : undefined));
   }
 
-  private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number }) => Linea,
+  private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number; fin: number; tramos: Tramo[] }) => Linea,
                          opciones: { giro?: number } = {}): Promise<void> {
     this.sonador.despertar();                    // dentro del clic, por iOS
     this.sonador.parar();
@@ -375,7 +380,7 @@ export class Boca3d {
     if (numero !== this.peticion || !this.escena) return;
     this.aviso.set('');
     if (!listo) {
-      this.escena.reproducir(this.lenta(linea({ duracion: 0, silencio: 0 })), opciones);
+      this.escena.reproducir(this.lenta(linea({ duracion: 0, silencio: 0, fin: 0, tramos: [] })), opciones);
       return;
     }
     // La línea se ajusta al audio a 1× y después se estira; el audio suena a

@@ -49,7 +49,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 /** Normales del gesto real, soldando sólo para el cálculo las costuras UV.
  * El GLB contiene deltas de posición; iluminarlo con normales de reposo
  * producía pliegues radiales falsos al fruncir. No cambia los contactos. */
-export function normalesDelGesto(malla: THREE.Mesh, conservarNariz = false): () => void {
+export function normalesDelGesto(malla: THREE.Mesh, conservarNariz = false, pasosSuaves = 0): () => void {
   const origen = malla.geometry;
   const p = origen.getAttribute('position');
   const mapa = new Map<string, number>(), representantes: number[] = [], correspondencia: number[] = [];
@@ -72,6 +72,14 @@ export function normalesDelGesto(malla: THREE.Mesh, conservarNariz = false): () 
   const triangulos=calculo.index!.array;
   const a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
   const ab=new THREE.Vector3(), ac=new THREE.Vector3(), normal=new THREE.Vector3();
+  // Vecinos por arista, para alisar el sombreado sin tocar la forma.
+  const vecinos: number[][] = pasosSuaves ? representantes.map(() => []) : [];
+  if (pasosSuaves) for(let t=0;t<triangulos.length;t+=3) for (let k=0;k<3;k++) {
+    const u=triangulos[t+k], v=triangulos[t+(k+1)%3];
+    if (!vecinos[u].includes(v)) vecinos[u].push(v);
+    if (!vecinos[v].includes(u)) vecinos[v].push(u);
+  }
+  const copia = pasosSuaves ? new Float32Array(representantes.length*3) : null;
   return () => {
     representantes.forEach((i,j)=>{malla.getVertexPosition(i,punto);posiciones.setXYZ(j,punto.x,punto.y,punto.z);});
     // Ponderar por ángulo, no por área: al cortar la nariz en dos aparecen
@@ -90,6 +98,17 @@ export function normalesDelGesto(malla: THREE.Mesh, conservarNariz = false): () 
       normales[3*ia]+=normal.x*aa; normales[3*ia+1]+=normal.y*aa; normales[3*ia+2]+=normal.z*aa;
       normales[3*ib]+=normal.x*bb; normales[3*ib+1]+=normal.y*bb; normales[3*ib+2]+=normal.z*bb;
       normales[3*ic]+=normal.x*cc; normales[3*ic+1]+=normal.y*cc; normales[3*ic+2]+=normal.z*cc;
+    }
+    for (let paso=0; copia && paso<pasosSuaves; paso++) {
+      for (let j=0;j<representantes.length;j++) {
+        const l=Math.hypot(normales[3*j],normales[3*j+1],normales[3*j+2])||1;
+        copia[3*j]=normales[3*j]/l; copia[3*j+1]=normales[3*j+1]/l; copia[3*j+2]=normales[3*j+2]/l;
+      }
+      for (let j=0;j<representantes.length;j++) {
+        let x=copia[3*j], y=copia[3*j+1], z=copia[3*j+2];
+        for (const v of vecinos[j]) { x+=copia[3*v]; y+=copia[3*v+1]; z+=copia[3*v+2]; }
+        normales[3*j]=x; normales[3*j+1]=y; normales[3*j+2]=z;
+      }
     }
     correspondencia.forEach((j,i)=>{
       const x=normales[3*j], y=normales[3*j+1], z=normales[3*j+2], l=Math.hypot(x,y,z)||1;
@@ -1386,6 +1405,8 @@ export class EscenaBoca {
   private polarFrontal = POLAR_FRONTAL;
   /** Cuánto se recoge el labio inferior bajo los incisivos en /f v/ (0–1). */
   private readonly labiodentalLabios = { value: 0 };
+  /** Influencia de `punta_interdental` en la lengua (0–1), para su material. */
+  private readonly puntaFuera = { value: 0 };
   private readonly labioSup: THREE.Mesh;
   private readonly labioInf: THREE.Mesh;
   private readonly lengua: THREE.Mesh;
@@ -2041,7 +2062,9 @@ export class EscenaBoca {
         // La normal ya se calcula sobre la combinación real de morfos;
         // no volver a sumar las normales de cada gesto exportadas en glTF.
         delete m.geometry.morphAttributes.normal;
-        this.actualizarNormalesLengua = normalesDelGesto(m);
+        // Tres pasadas de alisado del sombreado: la arista lateral de la
+        // punta interdental se leía como dos picos de frente (/θ ð/).
+        this.actualizarNormalesLengua = normalesDelGesto(m, false, 3);
         // El corte ilumina el interior para estudiarlo; desde fuera, el
         // tejido profundo recibe menos luz. Atenuación visual económica,
         // no cambia geometría/contactos ni pretende simular luz volumétrica.
@@ -2050,12 +2073,14 @@ export class EscenaBoca {
         material.onBeforeCompile = shader => {
           shader.uniforms['vistaCavidad'] = cavidad;
           shader.uniforms['fruncidoLabios'] = this.fruncidoLabios;
+          shader.uniforms['puntaFuera'] = this.puntaFuera;
           // Coordenadas de reposo: el dibujo del tejido viaja con la lengua.
           shader.vertexShader = 'varying float profundidadBoca;\nvarying vec3 vLengua;\nvarying float vDorso;\n' + shader.vertexShader;
           shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>',
             'profundidadBoca = transformed.x;\nvLengua = position;\nvDorso = normal.y;\n#include <project_vertex>');
           shader.fragmentShader = `uniform float vistaCavidad;
             uniform float fruncidoLabios;
+            uniform float puntaFuera;
             varying float profundidadBoca;
             varying vec3 vLengua;
             varying float vDorso;
@@ -2079,7 +2104,10 @@ export class EscenaBoca {
             float papilaFina = smoothstep(0.58, 0.9, ruidoLengua(vLengua * 34.0));
             float manchas = ruidoLengua(vLengua * 5.0 + 3.1);
             float saburra = dorso * (1.0 - borde) * (1.0 - punta) * smoothstep(-1.5, -0.3, vLengua.x) * (0.45 + 0.55 * manchas);
-            float surco = exp(-pow(vLengua.z / 0.07, 2.0)) * dorso * smoothstep(-1.7, -1.0, vLengua.x) * (1.0 - smoothstep(0.6, 1.5, vLengua.x));
+            // En /θ ð/ la lengua sale entre los dientes y el surco (en reposo)
+            // caía en el centro de lo visible: partía la punta en dos picos.
+            float surco = exp(-pow(vLengua.z / 0.07, 2.0)) * dorso * smoothstep(-1.7, -1.0, vLengua.x) * (1.0 - smoothstep(0.6, 1.5, vLengua.x))
+              * (1.0 - puntaFuera);
             vec3 mucosa = mix(vec3(0.62, 0.21, 0.23), vec3(0.66, 0.15, 0.18), max(borde, punta));
             mucosa = mix(mucosa, vec3(0.70, 0.45, 0.45), 0.6 * saburra);
             mucosa *= mix(0.9, 1.07, papilaFina) * (1.0 - 0.3 * surco);
@@ -2099,10 +2127,14 @@ export class EscenaBoca {
           // Con la abertura pequeña de /u/ casi no entra luz a la cavidad:
           // desde fuera se ve oscura, como en la referencia. El corte no cambia.
           shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>',
-            `outgoingLight *= mix(1.0, 0.22, fruncidoLabios * vistaCavidad);
+            `// Relleno suave de frente (luz envolvente): el borde entre luz y
+            // sombra sobre el dorso, más plano en el centro, dibujaba dos
+            // «picos» en /θ ð/. Más relleno cuanto más asoma la punta.
+            outgoingLight += diffuseColor.rgb * (0.10 + 0.22 * puntaFuera) * vistaCavidad;
+            outgoingLight *= mix(1.0, 0.22, fruncidoLabios * vistaCavidad);
             #include <opaque_fragment>`);
         };
-        material.customProgramCacheKey = () => 'lengua-mucosa-didactica-v3';
+        material.customProgramCacheKey = () => 'lengua-mucosa-didactica-v4';
         const plano = [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0)];
         this.renderer.localClippingEnabled = true;
         m.onBeforeRender = (_r, _s, camara) => {
@@ -3189,6 +3221,7 @@ export class EscenaBoca {
     if (this.lenguaGlb?.morphTargetInfluences) {
       const inf = this.lenguaGlb.morphTargetInfluences;
       this.indicesMorfos.forEach((idx, i) => { if (idx !== undefined) inf[idx] = n[I_MORFOS + i]; });
+      if (this.puntaFuera) this.puntaFuera.value = n[I_MORFOS + MORFOS_LENGUA.indexOf('punta_interdental')] ?? 0;
       this.actualizarNormalesLengua?.();
       // Antes de que WebGL suba atributos: onBeforeRender es demasiado
       // tarde y dejaba el relleno con la pose anterior al mantener un gesto.
