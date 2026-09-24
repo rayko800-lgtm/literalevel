@@ -16,6 +16,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** Los .glb se bajan una vez por página. El Space los sirve tras una URL firmada
  *  que cambia en cada petición, así que la caché del navegador no los reutilizaba
@@ -44,8 +45,84 @@ function cargarGlb(url: string, alLlegar: (gltf: GLTF) => void, alFallar: () => 
     alFallar);
 }
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/** Normales del gesto real, soldando sólo para el cálculo las costuras UV.
+ * El GLB contiene deltas de posición; iluminarlo con normales de reposo
+ * producía pliegues radiales falsos al fruncir. No cambia los contactos. */
+export function normalesDelGesto(malla: THREE.Mesh, conservarNariz = false, pasosSuaves = 0): () => void {
+  const origen = malla.geometry;
+  const p = origen.getAttribute('position');
+  const mapa = new Map<string, number>(), representantes: number[] = [], correspondencia: number[] = [];
+  for (let i=0;i<p.count;i++) {
+    const clave=[p.getX(i),p.getY(i),p.getZ(i)].map(v=>Math.round(v*1e5)).join(',');
+    let j=mapa.get(clave);
+    if (j===undefined) { j=representantes.length; mapa.set(clave,j); representantes.push(i); }
+    correspondencia.push(j);
+  }
+  const calculo = new THREE.BufferGeometry();
+  const posiciones = new THREE.Float32BufferAttribute(new Float32Array(representantes.length*3),3);
+  calculo.setAttribute('position',posiciones);
+  calculo.setIndex(Array.from(origen.index?.array ?? correspondencia.map((_,i)=>i),i=>correspondencia[i]));
+  if (!origen.getAttribute('normal')) origen.setAttribute('normal',new THREE.Float32BufferAttribute(new Float32Array(p.count*3),3));
+  const destino=origen.getAttribute('normal');
+  const originales=conservarNariz ? new Float32Array(destino.array) : null;
+  const fijas=representantes.map(i=>conservarNariz ? THREE.MathUtils.smoothstep(p.getY(i),1.05,1.30) : 0);
+  const punto=new THREE.Vector3();
+  const normales=new Float32Array(representantes.length*3);
+  const triangulos=calculo.index!.array;
+  const a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  const ab=new THREE.Vector3(), ac=new THREE.Vector3(), normal=new THREE.Vector3();
+  // Vecinos por arista, para alisar el sombreado sin tocar la forma.
+  const vecinos: number[][] = pasosSuaves ? representantes.map(() => []) : [];
+  if (pasosSuaves) for(let t=0;t<triangulos.length;t+=3) for (let k=0;k<3;k++) {
+    const u=triangulos[t+k], v=triangulos[t+(k+1)%3];
+    if (!vecinos[u].includes(v)) vecinos[u].push(v);
+    if (!vecinos[v].includes(u)) vecinos[v].push(u);
+  }
+  const copia = pasosSuaves ? new Float32Array(representantes.length*3) : null;
+  return () => {
+    representantes.forEach((i,j)=>{malla.getVertexPosition(i,punto);posiciones.setXYZ(j,punto.x,punto.y,punto.z);});
+    // Ponderar por ángulo, no por área: al cortar la nariz en dos aparecen
+    // triángulos muy estrechos. El promedio por área dejaba una franja de
+    // normales inclinadas a un lado aunque los vértices estuvieran soldados.
+    normales.fill(0);
+    for(let t=0;t<triangulos.length;t+=3) {
+      const ia=triangulos[t], ib=triangulos[t+1], ic=triangulos[t+2];
+      if(fijas[ia]===1 && fijas[ib]===1 && fijas[ic]===1)continue;
+      a.fromBufferAttribute(posiciones,ia); b.fromBufferAttribute(posiciones,ib); c.fromBufferAttribute(posiciones,ic);
+      ab.subVectors(b,a); ac.subVectors(c,a); normal.crossVectors(ab,ac);
+      const area=normal.length(); if(area<1e-12)continue; normal.divideScalar(area);
+      const aa=Math.atan2(area,ab.dot(ac));
+      ab.subVectors(a,b); ac.subVectors(c,b);
+      const bb=Math.atan2(area,ab.dot(ac)), cc=Math.PI-aa-bb;
+      normales[3*ia]+=normal.x*aa; normales[3*ia+1]+=normal.y*aa; normales[3*ia+2]+=normal.z*aa;
+      normales[3*ib]+=normal.x*bb; normales[3*ib+1]+=normal.y*bb; normales[3*ib+2]+=normal.z*bb;
+      normales[3*ic]+=normal.x*cc; normales[3*ic+1]+=normal.y*cc; normales[3*ic+2]+=normal.z*cc;
+    }
+    for (let paso=0; copia && paso<pasosSuaves; paso++) {
+      for (let j=0;j<representantes.length;j++) {
+        const l=Math.hypot(normales[3*j],normales[3*j+1],normales[3*j+2])||1;
+        copia[3*j]=normales[3*j]/l; copia[3*j+1]=normales[3*j+1]/l; copia[3*j+2]=normales[3*j+2]/l;
+      }
+      for (let j=0;j<representantes.length;j++) {
+        let x=copia[3*j], y=copia[3*j+1], z=copia[3*j+2];
+        for (const v of vecinos[j]) { x+=copia[3*v]; y+=copia[3*v+1]; z+=copia[3*v+2]; }
+        normales[3*j]=x; normales[3*j+1]=y; normales[3*j+2]=z;
+      }
+    }
+    correspondencia.forEach((j,i)=>{
+      const x=normales[3*j], y=normales[3*j+1], z=normales[3*j+2], l=Math.hypot(x,y,z)||1;
+      const f=fijas[j];
+      if(originales && f>0) {
+        punto.set(x/l*(1-f)+originales[3*i]*f,y/l*(1-f)+originales[3*i+1]*f,z/l*(1-f)+originales[3*i+2]*f).normalize();
+        destino.setXYZ(i,punto.x,punto.y,punto.z);
+      } else destino.setXYZ(i,x/l,y/l,z/l);
+    });
+    destino.needsUpdate=true;
+  };
+}
 import { Linea } from './animacion';
-import { Labios, PoseSonido, REPOSO } from './poses';
+import { Familia, Labios, PoseSonido, REPOSO } from './poses';
 
 export interface Colores {
   lengua: string; labios: string; dientes: string; encia: string; velo: string; hueso: string; faringe: string;
@@ -56,30 +133,205 @@ export interface Colores {
  *  piel cálida y mucosa húmeda un punto más oscura que la encía. Todos van
  *  a materiales físicos (`materialDe`). */
 export const COLORES_POR_DEFECTO: Colores = {
-  lengua: '#d4737d', labios: '#c9686e', dientes: '#f1e9d8', encia: '#e6989d', velo: '#d68b90',
+  lengua: '#c85f72', labios: '#c9686e', dientes: '#f1e9d8', encia: '#e6989d', velo: '#d68b90',
   hueso: '#e6dcc9', faringe: '#c98a8c', piel: '#eac2ad', mucosa: '#cf868a',
 };
 
-/** Qué tejido es cada pieza: decide brillo, barniz húmedo y velo de
- *  subsuperficie (sheen) del material físico. */
+/** Qué tejido es cada pieza: decide brillo y respuesta superficial.
+ *  Sheen es brillo superficial; no sustituye dispersión subsuperficial. */
 export type Tejido = 'piel' | 'mucosa' | 'encia' | 'diente' | 'hueso' | 'labio' | 'lengua';
+
+/** Las poses pueden volver cóncavo el corte: triangula el contorno deformado,
+ * reutilizando el buffer para no acumular recursos GPU durante la animación. */
+export function actualizarSeccionSagital(m: THREE.Mesh): void {
+  const p = m.geometry.getAttribute('position');
+  const contorno = Array.from({length:p.count},(_,i) => {
+    const v=m.getVertexPosition(i,new THREE.Vector3());return new THREE.Vector2(v.x,v.y);
+  });
+  const indices=THREE.ShapeUtils.triangulateShape(contorno,[]).flat();
+  const indice=m.geometry.index!;
+  if(indice.count < indices.length) throw new Error('Capacidad insuficiente de sección sagital');
+  (indice.array as Uint16Array | Uint32Array).set(indices);
+  indice.needsUpdate=true;m.geometry.setDrawRange(0,indices.length);
+}
+
+function texturaTejidoCortado(): THREE.CanvasTexture | null {
+  if(typeof document==='undefined') return null;
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;
+  const ctx=canvas.getContext('2d');if(!ctx) return null;
+  ctx.fillStyle='#f7eeec';ctx.fillRect(0,0,512,256);
+  // Estriado tenue de ilustración; no es un mapa de músculos etiquetados.
+  for(let i=0;i<70;i++) {
+    ctx.beginPath();ctx.moveTo(-10,120+i*1.5);
+    ctx.bezierCurveTo(150,90+i*1.9,350,30+i*2.6,522,45+i*2.8);
+    ctx.strokeStyle=i%3===0?'rgba(134,75,77,.16)':'rgba(134,75,77,.07)';
+    ctx.lineWidth=.7;ctx.stroke();
+  }
+  const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+
+/** Texturas del corte sagital (ilustración, no imágenes médicas): surcos
+ *  del cerebro, láminas del cerebelo, hueso esponjoso y tejido blando. Se
+ *  multiplican por el color de cada región. Sin canvas (pruebas), null. */
+type ClaseCorte = 'cerebro' | 'cerebelo' | 'hueso' | 'blando';
+const TEXTURAS_CORTE = new Map<ClaseCorte, THREE.Texture | null>();
+function texturaCorte(clase: ClaseCorte): THREE.Texture | null {
+  if (TEXTURAS_CORTE.has(clase)) return TEXTURAS_CORTE.get(clase)!;
+  const t = texturaCanvas(512, [1, 1], (ctx, azar) => {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 512, 512);
+    const trazo = (color: string, ancho: number) => { ctx.strokeStyle = color; ctx.lineWidth = ancho; ctx.lineCap = 'round'; ctx.stroke(); };
+    if (clase === 'cerebro') {
+      // Circunvoluciones: surcos sinuosos que se ramifican.
+      ctx.fillStyle = '#efe2df'; ctx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 260; i++) {
+        let x = azar() * 512, y = azar() * 512, a = azar() * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let k = 0; k < 9; k++) { a += (azar() - .5) * 2.2; x += Math.cos(a) * 9; y += Math.sin(a) * 9; ctx.lineTo(x, y); }
+        trazo('rgba(255,250,248,.9)', 9);
+        trazo('rgba(105,58,60,.65)', 2.4);
+      }
+    } else if (clase === 'cerebelo') {
+      // Láminas finas casi paralelas (folias).
+      for (let i = 0; i < 46; i++) {
+        ctx.beginPath(); const y0 = i * 11.5;
+        for (let x = 0; x <= 512; x += 16) ctx.lineTo(x, y0 + 5 * Math.sin(x / 40 + i) + (azar() - .5) * 2);
+        trazo('rgba(110,60,62,.5)', 2);
+      }
+    } else if (clase === 'hueso') {
+      // Esponjoso: celdillas claras y oscuras.
+      for (let i = 0; i < 900; i++) {
+        const x = azar() * 512, y = azar() * 512, r = 1.5 + azar() * 4;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = azar() < .5 ? 'rgba(150,120,90,.18)' : 'rgba(255,250,235,.25)'; ctx.fill();
+      }
+    } else {
+      // Tejido blando: grano fino y fibras suaves.
+      for (let i = 0; i < 1800; i++) {
+        ctx.fillStyle = `rgba(90,40,40,${.03 + azar() * .06})`;
+        ctx.fillRect(azar() * 512, azar() * 512, 1 + azar() * 2, 1 + azar() * 2);
+      }
+      for (let i = 0; i < 60; i++) {
+        ctx.beginPath(); const y0 = azar() * 512; ctx.moveTo(0, y0);
+        ctx.bezierCurveTo(170, y0 + (azar() - .5) * 60, 340, y0 + (azar() - .5) * 60, 512, y0 + (azar() - .5) * 40);
+        trazo('rgba(110,50,50,.06)', 1);
+      }
+    }
+  });
+  if (t) t.colorSpace = THREE.SRGBColorSpace;
+  TEXTURAS_CORTE.set(clase, t);
+  return t;
+}
+
+/** Sección medial de la lengua, con los mismos deltas que su superficie.
+ * No remodela la lengua ni altera contactos; cierra visualmente el corte. */
+export function seccionSagitalLengua(fuente: THREE.Mesh): (THREE.Mesh & { actualizar: () => void }) | null {
+  const g = fuente.geometry, p = g.getAttribute('position');
+  const ids: number[] = [];
+  const canonicos=new Map<number,number>();
+  for (let i = 0; i < p.count; i++) {
+    if (Math.abs(p.getZ(i)) > 1e-4) continue;
+    const igual=ids.find(j => Math.hypot(p.getX(i)-p.getX(j), p.getY(i)-p.getY(j)) < 1e-5);
+    if(igual===undefined) ids.push(i);
+    canonicos.set(i,igual??i);
+  }
+  if (ids.length < 6 || !g.index) return null;
+  // Seguir aristas reales: ordenar por ángulo cruzaría el contorno cóncavo
+  // de la raíz, aunque pareciera correcto en reposo.
+  const vecinos=new Map(ids.map(i => [i,new Set<number>()]));
+  const ind=g.index.array;
+  for(let i=0;i<ind.length;i+=3) for(let k=0;k<3;k++) {
+    const a=canonicos.get(ind[i+k]),b=canonicos.get(ind[i+(k+1)%3]);
+    if(a!==undefined&&b!==undefined&&a!==b) {vecinos.get(a)!.add(b);vecinos.get(b)!.add(a);}
+  }
+  if([...vecinos.values()].some(v => v.size!==2)) return null;
+  const orden=[ids[0]];
+  while(orden.length<ids.length) {
+    const siguiente=[...vecinos.get(orden[orden.length-1])!].find(i => !orden.includes(i));
+    if(siguiente===undefined) return null;orden.push(siguiente);
+  }
+  ids.splice(0,ids.length,...orden);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(ids.flatMap(i => [p.getX(i),p.getY(i),.006]),3));
+  geom.setIndex(new THREE.Uint16BufferAttribute(new Uint16Array((ids.length-2)*3),1).setUsage(THREE.DynamicDrawUsage));
+  geom.morphTargetsRelative = g.morphTargetsRelative;
+  geom.morphAttributes.position = (g.morphAttributes.position ?? []).map(a =>
+    new THREE.Float32BufferAttribute(ids.flatMap(i => [a.getX(i),a.getY(i),g.morphTargetsRelative ? 0 : .006]),3));
+  geom.setAttribute('normal',new THREE.Float32BufferAttribute(ids.flatMap(() => [0,0,1]),3));
+  const textura=texturaTejidoCortado();
+  const tejido = materialDe('mucosa','#c8838a',{roughness:.86,sheen:0,side:THREE.DoubleSide,...(textura?{map:textura}:{})});
+  geom.setAttribute('uv',new THREE.Float32BufferAttribute(ids.flatMap(i => [(p.getX(i)+2.6)/5.4,(p.getY(i)+1.8)/3.8]),2));
+  const corte = Object.assign(new THREE.Mesh(geom, tejido), { actualizar: () => {} });
+  corte.layers.set(0);
+  corte.morphTargetDictionary = { ...fuente.morphTargetDictionary };
+  corte.morphTargetInfluences = fuente.morphTargetInfluences;
+  corte.actualizar=() => actualizarSeccionSagital(corte);
+  // Masa extrínseca de apoyo: la superficie superior sigue el vientre de
+  // la lengua; su inserción anterior acompaña a la mandíbula. Ilustrativa,
+  // sin convertir el esquema en una simulación de músculos individuales.
+  const vientre = ids.filter(i => {
+    const t = Math.max(0,Math.min(1,(p.getX(i)-.55)/2.05));
+    return p.getX(i)>-1.6 && p.getY(i)<-.45-.55*t*t*(3-2*t)-.025;
+  }).sort((a,b) => p.getX(a)-p.getX(b));
+  if (vientre.length > 3) {
+    const puntos = [...vientre,...vientre.slice().reverse()].map(i => [p.getX(i),p.getY(i)]);
+    const apoyo = new THREE.BufferGeometry();
+    apoyo.setAttribute('position',new THREE.Float32BufferAttribute(puntos.flatMap(q => [q[0],q[1],.009]),3));
+    apoyo.setIndex(new THREE.Uint16BufferAttribute(new Uint16Array((puntos.length-2)*3),1).setUsage(THREE.DynamicDrawUsage));
+    apoyo.setAttribute('normal',new THREE.Float32BufferAttribute(puntos.flatMap(() => [0,0,1]),3));
+    apoyo.setAttribute('uv',new THREE.Float32BufferAttribute(puntos.flatMap(q => [(q[0]+2.6)/5.4,(q[1]+1.8)/3.8]),2));
+    const musculo = new THREE.Mesh(apoyo, tejido);
+    musculo.layers.set(0);
+    corte.actualizar=() => {
+      actualizarSeccionSagital(corte);
+      // Relleno ilustrativo hacia el suelo. En vocales abiertas el vientre
+      // puede descender más: nunca cruza la superficie superior de la lengua.
+      const pos=apoyo.getAttribute('position');
+      vientre.forEach((i,j) => {
+        const v=fuente.getVertexPosition(i,new THREE.Vector3());
+        pos.setXYZ(j,v.x,v.y,.009);
+        pos.setXYZ(puntos.length-1-j,v.x,Math.min(-1.58,v.y-.025),.009);
+      });
+      pos.needsUpdate=true;actualizarSeccionSagital(musculo);
+      apoyo.computeBoundingSphere();
+    };
+    corte.add(musculo);
+  }
+  return corte;
+}
 
 /** Un material físico por tejido, sin texturas descargadas. La piel y la
  *  mucosa llevan un velo (sheen) que aclara los bordes como la luz que
  *  atraviesa el tejido; la mucosa, la encía y la lengua, un barniz fino y
  *  poco rugoso (húmedas); los dientes, barniz duro y un velo cálido que
  *  imita la leve translucidez del esmalte. */
+/** v5: los tejidos sin clearcoat ni sheen (piel, hueso) van en
+ *  `MeshStandardMaterial`; `usarMaterialesBaratos(false)` vuelve a lo físico
+ *  en todos (para medir). El tipo devuelto sigue siendo el físico: el
+ *  estándar es su superclase y nadie usa aquí propiedades exclusivas. */
+let MATERIALES_BARATOS = true;
+export function usarMaterialesBaratos(si: boolean): void { MATERIALES_BARATOS = si; }
+
 export function materialDe(tejido: Tejido, color: string, extra: Partial<THREE.MeshPhysicalMaterialParameters> = {}): THREE.MeshPhysicalMaterial {
   const base: Record<Tejido, Partial<THREE.MeshPhysicalMaterialParameters>> = {
-    piel: { roughness: 0.62, clearcoat: 0.04, clearcoatRoughness: 0.6, sheen: 0.55, sheenRoughness: 0.75, sheenColor: new THREE.Color('#ffd6c4') },
+    piel: { roughness: 0.87, clearcoat: 0, sheen: 0 },
     mucosa: { roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.32, sheen: 0.45, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffb0b4') },
-    encia: { roughness: 0.42, clearcoat: 0.45, clearcoatRoughness: 0.3, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
+    encia: { roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.25, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffc0c4') },
     diente: { roughness: 0.3, clearcoat: 0.65, clearcoatRoughness: 0.18, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color('#fff4dc'), ior: 1.6 },
-    hueso: { roughness: 0.72, clearcoat: 0, sheen: 0.2, sheenRoughness: 0.9, sheenColor: new THREE.Color('#fff3e0') },
+    // v5: sin sheen (era un brillo apenas visible en las caras del corte y la
+    // pared del fondo, que ocupan media pantalla): con clearcoat y sheen a 0
+    // el material baja a MeshStandardMaterial, más barato por píxel.
+    hueso: { roughness: 0.72, clearcoat: 0, sheen: 0 },
     labio: { roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.35, sheen: 0.5, sheenRoughness: 0.65, sheenColor: new THREE.Color('#ffb6b0') },
-    lengua: { roughness: 0.46, clearcoat: 0.4, clearcoatRoughness: 0.3, sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ff9aa6') },
+    // La lengua es el articulador, no una superficie barnizada: más mate que
+    // encía/paladar, con un rojo algo más profundo para separarla de ambos.
+    lengua: { roughness: 0.72, clearcoat: 0.08, clearcoatRoughness: 0.82, sheen: 0.22, sheenRoughness: 0.85, sheenColor: new THREE.Color('#f2a0aa') },
   };
-  return new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), metalness: 0, ...base[tejido], ...extra });
+  const parametros = { color: new THREE.Color(color), metalness: 0, ...base[tejido], ...extra };
+  if (MATERIALES_BARATOS && !(parametros.clearcoat ?? 0) && !(parametros.sheen ?? 0) && !parametros.transmission) {
+    const { clearcoat, clearcoatRoughness, sheen, sheenRoughness, sheenColor, ior, ...estandar } = parametros;
+    return new THREE.MeshStandardMaterial(estandar) as unknown as THREE.MeshPhysicalMaterial;
+  }
+  return new THREE.MeshPhysicalMaterial(parametros);
 }
 
 /** Un canvas cuadrado pintado por `pintar`, como textura repetida. Sin
@@ -167,7 +419,11 @@ const PIVOTE_VELO = new THREE.Vector2(2.05, 1.22);
 const LARGO_VELO = 1.2;
 const VELO_CERRADO = -0.44, VELO_ABIERTO = -1.22;   // radianes desde +x hacia abajo
 const PIVOTE_MAND = new THREE.Vector2(2.6, 0.9);
-const MAND_MAX = 0.42;                          // radianes con mandibula = 1
+// Cierre de cara (22 sep 2026): 0,42 → 0,21 para que /æ/ abra ~30 mm entre los
+// labios como la boca de Miguel (≈24–30), no 53, con el labio de abajo siguiendo
+// al hueso (k = 1). El MISMO valor vive en cara.py (clave de cierre y banda
+// labios-dientes) y en lengua.py (comprobación del techo y la punta interdental).
+const MAND_MAX = 0.21;                          // radianes con mandibula = 1
 const FARINGE_X = 3.15;
 
 /** Hasta dónde deja girar el visor (Miguel, 16 sep; auditoria/boca3d_giro_2026-09-16.md).
@@ -183,12 +439,140 @@ export const LIMITES_GIRO = {
   polarMax: 96 * Math.PI / 180,
 } as const;
 
-export function aplicarLimitesGiro(controles: OrbitControls): void {
-  controles.minAzimuthAngle = LIMITES_GIRO.azimutMin;
-  controles.maxAzimuthAngle = LIMITES_GIRO.azimutMax;
-  controles.minPolarAngle = LIMITES_GIRO.polarMin;
-  controles.maxPolarAngle = LIMITES_GIRO.polarMax;
+export function aplicarLimitesGiro(controles: OrbitControls, limites: typeof LIMITES_GIRO = LIMITES_GIRO): void {
+  controles.minAzimuthAngle = limites.azimutMin;
+  controles.maxAzimuthAngle = limites.azimutMax;
+  controles.minPolarAngle = limites.polarMin;
+  controles.maxPolarAngle = limites.polarMax;
 }
+
+const GR = Math.PI / 180;
+/** El polar por defecto (85,4°, el centro ya calibrado de `LIMITES_GIRO`):
+ *  ningún preset lo cambia, solo el azimut, el zoom y el rango de giro. Subir
+ *  o bajar la elevación no está verificado y es lo que más cerca deja los
+ *  planos de corte (comentario de `LIMITES_GIRO` arriba). */
+const POLAR_DEFECTO = 1.49;
+/** Vista frontal didáctica: casi a la altura de la boca; en /θ ð/, un poco por
+ *  debajo (7°) para que se vea la lengua entre los dientes. */
+const POLAR_FRONTAL = 1.50, POLAR_INTERDENTAL = 1.62;
+
+export interface PresetFamilia {
+  /** Azimut inicial (radianes); ver `vista()`. */
+  azimut: number;
+  /** Multiplica la distancia de encuadre: <1 acerca. */
+  zoom: number;
+  /** D4.2.1 (Miguel, 18 sep): dónde mira la cámara (x, y), no el punto
+   *  universal de siempre. `null` = el comportamiento heredado (el punto
+   *  medio de la cavidad oral, distinto si hay cabeza/cara modelada o no).
+   *  Coordenadas en el mismo espacio que `LABIO_X`, `INCISIVO_SUP`, etc.
+   *  (la anatomía interna no cambia de sitio con la cabeza de MakeHuman). */
+  target: readonly [number, number] | null;
+  /** Rango de la cámara principal de ESTA familia, dentro de los topes
+   *  del corte. El detalle frontal bilabial tiene una cámara independiente. */
+  limites: { azimutMin: number; azimutMax: number; polarMin: number; polarMax: number };
+  /** Piel cercana: en bilabiales completa los labios al mirar de frente;
+   *  en labiodentales se oculta para mostrar el incisivo. */
+  mejilla: boolean;
+  /** D4.3c: "vista exterior" — esconde lo que compite con el gesto labial.
+   *  `bilabial` y `labiodental` esconden lengua/velo; `ninguna` conserva el
+   *  interior. La dentadura se decide aparte con `dentadura`. */
+  exterior: 'ninguna' | 'bilabial' | 'labiodental';
+  /** Qué partes de la dentadura aportan a la explicación de esta familia.
+   *  Es independiente de `exterior`: /m/ conserva lengua/velo para la vía
+   *  nasal, pero no necesita que la dentadura compita con ellos. */
+  dentadura: PerfilDental;
+}
+
+type PerfilDental =
+  | 'completa' | 'oculta' | 'contexto-nasal' | 'incisivos-superiores'
+  | 'incisivos-relevantes' | 'referencia-alveolar' | 'subordinada' | 'sin-anteriores';
+
+type GrupoDental =
+  | 'soporte-superior' | 'soporte-inferior'
+  | 'incisivo-superior' | 'incisivo-inferior'
+  | 'posterior-superior' | 'posterior-inferior';
+
+/** Regla semántica pequeña y comprobable: la malla no cambia; cada familia
+ *  decide qué piezas ya existentes siguen visibles. */
+function visibleEnPerfilDental(perfil: PerfilDental, grupo: GrupoDental, indice = -1): boolean {
+  if (perfil === 'completa') return true;
+  if (perfil === 'oculta') return false;
+  if (grupo === 'soporte-superior') return true;
+  if (perfil === 'incisivos-superiores') return grupo === 'incisivo-superior';
+  if (perfil === 'incisivos-relevantes') {
+    return grupo === 'incisivo-superior' || (grupo === 'incisivo-inferior' && indice >= 5 && indice <= 6);
+  }
+  if (perfil === 'referencia-alveolar') {
+    return grupo === 'incisivo-superior' && indice >= 5 && indice <= 6;
+  }
+  // /m/, postalveolares y velares conservan el soporte superior que da
+  // contexto a la cavidad, pero no una hilera de dientes protagonista.
+  return false;
+}
+
+/** D4.2/D4.2.1 (Miguel, 18 sep): una vista inicial por FAMILIA articulatoria,
+ *  no una por fonema. Cada `limites` es un subconjunto de `LIMITES_GIRO`:
+ *  ningún preset gira más lejos de lo que ya está verificado sin revelar los
+ *  planos de corte de la media cabeza. `target` centra el foco en el
+ *  articulador protagonista (labios ≈ -2,95 en x, alveolo ≈ -2,0, velo ≈
+ *  2,0 y atrás): D4.2 solo acercaba la cámara al punto universal de
+ *  siempre, que para bilabiales queda dentro de la cavidad, no en los
+ *  labios — de ahí el recorte que vio Miguel. Estos numeros son una
+ *  primera corrección a partir de las constantes de geometría (LABIO_X,
+ *  INCISIVO_SUP, los `case` de `punta` en `poseNumerica`, `PIVOTE_VELO`),
+ *  verificada visualmente en esta ronda (D4.2.1) para bilabial/labiodental;
+ *  el resto queda a falta de la misma comprobación con capturas. */
+export const PRESETS_FAMILIA: Record<Familia, PresetFamilia> = {
+  bilabial: {
+    // Corte completo; el detalle frontal simultáneo muestra el sello labial.
+    azimut: -4 * GR, zoom: 0.88, target: [-0.1, 0.35], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
+    limites: { azimutMin: -18 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  'nasal-bilabial': {
+    // /m/: labios, velo y aire nasal visibles sin pedir un giro al alumno.
+    azimut: -4 * GR, zoom: 0.88, target: [-0.1, 0.35], mejilla: true, exterior: 'ninguna', dentadura: 'contexto-nasal',
+    limites: { azimutMin: -18 * GR, azimutMax: 14 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  labiodental: {
+    // Foco en el labio inferior + incisivos superiores (INCISIVO_SUP = (-2,55; 0,45)).
+    azimut: -24 * GR, zoom: 0.58, target: [-2.55, 0.2], mejilla: false, exterior: 'labiodental', dentadura: 'incisivos-superiores',
+    limites: { azimutMin: -32 * GR, azimutMax: -10 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  dental: {
+    // Foco en la zona anterior (interdental: J[5] ronda x=-2,8 en poseNumerica).
+    azimut: -2 * GR, zoom: 0.72, target: [-2.6, 0.35], mejilla: true, exterior: 'ninguna', dentadura: 'incisivos-relevantes',
+    limites: { azimutMin: -18 * GR, azimutMax: 12 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  alveolar: {
+    // Foco en la zona anterior (alveolar: J[5] en x=-2,05).
+    azimut: 0.02, zoom: 0.75, target: [-2.0, 0.5], mejilla: true, exterior: 'ninguna', dentadura: 'referencia-alveolar',
+    limites: { azimutMin: -16 * GR, azimutMax: 16 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  postalveolar: {
+    // Foco en la zona anterior (postalveolar: J[5] en x=-1,75).
+    azimut: 5 * GR, zoom: 0.78, target: [-1.7, 0.55], mejilla: true, exterior: 'ninguna', dentadura: 'subordinada',
+    limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  rotico: {
+    // D4.2 lo dejaba como postalveolar (Miguel: "igual que alveolares"). Lote
+    // fase 1 (22 sep): la /ɹ/ de GA es lengua abombada + raíz contra la
+    // faringe (investigación fonética §9.2), y con el foco anterior la pared
+    // faríngea (x ≈ 2,9) quedaba fuera del encuadre: el target va al centro
+    // de la lengua y el zoom a 1 para ver joroba, punta y faringe a la vez.
+    azimut: 6 * GR, zoom: 1.0, target: [-0.3, 0.4], mejilla: true, exterior: 'ninguna', dentadura: 'completa',
+    limites: { azimutMin: -14 * GR, azimutMax: 18 * GR, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  velar: {
+    // Foco mas posterior (dorso contra el velo: cerca de PIVOTE_VELO = (2,05; 1,22)).
+    azimut: 10 * GR, zoom: 0.85, target: [1.6, 0.85], mejilla: true, exterior: 'ninguna', dentadura: 'sin-anteriores',
+    limites: { azimutMin: -10 * GR, azimutMax: LIMITES_GIRO.azimutMax, polarMin: LIMITES_GIRO.polarMin, polarMax: LIMITES_GIRO.polarMax },
+  },
+  vocal: {
+    // Sin target propio: vista general, el comportamiento de siempre.
+    azimut: 0.02, zoom: 1, target: null, mejilla: true, exterior: 'ninguna', dentadura: 'completa',
+    limites: { ...LIMITES_GIRO },
+  },
+};
 
 const INCISIVO_SUP = new THREE.Vector2(-2.55, 0.45);   // borde inferior del incisivo superior
 const INCISIVO_INF_LOCAL = new THREE.Vector2(-2.5, 0.35); // borde superior, en la mandíbula
@@ -225,16 +609,156 @@ function liberarModelo(raiz: THREE.Object3D): void {
   raiz.traverse(o => {
     if (o instanceof THREE.Mesh) {
       o.geometry.dispose();
+      // Sin soltar sus mapas: la piel escaneada (v5) los sigue usando.
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
     }
   });
 }
 
+/** D4.4b v5: las texturas que trae la piel escaneada en el GLB (color y
+ *  normales, JPEG de 1024 px); `materialDe('piel')` las monta sobre el mismo
+ *  material físico. Sin texturas (MakeHuman), `null`. */
+function texturasDe(fuente: THREE.Mesh): { map: THREE.Texture; normalMap?: THREE.Texture; normalScale?: THREE.Vector2 } | null {
+  const m = (Array.isArray(fuente.material) ? fuente.material[0] : fuente.material) as THREE.MeshStandardMaterial;
+  if (!m?.map) return null;
+  return { map: m.map, normalMap: m.normalMap ?? undefined, normalScale: m.normalMap ? new THREE.Vector2(0.8, 0.8) : undefined };
+}
+
+/** D4.4b v8: el bermellón del escaneo (0..1) en coordenadas del visor, con el
+ *  mismo perfil que `perfil_lps` de cara.py: línea de contacto en y 0,15 (sube
+ *  0,04 hacia las comisuras), 0,22 de labio arriba y 0,28 abajo, que se afinan
+ *  hacia las comisuras, y solo en el frente de la cara (que se curva 0,69 z²).
+ *  Medido sobre la textura del escaneo: el rojo del labio en la línea media va
+ *  de y 0,36 a −0,08, dentro de esta banda. */
+export function bermellonEscaneo(x: number, y: number, z: number): number {
+  const ancho = 0.45 * 2.15;
+  const contacto = 0.15 + 0.04 * Math.min(1, (z / ancho) ** 2);
+  const afina = Math.sqrt(Math.max(0, 1 - (Math.abs(z) / (ancho + 0.1)) ** 2));
+  const dentro = y >= contacto ? 0.22 * afina - (y - contacto) : 0.28 * afina - (contacto - y);
+  const suave = (a: number, b: number, t: number) => { const u = Math.min(1, Math.max(0, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+  return suave(-0.012, 0.02, dentro) * suave(-2.55 + 0.69 * z * z, -2.7 + 0.69 * z * z, x);
+}
+
+/** D4.4b v8: la textura lisa del recuadro: piel de un tono cálido uniforme y
+ *  el bermellón donde la foto del escaneo es labio (rojo claro: R − G > 58 y
+ *  R > 105), solo dentro de la caja UV de la boca (los vértices con
+ *  `bermellonEscaneo` > 0,5) y con el borde suavizado (dos cajas de 7 px). Así
+ *  el labio conserva su contorno real y desaparecen barba, poros y manchas.
+ *  Sin lienzo (pruebas) devuelve null. */
+function texturaLisa(foto: THREE.Texture, mallas: THREE.Mesh[]): THREE.Texture | null {
+  const img = foto.image as CanvasImageSource & { width: number; height: number } | undefined;
+  if (typeof document === 'undefined' || !img?.width) return null;
+  const W = img.width, H = img.height;
+  const lienzo = document.createElement('canvas'); lienzo.width = W; lienzo.height = H;
+  const cx = lienzo.getContext('2d', { willReadFrequently: true });
+  if (!cx) return null;
+  cx.drawImage(img, 0, 0);
+  const datos = cx.getImageData(0, 0, W, H), px = datos.data;
+  // Percentiles 5–95 %: algún vértice del labio lleva la UV de otra isla
+  // (con el mínimo y el máximo la caja cogía nariz y ojos).
+  const us: number[] = [], vs: number[] = [];
+  for (const malla of mallas) {
+    const p = malla.geometry.getAttribute('position'), uv = malla.geometry.getAttribute('uv');
+    if (!uv) continue;
+    for (let i = 0; i < p.count; i++) {
+      if (bermellonEscaneo(p.getX(i), p.getY(i), p.getZ(i)) < 0.5) continue;
+      us.push(uv.getX(i)); vs.push(uv.getY(i));
+    }
+  }
+  if (us.length < 8) return null;
+  const q = (a: number[], f: number) => [...a].sort((x, y) => x - y)[Math.floor(f * (a.length - 1))];
+  const [u0, u1, v0, v1] = [q(us, 0.05) - 0.01, q(us, 0.95) + 0.01, q(vs, 0.05) - 0.01, q(vs, 0.95) + 0.01];
+  const mascara = new Float32Array(W * H), tmp = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = (x + 0.5) / W, v = foto.flipY ? 1 - (y + 0.5) / H : (y + 0.5) / H;
+    if (u < u0 || u > u1 || v < v0 || v > v1) continue;
+    const k = 4 * (y * W + x), R = px[k], G = px[k + 1];
+    mascara[y * W + x] = Math.min(1, Math.max(0, (R - G - 58) / 18)) * Math.min(1, Math.max(0, (R - 105) / 30));
+  }
+  const caja = (a: Float32Array, b: Float32Array, dx: number, dy: number) => {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let suma = 0, n = 0;
+      for (let k = -3; k <= 3; k++) {
+        const X = x + k * dx, Y = y + k * dy;
+        if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+        suma += a[Y * W + X]; n++;
+      }
+      b[y * W + x] = suma / n;
+    }
+  };
+  caja(mascara, tmp, 1, 0); caja(tmp, mascara, 0, 1);
+  const PIEL = [233, 196, 172], LABIO = [200, 108, 104];
+  for (let i = 0; i < W * H; i++) {
+    const f = Math.min(1, mascara[i] * 1.4);
+    for (let j = 0; j < 3; j++) px[4 * i + j] = PIEL[j] + (LABIO[j] - PIEL[j]) * f;
+    px[4 * i + 3] = 255;
+  }
+  cx.putImageData(datos, 0, 0);
+  const tex = new THREE.CanvasTexture(lienzo);
+  tex.flipY = foto.flipY; tex.colorSpace = foto.colorSpace; tex.wrapS = foto.wrapS; tex.wrapT = foto.wrapT;
+  return tex;
+}
+
+/** D4.4b v8: el material de la piel en el recuadro: la textura lisa, sin mapa
+ *  de normales (el relieve fino de la foto era barba y poros) y con un 30 % de
+ *  luz propia para un sombreado suave (con la piel lisa, las costuras de las
+ *  dos mitades y del giro de la mandíbula se marcaban). Sin textura, el tono
+ *  de piel plano. */
+function materialPielLisa(lisa: THREE.Texture | null, lado: THREE.Side): THREE.MeshPhysicalMaterial {
+  return lisa
+    ? materialDe('piel', '#ffffff', { map: lisa, emissiveMap: lisa, emissive: new THREE.Color(0.3, 0.3, 0.3), roughness: 0.75, side: lado, vertexColors: true })
+    : materialDe('piel', '#e9c4ac', { roughness: 0.75, side: lado, vertexColors: true });
+}
+
+/** D4.4b v8: la raya entre los labios. La foto del escaneo trae los labios
+ *  sellados (la ranura se abre en cara.py), así que la textura lisa no tiene
+ *  raya y el cierre de /p b m/ se leía como una mancha roja. Se oscurecen por
+ *  vértice los bordes de la ranura (|y − contacto| < 0,04 en el frente, hasta un 75 %), y el
+ *  color viaja con las shape keys. El material con la foto no lo usa. */
+function rayaDeLosLabios(malla: THREE.Mesh): void {
+  const p = malla.geometry.getAttribute('position'), colores = new Float32Array(p.count * 3);
+  const ancho = 0.45 * 2.15;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const contacto = 0.15 + 0.04 * Math.min(1, (z / ancho) ** 2);
+    const cerca = Math.max(0, 1 - Math.abs(y - contacto) / 0.04) * (bermellonEscaneo(x, contacto, z) > 0.5 ? 1 : 0);
+    const k = 1 - 0.75 * cerca;
+    colores.set([k, k * 0.82, k * 0.82], i * 3);
+  }
+  malla.geometry.setAttribute('color', new THREE.BufferAttribute(colores, 3));
+}
+
 /** Distribución: [mand, velo, ls(x,y,len,r), li(x,y,len,r) en local de la mandíbula, 6 nudos (x,y), morfos, aire oral]. */
 const I_MAND = 0, I_VELO = 1, I_LS = 2, I_LI = 6, I_NUDOS = 10, I_MORFOS = I_NUDOS + N_NUDOS * 2;
-const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
-const TAMANO = I_AIRE_ORAL + 1;
+export const I_AIRE_ORAL = I_MORFOS + MORFOS_LENGUA.length;
+/** D4.2: punto de contacto real (x, y) y si lo hay (0/1), interpolado igual
+ *  que todo lo demás: al mezclar dos poses el «hay contacto» pasa por
+ *  fracciones, que es lo que se usa como opacidad del marcador (mismo
+ *  criterio que el aro `_TOCA` del 2D, que también se apaga en rampa). */
+const I_CONTACTO = I_AIRE_ORAL + 1;
+/** D4.3b: 1 si la pose es sonora (para el pulso de vibración), 0 si no. */
+const I_SONORA = I_CONTACTO + 3;
+/** Morfos propios del 3D, interpolados por la linea existente. */
+export const I_CIERRE_LABIOS = I_SONORA + 1;
+export const I_COMPRESION_LABIOS = I_CIERRE_LABIOS + 1;
+/** El exterior distingue labios neutros articulando del reposo sellado. */
+export const I_NEUTRO_ARTICULADO = I_COMPRESION_LABIOS + 1;
+const I_CONTORNO_DENTAL = I_NEUTRO_ARTICULADO + 1;
+const TAMANO = I_CONTORNO_DENTAL + 1;
 type PoseNumerica = Float64Array;
+
+/** Mandíbula para la que cara.py calcula `cierre_labios` (la de reposo). */
+export const REFERENCIA_CIERRE = 0.2;
+
+/** Cuánto se juntan los labios: del todo en /p b m/; con los labios neutros,
+ *  del todo con la mandíbula casi cerrada (reposo: 0,2) y nada a partir de
+ *  media apertura (las vocales abiertas). Fruncidos, estirados y el
+ *  labiodental tienen su propia forma y no se cierran. */
+export function cierreLabial(pose: PoseSonido): number {
+  if (pose.labios === 'cerrados') return 1;
+  if (pose.labios !== 'neutros') return 0;
+  return Math.min(1, Math.max(0, (0.55 - pose.mandibula) / 0.3));
+}
 
 /** Las influencias de las shape keys para una pose: cada parámetro, a su morfo. */
 function morfosDe(pose: PoseSonido): number[] {
@@ -242,16 +766,33 @@ function morfosDe(pose: PoseSonido): number[] {
   const toca = pose.punta_toca;
   return [
     0.3 * Math.min(1, Math.max(0, pose.mandibula)),   // el resto lo pone el giro de la mandíbula
-    pose.punta === 'alveolar' || pose.punta === 'postalveolar' ? (toca ? 1 : 0.75) : pose.punta === 'dental' ? 0.45 : 0,
+    // Cierre de cara: postalveolar con toque 0,85 (era 1): con MAND_MAX 0,21 la suma
+    // punta_arriba + cuerpo_alto de /tʃ dʒ/ entraba 0,155 en el paladar (lengua.py).
+    // Mismo valor en lengua.py (morfos_de) y en medir_lengua.mjs.
+    pose.punta === 'alveolar' || pose.punta === 'postalveolar' ? (toca ? (pose.punta === 'alveolar' ? 1 : 0.85) : 0.75) : pose.punta === 'dental' ? 0.45 : 0,
     pose.punta === 'retrofleja' ? 1 : 0,
     pose.punta === 'interdental' ? 1 : 0,
     Math.max(0, (alt - 0.45) / 0.55),
     Math.max(0, (0.45 - alt) / 0.45),
     Math.max(0, (ade - 0.5) / 0.5),
     Math.max(0, (0.5 - ade) / 0.5),
-    pose.dorso_velo ? 1 : Math.min(1, pose.dorso_alto),
+    // Cierre de cara: sin toque el dorso sube un 10 % menos (/w/); mismo factor en lengua.py y medir_lengua.mjs.
+    pose.dorso_velo ? 1 : 0.9 * Math.min(1, pose.dorso_alto),
     Math.min(1, Math.max(0, pose.raiz)),
   ];
+}
+
+/** El punto donde algo toca de verdad en esta pose, o `null` (mismo criterio
+ *  que `_contacto()` del 2D): dorso contra el velo, punta interdental, punta
+ *  que toca en alveolar/postalveolar, o labios cerrados/labiodental. `J` son
+ *  los nudos de la lengua ya resueltos (coordenadas del mundo) y `ls`, el
+ *  labio superior (también del mundo: no vive dentro de la mandíbula). */
+function puntoDeContacto(pose: PoseSonido, J: [number, number][], ls: [number, number]): [number, number] | null {
+  if (pose.dorso_velo) return [J[2][0], J[2][1]];
+  if (pose.punta === 'interdental') return [J[5][0], J[5][1]];
+  if (pose.punta_toca && (pose.punta === 'alveolar' || pose.punta === 'postalveolar')) return [J[5][0], J[5][1]];
+  if (pose.labios === 'cerrados' || pose.labios === 'labiodental') return [ls[0], ls[1]];
+  return null;
 }
 
 function paladarEn(x: number): number {
@@ -400,9 +941,32 @@ export function poseNumerica(pose: PoseSonido): PoseNumerica {
     n[I_NUDOS + 2 * i] = J[i][0]; n[I_NUDOS + 2 * i + 1] = J[i][1];
   }
   morfosDe(pose).forEach((v, i) => { n[I_MORFOS + i] = v; });
-  // El aire por la boca se marca en la /h/: sale de la garganta y no hay
-  // nada en la boca que lo pare, que es lo que la distingue del reposo.
-  n[I_AIRE_ORAL] = pose.lugar === 'glotal' ? 1 : 0;
+  // El aire por la boca (D4.3b, Miguel 18 sep: «mismo significado que en
+  // 2D»): continuo en /h/ (sale de la garganta, nada en la boca que lo
+  // pare) y en toda fricativa con constriccion oral (el mismo criterio que
+  // `marcas["ab"]`/`"fl"` del 2D: no en el interdental/alveolar sordo o
+  // sonoro por separado, en cualquiera con paso estrecho por la boca).
+  n[I_AIRE_ORAL] = pose.lugar === 'glotal' || pose.movimiento === 'fricativa' ? 1 : 0;
+  const contacto = puntoDeContacto(pose, J, [n[I_LS], n[I_LS + 1]]);
+  n[I_CONTACTO] = contacto ? contacto[0] : 0;
+  n[I_CONTACTO + 1] = contacto ? contacto[1] : 0;
+  n[I_CONTACTO + 2] = contacto ? 1 : 0;
+  // D4.3b: sonoridad, para el pulso de vibracion -- una señal aparte del
+  // aire, igual que en 2D (`marcas["vi"]` nunca es lo mismo que `"ab"`).
+  n[I_SONORA] = pose.sonora ? 1 : 0;
+  // D4.4b v4: los labios neutros se juntan al cerrar la mandibula (en reposo,
+  // casi juntos; no la boca abierta de la malla). Es una regla de POSE, no de
+  // malla: con otra cabeza basta con darle su propia shape key `cierre_labios`.
+  // La shape key `cierre_labios` (cara.py) compensa el descenso del labio de
+  // abajo con la mandíbula de REPOSO (0,2): con menos apertura hace falta
+  // menos (0,4 en /p b m/, que van a 0,08); con más, se queda en 1 y el resto
+  // lo decide `cierreLabial`.
+  n[I_CIERRE_LABIOS] = cierreLabial(pose) * Math.min(1, Math.max(0, pose.mandibula) / REFERENCIA_CIERRE);
+  n[I_COMPRESION_LABIOS] = pose.labios === 'cerrados' ? (pose.movimiento === 'nasal' ? 0.35 : 1) : 0;
+  const reposo = !pose.lugar && pose.mandibula === .2 && pose.punta === 'reposo'
+    && pose.cuerpo[0] === .45 && pose.cuerpo[1] === .5 && !pose.rotica;
+  n[I_NEUTRO_ARTICULADO] = pose.labios === 'neutros' && !reposo ? 1 : 0;
+  n[I_CONTORNO_DENTAL] = pose.punta === 'interdental' ? 1 : 0;
   return n;
 }
 
@@ -413,6 +977,34 @@ function mezclar(a: PoseNumerica, b: PoseNumerica, t: number): PoseNumerica {
 }
 
 const suavizar = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+/** Mezcla de dos poses en una transición o entre dos claves de la línea.
+ *  D4.4b v6: al salir de un cierre bilabial (compresión > 0,3 → < 0,1) la
+ *  mandíbula, el cierre y la compresión van por delante con una curva
+ *  brusca (Miguel: de 0 a ≈10 mm en menos de 70 ms), dentro del mismo
+ *  tramo de tiempo; el resto de la pose sigue con el suavizado de siempre. */
+function mezclarPose(a: PoseNumerica, b: PoseNumerica, f: number): PoseNumerica {
+  const r = mezclar(a, b, suavizar(f));
+  if (a[I_COMPRESION_LABIOS] > 0.3 && b[I_COMPRESION_LABIOS] < 0.1) {
+    const t = Math.min(1, Math.max(0, f));
+    const brusco = 1 - Math.pow(1 - t, 5);
+    for (const i of [I_MAND, I_CIERRE_LABIOS, I_COMPRESION_LABIOS]) r[i] = a[i] + (b[i] - a[i]) * brusco;
+    if (b[I_CIERRE_LABIOS] > 0.9) {
+      // Vuelta a una pose sellada (el ciclo de /p b m/ acaba en reposo): sin
+      // esto los labios nunca se separaban al soltar, solo se veía el soplo.
+      // Rebote de la explosión dentro del mismo tramo: en el primer 45 % el
+      // cierre cae a cero y la mandíbula abre hasta ~0,55 (v7: con el labio
+      // siguiendo al hueso se ven los dientes en el rebote), y luego vuelven al sello.
+      const rebote = t < 0.45 ? Math.sin(Math.PI * t / 0.45) : 0;
+      r[I_CIERRE_LABIOS] *= 1 - rebote;
+      r[I_MAND] += rebote * 0.5 * MAND_MAX;
+      // Compresión negativa: los bordes del bermellón se separan de la línea
+      // de contacto (el de arriba sube ~2 mm y asoma el borde de los incisivos).
+      r[I_COMPRESION_LABIOS] -= 0.6 * rebote;
+    }
+  }
+  return r;
+}
 
 // --- Geometrías --------------------------------------------------------------
 
@@ -475,11 +1067,14 @@ function geometriaAireOral(): THREE.BufferGeometry {
   return new THREE.TubeGeometry(curva, 40, 0.09, 8, false);
 }
 
-/** El aire nasal: de la faringe, por detrás del velo, sube a la nariz y sale. */
-function geometriaAireNasal(): THREE.BufferGeometry {
+/** El aire nasal: de la faringe, por detrás del velo, sube a la nariz y sale.
+ *  `salida` (v5): la ventana de la nariz de la cabeza cargada, si la declara
+ *  (`nariz_salida` en los extras del GLB); la del escaneo está más alta que
+ *  la de MakeHuman y el hilo salía por el labio de arriba. */
+function geometriaAireNasal(salida: [number, number] = [-3.0, 1.95]): THREE.BufferGeometry {
   const curva = new THREE.CatmullRomCurve3([
     new THREE.Vector3(2.6, -0.6, 0), new THREE.Vector3(2.7, 0.6, 0), new THREE.Vector3(2.6, 1.7, 0),
-    new THREE.Vector3(1.5, 2.05, 0), new THREE.Vector3(-1.0, 2.05, 0), new THREE.Vector3(-3.0, 1.95, 0),
+    new THREE.Vector3(1.5, 2.05, 0), new THREE.Vector3(-1.0, (2.05 + salida[1]) / 2, 0), new THREE.Vector3(salida[0], salida[1], 0),
   ]);
   return new THREE.TubeGeometry(curva, 40, 0.09, 8, false);
 }
@@ -540,15 +1135,22 @@ interface PielDeformable {
   geometria: THREE.BufferGeometry;
   reposo: Float32Array;
   pesos: Float32Array;
+  /** v6 (escaneo): cuánto de `pesos` es labio que se retrasa respecto al hueso
+   *  (1 junto a la ranura, 0 en la barbilla). El peso efectivo es
+   *  `pesos - retraso * (1 - k(mandíbula))`, con k = 0,2 en reposo y 1 en las vocales (v7). */
+  retraso: Float32Array;
+  seguimientoMaximo?: number;
   ultimoGiro: number;
 }
 
 const suave01 = (t: number) => { const s = Math.min(1, Math.max(0, t)); return s * s * (3 - 2 * s); };
 
-export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosEnPiel = false): PielDeformable {
+export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosEnPiel = false, ranuraSeca = false, bordeRegular = false): PielDeformable {
   const pos = geometria.getAttribute('position') as THREE.BufferAttribute;
+  const rig = bordeRegular ? geometria.getAttribute('uv1') : null;
   const reposo = new Float32Array(pos.array as Float32Array);
   const pesos = new Float32Array(pos.count);
+  const retraso = new Float32Array(pos.count);
   for (let i = 0; i < pos.count; i++) {
     const x = reposo[3 * i], y = reposo[3 * i + 1], z = reposo[3 * i + 2];
     // Solo dos rampas, las dos en el plano del giro: la vertical estira la
@@ -562,13 +1164,49 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
       // y el de arriba se queda; los labios son una ranura, así que no se
       // rasga nada. Hacia las mejillas vuelve la rampa suave.
       const frente = suave01((-1.6 - x) / 0.8) * (1 - suave01((Math.abs(z) - 0.85) / 0.5));   // no en las comisuras
-      const bajoLabio = suave01((0.2 - y) / 0.1);
+      // D4.4b v5: la cabeza escaneada trae los labios sellados y cara.py les
+      // abre una ranura en y = 0,15 con los dos lados separados 0,012: el
+      // corte va justo ahí, seco, para que cada labio caiga entero de su lado.
+      // La topología regular ya tiene un borde exacto. Suavizarlo como el
+      // escaneo haría que mucosa y base viajaran a velocidades distintas.
+      const suavidad=rig?.getX(i) ?? 0;
+      const seco = bordeRegular ? (suavidad>0 ? suave01((.15-y)/suavidad) : Number(y < .15 - 1e-6)) : suave01((0.15 - y) / 0.02);
+      // D4.4b v7: por encima de la ranura el labio de arriba SUBE con la
+      // apertura (peso negativo, −0,22 en su bermellón): el borde incisal
+      // superior está 7 mm por encima de la línea de contacto y sin esto los
+      // dientes de arriba no se veían nunca. Misma fórmula que
+      // `peso_labio_inferior_lps` en cara.py.
+      const arriba = (bordeRegular ? (suavidad>0 ? suave01((y-.15)/suavidad) : Number(y > .15 + 1e-6)) : suave01((y - 0.15) / 0.02)) * (1 - suave01((y - 0.55) / 0.25));
+      // El piloto ya eleva el superior con morfos propios; conservar el
+      // arrastre viejo completo lo plegaba al abrir mucho la mandíbula.
+      const bajoLabio = ranuraSeca ? seco - (bordeRegular ? 0.03 : 0.22) * arriba : suave01((0.2 - y) / 0.1);
       bajo = bajo + (bajoLabio - bajo) * frente;
+      // D4.4b v6: bajo la ranura el labio se RETRASA respecto al hueso (sigue
+      // un 20 % en reposo y un 60 % en las vocales, `deformarPiel`), y el
+      // retraso muere linealmente hacia la barbilla (-1,2), que va con el
+      // hueso: el giro de reposo (1 cm en los labios) se reparte como un
+      // estirón uniforme en vez de rasgar el bermellón (la «herida» de v5).
+      // Misma fórmula que `peso_labio_inferior_lps` en cara.py.
+      if (ranuraSeca) retraso[i] = frente * seco * Math.min(1, Math.max(0, (y + 1.2) / 1.35));
     }
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
     pesos[i] = bajo * delante;
+    retraso[i] *= delante;
+    // Raíz del corte labial: el bermellón es flexible, su inserción sigue
+    // el maxilar fijo (-1) o la mandíbula rígida (-2). Los modelos anteriores
+    // usan valores >=0 y conservan el campo de piel habitual.
+    const ancla = rig?.getX(i) ?? 0;
+    if (ancla === -1 || ancla === -2) {
+      pesos[i] = ancla === -2 ? 1 : 0;
+      retraso[i] = 0;
+    } else if (ancla <= -3) {
+      // Cuello del corte: sigue a la mandíbula con un peso propio (-3 - w)
+      // que se desvanece hacia abajo; la piel de frente giraría entera.
+      pesos[i] = Math.min(1, Math.max(0, -3 - ancla));
+      retraso[i] = 0;
+    }
   }
-  return { geometria, reposo, pesos, ultimoGiro: NaN };
+  return { geometria, reposo, pesos, retraso, seguimientoMaximo: bordeRegular ? .80 : 1, ultimoGiro: NaN };
 }
 
 /** Gira cada vértice alrededor del pivote de la mandíbula por su peso. */
@@ -577,11 +1215,16 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
   piel.ultimoGiro = giro;
   const pos = piel.geometria.getAttribute('position') as THREE.BufferAttribute;
   const salida = pos.array as Float32Array;
-  const { reposo, pesos } = piel;
+  const { reposo, pesos, retraso } = piel;
+  // v6: k(mandíbula): 0,2 hasta la mandíbula de reposo (0,2); v7: 1 desde
+  // 0,5 (con 0,6 los incisivos de abajo quedaban siempre detrás del labio y
+  // con 0,9 asomaban 1,6 mm; con 1, 4,6 mm).
+  const k = 0.2 + ((piel.seguimientoMaximo ?? 1)-0.2) * suave01((giro / MAND_MAX - 0.2) / 0.3);
   for (let i = 0; i < pos.count; i++) {
-    const w = pesos[i];
+    const w = pesos[i] - retraso[i] * (1 - k);
     const x = reposo[3 * i], y = reposo[3 * i + 1];
-    if (w <= 0) { salida[3 * i] = x; salida[3 * i + 1] = y; continue; }
+    // v7: el peso puede ser NEGATIVO (el labio de arriba sube al abrir).
+    if (w === 0) { salida[3 * i] = x; salida[3 * i + 1] = y; continue; }
     const a = giro * w, c = Math.cos(a), s = Math.sin(a);
     const dx = x - PIVOTE_MAND.x, dy = y - PIVOTE_MAND.y;
     salida[3 * i] = PIVOTE_MAND.x + dx * c - dy * s;
@@ -589,6 +1232,14 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
   }
   pos.needsUpdate = true;
   piel.geometria.computeVertexNormals();
+  {
+    const normales = piel.geometria.getAttribute('normal');
+    for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getZ(i)) < 1e-5) {
+      const x = normales.getX(i), y = normales.getY(i), largo = Math.hypot(x, y) || 1;
+      normales.setXYZ(i, x / largo, y / largo, 0);
+    }
+    normales.needsUpdate = true;
+  }
 }
 
 const MUESTRAS = 56, LADOS = 16;
@@ -657,6 +1308,8 @@ function deformarLengua(g: THREE.BufferGeometry, n: PoseNumerica): void {
 // --- La escena ---------------------------------------------------------------
 
 export interface OpcionesEscena {
+  /** Piloto optativo: exterior didáctico y exploración horizontal de 360°. */
+  exploracionDidactica?: boolean;
   colores?: Partial<Colores>;
   reducirMovimiento?: boolean;
   /** La mejilla translúcida del lado de la cámara (por defecto, sí). */
@@ -669,17 +1322,45 @@ export interface OpcionesEscena {
   guarda?: boolean;
   /** Reflejos de un entorno neutro precalculado (por defecto, sí). */
   entorno?: boolean;
+  /** v5: mientras la boca se mueve, el lienzo se pinta a un pixel ratio
+   *  menor (1,25 como mucho) y vuelve al nativo al pararse: el coste por
+   *  píxel manda en el móvil y en movimiento el ojo no distingue la mitad
+   *  de resolución. Por defecto, sí. */
+  menosPixelesEnMovimiento?: boolean;
   /** URL de una lengua modelada en Blender (.glb con las shape keys de
    *  `MORFOS_LENGUA`): sustituye al tubo cuando carga. */
   lenguaGlb?: string;
   /** Labios y perfil seccionado de Blender; conserva las piezas simples si falla. */
   caraGlb?: string;
+  /** Los modelos pedidos ya cargaron o fallaron y la composicion visible es
+   *  definitiva. Evita enseñar como estado final el respaldo transitorio. */
+  alPreparar?: () => void;
   /** El navegador perdió el contexto WebGL (móvil con poca memoria, GPU reiniciada):
    *  quien integra cae al corte 2D en vez de dejar el lienzo en blanco. */
   alPerderContexto?: () => void;
 }
 
 export class EscenaBoca {
+  /** Segundo encuadre del mismo gesto; no tiene una animación independiente. */
+  /** v8: 22° (antes 32): el recuadro se ciñe a la boca y deja fuera el borde
+   *  del escaneo bajo el mentón, que en el móvil parecía una segunda boca. */
+  private readonly camaraLabios = new THREE.PerspectiveCamera(22, 1.25, 0.1, 60);
+  /** D4.4b v4: el detalle frontal se pinta en una textura pequeña (0,6 de la
+   *  resolución del recuadro, MSAA ×2) y solo cada tres cuadros mientras hay movimiento;
+   *  en el canvas se copia con un plano, que cuesta nada. Con la pasada
+   *  completa a resolución entera el recuadro se llevaba un 26 % de los fps. */
+  /** v8: la piel del escaneo y su material liso para el recuadro. */
+  private readonly pielesNeutras: { malla: THREE.Mesh; neutro: THREE.Material | null }[] = [];
+  private texturaLisaActual: THREE.Texture | null = null;
+  private detalle: { rt: THREE.WebGLRenderTarget; escena: THREE.Scene; camara: THREE.OrthographicCamera; material: THREE.MeshBasicMaterial } | null = null;
+  private detalleCuadro = 0;
+  /** Decisión de Miguel (23 sep 2026): solo el corte lateral, sin recuadro frontal. */
+  private readonly detalleFrontalActivo = false;
+  private pixelRatioNativo = 1;
+  private menosPixelesEnMovimiento = true;
+  private pixelRatioBajo = false;
+  private detalleListo = false;
+  private lucesEnDetalle = false;
   private static webgl: boolean | null = null;
   /** El renderer que reutilizan los visores sucesivos (ver el constructor). */
   private static compartido: THREE.WebGLRenderer | null = null;
@@ -717,16 +1398,50 @@ export class EscenaBoca {
   private readonly alPerder: (e: Event) => void;
   private readonly mandibula = new THREE.Group();
   private readonly velo = new THREE.Group();
+  /** Cuánto fruncen los labios exteriores (0–1): lo leen los shaders de
+   *  labios y lengua para el brillo y la penumbra de /u/. */
+  private readonly fruncidoLabios = { value: 0 };
+  /** Elevación de la cámara frontal didáctica (ver `irA`). */
+  private polarFrontal = POLAR_FRONTAL;
+  /** Cuánto se recoge el labio inferior bajo los incisivos en /f v/ (0–1). */
+  private readonly labiodentalLabios = { value: 0 };
+  /** Influencia de `punta_interdental` en la lengua (0–1), para su material. */
+  private readonly puntaFuera = { value: 0 };
   private readonly labioSup: THREE.Mesh;
   private readonly labioInf: THREE.Mesh;
   private readonly lengua: THREE.Mesh;
   private readonly mejilla: THREE.Mesh;
   private readonly aireNasal: THREE.Mesh;
   private readonly aireOral: THREE.Mesh;
+  /** D4.2: marcador discreto del punto de contacto real (aro `_TOCA` del 2D,
+   *  en 3D). Misma familia de material que aireOral/aireNasal: una malla
+   *  minúscula, transparente y sin sombra, no una capa nueva cara. */
+  private readonly marcaContacto: THREE.Mesh;
+  /** D4.3b: pulso discreto de vibración (glotal, no toda la cabeza) para
+   *  sonidos sonoros. Se enciende/apaga con la pose (como los demás) y,
+   *  mientras está encendido, también respira con el reloj (`bucle()`),
+   *  ritmo fijo aparte del ciclo del sonido -- igual que `-fluir` en 2D. */
+  private readonly marcaVibracion: THREE.Mesh;
+  /** D4.3c: las caras del corte y la pared del fondo -- lo que revela que
+   *  esto es un corte sagital, no una cara entera -- se esconden en
+   *  bilabial Y labiodental. No incluye `cabeza_lejana`, ojo/iris ni
+   *  nariz/mentón: dan contexto de cara y no compiten con los labios. */
+  private readonly piezasCorte: THREE.Object3D[] = [];
+  /** Dientes/encía/mandíbula modelados por arco. D4.4a los etiqueta además
+   *  por soporte/incisivo/posterior para aplicar el perfil de cada familia. */
+  private readonly piezasDentalesInferiores: THREE.Object3D[] = [];
+  private readonly piezasDentalesSuperiores: THREE.Object3D[] = [];
+  /** Si cargaron los dientes/encías modelados (D4.3c): entonces
+   *  `vistaExterior()` no toca `dentalSimple`, que ya se dejó escondido. */
+  private dentalesModelados = false;
+  /** Si la pose activa es sonora: `bucle()` solo pulsa (y sigue pintando)
+   *  cuando esto es cierto. */
+  private sonoroActivo = false;
   /** Las piezas que van dentro de la mandíbula, en coordenadas del mundo con la boca cerrada. */
   private readonly dentroMandibula: THREE.Group;
   /** La lengua modelada (si se pidió y ya cargó) y sus morfos por índice. */
   private lenguaGlb: THREE.Mesh | null = null;
+  private seccionLingual: ReturnType<typeof seccionSagitalLengua> = null;
   private indicesMorfos: (number | undefined)[] = [];
   private caraModelada = false;
   /** La cabeza de MakeHuman (entera, con sus labios): encuadre más lejano. */
@@ -750,23 +1465,50 @@ export class EscenaBoca {
   private actual: PoseNumerica;
   private desde: PoseNumerica | null = null;
   private hacia: PoseNumerica | null = null;
+  /** Lote fase 3: dentro del soplo de una sorda la vibración espera (VOT). */
+  private vozRetenida = false;
+  /** v7: los globos oculares del escaneo (`ojo_*` en cara.glb), si los trae. */
+  private ojos: THREE.Mesh[] = [];
+  /** v7: el fondo oscuro de la boca en el recuadro (solo capa 1). */
+  private interiorBoca: THREE.Mesh | null = null;
   private t0 = 0;
   private duracion = 0;
   /** La línea de tiempo en marcha (ciclo de un sonido o palabra entera). */
-  private linea: { claves: { t: number; n: PoseNumerica }[]; total: number } | null = null;
+  private linea: { claves: { t: number; n: PoseNumerica }[]; total: number; aspiracion?: { en: number; dura: number }[] } | null = null;
   private lineaT0 = 0;
   /** Giro de cámara (radianes de azimut) que acompaña a la línea: sube a
    *  mitad del ciclo y vuelve al final. Negativo mira hacia la cara. */
   private giroLinea = 0;
   private giroBase = { azimut: 0, polar: 1.49, distancia: 13 };
+  /** D4.2: zoom del preset activo (multiplica `distanciaEncuadre()`); se
+   *  conserva al redimensionar (`redimensionar()` lo aplica también) y al
+   *  terminar de cargar `cara.glb` (D4.2.1: antes se perdía ahí). */
+  private zoomActual = 1;
+  /** D4.2.1: target del preset activo, o `null` para el comportamiento
+   *  heredado (`objetivoActual()`). */
+  private targetFamilia: readonly [number, number] | null = null;
+  /** La familia con la vista puesta ahora: `restablecerVista()` vuelve a ESA,
+   *  no a un azimut fijo universal. */
+  private familiaActual: Familia = 'vocal';
+  private perfilDentalActual: PerfilDental = 'completa';
+  /** Lo que pide quien integra (input `mejilla`, pensado para rendimiento) y
+   *  lo que permite el preset de la familia activa (pensado para pedagogía):
+   *  la mejilla solo se ve si las dos lo permiten. */
+  private mejillaExterna = true;
+  private mejillaFamilia = true;
   private arrastrando = false;
   private sucio = true;
   private vivo = true;
   private rafId = 0;
   private libre = false;
+  private readonly exploracionDidactica: boolean;
+  private corteDidactico = false;
+  private actualizarNormalesPiel: (() => void) | null = null;
+  private actualizarNormalesLengua: (() => void) | null = null;
   reducirMovimiento: boolean;
 
   constructor(private readonly contenedor: HTMLElement, opciones: OpcionesEscena = {}) {
+    this.exploracionDidactica = opciones.exploracionDidactica === true;
     contenedor.dataset['lengua'] = 'geometrico';
     contenedor.dataset['cara'] = 'geometrico';
     const col = { ...COLORES_POR_DEFECTO };
@@ -784,7 +1526,9 @@ export class EscenaBoca {
     this.propio = ocupado;
     this.renderer = libre ?? EscenaBoca.nuevoRenderer();
     if (!this.propio) EscenaBoca.compartido = this.renderer;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.pixelRatioNativo = Math.min(window.devicePixelRatio || 1, 2);
+    this.menosPixelesEnMovimiento = opciones.menosPixelesEnMovimiento ?? true;
+    this.renderer.setPixelRatio(this.pixelRatioNativo);
     // Tono fotográfico (ACES): los brillos del barniz húmedo no se queman.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -838,10 +1582,14 @@ export class EscenaBoca {
     // única que da sombras de contacto), relleno frío desde atrás y abajo,
     // y un contraluz que separa el perfil del fondo. El entorno (una sala
     // neutra precalculada) da los reflejos del barniz húmedo.
-    this.escena.add(new THREE.HemisphereLight(0xfff4ea, 0x8a7f86, 0.55));
-    const luz = new THREE.DirectionalLight(0xfff1e4, 1.9);
+    this.escena.add(new THREE.HemisphereLight(0xfff4ea, 0x8a7f86, this.exploracionDidactica ? .75 : 0.55));
+    const luz = new THREE.DirectionalLight(0xfff1e4, this.exploracionDidactica ? 2.0 : 1.9);
     this.luzPrincipal = luz;
     luz.position.set(-4.5, 7, 7.5);
+    if (this.exploracionDidactica) {
+      const frontal = new THREE.DirectionalLight(0xf3f6ff, .35);
+      frontal.position.set(-8,1.5,-4); this.escena.add(frontal);
+    }
     if (this.sombras) {
       // Sombras suaves de 1024 (la guarda baja a 512 si hace falta), con
       // sesgo por normal alto: en la piel curva de la cabeza el mapa de 512
@@ -856,7 +1604,7 @@ export class EscenaBoca {
       s.left = -7; s.right = 7; s.top = 7; s.bottom = -7; s.near = 1; s.far = 30;
     }
     this.escena.add(luz);
-    const relleno = new THREE.DirectionalLight(0xdfe8ff, 0.55);
+    const relleno = new THREE.DirectionalLight(0xdfe8ff, this.exploracionDidactica ? .25 : .55);
     relleno.position.set(5, -1, -4);
     this.escena.add(relleno);
     const contraluz = new THREE.DirectionalLight(0xffffff, 0.7);
@@ -864,14 +1612,14 @@ export class EscenaBoca {
     this.escena.add(contraluz);
     // La media cabeza lejana mira al otro lado de la luz principal: un
     // relleno suave desde delante y ese lado para que no quede en sombra.
-    const lejano = new THREE.DirectionalLight(0xfff0e6, 0.75);
+    const lejano = new THREE.DirectionalLight(0xfff0e6, this.exploracionDidactica ? .25 : .75);
     lejano.position.set(-6, 3, -5);
     this.escena.add(lejano);
     if (opciones.entorno === true) {
       try {
         const pmrem = new THREE.PMREMGenerator(this.renderer);
         this.escena.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-        this.escena.environmentIntensity = 0.45;
+        this.escena.environmentIntensity = this.exploracionDidactica ? 0 : 0.45;
         pmrem.dispose();
       } catch { /* sin entorno: las luces bastan */ }
     }
@@ -927,6 +1675,19 @@ export class EscenaBoca {
     }));
     this.aireOral.renderOrder = 4;
     this.escena.add(this.aireOral);
+    this.marcaContacto = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), material('#2f9cc0', {
+      transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#2f9cc0'), emissiveIntensity: 0.7,
+    }));
+    this.marcaContacto.renderOrder = 6;
+    this.escena.add(this.marcaContacto);
+    // D4.3b: el pulso de vibración, junto a la garganta (misma zona que la
+    // cavidad `garganta` de arriba): discreto, no toda la cabeza.
+    this.marcaVibracion = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), material('#e39b3a', {
+      transparent: true, opacity: 0, depthWrite: false, emissive: new THREE.Color('#e39b3a'), emissiveIntensity: 0.8,
+    }));
+    this.marcaVibracion.position.set(2.5, -2.0, 0);
+    this.marcaVibracion.renderOrder = 6;
+    this.escena.add(this.marcaVibracion);
 
     // Mandíbula: gira en el pivote y arrastra hueso, dientes inferiores y labio
     // inferior. `dentro` deshace el desplazamiento del pivote para que las
@@ -956,6 +1717,7 @@ export class EscenaBoca {
     this.papilas = texturaPapilas();
     this.hueso = texturaHueso();
     this.lengua = new THREE.Mesh(geometriaLengua(), materialDe('lengua', col.lengua));
+    this.lengua.layers.enable(1);                     // v7: también en el recuadro
     this.escena.add(this.lengua);
 
     // La mejilla del lado de la cámara: translúcida, se pinta la última y no
@@ -965,14 +1727,21 @@ export class EscenaBoca {
     }));
     this.mejilla.position.z = ANCHO / 2 + 0.12;
     this.mejilla.renderOrder = 5;
-    this.mejilla.visible = opciones.mejilla !== false;
+    this.mejillaExterna = opciones.mejilla !== false;
+    this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
     this.escena.add(this.mejilla);
 
     this.actual = poseNumerica(REPOSO);
     this.aplicar(this.actual);
     this.sombrear();
-    if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua);
-    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col);
+    let modelosPendientes = Number(!!opciones.lenguaGlb) + Number(!!opciones.caraGlb);
+    const modeloTerminado = () => {
+      modelosPendientes--;
+      if (modelosPendientes === 0 && this.vivo) opciones.alPreparar?.();
+    };
+    if (opciones.lenguaGlb) this.cargarLengua(opciones.lenguaGlb, col.lengua, modeloTerminado);
+    if (opciones.caraGlb) this.cargarCara(opciones.caraGlb, col, modeloTerminado);
+    if (modelosPendientes === 0) opciones.alPreparar?.();
 
     if (typeof ResizeObserver !== 'undefined') {
       this.observador = new ResizeObserver(() => this.redimensionar());
@@ -985,6 +1754,7 @@ export class EscenaBoca {
   /** Va a la pose con una transición de `duracionS` segundos (0 = de golpe). */
   irA(pose: PoseSonido, duracionS = 0.5): void {
     this.linea = null;
+    this.elevacionFrontalPara(pose);
     const objetivo = poseNumerica(pose);
     if (this.reducirMovimiento || duracionS <= 0) {
       this.desde = this.hacia = null;
@@ -1008,6 +1778,7 @@ export class EscenaBoca {
    *  principio; al acabar se queda en su última clave. Con reducir movimiento
    *  no se mueve nada: va de golpe a la pose quieta de la línea. */
   reproducir(linea: Linea, opciones: { giro?: number } = {}): void {
+    this.elevacionFrontalPara(linea.quieta);
     this.desde = this.hacia = null;
     this.giroLinea = 0;
     if (this.reducirMovimiento || linea.claves.length < 2) {
@@ -1020,11 +1791,11 @@ export class EscenaBoca {
       const n = poseNumerica(c.pose);
       return { t: c.t, n: c.hacia ? mezclar(n, poseNumerica(c.hacia), c.f ?? 0.5) : n };
     });
-    this.linea = { claves, total: linea.total };
+    this.linea = { claves, total: linea.total, aspiracion: linea.aspiracion };
     this.lineaT0 = performance.now();
     // El giro de cámara que acompaña al sonido (labios redondeados o
     // estirados se ven de frente): solo si el usuario no está arrastrando.
-    if (opciones.giro && !this.arrastrando) {
+    if (opciones.giro && !this.arrastrando && !this.libre) {
       const d = this.camara.position.clone().sub(this.controles.target);
       this.giroBase = { azimut: Math.atan2(d.x, d.z), polar: Math.acos(Math.min(1, Math.max(-1, d.y / d.length()))), distancia: d.length() };
       this.giroLinea = opciones.giro;
@@ -1060,6 +1831,25 @@ export class EscenaBoca {
     this.linea = null;
   }
 
+  /** D4.4b v4: el soplo de aspiración de una oclusiva sorda. Tras la
+   *  liberación, el aire oral se enciende del todo y se apaga en rampa
+   *  durante `dura` (0,55 s a 1×, lo mismo que la ráfaga del 2D). Una
+   *  sonora no lo tiene: en /b/ lo que se ve es la vibración, que ya venía
+   *  encendida durante el cierre. */
+  private soplar(t: number): void {
+    const soplo = (this.linea?.aspiracion ?? []).reduce((mejor, a) => {
+      const f = (t - a.en) / a.dura;
+      return f >= 0 && f < 1 ? Math.max(mejor, 1 - f * f) : mejor;
+    }, 0);
+    // Lote fase 3: mientras sale el soplo, la vocal siguiente todavía no vibra
+    // (eso es el VOT): la marca de vibración espera a que acabe, y el soplo
+    // dura más en /k/ que en /t/ y más en /t/ que en /p/.
+    this.vozRetenida = soplo > 0;
+    if (soplo <= 0) return;
+    const mat = this.aireOral.material as THREE.MeshStandardMaterial;
+    mat.opacity = Math.max(mat.opacity, 0.85 * soplo);
+  }
+
   private poseDeLinea(t: number): PoseNumerica {
     const { claves } = this.linea!;
     if (t <= claves[0].t) return claves[0].n;
@@ -1067,21 +1857,41 @@ export class EscenaBoca {
       const a = claves[i], b = claves[i + 1];
       if (t < b.t) {
         const f = b.t > a.t ? (t - a.t) / (b.t - a.t) : 1;
-        return mezclar(a.n, b.n, suavizar(f));
+        return mezclarPose(a.n, b.n, f);
       }
     }
     return claves[claves.length - 1].n;
   }
 
-  /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
-   *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
-   *  la altura de la boca. */
-  vista(azimut: number, polar = 1.49): void {
-    const distancia = this.distanciaEncuadre();
+  /** D4.2.1: dónde mira la cámara ahora. El target de `targetFamilia` si el
+   *  preset activo define uno; si no (vocal), el punto universal de
+   *  siempre, que cambia con la cara/cabeza modelada (comentario de
+   *  `vista()` de siempre). Un método, para que ni `vista()` ni la
+   *  reconstrucción del target al cargar la cara (`cargarCara`) puedan
+   *  desincronizarse entre sí. */
+  private objetivoActual(): THREE.Vector2 {
+    if (this.targetFamilia) return new THREE.Vector2(this.targetFamilia[0], this.targetFamilia[1]);
     // Con la cara modelada se mira al mismo punto que con la cabeza entera: mirando a la
     // boca (0,1) el perfil se salía por la izquierda y los labios tocaban el borde del
     // lienzo a 390 px (Miguel, 16 sep; auditoria/boca3d_y_frase_2026-09-16.md).
-    this.controles.target.set(this.cabezaEntera || this.caraModelada ? 0.9 : 0.1, 0.05, 0);
+    return new THREE.Vector2(this.cabezaEntera || this.caraModelada ? 0.9 : 0.1, 0.05);
+  }
+
+  /** Coloca la cámara: `azimut` 0 mira de lado (la cara a la izquierda),
+   *  negativo gira hacia la cara y positivo hacia la nuca; `polar` π/2 es a
+   *  la altura de la boca. */
+  vista(azimut: number, polar = 1.49, zoom = 1): void {
+    this.zoomActual = zoom;
+    const distancia = this.distanciaEncuadre() * zoom;
+    const o = this.objetivoActual();
+    // OrbitControls.reset() llama a update(), pero con amortiguación activa
+    // conserva parte de la inercia. Consumirla sin amortiguación antes de
+    // colocar el preset evita que Restaurar vuelva a arrastrar la cámara.
+    const amortiguar = this.controles.enableDamping;
+    this.controles.enableDamping = false;
+    this.controles.reset();
+    this.controles.enableDamping = amortiguar;
+    this.controles.target.set(o.x, o.y, 0);
     this.camara.position.set(
       this.controles.target.x + distancia * Math.sin(polar) * Math.sin(azimut),
       this.controles.target.y + distancia * Math.cos(polar),
@@ -1090,8 +1900,98 @@ export class EscenaBoca {
     this.sucio = true;
   }
 
+  /** De frente, /θ ð/ se ven un poco desde abajo (contrapicado): la punta
+   *  entre los incisivos queda a la vista, como en la referencia de Miguel. */
+  private elevacionFrontalPara(pose: PoseSonido): void {
+    if (!this.exploracionDidactica || this.corteDidactico) return;
+    const polar = pose.punta === 'interdental' ? POLAR_INTERDENTAL : POLAR_FRONTAL;
+    if (polar !== this.polarFrontal) { this.polarFrontal = polar; this.vista(-Math.PI / 2, polar, 0.50); }
+  }
+
+  /** La vista didáctica actual (frente o corte), si la hay. */
+  get vistaFrontal(): boolean {
+    return this.exploracionDidactica && !this.corteDidactico;
+  }
+
   restablecerVista(): void {
-    this.vista(0.02);
+    if (this.exploracionDidactica) { this.vistaDidactica(!this.corteDidactico); return; }
+    this.vistaParaFamilia(this.familiaActual);
+  }
+
+  /** Una cámara y una animación: vista frontal de labios o corte lateral. */
+  vistaDidactica(frente: boolean): void {
+    if (!this.exploracionDidactica) return;
+    this.corteDidactico = !frente;
+    this.targetFamilia = frente ? [-2.8, 0.45] : [0.9, 0.05];
+    this.controles.minAzimuthAngle = frente ? -Infinity : -35 * GR;
+    this.controles.maxAzimuthAngle = frente ? Infinity : 35 * GR;
+    this.controles.minPolarAngle = 0.35;
+    this.controles.maxPolarAngle = Math.PI - 0.35;
+    // Encuadre de retrato: más distancia con menor campo angular conserva
+    // el tamaño de boca y reduce el aumento de la nariz por perspectiva.
+    this.camara.fov = frente ? 22 : 32;
+    this.camara.updateProjectionMatrix();
+    this.vista(frente ? -Math.PI / 2 : 0, frente ? this.polarFrontal : Math.PI / 2, frente ? 0.50 : 1);
+    if (frente) this.actualizarNormalesPiel?.();
+    this.giroLinea = 0;
+  }
+
+  /** D4.2/D4.2.1: la vista pedagógica inicial de una familia articulatoria
+   *  (cámara, zoom, target, rango de giro y mejilla). No cambia la pose ni
+   *  la anima; quien llama decide cuándo (al elegir un sonido nuevo, o al
+   *  restablecer). */
+  vistaParaFamilia(familia: Familia): void {
+    this.familiaActual = familia;
+    const preset = PRESETS_FAMILIA[familia];
+    this.targetFamilia = preset.target;
+    this.mejillaFamilia = preset.mejilla;
+    this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
+    aplicarLimitesGiro(this.controles, preset.limites);
+    this.vista(preset.azimut, POLAR_DEFECTO, preset.zoom);
+    this.vistaExterior(preset.exterior, preset.dentadura);
+  }
+
+  /** D4.3c (Miguel, 18 sep): "vista exterior" sin tocar geometría ni GLB —
+   *  esconde lengua y velo cuando compiten con el gesto labial; caras del
+   *  corte y pared del fondo permanecen porque cierran la cavidad. D4.4a
+   *  delega la dentadura al perfil semántico independiente: /f v/ conserva
+   *  incisivos superiores y /p b/ ninguno. No
+   *  ensancha `LIMITES_GIRO`: la media cabeza sigue siendo media cabeza,
+   *  solo se deja de mostrar su interior. */
+  private vistaExterior(modo: 'ninguna' | 'bilabial' | 'labiodental', perfilDental: PerfilDental): void {
+    this.perfilDentalActual = perfilDental;
+    const ocultar = modo !== 'ninguna';
+    // Solo se toca la geometria que esta realmente activa: si ya cargo el
+    // GLB (lengua modelada), el respaldo simple se queda escondido como ya
+    // estaba (`cargarLengua` lo esconde al cargar) y no lo reactiva esta vista.
+    if (this.lenguaGlb) this.lenguaGlb.visible = !ocultar; else this.lengua.visible = !ocultar;
+    this.velo.visible = !ocultar;
+    // D4.3c, corregido tras verlo en el navegador: las caras del corte
+    // (corte_craneo/nariz/maxilar/mandibula) y la pared del fondo CIERRAN
+    // la cavidad -- esconderlas deja huecos reales en la cabeza, no
+    // "menos detalle". `piezasCorte` se queda sin usar aquí a propósito:
+    // solo se esconden dientes/lengua/velo, piezas sueltas dentro de la
+    // cavidad que no cierran nada al desaparecer.
+    for (const o of [...this.piezasDentalesInferiores, ...this.piezasDentalesSuperiores]) {
+      const grupo = o.userData['grupoDental'] as GrupoDental | undefined;
+      const indice = Number(o.userData['indiceDental'] ?? -1);
+      o.visible = !!grupo && visibleEnPerfilDental(perfilDental, grupo, indice);
+    }
+    // Respaldo sin GLB: no hay arco superior/inferior por separado que
+    // valga la pena distinguir; se deja como estaba salvo en bilabial.
+    if (!this.dentalesModelados) for (const o of this.dentalSimple) o.visible = perfilDental !== 'oculta';
+    // Fuerza a `ocultarLaterales()` a recombinar este preset con el lado de
+    // cámara. Antes conservaba su caché y Restaurar podía dejar reaparecer
+    // molares que estaban ocultos en la misma vista guiada.
+    this.lateralesOcultos = 'ninguno';
+    this.sucio = true;
+  }
+
+  /** D4.2.1 (registro para depuración, solo lo lee quien integra en modo
+   *  desarrollo — ver `boca3d.ts`): la familia, el zoom y el target activos
+   *  ahora mismo. */
+  get diagnostico(): { familia: Familia; zoom: number; target: { x: number; y: number } } {
+    return { familia: this.familiaActual, zoom: this.zoomActual, target: { x: this.controles.target.x, y: this.controles.target.y } };
   }
 
   private distanciaEncuadre(): number {
@@ -1109,38 +2009,145 @@ export class EscenaBoca {
    *  haciendo scroll. */
   girarLibre(activo: boolean): void {
     this.libre = activo;
+    this.controles.enableRotate = activo;
+    this.controles.enableZoom = activo;
+    this.controles.enablePan = false;
+    if (this.exploracionDidactica) {
+      this.controles.minAzimuthAngle = -Infinity;
+      this.controles.maxAzimuthAngle = Infinity;
+      this.controles.minPolarAngle = 0.35;
+      this.controles.maxPolarAngle = Math.PI - 0.35;
+    }
     this.canvas.style.touchAction = activo ? 'none' : 'pan-y';
+    this.controles.update();
+    this.sucio = true;
   }
 
   get giraLibre(): boolean {
     return this.libre;
   }
 
+  /** Lo que pide quien integra (rendimiento/preferencia). El preset de la
+   *  familia activa (`vistaParaFamilia`) puede esconderla igualmente si
+   *  estorba más de lo que ayuda en esa familia (bilabiales, labiodentales):
+   *  se ve solo si las dos partes lo permiten. */
   mostrarMejilla(visible: boolean): void {
-    this.mejilla.visible = visible;
+    this.mejillaExterna = visible;
+    this.mejilla.visible = this.mejillaExterna && this.mejillaFamilia;
     this.sucio = true;
   }
 
   /** Carga la lengua de Blender y, cuando llega, esconde el tubo. Si falla,
    *  se queda el tubo y no pasa nada. */
-  private cargarLengua(url: string, color: string): void {
+  private cargarLengua(url: string, color: string, alTerminar: () => void = () => {}): void {
     cargarGlb(url, gltf => {
-      if (!this.vivo) { liberarModelo(gltf.scene); return; }
+      if (!this.vivo) { liberarModelo(gltf.scene); alTerminar(); return; }
       let malla: THREE.Mesh | null = null;
       gltf.scene.traverse(o => {
         if (!malla && o instanceof THREE.Mesh && o.morphTargetInfluences &&
             MORFOS_LENGUA.every(n => Number.isInteger(o.morphTargetDictionary?.[n]))) malla = o;
       });
-      if (!malla) { liberarModelo(gltf.scene); return; }
+      if (!malla) { liberarModelo(gltf.scene); alTerminar(); return; }
       const m = malla as THREE.Mesh;
       // Mucosa húmeda con papilas de relieve: el material físico de la
       // lengua más el mapa procedimental (si la malla trae UV).
       (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
       const conUv = !!m.geometry.getAttribute('uv');
-      m.material = materialDe('lengua', color, conUv && this.papilas ? { bumpMap: this.papilas, bumpScale: 0.6 } : {});
+      m.material = materialDe('lengua', color, conUv && this.papilas
+        ? (this.exploracionDidactica
+          ? { bumpMap: this.papilas, bumpScale: .008, roughness: .5, clearcoat: .32, clearcoatRoughness: .26, sheen: 0 }
+          : { bumpMap: this.papilas, bumpScale: 0.36, roughnessMap: this.papilas })
+        : {});
+      if (this.exploracionDidactica) {
+        // La normal ya se calcula sobre la combinación real de morfos;
+        // no volver a sumar las normales de cada gesto exportadas en glTF.
+        delete m.geometry.morphAttributes.normal;
+        // Tres pasadas de alisado del sombreado: la arista lateral de la
+        // punta interdental se leía como dos picos de frente (/θ ð/).
+        this.actualizarNormalesLengua = normalesDelGesto(m, false, 3);
+        // El corte ilumina el interior para estudiarlo; desde fuera, el
+        // tejido profundo recibe menos luz. Atenuación visual económica,
+        // no cambia geometría/contactos ni pretende simular luz volumétrica.
+        const cavidad = { value: 0 };
+        const material = m.material as THREE.MeshPhysicalMaterial;
+        material.onBeforeCompile = shader => {
+          shader.uniforms['vistaCavidad'] = cavidad;
+          shader.uniforms['fruncidoLabios'] = this.fruncidoLabios;
+          shader.uniforms['puntaFuera'] = this.puntaFuera;
+          // Coordenadas de reposo: el dibujo del tejido viaja con la lengua.
+          shader.vertexShader = 'varying float profundidadBoca;\nvarying vec3 vLengua;\nvarying float vDorso;\n' + shader.vertexShader;
+          shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>',
+            'profundidadBoca = transformed.x;\nvLengua = position;\nvDorso = normal.y;\n#include <project_vertex>');
+          shader.fragmentShader = `uniform float vistaCavidad;
+            uniform float fruncidoLabios;
+            uniform float puntaFuera;
+            varying float profundidadBoca;
+            varying vec3 vLengua;
+            varying float vDorso;
+            float azarLengua(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+            float ruidoLengua(vec3 p) {
+              vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+              return mix(mix(mix(azarLengua(i), azarLengua(i + vec3(1,0,0)), f.x),
+                             mix(azarLengua(i + vec3(0,1,0)), azarLengua(i + vec3(1,1,0)), f.x), f.y),
+                         mix(mix(azarLengua(i + vec3(0,0,1)), azarLengua(i + vec3(1,0,1)), f.x),
+                             mix(azarLengua(i + vec3(0,1,1)), azarLengua(i + vec3(1,1,1)), f.x), f.y), f.z);
+            }
+            ` + shader.fragmentShader;
+          shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
+            `#include <color_fragment>
+            // Mucosa lingual sintética (sin imágenes privadas): rosa pálido,
+            // saburra clara en el dorso central, bordes y punta más rosados,
+            // surco medio y papilas finas. Referencia visual, no clínica.
+            float dorso = smoothstep(0.15, 0.7, vDorso);
+            float borde = smoothstep(0.5, 0.92, abs(vLengua.z));
+            float punta = 1.0 - smoothstep(-1.95, -1.25, vLengua.x);
+            float papilaFina = smoothstep(0.58, 0.9, ruidoLengua(vLengua * 34.0));
+            float manchas = ruidoLengua(vLengua * 5.0 + 3.1);
+            float saburra = dorso * (1.0 - borde) * (1.0 - punta) * smoothstep(-1.5, -0.3, vLengua.x) * (0.45 + 0.55 * manchas);
+            // En /θ ð/ la lengua sale entre los dientes y el surco (en reposo)
+            // caía en el centro de lo visible: partía la punta en dos picos.
+            float surco = exp(-pow(vLengua.z / 0.07, 2.0)) * dorso * smoothstep(-1.7, -1.0, vLengua.x) * (1.0 - smoothstep(0.6, 1.5, vLengua.x))
+              * (1.0 - puntaFuera);
+            vec3 mucosa = mix(vec3(0.62, 0.21, 0.23), vec3(0.66, 0.15, 0.18), max(borde, punta));
+            mucosa = mix(mucosa, vec3(0.70, 0.45, 0.45), 0.6 * saburra);
+            mucosa *= mix(0.9, 1.07, papilaFina) * (1.0 - 0.3 * surco);
+            diffuseColor.rgb = mucosa;
+            float profundidad = smoothstep(-2.9, -0.4, profundidadBoca);
+            diffuseColor.rgb *= mix(1.0, 0.78 - 0.45 * profundidad, vistaCavidad);`);
+          shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>',
+            `#include <normal_fragment_maps>
+            #ifdef USE_BUMPMAP
+              float relieveLengua = 0.004 * papilaFina + 0.0015 * ruidoLengua(vLengua * 70.0) - 0.012 * surco;
+              normal = perturbNormalArb(-vViewPosition, normal, vec2(dFdx(relieveLengua), dFdy(relieveLengua)), faceDirection);
+            #endif`);
+          shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>',
+            `#include <roughnessmap_fragment>
+            // Bordes húmedos y brillantes; la saburra y las papilas, mates.
+            roughnessFactor = mix(0.34, 0.62, saburra) + 0.08 * papilaFina;`);
+          // Con la abertura pequeña de /u/ casi no entra luz a la cavidad:
+          // desde fuera se ve oscura, como en la referencia. El corte no cambia.
+          shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>',
+            `// Relleno suave de frente (luz envolvente): el borde entre luz y
+            // sombra sobre el dorso, más plano en el centro, dibujaba dos
+            // «picos» en /θ ð/. Más relleno cuanto más asoma la punta.
+            outgoingLight += diffuseColor.rgb * (0.10 + 0.22 * puntaFuera) * vistaCavidad;
+            outgoingLight *= mix(1.0, 0.22, fruncidoLabios * vistaCavidad);
+            #include <opaque_fragment>`);
+        };
+        material.customProgramCacheKey = () => 'lengua-mucosa-didactica-v4';
+        const plano = [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0)];
+        this.renderer.localClippingEnabled = true;
+        m.onBeforeRender = (_r, _s, camara) => {
+          cavidad.value = camara.layers.mask === 2 ? 1 : 0;
+          material.clippingPlanes = camara.layers.mask === 2 ? null : plano;
+        };
+        const corte = seccionSagitalLengua(m);
+        if (corte) { m.add(corte); this.seccionLingual=corte; }
+      }
       const dic = m.morphTargetDictionary ?? {};
       this.indicesMorfos = MORFOS_LENGUA.map(nombre => dic[nombre]);
       this.lenguaGlb = m;
+      m.layers.enable(1);                             // v7: la lengua del .glb también en el recuadro
       this.lengua.visible = false;
       // La lengua va sobre el suelo de la boca: baja y gira con la mandíbula
       // (consejo de entrega-4e); el morfo `mandibula` solo añade un poco.
@@ -1148,8 +2155,13 @@ export class EscenaBoca {
       this.contenedor.dataset['lengua'] = 'blender';
       liberarModelo(gltf.scene);
       this.sombrear();
+      // D4.3c: si la lengua modelada llega después de aplicar la vista
+      // exterior, no debe reaparecer (nace visible por defecto).
+      const preset = PRESETS_FAMILIA[this.familiaActual];
+      this.vistaExterior(preset.exterior, preset.dentadura);
       this.aplicar(this.actual);
-    }, () => { /* sin lengua modelada: se queda el tubo */ });
+      alTerminar();
+    }, () => { alTerminar(); /* sin lengua modelada: se queda el tubo */ });
   }
 
   get tieneLenguaModelada(): boolean {
@@ -1179,17 +2191,19 @@ export class EscenaBoca {
     });
   }
 
-  private cargarCara(url: string, col: Colores): void {
+  private cargarCara(url: string, col: Colores, alTerminar: () => void = () => {}): void {
     cargarGlb(url, gltf => {
       const piezas = new Map<string, THREE.Mesh>();
       gltf.scene.updateMatrixWorld(true);
       gltf.scene.traverse(o => { if (o instanceof THREE.Mesh) piezas.set(o.name, o); });
+      const interiorDidactico = this.exploracionDidactica && piezas.has('anatomia_paladar');
       const nombres = ['labio_superior', 'labio_inferior', 'techo_nasal', 'faringe', 'garganta', 'suelo_boca'];
       if (!this.vivo || nombres.some(n => !piezas.has(n))) {
         for (const m of piezas.values()) {
           m.geometry.dispose();
           (Array.isArray(m.material) ? m.material : [m.material]).forEach(mat => mat.dispose());
         }
+        alTerminar();
         return;
       }
       const materialAnterior = this.labioSup.material;
@@ -1214,6 +2228,7 @@ export class EscenaBoca {
       }
       (Array.isArray(materialAnterior) ? materialAnterior : [materialAnterior]).forEach(m => m.dispose());
       for (const nombre of [...nombres.slice(2), ...(piezas.has('nariz') ? ['nariz'] : [])]) {
+        if (interiorDidactico && ['techo_nasal', 'faringe', 'suelo_boca'].includes(nombre)) continue;
         const fuente = piezas.get(nombre)!;
         const pieza = new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
           nombre === 'nariz' ? materialDe('piel', col.piel) : materialDe('mucosa', col.mucosa));
@@ -1222,13 +2237,21 @@ export class EscenaBoca {
       // La cabeza de MakeHuman trae sus propios labios en la piel: los tubos
       // se esconden (hasta que la piel tenga sus shape keys, el labio de abajo
       // se mueve con la mandíbula por pesos y el de arriba se queda).
-      const labiosEnPiel = piezas.get('cabeza_lejana')?.userData?.['labios_en_piel'] === 1;
+      const marcaLabios = piezas.get('cabeza_lejana')?.userData?.['labios_en_piel'];
+      const salidaNariz = piezas.get('cabeza_lejana')?.userData?.['nariz_salida'] as [number, number] | undefined;
+      if (Array.isArray(salidaNariz) && salidaNariz.length === 2) {
+        this.aireNasal.geometry.dispose();
+        this.aireNasal.geometry = geometriaAireNasal(salidaNariz);
+      }
+      const labiosEnPiel = marcaLabios === 1 || marcaLabios === 2;
+      const ranuraSeca = marcaLabios === 2;
       if (labiosEnPiel) {
         this.labioSup.visible = false; this.labioInf.visible = false;
         // Una cabeza entera es más grande que el loft: la cámara se aleja y
-        // mira un poco más atrás, y la piel translúcida se aclara.
+        // mira un poco más atrás (el target se recalcula mas abajo, con
+        // `objetivoActual()`: si hay un target de familia activo, D4.2.1 no
+        // lo pisa aqui), y la piel translúcida se aclara.
         this.cabezaEntera = true;
-        this.controles.target.x = 0.9;
         (this.mejilla.material as THREE.MeshStandardMaterial).opacity = 0;
       }
       const menton = piezas.get('menton');
@@ -1244,8 +2267,18 @@ export class EscenaBoca {
         ['corte_mandibula', 'corte', true], ['pared_lejana', 'pared', false],
         ['pared_lejana_2', 'pared', false], ['pared_lejana_3', 'pared', false],
         ['ojo_lejano', 'ojo', false], ['iris_lejano', 'iris', false],
+        ['ojo_cercano', 'ojo', false], ['iris_cercano', 'iris', false],
+        // D4.4b v4: la sección de cada labio en el corte, con las mismas shape
+        // keys que la piel (cara.py las evalúa sobre sus vértices): en el
+        // corte sagital los labios son dos volúmenes, no dos láminas.
+        ['corte_labio_sup', 'labio', false], ['corte_labio_inf', 'labio', true],
       ];
+      this.soltarPielesLisas();
       for (const [nombre, tejido, enMandibula] of cabeza) {
+        if (interiorDidactico && ['corte_labio_sup', 'corte_labio_inf', 'corte_maxilar', 'corte_mandibula'].includes(nombre)) continue;
+        // El cráneo, la nariz y la piel lejana del escaneo no coinciden con la
+        // cara de frente (otra altura y escala): el corte usa su contorno.
+        if (interiorDidactico && piezas.has('anatomia_craneo') && ['corte_craneo', 'corte_nariz', 'cabeza_lejana'].includes(nombre)) continue;
         const fuente = piezas.get(nombre);
         if (!fuente) continue;
         // Caras del corte y pared del fondo claras y mates, como el 2D: la
@@ -1257,12 +2290,37 @@ export class EscenaBoca {
           : tejido === 'pared' ? materialDe('hueso', '#f6ebe4', { roughness: 0.9, sheen: 0, side: THREE.DoubleSide })
           : tejido === 'ojo' ? materialDe('diente', '#f3efea', { roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.1 })
           : tejido === 'iris' ? materialDe('diente', '#4a3427', { roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.1 })
-          : materialDe('piel', col.piel, nombre === 'cabeza_lejana' && labiosEnPiel ? { side: THREE.DoubleSide } : {});
+          : tejido === 'labio' ? materialDe('labio', geometria.hasAttribute('color') ? '#ffffff' : col.labios,
+            { side: THREE.DoubleSide, vertexColors: geometria.hasAttribute('color') })
+          : materialDe('piel', texturasDe(fuente) || geometria.hasAttribute('color') ? '#ffffff' : col.piel,
+            { side: THREE.DoubleSide, vertexColors: !texturasDe(fuente) && geometria.hasAttribute('color'), ...texturasDe(fuente) });
         const pieza = new THREE.Mesh(geometria, mat);
+        if (interiorDidactico && tejido === 'piel') {
+          // El perfil labial antiguo no debe dibujarse por debajo de la
+          // sección derivada de los labios aprobados.
+          mat.onBeforeCompile = shader => {
+            shader.vertexShader = 'varying vec3 puntoAnatomico;\n' + shader.vertexShader;
+            shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>',
+              'puntoAnatomico = transformed;\n#include <project_vertex>');
+            shader.fragmentShader = 'varying vec3 puntoAnatomico;\n' + shader.fragmentShader;
+            shader.fragmentShader = shader.fragmentShader.replace('#include <clipping_planes_fragment>',
+              '#include <clipping_planes_fragment>\nif(puntoAnatomico.x < -1.8 && puntoAnatomico.y < 1.5) discard;');
+          };
+          mat.customProgramCacheKey = () => 'piel-corte-anatomico-v1';
+        }
+        if (tejido === 'piel' || tejido === 'ojo' || tejido === 'iris') pieza.layers.enable(1);
+        if (this.exploracionDidactica && piezas.has('exterior_lejana') && tejido === 'piel') pieza.layers.disable(1);
+        if (tejido === 'piel' && texturasDe(fuente)) this.pielesNeutras.push({ malla: pieza, neutro: null });
+        if (nombre === 'ojo_cercano' || nombre === 'iris_cercano') pieza.layers.set(1);
         (enMandibula ? this.dentroMandibula : this.escena).add(pieza);
+        // D4.3c: las caras del corte y la pared del fondo son justo lo que
+        // revela que esto es un corte sagital, no una cara entera: se
+        // esconden en la vista exterior (bilabiales/labiodentales).
+        if (tejido === 'corte' || tejido === 'pared' || tejido === 'labio') this.piezasCorte.push(pieza);
+        if (tejido === 'labio') this.conMorfosDeLabios(pieza, fuente);
         // La piel lejana y la pared del fondo siguen a la mandíbula por pesos;
         // si la pared se quedara fija, al abrir asomaría por la piel movida.
-        if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel));
+        if (nombre === 'cabeza_lejana' || nombre.startsWith('pared_lejana')) this.pielesDeformables.push(pielQueSigueLaMandibula(pieza.geometry, labiosEnPiel, ranuraSeca));
         // El revés de la piel lejana (a dos caras) no recibe sombras: a la
         // sombra de sí misma se veía negro por dentro desde tres cuartos.
         if ((nombre === 'cabeza_lejana' && labiosEnPiel) || tejido === 'pared') pieza.userData['sinSombraRecibida'] = true;
@@ -1276,14 +2334,304 @@ export class EscenaBoca {
         this.mejilla.geometry.dispose();
         this.mejilla.geometry = cercana.geometry.clone().applyMatrix4(cercana.matrixWorld);
         this.mejilla.position.z = 0;
-        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel));
+        (Array.isArray(this.mejilla.material) ? this.mejilla.material : [this.mejilla.material]).forEach(m => m.dispose());
+        this.mejilla.material = materialDe('piel', texturasDe(cercana) || this.mejilla.geometry.hasAttribute('color') ? '#ffffff' : col.piel,
+          { vertexColors: !texturasDe(cercana) && this.mejilla.geometry.hasAttribute('color'), transparent: true, opacity: 0,
+            depthWrite: false, side: THREE.DoubleSide, ...texturasDe(cercana) });
+        this.mejilla.layers.enable(1);
+        if (this.exploracionDidactica && piezas.has('exterior_cercana')) this.mejilla.layers.disable(1);
+        if (texturasDe(cercana)) this.pielesNeutras.push({ malla: this.mejilla, neutro: null });
+        // v8: la textura lisa se hace una vez con las dos mitades y cada una
+        // lleva su material (la mejilla, a dos caras como en el corte).
+        const foto = texturasDe(cercana)?.map;
+        if (foto && this.pielesNeutras.length) {
+          const lisa = texturaLisa(foto, this.pielesNeutras.map(p => p.malla));
+          this.texturaLisaActual = lisa;
+          for (const p of this.pielesNeutras) {
+            rayaDeLosLabios(p.malla);
+            p.neutro = materialPielLisa(lisa, (p.malla.material as THREE.Material).side);
+          }
+        }
+        this.pielesDeformables.push(pielQueSigueLaMandibula(this.mejilla.geometry, labiosEnPiel, ranuraSeca));
         this.conMorfosDeLabios(this.mejilla, cercana);
+      }
+      if (this.exploracionDidactica) {
+        const exteriores = ['exterior_cercana', 'exterior_lejana'].map(n => piezas.get(n)).filter((m): m is THREE.Mesh => !!m);
+        if (exteriores.length) {
+          const fotografica = exteriores[0].userData['apariencia_fotografica'] === 1;
+          const fotografias = fotografica ? texturasDe(exteriores[0]) : null;
+          if (fotografias) { delete fotografias.normalMap; delete fotografias.normalScale; }
+          const partes = exteriores.map(f => {
+            const g = f.geometry.clone().applyMatrix4(f.matrixWorld);
+            // La costura de exportación no debe dividir las normales del rostro.
+            if (!fotografica) { g.deleteAttribute('normal'); g.deleteAttribute('uv'); } return g;
+          });
+          const unida = mergeGeometries(partes)!;
+          // BufferGeometryUtils no conserva este indicador de los deltas glTF.
+          unida.morphTargetsRelative = partes[0].morphTargetsRelative;
+          const geometria = mergeVertices(unida, 1e-5);
+          partes.forEach(g => g.dispose()); unida.dispose(); if(!fotografica) geometria.computeVertexNormals();
+          // UV de reposo: el grano viaja con la piel al deformarse. Sin nuevos
+          // archivos descargados; un relieve fino y muy poco profundo.
+          const pos = geometria.getAttribute('position');
+          const uv = new Float32Array(pos.count * 2);
+          for (let i = 0; i < pos.count; i++) { uv[2*i] = .5 + pos.getZ(i)/7; uv[2*i+1] = .5 + pos.getY(i)/9; }
+          if (!fotografica) geometria.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+          if (fotografica) {
+            // Coordenadas independientes de la deformación CPU: los pliegues
+            // finos viajan con el labio sin deslizarse cuando cambia la pose.
+            geometria.setAttribute('pielReposo', new THREE.BufferAttribute(new Float32Array(pos.array), 3));
+            // La banda móvil toma detalle cutáneo de una zona sin rasgos.
+            // Conservar allí la foto de la boca cerrada estiraba su pliegue
+            // oscuro en líneas radiales. Labios y resto del rostro conservan
+            // su correspondencia fotográfica; el fundido queda en la piel.
+            const detalle = new Float32Array(pos.count*3);
+            for (let i=0;i<pos.count;i++) {
+              const y=pos.getY(i), z=pos.getZ(i);
+              const radio=Math.hypot(z/1.8,(y-.15)/(y>.15?1.0:1.1));
+              const peso=1-THREE.MathUtils.smoothstep(radio,.75,1.6);
+              detalle[3*i]=.33+.055*z; detalle[3*i+1]=.20-.045*(y-.15);
+              detalle[3*i+2]=peso*(1-THREE.MathUtils.smoothstep(pos.getX(i),-1.9,-.8));
+            }
+            geometria.setAttribute('pielDetalle',new THREE.BufferAttribute(detalle,3));
+          }
+          const grano = fotografica ? texturaPapilas(3800, .4, 1.25, [12, 12]) : texturaPapilas(2200, .5, 1.4, [10, 10]);
+          const material = materialDe('piel', '#ffffff', { vertexColors: true,
+            side: fotografica ? THREE.FrontSide : THREE.DoubleSide, roughness: fotografica ? .54 : .82,
+            ...(fotografica ? { clearcoat: .035, clearcoatRoughness: .65, ior: 1.4, specularIntensity: .65 } : {}),
+            ...(fotografias ?? {}), ...(grano ? { bumpMap: grano, bumpScale: fotografica ? .006 : .012 } : {}) });
+          material.onBeforeCompile = shader => {
+            // El color por vértice conserva la máscara de tejido, pero el
+            // albedo del escaneo se ilumina sin volver a teñirlo con ella.
+            if (fotografica) shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
+              '// El albedo conserva su luz propia; AO por mitades marcaba la sutura nasal.');
+            if (fotografica) {
+              shader.vertexShader='attribute vec3 pielDetalle; attribute vec3 pielReposo; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'+shader.vertexShader;
+              shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
+                '#include <begin_vertex>\n vPielDetalle = pielDetalle; vPielReposo = pielReposo;');
+              shader.uniforms['fruncidoLabios']=this.fruncidoLabios;
+              shader.uniforms['labiodentalLabios']=this.labiodentalLabios;
+              shader.fragmentShader='uniform float fruncidoLabios; uniform float labiodentalLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'
+                +'float azarPiel(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n'
+                +'float ruidoPiel(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
+                +'return mix(mix(mix(azarPiel(i),azarPiel(i+vec3(1,0,0)),f.x),mix(azarPiel(i+vec3(0,1,0)),azarPiel(i+vec3(1,1,0)),f.x),f.y),'
+                +'mix(mix(azarPiel(i+vec3(0,0,1)),azarPiel(i+vec3(1,0,1)),f.x),mix(azarPiel(i+vec3(0,1,1)),azarPiel(i+vec3(1,1,1)),f.x),f.y),f.z);}\n'
+                +shader.fragmentShader;
+              shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
+                `#include <map_fragment>
+                #if defined(USE_MAP) && defined(USE_COLOR)
+                  // glTF convierte el color a lineal. La diferencia absoluta
+                  // confundía el superior oscuro con piel y borraba su color.
+                  float labioFoto = smoothstep(mix(0.33,0.40,fruncidoLabios), mix(0.57,0.50,fruncidoLabios), (vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
+                  vec3 detallePiel = texture2D(map,vPielDetalle.xy).rgb;
+                  diffuseColor.rgb = mix(diffuseColor.rgb,detallePiel,vPielDetalle.z*(1.0-labioFoto));
+                  float poroColor = smoothstep(0.62,0.9,ruidoPiel(vPielReposo*95.0));
+                  float manchaPiel = ruidoPiel(vPielReposo*11.0+7.3);
+                  diffuseColor.rgb *= 1.0 - vPielDetalle.z*(1.0-labioFoto)*(0.1*poroColor + 0.06*(manchaPiel-0.5));
+                  // El borde inferior del mapa contiene una raya clara de la
+                  // foto original. Tomar color del bermellón contiguo reduce
+                  // estirarla como un contorno pintado al abrir la boca.
+                  // Sólo cambia el muestreo de color, nunca el borde del rig.
+                  float labioInferior = 1.0-smoothstep(0.145,0.155,vPielReposo.y);
+                  vec2 uvLabioInferior = vec2(vMapUv.x,0.467+(vMapUv.y-0.467)*0.75);
+                  vec3 colorLabioInferior = texture2D(map,uvLabioInferior).rgb;
+                  diffuseColor.rgb = mix(diffuseColor.rgb,colorLabioInferior,labioFoto*labioInferior);
+                  // Tono moreno cálido elegido con la referencia autorizada.
+                  // Ajuste de reflectancia, no exposición global: dientes,
+                  // luz especular y tejido húmedo conservan su respuesta.
+                  // El vídeo tiene luz fuerte; esto no es colorimetría medida.
+                  float superior = smoothstep(0.15, 0.26, vPielReposo.y);
+                  vec3 pigmentoLabio = mix(vec3(0.70,0.73,0.79),vec3(0.51,0.59,0.65),superior);
+                  diffuseColor.rgb *= mix(vec3(0.54,0.47,0.42),pigmentoLabio,labioFoto);
+                  // Referencia /u/: superior seco y malva; la mucosa junto a la
+                  // abertura y el inferior evertido, rosados y húmedos. La
+                  // parte húmeda crece con el fruncido. No es colorimetría.
+                  float filo = 1.0-smoothstep(0.02,0.12,abs(vPielReposo.y-0.15));
+                  float humedo = labioFoto*clamp(filo*(0.55+0.45*fruncidoLabios)+(1.0-superior)*(0.25+0.55*max(fruncidoLabios,0.7*labiodentalLabios)),0.0,1.0);
+                  // Al fruncir, la foto estirada deja rayas radiales en el
+                  // inferior: se toma su color de un nivel de mip más suave.
+                  vec3 suavizado = texture2D(map, vMapUv, 1.5).rgb * mix(vec3(0.54,0.47,0.42),pigmentoLabio,labioFoto);
+                  float recogeLabio = max(fruncidoLabios, labiodentalLabios);
+                  diffuseColor.rgb = mix(diffuseColor.rgb, suavizado, labioFoto*labioFoto*labioFoto*(1.0-superior)*recogeLabio*0.8);
+                  float luzLabio = dot(diffuseColor.rgb, vec3(0.2126,0.7152,0.0722));
+                  // Malva seco (superior) y rosa húmedo (inferior), en lineal.
+                  vec3 seco = luzLabio*vec3(2.3,1.02,1.12);
+                  vec3 rosado = luzLabio*vec3(3.3,0.6,0.92);
+                  float arrugaColor = 0.0;
+                  {
+                    vec2 planoC = vec2(vPielReposo.z, (vPielReposo.y-0.15)*5.2);
+                    float angC = atan(planoC.y,planoC.x), radC = length(planoC);
+                    float surcoC = sin(angC*87.0 + 1.8*sin(angC*13.0) + radC*8.0 + 1.3*sin(radC*9.0+angC*7.0));
+                    float cruceC = sin(angC*131.0-radC*21.0+2.0*sin(radC*17.0));
+                    arrugaColor = smoothstep(0.35,1.0,max(surcoC,cruceC));
+                  }
+                  float secoPeso = labioFoto*superior*(1.0-filo)*(0.25+0.6*fruncidoLabios);
+                  diffuseColor.rgb = mix(diffuseColor.rgb, seco, secoPeso);
+                  diffuseColor.rgb *= 1.0 - 0.22*arrugaColor*secoPeso;
+                  diffuseColor.rgb = mix(diffuseColor.rgb, rosado, humedo*(0.35+0.4*fruncidoLabios));
+                  // /f v/: los incisivos apoyan sobre la cara interna del labio
+                  // inferior. Sombra de contacto y mucosa húmeda en esa franja
+                  // para que el apoyo se lea de frente (no cambia la forma).
+                  float bajoDiente = labiodentalLabios*(1.0-superior)*labioFoto
+                    *(1.0-smoothstep(0.02,0.2,0.15-vPielReposo.y));
+                  diffuseColor.rgb *= 1.0-0.55*bajoDiente;
+                  float anchoSurco = 1.0-smoothstep(0.55,0.95,abs(vPielReposo.z));
+                  float alturaSurco = -0.56+0.12*pow(vPielReposo.z/0.8,2.0);
+                  float surcoMenton = labiodentalLabios*(1.0-labioFoto)*anchoSurco
+                    *exp(-pow((vPielReposo.y-alturaSurco)/0.07,2.0));
+                  diffuseColor.rgb *= 1.0-0.15*surcoMenton;
+                  humedo = max(humedo, 0.8*bajoDiente);
+                #endif`);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>',
+                `#include <normal_fragment_maps>
+                #if defined(USE_COLOR) && defined(USE_BUMPMAP)
+                  float tejidoLabial = smoothstep(0.33,0.57,(vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
+                  vec2 planoLabial = vec2(vPielReposo.z, (vPielReposo.y-0.15)*5.2);
+                  float anguloLabial = atan(planoLabial.y,planoLabial.x);
+                  float radioLabial = length(planoLabial);
+                  // Surcos cortos y de profundidad variable: las estrías
+                  // radiales continuas parecían rayos pintados al estirar.
+                  float pliegue = sin(anguloLabial*87.0 + 1.8*sin(anguloLabial*13.0)
+                    + radioLabial*8.0 + 1.3*sin(radioLabial*9.0+anguloLabial*7.0));
+                  float tramos = 0.35+0.65*smoothstep(-0.5,0.55,sin(radioLabial*16.0+anguloLabial*9.0));
+                  // Al fruncir se marcan las arrugas finas del superior; el
+                  // inferior evertido queda liso y tenso, como en la referencia.
+                  float arribaLabio = smoothstep(0.14,0.2,vPielReposo.y);
+                  float fruncePliegue = mix(1.0-0.8*max(fruncidoLabios,labiodentalLabios), 1.0+2.4*fruncidoLabios+0.9*labiodentalLabios, arribaLabio);
+                  float cruce = sin(anguloLabial*131.0-radioLabial*21.0+2.0*sin(radioLabial*17.0));
+                  float microLabial = tejidoLabial*(0.0016*pliegue*tramos*fruncePliegue
+                    + 0.0013*arribaLabio*fruncidoLabios*cruce*tramos
+                    + 0.00045*sin(anguloLabial*181.0+radioLabial*43.0));
+                  float bandaPiel = vPielDetalle.z*(1.0-tejidoLabial);
+                  float relievePiel = bandaPiel*(-0.0009*smoothstep(0.62,0.9,ruidoPiel(vPielReposo*95.0))
+                    + 0.0005*ruidoPiel(vPielReposo*210.0));
+                  // Surco mentolabial en /f v/ (mismo trazado que el color).
+                  relievePiel -= 0.006*labiodentalLabios*(1.0-tejidoLabial)
+                    *(1.0-smoothstep(0.55,0.95,abs(vPielReposo.z)))
+                    *exp(-pow((vPielReposo.y-(-0.56+0.12*pow(vPielReposo.z/0.8,2.0)))/0.07,2.0));
+                  normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(microLabial+relievePiel),dFdy(microLabial+relievePiel)),faceDirection);
+                #endif`);
+              // Translucidez de bajo coste inspirada en el ejemplo oficial
+              // SubsurfaceScatteringShader. Es una aproximación local; no
+              // reemplaza una simulación de dispersión subsuperficial.
+              const luces = THREE.ShaderChunk.lights_fragment_begin.replaceAll(
+                'RE_Direct( directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight );',
+                `RE_Direct( directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight );
+                {
+                  vec3 translucida = normalize(directLight.direction + geometryNormal*0.25);
+                  float contraLuz = pow(saturate(dot(geometryViewDir,-translucida)),2.0);
+                  reflectedLight.directDiffuse += directLight.color * diffuseColor.rgb * vec3(1.0,0.38,0.22) * (0.035*contraLuz);
+                }`);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>',luces);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <clearcoat_normal_fragment_maps>',
+                `#include <clearcoat_normal_fragment_maps>
+                #if defined(USE_COLOR) && defined(USE_BUMPMAP) && defined(USE_CLEARCOAT)
+                  float gotas = 0.0009*sin(vPielReposo.z*610.0+3.0*sin(vPielReposo.y*420.0))*sin(vPielReposo.y*540.0+2.0*sin(vPielReposo.z*380.0));
+                  clearcoatNormal = perturbNormalArb(-vViewPosition,clearcoatNormal,vec2(dFdx(gotas+microLabial),dFdy(gotas+microLabial)),faceDirection);
+                #endif`);
+              // Película húmeda: barniz sólo donde el labio está húmedo.
+              shader.fragmentShader = shader.fragmentShader.replace('#include <lights_physical_fragment>',
+                `#include <lights_physical_fragment>
+                #if defined(USE_MAP) && defined(USE_COLOR) && defined(USE_CLEARCOAT)
+                  // La costura de reposo más allá de las comisuras queda como
+                  // un pliegue al fruncir; con brillo se leía como raya clara.
+                  // Pliegue mate y en sombra, como el surco real de la comisura.
+                  float comisura = (1.0-smoothstep(0.0,0.04,abs(vPielReposo.y-0.15)))
+                    * smoothstep(0.45,0.8,abs(vPielReposo.z)) * fruncidoLabios;
+                  humedo *= 1.0-comisura;
+                  material.diffuseColor *= 1.0-0.3*comisura;
+                  material.specularColor *= 1.0-0.9*comisura;
+                  material.specularF90 *= 1.0-0.9*comisura;
+                  material.roughness = mix(material.roughness, 0.46, humedo);
+                  material.clearcoat = mix(material.clearcoat, 0.32, humedo);
+                  material.clearcoatRoughness = mix(material.clearcoatRoughness, 0.14, humedo);
+                #endif`);
+            }
+            shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>',
+              `#include <roughnessmap_fragment>
+              #ifdef USE_COLOR
+                float bermellon = smoothstep(0.33, 0.57, (vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
+                roughnessFactor = mix(roughnessFactor, 0.38, bermellon);
+              #endif`);
+          };
+          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-humedo-v4' : 'piel-didactica-bermellon-v1';
+          const pieza = new THREE.Mesh(geometria, material);
+          pieza.layers.set(1);
+          pieza.userData['sinSombraRecibida'] = true;
+          this.escena.add(pieza);
+          this.pielesDeformables.push(pielQueSigueLaMandibula(geometria, true, true, true));
+          this.conMorfosDeLabios(pieza, exteriores[0]);
+          if (fotografica) this.actualizarNormalesPiel = normalesDelGesto(pieza,true);
+        }
+      }
+      if (interiorDidactico) {
+        // Anatomía de apoyo (cerebro, vértebras…): láminas fijas del corte.
+        const apoyo = [...piezas.keys()].filter(n => /^anatomia_(cerebro|cerebelo|medula|nuca|hioides|c1|c2|vertebra_|disco_|espinosa_)/.test(n))
+          .map(n => n.slice('anatomia_'.length));
+        for (const nombre of ['craneo', 'nariz', ...apoyo, 'paladar', 'pared', 'suelo', 'velo', 'uvula', 'labio_sup', 'labio_inf', 'maxilar', 'menton', 'alveolo_sup', 'alveolo_inf']) {
+          const fuente = piezas.get('anatomia_' + nombre);
+          if (!fuente) continue;
+          const original = fuente.material as THREE.MeshStandardMaterial;
+          const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
+          const lamina = nombre.startsWith('labio') || nombre === 'craneo' || nombre === 'nariz' || apoyo.includes(nombre);
+          const clase: ClaseCorte = nombre === 'cerebro' ? 'cerebro' : nombre === 'cerebelo' ? 'cerebelo'
+            : /^(c1|c2|vertebra_|espinosa_|hioides|craneo)/.test(nombre) ? 'hueso' : 'blando';
+          const textura = lamina && nombre !== 'medula' && !nombre.startsWith('disco_') ? texturaCorte(clase) : null;
+          if (textura) {
+            // Coordenadas planas del corte: el dibujo no se estira con el gesto.
+            const pos = geometria.getAttribute('position'), escala = clase === 'cerebro' ? .22 : clase === 'cerebelo' ? .5 : .35;
+            const uv = new Float32Array(pos.count * 2);
+            for (let i = 0; i < pos.count; i++) { uv[2 * i] = pos.getX(i) * escala; uv[2 * i + 1] = pos.getY(i) * escala; }
+            geometria.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+            textura.wrapS = textura.wrapT = THREE.RepeatWrapping;
+          }
+          const pieza = new THREE.Mesh(geometria, lamina
+            ? new THREE.MeshBasicMaterial({ color: geometria.hasAttribute('color') ? '#ffffff' : '#bc8580',
+              vertexColors: geometria.hasAttribute('color'), side: THREE.DoubleSide, ...(textura ? { map: textura } : {}) })
+            : materialDe('mucosa', original.color.getStyle(), { roughness: .8, sheen: 0, side: THREE.DoubleSide }));
+          if (nombre === 'velo' || nombre === 'uvula') this.velo.add(pieza);
+          else if (nombre === 'suelo' || nombre === 'menton' || nombre === 'alveolo_inf') this.dentroMandibula.add(pieza);
+          else this.escena.add(pieza);
+          if (nombre.startsWith('labio')) {
+            this.pielesDeformables.push(pielQueSigueLaMandibula(geometria, true, true, true));
+            this.conMorfosDeLabios(pieza, fuente);
+          }
+          pieza.userData['sinSombraRecibida'] = true;
+        }
       }
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
       for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
         const fuente = piezas.get(nombre);
         if (fuente) this.escena.add(new THREE.Mesh(
           fuente.geometry.clone().applyMatrix4(fuente.matrixWorld), materialDe('piel', col.piel)));
+      }
+      // D4.4b v7: los globos oculares del escaneo (esclerótica, iris y pupila
+      // por colores de vértice), detrás de los párpados abiertos. El del lado
+      // de la cámara solo se ve cuando la piel de ese lado es opaca
+      // (`ocultarLaterales`): tras la piel de cristal flotaría una bola blanca.
+      // D4.4b v7: un elipsoide oscuro con las caras hacia dentro, SOLO en la
+      // capa 1 (el recuadro): tapa el reverso beige de la piel que se veía por
+      // la boca abierta y deja delante dientes, encías y lengua. El corte
+      // (capa 0) no lo ve.
+      if (this.interiorBoca) { this.escena.remove(this.interiorBoca); this.interiorBoca.geometry.dispose(); (this.interiorBoca.material as THREE.Material).dispose(); }
+      this.interiorBoca = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16),
+        new THREE.MeshStandardMaterial({ color: this.exploracionDidactica ? '#281117' : '#4a1a1e', roughness: 1, metalness: 0, side: THREE.BackSide }));
+      // Dentro de la cabeza: el frente en x = −2,4 (tras las tiras de mucosa),
+      // el fondo en −1,6 (la barbilla va por debajo) y 1,5 a los lados.
+      this.interiorBoca.scale.set(2.6, this.exploracionDidactica ? 2.7 : 2.0, this.exploracionDidactica ? 2.4 : 1.5);
+      this.interiorBoca.position.set(0.2, 0.4, 0);
+      this.interiorBoca.layers.set(1);
+      this.escena.add(this.interiorBoca);
+      this.ojos.length = 0;
+      for (const nombre of ['ojo_izq', 'ojo_der']) {
+        const fuente = piezas.get(nombre);
+        if (!fuente) continue;
+        const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
+        geometria.computeBoundingSphere();
+        const ojo = new THREE.Mesh(geometria, materialDe('piel', '#ffffff', { vertexColors: true, roughness: 0.25 }));
+        ojo.userData['lateral'] = geometria.boundingSphere?.center.z ?? 0;
+        this.ojos.push(ojo);
+        this.escena.add(ojo);
       }
       const dientes = Array.from({ length: 12 }, (_, i) => String(i).padStart(2, '0'));
       const papilas = Array.from(piezas.keys()).filter(n => n.startsWith('papila_'));
@@ -1292,26 +2640,86 @@ export class EscenaBoca {
         ...dientes.flatMap(i => ['diente_sup_' + i, 'diente_inf_' + i])];
       if (dentales.every(n => piezas.has(n))) {
         this.dentalSimple.forEach(o => { o.visible = false; });
+        this.dentalesModelados = true;
         this.dientesLaterales.length = 0;
         for (const nombre of dentales) {
+          if (interiorDidactico && nombre === 'paladar_modelado') continue;
           const fuente = piezas.get(nombre)!;
           const inferior = nombre.includes('_inf') || nombre === 'mandibula_modelada';
           const geometria = fuente.geometry.clone();
           // Las encias van lisas: su relieve de papilas costaba cuadros en
           // SwiftShader y a la distancia del visor no se distinguia.
           const pieza = new THREE.Mesh(geometria,
-            nombre.startsWith('diente_') ? materialDe('diente', col.dientes)
+            nombre.startsWith('diente_') ? materialDe('diente', geometria.hasAttribute('color') ? '#ffffff' : col.dientes,
+              {vertexColors:geometria.hasAttribute('color'), ...(this.exploracionDidactica
+                ? {roughness:.45,clearcoat:.18,sheen:.10} : {roughness:.36,clearcoat:.35})})
               : nombre === 'mandibula_modelada' ? materialDe('hueso', col.hueso)
+              : nombre.endsWith('_dentalv2') ? materialDe('encia', '#ffffff', {vertexColors: true, roughness: .4, clearcoat: .28, sheen: 0})
               : materialDe('encia', col.encia));
           fuente.matrixWorld.decompose(pieza.position, pieza.quaternion, pieza.scale);
+          if (this.exploracionDidactica && (nombre.startsWith('diente_') || nombre.endsWith('_dentalv2'))) {
+            const matDental = pieza.material as THREE.MeshPhysicalMaterial;
+            const exterior = { value: 0 };
+            matDental.onBeforeCompile = shader => {
+              shader.uniforms['exteriorDental'] = exterior;
+              shader.vertexShader = 'varying float profundidadDental;\n' + shader.vertexShader;
+              shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>',
+                'profundidadDental = (modelMatrix * vec4(transformed,1.0)).x;\n#include <project_vertex>');
+              shader.fragmentShader = 'uniform float exteriorDental; varying float profundidadDental;\n' + shader.fragmentShader;
+              shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
+                `#include <color_fragment>
+                float fondoDental = smoothstep(-2.7,-0.8,profundidadDental);
+                diffuseColor.rgb *= mix(1.0,0.94-0.38*fondoDental,exteriorDental);`);
+            };
+            matDental.customProgramCacheKey = () => 'dental-astra-cavidad-v1';
+            pieza.onBeforeRender = (_r,_s,camara) => { exterior.value = camara.layers.mask === 2 ? 1 : 0; };
+          }
+          if (interiorDidactico) {
+            // Retira la mitad próxima de las arcadas SOLO en el corte; las
+            // coronas delanteras permanecen completas en la vista exterior.
+            this.renderer.localClippingEnabled = true;
+            const plano = [new THREE.Plane(new THREE.Vector3(0, 0, -1), .015)];
+            const mat = pieza.material as THREE.MeshPhysicalMaterial;
+            const prepararMaterial = pieza.onBeforeRender;
+            pieza.onBeforeRender = (...args) => {
+              prepararMaterial.call(pieza, ...args);
+              mat.clippingPlanes = args[2].layers.mask === 2 ? null : plano;
+            };
+          }
+          const coincidencia = /^diente_(sup|inf)_(\d+)$/.exec(nombre);
+          const indice = coincidencia ? Number(coincidencia[2]) : -1;
+          // En la sección medial se muestran incisivos de referencia. Las
+          // arcadas laterales completas ocultarían lengua y punto de contacto.
+          if (interiorDidactico && indice !== 5 && indice !== 6) pieza.layers.disable(0);
+          const esInferior = inferior;
+          const esIncisivo = coincidencia && indice >= 4 && indice <= 7;
+          pieza.userData['grupoDental'] = coincidencia
+            ? `${esIncisivo ? 'incisivo' : 'posterior'}-${esInferior ? 'inferior' : 'superior'}`
+            : `soporte-${esInferior ? 'inferior' : 'superior'}`;
+          pieza.userData['indiceDental'] = indice;
+          // D4.4b v7: el recuadro (capa 1) solo veía la piel: al abrir la boca
+          // enseñaba el reverso beige de la piel y ningún diente. Dientes,
+          // incisivos y caninos (3–8) entran en la capa 1; molares, encías,
+          // papilas, paladar y hueso no (no se ven por la boca y con todo en
+          // la capa el preset bilabial caía por debajo de la base 8bd4a66).
+          // La sonrisa muestra la continuación de la arcada. Incluir los
+          // primeros premolares evita seis coronas suspendidas en un hueco.
+          // El modo normal y el corte conservan su selección anterior.
+          if (coincidencia && indice >= (this.exploracionDidactica ? 2 : 3) && indice <= (this.exploracionDidactica ? 9 : 8)) pieza.layers.enable(1);
+          if (interiorDidactico && nombre.endsWith('_dentalv2')) pieza.layers.enable(1);
           (inferior ? this.dentroMandibula : this.escena).add(pieza);
           if (nombre.startsWith('diente_') && Math.abs(pieza.position.z) > 0.42) this.dientesLaterales.push(pieza);
+          // Los dos arcos se conservan separados; el perfil dental de D4.4a
+          // decide después qué soportes/incisivos/posteriores se ven.
+          (inferior ? this.piezasDentalesInferiores : this.piezasDentalesSuperiores).push(pieza);
         }
         this.lateralesOcultos = 'ninguno';
       }
       if (piezas.has('velo_modelado') && piezas.has('uvula')) {
-        this.velo.children.forEach(o => { o.visible = false; });
-        for (const nombre of ['velo_modelado', 'uvula']) {
+        // Conserva los nuevos tejidos; oculta únicamente el respaldo simple.
+        if (interiorDidactico) this.velo.children.slice(0,2).forEach(o => { o.visible = false; });
+        else this.velo.children.forEach(o => { o.visible = false; });
+        for (const nombre of (interiorDidactico ? [] : ['velo_modelado', 'uvula'])) {
           const fuente = piezas.get(nombre)!;
           this.velo.add(new THREE.Mesh(fuente.geometry.clone().applyMatrix4(fuente.matrixWorld),
             materialDe('mucosa', col.velo)));
@@ -1326,11 +2734,39 @@ export class EscenaBoca {
       this.caraModelada = true;
       this.sombrear();
       this.contenedor.dataset['cara'] = 'blender';
-      const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
-      this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
-      this.controles.update();
+      this.recentrarConservandoAngulo();
+      // D4.3c: los dientes/encías/mandíbula/corte modelados nacen visibles;
+      // si la familia activa pide vista exterior, se esconden tambien.
+      const preset = PRESETS_FAMILIA[this.familiaActual];
+      this.vistaExterior(preset.exterior, preset.dentadura);
       this.aplicar(this.actual);
-    }, () => { /* Las piezas simples siguen visibles. */ });
+      alTerminar();
+    }, () => { alTerminar(); /* Las piezas simples siguen visibles. */ });
+  }
+
+  /** D4.2.1: recoloca target y distancia tras un evento que puede cambiar
+   *  `distanciaEncuadre()` (cargar `cara.glb`, que activa `caraModelada`/
+   *  `cabezaEntera`), conservando el ángulo de vista actual (azimut y
+   *  polar). Antes esto se hacía con `distanciaEncuadre()` a secas, sin
+   *  `zoomActual` (a diferencia de `redimensionar()`, que sí lo aplicaba):
+   *  el zoom del preset de familia se podía perder justo al terminar de
+   *  cargar la cara, según qué evento llegara antes. `objetivoActual()` ya
+   *  respeta el target de la familia activa, así que tampoco hace falta
+   *  tratar aquí el caso bilabial/labiodental aparte. */
+  private recentrarConservandoAngulo(): void {
+    const objetivoViejo = this.controles.target.clone();
+    const direccion = this.camara.position.clone().sub(objetivoViejo);
+    const distanciaVieja = direccion.length() || 1;
+    const polar = Math.acos(Math.max(-1, Math.min(1, direccion.y / distanciaVieja)));
+    const azimut = Math.atan2(direccion.x, direccion.z);
+    const o = this.objetivoActual();
+    this.controles.target.set(o.x, o.y, 0);
+    const distancia = this.distanciaEncuadre() * this.zoomActual;
+    this.camara.position.set(
+      o.x + distancia * Math.sin(polar) * Math.sin(azimut),
+      o.y + distancia * Math.cos(polar),
+      distancia * Math.sin(polar) * Math.cos(azimut));
+    this.controles.update();
   }
 
   get tieneCaraModelada(): boolean {
@@ -1339,6 +2775,8 @@ export class EscenaBoca {
 
   destruir(): void {
     if (!this.vivo) return;
+    this.actualizarNormalesPiel = null;
+    this.actualizarNormalesLengua = null;
     this.vivo = false;
     cancelAnimationFrame(this.rafId);
     this.observador?.disconnect();
@@ -1364,6 +2802,13 @@ export class EscenaBoca {
     });
     texturas.forEach(t => t.dispose());
     this.papilas?.dispose();
+    this.soltarPielesLisas();
+    if (this.detalle) {
+      this.detalle.rt.dispose();
+      this.detalle.material.dispose();
+      this.detalle.escena.traverse(o => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
+      this.detalle = null;
+    }
     this.hueso?.dispose();
     this.escena.environment?.dispose();
     this.luzPrincipal.shadow.dispose();
@@ -1387,18 +2832,34 @@ export class EscenaBoca {
     this.camara.aspect = w / h;
     this.camara.updateProjectionMatrix();
     const direccion = this.camara.position.clone().sub(this.controles.target).normalize();
-    this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre());
+    this.camara.position.copy(this.controles.target).addScaledVector(direccion, this.distanciaEncuadre() * this.zoomActual);
     this.controles.update();
+    this.sucio = true;
+  }
+
+  /** (A) v5: pixel ratio bajo mientras hay una línea o una transición en marcha. */
+  private ajustarPixelRatio(): void {
+    if (!this.menosPixelesEnMovimiento) return;
+    const moviendo = this.linea !== null || this.hacia !== null;
+    const bajo = moviendo && this.pixelRatioNativo > 1.25;
+    if (bajo === this.pixelRatioBajo) return;
+    this.pixelRatioBajo = bajo;
+    this.renderer.setPixelRatio(bajo ? 1.25 : this.pixelRatioNativo);
+    const tam = this.renderer.getSize(new THREE.Vector2());
+    this.renderer.setSize(tam.x, tam.y, false);
     this.sucio = true;
   }
 
   private bucle = (): void => {
     if (!this.vivo) return;
     this.rafId = requestAnimationFrame(this.bucle);
+    this.ajustarPixelRatio();
+    this.vozRetenida = false;                         // `soplar` la vuelve a poner dentro de un soplo
     if (this.linea) {
       const t = (performance.now() - this.lineaT0) / 1000;
       this.actual = this.poseDeLinea(t);
       this.aplicar(this.actual);
+      this.soplar(t);
       if (this.giroLinea) {
         // Sube y baja con una campana suave: en mitad del ciclo está girada del todo.
         const f = Math.min(1, Math.max(0, t / this.linea.total));
@@ -1413,21 +2874,159 @@ export class EscenaBoca {
       this.sucio = true;
     } else if (this.hacia && this.desde) {
       const t = Math.min(1, (performance.now() - this.t0) / this.duracion);
-      this.actual = mezclar(this.desde, this.hacia, suavizar(t));
+      this.actual = mezclarPose(this.desde, this.hacia, t);
       this.aplicar(this.actual);
       if (t >= 1) this.desde = this.hacia = null;
       this.sucio = true;
     }
     this.controles.update();
     this.ocultarLaterales();
+    // D4.3b: el pulso de vibración respira con el reloj (no con el ciclo
+    // del sonido), aparte de la pose: por eso sigue pintando mientras esté
+    // encendido, aunque la pose ya no se mueva.
+    if (this.sonoroActivo && this.vozRetenida) {
+      if (this.marcaVibracion.visible) { this.marcaVibracion.visible = false; this.sucio = true; }
+    } else if (this.sonoroActivo) {
+      const pulso = 0.35 + 0.3 * (0.5 + 0.5 * Math.sin((performance.now() / 1000) * 2 * Math.PI * 2.2));
+      (this.marcaVibracion.material as THREE.MeshStandardMaterial).opacity = pulso;
+      this.marcaVibracion.visible = true;
+      this.sucio = true;
+    }
     // La guarda de fluidez pinta todos los cuadros mientras mide.
     if (this.guarda.midiendo) this.sucio = true;
     if (this.sucio) {
       this.sucio = false;
-      this.renderer.render(this.escena, this.camara);
+      this.dibujar();
       this.medirGuarda();
     }
   };
+
+  /** Corte principal y detalle frontal simultáneo, dentro del mismo canvas.
+   * Solo la piel se vuelve opaca durante la segunda pasada: no se duplican
+   * mallas, morfos, tiempos ni trayectorias de aire. */
+  private dibujar(): void {
+    if (this.exploracionDidactica && this.cabezaEntera) {
+      // Una vista explícita: girar ya no sustituye bruscamente una cabeza
+      // por otra al cruzar un ángulo. El exterior conserva giro completo.
+      if (!this.corteDidactico) { this.dibujarExteriorDidactico(); return; }
+    }
+    const r = this.renderer;
+    // Opacidad cero también ejecutaba el shader físico sobre media cabeza.
+    // No dibujar esa superficie invisible ahorra trabajo sin rebajar detalle.
+    const visiblePrincipal = this.mejilla.visible;
+    if ((this.mejilla.material as THREE.MeshStandardMaterial).opacity <= 0.002) this.mejilla.visible = false;
+    r.render(this.escena, this.camara);
+    this.mejilla.visible = visiblePrincipal;
+    // Lote fase 2: /f v/ también llevan el recuadro frontal, para compararlas con
+    // /p b/ en el mismo sitio (labio de abajo contra los incisivos frente a cierre).
+    if (!this.detalleFrontalActivo || !this.cabezaEntera || !['bilabial', 'nasal-bilabial', 'labiodental'].includes(this.familiaActual)) return;
+    const tam = r.getSize(new THREE.Vector2());
+    const w = Math.min(138, tam.x * 0.48), h = w / 1.25;
+    const fondo = r.getClearColor(new THREE.Color()), alfa = r.getClearAlpha();
+    // Quieta, cada cuadro (es uno); en movimiento, uno de cada tres: el gesto
+    // de los labios dura 0,5 s y a 10 fps son 5 cuadros; 3 con recuadro nuevo bastan.
+    const animando = this.linea !== null || this.hacia !== null;
+    this.detalleCuadro++;
+    if (!this.detalleListo || !animando || this.detalleCuadro % 3 === 0) this.pintarDetalle(w, h);
+    if (!this.detalle) return;
+    r.setScissorTest(true);
+    r.setScissor(8, 8, w + 4, h + 4); r.setViewport(8, 8, w + 4, h + 4);
+    r.setClearColor('#b4a497', 1); r.clear();
+    r.setScissor(10, 10, w, h); r.setViewport(10, 10, w, h);
+    r.render(this.detalle.escena, this.detalle.camara);
+    r.setScissorTest(false); r.setViewport(0, 0, tam.x, tam.y);
+    r.setClearColor(fondo, alfa);
+  }
+
+  /** El exterior comparte geometría, poses y cámara con el corte; una sola pasada. */
+  private dibujarExteriorDidactico(): void {
+    if (!this.lucesEnDetalle) {
+      this.escena.traverse(o => { if (o instanceof THREE.Light) o.layers.enable(1); });
+      this.lucesEnDetalle = true;
+    }
+    const mat = this.mejilla.material as THREE.MeshStandardMaterial;
+    const estado = [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] as const;
+    const capa = this.camara.layers.mask;
+    const dentales = [...this.piezasDentalesInferiores, ...this.piezasDentalesSuperiores];
+    const visibles = dentales.map(o => o.visible);
+    this.mejilla.visible = true; mat.opacity = 1; mat.transparent = false; mat.depthWrite = true;
+    dentales.forEach(o => { o.visible = true; });
+    this.camara.layers.set(1);
+    const entornoAnterior=this.escena.environmentIntensity;
+    this.escena.environmentIntensity=.28;
+    this.renderer.render(this.escena, this.camara);
+    this.escena.environmentIntensity=entornoAnterior;
+    this.camara.layers.mask = capa;
+    dentales.forEach((o, i) => { o.visible = visibles[i]; });
+    [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] = estado;
+  }
+
+  /** v8: suelta los materiales y la textura de la piel lisa del recuadro. */
+  private soltarPielesLisas(): void {
+    (this.pielesNeutras ?? []).forEach(({ neutro }) => neutro?.dispose());
+    if (this.pielesNeutras) this.pielesNeutras.length = 0;
+    this.texturaLisaActual?.dispose();
+    this.texturaLisaActual = null;
+  }
+
+  /** La pasada del detalle frontal, a su textura. */
+  private pintarDetalle(w: number, h: number): void {
+    const r = this.renderer;
+    const ancho = Math.max(32, Math.round(w * r.getPixelRatio() * 0.6)), alto = Math.max(32, Math.round(h * r.getPixelRatio() * 0.6));
+    if (!this.detalle || this.detalle.rt.width !== ancho || this.detalle.rt.height !== alto) {
+      this.detalle?.rt.dispose();
+      // MSAA en la textura (WebGL2): sin él, la silueta de la cara salía a
+      // escalones. La pasada ya aplica el tone mapping al escribir en la
+      // textura: la copia no debe volver a aplicarlo (salía gris).
+      const rt = new THREE.WebGLRenderTarget(ancho, alto, { depthBuffer: true, samples: 2 });
+      if (this.detalle) {
+        this.detalle.material.map = rt.texture;
+        this.detalle.rt = rt;
+      } else {
+        const material = new THREE.MeshBasicMaterial({ map: rt.texture, toneMapped: false });
+        const escena = new THREE.Scene();
+        escena.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+        this.detalle = { rt, escena, camara: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), material };
+      }
+    }
+    if (!this.lucesEnDetalle) {
+      this.escena.traverse(o => { if (o instanceof THREE.Light) o.layers.enable(1); });
+      this.lucesEnDetalle = true;
+    }
+    const mat = this.mejilla.material as THREE.MeshPhysicalMaterial;
+    const estado = [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] as const;
+    const sombras = r.shadowMap.autoUpdate;
+    this.mejilla.visible = true; mat.opacity = 1; mat.transparent = false; mat.depthWrite = true;
+    this.camaraLabios.layers.set(1);
+    this.camaraLabios.position.set(-11.8, 0.25, 0);
+    this.camaraLabios.lookAt(-3, 0.05, 0);
+    this.camaraLabios.updateMatrixWorld();
+    r.shadowMap.autoUpdate = false;
+    r.setRenderTarget(this.detalle.rt);
+    r.setClearColor('#f1e8df', 1); r.clear();
+    // D4.4b v7: el recuadro enseña toda la dentadura aunque el perfil dental
+    // del corte esconda parte (en las bilabiales los incisivos, para no tapar
+    // la lengua): sin esto al abrir la boca no se veía ningún diente.
+    const dentales = [...new Set([...(this.piezasDentalesInferiores ?? []), ...(this.piezasDentalesSuperiores ?? []), ...(this.dientesLaterales ?? [])])];
+    const visibles = dentales.map(o => o.visible);
+    for (const o of dentales) o.visible = true;
+    // v7: el recuadro reutiliza el mapa de sombras de la pasada principal (misma
+    // luz, misma escena): volver a dibujarlo para el recuadro costaba fps.
+    const sombrasAuto = r.shadowMap.autoUpdate;
+    r.shadowMap.autoUpdate = false;
+    // v8: en el recuadro, la piel lisa en vez de la foto del escaneo (el corte
+    // de perfil conserva su material).
+    const pieles = this.pielesNeutras ?? [];
+    const originales = pieles.map(({ malla, neutro }) => { const m = malla.material; if (neutro) malla.material = neutro; return m; });
+    r.render(this.escena, this.camaraLabios);
+    pieles.forEach(({ malla }, i) => { malla.material = originales[i]; });
+    r.shadowMap.autoUpdate = sombrasAuto;
+    dentales.forEach((o, i) => { o.visible = visibles[i]; });
+    r.setRenderTarget(null);
+    r.shadowMap.autoUpdate = sombras;
+    [this.mejilla.visible, mat.opacity, mat.transparent, mat.depthWrite] = estado;
+    this.detalleListo = true;
+  }
 
   /** Guarda automática de fluidez (criterio de Central, 14 sep): los dos
    *  primeros segundos se pintan todos los cuadros y se cuentan; por debajo
@@ -1451,7 +3050,9 @@ export class EscenaBoca {
     } else if (g.etapa === 2) {
       this.apagarSombras();
     } else {
-      this.mejilla.visible = false;
+      // En bilabiales ya no es una transparencia decorativa: contiene la
+      // mitad cercana de los labios. La guarda no debe borrar el articulador.
+      if (this.familiaActual !== 'bilabial' && this.familiaActual !== 'nasal-bilabial') this.mejilla.visible = false;
       g.midiendo = false;
     }
     this.sucio = true;
@@ -1496,16 +3097,27 @@ export class EscenaBoca {
     // cubre la cavidad (opacidad cero) y aparece al girar hacia la cara o la
     // nuca; con el loft, al revés: se aclara al pasar de 45°.
     const base = this.cabezaEntera ? 0.09 : 0.14;
-    const opacidad = this.cabezaEntera
+    const bilabial = this.familiaActual === 'bilabial' || this.familiaActual === 'nasal-bilabial';
+    const opacidad = bilabial
+      ? Math.min(1, Math.max(0, (giro - 25 * GR) / (30 * GR)))
+      : this.cabezaEntera
       ? base * Math.min(1, Math.max(0, (giro - (25 * Math.PI) / 180) / ((20 * Math.PI) / 180)))
       : base - (base - 0.04) * Math.min(1, Math.max(0, (giro - Math.PI / 4) / (Math.PI / 8)));
     const matMejilla = this.mejilla.material as THREE.MeshStandardMaterial;
     if (Math.abs(matMejilla.opacity - opacidad) > 0.002) { matMejilla.opacity = opacidad; this.sucio = true; }
+    for (const ojo of this.ojos ?? []) {
+      const cercano = (ojo.userData['lateral'] as number) > 0;
+      const visible = !cercano || opacidad >= 0.5;
+      if (ojo.visible !== visible) { ojo.visible = visible; this.sucio = true; }
+    }
     if (ahora === this.lateralesOcultos) return;
     this.lateralesOcultos = ahora;
     for (const diente of this.dientesLaterales) {
       const lado = diente.position.z >= 0 ? 'z+' : 'z-';
-      diente.visible = ahora !== lado;
+      const grupo = diente.userData['grupoDental'] as GrupoDental | undefined;
+      const indice = Number(diente.userData['indiceDental'] ?? -1);
+      const porFamilia = !!grupo && visibleEnPerfilDental(this.perfilDentalActual, grupo, indice);
+      diente.visible = porFamilia && ahora !== lado;
     }
     this.sucio = true;
   }
@@ -1542,6 +3154,19 @@ export class EscenaBoca {
     const abierto = (n[I_VELO] - VELO_CERRADO) / (VELO_ABIERTO - VELO_CERRADO);
     (this.aireNasal.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, abierto));
     (this.aireOral.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.min(1, Math.max(0, n[I_AIRE_ORAL]));
+    // D4.2: el marcador de contacto se apaga en rampa igual que el aire (la
+    // fraccion viene de interpolar el 0/1 de `puntoDeContacto` entre poses).
+    const contactoActivo = Math.min(1, Math.max(0, n[I_CONTACTO + 2]));
+    this.marcaContacto.position.set(n[I_CONTACTO], n[I_CONTACTO + 1], 0);
+    (this.marcaContacto.material as THREE.MeshStandardMaterial).opacity = contactoActivo;
+    this.marcaContacto.visible = contactoActivo > 0.02;
+    // D4.3b: si la pose es sonora, `bucle()` hace pulsar marcaVibracion con
+    // el reloj; si no, se apaga aquí (sin esperar al siguiente pulso).
+    this.sonoroActivo = n[I_SONORA] > 0.5;
+    if (!this.sonoroActivo) {
+      (this.marcaVibracion.material as THREE.MeshStandardMaterial).opacity = 0;
+      this.marcaVibracion.visible = false;
+    }
     // Las comisuras: el labio de abajo baja con la mandíbula y el de arriba
     // no; lo que se separan sus extremos más de lo normal (0,6 entre los
     // centros de los dos tubos) lo cubren a medias las shape keys de comisura,
@@ -1563,19 +3188,44 @@ export class EscenaBoca {
     // (la pose lo coloca 0,3 detrás de LABIO_X).
     if (this.pielesConLabios.length) {
       const largo = n[I_LS + 2];
-      const fruncir = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05)));
+      // La pequeña diferencia de largo del cierre no es redondeamiento.
+      const fruncir = Math.min(1, Math.max(0, (2.3 - largo) / (2.3 - 1.05))) * (1 - n[I_CIERRE_LABIOS]);
       const estirar = Math.min(1, Math.max(0, (largo - 2.3) / (2.9 - 2.3)));
       const atras = Math.min(1, Math.max(0, (n[I_LI] - LABIO_X) / 0.3));
       for (const piel of this.pielesConLabios) {
         const dic = piel.morphTargetDictionary!, inf = piel.morphTargetInfluences!;
-        inf[dic['fruncir']] = fruncir;
+        // El exterior didáctico tiene un sello propio: al cerrar no mezcla
+        // redondeamiento ni retroceso labiodental que separarían sus bordes.
+        const neutro = 'abrir_neutro' in dic ? n[I_NEUTRO_ARTICULADO] : 0;
+        const cierre = n[I_CIERRE_LABIOS] * (1 - neutro);
+        const sello = 'sello_didactico' in dic ? Math.min(1, cierre / 0.4) : 0;
+        inf[dic['fruncir']] = fruncir * (1 - sello);
+        // El medidor ejecuta aplicar() sobre un objeto mínimo sin este campo.
+        if (this.fruncidoLabios) this.fruncidoLabios.value = fruncir * (1 - sello);
         inf[dic['estirar']] = estirar;
-        if ('labio_atras' in dic) inf[dic['labio_atras']] = atras;
+        // Cuerpo en reposo, cierre y apertura, moderado al estirar. Fruncir
+        // ya tiene su volumen propio aprobado y no recibe este correctivo.
+        if ('cuerpo_labial' in dic) inf[dic['cuerpo_labial']] = (1-fruncir*(1-sello))*(1-.35*estirar);
+        if ('labio_atras' in dic) inf[dic['labio_atras']] = atras * (1 - sello) * ('sello_didactico' in dic ? 1 - estirar : 1);
+        if (this.labiodentalLabios && 'labio_atras' in dic) this.labiodentalLabios.value = inf[dic['labio_atras']];
+        if ('sello_didactico' in dic) inf[dic['sello_didactico']] = sello;
+        // Estirar y fruncir ya abren su propio borde. Sumarlos a la apertura
+        // neutra doblaba el labio superior sobre el filtrum en /æ/ y /ɛ/.
+        if ('abrir_neutro' in dic) inf[dic['abrir_neutro']] = neutro * (1 - Math.max(estirar, fruncir));
+        if ('contorno_dental' in dic) inf[dic['contorno_dental']] = n[I_CONTORNO_DENTAL];
+        if ('cierre_labios' in dic) inf[dic['cierre_labios']] = cierre;
+        if ('compresion_labios' in dic) inf[dic['compresion_labios']] = n[I_COMPRESION_LABIOS];
       }
     }
+    if (!this.corteDidactico) this.actualizarNormalesPiel?.();
     if (this.lenguaGlb?.morphTargetInfluences) {
       const inf = this.lenguaGlb.morphTargetInfluences;
       this.indicesMorfos.forEach((idx, i) => { if (idx !== undefined) inf[idx] = n[I_MORFOS + i]; });
+      if (this.puntaFuera) this.puntaFuera.value = n[I_MORFOS + MORFOS_LENGUA.indexOf('punta_interdental')] ?? 0;
+      this.actualizarNormalesLengua?.();
+      // Antes de que WebGL suba atributos: onBeforeRender es demasiado
+      // tarde y dejaba el relleno con la pose anterior al mantener un gesto.
+      this.seccionLingual?.actualizar();
     } else {
       deformarLengua(this.lengua.geometry, n);
     }

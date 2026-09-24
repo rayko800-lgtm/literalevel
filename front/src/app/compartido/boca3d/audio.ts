@@ -15,8 +15,15 @@ export interface AudioListo {
   duracion: number;
   /** Segundos de silencio al principio (medidos, o 0,12 si no se pudo). */
   silencio: number;
+  /** Último instante con energía (medido; sin medida, la duración entera).
+   *  `fin - silencio` es lo que de verdad suena, para ajustar la boca. */
+  fin: number;
+  /** Tramos que suenan, en segundos del archivo (los sonidos de Miguel traen
+   *  el sonido largo, uno corto y un ejemplo separados por silencios). Vacío
+   *  si no se pudo medir. */
+  tramos: Tramo[];
   /** Arranca el audio dentro de `retrasoS` segundos (negativo: ya empezado,
-   *  salta ese tramo) a `velocidad` (1, 0,5, 0,25) conservando el tono.
+   *  salta ese tramo) a `velocidad` (0,25, 0,5, 1 o 1,25) conservando el tono.
    *  Devuelve la función que lo para y la velocidad a la que de verdad suena:
    *  1 si el navegador no sabe ralentizar sin cambiar el tono (entonces la
    *  boca va despacio y el audio no; quien llama lo avisa). */
@@ -51,6 +58,42 @@ function tocarElemento(a: HTMLAudioElement, retrasoS: number, velocidad: number)
 
 const SILENCIO_FIJO = 0.12;
 const UMBRAL = 0.02;             // amplitud (unos -34 dB) que cuenta como «ya suena»
+
+export interface Tramo { inicio: number; fin: number }
+
+/** Tramos con sonido: energía media (RMS) por ventanas de 20 ms sobre el 6 %
+ *  del pico, uniendo huecos de menos de 0,2 s y quitando chasquidos de menos
+ *  de 60 ms. El ruido de fondo de una grabación directa queda por debajo. */
+export function tramosSonoros(canales: Float32Array[], frecuencia: number): Tramo[] {
+  const largo = canales[0]?.length ?? 0, paso = Math.max(1, Math.round(frecuencia * 0.02));
+  const rms: number[] = [];
+  for (let i = 0; i < largo; i += paso) {
+    let suma = 0, n = 0;
+    for (const c of canales) for (let k = i; k < Math.min(largo, i + paso); k++) { suma += c[k] * c[k]; n++; }
+    rms.push(Math.sqrt(suma / Math.max(1, n)));
+  }
+  const umbral = Math.max(0.01, 0.06 * Math.max(0, ...rms));
+  const tramos: Tramo[] = [];
+  rms.forEach((r, j) => {
+    if (r < umbral) return;
+    const t0 = j * paso / frecuencia, t1 = Math.min(largo, (j + 1) * paso) / frecuencia;
+    const ultimo = tramos[tramos.length - 1];
+    if (ultimo && t0 - ultimo.fin < 0.2) ultimo.fin = t1; else tramos.push({ inicio: t0, fin: t1 });
+  });
+  return tramos.filter(t => t.fin - t.inicio >= 0.06);
+}
+
+/** Último instante con energía de un buffer decodificado (el silencio del
+ *  final no cuenta como sonido). Sin energía, la duración entera. */
+export function finSonoro(canales: Float32Array[], frecuencia: number): number {
+  const largo = canales[0]?.length ?? 0;
+  for (let i = largo - 1; i >= 0; i--) {
+    for (const c of canales) {
+      if (Math.abs(c[i]) > UMBRAL) return (i + 1) / frecuencia;
+    }
+  }
+  return largo / frecuencia;
+}
 
 /** Primer instante con energía de un buffer decodificado, acotado a medio segundo. */
 export function silencioInicial(canales: Float32Array[], frecuencia: number): number {
@@ -115,11 +158,13 @@ export class Sonador {
     return {
       duracion: buffer.duration,
       silencio,
+      fin: Math.max(silencio, finSonoro(canales, buffer.sampleRate)),
+      tramos: tramosSonoros(canales, buffer.sampleRate),
       tocar: (retrasoS, velocidad = 1) => {
         this.parar();
         if (this.destruido) return { parar: () => {}, velocidad };
         if (velocidad !== 1) {
-          // Despacio: un <audio> con preservesPitch; Web Audio cambiaría el tono.
+          // Fuera de 1×: un <audio> con preservesPitch; Web Audio cambiaría el tono.
           const a = new Audio(url);
           const r = tocarElemento(a, retrasoS, velocidad);
           this.parando = r.parar;
@@ -148,6 +193,8 @@ export class Sonador {
         resolver({
           duracion: Number.isFinite(a.duration) ? a.duration : 1,
           silencio: SILENCIO_FIJO,
+          fin: Number.isFinite(a.duration) ? a.duration : 1,
+          tramos: [],
           tocar: (retrasoS, velocidad = 1) => {
             this.parar();
             if (this.destruido) return { parar: () => {}, velocidad };

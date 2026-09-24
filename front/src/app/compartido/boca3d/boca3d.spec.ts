@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import { VELOCIDADES, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import { silencioInicial } from './audio';
 import { Boca3d } from './boca3d';
-import { poseNumerica } from './escena';
+import { I_AIRE_ORAL, poseNumerica } from './escena';
 import { POSES_PROTOTIPO, REPOSO, poseDe, resolver, trocearIpa, CATALOGO_PROTOTIPO } from './poses';
 
 // Distribución de la pose numérica (ver escena.ts): mandíbula, velo, labio
@@ -107,8 +107,8 @@ describe('líneas de tiempo', () => {
     expect(l.quieta.mandibula).toBeGreaterThan(REPOSO.mandibula + 0.2);
     expect(l.claves.some(c => c.pose.mandibula > REPOSO.mandibula + 0.2)).toBe(true);
     const n = poseNumerica(l.quieta);
-    expect(n[n.length - 1]).toBe(1);                   // el aire oral, último valor de la pose numérica
-    expect(poseNumerica(REPOSO)[n.length - 1]).toBe(0);
+    expect(n[I_AIRE_ORAL]).toBe(1);                     // el aire oral
+    expect(poseNumerica(REPOSO)[I_AIRE_ORAL]).toBe(0);
   });
 
   it('el ciclo de un sonido dura 2,8 s, empieza y acaba en reposo y pasa por el sonido', () => {
@@ -156,7 +156,7 @@ describe('líneas de tiempo', () => {
     expect(lentoParaAudio(segmentos, CATALOGO_PROTOTIPO, 0)).toBe(1.6);
   });
 
-  it('a media velocidad la línea dura el doble, el sonido cae al doble y el audio se retrasa en proporción', () => {
+  it('las cuatro velocidades escalan solo el tiempo y conservan poses y sincronía', () => {
     const l = cicloSonido(POSES_PROTOTIPO['p'], CATALOGO_PROTOTIPO);
     const lenta = aVelocidad(l, 0.5);
     expect(lenta.total).toBeCloseTo(5.6, 6);
@@ -165,6 +165,9 @@ describe('líneas de tiempo', () => {
     expect(lenta.claves[2].pose).toBe(l.claves[2].pose);          // las poses no cambian
     expect(aVelocidad(l, 1)).toBe(l);                              // a 1× es la misma línea
     expect(aVelocidad(l, 0.25).total).toBeCloseTo(11.2, 6);
+    expect(aVelocidad(l, 1.25).total).toBeCloseTo(2.24, 6);
+    expect(aVelocidad(l, 1.25).claves.map(c => c.pose)).toEqual(l.claves.map(c => c.pose));
+    expect(VELOCIDADES).toEqual([0.25, 0.5, 1, 1.25]);
     // Audio con 0,2 s de silencio: a 0,5× ese silencio dura 0,4 s, así que
     // arranca 0,4 s antes del sonido; si el navegador no lo ralentiza (1×), 0,2 s antes.
     expect(retrasoAudio(lenta.sonidoEn, 0.2, 0.5)).toBeCloseTo(1.5, 6);
@@ -251,5 +254,18 @@ describe('Boca3d', () => {
     const c = fixture.componentInstance;
     expect(c.segmentos()[0].pose).toEqual(poseDe(c.catalogo(), 'əʊ', 'rp'));
     expect(c.pose()).toEqual(poseDe(c.catalogo(), 'ɚ', 'ga'));
+  });
+
+  it('mantiene el indicador compacto para sonoros aunque la glotis quede fuera de cámara', () => {
+    const fixture = TestBed.createComponent(Boca3d);
+    const c = fixture.componentInstance;
+    for (const simbolo of ['b', 'm', 'v', 'ð', 'z', 'ʒ']) {
+      c.elegir(simbolo);
+      expect(c.vibracionVisible(), `/${simbolo}/ debe indicar vibración`).toBe(true);
+    }
+    for (const simbolo of ['p', 'f', 'θ', 's', 'ʃ']) {
+      c.elegir(simbolo);
+      expect(c.vibracionVisible(), `/${simbolo}/ no debe indicar vibración`).toBe(false);
+    }
   });
 });

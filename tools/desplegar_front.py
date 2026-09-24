@@ -20,9 +20,11 @@ except ImportError:
 RAIZ = Path(__file__).resolve().parents[1]
 REPO = "MikeMaki1763/literalevel-front"
 API = "https://mikemaki1763-literalevel.hf.space"
-TEXTOS = {".html", ".js", ".css", ".json", ".svg"}
+TEXTOS = {".html", ".js", ".css", ".json", ".svg", ".txt"}
 # No hay fuentes binarias en el build actual. Una nueva requiere revision aqui.
-BINARIOS = {"favicon.ico", "boca3d/cara.glb", "boca3d/lengua.glb"}
+# 24 sep: la boca didáctica (D4) lleva sus propios GLB y sus créditos (.txt).
+BINARIOS = {"favicon.ico", "boca3d/cara.glb", "boca3d/lengua.glb",
+            "boca3d/didactica/cara.glb", "boca3d/didactica/lengua.glb"}
 REGLA_GLB = b"*.glb filter=lfs diff=lfs merge=lfs -text"
 
 

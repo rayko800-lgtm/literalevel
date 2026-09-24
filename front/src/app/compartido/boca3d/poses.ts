@@ -10,6 +10,12 @@ export type Movimiento = 'oclusiva' | 'fricativa' | 'africada' | 'nasal' | 'apro
 export type Labios = 'neutros' | 'cerrados' | 'redondeados' | 'muy_redondeados' | 'estirados' | 'labiodental';
 export type Punta = 'reposo' | 'interdental' | 'dental' | 'alveolar' | 'postalveolar' | 'retrofleja';
 
+/** Familia articulatoria por articulador protagonista (D4.2, diseño
+ *  aprobado 18 sep): agrupa fonemas que enseñan el mismo gesto, para elegir
+ *  un preset de cámara por familia y no uno por cada símbolo. */
+export type Familia =
+  | 'bilabial' | 'nasal-bilabial' | 'labiodental' | 'dental' | 'alveolar' | 'postalveolar' | 'rotico' | 'velar' | 'vocal';
+
 export type CampoLibre = 'mandibula' | 'labios' | 'punta' | 'cuerpo';
 
 export interface PoseSonido {
@@ -31,6 +37,10 @@ export interface PoseSonido {
   dorso_alto: number;
   /** Retracción de la raíz hacia la faringe, 0..1. */
   raiz: number;
+  /** Lote fase 1 (3D solo, no viene del 2D): rótica de GA (/ɹ ɝ ɚ/, lengua
+   *  abombada con la raíz contra la faringe) o /r/ de RP; manda la pose a la
+   *  familia `rotico`, que desde el lote encuadra también la faringe. */
+  rotica?: boolean;
   /** El velo baja y abre la nariz (nasales). */
   velo_abierto: boolean;
   sonora: boolean;
@@ -49,6 +59,31 @@ export interface CatalogoPoses {
   sonidos: Record<string, PoseSonido>;
   /** Lo que el británico articula distinto, por símbolo RP. */
   rp?: Record<string, PoseSonido>;
+}
+
+/** Lote fase 1 (22 sep 2026): lo que el 3D cambia sobre la exportación del 2D
+ *  congelado, por símbolo (campos sueltos de la pose). Vive en
+ *  `poses.ajustes3d.json` para que `poses.ejemplo.json` siga siendo la
+ *  exportación intacta de `tools/exportar_poses_boca3d.py`; cada entrada está
+ *  justificada en `auditoria/d4_4b_lote/divergencias_2d_3d.md`. */
+export interface AjustesPoses3d {
+  origen?: string;
+  sonidos?: Record<string, Partial<PoseSonido>>;
+  /** Un símbolo RP sin entrada propia en `rp` parte de su pose de GA. */
+  rp?: Record<string, Partial<PoseSonido>>;
+}
+
+/** El catálogo exportado con los ajustes del 3D encima. La misma regla en
+ *  `lengua.py` (comprobación) y `tools/boca3d_demo/medir_lengua.mjs`. */
+export function conAjustes3d(catalogo: CatalogoPoses, ajustes: AjustesPoses3d): CatalogoPoses {
+  const sonidos: Record<string, PoseSonido> = { ...catalogo.sonidos };
+  for (const [s, extra] of Object.entries(ajustes.sonidos ?? {})) if (sonidos[s]) sonidos[s] = { ...sonidos[s], ...extra };
+  const rp: Record<string, PoseSonido> = { ...(catalogo.rp ?? {}) };
+  for (const [s, extra] of Object.entries(ajustes.rp ?? {})) {
+    const base = rp[s] ?? sonidos[s];
+    if (base) rp[s] = { ...base, ...extra };
+  }
+  return { ...catalogo, sonidos, rp };
 }
 
 export const REPOSO: PoseSonido = {
@@ -111,6 +146,30 @@ export function poseDe(catalogo: CatalogoPoses, simbolo: string, acento: 'ga' | 
   if (acento === 'rp' && catalogo.rp?.[s]) return catalogo.rp[s];
   const corto = s.replace(/ː/g, '');
   return catalogo.sonidos[s] ?? catalogo.sonidos[corto] ?? catalogo.sonidos[PARECIDOS[corto] ?? ''] ?? null;
+}
+
+/** La familia de una pose: el mismo criterio que agrupa `PARAMETROS` en el
+ *  2D por articulador protagonista. Los róticos (punta retrofleja: /ɹ ɝ ɚ/)
+ *  se separan de alveolares/postalveolares aunque compartan `lugar`, porque
+ *  lo que hay que enseñar es justo que la punta se curva sin tocar. `/h/`
+ *  (glotal) y el reposo no tienen articulador protagonista: caen en la
+ *  vista general de `vocal`. */
+export function familiaDe(pose: PoseSonido): Familia {
+  // Lote fase 1: la /ɹ/ de GA pasa de retrofleja a abombada (punta en reposo),
+  // así que la familia la decide el campo `rotica`; la retrofleja sigue siendo rótica.
+  if (pose.punta === 'retrofleja' || pose.rotica) return 'rotico';
+  if (pose.movimiento === 'nasal' && pose.lugar === 'bilabial') return 'nasal-bilabial';
+  switch (pose.lugar) {
+    case 'bilabial': return 'bilabial';
+    case 'labiodental': return 'labiodental';
+    case 'interdental': return 'dental';
+    case 'alveolar': return 'alveolar';
+    case 'postalveolar': return 'postalveolar';
+    case 'velar': return 'velar';
+    // Vocales y diptongos (lugar vacío), /h/ (glotal) y el reposo: sin
+    // articulador protagonista, vista general.
+    default: return 'vocal';
+  }
 }
 
 /** Rellena los campos libres de `pose` con los del vecino (una vocal, o el

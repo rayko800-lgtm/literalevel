@@ -1,0 +1,91 @@
+{
+ "origen": "Ajustes del 3D sobre poses.ejemplo.json (que es la exportacion del 2D congelado y no se edita a mano). Se mezclan encima con conAjustes3d (poses.ts), lengua.py y medir_lengua.mjs. Cada entrada esta explicada en auditoria/d4_4b_lote/divergencias_2d_3d.md.",
+ "sonidos": {
+  "ɹ": {
+   "punta": "reposo",
+   "cuerpo": [
+    0.82,
+    0.35
+   ],
+   "dorso_alto": 0.3,
+   "raiz": 0.6,
+   "rotica": true,
+   "leyenda": "lengua abombada hacia el paladar, raíz atrás contra la faringe; la punta no toca"
+  },
+  "ɝ": {
+   "punta": "reposo",
+   "cuerpo": [
+    0.78,
+    0.38
+   ],
+   "dorso_alto": 0.3,
+   "raiz": 0.65,
+   "rotica": true
+  },
+  "ɚ": {
+   "punta": "reposo",
+   "cuerpo": [
+    0.7,
+    0.42
+   ],
+   "dorso_alto": 0.2,
+   "raiz": 0.65,
+   "rotica": true
+  },
+  "ɑ": {
+   "raiz": 0.0,
+   "cuerpo": [
+    0.05,
+    0.4
+   ]
+  },
+  "ɒ": {
+   "raiz": 0.0,
+   "cuerpo": [
+    0.02,
+    0.42
+   ],
+   "mandibula": 0.8
+  },
+  "ɔ": {
+   "raiz": 0.15,
+   "cuerpo": [
+    0.3,
+    0.35
+   ]
+  },
+  "ɪ": {
+   "mandibula": 0.36
+  },
+  "l": {
+   "leyenda": "l oscura, la de final de sílaba (feel, ball): punta en el alvéolo, aire por los lados y el dorso alzado hacia el velo"
+  },
+  "f": {
+   "mandibula": 0.08
+  },
+  "v": {
+   "mandibula": 0.08
+  }
+ },
+ "rp": {
+  "ɹ": {
+   "punta": "postalveolar",
+   "punta_toca": false,
+   "cuerpo": [
+    0.55,
+    0.45
+   ],
+   "dorso_alto": 0.0,
+   "raiz": 0.0,
+   "rotica": true,
+   "leyenda": "punta hacia la zona postalveolar sin tocar; sin retracción de la raíz (RP no rótica)"
+  },
+  "ɔː": {
+   "raiz": 0.15,
+   "cuerpo": [
+    0.55,
+    0.25
+   ]
+  }
+ }
+}

@@ -22,6 +22,27 @@ Fuera de la carpeta: `tools/exportar_poses_boca3d.py` genera el JSON;
 `tools/boca3d_demo.mjs` empaqueta una demo sin router (`tools/boca3d_demo/demo.ts`)
 y `tools/boca3d_demo/medir_fps.mjs` mide los cuadros por segundo con la CPU frenada.
 
+## Créditos y licencias de los modelos
+
+- **Cabeza (piel de la cara)**: «Infinite, 3D Head Scan» de **Lee Perry-Smith**
+  (Infinite Realities, [ir-ltd.net](http://www.ir-ltd.net/)), licencia
+  **Creative Commons Attribution 3.0 Unported (CC BY 3.0)**, basada en un trabajo
+  de [triplegangers.com](https://www.triplegangers.com). Se usa la versión decimada
+  con texturas de 1024 px que distribuye three.js
+  (`examples/models/gltf/LeePerrySmith/`, archivo `LeePerrySmith_License.txt`).
+  Copia local: `tools/boca3d_blender/lps/` (GLB, `Map-COL.jpg`,
+  `Infinite-Level_02_Tangent_SmoothUV.jpg` y la licencia). `cara.py` la recorta,
+  la escala a la cavidad, le abre la ranura de los labios y le añade las shape
+  keys labiales; el escaneo original no se modifica en disco. Cambios de v8
+  (23 sep 2026): el corte de perfil sigue usando la geometría y las dos texturas;
+  el recuadro frontal usa la geometría y una textura derivada de `Map-COL.jpg`,
+  hecha en el navegador (`texturaLisa` en `escena.ts`): piel de un tono uniforme
+  y el contorno del labio sacado de la foto, sin el mapa de normales. Las dos
+  son obra derivada y la atribución CC BY 3.0 se mantiene.
+- **Cabeza anterior (respaldo)**: MakeHuman 1.3.0, CC0 (`makehuman_cabeza.obj`);
+  se usa solo si falta el escaneo (`SIN_LPS=1`).
+- El resto (dientes, encías, paladar, velo, lengua) es procedimental, hecho aquí.
+
 ## Cómo se usa
 
 ```html
@@ -47,7 +68,7 @@ el símbolo tal como lo da la API en su inventario (`/api/fonemas`, RP incluido:
 | `audioSonido` | `string \| null` | `null` | El mp3 del sonido (`audio` de `/api/fonemas`, relativo o absoluto: se resuelve con `urlMotor`). Con él, el botón es **«Escuchar y ver»**: audio y ciclo arrancan a la vez y el audio se desplaza para sonar cuando la boca llega a la pose. |
 | `audioPalabra` | `string \| null` | `null` | El mp3 de la palabra (`audio` del detalle de `/api/voz`, o `audio_us`/`audio_uk` de `/api/palabra`). «Escuchar y ver /ipa/» escala la línea a la duración real del audio (menos su silencio inicial, medido con Web Audio o 120 ms fijos) para que las bocas caigan en sus sílabas. Si el audio falla, la palabra va sola. |
 | `svg2dUrl` | `string \| null` | `null` | Respaldo sin WebGL. `null` = el SVG de la API del sonido (quieto con reduced-motion); `''` lo apaga. |
-| `velocidad` | `1 \| 0.5 \| 0.25` | `1` | Velocidad de la boca y del audio. La línea (ciclo y palabra) se estira y el audio suena con `playbackRate` igual y `preservesPitch`; si el navegador no sabe ralentizar sin cambiar el tono, el audio va a 1×, la boca despacio, y `aviso()` lo dice bajo la leyenda. |
+| `velocidad` | `0.25 \| 0.5 \| 1 \| 1.25` | `1` | Velocidad de la boca y del audio. La línea (ciclo y palabra) se escala y el audio suena con `playbackRate` igual y `preservesPitch`; si el navegador no puede conservar el tono, ambos vuelven a 1× y `aviso()` lo dice bajo la leyenda. |
 | `conEscuchar` | `boolean` | `true` | Con `false` no aparecen los botones «Escuchar y ver» (la pantalla pone el suyo y llama a `escucharYVer()` / `verPalabra()`); el play del sonido queda como antes, sin audio. |
 | `leyenda` | `boolean` | `true` | La frase de la pose bajo el visor. |
 | `conSelector` | `boolean` | `false` | Chips para elegir sonido (demo y prototipo). |

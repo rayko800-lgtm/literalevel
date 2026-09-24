@@ -2,7 +2,7 @@
  *  reposo, 2,8 s) y una palabra entera, con los mismos instantes y las mismas
  *  duraciones que el corte 2D (`_linea_sonido` y `_linea_palabra` de
  *  `app/animacion_articulatoria`). Sin three.js: solo poses y segundos. */
-import { CatalogoPoses, DURACION_S, PoseSonido, Segmento, resolver } from './poses';
+import { CatalogoPoses, DURACION_S, Movimiento, PoseSonido, Segmento, resolver } from './poses';
 
 /** Un instante de la línea: la boca está en `pose`, o a la fracción `f` del
  *  camino entre `pose` y `hacia` (la «suelta» de una oclusiva). */
@@ -21,13 +21,35 @@ export interface Linea {
   /** Segundo de la línea en que empieza a sonar el sonido (o la palabra):
    *  el audio se arranca para que su primera energía caiga ahí. */
   sonidoEn: number;
+  /** D4.4b v4: soplos de aspiración. Cada oclusiva SORDA (/p t k/) suelta un
+   *  chorro de aire tras la liberación (VOT ≈25–40 ms, Lisker y Abramson
+   *  1964); la sonora (/b d ɡ/) no: en ella la vibración sigue desde la
+   *  liberación. `en` es el instante de la liberación y `dura`, lo que se ve
+   *  el soplo: la misma ráfaga que el 2D (0,55 s en `_linea_sonido`, contra
+   *  0,25 en las sonoras), escalada con la velocidad como todo lo demás. */
+  aspiracion?: { en: number; dura: number }[];
+}
+
+/** Duración visible del soplo de una oclusiva sorda, a 1× (la del 2D). */
+export const SOPLO_S = 0.55;
+
+/** Lote fase 3: el VOT de las sordas crece cuanto más atrás se articulan,
+ *  labial < alveolar < velar (≈25 / 35 / 42 ms en inicio tónico, Lisker y
+ *  Abramson 1964; investigación fonética §1 y §9.10). El soplo visible y el
+ *  retraso de la vibración de la vocal siguiente se escalan en esa proporción
+ *  sobre la alveolar, que conserva los 0,55 s del 2D. */
+export const VOT_MS: Record<string, number> = { bilabial: 25, alveolar: 35, velar: 42 };
+
+/** Lo que se ve el soplo de una oclusiva sorda, a 1×. */
+export function soploDe(pose: PoseSonido): number {
+  return SOPLO_S * (VOT_MS[pose.lugar] ?? VOT_MS['alveolar']) / VOT_MS['alveolar'];
 }
 
 /** El factor de «despacio» de las palabras del 2D. */
 export const LENTO = 1.6;
 
-/** Las velocidades que ofrece el visor: normal, media y un cuarto. */
-export const VELOCIDADES = [1, 0.5, 0.25] as const;
+/** Las cuatro velocidades discretas que ofrece Pronunciar. */
+export const VELOCIDADES = [0.25, 0.5, 1, 1.25] as const;
 export type Velocidad = (typeof VELOCIDADES)[number];
 
 /** La misma línea, `velocidad` veces más rápida (0,5 = el doble de larga):
@@ -36,13 +58,86 @@ export function aVelocidad(linea: Linea, velocidad: number): Linea {
   const v = velocidad > 0 ? velocidad : 1;
   if (v === 1) return linea;
   return { ...linea, total: linea.total / v, sonidoEn: linea.sonidoEn / v,
-    claves: linea.claves.map(c => ({ ...c, t: c.t / v })) };
+    claves: linea.claves.map(c => ({ ...c, t: c.t / v })),
+    aspiracion: linea.aspiracion?.map(a => ({ en: a.en / v, dura: a.dura / v })) };
 }
 
 /** Cuándo arrancar el audio (segundos desde el arranque de la línea) para
  *  que su primera energía caiga en `sonidoEn` de la línea ya ralentizada:
  *  el silencio inicial del archivo dura `silencio / velocidadAudio` al
  *  reproducirlo a esa velocidad (1 si el navegador no pudo ralentizarlo). */
+/** Ajusta el ciclo de un sonido a lo que de verdad dura su audio (Miguel,
+ *  24 sep: «que la animación vaya al mismo tiempo que el sonido»). El tramo
+ *  que suena se estira o acorta a `sonora` segundos (a 1×) y lo que viene
+ *  después se desplaza; `sonidoEn` pasa al comienzo de ese tramo:
+ *  - vocales, fricativas, nasales, aproximantes: la pose sostenida;
+ *  - oclusivas: desde la explosión (fin del cierre) hasta volver al reposo;
+ *  - africadas: desde la suelta del cierre hasta el final de la fricción;
+ *  - diptongos: del primer objetivo al final del segundo. */
+export function alAudio(linea: Linea, movimiento: Movimiento, sonora: number): Linea {
+  const c = linea.claves;
+  if (c.length < 5 || !(sonora > 0)) return linea;
+  const [ia, ib] = movimiento === 'oclusiva' ? [3, 5]
+    : movimiento === 'africada' || movimiento === 'diptongo' ? (c.length >= 7 ? (movimiento === 'africada' ? [3, 5] : [2, 5]) : [2, 3])
+    : [2, 3];
+  const a = c[ia].t, b = c[ib].t, largo = Math.min(4, Math.max(0.2, sonora));
+  const escala = largo / Math.max(1e-6, b - a), desplazar = largo - (b - a);
+  const mover = (t: number) => t <= a ? t : t <= b ? a + (t - a) * escala : t + desplazar;
+  return {
+    ...linea,
+    claves: c.map(k => ({ ...k, t: mover(k.t) })),
+    total: linea.total + desplazar,
+    sonidoEn: a,
+    aspiracion: linea.aspiracion?.map(x => ({ en: mover(x.en), dura: x.dura })),
+  };
+}
+
+/** El gesto de un sonido repetido en cada tramo que suena de su audio (en
+ *  segundos del archivo). La línea va `ADELANTO` por delante del archivo
+ *  para que la boca llegue a la pose justo cuando empieza cada tramo:
+ *  `sonidoEn - silencio` es ese adelanto (ver `retrasoAudio`). Oclusivas:
+ *  cierre antes del tramo y explosión al empezar; africadas: cierre y luego
+ *  la fricción durante el tramo; diptongos: del primer objetivo al segundo. */
+export const ADELANTO = 0.45;
+export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
+                                 tramos: { inicio: number; fin: number }[], silencio: number, duracion: number): Linea | null {
+  if (!tramos.length) return null;
+  const R = catalogo.reposo;
+  const [PA0, PB] = objetivos(pose, R, R);
+  const PA = conAlgoQueVer(pose, PA0, R);
+  const m = pose.movimiento, L = ADELANTO;
+  const claves: Clave[] = [{ t: 0, pose: R }];
+  const aspiracion: { en: number; dura: number }[] = [];
+  let libre = 0;          // instante desde el que se puede empezar a mover
+  for (const { inicio, fin } of tramos) {
+    const a = L + inicio, b = Math.max(a + 0.08, L + fin);
+    const ir = Math.max(libre, a - 0.35);
+    if (m === 'oclusiva') {
+      const cierre = Math.max(libre + 0.05, a - 0.3);
+      claves.push({ t: Math.max(libre, cierre - 0.3), pose: R }, { t: cierre, pose: PA }, { t: a, pose: PA },
+        { t: a + 0.08, pose: PA, hacia: R, f: 0.5 }, { t: Math.max(a + 0.35, b), pose: R });
+      if (!pose.sonora) aspiracion.push({ en: a + 0.08, dura: soploDe(pose) });
+      libre = Math.max(a + 0.35, b);
+    } else if (m === 'africada' && PB) {
+      claves.push({ t: ir, pose: R }, { t: a - 0.05, pose: PA }, { t: a + 0.05, pose: PB }, { t: b, pose: PB }, { t: b + 0.3, pose: R });
+      libre = b + 0.3;
+    } else if (m === 'diptongo' && PB) {
+      claves.push({ t: ir, pose: R }, { t: a, pose: PA }, { t: b, pose: PB }, { t: b + 0.3, pose: R });
+      libre = b + 0.3;
+    } else {
+      claves.push({ t: ir, pose: R }, { t: a, pose: PA }, { t: b, pose: PA }, { t: b + 0.3, pose: R });
+      libre = b + 0.3;
+    }
+  }
+  const total = Math.max(libre, L + duracion) + 0.2;
+  claves.push({ t: total, pose: R });
+  // Instantes estrictamente crecientes (huecos muy cortos entre tramos).
+  for (let i = 1; i < claves.length; i++) if (claves[i].t <= claves[i - 1].t) claves[i] = { ...claves[i], t: claves[i - 1].t + 0.01 };
+  const linea: Linea = { total: claves[claves.length - 1].t, claves, quieta: PA, sonidoEn: L + silencio };
+  if (aspiracion.length) linea.aspiracion = aspiracion;
+  return linea;
+}
+
 export function retrasoAudio(sonidoEnLento: number, silencio: number, velocidadAudio: number): number {
   return sonidoEnLento - silencio / (velocidadAudio > 0 ? velocidadAudio : 1);
 }
@@ -98,7 +193,23 @@ export function cicloSonido(pose: PoseSonido, catalogo: CatalogoPoses): Linea {
   }
   // El sonido suena cuando la boca llega a la pose (la tercera clave en
   // todos los casos), no cuando arranca el movimiento.
-  return { total: 2.8, claves, quieta: PA, sonidoEn: claves[2].t };
+  const linea: Linea = { total: 2.8, claves, quieta: PA, sonidoEn: claves[2].t };
+  // La «suelta» de la oclusiva sorda (la clave con `hacia`) lleva el soplo.
+  if (m === 'oclusiva' && !pose.sonora) linea.aspiracion = [{ en: claves[4].t, dura: soploDe(pose) }];
+  return linea;
+}
+
+/** Si la oclusiva `i` de la palabra lleva soplo. Solo la sorda que se suelta
+ *  hacia una vocal o /l ɹ w j/ (pin, play, try); tras /s/ no hay aspiración
+ *  (spin, stop, sky) y al final, o ante otra consonante, no se suelta con
+ *  soplo (hot, act). Ladefoged y Johnson (2011, cap. 3); Cruttenden (2014).
+ *  El ciclo de un sonido suelto sí lo lleva: es la suelta ante el reposo. */
+export function seAspira(segmentos: Segmento[], i: number): boolean {
+  const s = segmentos[i];
+  if (s.pose.movimiento !== 'oclusiva' || s.pose.sonora) return false;
+  if (segmentos[i - 1]?.simbolo === 's') return false;
+  const sig = segmentos[i + 1]?.pose.movimiento;
+  return sig === 'vocal' || sig === 'diptongo' || sig === 'aproximante';
 }
 
 /** Cuánto duran los sonidos de una palabra (sin reposos), a `lento` = 1. */
@@ -143,6 +254,7 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
   const inicio = 0.45;
   const total = inicio + durs.reduce((a, b) => a + b, 0) + 1.0;
   const claves: Clave[] = [{ t: 0, pose: R }, { t: inicio - 0.05, pose: R }];
+  const aspiracion: { en: number; dura: number }[] = [];
   let t = inicio;
   segmentos.forEach((s, i) => {
     const d = durs[i];
@@ -150,6 +262,7 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
     const m = s.pose.movimiento;
     if (m === 'oclusiva') {
       claves.push({ t: t + 0.45 * d, pose: PA }, { t: t + 0.8 * d, pose: PA });
+      if (seAspira(segmentos, i)) aspiracion.push({ en: t + 0.8 * d, dura: soploDe(s.pose) * lento });
     } else if (m === 'africada' && PB) {
       claves.push({ t: t + 0.3 * d, pose: PA }, { t: t + 0.5 * d, pose: PA }, { t: t + 0.8 * d, pose: PB }, { t: t + 0.95 * d, pose: PB });
     } else if (m === 'diptongo' && PB) {
@@ -163,5 +276,5 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
   // La pose quieta: la vocal acentuada, o la primera vocal, o el primer sonido.
   const fija = vocales.find(i => segmentos[i].acento_silaba === 1) ?? vocales[0] ?? 0;
   const quieta = segmentos.length ? objetivos(segmentos[fija].pose, vecino(fija), R)[0] : R;
-  return { total, claves, quieta, sonidoEn: inicio };
+  return { total, claves, quieta, sonidoEn: inicio, aspiracion: aspiracion.length ? aspiracion : undefined };
 }

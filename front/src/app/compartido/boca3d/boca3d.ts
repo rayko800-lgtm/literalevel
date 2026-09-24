@@ -1,14 +1,16 @@
 import {
-  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal,
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, isDevMode, signal,
   viewChild,
 } from '@angular/core';
 import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
-import { Linea, Velocidad, aVelocidad, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import ajustes3d from './poses.ajustes3d.json';
+import { Linea, Velocidad, aVelocidad, alAudio, alCompasDeTramos, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import type { Tramo } from './audio';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
-import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './poses';
+import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, familiaDe, poseDe, trocearIpa } from './poses';
 
 /** La boca en 3D esquemático, girable con el dedo.
  *
@@ -39,6 +41,11 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
            [attr.aria-label]="descripcion() + '. Flechas izquierda y derecha para girar.'"
            aria-keyshortcuts="ArrowLeft ArrowRight" (keydown)="teclaGiro($event)"
            [attr.data-acento-sonido]="acento()" [attr.data-acento-palabra]="acentoIpa() ?? acento()"></div>
+      @if (modo() === '3d' && vibracionVisible()) {
+        <div class="indicador-vibracion" role="status" aria-label="Vibración: sonido sonoro">
+          <span class="pulso" aria-hidden="true"></span><span>Vibración · sonora</span>
+        </div>
+      }
       @if (modo() === '2d' && urlRespaldo(); as url) {
         <img class="respaldo" [src]="url" [alt]="descripcion()" />
       } @else if (modo() === '2d') {
@@ -47,6 +54,12 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
     </div>
     @if (modo() === '3d') {
       <div class="pie">
+        @if (didactica()) {
+          <span class="botones vistas" role="group" aria-label="Vista">
+            <button type="button" class="boton compacto" [class.activo]="frente()" [attr.aria-pressed]="frente()" (click)="verFrente(true)">Frente · labios</button>
+            <button type="button" class="boton compacto" [class.activo]="!frente()" [attr.aria-pressed]="!frente()" (click)="verFrente(false)">Lado · interior</button>
+          </span>
+        }
         <span class="botones">
           @if (pose() && elegido()) {
             @if (urlAudioSonido() && conEscuchar()) {
@@ -60,10 +73,16 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
               <app-icono [nombre]="urlAudioPalabra() && conEscuchar() ? 'altavoz' : 'play'" />{{ urlAudioPalabra() && conEscuchar() ? 'Escuchar y ver' : 'Palabra' }}
               <span class="ipa">/{{ textoIpa() }}/</span></button>
           }
-          <button type="button" class="boton" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
-                  (click)="alternarGiro()" title="Giro libre" aria-label="Giro libre"><app-icono nombre="girar" /></button>
-          <button type="button" class="boton" (click)="restablecer()" title="Restablecer vista de lado" aria-label="Restablecer vista de lado"><app-icono nombre="recargar" /></button>
+          <button type="button" class="boton compacto" [attr.aria-pressed]="giroLibre()" [class.activo]="giroLibre()"
+                  (click)="alternarGiro()"><app-icono nombre="girar" />Explorar</button>
+          <button type="button" class="boton compacto" (click)="restablecer()"><app-icono nombre="recargar" />Restaurar vista</button>
         </span>
+      </div>
+    }
+    @if (modo() === '3d' && conVariantesL()) {
+      <div class="chips variantes" role="group" aria-label="Variante de /l/">
+        <button type="button" class="chip" [class.elegido]="!lClara()" [attr.aria-pressed]="!lClara()" (click)="elegirVarianteL(false)">oscura · final de sílaba</button>
+        <button type="button" class="chip" [class.elegido]="lClara()" [attr.aria-pressed]="lClara()" (click)="elegirVarianteL(true)">clara · inicio de sílaba</button>
       </div>
     }
     @if (leyenda() && pose()?.leyenda; as l) {
@@ -72,12 +91,26 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
     @if (aviso(); as a) {
       <p class="leyenda aviso" role="status">{{ a }}</p>
     }
+    <!-- La cabeza didáctica deriva de «Infinite, 3D Head Scan» (Lee Perry-Smith,
+         CC BY 3.0): la licencia pide citarla donde se usa. -->
+    @if (didactica() && modo() === '3d') {
+      <p class="creditos"><a href="boca3d/didactica/CREDITOS.txt" target="_blank" rel="noopener">Créditos del modelo 3D</a></p>
+    }
+    <!-- D4.2.1 (Miguel, 18 sep): saber con certeza qué esta viendo quien prueba
+         -- GLB o respaldo, familia/zoom/target activos --, solo en desarrollo. -->
+    @if (modoDesarrollo && diagnostico(); as d) {
+      <pre class="diagnostico">cara: {{ d.cara }} · lengua: {{ d.lengua }} · familia: {{ d.familia }}
+zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
+    }
   `,
   styles: `
     :host { display: block; min-width: 0; margin-top: 12px; }
+    .creditos { font-size: .75rem; margin: 4px 0 0; opacity: .75; }
+    .botones.vistas { margin-bottom: 8px; }
     /* Pastillas y controles con los mínimos de investigacion/una_mano.md: se tocan
        seguidos (un sonido tras otro), así que 44-48 px y 8 px de hueco. */
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .chips.variantes { margin: 10px 0 0; }
     .chip { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borde, #d6deeb);
       background: var(--tarjeta, transparent); color: inherit; cursor: pointer; min-height: 44px; }
     .chip.elegido { background: var(--acento, #2f5bea); color: #fff; border-color: var(--acento, #2f5bea); }
@@ -87,18 +120,29 @@ import { CatalogoPoses, DURACION_S, PoseSonido, poseDe, trocearIpa } from './pos
     .lienzo { width: 100%; height: var(--boca3d-alto, 420px); max-height: 65vh; min-height: 220px; }
     .lienzo[hidden] { display: none; }
     .respaldo { display: block; width: 100%; height: 360px; object-fit: contain; }
+    .indicador-vibracion { position: absolute; z-index: 2; top: 10px; right: 10px; display: inline-flex;
+      align-items: center; gap: 6px; max-width: calc(100% - 20px); padding: 5px 9px; border-radius: 999px;
+      color: #613708; background: rgba(255, 244, 216, .94); border: 1px solid rgba(154, 94, 18, .42);
+      box-shadow: 0 2px 8px rgba(65, 39, 14, .16); font-size: .78rem; font-weight: 700; line-height: 1;
+      pointer-events: none; }
+    .indicador-vibracion .pulso { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%;
+      background: #d98216; box-shadow: 0 0 0 3px rgba(217, 130, 22, .2); }
     .sin { margin: 0; padding: 24px 16px; color: var(--texto-suave, #48566f); text-align: center; }
     .pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
       margin-top: 8px; font-size: .9em; color: var(--texto-tenue, #647189); }
-    .botones { display: flex; flex-wrap: wrap; gap: 8px; }
+    .botones { display: flex; flex-wrap: wrap; gap: 4px; }
     .boton { font: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       padding: 8px; border-radius: 6px; border: 1px solid var(--borde, #d6deeb);
       background: transparent; color: inherit; cursor: pointer; min-height: 48px; min-width: 48px; }
     .boton.activo { background: var(--acento-suave, #e6ecff); border-color: var(--acento, #2f5bea);
       color: var(--acento-texto, #2449c9); }
     .boton.principal { background: var(--acento, #2f5bea); border-color: var(--acento, #2f5bea); color: #fff; padding: 8px 14px; }
+    .boton.compacto { min-width: 0; padding: 4px 6px; gap: 3px; font-size: .82em; }
     .leyenda { margin: 8px 0 0; color: var(--texto-suave, #48566f); }
     .leyenda.aviso { font-size: .9em; color: var(--texto-tenue, #647189); }
+    /* Solo en desarrollo (isDevMode()): nunca en el build de produccion. */
+    .diagnostico { margin: 6px 0 0; font-size: .78em; line-height: 1.4; color: var(--texto-tenue, #647189);
+      background: var(--tarjeta, rgba(127,127,127,.08)); border-radius: 6px; padding: 6px 8px; white-space: pre-wrap; }
   `,
 })
 export class Boca3d {
@@ -109,7 +153,7 @@ export class Boca3d {
    *  corrección, el elegido en la tabla del AFI). */
   readonly acento = input<Acento>('ga');
   /** Snapshot reproducible del mismo inventario que sirve el corte 2D. */
-  readonly catalogo = input<CatalogoPoses>(posesCompletas as unknown as CatalogoPoses);
+  readonly catalogo = input<CatalogoPoses>(conAjustes3d(posesCompletas as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d));
   /** El corte 2D para cuando no hay WebGL. Por defecto, el SVG de la API del
    *  sonido elegido (`/api/articulacion/{acento}/{símbolo}.svg`, quieto si se
    *  pide reducir el movimiento); `''` lo apaga y deja solo una frase. */
@@ -133,8 +177,8 @@ export class Boca3d {
   readonly conEscuchar = input<boolean>(true);
   /** Al cambiar `sonido`, reproducir su ciclo reposo → sonido → reposo. */
   readonly autoReproducir = input<boolean>(true);
-  /** Velocidad de la boca y del audio: 1 (normal), 0,5 o 0,25. La línea de
-   *  tiempo (ciclo y palabra) se estira y el audio suena con `playbackRate`
+  /** Velocidad de la boca y del audio: 0,25, 0,5, 1 o 1,25. La línea de
+   *  tiempo (ciclo y palabra) se escala y el audio suena con `playbackRate`
    *  igual y `preservesPitch`; si el navegador no sabe ralentizar sin
    *  cambiar el tono, el audio va a 1× y la boca despacio, y se avisa en
    *  `aviso` (Miguel, 14 sep: «va muy rápida; que se pueda ver cada movimiento»). */
@@ -142,9 +186,22 @@ export class Boca3d {
   /** La mejilla translúcida del lado de la cámara. Es lo que más cuesta
    *  pintar sin GPU (medido en Chrome headless): se puede apagar. */
   readonly mejilla = input<boolean>(true);
+  /** D4: la boca didáctica (cara con textura, lengua y labios realistas, corte
+   *  anatómico). Lleva sus propios GLB en `boca3d/didactica/` y dos vistas,
+   *  «Frente» (labios) y «Lado» (corte); sin el giro pedagógico por familia. */
+  readonly didactica = input<boolean>(false);
+  /** En modo didáctico: vista frontal (labios) o corte lateral. */
+  readonly frente = signal(true);
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
+  /** D4.2.1: solo en desarrollo (`isDevMode()`), nunca en el build de
+   *  producción — «no mostrar esta información en producción». */
+  readonly modoDesarrollo = isDevMode();
+  /** Cara/lengua GLB cargados o de respaldo, y familia/zoom/target activos:
+   *  para saber con certeza qué geometría se está viendo en una prueba. */
+  readonly diagnostico = signal<{ cara: string; lengua: string; familia: string; zoom: string; target: string } | null>(null);
+  private diagnosticoId = 0;
   /** Un aviso bajo la leyenda (el audio no se pudo ralentizar), o vacío. */
   readonly aviso = signal('');
   /** El lienzo captura también los gestos verticales (sin scroll sobre la boca). */
@@ -152,7 +209,20 @@ export class Boca3d {
   private readonly elegidoPorChip = signal<string | null>(null);
   readonly elegido = computed(() => this.elegidoPorChip() ?? this.sonido());
   readonly simbolos = computed(() => Object.keys(this.catalogo().sonidos));
-  readonly pose = computed<PoseSonido | null>(() => poseDe(this.catalogo(), this.elegido(), this.acento()));
+  /** Lote fase 2: /l/ de GA tiene dos variantes y la ficha enseña las dos. La
+   *  pose del catálogo es la OSCURA (final de sílaba: dorso alzado hacia el velo
+   *  y raíz atrás), porque el error del hispanohablante es usar la clara en
+   *  todas partes; la clara (inicio de sílaba) es la misma sin alzar el dorso.
+   *  Guarda el símbolo para el que se eligió: al cambiar de sonido vuelve a la oscura. */
+  private readonly lClaraPara = signal<string | null>(null);
+  readonly conVariantesL = computed(() => this.elegido() === 'l' && this.acento() === 'ga');
+  readonly lClara = computed(() => this.lClaraPara() === this.elegido() && this.conVariantesL());
+  readonly pose = computed<PoseSonido | null>(() => {
+    const p = poseDe(this.catalogo(), this.elegido(), this.acento());
+    if (!p || !this.lClara()) return p;
+    return { ...p, dorso_alto: 0, raiz: 0,
+      leyenda: 'l clara, la de inicio de sílaba (light, like): punta en el alvéolo y aire por los lados, sin alzar el dorso' };
+  });
   private readonly troceada = computed(() => trocearIpa(this.ipa(), this.catalogo(), this.acentoIpa() ?? this.acento()));
   readonly segmentos = computed(() => this.troceada().segmentos);
   readonly textoIpa = computed(() => this.troceada().texto);
@@ -173,6 +243,9 @@ export class Boca3d {
     if (!p) return `No sé cómo se articula /${s}/`;
     return s ? `La boca diciendo /${s}/: ${p.leyenda}` : 'La boca en reposo';
   });
+  /** Refuerzo fijo dentro del visor: el pulso glótico 3D puede quedar fuera
+   *  del encuadre al acercar, pero la relación vibración = sonoridad no. */
+  readonly vibracionVisible = computed(() => !!this.elegido() && this.pose()?.sonora === true);
 
   private readonly lienzo = viewChild.required<ElementRef<HTMLDivElement>>('lienzo');
   private escena: EscenaBoca | null = null;
@@ -192,17 +265,46 @@ export class Boca3d {
         const host = this.lienzo().nativeElement;
         const estilo = getComputedStyle(host);
         const color = (v: string) => estilo.getPropertyValue(v).trim() || undefined;
+        const didactica = this.didactica();
+        const carpeta = didactica ? 'boca3d/didactica/' : 'boca3d/';
         this.escena = new EscenaBoca(host, {
           colores: { lengua: color('--ll-lengua') as string | undefined },
           reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
           mejilla: this.mejilla(),
-          lenguaGlb: new URL('boca3d/lengua.glb', document.baseURI).href,
-          caraGlb: new URL('boca3d/cara.glb', document.baseURI).href,
+          ...(didactica ? { exploracionDidactica: true, entorno: true, sombras: false } : {}),
+          lenguaGlb: new URL(carpeta + 'lengua.glb', document.baseURI).href,
+          caraGlb: new URL(carpeta + 'cara.glb', document.baseURI).href,
+          // La primera apertura no debe enseñar como composicion final las
+          // piezas geometricas de respaldo mientras llegan los GLB: al
+          // reabrir, la cache las sustituia casi de inmediato y parecia que
+          // labios/estructuras habian desaparecido.
+          alPreparar: () => { if (this.escena) this.modo.set('3d'); },
           alPerderContexto: () => this.perdioContexto(),
         });
-        this.modo.set('3d');
         const p = this.pose();
-        if (p) this.escena.irA(p, 0);
+        if (didactica) this.escena.vistaDidactica(this.frente());
+        if (p) {
+          if (!didactica) this.escena.vistaParaFamilia(familiaDe(p));
+          this.escena.irA(p, 0);
+        }
+        if (this.modoDesarrollo) {
+          // D4.2.1: refresco simple por sondeo (no hay evento de "GLB listo"
+          // ni señal reactiva en EscenaBoca) para que el panel de depuración
+          // refleje la carga asíncrona de cara.glb/lengua.glb, no solo el
+          // instante de montar.
+          const actualizar = () => {
+            if (!this.escena) return;
+            const d = this.escena.diagnostico;
+            this.diagnostico.set({
+              cara: this.escena.tieneCaraModelada ? 'GLB' : 'respaldo geométrico',
+              lengua: this.escena.tieneLenguaModelada ? 'GLB' : 'respaldo geométrico',
+              familia: d.familia, zoom: d.zoom.toFixed(2),
+              target: `${d.target.x.toFixed(2)}, ${d.target.y.toFixed(2)}`,
+            });
+          };
+          actualizar();
+          this.diagnosticoId = window.setInterval(actualizar, 500);
+        }
       } catch {
         this.modo.set('2d');
       }
@@ -212,7 +314,12 @@ export class Boca3d {
       const p = this.pose();
       const escena = this.escena;
       if (!p || !escena) return;
-      if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
+      // D4.2: cada sonido pone primero la vista pedagógica de su familia
+      // (sin interacción), y luego la pose/animación como hasta ahora.
+      if (!this.didactica()) escena.vistaParaFamilia(familiaDe(p));
+      this.giroLibre.set(false);
+      escena.girarLibre(false);
+      if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), this.opcionesGiro(p));
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
     });
     destruir.onDestroy(() => {
@@ -222,6 +329,7 @@ export class Boca3d {
       this.sonador.destruir();
       this.escena?.destruir();
       this.escena = null;
+      if (this.diagnosticoId) window.clearInterval(this.diagnosticoId);
     });
   }
 
@@ -233,7 +341,7 @@ export class Boca3d {
   /** Reposo → sonido → reposo, una vez. */
   verMovimiento(): void {
     const p = this.pose();
-    if (p && this.escena) this.escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
+    if (p && this.escena) this.escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), this.opcionesGiro(p));
   }
 
   /** El sonido: su audio y su ciclo arrancan en el mismo instante, con el
@@ -244,7 +352,11 @@ export class Boca3d {
     if (!p || !this.escena) return;
     const url = this.urlAudioSonido();
     if (!url) { this.verMovimiento(); return; }
-    void this.conAudio(url, () => cicloSonido(p, this.catalogo()), { giro: giroPara(p) });
+    // La boca repite el gesto en cada tramo que suena del audio medido; si no
+    // se pudo medir, el ciclo de siempre ajustado a lo que suena.
+    void this.conAudio(url, listo => alCompasDeTramos(p, this.catalogo(), listo.tramos, listo.silencio, listo.duracion)
+      ?? alAudio(cicloSonido(p, this.catalogo()), p.movimiento, listo.fin - listo.silencio),
+      this.opcionesGiro(p));
   }
 
   /** La palabra de `ipa` entera: con audio, la línea se escala a la duración
@@ -259,7 +371,7 @@ export class Boca3d {
       listo.duracion > 0 ? lentoParaAudio(segs, this.catalogo(), listo.duracion, listo.silencio) : undefined));
   }
 
-  private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number }) => Linea,
+  private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number; fin: number; tramos: Tramo[] }) => Linea,
                          opciones: { giro?: number } = {}): Promise<void> {
     this.sonador.despertar();                    // dentro del clic, por iOS
     this.sonador.parar();
@@ -268,7 +380,7 @@ export class Boca3d {
     if (numero !== this.peticion || !this.escena) return;
     this.aviso.set('');
     if (!listo) {
-      this.escena.reproducir(this.lenta(linea({ duracion: 0, silencio: 0 })), opciones);
+      this.escena.reproducir(this.lenta(linea({ duracion: 0, silencio: 0, fin: 0, tramos: [] })), opciones);
       return;
     }
     // La línea se ajusta al audio a 1× y después se estira; el audio suena a
@@ -282,8 +394,13 @@ export class Boca3d {
     if (r.velocidad !== v) {
       r.parar();
       listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1), 1);
-      this.aviso.set('Este navegador no puede ralentizar el audio sin cambiar el tono: el audio suena a velocidad normal y la boca va despacio.');
+      this.aviso.set('Este navegador no puede usar esta velocidad sin cambiar el tono: el audio y la boca vuelven a velocidad normal.');
     }
+  }
+
+  /** Lote fase 2: /l/ oscura (final de sílaba) o clara (inicio de sílaba). */
+  elegirVarianteL(clara: boolean): void {
+    this.lClaraPara.set(clara ? this.elegido() : null);
   }
 
   elegir(simbolo: string): void {
@@ -292,12 +409,30 @@ export class Boca3d {
   }
 
   restablecer(): void {
+    this.giroLibre.set(false);
+    this.escena?.girarLibre(false);
     this.escena?.restablecerVista();
+  }
+
+  /** D4: «Frente» (labios) o «Lado» (corte anatómico). */
+  verFrente(frente: boolean): void {
+    this.frente.set(frente);
+    this.giroLibre.set(false);
+    this.escena?.girarLibre(false);
+    this.escena?.vistaDidactica(frente);
+    const p = this.pose();
+    if (p && frente) this.escena?.irA(p, 0);
   }
 
   alternarGiro(): void {
     this.giroLibre.update(v => !v);
     this.escena?.girarLibre(this.giroLibre());
+  }
+
+  /** En explorar, repetir conserva la orientación elegida; en guiado puede
+   *  usar el pequeño giro pedagógico asociado al gesto. */
+  private opcionesGiro(p: PoseSonido): { giro?: number } {
+    return this.giroLibre() || this.didactica() ? {} : { giro: giroPara(p) };
   }
 
   /** Flechas izquierda y derecha con el foco en el lienzo: un cuarto de vuelta
