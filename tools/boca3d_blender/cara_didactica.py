@@ -30,6 +30,10 @@ construir_interior()
 from dientes_realistas import construir as construir_dientes
 construir_dientes()
 
+# 24 sep: pelo corto ilustrativo sobre la cabeza rapada del escaneo.
+from pelo_didactico import construir as construir_pelo
+construir_pelo()
+
 for ob in bpy.context.scene.objects:
     if ob.type=='MESH':
         assert all(math.isfinite(c) for v in ob.data.vertices for c in v.co),ob.name

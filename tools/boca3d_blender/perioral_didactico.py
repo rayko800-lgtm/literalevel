@@ -17,6 +17,8 @@ FV_ELEVACION=float(_os.environ.get('FV_ELEVACION','.85'))
 FV_CENTRO=float(_os.environ.get('FV_CENTRO','.6'))
 FV_CAIDA=float(_os.environ.get('FV_CAIDA','.6'))
 FV_MANDIBULA=float(_os.environ.get('FV_MANDIBULA','.08'))
+# Sonrisa de reposo: cuánto suben las comisuras (unidades del modelo).
+SONRISA=float(_os.environ.get('SONRISA','.09'))
 
 def desplazamiento_mandibula(p, apertura=.2, suavidad=0.):
     """Campo de piel del visor (x, altura, lateral), antes de sumar morfos.
@@ -354,6 +356,18 @@ def construir():
                 peso=abs(s)**.8
                 body.data[i].co.z += [.030,.075,.045,.006][ri-2]*(1. if s>0 else -.60)*peso
                 body.data[i].co.x -= [.020,.045,.018,0.][ri-2]*peso
+        # 24 sep (Miguel: «que se vea amigable»): sonrisa leve de reposo. Solo
+        # las comisuras suben y se retiran un poco; el centro de los labios y
+        # su contacto no se mueven. El visor la apaga al articular.
+        risa=ob.shape_key_add(name='sonrisa',from_mix=False)
+        for i,p in enumerate(keys[0].data):risa.data[i].co=p.co
+        for ri in range(0,7):
+            for q in range(n+1):
+                i=ri*(n+1)+q;t=abs(math.cos(start+math.pi*q/n))
+                w=((t-.72)/.28) if t>.72 else 0.
+                w=w*w*(3-2*w)*[1.,1.,1.,.9,.7,.45,.2][ri]
+                risa.data[i].co.z += SONRISA*w
+                risa.data[i].co.x += .35*SONRISA*w
         for j,v in enumerate(mesh.vertices):v.co=keys[0].data[j].co
         mesh.update()
         normals=[]
@@ -395,7 +409,7 @@ def construir():
         if any(j<4*65 for _,j in grupos[k]):continue
         if p.x>-1.6 or p.z>1.05 or math.hypot(p.y/2.1,(p.z-.15)/1.5)>1:continue
         libres[k]=[(v,1/max(.025,(puntos[v]-p).length)) for v in adj[k]]
-    for nombre in ['fruncir','estirar','abrir_neutro','cuerpo_labial']:
+    for nombre in ['fruncir','estirar','abrir_neutro','cuerpo_labial','sonrisa']:
         delta={k:sum((ob.data.shape_keys.key_blocks[nombre].data[j].co-puntos[k] for ob,j in pares),Vector())/len(pares) for k,pares in grupos.items()}
         for k in delta:
             if abs(puntos[k].y)<1e-5:delta[k].y=0.
