@@ -2,6 +2,17 @@
 
 Keep this document short and current.
 
+## Boca3D — 23 sep 2026, 23:24 CDMX, Nico
+
+Se conserva74c9941 como candidato vigente. Prueba acotada de acabado labial
+mate/húmedo descartada: diferencia visual insuficiente; escena.ts restaurada.
+Informe y patch reproducible en auditoria/experimentos/boca3d_superficie_2026-09-24.*.
+22 pruebas pertinentes y TypeScript pasan; WebGL sin errores y móvil sin overflow.
+No se cambian GLB, texturas, contactos ni servidor público; angular.json ajeno
+intacto. Evidencia adicional en release privada boca3d-noche-2026-09-23.
+Siguiente hipótesis, aún no ensayada: brillo pintado en el color labial.
+No confundir el patch descartado con una mejora integrada. Límite07:00CDMX24sep.
+
 ## Boca3D — 23 sep 2026, revisión nocturna, Nico
 
 Implementación74c9941 subido; ZIP noche-74c9941.zip guardado en release GitHub boca3d-noche-2026-09-23 (privado), digest SHA256 ed5c8503892007ced05d7b0b2675b2c35f3b3f0b1fac3c3efe56ba4314559b69 comprobado. Vista analysis-heating-drawings-pregnant hasta~09:28CDMX24sep, servidor8772 exec37954/túnel56326 hijo22152. Todos los datos/reproducción en el informe siguiente.

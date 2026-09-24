@@ -66,7 +66,8 @@ Commit de la mejora:74c99411a72868a5086f2aee4256a6e34eb72afd, confirmado en orig
 https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23
 ZIP noche-74c9941.zip:10551771B,
 SHA256 ed5c8503892007ced05d7b0b2675b2c35f3b3f0b1fac3c3efe56ba4314559b69.
-Digest GitHub idéntico; CRC y hashes de los18 archivos del paquete comprobados.
+Digest GitHub idéntico; CRC correcto y hashes de los17 archivos listados en el
+manifiesto comprobados (18 archivos en el paquete contando el manifiesto).
 Incluye informe y capturas antes/después. La fuente del ZIP apunta al commit
 de implementación; esta anotación posterior documenta la publicación.
 
@@ -75,3 +76,13 @@ https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&invent
 Hasta aproximadamente09:28CDMX24sep. Servidor8772 exec37954; túnel exec56326
 hijo22152. Sólo cinco assets del piloto. El ZIP sigue disponible en GitHub
 cuando termine el enlace temporal. No hay despliegue de la app de producción.
+
+## Revisión 23:24 CDMX: superficie labial
+
+Se ensayó rugosidad variable, mate exterior y húmeda junto a la abertura.
+Mejora perceptiva insuficiente en /i f/: se descarta y se restaura escena.ts.
+Se conserva íntegramente el piloto74c9941.22 pruebas pertinentes, TypeScript
+y compilación WebGL correctos; no repetir geometría ni ensayar otra hipótesis
+en esta ejecución. Fuentes del intento y detalles de reproducción en
+experimentos/boca3d_superficie_2026-09-24.md y su patch. Evidencia adicional
+en la misma release privada; respaldo anterior sin reemplazar.
