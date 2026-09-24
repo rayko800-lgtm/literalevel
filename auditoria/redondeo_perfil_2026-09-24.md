@@ -18,7 +18,7 @@ También se inspeccionaron /ɒ/ lateral, /i/ frontal y una fase intermedia
 de /u/. Comparación de /i/ con la captura Astra aceptada: conserva sonrisa,
 tono moreno y proporciones del piloto; esta entrega sólo ajusta redondeo.
 La mejora frontal es discreta, principalmente en el borde superior.
-No hubo candidato descartado en esta ejecución. No se alteran materiales,
+No hubo candidato visual descartado en esta ejecución. No se alteran materiales,
 texturas, dientes, lengua, sonido ni código de animación.
 
 ## Evidencia y límites
@@ -60,3 +60,17 @@ raiz-labial-7ae79e6.zip. El GLB nuevo mide 5,974,316 bytes, SHA256
 Sólo recursos gratuitos y capturas sintéticas del visor. Sin video ni
 fotogramas privados. front/angular.json ajeno intacto; sin master ni producción.
 Se conserva la entrega anterior para comparación o reversión.
+
+## Corrección del respaldo
+
+El primer ZIP local perfil-redondeado-41ece1c.zip se descartó sin subirlo:
+Blender 2.93 devolvía éxito de proceso tras fallar al empacar una textura,
+y faltaba cara.blend. SALIDA_DIDACTICA ahora se normaliza como ruta absoluta.
+El empaquetador usa --python-exit-code 1 y exige que cada proyecto exista.
+Un control con la fuente defectuosa fue rechazado antes de crear el ZIP.
+
+El proyecto se regeneró con rutas absolutas y se incorporó la textura. Las
+posiciones, índices, UV y todos los morfos coinciden exactamente con el GLB
+ya validado. Sólo una normal de exportación difiere 0.0000051283; imagen
+embebida idéntica. Se mantiene el GLB validado, no se repiten pruebas geométricas
+por esta reparación de rutas. regeneracion.json documenta esa equivalencia.

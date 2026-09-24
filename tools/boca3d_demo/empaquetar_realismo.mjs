@@ -33,13 +33,15 @@ if(process.env.CAPTURAS_PILOTO){
 if(process.env.EVIDENCIAS_PILOTO){
   const evidencia=join(out,'Evidencias');mkdirSync(evidencia);
   // Sólo resultados y fuentes de comprobación conocidos; nunca toda la carpeta.
-  for(const name of ['medidas_final.json','medidas_final.log','control_anterior.log','grosor.json','invariantes.json','raices_dientes.json','comprobar_raices_dientes.mjs','pruebas_front.log','build_front.log','interior_raiz25.py','anclas.json','validar_anclas.mjs','comprobar_invariantes.mjs']){
+  for(const name of ['medidas_final.json','medidas_final.log','control_anterior.log','grosor.json','invariantes.json','raices_dientes.json','comprobar_raices_dientes.mjs','pruebas_front.log','build_front.log','interior_raiz25.py','anclas.json','validar_anclas.mjs','comprobar_invariantes.mjs','regeneracion.json']){
     const p=resolve(process.env.EVIDENCIAS_PILOTO,name);
     if(existsSync(p))copyFileSync(p,join(evidencia,name));
   }
 }
 for(const [src,name] of [['build/boca_didactica/cara.blend','cara.blend'],['build/lengua_realista/lengua.blend','lengua.blend']]){
-  execFileSync(blender,['-b','--python',join(root,'tools/boca3d_blender/empacar_blend.py'),'--',join(root,src),join(proyectos,name)],{stdio:['ignore','pipe','pipe']});
+  execFileSync(blender,['-b','--python-exit-code','1','--python',join(root,'tools/boca3d_blender/empacar_blend.py'),'--',join(root,src),join(proyectos,name)],{stdio:['ignore','pipe','pipe']});
+  if(!existsSync(join(proyectos,name)) || !statSync(join(proyectos,name)).size)
+    throw new Error('Falta el proyecto Blender empacado: '+name);
 }
 writeFileSync(join(out,'LEEME.md'),`# Boca3D: piloto de realismo\n\nFuentes: https://github.com/rayko800-lgtm/literalevel/tree/${commit}\n\nAbre los proyectos de Blender incluidos para editar las mallas y sus gestos. Las texturas van incorporadas. El tono de piel, detalle labial, luz y movimiento finales se aplican en el visor Three.js; no están horneados íntegramente en el material de Blender.\n\nPara ver el piloto, abre una terminal dentro de la carpeta visor y ejecuta:\n\n    python -m http.server 8790 --bind 127.0.0.1\n\nDespués abre http://127.0.0.1:8790/ en un navegador. Detén el servidor con Ctrl+C. Se requiere WebGL2 y Python3. El piloto no incluye audio.\n\nEs un modelo educativo en revisión, no anatomía clínica ni fotorrealismo terminado. Incluye únicamente recursos de la entrega; no contiene video ni fotogramas privados. Consulta visor/credits.txt y ORIGEN_TEXTURA.md.\n`);
 const archivos=[];

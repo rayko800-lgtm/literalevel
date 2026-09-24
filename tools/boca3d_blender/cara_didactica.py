@@ -11,7 +11,7 @@ import os
 from mathutils import Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-OUT = os.environ.get('SALIDA_DIDACTICA', os.path.join(ROOT, 'build', 'boca_didactica'))
+OUT = os.path.abspath(os.environ.get('SALIDA_DIDACTICA', os.path.join(ROOT, 'build', 'boca_didactica')))
 os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=os.path.join(ROOT, 'tools', 'boca3d_demo', 'cara.glb'))
