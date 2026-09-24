@@ -103,17 +103,16 @@ def construir():
         for loop in ob.data.loops:
             j=loop.vertex_index%len(contorno)
             region.data[loop.index].color=(*colores[j],1.)
-            rig.data[loop.index].uv=(SUAVIDAD_MANDIBULA[j] if j<7 else .45,0.)
+            # Raíz estable: -1 maxilar fijo, -2 mandíbula rígida. El visor
+            # interpreta estos marcadores; 0..6 conserva el campo exterior.
+            rig.data[loop.index].uv=(SUAVIDAD_MANDIBULA[j] if j<7 else (-1. if sup else -2.),0.)
         ob.shape_key_add(name='Basis')
         for key in list(keys)[1:]:
             target=ob.shape_key_add(name=key.name)
             for j,i in enumerate(ids):
                 delta=key.data[i].co-keys[0].data[i].co
                 for off in (0,len(contorno)):target.data[j+off].co+=delta
-            # Revestimiento: comparte el desplazamiento del anillo adyacente,
-            # con menos amplitud al acercarse al vestíbulo/encía.
-            for j,(ri,peso) in enumerate([(5,.35),(2,.55)]):
-                i=ri*65+q;delta=(key.data[i].co-keys[0].data[i].co)*peso
-                for off in (0,len(contorno)):target.data[len(ids)+j+off].co+=delta
+            # Los dos puntos internos se insertan en maxilar/mandíbula.
+            # No suman gestos labiales: eso separaba la raíz del mentón.
         ob['borde_compartido']=1
     print('INTERIOR_DIDACTICO_OK')

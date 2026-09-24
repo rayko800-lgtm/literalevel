@@ -75,6 +75,16 @@ const seams = sections.flatMap(m => {
   }).filter(a => a.j>=0);
 });
 let seamError=0;
+// Las dos inserciones posteriores deben quedarse con el maxilar/mentón.
+// Se identifican por su reposo también en el modelo anterior (control positivo).
+const raices=sections.flatMap(m=>{
+  const p=m.geometry.getAttribute('position');
+  const inferior=m.name.endsWith('_inf');
+  const anclas=inferior?[[-2.63,-.50],[-2.72,-.12]]:[[-2.66,.82],[-2.73,.46]];
+  return Array.from({length:p.count},(_,i)=>({m,i,inferior,base:new T.Vector3().fromBufferAttribute(p,i)}))
+    .filter(r=>anclas.some(([x,y])=>Math.hypot(r.base.x-x,r.base.y-y)<1e-5));
+});
+let rootError=0, rootWorst=null;
 let upperLipFold=0, upperLipFoldWorst=null;
 const lenguaArgumento=process.argv.find(v=>v.startsWith('--lengua='))?.slice('--lengua='.length);
 const tb=readFileSync(lenguaArgumento ? resolve(lenguaArgumento) : resolve(root,'tools/boca3d_demo/lengua.glb')),tl=tb.readUInt32LE(12);
@@ -112,6 +122,13 @@ for (const s of (full ? Object.keys(selected) : ['p','b','f','v','i'])) {
 }
 for (const {symbol, n} of cases) {
   scene.aplicar(n);
+  for(const r of raices){
+    const expected=r.base.clone();
+    if(r.inferior) expected.sub(new T.Vector3(2.6,.9,0))
+      .applyAxisAngle(new T.Vector3(0,0,1),scene.mandibula.rotation.z).add(new T.Vector3(2.6,.9,0));
+    const error=r.m.getVertexPosition(r.i,new T.Vector3()).distanceTo(expected);
+    if(error>rootError){rootError=error;rootWorst=symbol;}
+  }
   for (const {m,i,j} of seams) seamError=Math.max(seamError,
     m.getVertexPosition(i,new T.Vector3()).distanceTo(exterior.getVertexPosition(j,new T.Vector3())));
   let inverted=false;
@@ -202,6 +219,10 @@ const sectionReport={sharedLipVertices:seams.length,seamError,sectionStatesOverT
 writeFileSync(resolve(out,'secciones-medidas.json'),JSON.stringify(sectionReport,null,2));
 console.log(JSON.stringify(sectionReport));
 console.log(JSON.stringify({upperLipFold,upperLipFoldWorst}));
+console.log(JSON.stringify({rootVertices:raices.length,rootError,rootWorst}));
+if(process.argv.includes('--exigir-raices') && (raices.length<4 || rootError>1e-5)) {
+  console.error('La raiz del corte labial se separa del maxilar/mandibula');process.exitCode=1;
+}
 if(process.argv.includes('--exigir') && upperLipFold>.015) {
   console.error('El labio superior se pliega sobre el filtrum');process.exitCode=1;
 }

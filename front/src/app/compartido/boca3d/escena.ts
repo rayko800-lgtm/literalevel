@@ -1118,6 +1118,14 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
     const delante = suave01((2.3 - x) / 0.9);         // la garganta y la nuca se quedan
     pesos[i] = bajo * delante;
     retraso[i] *= delante;
+    // Raíz del corte labial: el bermellón es flexible, su inserción sigue
+    // el maxilar fijo (-1) o la mandíbula rígida (-2). Los modelos anteriores
+    // usan valores >=0 y conservan el campo de piel habitual.
+    const ancla = rig?.getX(i) ?? 0;
+    if (ancla === -1 || ancla === -2) {
+      pesos[i] = ancla === -2 ? 1 : 0;
+      retraso[i] = 0;
+    }
   }
   return { geometria, reposo, pesos, retraso, seguimientoMaximo: bordeRegular ? .80 : 1, ultimoGiro: NaN };
 }
