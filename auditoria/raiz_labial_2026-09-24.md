@@ -80,3 +80,19 @@ build/redondeo_grosor/medidas_final.json del ZIP de evidencias anterior.
 Salida local: build/labios_perfil. Los modelos de producción versionados no
 se sustituyen. El paquete de entrega incluye proyectos Blender, visor, siete
 capturas y diez archivos de evidencia con manifiesto de hashes.
+
+## Respaldo confirmado
+
+Fuente 7ae79e6fec1b041e44225a6f8ff4fa4ef093539c subida a origin.
+[Release privada](https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23).
+raiz-labial-7ae79e6.zip: 10,807,851 bytes, SHA256
+631afe5e19e845738653b124f5a203960371e1a70f0d533203428063730b879b.
+29 archivos, 28 hashes y CRC comprobados; digest remoto idéntico.
+Respaldos anteriores conservados. El informe del ZIP corresponde a la fuente,
+este recibo se añade después.
+
+[Visor temporal](https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&inventario=1&s=%C9%92&ciclo=0&sombras=0&vista=lado&velocidad=0.5)
+verificado visualmente y por identidad de cara.glb, lengua.glb y demo.js.
+demo.js 775,731 bytes, SHA256
+e07639b09cc2dd46e18aa4cf7afaa07923f132afae2dda4b99e5c0e6e4c6c387.
+Servidor 8772 exec1106; túnel56326 conservado, fin previsto 09:28 CDMX24sep.
