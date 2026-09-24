@@ -42,6 +42,57 @@ def tejido(nombre, contorno, profundidad=.65, color=(.68,.40,.38)):
     return ob
 
 
+def seccion_labial(nombre, puntos, profundidad=.025):
+    """Losa del corte labial y franjas de tejido (piel, bermellón, mucosa).
+
+    `puntos`: (x, z, índice exterior o None, rig, color del relleno, franja).
+    Las franjas se dibujan un poco hacia la cámara (y<0) para no competir
+    con la losa; sus vértices copian rig y deltas de su punto del contorno.
+    Devuelve el objeto y, por vértice, el índice de `puntos` del que copia.
+    """
+    n=len(puntos)
+    contorno=[(q[0],q[1]) for q in puntos]
+    vertices=[(x,lat,y) for lat in (0.,profundidad) for x,y in contorno]
+    origen=[j for _ in range(2) for j in range(n)]
+    colores=[q[4] for _ in range(2) for q in puntos]
+    poly=[Vector((x,y,0)) for x,y in contorno]
+    tris=tessellate_polygon([poly])
+    faces=[tuple(t) for t in tris]+[tuple(n+i for i in reversed(t)) for t in tris]
+    faces += [(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)]
+    # Orientación del polígono: la normal hacia fuera en el plano x-z.
+    area=sum(contorno[i][0]*contorno[(i+1)%n][1]-contorno[(i+1)%n][0]*contorno[i][1] for i in range(n))
+    signo=1. if area>0 else -1.
+    franja=[j for j,q in enumerate(puntos) if q[5]]
+    indice={}
+    for j in franja:
+        a,b=contorno[(j-1)%n],contorno[(j+1)%n]
+        tx,tz=b[0]-a[0],b[1]-a[1];l=math.hypot(tx,tz) or 1.
+        nx,nz=signo*tz/l,-signo*tx/l      # normal exterior
+        ancho=puntos[j][5]
+        x,z=contorno[j]
+        indice[j]=(len(vertices),len(vertices)+1)
+        vertices+= [(x,-.004,z),(x-nx*ancho,-.004,z-nz*ancho)]
+        origen+= [j,j]
+        colores+= [FRANJA[puntos[j][6]]]*2
+    for j in franja:
+        k=(j+1)%n
+        if k in indice:
+            (a0,a1),(b0,b1)=indice[j],indice[k]
+            faces.append((a0,b0,b1,a1))
+    mesh=bpy.data.meshes.new(nombre);mesh.from_pydata(vertices,[],faces);mesh.update()
+    ob=bpy.data.objects.new(nombre,mesh);bpy.context.collection.objects.link(ob)
+    mat=bpy.data.materials.new(nombre+'_tejido');mat.diffuse_color=(.73,.43,.41,1)
+    mesh.materials.append(mat)
+    for p in mesh.polygons:p.use_smooth=False
+    region=mesh.vertex_colors.new(name='region_labial')
+    for loop in mesh.loops:region.data[loop.index].color=(*colores[loop.vertex_index],1.)
+    return ob,origen
+
+
+# Colores de ilustración (sRGB de Blender), no regiones histológicas medidas.
+FRANJA={'piel':(.40,.24,.18),'bermellon':(.62,.20,.24),'mucosa':(.80,.42,.46)}
+
+
 def construir():
     paladar=[(-2.55,.5),(-2.3,.75),(-2.05,.92),(-1.7,1.15),(-1.2,1.35),
              (-.6,1.48),(0,1.52),(.6,1.5),(1.2,1.42),(1.7,1.32),(2.05,1.22)]
@@ -83,36 +134,89 @@ def construir():
     tejido('anatomia_velo',abajo+list(reversed(arriba)),.62,(.69,.39,.38))
     tejido('anatomia_uvula',curva([(.91,-.13),(.96,-.31),(1.08,-.44),(1.16,-.37),(1.17,-.18)])
            +[(1.12,-.10)],.07,(.70,.37,.37))
-    # Copia exacta del borde sagital, incluyendo TODAS las shape keys.
+    # Sección de tejido blando del perfil (24 sep). Antes eran dos cuñas de
+    # 7 puntos que flotaban delante de los dientes: sin piel bajo la nariz ni
+    # barbilla. Ahora el contorno exterior es la cadena medial REAL de la piel
+    # (subnasal → bermellón → borde; borde → mentón → submentón), con sus
+    # deltas en todos los gestos; el interior apoya en el hueso ilustrativo.
     fuente=bpy.data.objects['exterior_cercana']; keys=fuente.data.shape_keys.key_blocks
-    for nombre,q in [('anatomia_labio_sup',64),('anatomia_labio_inf',0)]:
-        ids=[ri*65+q for ri in range(7)]
-        base=[keys[0].data[i].co.copy() for i in ids]
-        sup=q==64
-        interior=[(-2.66,.82),(-2.73,.46)] if sup else [(-2.63,-.50),(-2.72,-.12)]
-        contorno=[(p.x,p.z) for p in base]+interior
-        ob=tejido(nombre,contorno,.025,(.73,.43,.41))
-        from perioral_didactico import SUAVIDAD_MANDIBULA
+    from perioral_didactico import SUAVIDAD_MANDIBULA
+    medial={i:keys[0].data[i].co.copy() for i in range(len(keys[0].data))
+            if abs(keys[0].data[i].co.y)<1e-4 and keys[0].data[i].co.x<-1.5}
+    def cadena(z_desde,z_hasta,x_max):
+        ids=[i for i,c in medial.items() if z_hasta<=c.z<=z_desde and c.x<=x_max and i>=7*65]
+        return sorted(ids,key=lambda i:-medial[i].z)
+    def rig_de(i):
+        return SUAVIDAD_MANDIBULA[i//65] if i<7*65 else .45
+    # Colores de ilustración (lineales), no regiones histológicas medidas.
+    GRASA=(.64,.42,.35); MUSCULO=(.55,.20,.22)
+    anillos_sup=[6*65+64,5*65+64,4*65+64,3*65+64,2*65+64,65+64,64]
+    anillos_inf=[0,65,130,195,260,325,390]
+    for nombre in ('anatomia_labio_sup','anatomia_labio_inf'):
+        sup=nombre.endswith('_sup')
+        puntos=[]  # (x, z, índice exterior o None, rig, relleno, ancho de franja, tejido)
+        def exterior(i,relleno,ancho,tej):puntos.append((medial[i].x,medial[i].z,i,rig_de(i),relleno,ancho,tej))
+        tipo_anillo=[('mucosa',.035),('bermellon',.05),('bermellon',.06),('bermellon',.06),('piel',.045),('piel',.045),('piel',.045)]
+        if sup:
+            # Subnasal hasta el borde. La columela (x<-3.30) es de la nariz.
+            for i in cadena(1.23,.95,-3.10):exterior(i,GRASA,.045,'piel')
+            for k,i in enumerate(anillos_sup):
+                tej,ancho=tipo_anillo[6-k];exterior(i,GRASA if k<3 else MUSCULO,ancho,tej)
+            # Cara interna: mucosa hasta la inserción, luego sobre el maxilar.
+            puntos+= [(-2.73,.46,None,-1.,MUSCULO,.035,'mucosa'),(-2.66,.82,None,-1.,MUSCULO,0,None),
+                      (-2.945,.86,None,-1.,GRASA,0,None),(-2.975,1.04,None,-1.,GRASA,0,None),(-2.975,1.24,None,-1.,GRASA,0,None),
+                      # El corte de la nariz viene del escaneo, más alto que la
+                      # cara de frente: se cierra el hueco hasta su base (y=1.55).
+                      (-2.975,1.575,None,-1.,GRASA,0,None),(-3.25,1.555,None,-1.,GRASA,.045,'piel'),(-3.275,1.40,None,-1.,GRASA,.045,'piel')]
+        else:
+            for k,i in enumerate(anillos_inf):
+                tej,ancho=tipo_anillo[k];exterior(i,GRASA if k>=4 else MUSCULO,ancho,tej)
+            for i in cadena(-.62,-2.30,-1.60):exterior(i,GRASA,.045,'piel')
+            # Bajo el mentón óseo y de vuelta por su frente hasta la inserción.
+            hueso=[(-1.56,-1.80),(-1.90,-1.77),(-2.26,-1.70),(-2.52,-1.60),(-2.71,-1.48),
+                   (-2.83,-1.32),(-2.91,-1.12),(-2.945,-.90),(-2.945,-.69)]
+            puntos+=[(x,z,None,-2.,GRASA,0,None) for x,z in hueso]
+            puntos+=[(-2.63,-.50,None,-2.,MUSCULO,0,None),(-2.72,-.12,None,-2.,MUSCULO,.035,'mucosa')]
+        # Quitar duplicados exactos consecutivos del escaneo.
+        limpio=[]
+        for q in puntos:
+            if limpio and math.hypot(q[0]-limpio[-1][0],q[1]-limpio[-1][1])<1e-4:continue
+            limpio.append(q)
+        puntos=limpio
+        # Deltas de cada gesto por punto; los interiores no se mueven.
+        nombres_gesto=[k.name for k in list(keys)[1:]]
+        deltas=[{g:(keys[g].data[q[2]].co-keys[0].data[q[2]].co if q[2] is not None else Vector()) for g in nombres_gesto}
+                for q in puntos]
+        # El labio sólo tiene 7 anillos: el perfil salía en cuñas. Entre dos
+        # anillos consecutivos se insertan 3 puntos Catmull-Rom, en reposo y en
+        # cada gesto (se interpola la posición final, no sólo el reposo).
+        def cr(a,b,c,d,t):
+            return .5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t)
+        anillo=lambda q:q[2] is not None and q[2]<7*65
+        nuevos=[];nuevos_d=[]
+        for j,q in enumerate(puntos):
+            nuevos.append(q);nuevos_d.append(deltas[j])
+            k=j+1
+            if k<len(puntos) and anillo(q) and anillo(puntos[k]):
+                h,m=max(0,j-1),min(len(puntos)-1,k+1)
+                for paso in (1,2,3):
+                    t=paso/4
+                    x=cr(puntos[h][0],q[0],puntos[k][0],puntos[m][0],t)
+                    z=cr(puntos[h][1],q[1],puntos[k][1],puntos[m][1],t)
+                    d={}
+                    for g in nombres_gesto:
+                        fin=[Vector((pp[0],0,pp[1]))+dd[g] for pp,dd in ((puntos[h],deltas[h]),(q,deltas[j]),(puntos[k],deltas[k]),(puntos[m],deltas[m]))]
+                        d[g]=cr(*fin,t)-Vector((x,0,z))
+                    rig=q[3]+(puntos[k][3]-q[3])*t
+                    nuevos.append((x,z,None,rig,q[4],q[5],q[6]));nuevos_d.append(d)
+        puntos,deltas=nuevos,nuevos_d
+        ob,origen=seccion_labial(nombre,puntos)
         ob.data.uv_layers.new(name='UVMap')
         rig=ob.data.uv_layers.new(name='RigMandibula')
-        # Distinguir la raiz cutanea del bermellon sin cambiar el contorno.
-        # Son colores de ilustracion, no regiones histologicas.
-        region=ob.data.vertex_colors.new(name='region_labial')
-        colores=[(.72,.45,.44),(.72,.44,.43),(.68,.38,.39),(.72,.46,.44),
-                 (.77,.60,.54),(.78,.65,.58),(.78,.66,.59),(.78,.65,.58),(.72,.46,.44)]
-        for loop in ob.data.loops:
-            j=loop.vertex_index%len(contorno)
-            region.data[loop.index].color=(*colores[j],1.)
-            # Raíz estable: -1 maxilar fijo, -2 mandíbula rígida. El visor
-            # interpreta estos marcadores; 0..6 conserva el campo exterior.
-            rig.data[loop.index].uv=(SUAVIDAD_MANDIBULA[j] if j<7 else (-1. if sup else -2.),0.)
+        for loop in ob.data.loops:rig.data[loop.index].uv=(puntos[origen[loop.vertex_index]][3],0.)
         ob.shape_key_add(name='Basis')
         for key in list(keys)[1:]:
             target=ob.shape_key_add(name=key.name)
-            for j,i in enumerate(ids):
-                delta=key.data[i].co-keys[0].data[i].co
-                for off in (0,len(contorno)):target.data[j+off].co+=delta
-            # Los dos puntos internos se insertan en maxilar/mandíbula.
-            # No suman gestos labiales: eso separaba la raíz del mentón.
+            for v,j in enumerate(origen):target.data[v].co+=deltas[j][key.name]
         ob['borde_compartido']=1
     print('INTERIOR_DIDACTICO_OK')
