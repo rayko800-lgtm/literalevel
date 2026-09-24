@@ -15,7 +15,9 @@ Aviso previo (medido el 22 sep): el exportador da hoy `factor_lento` 1,143 y el 
 
 | Fecha | Fonema | Parámetro | Valor 2D | Valor 3D | Motivo | Dónde |
 |---|---|---|---|---|---|---|
-| 22 sep (cierre de cara) | /θ/, /ð/ | `mandibula` | 0,36 | 0,6 | Con `MAND_MAX` 0,21 rad el hueco entre bordes incisales a 0,36 es 0,54 u (12 mm) y la punta interdental aprobada (roma, v4) mide 0,64 u: no cabe. Decisión de e6/Miguel (dato, no excepción). | `poses.ajustes3d.json` `sonidos.θ/ð`; `auditoria/d4_4b_cierre_cara_2026-09-22.md` §3 |
+| 24 sep (referencia de Miguel) | /θ/, /ð/ | `mandibula` | 0,36 | 0,36 (se retira la fila del 22 sep: 0,6) | Foto de Miguel: boca casi cerrada y lengua plana entre los dientes. La punta interdental se aplana (tercio anterior ×0,78 en `punta_interdental`, `tools/boca3d_blender/aplanar_punta.py`): punta 0,479 u, volumen −8,8 %, punta/lámina 0,79; sin penetración en las coronas. | `poses.ajustes3d.json` (sin fila) |
+| 24 sep (referencia de Miguel) | /f/, /v/ | `mandibula` | 0,14 | 0,08 | Foto de Miguel: mandíbula casi cerrada, incisivos apoyados en un labio inferior lleno, comisuras juntas. `labio_atras` recalculado para 0,08 (`FV_MANDIBULA`), elevación del superior ×0,85 y recogido del inferior sólo bajo los incisivos. Contacto f-v ≤ 0,0061 u. | `sonidos.f/v`; `perioral_didactico.py` |
+<!-- fila retirada 24 sep: | 22 sep (cierre de cara) | /θ/, /ð/ | `mandibula` | 0,36 | 0,6 | Con `MAND_MAX` 0,21 rad el hueco entre bordes incisales a 0,36 es 0,54 u (12 mm) y la punta interdental aprobada (roma, v4) mide 0,64 u: no cabe. Decisión de e6/Miguel (dato, no excepción). | `poses.ajustes3d.json` `sonidos.θ/ð`; `auditoria/d4_4b_cierre_cara_2026-09-22.md` §3 | -->
 | 22 sep (lote fase 1) | /ɹ/ GA | `punta` | `retrofleja` | `reposo` | Variante **abombada** (bunched), la más frecuente en GA (Delattre & Freeman 1968; Zhou et al. 2008, RM): el dorso se abomba hacia el paladar medio y la punta queda recogida y baja, no curvada. La retrofleja sigue siendo una realización válida (mismas fuentes) y se conserva como alternativa: basta quitar esta fila. | `sonidos.ɹ` |
 | 22–23 sep (fases 1 y 2) | /ɹ/ GA | `cuerpo` · `dorso_alto` · `raiz` | [0,55; 0,35] · 0 · 0,8 | [0,82; 0,35] · 0,3 · **0,6** | La joroba (cúspide y 0,99 en x 0,50, medido) y la constricción faríngea (hueco raíz-pared 0,10–0,19 u, frente a 0,29–0,38 en RP /ɜː ə/). Fase 1 puso raíz 0,9 y cuerpo 0,85; la fase 2 los baja porque inflaban la lengua +43 % (hidrostato ±10 %, que ahora se exige en todas las poses): queda en +9,8 %. | `sonidos.ɹ` |
 | 22–23 sep (fases 1 y 2) | /ɝ/ GA | `punta` · `cuerpo` · `dorso_alto` · `raiz` | `retrofleja` · [0,58; 0,35] · 0,2 · 0,8 | `reposo` · [0,78; 0,38] · 0,3 · **0,65** | Vocal rótica abombada, mismo criterio que /ɹ/ (§9.2: la constricción se sostiene en /ɝ ɚ/). Fase 2: volumen de +40 % a +9,7 %. | `sonidos.ɝ` |
@@ -72,7 +74,8 @@ la pongo aquí; ninguna fila queda sin motivo.
 
 | Fila | Motivo | Fuente |
 |---|---|---|
-| /θ ð/ mandíbula 0,6 | la punta interdental no cabía con `MAND_MAX` 0,21 | medición (cierre de cara §3) + decisión e6/Miguel; el gesto: investigación §2 (Dart) |
+| /θ ð/ mandíbula 0,36 (24 sep; antes 0,6) | punta aplanada según la foto de Miguel | aplanar_punta.py + medición (medir_lengua, penetración en coronas) |
+| /f v/ mandíbula 0,08 | foto de Miguel | medir_didactica (f-v ≤ 0,0061) |
 | /ɹ/ GA punta en reposo | variante abombada | Delattre & Freeman 1968; Zhou et al. 2008 (investigación §5, §9.2, §10) |
 | /ɹ/ GA cuerpo, dorso, raíz | joroba y constricción faríngea; volumen | **añadida aquí**: investigación §5 y §9.2 (mismas fuentes); cifras: medición (fases 1 y 2) |
 | /ɝ/ GA | ídem, sostenida en la vocal | investigación §9.2 |

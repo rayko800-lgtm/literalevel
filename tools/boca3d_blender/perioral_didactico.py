@@ -12,6 +12,11 @@ FRUNCE_PROYECCION=float(_os.environ.get('FRUNCE_PROYECCION','1.8'))
 FRUNCE_ALTO_SUP=float(_os.environ.get('FRUNCE_ALTO_SUP','2.0'))
 FRUNCE_ALTO_INF=float(_os.environ.get('FRUNCE_ALTO_INF','1.7'))
 FRUNCE_EVERSION=float(_os.environ.get('FRUNCE_EVERSION','.06'))
+# /f v/ (labio_atras): elevación del superior y anchura del recogido inferior.
+FV_ELEVACION=float(_os.environ.get('FV_ELEVACION','.85'))
+FV_CENTRO=float(_os.environ.get('FV_CENTRO','.6'))
+FV_CAIDA=float(_os.environ.get('FV_CAIDA','.6'))
+FV_MANDIBULA=float(_os.environ.get('FV_MANDIBULA','.08'))
 
 def desplazamiento_mandibula(p, apertura=.2, suavidad=0.):
     """Campo de piel del visor (x, altura, lateral), antes de sumar morfos.
@@ -230,17 +235,24 @@ def construir():
             k=keys['labio_atras'].data[i]
             k.co=p.co
             arch=max(0.,1-(abs(lat)/1.10)**4)
-            dx,dy=desplazamiento_mandibula(p.co,.14,SUAVIDAD_MANDIBULA[ri])
+            # Misma apertura que poses.ajustes3d.json para /f v/.
+            dx,dy=desplazamiento_mandibula(p.co,FV_MANDIBULA,SUAVIDAD_MANDIBULA[ri])
             influence=.9419120638128117  # poseNumerica(/f v/) actual; medidor lo verifica
             if s>0:
-                lift=[.52,.52,.50,.47,.32,.145,.035][ri]*arch*(s**.5)
+                # 24 sep, foto de Miguel en /f/: el superior apenas sube y
+                # sólo asoma la mitad inferior de los incisivos.
+                lift=FV_ELEVACION*[.52,.52,.50,.47,.32,.145,.035][ri]*arch*(s**.5)
                 k.co.z+=lift/influence
             elif s<0 and ri<=4:
                 # Por dentro el labio llega al filo dental; por fuera conserva
                 # una curva descendente: los incisivos no desaparecen detrás.
                 target_x=[-2.60+.80*lat*lat,-2.83+.48*lat*lat,-3.08+.46*lat*lat,x,x][ri]
                 target_y=[.448,.345,.20,y+.055,y+.020][ri]
-                roll=arch*min(1.,(-s)/.35)
+                # El inferior se recoge bajo los incisivos (|lat|<.5) y vuelve a
+                # su sitio hacia las comisuras: antes se estiraba de lado a
+                # lado como una línea tirada.
+                t_=min(1.,max(0.,(abs(lat)-FV_CENTRO)/FV_CAIDA));arco_inf=1-t_*t_*(3-2*t_)
+                roll=arco_inf*min(1.,(-s)/.35)
                 k.co.x+=(target_x-x-dx)*roll/influence
                 k.co.z+=(target_y-y-dy)*roll/influence
         # El escaneo está alineado a otra altura que el rig heredado. Los

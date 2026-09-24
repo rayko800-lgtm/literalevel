@@ -433,6 +433,9 @@ const GR = Math.PI / 180;
  *  o bajar la elevación no está verificado y es lo que más cerca deja los
  *  planos de corte (comentario de `LIMITES_GIRO` arriba). */
 const POLAR_DEFECTO = 1.49;
+/** Vista frontal didáctica: casi a la altura de la boca; en /θ ð/, un poco por
+ *  debajo (7°) para que se vea la lengua entre los dientes. */
+const POLAR_FRONTAL = 1.50, POLAR_INTERDENTAL = 1.62;
 
 export interface PresetFamilia {
   /** Azimut inicial (radianes); ver `vista()`. */
@@ -1379,6 +1382,8 @@ export class EscenaBoca {
   /** Cuánto fruncen los labios exteriores (0–1): lo leen los shaders de
    *  labios y lengua para el brillo y la penumbra de /u/. */
   private readonly fruncidoLabios = { value: 0 };
+  /** Elevación de la cámara frontal didáctica (ver `irA`). */
+  private polarFrontal = POLAR_FRONTAL;
   /** Cuánto se recoge el labio inferior bajo los incisivos en /f v/ (0–1). */
   private readonly labiodentalLabios = { value: 0 };
   private readonly labioSup: THREE.Mesh;
@@ -1728,6 +1733,12 @@ export class EscenaBoca {
   /** Va a la pose con una transición de `duracionS` segundos (0 = de golpe). */
   irA(pose: PoseSonido, duracionS = 0.5): void {
     this.linea = null;
+    // De frente, /θ ð/ se ven un poco desde abajo (contrapicado): la punta
+    // entre los incisivos queda a la vista, como en la referencia de Miguel.
+    if (this.exploracionDidactica && !this.corteDidactico) {
+      const polar = pose.punta === 'interdental' ? POLAR_INTERDENTAL : POLAR_FRONTAL;
+      if (polar !== this.polarFrontal) { this.polarFrontal = polar; this.vista(-Math.PI / 2, polar, 0.50); }
+    }
     const objetivo = poseNumerica(pose);
     if (this.reducirMovimiento || duracionS <= 0) {
       this.desde = this.hacia = null;
@@ -1890,7 +1901,7 @@ export class EscenaBoca {
     // el tamaño de boca y reduce el aumento de la nariz por perspectiva.
     this.camara.fov = frente ? 22 : 32;
     this.camara.updateProjectionMatrix();
-    this.vista(frente ? -Math.PI / 2 : 0, frente ? 1.50 : Math.PI / 2, frente ? 0.50 : 1);
+    this.vista(frente ? -Math.PI / 2 : 0, frente ? this.polarFrontal : Math.PI / 2, frente ? 0.50 : 1);
     if (frente) this.actualizarNormalesPiel?.();
     this.giroLinea = 0;
   }

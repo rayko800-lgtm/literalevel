@@ -1,12 +1,6 @@
 {
  "origen": "Ajustes del 3D sobre poses.ejemplo.json (que es la exportacion del 2D congelado y no se edita a mano). Se mezclan encima con conAjustes3d (poses.ts), lengua.py y medir_lengua.mjs. Cada entrada esta explicada en auditoria/d4_4b_lote/divergencias_2d_3d.md.",
  "sonidos": {
-  "θ": {
-   "mandibula": 0.6
-  },
-  "ð": {
-   "mandibula": 0.6
-  },
   "ɹ": {
    "punta": "reposo",
    "cuerpo": [
@@ -65,6 +59,12 @@
   },
   "l": {
    "leyenda": "l oscura, la de final de sílaba (feel, ball): punta en el alvéolo, aire por los lados y el dorso alzado hacia el velo"
+  },
+  "f": {
+   "mandibula": 0.08
+  },
+  "v": {
+   "mandibula": 0.08
   }
  },
  "rp": {

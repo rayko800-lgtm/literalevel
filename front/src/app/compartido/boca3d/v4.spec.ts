@@ -14,11 +14,14 @@ describe('D4.4b v4: reposo con los labios casi juntos', () => {
     expect(n[I_CIERRE_LABIOS]).toBeGreaterThanOrEqual(0.9);
     expect(n[I_COMPRESION_LABIOS]).toBe(0);
   });
-  it('se abren con la mandíbula: /æ/ (muy abierta) y /θ/ (0,6) no cierran; /ɜː/ (semiabierta) a medias', () => {
+  it('se abren con la mandíbula: /æ/ (muy abierta) no cierra; /θ/ (0,36) y /ɜː/ (semiabierta) a medias', () => {
     expect(cierreLabial(poseDe(catalogo, 'æ')!)).toBe(0);
-    // Cierre de cara (22 sep): /θ ð/ pasan de mandíbula 0,36 a 0,6 para que la
-    // punta quepa entre los incisivos con MAND_MAX 0,21: ya no cierran a medias.
-    expect(cierreLabial(poseDe(catalogo, 'θ')!)).toBe(0);
+    // 24 sep: /θ ð/ vuelven a la mandíbula del 2D (0,36) porque la punta
+    // interdental se aplanó (aplanar_punta.py); el 22 sep estaban en 0,6.
+    // Cierran a medias sobre la lengua; medir_didactica exige su abertura.
+    const theta = cierreLabial(poseDe(catalogo, 'θ')!);
+    expect(theta).toBeGreaterThan(0);
+    expect(theta).toBeLessThan(0.9);
     const media = cierreLabial(poseDe(catalogo, 'ɜː')!);
     expect(media).toBeGreaterThan(0.3);
     expect(media).toBeLessThan(0.9);
