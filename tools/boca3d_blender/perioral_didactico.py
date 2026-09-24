@@ -306,8 +306,13 @@ def construir():
                 peso=abs(s)**.8
                 delta=keys[0].data[i].co-keys[0].data[rim].co
                 target=rounded.data[i].co.copy()
-                target.x=rounded.data[rim].co.x+1.25*delta.x
-                target.z=rounded.data[rim].co.z+(1.18 if s>0 else 1.08)*delta.z
+                # Transporta también el espesor lateral. Comprimirlo con la
+                # abertura y exagerar altura/proyección afilaba el labio
+                # superior en dos picos. Conserva el perfil de reposo arriba;
+                # abajo mantiene la compensación mandibular ya calibrada.
+                target.x=rounded.data[rim].co.x+delta.x
+                target.y=rounded.data[rim].co.y+delta.y
+                target.z=rounded.data[rim].co.z+(1. if s>0 else 1.08)*delta.z
                 rounded.data[i].co=rounded.data[i].co.lerp(target,peso)
         for j,v in enumerate(mesh.vertices):v.co=keys[0].data[j].co
         mesh.update()

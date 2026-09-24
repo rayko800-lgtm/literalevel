@@ -33,7 +33,7 @@ if(process.env.CAPTURAS_PILOTO){
 if(process.env.EVIDENCIAS_PILOTO){
   const evidencia=join(out,'Evidencias');mkdirSync(evidencia);
   // Sólo resultados y fuentes de comprobación conocidos; nunca toda la carpeta.
-  for(const name of ['medidas_final.json','medidas_final.log','control_anterior.log','grosor.json','invariantes.json','raices_dientes.json','comprobar_raices_dientes.mjs','pruebas_front.log','build_front.log','interior_raiz25.py']){
+  for(const name of ['medidas_final.json','medidas_final.log','control_anterior.log','grosor.json','invariantes.json','raices_dientes.json','comprobar_raices_dientes.mjs','pruebas_front.log','build_front.log','interior_raiz25.py','anclas.json','validar_anclas.mjs','comprobar_invariantes.mjs']){
     const p=resolve(process.env.EVIDENCIAS_PILOTO,name);
     if(existsSync(p))copyFileSync(p,join(evidencia,name));
   }
