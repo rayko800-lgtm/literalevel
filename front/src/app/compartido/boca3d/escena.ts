@@ -1125,6 +1125,11 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
     if (ancla === -1 || ancla === -2) {
       pesos[i] = ancla === -2 ? 1 : 0;
       retraso[i] = 0;
+    } else if (ancla <= -3) {
+      // Cuello del corte: sigue a la mandíbula con un peso propio (-3 - w)
+      // que se desvanece hacia abajo; la piel de frente giraría entera.
+      pesos[i] = Math.min(1, Math.max(0, -3 - ancla));
+      retraso[i] = 0;
     }
   }
   return { geometria, reposo, pesos, retraso, seguimientoMaximo: bordeRegular ? .80 : 1, ultimoGiro: NaN };
@@ -2165,6 +2170,9 @@ export class EscenaBoca {
       this.soltarPielesLisas();
       for (const [nombre, tejido, enMandibula] of cabeza) {
         if (interiorDidactico && ['corte_labio_sup', 'corte_labio_inf', 'corte_maxilar', 'corte_mandibula'].includes(nombre)) continue;
+        // El cráneo, la nariz y la piel lejana del escaneo no coinciden con la
+        // cara de frente (otra altura y escala): el corte usa su contorno.
+        if (interiorDidactico && piezas.has('anatomia_craneo') && ['corte_craneo', 'corte_nariz', 'cabeza_lejana'].includes(nombre)) continue;
         const fuente = piezas.get(nombre);
         if (!fuente) continue;
         // Caras del corte y pared del fondo claras y mates, como el 2D: la
@@ -2433,12 +2441,12 @@ export class EscenaBoca {
         }
       }
       if (interiorDidactico) {
-        for (const nombre of ['paladar', 'pared', 'suelo', 'velo', 'uvula', 'labio_sup', 'labio_inf', 'maxilar', 'menton', 'alveolo_sup', 'alveolo_inf']) {
+        for (const nombre of ['craneo', 'nariz', 'paladar', 'pared', 'suelo', 'velo', 'uvula', 'labio_sup', 'labio_inf', 'maxilar', 'menton', 'alveolo_sup', 'alveolo_inf']) {
           const fuente = piezas.get('anatomia_' + nombre);
           if (!fuente) continue;
           const original = fuente.material as THREE.MeshStandardMaterial;
           const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
-          const pieza = new THREE.Mesh(geometria, nombre.startsWith('labio')
+          const pieza = new THREE.Mesh(geometria, nombre.startsWith('labio') || nombre === 'craneo' || nombre === 'nariz'
             ? new THREE.MeshBasicMaterial({ color: geometria.hasAttribute('color') ? '#ffffff' : '#bc8580',
               vertexColors: geometria.hasAttribute('color'), side: THREE.DoubleSide })
             : materialDe('mucosa', original.color.getStyle(), { roughness: .8, sheen: 0, side: THREE.DoubleSide }));

@@ -42,7 +42,7 @@ def tejido(nombre, contorno, profundidad=.65, color=(.68,.40,.38)):
     return ob
 
 
-def seccion_labial(nombre, puntos, profundidad=.025):
+def seccion_labial(nombre, puntos, profundidad=.025, lado=None):
     """Losa del corte labial y franjas de tejido (piel, bermellón, mucosa).
 
     `puntos`: (x, z, índice exterior o None, rig, color del relleno, franja).
@@ -71,7 +71,12 @@ def seccion_labial(nombre, puntos, profundidad=.025):
         ancho=puntos[j][5]
         x,z=contorno[j]
         indice[j]=(len(vertices),len(vertices)+1)
-        vertices+= [(x,-.004,z),(x-nx*ancho,-.004,z-nz*ancho)]
+        zi=z-nz*ancho
+        # El visor decide qué labio sigue a la mandíbula por la altura (0.15):
+        # la franja interior no debe cruzar la línea de la boca.
+        if lado=='sup':zi=max(zi,.152)
+        elif lado=='inf':zi=min(zi,.148)
+        vertices+= [(x,-.004,z),(x-nx*ancho,-.004,zi)]
         origen+= [j,j]
         colores+= [FRANJA[puntos[j][6]]]*2
     for j in franja:
@@ -116,6 +121,7 @@ def construir():
         interior.append((x+dy/l*radio,y-dx/l*radio))
         exterior.append((x-dy/l*.16,y+dx/l*.16))
     tejido('anatomia_pared',interior+list(reversed(exterior)),.8,(.71,.45,.43))
+    pared_exterior=list(exterior)
     # Suelo muscular apoyado en la mandíbula, continuo hasta la raíz.
     arriba=curva([(-2.55,-.26),(-2.25,-.72),(-1.55,-.90),(-.4,-1.05),(1.2,-1.16),(2.15,-1.55)])
     abajo=curva([(-2.55,-.65),(-2.15,-1.23),(-1.4,-1.52),(0,-1.72),(1.4,-1.83),(2.15,-1.55)])
@@ -142,10 +148,27 @@ def construir():
     fuente=bpy.data.objects['exterior_cercana']; keys=fuente.data.shape_keys.key_blocks
     from perioral_didactico import SUAVIDAD_MANDIBULA
     medial={i:keys[0].data[i].co.copy() for i in range(len(keys[0].data))
-            if abs(keys[0].data[i].co.y)<1e-4 and keys[0].data[i].co.x<-1.5}
+            if abs(keys[0].data[i].co.y)<1e-4}
     def cadena(z_desde,z_hasta,x_max):
-        ids=[i for i,c in medial.items() if z_hasta<=c.z<=z_desde and c.x<=x_max and i>=7*65]
+        ids=[i for i,c in medial.items() if z_hasta<=c.z<=z_desde and -1.5>c.x and c.x<=x_max and i>=7*65]
         return sorted(ids,key=lambda i:-medial[i].z)
+    # Contorno medial de la cabeza de frente, ordenado: del subnasal sube por
+    # la nariz, cráneo y nuca, baja al cuello y vuelve por delante al mentón.
+    vecinos={i:set() for i in medial if i>=7*65}
+    for e in fuente.data.edges:
+        a,b=e.vertices
+        if a in vecinos and b in vecinos:vecinos[a].add(b);vecinos[b].add(a)
+    subnasal=min(vecinos,key=lambda i:(medial[i].x+3.298)**2+(medial[i].z-1.225)**2)
+    contorno_cabeza=[subnasal]
+    siguiente=max(vecinos[subnasal],key=lambda i:medial[i].z)
+    while siguiente is not None:
+        contorno_cabeza.append(siguiente)
+        libres=[i for i in vecinos[siguiente] if i not in contorno_cabeza]
+        siguiente=libres[0] if libres else None
+    def tramo(condicion_inicio,condicion_fin,desde=0):
+        a=next(k for k in range(desde,len(contorno_cabeza)) if condicion_inicio(medial[contorno_cabeza[k]]))
+        b=next(k for k in range(a,len(contorno_cabeza)) if condicion_fin(medial[contorno_cabeza[k]]))
+        return a,b
     def rig_de(i):
         return SUAVIDAD_MANDIBULA[i//65] if i<7*65 else .45
     # Colores de ilustración (lineales), no regiones histológicas medidas.
@@ -159,19 +182,28 @@ def construir():
         tipo_anillo=[('mucosa',.035),('bermellon',.05),('bermellon',.06),('bermellon',.06),('piel',.045),('piel',.045),('piel',.045)]
         if sup:
             # Subnasal hasta el borde. La columela (x<-3.30) es de la nariz.
-            for i in cadena(1.23,.95,-3.10):exterior(i,GRASA,.045,'piel')
+            for i in cadena(1.226,.95,-3.10):exterior(i,GRASA,.045,'piel')
             for k,i in enumerate(anillos_sup):
                 tej,ancho=tipo_anillo[6-k];exterior(i,GRASA if k<3 else MUSCULO,ancho,tej)
             # Cara interna: mucosa hasta la inserción, luego sobre el maxilar.
             puntos+= [(-2.73,.46,None,-1.,MUSCULO,.035,'mucosa'),(-2.66,.82,None,-1.,MUSCULO,0,None),
-                      (-2.945,.86,None,-1.,GRASA,0,None),(-2.975,1.04,None,-1.,GRASA,0,None),(-2.975,1.24,None,-1.,GRASA,0,None),
-                      # El corte de la nariz viene del escaneo, más alto que la
-                      # cara de frente: se cierra el hueco hasta su base (y=1.55).
-                      (-2.975,1.575,None,-1.,GRASA,0,None),(-3.25,1.555,None,-1.,GRASA,.045,'piel'),(-3.275,1.40,None,-1.,GRASA,.045,'piel')]
+                      (-2.945,.86,None,-1.,GRASA,0,None),(-2.975,1.04,None,-1.,GRASA,0,None),(-2.975,1.225,None,-1.,GRASA,0,None)]
         else:
             for k,i in enumerate(anillos_inf):
                 tej,ancho=tipo_anillo[k];exterior(i,GRASA if k>=4 else MUSCULO,ancho,tej)
             for i in cadena(-.62,-2.30,-1.60):exterior(i,GRASA,.045,'piel')
+            cuello=sorted((i for i in contorno_cabeza if medial[i].x<0.5 and -3.2<=medial[i].z<-2.30),key=lambda i:-medial[i].z)
+            for i in cuello:
+                c=medial[i];t=min(1.,max(0.,(-2.30-c.z)/.9));w=1-t*t*(3-2*t)
+                puntos.append((c.x+.002,c.z,None,-3.-w,GRASA,.045,'piel'))
+            k=contorno_cabeza.index(cuello[-1])
+            c0=medial[cuello[-1]]
+            c1=min((medial[contorno_cabeza[k-1]],medial[contorno_cabeza[(k+1)%len(contorno_cabeza)]]),key=lambda c:c.z)
+            f=(-3.2-c0.z)/(c1.z-c0.z)
+            puntos.append((c0.x+f*(c1.x-c0.x)+.002,-3.2,None,-3.,GRASA,.045,'piel'))
+            # Tejido blando del cuello hasta la faringe y bajo el suelo de la boca.
+            puntos+=[(2.5,-3.2,None,.45,GRASA,0,None),(2.55,-1.95,None,.45,GRASA,0,None),
+                     (1.4,-1.9,None,.45,GRASA,0,None),(0.,-1.8,None,.45,GRASA,0,None)]
             # Bajo el mentón óseo y de vuelta por su frente hasta la inserción.
             hueso=[(-1.56,-1.80),(-1.90,-1.77),(-2.26,-1.70),(-2.52,-1.60),(-2.71,-1.48),
                    (-2.83,-1.32),(-2.91,-1.12),(-2.945,-.90),(-2.945,-.69)]
@@ -203,6 +235,9 @@ def construir():
                     t=paso/4
                     x=cr(puntos[h][0],q[0],puntos[k][0],puntos[m][0],t)
                     z=cr(puntos[h][1],q[1],puntos[k][1],puntos[m][1],t)
+                    # Sin cruzar la línea de la boca (0.15) en reposo: el visor
+                    # haría girar con la mandíbula un punto del labio superior.
+                    z=max(z,.152) if sup else min(z,.148)
                     d={}
                     for g in nombres_gesto:
                         fin=[Vector((pp[0],0,pp[1]))+dd[g] for pp,dd in ((puntos[h],deltas[h]),(q,deltas[j]),(puntos[k],deltas[k]),(puntos[m],deltas[m]))]
@@ -210,7 +245,7 @@ def construir():
                     rig=q[3]+(puntos[k][3]-q[3])*t
                     nuevos.append((x,z,None,rig,q[4],q[5],q[6]));nuevos_d.append(d)
         puntos,deltas=nuevos,nuevos_d
-        ob,origen=seccion_labial(nombre,puntos)
+        ob,origen=seccion_labial(nombre,puntos,lado='sup' if sup else 'inf')
         ob.data.uv_layers.new(name='UVMap')
         rig=ob.data.uv_layers.new(name='RigMandibula')
         for loop in ob.data.loops:rig.data[loop.index].uv=(puntos[origen[loop.vertex_index]][3],0.)
@@ -219,4 +254,21 @@ def construir():
             target=ob.shape_key_add(name=key.name)
             for v,j in enumerate(origen):target.data[v].co+=deltas[j][key.name]
         ob['borde_compartido']=1
+    # La nariz: del subnasal a la raíz (y=3.2), con la cavidad nasal detrás.
+    MARFIL=(.80,.76,.71)
+    a,b=tramo(lambda c:True,lambda c:c.z>=3.2)
+    nariz=[(medial[i].x,medial[i].z,None,-1.,GRASA,.045,'piel') for i in contorno_cabeza[a:b+1]]
+    nariz+=[(-2.2,3.16,None,-1.,GRASA,0,None),(-2.2,2.4,None,-1.,GRASA,0,None),(-2.3,1.72,None,-1.,GRASA,0,None),
+            (-2.77,1.60,None,-1.,GRASA,0,None),(-2.975,1.575,None,-1.,GRASA,0,None),(-2.975,1.225,None,-1.,GRASA,0,None)]
+    seccion_labial('anatomia_nariz',nariz)
+    # Cráneo y nuca: de la raíz nasal por la frente, la coronilla y la nuca
+    # hasta y=-3.2; vuelve por fuera de la pared faríngea y del techo nasal.
+    c,d=tramo(lambda c:c.z>=3.2,lambda c:c.x>2 and c.z<-3.2)
+    craneo=[(medial[i].x,medial[i].z,None,-1.,MARFIL,.045,'piel') for i in contorno_cabeza[c:d]]
+    c0,c1=medial[contorno_cabeza[d-1]],medial[contorno_cabeza[d]]
+    f=(-3.2-c0.z)/(c1.z-c0.z)
+    craneo.append((c0.x+f*(c1.x-c0.x),-3.2,None,-1.,MARFIL,0,None))
+    craneo+=[(x,z,None,-1.,MARFIL,0,None) for x,z in reversed(pared_exterior) if z>-3.2]
+    craneo.append((-2.2,3.16,None,-1.,MARFIL,0,None))
+    seccion_labial('anatomia_craneo',craneo)
     print('INTERIOR_DIDACTICO_OK')
