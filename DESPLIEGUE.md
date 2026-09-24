@@ -108,6 +108,13 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   `curl` sin `-L` baja la página de la redirección, no el GLB).
 - **Peso:** `didactica/cara.glb` pesa 6,5 MB y `lengua.glb` 0,44 MB; se bajan
   solo al abrir «Boca en 3D».
+- **Segunda publicación (24 sep, 17:27 CDMX):** revisión del Space
+  `0d4a3b2`, commit `4c9d7d7`. La boca articula la palabra de ejemplo del final
+  de cada audio (`palabras_audio.json`), se sincroniza por tramos, la lengua ya
+  no forma «dos picos» en /θ ð/ y la cabeza lleva pelo corto, ojos abiertos,
+  una sonrisa leve en reposo y la tez más clara. Comprobado en la app pública a
+  390 px (/ʒ/ de frente, alejada con «Explorar» y de lado); `X-Linked-ETag`
+  del GLB = sha256 local.
 
 ## Historial de infraestructura y opciones evaluadas
 
