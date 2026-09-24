@@ -222,6 +222,92 @@ function texturaCorte(clase: ClaseCorte): THREE.Texture | null {
   return t;
 }
 
+/** 24 sep (Miguel): el escaneo trae los párpados cerrados y, al alejar la
+ *  cámara, la cabeza parecía un maniquí. Ojos abiertos: una ranura en almendra
+ *  en la piel (coordenadas de reposo, sin tocar la malla) y un globo ocular
+ *  detrás. Medido sobre la malla: hendidura a y≈3,0, centro a ±1,2 de la línea
+ *  media, del lagrimal (0,7) a la comisura (1,7); párpado más adelantado x≈-2,5. */
+// Profundidad del párpado de cada lado (el escaneo no es simétrico): la mitad
+// cercana (z > 0) lo tiene en x≈-2,45 y la lejana en x≈-2,22.
+const OJO = { x: -2.45, xLejano: -2.22, y: 2.93, lateral: 1.2, semiancho: 0.5, radio: 0.38 };
+const GLSL_OJOS = `
+  // u: -1 lagrimal, +1 comisura exterior; la almendra sube un poco hacia fuera.
+  float aberturaOjo(vec3 p) {
+    float u = (abs(p.z) - ${OJO.lateral.toFixed(3)}) / ${OJO.semiancho.toFixed(3)};
+    if (abs(u) >= 1.0 || p.x > -2.05) return -1.0;
+    float centro = ${OJO.y.toFixed(3)} + 0.035 * u;
+    // Mirada relajada y amable: el párpado superior cubre el borde del iris
+    // y el inferior sube un poco (ojos que sonríen).
+    float arriba = 0.165 * pow(1.0 - u * u, 0.7) * (1.0 - 0.15 * u);
+    float abajo = 0.07 * pow(1.0 - u * u, 1.1);
+    float d = p.y - centro;
+    // > 0 dentro de la abertura; el valor es la distancia al borde más cercano.
+    return d >= 0.0 ? arriba - d : abajo + d;
+  }`;
+
+/** Globo ocular: esclerótica, iris castaño con anillo oscuro, pupila y brillo
+ *  húmedo; mira al frente (-x). */
+function globoOcular(): THREE.Mesh {
+  const material = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.05 });
+  material.onBeforeCompile = shader => {
+    shader.vertexShader = 'varying vec3 vOjo;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvOjo = normalize(position);');
+    shader.fragmentShader = 'varying vec3 vOjo;\n' + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      float t = acos(clamp(-vOjo.x, -1.0, 1.0));             // ángulo desde el frente
+      float ang = atan(vOjo.y, vOjo.z);
+      vec3 esclera = vec3(0.80, 0.76, 0.72) * (1.0 - 0.22 * smoothstep(0.7, 1.5, t));
+      vec3 iris = mix(vec3(0.20, 0.11, 0.05), vec3(0.34, 0.20, 0.09), 0.5 + 0.5 * sin(ang * 23.0 + t * 40.0));
+      iris *= 1.0 - 0.55 * smoothstep(0.40, 0.47, t);           // anillo del limbo
+      vec3 color = mix(iris, esclera, smoothstep(0.47, 0.50, t));
+      color = mix(vec3(0.01), color, smoothstep(0.17, 0.19, t)); // pupila
+      diffuseColor.rgb = color;`);
+  };
+  material.customProgramCacheKey = () => 'globo-ocular-v2';
+  const ojo = new THREE.Mesh(new THREE.SphereGeometry(OJO.radio, 40, 28), material);
+  ojo.layers.set(1);
+  return ojo;
+}
+
+/** Pelo corto castaño oscuro: mechones finos que salen de la coronilla (ruido
+ *  estirado a lo largo de los meridianos) y un borde que se aclara en el
+ *  nacimiento (color por vértice 0 → 1), para no cortar en seco sobre la piel. */
+function materialPelo(conColor: boolean): THREE.MeshStandardMaterial {
+  const m = new THREE.MeshStandardMaterial({ color: '#2b1d15', roughness: 0.85, metalness: 0, vertexColors: conColor, envMapIntensity: 0.25,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  m.onBeforeCompile = shader => {
+    shader.vertexShader = 'varying vec3 vPelo;\n' + shader.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\nvPelo = position;');
+    shader.fragmentShader = `varying vec3 vPelo;
+      float azarPelo(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float ruidoPelo(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(azarPelo(i), azarPelo(i + vec2(1, 0)), f.x), mix(azarPelo(i + vec2(0, 1)), azarPelo(i + vec2(1, 1)), f.x), f.y); }
+      ` + shader.fragmentShader.replace('#include <color_fragment>', `
+      // Nacimiento del pelo por píxel (misma curva que pelo_didactico.py): el
+      // color por vértice de una malla gruesa lo dejaba en escalones.
+      const float NX[10] = float[10](-3.2, -2.2, -1.2, -0.2, 0.6, 1.6, 2.4, 3.4, 4.6, 6.5);
+      const float NZ[10] = float[10](5.05, 4.85, 4.35, 3.8, 3.65, 3.55, 2.9, 1.8, 1.15, 1.0);
+      float nac = NZ[0];
+      for (int i = 0; i < 9; i++) if (vPelo.x > NX[i]) nac = mix(NZ[i], NZ[i + 1], smoothstep(0.0, 1.0, (vPelo.x - NX[i]) / (NX[i + 1] - NX[i])));
+      if (vPelo.x > NX[9]) nac = NZ[9];
+      float frente = smoothstep(0.0, 1.0, (-1.0 - vPelo.x) / 1.6);
+      float altoPelo = vPelo.y - nac - frente * 0.4 * pow(min(1.0, abs(vPelo.z) / 1.7), 2.0);
+      vec3 desdeCorona = vPelo - vec3(1.4, 7.6, 0.0);
+      float az = atan(desdeCorona.z, desdeCorona.x), largo = length(desdeCorona);
+      float mechon = ruidoPelo(vec2(az * 70.0, largo * 5.0)) * 0.6 + ruidoPelo(vec2(az * 190.0, largo * 11.0)) * 0.4;
+      diffuseColor.rgb *= 0.7 + 0.6 * mechon;
+      #ifdef USE_COLOR
+        // Nacimiento irregular: el borde lo decide el color por vértice (0 bajo
+        // el nacimiento, 1 dentro) más un ruido, no las caras de la malla.
+        // El color por vértice llega lineal desde glTF: se vuelve a sRGB.
+        float bordePelo = altoPelo + 0.07 * (ruidoPelo(vec2(az * 60.0, largo * 4.0)) - 0.5);
+        if (bordePelo < 0.0) discard;
+        diffuseColor.rgb = vec3(0.045, 0.03, 0.022) * (0.65 + 0.7 * mechon);
+      #endif`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor = 0.7 + 0.25 * (1.0 - mechon);`);
+  };
+  m.customProgramCacheKey = () => 'pelo-didactico-v5';
+  return m;
+}
+
 /** Sección medial de la lengua, con los mismos deltas que su superficie.
  * No remodela la lengua ni altera contactos; cierra visualmente el corte. */
 export function seccionSagitalLengua(fuente: THREE.Mesh): (THREE.Mesh & { actualizar: () => void }) | null {
@@ -2412,6 +2498,7 @@ export class EscenaBoca {
               shader.uniforms['fruncidoLabios']=this.fruncidoLabios;
               shader.uniforms['labiodentalLabios']=this.labiodentalLabios;
               shader.fragmentShader='uniform float fruncidoLabios; uniform float labiodentalLabios; varying vec3 vPielDetalle; varying vec3 vPielReposo;\n'
+                +GLSL_OJOS+'\n'
                 +'float azarPiel(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n'
                 +'float ruidoPiel(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
                 +'return mix(mix(mix(azarPiel(i),azarPiel(i+vec3(1,0,0)),f.x),mix(azarPiel(i+vec3(0,1,0)),azarPiel(i+vec3(1,1,0)),f.x),f.y),'
@@ -2442,7 +2529,15 @@ export class EscenaBoca {
                   // El vídeo tiene luz fuerte; esto no es colorimetría medida.
                   float superior = smoothstep(0.15, 0.26, vPielReposo.y);
                   vec3 pigmentoLabio = mix(vec3(0.70,0.73,0.79),vec3(0.51,0.59,0.65),superior);
-                  diffuseColor.rgb *= mix(vec3(0.54,0.47,0.42),pigmentoLabio,labioFoto);
+                  // 24 sep: tez más clara (petición de Miguel); los labios conservan su pigmento.
+                  diffuseColor.rgb *= mix(vec3(0.70,0.61,0.54),pigmentoLabio,labioFoto);
+                  // Ojos abiertos: fuera la abertura; pestañas oscuras en el borde
+                  // superior y más suaves en el inferior.
+                  float aberturaPiel = aberturaOjo(vPielReposo);
+                  if (aberturaPiel > 0.0) discard;
+                  float bordeOjo = -aberturaPiel;
+                  float pestanas = (vPielReposo.y > ${OJO.y.toFixed(3)} ? 1.0 : 0.45) * (1.0 - smoothstep(0.0, 0.035, bordeOjo));
+                  diffuseColor.rgb *= 1.0 - 0.8 * pestanas;
                   // Referencia /u/: superior seco y malva; la mucosa junto a la
                   // abertura y el inferior evertido, rosados y húmedos. La
                   // parte húmeda crece con el fruncido. No es colorimetría.
@@ -2598,6 +2693,27 @@ export class EscenaBoca {
           }
           pieza.userData['sinSombraRecibida'] = true;
         }
+      }
+      // 24 sep (Miguel): pelo corto sobre la cabeza rapada del escaneo, que al
+      // alejar la cámara parecía un maniquí. Pieza fija; la mitad lejana
+      // también se ve en el corte (asoma por detrás del contorno).
+      if (this.exploracionDidactica) for (const nombre of ['pelo_cercana', 'pelo_lejana']) {
+        const fuente = piezas.get(nombre);
+        if (!fuente) continue;
+        const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
+        const pieza = new THREE.Mesh(geometria, materialPelo(geometria.hasAttribute('color')));
+        pieza.layers.set(1);
+        if (nombre === 'pelo_lejana') pieza.layers.enable(0);
+        pieza.userData['sinSombraRecibida'] = true;
+        this.escena.add(pieza);
+      }
+      // 24 sep: los globos oculares detrás de la abertura de los párpados.
+      if (this.exploracionDidactica && piezas.has('pelo_cercana')) for (const lado of [1, -1]) {
+        const ojo = globoOcular();
+        // Un poco por detrás del párpado: con el radio real de un ojo asomaba
+        // por debajo del párpado inferior, que se retira antes que la esfera.
+        ojo.position.set((lado > 0 ? OJO.x : OJO.xLejano) + OJO.radio + 0.02, OJO.y, lado * OJO.lateral);
+        this.escena.add(ojo);
       }
       // Las aletas y la punta de la nariz, si el .glb las trae: piel, fijas.
       for (const nombre of ['aleta_izq', 'aleta_der', 'punta_nariz']) {
@@ -3214,6 +3330,9 @@ export class EscenaBoca {
         if ('abrir_neutro' in dic) inf[dic['abrir_neutro']] = neutro * (1 - Math.max(estirar, fruncir));
         if ('contorno_dental' in dic) inf[dic['contorno_dental']] = n[I_CONTORNO_DENTAL];
         if ('cierre_labios' in dic) inf[dic['cierre_labios']] = cierre;
+        // Sonrisa leve solo en reposo: se apaga con cualquier gesto labial,
+        // con los labios neutros articulando y con el cierre de /p b m/.
+        if ('sonrisa' in dic) inf[dic['sonrisa']] = (1 - fruncir) * (1 - estirar) * (1 - atras) * (1 - neutro) * (1 - n[I_COMPRESION_LABIOS]);
         if ('compresion_labios' in dic) inf[dic['compresion_labios']] = n[I_COMPRESION_LABIOS];
       }
     }

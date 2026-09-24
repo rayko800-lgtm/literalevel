@@ -6,11 +6,12 @@ import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
+import palabrasAudio from './palabras_audio.json';
 import { Linea, Velocidad, aVelocidad, alAudio, alCompasDeTramos, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
 import type { Tramo } from './audio';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
-import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, familiaDe, poseDe, trocearIpa } from './poses';
+import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, Segmento, conAjustes3d, familiaDe, poseDe, trocearIpa } from './poses';
 
 /** La boca en 3D esquemático, girable con el dedo.
  *
@@ -354,7 +355,8 @@ export class Boca3d {
     if (!url) { this.verMovimiento(); return; }
     // La boca repite el gesto en cada tramo que suena del audio medido; si no
     // se pudo medir, el ciclo de siempre ajustado a lo que suena.
-    void this.conAudio(url, listo => alCompasDeTramos(p, this.catalogo(), listo.tramos, listo.silencio, listo.duracion)
+    void this.conAudio(url, listo => alCompasDeTramos(p, this.catalogo(), listo.tramos, listo.silencio, listo.duracion,
+      this.palabraGrabada())
       ?? alAudio(cicloSonido(p, this.catalogo()), p.movimiento, listo.fin - listo.silencio),
       this.opcionesGiro(p));
   }
@@ -396,6 +398,16 @@ export class Boca3d {
       listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1), 1);
       this.aviso.set('Este navegador no puede usar esta velocidad sin cambiar el tono: el audio y la boca vuelven a velocidad normal.');
     }
+  }
+
+  /** La palabra de ejemplo que Miguel grabó al final del audio del sonido
+   *  (`palabras_audio.json`, del manifiesto del grabador, con la IPA de los
+   *  diccionarios del motor), troceada para que la boca la articule. */
+  private palabraGrabada(): Segmento[] {
+    const archivo = (this.audioSonido() ?? '').split('?')[0].split('/').pop() ?? '';
+    const entrada = (palabrasAudio as Record<string, Partial<Record<Acento, { palabra: string; ipa: string | null }>>>)[archivo];
+    const dato = entrada?.[this.acento()] ?? entrada?.ga ?? entrada?.rp;
+    return dato?.ipa ? trocearIpa(dato.ipa, this.catalogo(), this.acento()).segmentos : [];
   }
 
   /** Lote fase 2: /l/ oscura (final de sílaba) o clara (inicio de sílaba). */
