@@ -74,3 +74,19 @@ posiciones, índices, UV y todos los morfos coinciden exactamente con el GLB
 ya validado. Sólo una normal de exportación difiere 0.0000051283; imagen
 embebida idéntica. Se mantiene el GLB validado, no se repiten pruebas geométricas
 por esta reparación de rutas. regeneracion.json documenta esa equivalencia.
+
+## Respaldo confirmado
+
+Fuentes visuales 41ece1cfdbe0b91b9f19c9f87931a80a4ed61a2e y corrección de
+empaque d70cd688e79f1a4ea99721510c38292ab9f84426, subidas a origin.
+[Release privada](https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23):
+perfil-redondeado-d70cd68.zip, 10,767,548 bytes, SHA256
+b46eef0356fc11bb92ec30a02158a1c1cafb9c3d14b356964725231e69ad47e2.
+26 archivos, 25 hashes y CRC verificados; digest remoto idéntico. Incluye
+ambos proyectos Blender, seis capturas y ocho archivos de evidencia.
+
+[Visor temporal /u/](https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&inventario=1&s=u&ciclo=0&sombras=0&vista=frente&velocidad=0.5)
+comprobado visualmente y mediante hashes de cara.glb, lengua.glb y demo.js.
+Vigencia previa conservada hasta aproximadamente 09:28 CDMX del 24sep.
+Servidor 8772 exec4371, túnel56326 intacto; ensayo8774 detenido.
+No se sobrescribe ningún respaldo anterior ni se despliega producción.
