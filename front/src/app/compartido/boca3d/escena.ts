@@ -2406,11 +2406,12 @@ export class EscenaBoca {
                   // abertura y el inferior evertido, rosados y húmedos. La
                   // parte húmeda crece con el fruncido. No es colorimetría.
                   float filo = 1.0-smoothstep(0.02,0.12,abs(vPielReposo.y-0.15));
-                  float humedo = labioFoto*clamp(filo*(0.55+0.45*fruncidoLabios)+(1.0-superior)*(0.25+0.55*fruncidoLabios),0.0,1.0);
+                  float humedo = labioFoto*clamp(filo*(0.55+0.45*fruncidoLabios)+(1.0-superior)*(0.25+0.55*max(fruncidoLabios,0.7*labiodentalLabios)),0.0,1.0);
                   // Al fruncir, la foto estirada deja rayas radiales en el
                   // inferior: se toma su color de un nivel de mip más suave.
                   vec3 suavizado = texture2D(map, vMapUv, 1.5).rgb * mix(vec3(0.54,0.47,0.42),pigmentoLabio,labioFoto);
-                  diffuseColor.rgb = mix(diffuseColor.rgb, suavizado, labioFoto*(1.0-superior)*fruncidoLabios*0.8);
+                  float recogeLabio = max(fruncidoLabios, labiodentalLabios);
+                  diffuseColor.rgb = mix(diffuseColor.rgb, suavizado, labioFoto*labioFoto*labioFoto*(1.0-superior)*recogeLabio*0.8);
                   float luzLabio = dot(diffuseColor.rgb, vec3(0.2126,0.7152,0.0722));
                   // Malva seco (superior) y rosa húmedo (inferior), en lineal.
                   vec3 seco = luzLabio*vec3(2.3,1.02,1.12);
@@ -2433,6 +2434,11 @@ export class EscenaBoca {
                   float bajoDiente = labiodentalLabios*(1.0-superior)*labioFoto
                     *(1.0-smoothstep(0.02,0.2,0.15-vPielReposo.y));
                   diffuseColor.rgb *= 1.0-0.55*bajoDiente;
+                  float anchoSurco = 1.0-smoothstep(0.55,0.95,abs(vPielReposo.z));
+                  float alturaSurco = -0.56+0.12*pow(vPielReposo.z/0.8,2.0);
+                  float surcoMenton = labiodentalLabios*(1.0-labioFoto)*anchoSurco
+                    *exp(-pow((vPielReposo.y-alturaSurco)/0.07,2.0));
+                  diffuseColor.rgb *= 1.0-0.15*surcoMenton;
                   humedo = max(humedo, 0.8*bajoDiente);
                 #endif`);
               shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>',
@@ -2450,7 +2456,7 @@ export class EscenaBoca {
                   // Al fruncir se marcan las arrugas finas del superior; el
                   // inferior evertido queda liso y tenso, como en la referencia.
                   float arribaLabio = smoothstep(0.14,0.2,vPielReposo.y);
-                  float fruncePliegue = mix(1.0-0.8*fruncidoLabios, 1.0+2.4*fruncidoLabios, arribaLabio);
+                  float fruncePliegue = mix(1.0-0.8*max(fruncidoLabios,labiodentalLabios), 1.0+2.4*fruncidoLabios+0.9*labiodentalLabios, arribaLabio);
                   float cruce = sin(anguloLabial*131.0-radioLabial*21.0+2.0*sin(radioLabial*17.0));
                   float microLabial = tejidoLabial*(0.0016*pliegue*tramos*fruncePliegue
                     + 0.0013*arribaLabio*fruncidoLabios*cruce*tramos
@@ -2458,6 +2464,10 @@ export class EscenaBoca {
                   float bandaPiel = vPielDetalle.z*(1.0-tejidoLabial);
                   float relievePiel = bandaPiel*(-0.0009*smoothstep(0.62,0.9,ruidoPiel(vPielReposo*95.0))
                     + 0.0005*ruidoPiel(vPielReposo*210.0));
+                  // Surco mentolabial en /f v/ (mismo trazado que el color).
+                  relievePiel -= 0.006*labiodentalLabios*(1.0-tejidoLabial)
+                    *(1.0-smoothstep(0.55,0.95,abs(vPielReposo.z)))
+                    *exp(-pow((vPielReposo.y-(-0.56+0.12*pow(vPielReposo.z/0.8,2.0)))/0.07,2.0));
                   normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(microLabial+relievePiel),dFdy(microLabial+relievePiel)),faceDirection);
                 #endif`);
               // Translucidez de bajo coste inspirada en el ejemplo oficial
@@ -2503,7 +2513,7 @@ export class EscenaBoca {
                 roughnessFactor = mix(roughnessFactor, 0.38, bermellon);
               #endif`);
           };
-          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-humedo-v3' : 'piel-didactica-bermellon-v1';
+          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-humedo-v4' : 'piel-didactica-bermellon-v1';
           const pieza = new THREE.Mesh(geometria, material);
           pieza.layers.set(1);
           pieza.userData['sinSombraRecibida'] = true;
