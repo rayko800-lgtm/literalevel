@@ -90,3 +90,22 @@ del visor incluye el material y movimiento de Three.js.
 
 No se fusiona master ni se despliega producción. front/angular.json ajeno
 conserva SHA256 0916137F608401AAF0F52B9FDFEB05F7E7D6876C7B07A7C70F0B78A05F505858.
+
+## Respaldo confirmado
+
+Fuente49adc8ee17f80cd26dd19beefa70b8a625186dc0 subida a origin.
+[Paquete privado](https://github.com/rayko800-lgtm/literalevel/releases/download/boca3d-noche-2026-09-23/gestos-49adc8e.zip):
+11,148,682 bytes; SHA256 e8f0670d132e72208db26396d685d372972509ce564f4da66802a82a332d34f2.
+35 archivos,34 hashes y CRC verificados; digest remoto idéntico. Incluye
+ambos Blender empacados,13 capturas y10 archivos de evidencia. Release y
+respaldos anteriores conservados; privacidad del repositorio comprobada.
+
+Modelo vigente:6,089,500 bytes; SHA256
+c184cbf17873d4a47b65a026c6b98c04b94a68a75216b89f12ec1243ce7ba029.
+Se conserva el anterior en build/gestos_referencia/cara_antes.glb y su release.
+
+[Visor temporal](https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&inventario=1&s=i&ciclo=0&sombras=0&vista=frente&velocidad=0.5)
+actualizado y revisado visualmente; cara/lengua/demo coinciden por SHA256.
+demo.js:776198 bytes, aad8da2cabb2854580e063d784ef5eef62e9d1e82ee85a1ef515fbab0cf16457.
+Servidor8772 exec99129, túnel56326 conservado. Expiración previa09:28CDMX24sep,
+sin ampliación. Producción intacta.
