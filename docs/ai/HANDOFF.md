@@ -4,6 +4,8 @@ Keep this document short and current.
 
 ## Boca3D — 23 sep 2026, revisión nocturna, Nico
 
+Implementación74c9941 subido; ZIP noche-74c9941.zip guardado en release GitHub boca3d-noche-2026-09-23 (privado), digest SHA256 ed5c8503892007ced05d7b0b2675b2c35f3b3f0b1fac3c3efe56ba4314559b69 comprobado. Vista analysis-heating-drawings-pregnant hasta~09:28CDMX24sep, servidor8772 exec37954/túnel56326 hijo22152. Todos los datos/reproducción en el informe siguiente.
+
 Miguel acepta el avance y pide quitar dientes tipo tubo/labios artificiales; autoriza commits/subida y trabajo nocturno gratuito. Checkpoint edeb914 subido a GitHub privado, respaldo verificable en release boca3d-astra-2026-09-23. Nueva geometría: incisivos en pala y labios con volumen diferenciado/comisuras finas; /i u fv/ refinados. 2227 estados integrados exit0, cierre/fv intactos, penetración0, costura53/error0, plegado superior0. Cara5973224B SHA25626C543A881E4065A078ED52907332771F4DFB2701125E5E8C45DC657ED671B92. Informe vigente auditoria/realismo_noche_2026-09-23.md. Herramientas de paquete portátil incluyen Blender con texturas, GLB, visor, créditos, hashes y capturas explícitas. Sin fotos privadas ni producción; angular.json ajeno. Automatización boca3d-revisi-n-nocturna cada2h hasta07:00CDMX24sep; no iterar después ni repetir pruebas sin cambios. Candidato nuevo pendiente de juicio visual de Miguel; no fotorrealismo alcanzado.
 
 ## Boca3D — 23 sep 2026, Astra, Nico

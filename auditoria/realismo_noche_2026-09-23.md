@@ -59,3 +59,19 @@ ID boca3d-revisi-n-nocturna. Trabajar una mejora justificada por ejecución;
 guardar resultados, preservar el mejor y no repetir pruebas sin cambios.
 La aceptación estética del candidato nuevo está pendiente. No se ha alcanzado
 fotorrealismo. No fusionar master ni desplegar la aplicación de producción.
+
+## Publicación del respaldo verificada
+
+Commit de la mejora:74c99411a72868a5086f2aee4256a6e34eb72afd, confirmado en origin.
+https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23
+ZIP noche-74c9941.zip:10551771B,
+SHA256 ed5c8503892007ced05d7b0b2675b2c35f3b3f0b1fac3c3efe56ba4314559b69.
+Digest GitHub idéntico; CRC y hashes de los18 archivos del paquete comprobados.
+Incluye informe y capturas antes/después. La fuente del ZIP apunta al commit
+de implementación; esta anotación posterior documenta la publicación.
+
+Vista temporal verificada, GLB público idéntico:
+https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&inventario=1&s=i&ciclo=0&sombras=0&vista=frente&velocidad=0.5
+Hasta aproximadamente09:28CDMX24sep. Servidor8772 exec37954; túnel exec56326
+hijo22152. Sólo cinco assets del piloto. El ZIP sigue disponible en GitHub
+cuando termine el enlace temporal. No hay despliegue de la app de producción.
