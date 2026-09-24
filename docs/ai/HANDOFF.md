@@ -2,6 +2,10 @@
 
 Keep this document short and current.
 
+## Boca3D — 23 sep 2026, revisión nocturna, Nico
+
+Miguel acepta el avance y pide quitar dientes tipo tubo/labios artificiales; autoriza commits/subida y trabajo nocturno gratuito. Checkpoint edeb914 subido a GitHub privado, respaldo verificable en release boca3d-astra-2026-09-23. Nueva geometría: incisivos en pala y labios con volumen diferenciado/comisuras finas; /i u fv/ refinados. 2227 estados integrados exit0, cierre/fv intactos, penetración0, costura53/error0, plegado superior0. Cara5973224B SHA25626C543A881E4065A078ED52907332771F4DFB2701125E5E8C45DC657ED671B92. Informe vigente auditoria/realismo_noche_2026-09-23.md. Herramientas de paquete portátil incluyen Blender con texturas, GLB, visor, créditos, hashes y capturas explícitas. Sin fotos privadas ni producción; angular.json ajeno. Automatización boca3d-revisi-n-nocturna cada2h hasta07:00CDMX24sep; no iterar después ni repetir pruebas sin cambios. Candidato nuevo pendiente de juicio visual de Miguel; no fotorrealismo alcanzado.
+
 ## Boca3D — 23 sep 2026, Astra, Nico
 
 VIGENTE auditoria/astra_realismo_2026-09-23.md. Referencia privada autorizada revisada localmente; presupuesto0, sin publicar fotogramas. Piel morena cálida y detalle labial en visor; coronas v3 con960 anclajes exactos; lengua continua sin pestaña /æ/.135 tests, tsc/build,2227 estados y260 contactos linguales OK; nuevas normales sin cambio geométrico verificado. Cara6033132B SHA256FBD6C1C31AADFCCE84D8C876DB1C8F6C5FCAC2EC6F0ADE77753AE2E4F28C5DB2; lengua444212B SHA256451CEEA3BE66B4DA43CE1D38B837AB91A77D2413FC39FB738E5D05E982611F64; públicos idénticos. Vista city-gabriel-tier-nickel hasta~23:02CDMX; servidor8771 exec79767, túnel2150 hijo49452. No fotorrealismo: coronas parcialmente ocultas, interior ilustrativo, shader no horneado en Blender. Piloto pendiente de percepción del usuario; no pedir otra grabación. Sin producción/commit/push; angular.json ajeno intacto.

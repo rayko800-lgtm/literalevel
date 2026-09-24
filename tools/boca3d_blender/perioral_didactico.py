@@ -196,10 +196,10 @@ def construir():
             rounded.co=p.co
             dx,dy=desplazamiento_mandibula(p.co,.12,SUAVIDAD_MANDIBULA[ri])
             rounded.co.x -= .46*band*(.75+.25*abs(s)) + dx*band
-            rounded.co.y *= 1-.60*band
+            rounded.co.y *= 1-.66*band
             # La abertura queda entre los bordes incisales, no delante de
             # toda la arcada inferior (que parecía una dentadura expuesta).
-            rounded.co.z += (.37+.115*s)*band - dy*band
+            rounded.co.z += (.37+.145*s)*band - dy*band
             if s<0 and 2<=ri<=4:
                 rounded.co.z += .06*abs(s)**4*[.4,1.,.7][ri-2]
             # /i/: comisuras arriba y afuera, labios finos y abertura corta.
@@ -209,7 +209,7 @@ def construir():
             lat_i=lat*spread
             corner=.38*t*t*taper
             rim_open=(.50 if s>=0 else -.17)*s
-            thin=(y-.15)*(1.15 if ri<=4 else 1.)
+            thin=(y-.15)*(1.15 if ri<=1 else (.96 if s>=0 else .92) if ri<=4 else 1.)
             target_y=.15+thin+rim_open*taper+corner
             dx,dy=desplazamiento_mandibula(p.co,.12,SUAVIDAD_MANDIBULA[ri])
             stretch=keys['estirar'].data[i]
@@ -224,13 +224,13 @@ def construir():
             dx,dy=desplazamiento_mandibula(p.co,.14,SUAVIDAD_MANDIBULA[ri])
             influence=.9419120638128117  # poseNumerica(/f v/) actual; medidor lo verifica
             if s>0:
-                lift=[.62,.62,.60,.55,.37,.16,.035][ri]*arch*(s**.5)
+                lift=[.52,.52,.50,.47,.32,.145,.035][ri]*arch*(s**.5)
                 k.co.z+=lift/influence
             elif s<0 and ri<=4:
                 # Por dentro el labio llega al filo dental; por fuera conserva
                 # una curva descendente: los incisivos no desaparecen detrás.
                 target_x=[-2.60+.80*lat*lat,-2.83+.48*lat*lat,-3.08+.46*lat*lat,x,x][ri]
-                target_y=[.448,.345,.13,y,y][ri]
+                target_y=[.448,.345,.20,y+.055,y+.020][ri]
                 roll=arch*min(1.,(-s)/.35)
                 k.co.x+=(target_x-x-dx)*roll/influence
                 k.co.z+=(target_y-y-dy)*roll/influence
@@ -273,21 +273,26 @@ def construir():
                     if abs(keys[0].data[j].co.y)<1e-5:nuevo.y=0
                     cambios[j]=nuevo
                 for j,p in cambios.items():key.data[j].co=p
-        # El alisado de la sutura quitaba volumen del bermellón, sobre todo
-        # arriba al sonreír. Recuperar la almohadilla labial después de ese
-        # alisado: el borde de contacto (anillos 0 y 1) permanece exacto.
+        # Volumen labial diferenciado: dos lóbulos superiores, surco de Cupido
+        # y almohadilla central inferior. Un relleno uniforme hasta la piel
+        # producía un aro inflado, también en /i/. Los anillos funcionales
+        # 0 y 1 mantienen sus posiciones; sólo se esculpe el tejido exterior.
         for key in keys:
             for ri in range(2,6):
                 for q in range(n+1):
                     i=ri*(n+1)+q;theta=start+math.pi*q/n
                     s=math.sin(theta)
-                    plenitud=[.018,.090,.065,.012][ri-2]
-                    altura=plenitud*(1. if s>0 else -.55)*abs(s)**.65
-                    # /i/ mantiene cuerpo en el superior; /u/ redondea el
-                    # labio sin arrastrar toda la piel como una bolsa.
-                    if key.name=='estirar' and s>0:altura*=1.3
+                    t=abs(math.cos(theta))
+                    taper=abs(s)**1.25
+                    lobulos=(.67+.45*math.exp(-((t-.31)/.19)**2)
+                             -.16*math.exp(-(t/.11)**2))
+                    cuerpo=lobulos if s>0 else 1.-.26*t*t
+                    plenitud=[.018,.074,.036,.004][ri-2]
+                    altura=plenitud*(1. if s>0 else -.54)*cuerpo*taper
+                    if key.name=='estirar':altura*=.90 if s>0 else .82
                     key.data[i].co.z+=altura
-                    key.data[i].co.x-=[.01,.055,.035,0.][ri-2]*abs(s)**.65
+                    proyeccion=[.012,.052,.012,0.][ri-2]
+                    key.data[i].co.x-=proyeccion*cuerpo*taper
         for j,v in enumerate(mesh.vertices):v.co=keys[0].data[j].co
         mesh.update()
         normals=[]

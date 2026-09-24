@@ -129,10 +129,10 @@ def _punto_base(t, j, q):
 
 
 def _punto_corona(t, j, q, indice=None):
-    """Domo vestibular y cuello ovoide, preservando la banda t<=-.23.
+    """Incisivos en pala y caninos convexos; banda t<=-.23 preservada.
 
-    El domo nace por cambios de curvatura dentro del volumen calibrado, no
-    por sumar un relieve que invada los labios. Las tres primeras secciones
+    La pala se esculpe dentro del volumen calibrado, sin añadir espesor que
+    invada los labios. Las tres primeras secciones
     incisales son idénticas a v2; las demás se funden gradualmente.
     """
     bx, by = _punto_base(t, j, q)
@@ -145,14 +145,28 @@ def _punto_corona(t, j, q, indice=None):
     cuello = _suave((t+.14)/.24)
     vientre = math.exp(-((t+.08)/.13)**2)
     if j >= 4:
-        # Sección labial ovoide: sustituye los hombros casi planos de v2.
-        tx = ex*abs(c)**.36*(1.-.23*cuello-.16*(1.-vientre))
-        ty = ey*abs(s)**.16*(1.-(.19 if j == 5 else .24)*cuello)
-        if ex > 0:
-            tx *= 1.-.18*vientre*(1.-abs(s)**3)  # pala lingual
+        # Una sección elíptica hacía que incisivos y caninos fueran tubos.
+        # Cara labial amplia con hombros redondeados: recortar el volumen
+        # original mediante un plano ligeramente convexo, nunca ensancharlo.
+        cervical = _suave((t+.055)/.155)
+        ty = ey*(1.-(.25 if j == 5 else .22)*cervical)
+        if ex < 0:
+            radio = abs(_envolvente(t, j, _LADOS//2)[0])
+            limite = -radio*(.70+.055*_suave((t+.12)/.20))
+            limite *= 1.-.035*abs(s)**2
+            # Máximo suavizado de ex y el plano; el redondeo se dirige
+            # siempre hacia dentro y evita una arista dura en los hombros.
+            bisel = .0035
+            tx = min(0., .5*(ex+limite+math.sqrt((ex-limite)**2+bisel*bisel)))
+        else:
+            # Concavidad palatina real: bordes marginales y cíngulo cervical
+            # más gruesos que el centro de la pala. Se aprecia en tres cuartos.
+            tx = ex*(.31+.40*abs(s)**4+.23*cervical)
         if j == 4:
-            ty *= .88
-            tx *= .95
+            # No estrechar el cuerpo por debajo de la banda incisal fijada:
+            # se vería un borde abultado aunque los contactos fueran correctos.
+            ty *= .85
+            tx *= .92
     else:
         # Canino: cresta vestibular ancha, hombros hacia el cuello.
         tx = bx*(1.-.18*cuello-.08*abs(s)**2)
@@ -310,7 +324,7 @@ def construir():
             p.use_smooth = len(p.vertices) == 4 or (
                 indice in (3, 8) and len(p.vertices) == 3)
         ob.data = mesh
-        ob['corona_visual'] = 'esmalte_v3'
+        ob['corona_visual'] = 'esmalte_v4'
         resultado.append({'nombre': ob.name, 'vertices': len(vertices)})
         if old.users == 0:
             bpy.data.meshes.remove(old)
