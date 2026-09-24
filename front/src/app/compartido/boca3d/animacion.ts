@@ -100,7 +100,8 @@ export function alAudio(linea: Linea, movimiento: Movimiento, sonora: number): L
  *  la fricción durante el tramo; diptongos: del primer objetivo al segundo. */
 export const ADELANTO = 0.45;
 export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
-                                 tramos: { inicio: number; fin: number }[], silencio: number, duracion: number): Linea | null {
+                                 tramos: { inicio: number; fin: number }[], silencio: number, duracion: number,
+                                 palabra: Segmento[] = []): Linea | null {
   if (!tramos.length) return null;
   const R = catalogo.reposo;
   const [PA0, PB] = objetivos(pose, R, R);
@@ -109,9 +110,21 @@ export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
   const claves: Clave[] = [{ t: 0, pose: R }];
   const aspiracion: { en: number; dura: number }[] = [];
   let libre = 0;          // instante desde el que se puede empezar a mover
-  for (const { inicio, fin } of tramos) {
+  tramos.forEach(({ inicio, fin }, n) => {
     const a = L + inicio, b = Math.max(a + 0.08, L + fin);
     const ir = Math.max(libre, a - 0.35);
+    if (palabra.length && n === tramos.length - 1) {
+      // El último tramo es la palabra de ejemplo grabada (p. ej. «vision» en
+      // /ʒ/): la boca la articula entera, ajustada a lo que dura.
+      const lento = Math.min(3, Math.max(0.35, (b - a) / Math.max(1e-6, duracionSegmentos(palabra, catalogo))));
+      const lp = lineaPalabra(palabra, catalogo, lento);
+      const fin = lp.claves[lp.claves.length - 2].t, mover = a - lp.sonidoEn;
+      claves.push({ t: ir, pose: R });
+      for (const k of lp.claves) if (k.t >= lp.sonidoEn - 0.05 && k.t <= fin) claves.push({ ...k, t: k.t + mover });
+      for (const x of lp.aspiracion ?? []) aspiracion.push({ en: x.en + mover, dura: x.dura });
+      libre = fin + mover;
+      return;
+    }
     if (m === 'oclusiva') {
       const cierre = Math.max(libre + 0.05, a - 0.3);
       claves.push({ t: Math.max(libre, cierre - 0.3), pose: R }, { t: cierre, pose: PA }, { t: a, pose: PA },
@@ -128,7 +141,7 @@ export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
       claves.push({ t: ir, pose: R }, { t: a, pose: PA }, { t: b, pose: PA }, { t: b + 0.3, pose: R });
       libre = b + 0.3;
     }
-  }
+  });
   const total = Math.max(libre, L + duracion) + 0.2;
   claves.push({ t: total, pose: R });
   // Instantes estrictamente crecientes (huecos muy cortos entre tramos).

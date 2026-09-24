@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import posesCompletas from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
-import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe } from './poses';
+import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe, trocearIpa } from './poses';
+import palabrasAudio from './palabras_audio.json';
 import { ADELANTO, alAudio, alCompasDeTramos, cicloSonido } from './animacion';
 import { finSonoro, tramosSonoros } from './audio';
 
@@ -89,5 +90,26 @@ describe('24 sep: la boca en cada tramo que suena del audio de Miguel', () => {
 
   it('sin tramos medidos no hay línea (se usa el ciclo de siempre)', () => {
     expect(alCompasDeTramos(poseDe(catalogo, 'f')!, catalogo, [], 0.1, 5)).toBeNull();
+  });
+});
+
+describe('24 sep: la palabra de ejemplo del audio también se articula', () => {
+  it('en /ʒ/ el último tramo es «vision»: sus poses caen dentro del tramo, antes y después reposo', () => {
+    const tramos = [{ inicio: 0.06, fin: 2.0 }, { inicio: 2.7, fin: 3.15 }, { inicio: 3.85, fin: 4.95 }];
+    const vision = trocearIpa('/ˈvɪʒən/', catalogo, 'ga').segmentos;
+    expect(vision.length).toBe(5);
+    const l = alCompasDeTramos(poseDe(catalogo, 'ʒ')!, catalogo, tramos, 0.06, 5.2, vision)!;
+    const a = ADELANTO + 3.85, b = ADELANTO + 4.95;
+    const dentro = l.claves.filter(k => k.t >= a - 0.06 && k.t <= b + 0.5);
+    // Varias poses distintas (v, ɪ, ʒ, ə, n), no una sola sostenida.
+    expect(new Set(dentro.map(k => k.pose)).size).toBeGreaterThanOrEqual(4);
+    for (let i = 1; i < l.claves.length; i++) expect(l.claves[i].t).toBeGreaterThan(l.claves[i - 1].t);
+  });
+
+  it('la tabla de palabras grabadas trae IPA para cada audio', () => {
+    const tabla = palabrasAudio as Record<string, Record<string, { palabra: string; ipa: string | null }>>;
+    expect(Object.keys(tabla).length).toBeGreaterThanOrEqual(50);
+    for (const entrada of Object.values(tabla)) for (const d of Object.values(entrada)) expect(d.ipa).toBeTruthy();
+    expect(tabla['0292.mp3']['ga'].palabra).toBe('vision');
   });
 });
