@@ -98,15 +98,32 @@ def seccion_labial(nombre, puntos, profundidad=.025, lado=None):
 FRANJA={'piel':(.40,.24,.18),'bermellon':(.62,.20,.24),'mucosa':(.80,.42,.46)}
 
 
-def lamina(nombre, contorno, color, borde=None, ancho=0., y=-.008):
-    """Pieza plana del corte (una cara), con franja de borde opcional."""
+def lamina(nombre, contorno, color, borde=None, ancho=0., y=-.008, relieve=0.):
+    """Pieza plana del corte (una cara), con franja de borde opcional.
+
+    `relieve` > 0: un contorno interior a esa distancia, más claro, y el borde
+    en sombra; el degradado da volumen a una pieza plana (luz de ilustración).
+    """
     n=len(contorno)
-    poly=[Vector((x,z,0)) for x,z in contorno]
-    tris=tessellate_polygon([poly])
-    vertices=[(x,y,z) for x,z in contorno];faces=[tuple(t) for t in tris];colores=[color]*n
+    area=sum(contorno[i][0]*contorno[(i+1)%n][1]-contorno[(i+1)%n][0]*contorno[i][1] for i in range(n))
+    signo=1. if area>0 else -1.
+    if relieve and abs(area)/2>8*relieve*relieve:
+        interior=[]
+        for j in range(n):
+            a,b=contorno[(j-1)%n],contorno[(j+1)%n]
+            tx,tz=b[0]-a[0],b[1]-a[1];l=math.hypot(tx,tz) or 1.
+            x,z=contorno[j];interior.append((x-signo*tz/l*relieve,z+signo*tx/l*relieve))
+        zs=[q[1] for q in contorno];z0,z1=min(zs),max(zs)
+        luz=lambda q,k:tuple(min(1.,c*k*(1+.06*((q[1]-z0)/max(1e-6,z1-z0)-.5))) for c in color)
+        tris=tessellate_polygon([[Vector((x,z,0)) for x,z in interior]])
+        vertices=[(x,y,z) for x,z in contorno]+[(x,y,z) for x,z in interior]
+        colores=[luz(q,.80) for q in contorno]+[luz(q,1.05) for q in interior]
+        faces=[tuple(n+i for i in t) for t in tris]+[(j,(j+1)%n,n+(j+1)%n,n+j) for j in range(n)]
+    else:
+        poly=[Vector((x,z,0)) for x,z in contorno]
+        tris=tessellate_polygon([poly])
+        vertices=[(x,y,z) for x,z in contorno];faces=[tuple(t) for t in tris];colores=[color]*n
     if borde and ancho:
-        area=sum(contorno[i][0]*contorno[(i+1)%n][1]-contorno[(i+1)%n][0]*contorno[i][1] for i in range(n))
-        signo=1. if area>0 else -1.
         base=len(vertices)
         for j in range(n):
             a,b=contorno[(j-1)%n],contorno[(j+1)%n]
@@ -168,9 +185,9 @@ def anatomia_de_apoyo(medial,contorno,pared_exterior):
     # Cerebro: bóveda, tentorio sobre el cerebelo y base media y anterior.
     delante=[p for p in interior if not (p[0]>3.0 and p[1]<3.9)]
     cerebro=delante+[(3.9,3.95),(3.1,3.62),(2.45,3.62),(1.95,3.35),(1.2,3.0),(.3,3.05),(-.8,3.38),(-1.9,3.6)]
-    lamina('anatomia_cerebro',cerebro,CEREBRO,(.62,.46,.45),.035)
+    lamina('anatomia_cerebro',cerebro,CEREBRO,(.62,.46,.45),.035,relieve=.35)
     lamina('anatomia_cerebelo',cerrada([(3.25,3.35),(3.95,3.78),(4.75,3.72),(5.3,3.3),(5.38,2.7),(5.0,2.18),(4.35,2.0),(3.72,2.25),(3.35,2.75)]),
-           CEREBELO,(.55,.40,.39),.03)
+           CEREBELO,(.55,.40,.39),.03,relieve=.18)
     # Tronco del encéfalo y médula: del cerebro al agujero occipital y al cuello.
     def pared_x(z):
         pe=[q for q in pared_exterior]
@@ -185,7 +202,7 @@ def anatomia_de_apoyo(medial,contorno,pared_exterior):
     tronco_t=[(cuerpo(1.5)+.92,1.6),(3.85,2.2),(3.05,3.0),(2.5,3.62)]
     medula_d=[(cuerpo(z)+.66,z) for z in (1.2,.4,-.6,-1.6,-2.6,-3.2)]
     medula_t=[(cuerpo(z)+.88,z) for z in (-3.2,-2.6,-1.6,-.6,.4,1.2)]
-    lamina('anatomia_medula',tronco_d+medula_d+medula_t+tronco_t,NERVIO,(.70,.62,.52),.025,y=-.009)
+    lamina('anatomia_medula',tronco_d+medula_d+medula_t+tronco_t,NERVIO,(.70,.62,.52),.025,y=-.009,relieve=.07)
     # Vértebras cervicales: C1 (arco anterior), C2 con apófisis odontoides,
     # C3–C7 y el comienzo de T1, con discos intervertebrales.
     lamina('anatomia_c1',cerrada([(pared_x(1.35)+.06,1.3),(pared_x(1.35)+.12,1.46),(pared_x(1.35)+.26,1.42),(pared_x(1.35)+.25,1.24)],4),
@@ -196,7 +213,7 @@ def anatomia_de_apoyo(medial,contorno,pared_exterior):
     alto,disco=.5,.12
     for k,techo in enumerate([.12,-.5,-1.12,-1.74,-2.36,-2.98]):
         base=max(techo-alto,-3.2);xc=cuerpo(techo-alto/2)
-        lamina('anatomia_vertebra_%d'%(k+3),redondeado(xc,base,xc+.6,techo),HUESO,CORTICAL,.025)
+        lamina('anatomia_vertebra_%d'%(k+3),redondeado(xc,base,xc+.6,techo),HUESO,CORTICAL,.025,relieve=.07)
         if techo+disco<=1.1:lamina('anatomia_disco_%d'%(k+3),redondeado(xc+.03,techo+.01,xc+.57,techo+disco-.01,.03,2),DISCO)
         # Apófisis espinosa detrás del conducto, sin salir de la nuca.
         z=techo-alto/2;xa=cuerpo(z)+.95;xb=min(xa+.45,piel_x(z)-.14)
@@ -204,7 +221,7 @@ def anatomia_de_apoyo(medial,contorno,pared_exterior):
     # Músculos de la nuca, entre las apófisis y la piel.
     nuca=[p for p in adentro([q for q in pts if q[0]>3.8 and -3.2<q[1]<2.1],.14)][::2]
     nuca_int=[(cuerpo(z)+1.0,z) for z in (-3.2,-2.0,-.8,.4,1.4)]+[(4.75,2.0)]
-    if len(nuca)>3:lamina('anatomia_nuca',nuca+nuca_int,MUSCULO,(.46,.18,.19),.02,y=-.007)
+    if len(nuca)>3:lamina('anatomia_nuca',nuca+nuca_int,MUSCULO,(.46,.18,.19),.02,y=-.007,relieve=.08)
     # Hioides.
     lamina('anatomia_hioides',cerrada([(.7,-2.26),(1.35,-2.06),(1.47,-2.18),(.82,-2.4)],4),HUESO,CORTICAL,.02)
 

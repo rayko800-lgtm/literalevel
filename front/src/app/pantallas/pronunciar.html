@@ -233,7 +233,7 @@
                   </div>
                   @if (boca3d && visor3d() === 'detalle-' + $index) {
                     @defer (on immediate) {
-                      <app-boca3d #visor [conEscuchar]="false" [velocidad]="velocidad()" [sonido]="d.fonema?.simbolo ?? ''" [acento]="d.fonema?.acento ?? 'ga'"
+                      <app-boca3d #visor [didactica]="true" [conEscuchar]="false" [velocidad]="velocidad()" [sonido]="d.fonema?.simbolo ?? ''" [acento]="d.fonema?.acento ?? 'ga'"
                                   [ipa]="d.ipa ?? ''" [acentoIpa]="d.variante === 'UK' ? 'rp' : 'ga'"
                                   [svg2dUrl]="corteDelSonido(d) ?? corteDeLaPalabra(d)"
                                   [audioSonido]="d.fonema?.audio ?? null" [audioPalabra]="d.audio ?? null" />
@@ -394,7 +394,7 @@
                    [attr.alt]="'Corte de perfil de la boca: cómo se colocan los labios y la lengua para /' + s.simbolo + '/'" />
               @if (boca3d && visor3d() === 'sonido') {
                 @defer (on immediate) {
-                  <app-boca3d #visor [conEscuchar]="false" [velocidad]="velocidad()" [sonido]="s.simbolo" [acento]="acento()" [audioSonido]="s.audio" />
+                  <app-boca3d #visor [didactica]="true" [conEscuchar]="false" [velocidad]="velocidad()" [sonido]="s.simbolo" [acento]="acento()" [audioSonido]="s.audio" />
                 } @loading { <p role="status">Cargando modelo…</p> }
                 @error {
                   <!-- Casi siempre es una pestaña con el build anterior tras publicar: el

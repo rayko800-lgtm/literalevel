@@ -53,6 +53,12 @@ import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, fa
     </div>
     @if (modo() === '3d') {
       <div class="pie">
+        @if (didactica()) {
+          <span class="botones vistas" role="group" aria-label="Vista">
+            <button type="button" class="boton compacto" [class.activo]="frente()" [attr.aria-pressed]="frente()" (click)="verFrente(true)">Frente · labios</button>
+            <button type="button" class="boton compacto" [class.activo]="!frente()" [attr.aria-pressed]="!frente()" (click)="verFrente(false)">Lado · interior</button>
+          </span>
+        }
         <span class="botones">
           @if (pose() && elegido()) {
             @if (urlAudioSonido() && conEscuchar()) {
@@ -84,6 +90,11 @@ import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, conAjustes3d, fa
     @if (aviso(); as a) {
       <p class="leyenda aviso" role="status">{{ a }}</p>
     }
+    <!-- La cabeza didáctica deriva de «Infinite, 3D Head Scan» (Lee Perry-Smith,
+         CC BY 3.0): la licencia pide citarla donde se usa. -->
+    @if (didactica() && modo() === '3d') {
+      <p class="creditos"><a href="boca3d/didactica/CREDITOS.txt" target="_blank" rel="noopener">Créditos del modelo 3D</a></p>
+    }
     <!-- D4.2.1 (Miguel, 18 sep): saber con certeza qué esta viendo quien prueba
          -- GLB o respaldo, familia/zoom/target activos --, solo en desarrollo. -->
     @if (modoDesarrollo && diagnostico(); as d) {
@@ -93,6 +104,8 @@ zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
   `,
   styles: `
     :host { display: block; min-width: 0; margin-top: 12px; }
+    .creditos { font-size: .75rem; margin: 4px 0 0; opacity: .75; }
+    .botones.vistas { margin-bottom: 8px; }
     /* Pastillas y controles con los mínimos de investigacion/una_mano.md: se tocan
        seguidos (un sonido tras otro), así que 44-48 px y 8 px de hueco. */
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
@@ -172,6 +185,12 @@ export class Boca3d {
   /** La mejilla translúcida del lado de la cámara. Es lo que más cuesta
    *  pintar sin GPU (medido en Chrome headless): se puede apagar. */
   readonly mejilla = input<boolean>(true);
+  /** D4: la boca didáctica (cara con textura, lengua y labios realistas, corte
+   *  anatómico). Lleva sus propios GLB en `boca3d/didactica/` y dos vistas,
+   *  «Frente» (labios) y «Lado» (corte); sin el giro pedagógico por familia. */
+  readonly didactica = input<boolean>(false);
+  /** En modo didáctico: vista frontal (labios) o corte lateral. */
+  readonly frente = signal(true);
 
   /** `2d` es «sin WebGL»: se pinta el corte 2D si hay URL y, si no, una frase. */
   readonly modo = signal<'cargando' | '3d' | '2d'>('cargando');
@@ -245,12 +264,15 @@ export class Boca3d {
         const host = this.lienzo().nativeElement;
         const estilo = getComputedStyle(host);
         const color = (v: string) => estilo.getPropertyValue(v).trim() || undefined;
+        const didactica = this.didactica();
+        const carpeta = didactica ? 'boca3d/didactica/' : 'boca3d/';
         this.escena = new EscenaBoca(host, {
           colores: { lengua: color('--ll-lengua') as string | undefined },
           reducirMovimiento: matchMedia('(prefers-reduced-motion: reduce)').matches,
           mejilla: this.mejilla(),
-          lenguaGlb: new URL('boca3d/lengua.glb', document.baseURI).href,
-          caraGlb: new URL('boca3d/cara.glb', document.baseURI).href,
+          ...(didactica ? { exploracionDidactica: true, entorno: true, sombras: false } : {}),
+          lenguaGlb: new URL(carpeta + 'lengua.glb', document.baseURI).href,
+          caraGlb: new URL(carpeta + 'cara.glb', document.baseURI).href,
           // La primera apertura no debe enseñar como composicion final las
           // piezas geometricas de respaldo mientras llegan los GLB: al
           // reabrir, la cache las sustituia casi de inmediato y parecia que
@@ -259,8 +281,9 @@ export class Boca3d {
           alPerderContexto: () => this.perdioContexto(),
         });
         const p = this.pose();
+        if (didactica) this.escena.vistaDidactica(this.frente());
         if (p) {
-          this.escena.vistaParaFamilia(familiaDe(p));
+          if (!didactica) this.escena.vistaParaFamilia(familiaDe(p));
           this.escena.irA(p, 0);
         }
         if (this.modoDesarrollo) {
@@ -292,10 +315,10 @@ export class Boca3d {
       if (!p || !escena) return;
       // D4.2: cada sonido pone primero la vista pedagógica de su familia
       // (sin interacción), y luego la pose/animación como hasta ahora.
-      escena.vistaParaFamilia(familiaDe(p));
+      if (!this.didactica()) escena.vistaParaFamilia(familiaDe(p));
       this.giroLibre.set(false);
       escena.girarLibre(false);
-      if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), { giro: giroPara(p) });
+      if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), this.opcionesGiro(p));
       else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
     });
     destruir.onDestroy(() => {
@@ -386,6 +409,16 @@ export class Boca3d {
     this.escena?.restablecerVista();
   }
 
+  /** D4: «Frente» (labios) o «Lado» (corte anatómico). */
+  verFrente(frente: boolean): void {
+    this.frente.set(frente);
+    this.giroLibre.set(false);
+    this.escena?.girarLibre(false);
+    this.escena?.vistaDidactica(frente);
+    const p = this.pose();
+    if (p && frente) this.escena?.irA(p, 0);
+  }
+
   alternarGiro(): void {
     this.giroLibre.update(v => !v);
     this.escena?.girarLibre(this.giroLibre());
@@ -394,7 +427,7 @@ export class Boca3d {
   /** En explorar, repetir conserva la orientación elegida; en guiado puede
    *  usar el pequeño giro pedagógico asociado al gesto. */
   private opcionesGiro(p: PoseSonido): { giro?: number } {
-    return this.giroLibre() ? {} : { giro: giroPara(p) };
+    return this.giroLibre() || this.didactica() ? {} : { giro: giroPara(p) };
   }
 
   /** Flechas izquierda y derecha con el foco en el lienzo: un cuarto de vuelta

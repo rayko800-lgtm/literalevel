@@ -1733,12 +1733,7 @@ export class EscenaBoca {
   /** Va a la pose con una transición de `duracionS` segundos (0 = de golpe). */
   irA(pose: PoseSonido, duracionS = 0.5): void {
     this.linea = null;
-    // De frente, /θ ð/ se ven un poco desde abajo (contrapicado): la punta
-    // entre los incisivos queda a la vista, como en la referencia de Miguel.
-    if (this.exploracionDidactica && !this.corteDidactico) {
-      const polar = pose.punta === 'interdental' ? POLAR_INTERDENTAL : POLAR_FRONTAL;
-      if (polar !== this.polarFrontal) { this.polarFrontal = polar; this.vista(-Math.PI / 2, polar, 0.50); }
-    }
+    this.elevacionFrontalPara(pose);
     const objetivo = poseNumerica(pose);
     if (this.reducirMovimiento || duracionS <= 0) {
       this.desde = this.hacia = null;
@@ -1762,6 +1757,7 @@ export class EscenaBoca {
    *  principio; al acabar se queda en su última clave. Con reducir movimiento
    *  no se mueve nada: va de golpe a la pose quieta de la línea. */
   reproducir(linea: Linea, opciones: { giro?: number } = {}): void {
+    this.elevacionFrontalPara(linea.quieta);
     this.desde = this.hacia = null;
     this.giroLinea = 0;
     if (this.reducirMovimiento || linea.claves.length < 2) {
@@ -1883,8 +1879,21 @@ export class EscenaBoca {
     this.sucio = true;
   }
 
+  /** De frente, /θ ð/ se ven un poco desde abajo (contrapicado): la punta
+   *  entre los incisivos queda a la vista, como en la referencia de Miguel. */
+  private elevacionFrontalPara(pose: PoseSonido): void {
+    if (!this.exploracionDidactica || this.corteDidactico) return;
+    const polar = pose.punta === 'interdental' ? POLAR_INTERDENTAL : POLAR_FRONTAL;
+    if (polar !== this.polarFrontal) { this.polarFrontal = polar; this.vista(-Math.PI / 2, polar, 0.50); }
+  }
+
+  /** La vista didáctica actual (frente o corte), si la hay. */
+  get vistaFrontal(): boolean {
+    return this.exploracionDidactica && !this.corteDidactico;
+  }
+
   restablecerVista(): void {
-    if (this.exploracionDidactica) { this.vistaDidactica(false); return; }
+    if (this.exploracionDidactica) { this.vistaDidactica(!this.corteDidactico); return; }
     this.vistaParaFamilia(this.familiaActual);
   }
 
