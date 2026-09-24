@@ -1952,7 +1952,7 @@ export class EscenaBoca {
       const conUv = !!m.geometry.getAttribute('uv');
       m.material = materialDe('lengua', color, conUv && this.papilas
         ? (this.exploracionDidactica
-          ? { bumpMap: this.papilas, bumpScale: .035, roughness: .48, clearcoat: .22, clearcoatRoughness: .32, sheen: 0 }
+          ? { bumpMap: this.papilas, bumpScale: .025, roughness: .56, clearcoat: .14, clearcoatRoughness: .40, sheen: 0 }
           : { bumpMap: this.papilas, bumpScale: 0.36, roughnessMap: this.papilas })
         : {});
       if (this.exploracionDidactica) {
@@ -1973,10 +1973,21 @@ export class EscenaBoca {
           shader.fragmentShader = 'uniform float vistaCavidad;\nvarying float profundidadBoca;\n' + shader.fragmentShader;
           shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
             `#include <color_fragment>
+            #ifdef USE_BUMPMAP
+              // Papilas sintéticas: pequeñas variaciones de color y brillo
+              // sobre el mismo relieve, sin incorporar imágenes privadas.
+              float papila = smoothstep(0.5, 0.94, texture2D(bumpMap, vBumpMapUv).r);
+              diffuseColor.rgb *= mix(vec3(0.94,0.87,0.89),vec3(1.03,1.01,1.02),papila);
+            #endif
             float profundidad = smoothstep(-2.9, -0.4, profundidadBoca);
             diffuseColor.rgb *= mix(1.0, 0.78 - 0.45 * profundidad, vistaCavidad);`);
+          shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>',
+            `#include <roughnessmap_fragment>
+            #ifdef USE_BUMPMAP
+              roughnessFactor = mix(0.62,0.46,papila);
+            #endif`);
         };
-        material.customProgramCacheKey = () => 'lengua-cavidad-didactica-v1';
+        material.customProgramCacheKey = () => 'lengua-papilas-didactica-v2';
         const plano = [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0)];
         this.renderer.localClippingEnabled = true;
         m.onBeforeRender = (_r, _s, camara) => {

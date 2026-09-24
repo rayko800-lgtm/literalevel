@@ -13,7 +13,7 @@ import numpy as np
 from mathutils import Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-OUT = os.path.join(ROOT, 'build', 'lengua_realista')
+OUT = os.path.abspath(os.environ.get('SALIDA_LENGUA_REALISTA', os.path.join(ROOT, 'build', 'lengua_realista')))
 SOURCE = os.path.join(ROOT, 'tools', 'boca3d_demo', 'lengua.glb')
 
 
