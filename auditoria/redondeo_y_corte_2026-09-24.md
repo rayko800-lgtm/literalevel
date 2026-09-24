@@ -102,3 +102,28 @@ demo.js 775,668 bytes, SHA256
 912b107c12cc4a3cad9b2918dee2996f069afadba0ffeaccccac0242536308fb.
 Servidor 8772 exec62002; túnel56326 conservado; fin previsto 09:28 CDMX24sep.
 Sólo cinco assets servidos. No aplicación de producción.
+
+## Cierre de evidencias — 24 sep, 03:20–03:27 CDMX
+
+Se conserva el piloto f4c14aa. Tras revisar las capturas de /u/ y del corte,
+no hay una nueva variante de silueta con contención demostrada que justifique
+reemplazarlo en esta ejecución. Sigue pendiente el refinamiento lateral y la
+aceptación estética. No se ejecutaron otra vez las suites ya aprobadas.
+
+Se archivaron los datos completos que estaban sólo en build: 2227 estados,
+81 muestras del ciclo por modelo, control positivo anterior, resultados de
+anclas y su comprobador, logs de 135 pruebas y del build. No se presentan
+estos logs históricos como pruebas ejecutadas durante este cierre.
+
+Archivo adicional en la misma release privada:
+`evidencias-redondeo-f4c14aa.zip`, 251,875 bytes, SHA256
+7a3ab564cd5db36f2b0db9ce5394002aff67bfe4ff79adc22e4a114f48ab80f7.
+13 archivos, 12 hashes del manifiesto y CRC verificados; digest remoto igual.
+Incluye empaquetador con lista explícita e instrucciones de reproducción.
+Los GLB se recuperan de los respaldos existentes indicados en el manifiesto;
+el paquete de evidencias no duplica modelos ni incluye referencias privadas.
+
+Comprobación actual: cara.glb, lengua.glb y demo.js del enlace temporal son
+idénticos a los hashes registrados arriba; repositorio GitHub sigue privado.
+front/angular.json conserva su hash ajeno. No se cambió código del visor,
+generadores, mallas, texturas, producción ni master.
