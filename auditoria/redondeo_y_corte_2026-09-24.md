@@ -83,3 +83,22 @@ tools/boca3d_blender/cara_didactica.py. Medir con:
 Sólo recursos gratuitos. No producción ni master. Los cambios son de geometría
 didáctica; todavía requieren aceptación estética de Miguel y no constituyen
 fotorrealismo. Los respaldos anteriores se conservan en GitHub privado.
+
+## Respaldo confirmado
+
+Fuente f4c14aa1508d21f569bdf897af631c621082d239 subida a origin.
+Release privada: https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23
+redondeo-f4c14aa.zip: 10,568,772 bytes, SHA256
+0540883bf8ac909a5b0b738364a5c4677023795498021e8df53776011f85e8ea.
+CRC, 18 hashes del manifiesto y digest remoto idéntico; 19 archivos.
+Incluye siete capturas del visor, modelos GLB, proyectos Blender con texturas
+empacadas y fuentes enlazadas. El informe del ZIP corresponde a la fuente;
+este recibo se añade después. Respaldos anteriores conservados.
+
+Enlace temporal actualizado y verificado visualmente:
+https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&inventario=1&s=u&ciclo=0&sombras=0&vista=frente&velocidad=0.5
+Cara, lengua y demo.js públicos idénticos a la entrega local.
+demo.js 775,668 bytes, SHA256
+912b107c12cc4a3cad9b2918dee2996f069afadba0ffeaccccac0242536308fb.
+Servidor 8772 exec62002; túnel56326 conservado; fin previsto 09:28 CDMX24sep.
+Sólo cinco assets servidos. No aplicación de producción.
