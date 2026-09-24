@@ -103,7 +103,7 @@ demo.js 775,668 bytes, SHA256
 Servidor 8772 exec62002; túnel56326 conservado; fin previsto 09:28 CDMX24sep.
 Sólo cinco assets servidos. No aplicación de producción.
 
-## Cierre de evidencias — 24 sep, 03:20–03:27 CDMX
+## Cierre de evidencias — 24 sep, 03:20 CDMX
 
 Se conserva el piloto f4c14aa. Tras revisar las capturas de /u/ y del corte,
 no hay una nueva variante de silueta con contención demostrada que justifique
@@ -116,7 +116,7 @@ anclas y su comprobador, logs de 135 pruebas y del build. No se presentan
 estos logs históricos como pruebas ejecutadas durante este cierre.
 
 Archivo adicional en la misma release privada:
-`evidencias-redondeo-f4c14aa.zip`, 251,875 bytes, SHA256
+[evidencias-redondeo-f4c14aa.zip](https://github.com/rayko800-lgtm/literalevel/releases/download/boca3d-noche-2026-09-23/evidencias-redondeo-f4c14aa.zip), 251,875 bytes, SHA256
 7a3ab564cd5db36f2b0db9ce5394002aff67bfe4ff79adc22e4a114f48ab80f7.
 13 archivos, 12 hashes del manifiesto y CRC verificados; digest remoto igual.
 Incluye empaquetador con lista explícita e instrucciones de reproducción.
