@@ -61,3 +61,18 @@ El cambio de color se aplica en Three.js: no está horneado en Blender.
 Se guarda como archivo adicional de la release privada boca3d-noche-2026-09-23;
 se conservan noche-74c9941.zip y la release Astra aceptada. No video/fotogramas
 personales, ningún recurso de pago, no master ni aplicación de producción.
+
+## Respaldo confirmado
+
+Fuente f6533609b7733f4459e917a211a6680fdb20a33d subida a origin.
+https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23
+color-labial-f653360.zip:10537061B, SHA256
+50bd40c0ea11c6750e17d27b84d0ebc71db70ca27aeb3ffb40ed15f4f231b70d.
+Digest remoto idéntico.18 archivos,17 hashes del manifiesto y CRC comprobados.
+El informe dentro del paquete apunta a la fuente; este recibo se añade después.
+
+Enlace de revisión analysis-heating-drawings-pregnant.trycloudflare.com verificado
+con la nueva apariencia. Servidor8772 exec73854, túnel56326 hijo22152 conservado,
+fin previsto09:28CDMX24sep. demo.js público775597B SHA256
+637c38ab0510baa8a7a9101f367c8254a31427f90cc416e46a419434832f744c;
+GLB públicos idénticos a los hashes anteriores. Sólo cinco assets públicos.

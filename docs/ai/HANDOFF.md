@@ -11,6 +11,10 @@ dientes v4, piel morena y contactos.22 pruebas/TSC/build pasan, WebGL sin errore
 Paquete adicional en release privada boca3d-noche-2026-09-23, sin sustituir los
 anteriores. No fotorrealismo ni producción; aprobación estética pendiente.
 No aplicar patch de rugosidad descartado. Límite de iteración07:00CDMX24sep.
+Fuente f653360 subida; ZIP color-labial-f653360.zip10537061B, SHA256
+50bd40c0ea11c6750e17d27b84d0ebc71db70ca27aeb3ffb40ed15f4f231b70d,
+digest remoto/CRC/17 hashes confirmados. Visor temporal actualizado; servidor8772
+exec73854, túnel56326, fin09:28CDMX. Detalle de entrega en el informe vigente.
 
 ## Boca3D — 23 sep 2026, 23:24 CDMX, Nico
 
