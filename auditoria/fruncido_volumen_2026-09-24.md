@@ -81,3 +81,17 @@ a3d529995fe8e62b39b0578587f6a28de42652841c109026190c6230bb4cd619.
 
 Respaldo con dos proyectos Blender/texturas, visor, comparaciones y medidas.
 Sin master ni aplicación de producción. front/angular.json ajeno intacto.
+
+## Respaldo confirmado
+
+Fuente 2fb95c59734618ea61528afd0b1eb554b28fd1d8, subida a origin.
+[Release privada](https://github.com/rayko800-lgtm/literalevel/releases/tag/boca3d-noche-2026-09-23):
+fruncido-volumen-2fb95c5.zip, 10,855,207 bytes, SHA256
+96f307847d8b03ab8f5202ada50aed98829f2e67365fd443f02c388c733646a0.
+28 archivos, 27 hashes y CRC comprobados; digest remoto idéntico. Incluye
+ambos proyectos Blender empacados, ocho capturas y ocho archivos de evidencia.
+
+[Visor temporal /u/](https://analysis-heating-drawings-pregnant.trycloudflare.com/?didactica=1&inventario=1&s=u&ciclo=0&sombras=0&vista=frente&velocidad=0.5)
+revisado visualmente, sin errores; cara.glb, lengua.glb y demo.js coinciden
+por SHA256. Servidor8772 exec28656; túnel56326 intacto. Vigencia previa
+hasta~09:28CDMX24sep. Respaldos anteriores conservados, producción intacta.
