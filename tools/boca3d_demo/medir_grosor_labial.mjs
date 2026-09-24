@@ -109,7 +109,14 @@ const resumen=Object.fromEntries(perfiles.map(({nombre})=>[nombre,{
 }]));
 for(const p of Object.values(resumen))if(!Number.isFinite(p.relacionMinima)||p.minimo<=0)throw new Error('Perfil colapsado');
 const contorno={reposo:anchurasReposo,u:anchurasU,cuerpoUReposo:anchurasU.cuerpo/anchurasReposo.cuerpo,cuerpoUAbertura:anchurasU.cuerpo/anchurasU.abertura};
-writeFileSync(process.argv[3],JSON.stringify({modelo:path,resumen,contorno,muestras,perfiles},null,2));
+// Muestreo del mismo perfil central en todo el catálogo: permite comparar
+// familias abiertas, estiradas y cerradas sin confundir altura con volumen.
+const familias={};
+for(const [simbolo,pose] of Object.entries(catalog.sonidos)){
+ scene.aplicar(poseNumerica(pose));
+ familias[simbolo]={perfiles:medir(),anchuras:anchuras()};
+}
+writeFileSync(process.argv[3],JSON.stringify({modelo:path,resumen,contorno,muestras,perfiles,familias},null,2));
 console.log(JSON.stringify(resumen));
 console.log(JSON.stringify({contorno}));
 // Umbral de diseño del piloto: evita perder más del10% de altura central

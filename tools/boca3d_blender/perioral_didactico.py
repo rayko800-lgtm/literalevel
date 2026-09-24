@@ -317,6 +317,18 @@ def construir():
                 target.x=rounded.data[rim].co.x+1.5*delta.x+.46*(target.y**2-rounded.data[rim].co.y**2)
                 target.z=rounded.data[rim].co.z+(1.6 if s>0 else 1.20)*delta.z
                 rounded.data[i].co=target
+        # Tejido exterior en gestos no redondeados. La referencia mantiene
+        # cuerpo en cierre, sonrisa y apertura; no sólo al fruncir. Es un
+        # correctivo aparte, desactivado por el visor en la /u/ aprobada.
+        # No mueve los anillos funcionales 0/1 ni la inserción interna.
+        body=ob.shape_key_add(name='cuerpo_labial',from_mix=False)
+        for i,p in enumerate(keys[0].data):body.data[i].co=p.co
+        for ri in range(2,6):
+            for q in range(n+1):
+                i=ri*(n+1)+q;s=math.sin(start+math.pi*q/n)
+                peso=abs(s)**.8
+                body.data[i].co.z += [.030,.075,.045,.006][ri-2]*(1. if s>0 else -.60)*peso
+                body.data[i].co.x -= [.020,.045,.018,0.][ri-2]*peso
         for j,v in enumerate(mesh.vertices):v.co=keys[0].data[j].co
         mesh.update()
         normals=[]
@@ -358,7 +370,7 @@ def construir():
         if any(j<4*65 for _,j in grupos[k]):continue
         if p.x>-1.6 or p.z>1.05 or math.hypot(p.y/2.1,(p.z-.15)/1.5)>1:continue
         libres[k]=[(v,1/max(.025,(puntos[v]-p).length)) for v in adj[k]]
-    for nombre in ['fruncir','estirar','abrir_neutro']:
+    for nombre in ['fruncir','estirar','abrir_neutro','cuerpo_labial']:
         delta={k:sum((ob.data.shape_keys.key_blocks[nombre].data[j].co-puntos[k] for ob,j in pares),Vector())/len(pares) for k,pares in grupos.items()}
         for k in delta:
             if abs(puntos[k].y)<1e-5:delta[k].y=0.

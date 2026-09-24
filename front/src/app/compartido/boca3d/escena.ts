@@ -2280,8 +2280,13 @@ export class EscenaBoca {
                   vec2 planoLabial = vec2(vPielReposo.z, (vPielReposo.y-0.15)*5.2);
                   float anguloLabial = atan(planoLabial.y,planoLabial.x);
                   float radioLabial = length(planoLabial);
-                  float pliegue = sin(anguloLabial*94.0 + 0.7*sin(anguloLabial*17.0) + radioLabial*2.5);
-                  float microLabial = 0.0035 * pliegue * tejidoLabial;
+                  // Surcos cortos y de profundidad variable: las estrías
+                  // radiales continuas parecían rayos pintados al estirar.
+                  float pliegue = sin(anguloLabial*87.0 + 1.8*sin(anguloLabial*13.0)
+                    + radioLabial*8.0 + 1.3*sin(radioLabial*9.0+anguloLabial*7.0));
+                  float tramos = 0.35+0.65*smoothstep(-0.5,0.55,sin(radioLabial*16.0+anguloLabial*9.0));
+                  float microLabial = tejidoLabial*(0.0016*pliegue*tramos
+                    + 0.00045*sin(anguloLabial*181.0+radioLabial*43.0));
                   normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(microLabial),dFdy(microLabial)),faceDirection);
                 #endif`);
               // Translucidez de bajo coste inspirada en el ejemplo oficial
@@ -2304,7 +2309,7 @@ export class EscenaBoca {
                 roughnessFactor = mix(roughnessFactor, 0.38, bermellon);
               #endif`);
           };
-          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-color-v1' : 'piel-didactica-bermellon-v1';
+          material.customProgramCacheKey = () => fotografica ? 'piel-morena-labio-relieve-v2' : 'piel-didactica-bermellon-v1';
           const pieza = new THREE.Mesh(geometria, material);
           pieza.layers.set(1);
           pieza.userData['sinSombraRecibida'] = true;
@@ -2936,6 +2941,9 @@ export class EscenaBoca {
         const sello = 'sello_didactico' in dic ? Math.min(1, cierre / 0.4) : 0;
         inf[dic['fruncir']] = fruncir * (1 - sello);
         inf[dic['estirar']] = estirar;
+        // Cuerpo en reposo, cierre y apertura, moderado al estirar. Fruncir
+        // ya tiene su volumen propio aprobado y no recibe este correctivo.
+        if ('cuerpo_labial' in dic) inf[dic['cuerpo_labial']] = (1-fruncir*(1-sello))*(1-.35*estirar);
         if ('labio_atras' in dic) inf[dic['labio_atras']] = atras * (1 - sello) * ('sello_didactico' in dic ? 1 - estirar : 1);
         if ('sello_didactico' in dic) inf[dic['sello_didactico']] = sello;
         // Estirar y fruncir ya abren su propio borde. Sumarlos a la apertura
