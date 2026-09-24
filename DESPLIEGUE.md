@@ -86,6 +86,29 @@ Después de subir, recargar una pestaña nueva: una pestaña antigua puede pedir
 chunks eliminados y dar 404. Comprobar rutas Angular, solicitudes de assets,
 conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GLB.
 
+## La boca 3D didáctica en Pronunciar (24 sep 2026)
+
+- **Publicado:** revisión del Space `5f542ee` del front, generada desde el
+  commit `86063b0` (rama `publicar/boca3d-didactica`, avanzada después en
+  master en local). Revisión anterior: `ec68419` (commit `8a992af`).
+- **Qué entra:** solo `front/src/app/compartido/boca3d/`, los GLB y
+  créditos de `front/public/boca3d/didactica/` y `[didactica]="true"` en
+  los dos visores de `pronunciar.html`. El backend no cambia.
+- **Qué NO entra:** D1-D3 (tutorial v2, Mi espacio, Repasar, Mi progreso)
+  de las ramas `dev/*`: su front llama a rutas nuevas de `app/api.py` y
+  `app/cuaderno.py`, que exigen desplegar antes la API, en un despliegue
+  aparte.
+- **`tools/desplegar_front.py`:** admite `boca3d/didactica/cara.glb` y
+  `lengua.glb` como binarios, y `.txt` (los créditos CC BY del modelo) como
+  texto revisado.
+- **Comprobado en la app publicada** a 390 px, táctil: la meta apunta a
+  `https://mikemaki1763-literalevel.hf.space`, `/f/` y `/θ/` de frente y de
+  lado, sin desbordamiento ni errores de consola. Los GLB se sirven con una
+  redirección al CDN: su `X-Linked-ETag` es el sha256 del archivo local (un
+  `curl` sin `-L` baja la página de la redirección, no el GLB).
+- **Peso:** `didactica/cara.glb` pesa 6,5 MB y `lengua.glb` 0,44 MB; se bajan
+  solo al abrir «Boca en 3D».
+
 ## Historial de infraestructura y opciones evaluadas
 
 Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
