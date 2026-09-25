@@ -5,7 +5,7 @@ sigue a la boca real con Pearson **0,57** frente a **0,44** del calendario de
 `animacion.ts`, que además llega **60 ms tarde** a la mandíbula. Con los
 tiempos que la app sabe calcular hoy (sin alinear el audio del TTS), las
 reglas caen a **0,32** y la TCN entrenada para esos tiempos da **0,53**. La
-dominancia (tablas, 14 KB) y la TCN (0,35 MB) empatan: **gana la dominancia
+dominancia (tablas, 12,6 KB) y la TCN (0,35 MB) empatan: **gana la dominancia
 por coste**, salvo que la TCN conjunta (abajo) marque diferencia.
 
 ## Datos usados
@@ -108,7 +108,7 @@ mucho 0,02, que es lo que se paga por tener una sola red en el navegador.
    Pronunciar) vale tanto como cambiar la dinámica. Es una decisión de
    Miguel: alinear en la API cuesta CPU del Space; offline no cuesta nada.
 2. **Con tiempos bien alineados, dominancia.** Empata con la TCN en labios
-   y mandíbula (0,560 contra 0,566), se exporta como tablas de 14 KB, se lee
+   y mandíbula (0,560 contra 0,566), se exporta como tablas de 12,6 KB, se lee
    en `animacion.ts` sin red neuronal y es explicable fonema a fonema.
    **Sin alinear, la TCN entrenada con los tiempos de la app** (0,53 en GRID,
    0,50 en Lombard, contra 0,32 y 0,27 de las reglas actuales). En la

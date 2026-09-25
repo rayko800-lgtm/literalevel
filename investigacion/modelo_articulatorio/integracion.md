@@ -21,7 +21,7 @@ el modelo (encargo, §4).
 
 | | Dominancia (Cohen-Massaro) | TCN |
 |---|---|---|
-| Pesos | 4 tablas fonema × control (T, α, θa, θc): ~40 × 21 × 4 floats ≈ **14 KB** en JSON | 86 380 parámetros: **0,35 MB** float32, 0,17 MB float16 |
+| Pesos | 4 tablas fonema × control (T, α, θa, θc): **12,6 KB** en JSON con los 12 controles de vídeo (5,6 KB comprimido), medido con `exportar_modelo.py` | 86 380 parámetros: **0,35 MB** float32, 0,17 MB float16 |
 | Cálculo | por fotograma, suma ponderada de los ~10 segmentos vecinos | una pasada por frase, antes de animar |
 | Coste medido (JS puro, este PC con la CPU ocupada por el lote) | despreciable (< 0,01 ms/fotograma, estimado: 10 × 21 exponenciales) | **30 ms** una frase de 3 s (75 fotogramas); **121 ms** una de 10 s — `bench_tcn.mjs` |
 | Dependencias | ninguna | ninguna (conv 1-D escrita a mano, ~60 líneas) |
@@ -56,7 +56,7 @@ por regla.
 ## Orden propuesto
 
 1. Miguel ve la hoja lado a lado (real contra modelo contra reglas) y decide.
-2. Exportar el ganador (`exportar_modelo.py`, pendiente) a
+2. Exportar el ganador (`exportar_modelo.py`; la dominancia ya sale en `resultados/final/modelo_dominancia_grid.json`) a
    `front/src/app/compartido/boca3d/modelo_articulatorio.json`.
 3. `lineaModelo()` en `animacion.ts` detrás de una constante nueva
    (`MODELO_ARTICULATORIO_ACTIVO`, junto a `BOCA3D_ACTIVO` en
