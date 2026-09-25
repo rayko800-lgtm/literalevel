@@ -17,6 +17,11 @@ Uso:
 """
 import argparse
 import os
+
+# librosa.pyin llama a ufuncs de numba en hilos; en Colab (Python 3.13) revienta con
+# señal 11 en discursos largos (visto el 25 sep con faulthandler). Un solo hilo lo evita.
+os.environ.setdefault('NUMBA_NUM_THREADS', '1')
+os.environ.setdefault('NUMBA_THREADING_LAYER', 'workqueue')
 import subprocess
 import tempfile
 
