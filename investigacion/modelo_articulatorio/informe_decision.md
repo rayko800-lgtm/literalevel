@@ -58,9 +58,12 @@ neutro … 2,9 estirado); `labio_atras` del retroceso del labio inferior;
    Un modelo puede predecirla directamente.
 2. La punta de la lengua es categórica: hay que darle dos ejes continuos
    (altura y avance de la punta) o el modelo no puede coarticularla.
-3. **No existe ningún control de mejillas.** «Mejillas que acompañan» exige
-   una shape key nueva en Blender (`mejilla_arriba`, y quizá `mejilla_hinchar`)
-   además del modelo. Es trabajo de malla, no de datos.
+3. **Mejillas:** no hay un control propio, pero desde el 24 sep (`79982c2`,
+   `perioral_didactico.py`) la piel de las mejillas va dentro de las shape
+   keys de estirar, sonreír y fruncir y sigue a la mandíbula. Una key
+   `mejilla_arriba` aparte solo haría falta si el modelo tuviera que moverla
+   por su cuenta, y la mejilla medida es la señal más débil (Pearson 0,40):
+   no compensa hoy.
 
 ### Vector de controles propuesto (lo que predice el modelo)
 
@@ -71,7 +74,7 @@ neutro … 2,9 estirado); `labio_atras` del retroceso del labio inferior;
 | 3 | redondeo ↔ estiramiento | vídeo (ancho), perfil (protrusión), EMA (x de labios) | largo del labio 1,05–2,9 |
 | 4 | compresión labial | vídeo (`mouthPress*`) | `compresion_labios` |
 | 5 | labio inferior atrás (/f v/) | vídeo (`mouthRollLower`) | `labio_atras` |
-| 6 | mejilla arriba | vídeo (`cheekSquint*`, pómulos) | **shape key nueva** |
+| 6 | mejilla arriba | vídeo (`cheekSquint*`, pómulos) | hoy va dentro de estirar/fruncir/mandíbula (`79982c2`) |
 | 7 | cuerpo: altura | EMA (dorso) / rtMRI | `cuerpo[0]` |
 | 8 | cuerpo: avance | EMA / rtMRI | `cuerpo[1]` |
 | 9 | punta: altura | EMA (sensor de punta) | nuevo, sustituye a `punta` |

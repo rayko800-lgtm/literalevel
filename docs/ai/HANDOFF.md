@@ -16,12 +16,15 @@ curso, por orden de Miguel (25 sep):
    (`tools/boca3d_blender/ojos_didacticos.py`).
 3. **Modelo articulatorio aprendido:** entregables 1-5 del encargo
    (`docs/ai/investigacion_modelo_articulatorio.md`) hechos la noche del
-   24-25 sep, sin tocar `app/` ni `front/`. Informes en
+   24-25 sep (de `front/` solo `poses.ajustes3d.json`, en `dev/articulacion-v2`). Informes en
    `investigacion/modelo_articulatorio/` (`resultados.md` manda); código en
    `tools/modelo_articulatorio/`; datos y modelos fuera de Git en
-   `D:/literalevel_articulatorio/`. Espera dos decisiones de Miguel:
-   alinear o no el audio del TTS, y las poses de /ə ɪ eɪ ɛ/ (el rig cierra
-   los labios, las caras reales no).
+   `D:/literalevel_articulatorio/`. 25 sep, decidido por Miguel: alinear
+   sin conexión (hechas las 85 palabras grabadas de Pronunciar:
+   `investigacion/modelo_articulatorio/datos/palabras_grabadas_tiempos.json`)
+   y ajustar a lo real /ɛ eɪ/ (mandíbula 0,67 y 0,70, commit `b6a0a71` en
+   `dev/articulacion-v2`, **sin publicar**). Las mejillas ya acompañan desde
+   `79982c2`; no se hizo shape key nueva.
 
 ## En producción (25 sep 2026)
 
@@ -39,7 +42,7 @@ ojos abiertos en la malla. Registro completo en `DESPLIEGUE.md`.
 
 ## Líneas de trabajo (git)
 
-- **`master` = `6c6401e`** = `publicar/v2` = `dev/articulacion-v2`: todo lo publicado. Es la línea
+- **`master` = `6c6401e`** = `publicar/v2`: todo lo publicado (`dev/articulacion-v2` va un commit por delante: `b6a0a71`, /ɛ eɪ/ sin publicar). Es la línea
   buena. `origin/master` va muy por detrás (11 sep) y **no se sube** sin
   permiso de Miguel.
 - **`dev/articulacion-v2`** (worktree `.claude/worktrees/articulacion-v2`):

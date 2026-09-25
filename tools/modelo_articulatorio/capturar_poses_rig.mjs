@@ -39,7 +39,9 @@ try {
     lista = await page.evaluate(() => [...document.querySelectorAll('select option')].map(o => o.value).filter(Boolean));
   }
   for (const s of ['', ...lista]) {
-    await page.goto(`${base}?s=${encodeURIComponent(s)}&ciclo=0&giro=-1.5708&polar=1.5708${extra ? '&' + extra : ''}`);
+    // GIRO=no deja la vista que elige la demo (en la didáctica, «Frente»).
+    const giro = process.env.GIRO === 'no' ? '' : `&giro=${process.env.GIRO ?? -1.5708}&polar=1.5708`;
+    await page.goto(`${base}?s=${encodeURIComponent(s)}&ciclo=0${giro}${extra ? '&' + extra : ''}`);
     await page.waitForFunction(() => window.escenaBoca?.tieneCaraModelada && window.escenaBoca?.tieneLenguaModelada, null, { timeout: 30000 });
     await page.waitForFunction(() => !window.escenaBoca.enTransicion);
     await page.waitForTimeout(500);

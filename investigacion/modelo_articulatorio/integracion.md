@@ -45,9 +45,13 @@ integrar (reentrenando con tiempos de regla simulados sobre GRID).
 medida humana (z) al valor del rig, ajustada sobre los fonemas cuyas poses
 hechas a mano no dejan el campo libre. Ejemplo medido en el piloto
 (3 hablantes): mandíbula r = 0,71 entre fonemas; ancho → largo del labio
-r = 0,67; apertura interior → `cierre_labios` r = −0,07 (**no calibra**: el
-rig cierra los labios en /ə ɪ eɪ ɛ/ con la mandíbula baja y las caras reales
-no; es una discrepancia de las poses, a decidir por Miguel).
+r = 0,67; apertura interior → `cierre_labios` r = −0,07. Esto último **no
+es un fallo visible**: la cara didáctica publicada anula `cierre_labios` en
+las vocales neutras articuladas (`abrir_neutro`), así que /ə ɪ eɪ ɛ/ ya se ven
+abiertas (comprobado de frente el 25 sep). La discrepancia real estaba en la
+mandíbula: /ɛ/ y /eɪ/ abrían casi como /ɪ/ y en las caras reales abren casi
+como /ɑ/. Corregido con la recta medida→rig (0,67 y 0,70) en
+`dev/articulacion-v2` (`b6a0a71`), sin publicar.
 
 La lengua sale del modelo EMA (punta, lámina y dorso: altura y avance) y
 entra por `continuo.punta` y `continuo.cuerpo`; velo, sonoridad y aire siguen
