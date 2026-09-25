@@ -19,6 +19,10 @@ FV_CAIDA=float(_os.environ.get('FV_CAIDA','.6'))
 FV_MANDIBULA=float(_os.environ.get('FV_MANDIBULA','.08'))
 # Sonrisa de reposo: cuánto suben las comisuras (unidades del modelo).
 SONRISA=float(_os.environ.get('SONRISA','.09'))
+# 25 sep: /f v/ de lado y mejillas que acompañan al gesto.
+FV_EVERSION_SUP=float(_os.environ.get('FV_EVERSION_SUP','.10'))
+FV_RECOGE=float(_os.environ.get('FV_RECOGE','.09'))
+MEJILLA=float(_os.environ.get('MEJILLA','1.0'))
 
 def desplazamiento_mandibula(p, apertura=.2, suavidad=0.):
     """Campo de piel del visor (x, altura, lateral), antes de sumar morfos.
@@ -245,11 +249,17 @@ def construir():
                 # sólo asoma la mitad inferior de los incisivos.
                 lift=FV_ELEVACION*[.52,.52,.50,.47,.32,.145,.035][ri]*arch*(s**.5)
                 k.co.z+=lift/influence
+                # 25 sep (Miguel, de lado): el superior se veía fino y rígido.
+                # Se evierte un poco hacia delante al subir: labio con cuerpo.
+                k.co.x-=FV_EVERSION_SUP*[.5,.8,1.,1.,.6,.25,0.][ri]*arch*(s**.5)/influence
             elif s<0 and ri<=4:
                 # Por dentro el labio llega al filo dental; por fuera conserva
                 # una curva descendente: los incisivos no desaparecen detrás.
-                target_x=[-2.60+.80*lat*lat,-2.83+.48*lat*lat,-3.08+.46*lat*lat,x,x][ri]
-                target_y=[.448,.345,.20,y+.055,y+.020][ri]
+                # 25 sep: el borde exterior también se recoge hacia atrás y
+                # arriba (el labio se acorta al morderlo); antes se quedaba en
+                # su sitio y la línea del labio se estiraba de lado.
+                target_x=[-2.60+.80*lat*lat,-2.83+.48*lat*lat,-3.08+.46*lat*lat,x+FV_RECOGE,x+.45*FV_RECOGE][ri]
+                target_y=[.448,.345,.20,y+.09,y+.035][ri]
                 # El inferior se recoge bajo los incisivos (|lat|<.5) y vuelve a
                 # su sitio hacia las comisuras: antes se estiraba de lado a
                 # lado como una línea tirada.
@@ -407,13 +417,15 @@ def construir():
     libres={}
     for k,p in puntos.items():
         if any(j<4*65 for _,j in grupos[k]):continue
-        if p.x>-1.6 or p.z>1.05 or math.hypot(p.y/2.1,(p.z-.15)/1.5)>1:continue
+        # 25 sep: la región libre llega a las mejillas (antes acababa junto a
+        # la comisura y las mejillas no se movían al hablar); la nariz, fija.
+        if p.x>-.9 or p.z>1.7 or (p.z>.95 and abs(p.y)<.8) or math.hypot(p.y/2.8,(p.z-.15)/1.9)>1:continue
         libres[k]=[(v,1/max(.025,(puntos[v]-p).length)) for v in adj[k]]
     for nombre in ['fruncir','estirar','abrir_neutro','cuerpo_labial','sonrisa']:
         delta={k:sum((ob.data.shape_keys.key_blocks[nombre].data[j].co-puntos[k] for ob,j in pares),Vector())/len(pares) for k,pares in grupos.items()}
         for k in delta:
             if abs(puntos[k].y)<1e-5:delta[k].y=0.
-        for _ in range(110):
+        for _ in range(170):
             cambios={}
             for k,ws in libres.items():
                 media=sum((delta[v]*w for v,w in ws),Vector())/sum(w for _,w in ws)
@@ -423,4 +435,18 @@ def construir():
         for k in libres:
             for ob,j in grupos[k]:
                 ob.data.shape_keys.key_blocks[nombre].data[j].co=puntos[k]+delta[k]
+    # Músculos de la mejilla: al estirar (/i/) y sonreír el cigomático sube y
+    # abomba la mejilla; al fruncir (/u/) la mejilla se recoge hacia la boca.
+    for k,p in puntos.items():
+        if p.x>-.6:continue
+        if any(j<7*65 for _,j in grupos[k]):continue
+        w=math.exp(-((abs(p.y)-1.7)/.6)**2)*math.exp(-((p.z-.75)/.6)**2)*max(0.,min(1.,(-.6-p.x)/.5))
+        # Nada en los labios ni en su contorno: el cierre de /p b m/ no cambia.
+        lejos=max(0.,min(1.,(math.hypot(p.y/1.35,(p.z-.15)/.55)-1.)/.6));w*=lejos*lejos*(3-2*lejos)
+        if w<1e-3:continue
+        hacia=-1. if p.y>0 else 1.
+        for nombre,(dx,dy,dz) in (('estirar',(-.035,0.,.07)),('sonrisa',(-.03,0.,.06)),('fruncir',(.03,.05,-.01))):
+            for ob,j in grupos[k]:
+                c=ob.data.shape_keys.key_blocks[nombre].data[j].co
+                c.x+=dx*w*MEJILLA;c.y+=hacia*dy*w*MEJILLA;c.z+=dz*w*MEJILLA
     print('CAMPO_FACIAL_CONTINUO',len(libres))

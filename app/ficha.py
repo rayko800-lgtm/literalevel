@@ -260,7 +260,15 @@ def _es_boilerplate(capitulo) -> bool:
     # "Contents / BOOK ONE / CHAPTER I..."), y NO caza el primer archivo de
     # *Orgullo y prejuicio*, que trae dentro los cinco primeros capitulos de la
     # novela y hasta ahora se perdia entero.
-    if _INICIO_PG.search(capitulo.texto) and not scoring.continuous_prose(limpio)[0]:
+    #
+    # Y solo si lo que queda es CORTO. Una obra de teatro sin encabezados de
+    # capitulo (PG844, *The Importance of Being Earnest*, 25 sep 2026) cae en
+    # un unico «Texto completo» de 23.783 palabras que tampoco es prosa
+    # corrida -es dialogo en lineas cortas-: se tomaba por portadilla y el
+    # libro entero quedaba sin medir («no tiene capitulos con prosa
+    # suficiente»). Las portadillas medidas arriba no pasan de 800 palabras.
+    if (_INICIO_PG.search(capitulo.texto) and len(limpio.split()) < 3000
+            and not scoring.continuous_prose(limpio)[0]):
         return True
     cabeza = " ".join(_sin_cabecera_corrida(limpio).split()[:400])
     if not _BOILERPLATE_RE.search(cabeza):

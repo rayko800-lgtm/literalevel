@@ -267,22 +267,29 @@ function globoOcular(): THREE.Mesh {
   return ojo;
 }
 
-/** Pelo corto castaño oscuro: mechones finos que salen de la coronilla (ruido
- *  estirado a lo largo de los meridianos) y un borde que se aclara en el
- *  nacimiento (color por vértice 0 → 1), para no cortar en seco sobre la piel. */
-function materialPelo(conColor: boolean): THREE.MeshStandardMaterial {
-  const m = new THREE.MeshStandardMaterial({ color: '#2b1d15', roughness: 0.85, metalness: 0, vertexColors: conColor, envMapIntensity: 0.25,
+/** Pelo castaño rizado con reflejos cobrizos (25 sep, Miguel). Capas
+ *  («shells»): la misma malla repetida hacia fuera a lo largo de la normal, y en
+ *  cada capa solo quedan los rizos que llegan hasta ahí (ruido 3D en la
+ *  posición de reposo). La capa 0 es opaca y tapa el cuero cabelludo; las de
+ *  fuera, cada vez más huecas, dan el volumen y un contorno irregular. El
+ *  nacimiento se decide por píxel con la curva de pelo_didactico.py. */
+export const CAPAS_PELO = 8;
+const GROSOR_RIZOS = 0.22;
+function materialPelo(conColor: boolean, capa = 0): THREE.MeshStandardMaterial {
+  const f = capa / (CAPAS_PELO - 1);
+  const m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.8, metalness: 0, vertexColors: conColor, envMapIntensity: 0.3,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   m.onBeforeCompile = shader => {
     shader.vertexShader = 'varying vec3 vPelo;\n' + shader.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\nvPelo = position;');
+      `#include <begin_vertex>
+      vPelo = position;
+      transformed += normalize(objectNormal) * ${(f * GROSOR_RIZOS).toFixed(4)};`);
     shader.fragmentShader = `varying vec3 vPelo;
-      float azarPelo(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-      float ruidoPelo(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-        return mix(mix(azarPelo(i), azarPelo(i + vec2(1, 0)), f.x), mix(azarPelo(i + vec2(0, 1)), azarPelo(i + vec2(1, 1)), f.x), f.y); }
+      float azar3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float ruido3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(azar3(i), azar3(i + vec3(1,0,0)), f.x), mix(azar3(i + vec3(0,1,0)), azar3(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(azar3(i + vec3(0,0,1)), azar3(i + vec3(1,0,1)), f.x), mix(azar3(i + vec3(0,1,1)), azar3(i + vec3(1,1,1)), f.x), f.y), f.z); }
       ` + shader.fragmentShader.replace('#include <color_fragment>', `
-      // Nacimiento del pelo por píxel (misma curva que pelo_didactico.py): el
-      // color por vértice de una malla gruesa lo dejaba en escalones.
       const float NX[10] = float[10](-3.2, -2.2, -1.2, -0.2, 0.6, 1.6, 2.4, 3.4, 4.6, 6.5);
       const float NZ[10] = float[10](5.05, 4.85, 4.35, 3.8, 3.65, 3.55, 2.9, 1.8, 1.15, 1.0);
       float nac = NZ[0];
@@ -290,21 +297,42 @@ function materialPelo(conColor: boolean): THREE.MeshStandardMaterial {
       if (vPelo.x > NX[9]) nac = NZ[9];
       float frente = smoothstep(0.0, 1.0, (-1.0 - vPelo.x) / 1.6);
       float altoPelo = vPelo.y - nac - frente * 0.4 * pow(min(1.0, abs(vPelo.z) / 1.7), 2.0);
-      vec3 desdeCorona = vPelo - vec3(1.4, 7.6, 0.0);
-      float az = atan(desdeCorona.z, desdeCorona.x), largo = length(desdeCorona);
-      float mechon = ruidoPelo(vec2(az * 70.0, largo * 5.0)) * 0.6 + ruidoPelo(vec2(az * 190.0, largo * 11.0)) * 0.4;
-      diffuseColor.rgb *= 0.7 + 0.6 * mechon;
+      // Rizos: celdas de Worley en 3D, una por rizo (~8 mm). Cada rizo es una
+      // cúpula (las capas de fuera solo guardan su centro: contorno con bultos)
+      // con la espiral dibujada en anillos alrededor de su centro.
+      vec3 q = vPelo * 2.1;
+      vec3 celda = floor(q);
+      float d1 = 9.0, d2 = 9.0; vec3 centro = vec3(0.0);
+      for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) for (int k = -1; k <= 1; k++) {
+        vec3 c = celda + vec3(float(i), float(j), float(k));
+        vec3 pc = c + vec3(azar3(c), azar3(c + 17.0), azar3(c + 31.0));
+        float d = length(q - pc);
+        if (d < d1) { d2 = d1; d1 = d; centro = c; } else if (d < d2) d2 = d;
+      }
+      float cupula = 1.0 - smoothstep(0.0, 0.62, d1);
+      vec3 rel = q - centro - vec3(azar3(centro), azar3(centro + 17.0), azar3(centro + 31.0));
+      // Brazos de espiral (el mechón que gira), no anillos concéntricos, y
+      // hebras finas a lo largo de cada brazo.
+      float ang = atan(rel.y, rel.x + rel.z);
+      float brazos = 0.5 + 0.5 * sin(ang * 3.0 - d1 * 15.0 + azar3(centro) * 6.28);
+      float hebras = ruido3(vec3(ang * 9.0, d1 * 40.0, azar3(centro) * 50.0));
+      float anillos = brazos * (0.65 + 0.35 * hebras);
+      float surco = smoothstep(0.0, 0.18, d2 - d1);          // sombra entre rizos
+      float fuera = ${f.toFixed(4)};
+      float borde = altoPelo + 0.25 * frente + 0.22 * (cupula - 0.5);
       #ifdef USE_COLOR
-        // Nacimiento irregular: el borde lo decide el color por vértice (0 bajo
-        // el nacimiento, 1 dentro) más un ruido, no las caras de la malla.
-        // El color por vértice llega lineal desde glTF: se vuelve a sRGB.
-        float bordePelo = altoPelo + 0.07 * (ruidoPelo(vec2(az * 60.0, largo * 4.0)) - 0.5);
-        if (bordePelo < 0.0) discard;
-        diffuseColor.rgb = vec3(0.045, 0.03, 0.022) * (0.65 + 0.7 * mechon);
-      #endif`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-      roughnessFactor = 0.7 + 0.25 * (1.0 - mechon);`);
+        if (borde < 0.0) discard;
+      #endif
+      float llega = cupula * smoothstep(0.0, 0.45, borde);
+      if (fuera > 0.0 && llega < 0.12 + 0.85 * fuera) discard;
+      vec3 castano = vec3(0.085, 0.034, 0.016);
+      vec3 cobre = vec3(0.32, 0.12, 0.042);
+      float reflejo = 0.55 * (0.3 + 0.7 * fuera) * brazos * (0.4 + 0.6 * azar3(centro + 3.0));
+      float espiral = anillos;
+      diffuseColor.rgb = mix(castano, cobre, reflejo) * (0.55 + 0.45 * anillos) * (0.5 + 0.5 * surco) * (0.6 + 0.4 * fuera);`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor = 0.62 + 0.3 * (1.0 - espiral);`);
   };
-  m.customProgramCacheKey = () => 'pelo-didactico-v5';
+  m.customProgramCacheKey = () => 'pelo-rizado-v3-' + capa + (conColor ? 'c' : '');
   return m;
 }
 
@@ -1244,6 +1272,10 @@ export function pielQueSigueLaMandibula(geometria: THREE.BufferGeometry, labiosE
     // pivote, donde el giro ya mueve poco. Una rampa en z (lado lejano
     // quieto) plegaba los anillos de la piel al abrir y dejaba un rasgón.
     let bajo = suave01((0.45 - y) / 1.35);            // de la línea de la boca (0,45) a la barbilla (-0,9)
+    // 25 sep (Miguel: «solo se mueven los labios, las mejillas no»): la mejilla
+    // se estira con la mandíbula, un cuarto a la altura de la comisura y nada
+    // en el pómulo. Lejos de la línea media, donde no hay labio ni dientes.
+    bajo = Math.max(bajo, 0.25 * (1 - suave01((y - 0.2) / 1.2)) * suave01((Math.abs(z) - 1.05) / 0.6) * suave01((-0.2 - x) / 0.8));
     if (labiosEnPiel) {
       // Con los labios en la piel (MakeHuman), por delante el corte es seco
       // en la línea de la boca: el labio de abajo entero va con la mandíbula
@@ -2530,7 +2562,12 @@ export class EscenaBoca {
                   float superior = smoothstep(0.15, 0.26, vPielReposo.y);
                   vec3 pigmentoLabio = mix(vec3(0.70,0.73,0.79),vec3(0.51,0.59,0.65),superior);
                   // 24-25 sep: tez clara (petición de Miguel); los labios conservan su pigmento.
-                  diffuseColor.rgb *= mix(vec3(0.86,0.76,0.68),pigmentoLabio,labioFoto);
+                  // 25 sep: más clara y cálida (melocotón), como pidió Miguel: la
+                  // foto del escaneo tira a rojizo; se le quita parte del tono
+                  // antes de aclararla. Los labios conservan su pigmento.
+                  float luzPiel = dot(diffuseColor.rgb, vec3(0.2126,0.7152,0.0722));
+                  vec3 pielClara = mix(diffuseColor.rgb, luzPiel*vec3(1.30,0.97,0.80), 0.3) * vec3(1.0,0.90,0.82);
+                  diffuseColor.rgb = mix(pielClara, diffuseColor.rgb*pigmentoLabio, labioFoto);
                   // Ojos abiertos: fuera la abertura; pestañas oscuras en el borde
                   // superior y más suaves en el inferior.
                   float aberturaPiel = aberturaOjo(vPielReposo);
@@ -2701,11 +2738,15 @@ export class EscenaBoca {
         const fuente = piezas.get(nombre);
         if (!fuente) continue;
         const geometria = fuente.geometry.clone().applyMatrix4(fuente.matrixWorld);
-        const pieza = new THREE.Mesh(geometria, materialPelo(geometria.hasAttribute('color')));
-        pieza.layers.set(1);
-        if (nombre === 'pelo_lejana') pieza.layers.enable(0);
-        pieza.userData['sinSombraRecibida'] = true;
-        this.escena.add(pieza);
+        if (!geometria.hasAttribute('normal')) geometria.computeVertexNormals();
+        for (let capa = 0; capa < CAPAS_PELO; capa++) {
+          const pieza = new THREE.Mesh(geometria, materialPelo(geometria.hasAttribute('color'), capa));
+          pieza.layers.set(1);
+          if (nombre === 'pelo_lejana') pieza.layers.enable(0);
+          pieza.userData['sinSombraRecibida'] = true;
+          pieza.renderOrder = capa;
+          this.escena.add(pieza);
+        }
       }
       // 24 sep: los globos oculares detrás de la abertura de los párpados.
       if (this.exploracionDidactica && piezas.has('pelo_cercana')) for (const lado of [1, -1]) {

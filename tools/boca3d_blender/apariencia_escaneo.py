@@ -41,6 +41,12 @@ class AparienciaEscaneo:
         for p in self.vertices:
             if p.x < -1.7:
                 p.x += .50*(1-math.exp(-(p.y/.6)**2))*math.exp(-((p.z-.15)/.9)**2)*math.exp(-(p.y/2.2)**4)
+        # 25 sep: tercio inferior más corto, mentón firme y mandíbula marcada
+        # (rostro_didactico.py). No toca nada por encima de z = -0,9.
+        from rostro_didactico import desplazar
+        for p in self.vertices:
+            dx, dy, dz = desplazar(p.x, p.y, p.z)
+            p.x += dx; p.y += dy; p.z += dz
         self.superficie = bmesh.new()
         self.superficie.from_mesh(mesh)
         for v in self.superficie.verts: v.co = self.vertices[v.index]

@@ -226,6 +226,12 @@ def anatomia_de_apoyo(medial,contorno,pared_exterior):
     lamina('anatomia_hioides',cerrada([(.7,-2.26),(1.35,-2.06),(1.47,-2.18),(.82,-2.4)],4),HUESO,CORTICAL,.02)
 
 
+def _hueso(puntos):
+    # El hueso ilustrativo sube con el mentón de la piel (rostro_didactico):
+    # el tejido blando conserva su grosor bajo la barbilla.
+    from rostro_didactico import acortar
+    return [(x,z+acortar(x,z)) for x,z in puntos]
+
 def construir():
     paladar=[(-2.55,.5),(-2.3,.75),(-2.05,.92),(-1.7,1.15),(-1.2,1.35),
              (-.6,1.48),(0,1.52),(.6,1.5),(1.2,1.42),(1.7,1.32),(2.05,1.22)]
@@ -253,11 +259,11 @@ def construir():
     # Suelo muscular apoyado en la mandíbula, continuo hasta la raíz.
     arriba=curva([(-2.55,-.26),(-2.25,-.72),(-1.55,-.90),(-.4,-1.05),(1.2,-1.16),(2.15,-1.55)])
     abajo=curva([(-2.55,-.65),(-2.15,-1.23),(-1.4,-1.52),(0,-1.72),(1.4,-1.83),(2.15,-1.55)])
-    tejido('anatomia_suelo',arriba+list(reversed(abajo[:-1])),.8,(.72,.44,.41))
+    tejido('anatomia_suelo',_hueso(arriba+list(reversed(abajo[:-1]))),.8,(.72,.44,.41))
     tejido('anatomia_maxilar',curva([(-2.93,.81),(-2.96,1.15),(-2.9,1.51),(-2.55,1.65)])
            +[(-2.35,1.35),(-2.55,.82)],.45,(.80,.60,.52))
-    tejido('anatomia_menton',curva([(-2.93,-.69),(-2.89,-1.10),(-2.65,-1.50),(-1.9,-1.75),(-.4,-1.81)])
-           +[(-.4,-1.40),(-1.55,-1.12),(-2.3,-.84),(-2.63,-.50)],.45,(.80,.60,.52))
+    tejido('anatomia_menton',_hueso(curva([(-2.93,-.69),(-2.89,-1.10),(-2.65,-1.50),(-1.9,-1.75),(-.4,-1.81)])
+           +[(-.4,-1.40),(-1.55,-1.12),(-2.3,-.84),(-2.63,-.50)]),.45,(.80,.60,.52))
     tejido('anatomia_alveolo_sup',curva([(-2.77,.78),(-2.72,1.01),(-2.50,1.24),(-2.24,1.19)])
            +[(-2.37,.77)],.36,(.79,.48,.47))
     tejido('anatomia_alveolo_inf',curva([(-2.77,-.06),(-2.70,-.52),(-2.47,-.85),(-2.19,-.84)])
@@ -330,12 +336,11 @@ def construir():
             f=(-3.2-c0.z)/(c1.z-c0.z)
             puntos.append((c0.x+f*(c1.x-c0.x)+.002,-3.2,None,-3.,GRASA,.045,'piel'))
             # Tejido blando del cuello hasta la faringe y bajo el suelo de la boca.
-            puntos+=[(2.5,-3.2,None,.45,GRASA,0,None),(2.55,-1.95,None,.45,GRASA,0,None),
-                     (1.4,-1.9,None,.45,GRASA,0,None),(0.,-1.8,None,.45,GRASA,0,None)]
+            puntos+=[(x,z,None,.45,GRASA,0,None) for x,z in _hueso([(2.5,-3.2),(2.55,-1.95),(1.4,-1.9),(0.,-1.8)])]
             # Bajo el mentón óseo y de vuelta por su frente hasta la inserción.
             hueso=[(-1.56,-1.80),(-1.90,-1.77),(-2.26,-1.70),(-2.52,-1.60),(-2.71,-1.48),
                    (-2.83,-1.32),(-2.91,-1.12),(-2.945,-.90),(-2.945,-.69)]
-            puntos+=[(x,z,None,-2.,GRASA,0,None) for x,z in hueso]
+            puntos+=[(x,z,None,-2.,GRASA,0,None) for x,z in _hueso(hueso)]
             puntos+=[(-2.63,-.50,None,-2.,MUSCULO,0,None),(-2.72,-.12,None,-2.,MUSCULO,.035,'mucosa'),
                      (-2.80,.02,None,0.,MUSCULO,.035,'mucosa')]
         # Quitar duplicados exactos consecutivos del escaneo.

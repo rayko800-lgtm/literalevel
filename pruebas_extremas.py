@@ -3462,6 +3462,33 @@ prueba("la licencia se quita antes de decidir si es licencia",
        _la_licencia_se_quita_antes_de_decidir)
 
 
+def _una_obra_de_teatro_entera_no_es_portadilla():
+    """PG844 (*The Importance of Being Earnest*, 25 sep 2026): un .txt de
+    teatro sin encabezados cae en un unico «Texto completo» que no es prosa
+    corrida (dialogo en lineas cortas) y se tomaba por portadilla: el libro
+    entero salia «sin capitulos con prosa suficiente». Una portadilla es
+    corta; una obra entera, no. Y la portadilla corta sigue fuera."""
+    class Cap:
+        def __init__(self, titulo, texto): self.titulo, self.texto = titulo, texto
+
+        @property
+        def palabras(self):
+            return len(self.texto.split())
+
+    dialogo = chr(10).join(["ALGERNON.  Did you hear what I was playing, Lane?",
+                          "LANE.  I didn't think it polite to listen, sir."] * 400)
+    obra = Cap("Texto completo", _LICENCIA + dialogo)
+    assert obra.palabras > 3000
+    assert not ficha_mod._es_boilerplate(obra), "la obra entera se toma por portadilla"
+    indice = Cap("Texto completo", _LICENCIA + chr(10).join(["CHAPTER %d" % i for i in range(1, 90)]))
+    assert ficha_mod._es_boilerplate(indice), "la portadilla corta ya no se caza"
+    return f"obra de {obra.palabras} palabras dentro, portadilla fuera"
+
+
+prueba("una obra de teatro entera no es portadilla",
+       _una_obra_de_teatro_entera_no_es_portadilla)
+
+
 def _epub_con_cabecera_corrida(nombre="cabecera.epub"):
     """Un epub como los de la generacion vieja de Gutenberg (`pg28xxx`).
 
