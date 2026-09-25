@@ -16,9 +16,9 @@ paso() { echo "$(date +%T) $1"; }
 [ -f "$R/grid_base.json" ] || { paso "dominancia GRID"; python base_dominancia.py --datos "$C/grid" --salida "$R/grid_base.json" --prueba $PG; }
 [ -f "$R/grid_tcn.json" ] || { paso "TCN GRID"; python tcn.py --datos "$C/grid" --salida "$R/grid_tcn.json" --prueba $PG; }
 [ -f "$R/grid_pruebas.json" ] || { paso "pruebas duras GRID"; python pruebas_duras.py --datos "$C/grid" --modelos "$R" --prueba $PG --salida "$R/grid_pruebas.json"; }
-[ -f "$R/grid_tcn_tiempos_app.json" ] || { paso "TCN GRID con tiempos de la app"; mkdir -p "$R/tiempos_app"; python tcn.py --datos "$C/grid" --salida "$R/tiempos_app/grid_tcn.json" --prueba $PG --tiempos aprendida && cp "$R/tiempos_app/grid_tcn.json" "$R/grid_tcn_tiempos_app.json"; }
-[ -f "$R/conjunta.json" ] || { paso "TCN conjunta"; python tcn_conjunto.py --grupo video "$C/grid" --grupo video "$C/lombard" --grupo ema "$C/ema" --prueba $PG $PL f5 --salida "$R/conjunta.json"; }
-[ -f "$R/conjunta_solo_video.json" ] || { paso "TCN conjunta solo vídeo"; python tcn_conjunto.py --grupo video "$C/grid" --grupo video "$C/lombard" --grupo ema "$C/ema" --prueba $PG $PL f5 --solo video --salida "$R/conjunta_solo_video.json"; }
+# (el TCN con tiempos de la app se lanza aparte: ver tiempos_app.log)
+[ -f "$R/conjunta.json" ] || { paso "TCN conjunta"; python tcn_conjunto.py --grupo video "$C/grid" --grupo video "$C/lombard" --grupo ema "$C/ema" --prueba $PG $PL f5 --epocas 12 --salida "$R/conjunta.json"; }
+[ -f "$R/conjunta_solo_video.json" ] || { paso "TCN conjunta solo vídeo"; python tcn_conjunto.py --grupo video "$C/grid" --grupo video "$C/lombard" --grupo ema "$C/ema" --prueba $PG $PL f5 --solo video --epocas 12 --salida "$R/conjunta_solo_video.json"; }
 [ -f "$R/calibracion.json" ] || { paso "calibración"; PYTHONIOENCODING=utf8 python calibrar_rig.py --conjuntos "$C/grid" --poses "$HERE/../../front/src/app/compartido/boca3d" --salida "$R/calibracion.json"; }
 [ -f "$R/hoja_s33.mp4" ] || { paso "hoja lado a lado"; python hoja_lado_a_lado.py --conjunto "$C/grid/s33.npz" --otros $(ls "$C"/grid/s*.npz | grep -v -E 's3[1-4]\.npz') --videos "$BASE/datos/grid/s33" --dominancia "$R/dominancia_sin_s31+s32+s33+s34.pt" --tcn "$R/tcn_sin_s31+s32+s33+s34.pt" --frases 10 --salida "$R/hoja_s33.mp4"; }
 paso "fin"
