@@ -160,6 +160,10 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   app publicada, «Verla leída en 3D» sin errores a 390 px; tira de fotogramas
   modelo contra reglas revisada.
 
+- **Séptima publicación (25 sep, mañana CDMX), solo front:** revisión `eef0543`
+  desde el merge de `dev/articulacion-v2` (pestaña «Mi espacio» en la barra de
+  navegación). Front 460/460; comprobado en la app publicada a 390 px.
+
 ## Historial de infraestructura y opciones evaluadas
 
 Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
