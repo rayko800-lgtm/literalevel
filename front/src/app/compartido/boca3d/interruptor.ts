@@ -14,3 +14,9 @@
  *       ipa, acentoIpa y svg2dUrl.
  */
 export const BOCA3D_ACTIVO = true;
+
+/** El modelo articulatorio aprendido (`modelo.ts`, 25 sep) pone el tiempo y la
+ *  coarticulación de las palabras y frases; las poses siguen siendo las hechas
+ *  a mano. `false` vuelve al calendario de reglas de `lineaPalabra`. El ciclo
+ *  de un sonido suelto no cambia. */
+export const MODELO_ARTICULATORIO_ACTIVO = true;

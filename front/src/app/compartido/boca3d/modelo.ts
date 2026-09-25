@@ -93,6 +93,9 @@ export function clavesModelo(tramos: TramoFonema[], reposo: PoseSonido, desde: n
     const mandibula = Math.min(1, Math.max(0, MAND_PENDIENTE * z + MAND_ORDENADA));
     const conMand = (p: PoseSonido): PoseSonido => ({ ...p, mandibula });
     const f = b ? orden[1][0] / (orden[0][0] + orden[1][0]) : 0;
+    // En silencio, el reposo tal cual (el mismo objeto: lo que sigue a la
+    // frase lo reconoce como reposo).
+    if (a.pose === reposo && (!b || f < 0.15)) { claves.push({ t, pose: reposo }); continue; }
     claves.push(b && b.pose !== a.pose && f > 0.02
       ? { t, pose: conMand(a.pose), hacia: conMand(b.pose), f }
       : { t, pose: conMand(a.pose) });

@@ -3,6 +3,8 @@
  *  duraciones que el corte 2D (`_linea_sonido` y `_linea_palabra` de
  *  `app/animacion_articulatoria`). Sin three.js: solo poses y segundos. */
 import { CatalogoPoses, DURACION_S, Movimiento, PoseSonido, Segmento, resolver } from './poses';
+import { MODELO_ARTICULATORIO_ACTIVO } from './interruptor';
+import { TramoFonema, clavesModelo } from './modelo';
 
 /** Un instante de la línea: la boca está en `pose`, o a la fracción `f` del
  *  camino entre `pose` y `hacia` (la «suelta» de una oclusiva). */
@@ -381,7 +383,8 @@ export function lentoParaAudio(segmentos: Segmento[], catalogo: CatalogoPoses, d
 /** La palabra entera: cada sonido con su duración (`DURACION_S`, larga ×1,25,
  *  acento ×1,4 o ×1,15, todo ×`lento`), los consonantes coarticulados con la
  *  vocal vecina, y el reposo al principio y al final. */
-export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, lento = LENTO): Linea {
+export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, lento = LENTO,
+                             conModelo = MODELO_ARTICULATORIO_ACTIVO): Linea {
   const R = catalogo.reposo;
   const poses = segmentos.map(s => s.pose);
   const vocales = poses.map((p, i) => (p.movimiento === 'vocal' || p.movimiento === 'diptongo' ? i : -1)).filter(i => i >= 0);
@@ -400,11 +403,19 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
   const total = inicio + durs.reduce((a, b) => a + b, 0) + 1.0;
   const claves: Clave[] = [{ t: 0, pose: R }, { t: inicio - 0.05, pose: R }];
   const aspiracion: { en: number; dura: number }[] = [];
+  const tramos: TramoFonema[] = [];
   let t = inicio;
   segmentos.forEach((s, i) => {
     const d = durs[i];
     const [PA, PB] = objetivos(s.pose, vecino(i), R);
     const m = s.pose.movimiento;
+    // Para el modelo: el tramo de cada sonido con su pose resuelta; diptongos y
+    // africadas en dos mitades (primer y segundo objetivo).
+    if (PB && (m === 'diptongo' || m === 'africada')) {
+      tramos.push({ simbolo: s.simbolo, pose: PA, t0: t, t1: t + d / 2 }, { simbolo: s.simbolo, pose: PB, t0: t + d / 2, t1: t + d });
+    } else {
+      tramos.push({ simbolo: s.simbolo, pose: conAlgoQueVer(s.pose, PA, R), t0: t, t1: t + d });
+    }
     if (m === 'oclusiva') {
       claves.push({ t: t + 0.45 * d, pose: PA }, { t: t + 0.8 * d, pose: PA });
       if (seAspira(segmentos, i)) aspiracion.push({ en: t + 0.8 * d, dura: soploDe(s.pose) * lento });
@@ -417,6 +428,11 @@ export function lineaPalabra(segmentos: Segmento[], catalogo: CatalogoPoses, len
     }
     t += d;
   });
+  if (conModelo && tramos.length) {
+    // 25 sep: el modelo aprendido (GRID) sustituye el calendario de reglas
+    // entre el primer y el último sonido; el reposo de los extremos no cambia.
+    claves.splice(2, claves.length - 2, ...clavesModelo(tramos, R, inicio, t));
+  }
   claves.push({ t: t + 0.45, pose: R }, { t: total, pose: R });
   // La pose quieta: la vocal acentuada, o la primera vocal, o el primer sonido.
   const fija = vocales.find(i => segmentos[i].acento_silaba === 1) ?? vocales[0] ?? 0;
