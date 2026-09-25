@@ -20,6 +20,10 @@ export const BASE_API = leerBase();
 export const VERSION_CORTE_2D = 'd4-canal-20260919';
 
 /** Un audio o recurso del motor: Wiktionary viene entero; lo nuestro, relativo. */
+/** Una palabra de una frase que lee la boca 3D: su IPA y, si el audio ya se
+ *  alineó, dónde suena (segundos desde el principio del mp3). */
+export interface PalabraLeida { palabra: string; ipa: string | null; inicio?: number; fin?: number }
+
 export function urlMotor(ruta: string | null | undefined): string | null {
   if (!ruta) return null;
   return /^https?:\/\//.test(ruta) ? ruta : BASE_API + ruta;
@@ -496,9 +500,12 @@ export class Api {
   }
   /** La IPA de cada palabra de una frase (diccionarios locales, sin coste):
    *  la boca 3D la lee al compás del audio. `ipa` null si no está. */
-  ipaDeLectura(texto: string, acento: Acento = 'ga'): Observable<{ palabras: { palabra: string; ipa: string | null }[] }> {
-    return this.http.get<{ palabras: { palabra: string; ipa: string | null }[] }>(`${this.base}/lectura/ipa`,
-      { params: { texto: texto.slice(0, 2000), acento: acento === 'rp' ? 'UK' : 'US' } });
+  ipaDeLectura(texto: string, acento: Acento = 'ga', audio?: string | null): Observable<{ palabras: PalabraLeida[] }> {
+    // «Alinea el TTS» (25 sep): con el mp3 generado de esa frase, las palabras
+    // que whisper ya marcó traen `inicio` y `fin` (sin coste: lo guardó la corrección).
+    const nombre = /^\/api\/audio\/([\w.-]{1,160}\.mp3)$/.exec(audio ?? '')?.[1];
+    return this.http.get<{ palabras: PalabraLeida[] }>(`${this.base}/lectura/ipa`,
+      { params: { texto: texto.slice(0, 2000), acento: acento === 'rp' ? 'UK' : 'US', ...(nombre ? { audio: nombre } : {}) } });
   }
   practicar(frase: string, audio: Blob, nombre: string, acento: Acento = 'ga'): Observable<CorreccionVoz> {
     const datos = new FormData();

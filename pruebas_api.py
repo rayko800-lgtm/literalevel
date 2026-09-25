@@ -25,6 +25,7 @@ import sys
 import tempfile
 import traceback
 import uuid
+import json
 from pathlib import Path
 
 sys.path.insert(0, "app")
@@ -1612,6 +1613,29 @@ def ipa_de_lectura_para_la_boca_3d():
     return f"{len(palabras)} palabras, «they» {ipas['they']}"
 
 
+def ipa_de_lectura_con_los_tiempos_del_audio():
+    """«Alinea el TTS» (Miguel, 25 sep): con `audio`, las palabras que whisper
+    ya marcó en ese mp3 (el `.tiempos.json` que guarda la corrección) traen
+    `inicio` y `fin`; las que no oyó, no. Sin el archivo, nada cambia y no se
+    llama a OpenAI; un nombre raro se ignora."""
+    mp3 = api._DIR_AUDIO / f"prueba_{uuid.uuid4().hex[:8]}.mp3"
+    lado = mp3.parent / (mp3.name + ".tiempos.json")
+    lado.parent.mkdir(parents=True, exist_ok=True)
+    lado.write_text(json.dumps({"texto": "The cat sat.", "duracion": 1.5, "palabras": [
+        {"palabra": "The", "inicio": 0.1, "fin": 0.25}, {"palabra": "cat", "inicio": 0.25, "fin": 0.6}]}), encoding="utf-8")
+    try:
+        d = cliente.get("/api/lectura/ipa", params={"texto": "The cat sat.", "audio": mp3.name}).json()["palabras"]
+        assert [(w["palabra"], w.get("inicio"), w.get("fin")) for w in d] == [
+            ("the", 0.1, 0.25), ("cat", 0.25, 0.6), ("sat", None, None)], d
+        sin = cliente.get("/api/lectura/ipa", params={"texto": "The cat sat.", "audio": "no_existe.mp3"}).json()["palabras"]
+        assert all("inicio" not in w for w in sin), sin
+        raro = cliente.get("/api/lectura/ipa", params={"texto": "The cat", "audio": "../" + mp3.name})
+        assert raro.status_code == 200 and all("inicio" not in w for w in raro.json()["palabras"]), raro.text[:200]
+    finally:
+        lado.unlink(missing_ok=True)
+    return "2 de 3 palabras con tiempos; sin archivo o con nombre raro, ninguna"
+
+
 def corte_de_una_pasada_con_la_duracion_del_audio():
     """«Escuchar y ver»: ?dur= (redondeado a 0,1 s, 0,3..10) y ?una=1 llegan al
     módulo de 4e; fuera de rango se ignora; el quieto no cambia; sin nada, el
@@ -1960,7 +1984,7 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
-               lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla, ipa_de_lectura_para_la_boca_3d, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
+               lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla, ipa_de_lectura_para_la_boca_3d, ipa_de_lectura_con_los_tiempos_del_audio, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
                temas_para_la_portada, portada_por_ia_si_existe, plurales_de_los_minutos,
                nota_de_nivel_dice_libros_y_cuentos,

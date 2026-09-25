@@ -377,11 +377,15 @@ export class Boca3d {
    *  boca leyéndolo palabra a palabra, al compás de los tramos que suenan.
    *  `palabras` trae la IPA de los diccionarios (`/api/lectura/ipa`); la que
    *  falte se aproxima por letras. Llamar dentro del clic (audio en iOS). */
-  leerFrase(url: string, palabras: { palabra: string; ipa: string | null }[]): void {
+  leerFrase(url: string, palabras: { palabra: string; ipa: string | null; inicio?: number; fin?: number }[]): void {
     if (!this.escena) return;
     const cat = this.catalogo(), acento = this.acentoIpa() ?? this.acento();
     const segs = palabras.map(w => trocearIpa(w.ipa || ipaPorLetras(w.palabra), cat, acento).segmentos);
-    void this.conAudio(url, listo => lineaFrase(segs, cat, listo.tramos, listo.silencio, listo.duracion)
+    // Con las marcas de whisper de ese audio (la API las da si ya existen),
+    // cada palabra va en su sitio; si no, el reparto por tramos de siempre.
+    const marcas = palabras.map(w => (w.inicio != null && w.fin != null ? { inicio: w.inicio, fin: w.fin } : null));
+    void this.conAudio(url, listo => lineaFrase(segs, cat, listo.tramos, listo.silencio, listo.duracion,
+      marcas.some(Boolean) ? marcas : undefined)
       ?? { total: 0.5, claves: [{ t: 0, pose: cat.reposo }, { t: 0.5, pose: cat.reposo }], quieta: cat.reposo, sonidoEn: 0 });
   }
 

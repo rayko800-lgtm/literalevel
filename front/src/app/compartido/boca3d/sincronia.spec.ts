@@ -146,3 +146,33 @@ describe('24 sep: la boca 3D lee una frase entera al compás del audio', () => {
     expect(seg(ipaPorLetras('subaltern')).length).toBeGreaterThanOrEqual(8);
   });
 });
+
+describe('25 sep: la frase del TTS alineada por palabras', () => {
+  const segs = (ipa: string) => trocearIpa(ipa, catalogo, 'ga').segmentos;
+  const palabras = [segs('ðə'), segs('kæt'), segs('sæt')];
+
+  it('cada palabra se articula dentro de su marca (con el adelanto de 40 ms)', () => {
+    const marcas = [{ inicio: 0.1, fin: 0.2 }, { inicio: 0.2, fin: 0.55 }, { inicio: 1.2, fin: 1.6 }];
+    const l = lineaFrase(palabras, catalogo, [], 0.1, 1.8, marcas)!;
+    const reposo = catalogo.reposo;
+    const gestos = l.claves.filter(c => c.pose !== reposo);
+    expect(gestos[0].t).toBeGreaterThanOrEqual(ADELANTO + 0.1 - 0.05);
+    // «sat» empieza tras la pausa, no antes de su marca.
+    const sat = l.claves.filter(c => c.t > ADELANTO + 0.9 && c.pose !== reposo);
+    expect(sat.length).toBeGreaterThan(0);
+    expect(sat[0].t).toBeGreaterThanOrEqual(ADELANTO + 1.2 - 0.05);
+    // Pausa de 0,65 s entre «cat» y «sat»: la boca pasa por el reposo.
+    expect(l.claves.some(c => c.pose === reposo && c.t > ADELANTO + 0.55 && c.t < ADELANTO + 1.2)).toBe(true);
+    for (let i = 1; i < l.claves.length; i++) expect(l.claves[i].t).toBeGreaterThan(l.claves[i - 1].t);
+  });
+
+  it('una palabra sin marca se coloca entre sus vecinas; con menos de la mitad marcadas, reparto por tramos', () => {
+    const marcas = [{ inicio: 0.1, fin: 0.2 }, null, { inicio: 0.6, fin: 0.9 }];
+    const l = lineaFrase(palabras, catalogo, [], 0.1, 1.2, marcas)!;
+    const cat = l.claves.filter(c => c.t > ADELANTO + 0.15 && c.t < ADELANTO + 0.6 && c.pose !== catalogo.reposo);
+    expect(cat.length).toBeGreaterThan(0);
+    const tramos = [{ inicio: 0.1, fin: 0.9 }];
+    const pocas = lineaFrase(palabras, catalogo, tramos, 0.1, 1.2, [{ inicio: 0.1, fin: 0.2 }, null, null]);
+    expect(pocas).toEqual(lineaFrase(palabras, catalogo, tramos, 0.1, 1.2));
+  });
+});
