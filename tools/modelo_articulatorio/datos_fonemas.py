@@ -62,6 +62,8 @@ def main():
     ap.add_argument('--alineacion', required=True, help='carpeta con <frase>.TextGrid del mismo hablante')
     ap.add_argument('--salida', required=True)
     ap.add_argument('--hablante', required=True)
+    ap.add_argument('--desfase', type=float, default=0.0,
+                    help='s que se suman a la alineación (Lombard: el vídeo va 0,12–0,20 s detrás; ver informe)')
     ap.add_argument('--patron', default='*.npz', help='p. ej. s10_p_*.npz para un hablante de Lombard')
     a = ap.parse_args()
     frases, ys = [], []
@@ -75,7 +77,7 @@ def main():
             fon = leer_json_lombard(js)
         else:
             continue
-        fon = [(f, i, z) for f, i, z in fon if z > i]
+        fon = [(f, i + a.desfase, z + a.desfase) for f, i, z in fon if z > i]
         t, y = controles(npz)
         if not fon or np.isnan(y).mean() > 0.1:
             continue
