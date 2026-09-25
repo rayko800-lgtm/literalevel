@@ -104,11 +104,24 @@ def main():
     ap.add_argument('--epocas', type=int, default=30)
     ap.add_argument('--prueba', nargs='*', help='hablantes de prueba; por defecto, uno fuera cada vez')
     ap.add_argument('--fps', type=float, default=25.0, help='muestras por segundo del conjunto')
+    ap.add_argument('--tiempos', choices=['mfa', 'aprendida'], default='mfa',
+                    help='aprendida: entrena y evalúa con los tiempos que la app puede calcular (tiempos_regla.py)')
     a = ap.parse_args()
     hablantes = {os.path.splitext(os.path.basename(p))[0]: cargar_con_acento(p) for p in sorted(glob.glob(os.path.join(a.datos, '*.npz')))}
     controles = cargar(next(iter(sorted(glob.glob(os.path.join(a.datos, '*.npz'))))))[1]
     fonemas = ['<pad>'] + sorted({s[0] for fr in hablantes.values() for f in fr for s in f[2]})
     idx = {p: i for i, p in enumerate(fonemas)}
+    if a.tiempos == 'aprendida':
+        from tiempos_regla import a_regla
+        dur = {}
+        for h, fr in hablantes.items():
+            if a.prueba and h in a.prueba:
+                continue
+            for f in fr:
+                for p, x0, x1, _ in f[2]:
+                    dur.setdefault(p, []).append(x1 - x0)
+        media = {p: float(np.mean(v)) for p, v in dur.items()}
+        hablantes = {h: [(t, y, a_regla(segs, media)) for t, y, segs in fr] for h, fr in hablantes.items()}
     pliegues = [[p] for p in hablantes] if not a.prueba else [a.prueba]
     res = {'controles': controles, 'pliegues': {}}
     for prueba in pliegues:

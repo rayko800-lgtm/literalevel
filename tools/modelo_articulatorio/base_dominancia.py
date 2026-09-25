@@ -143,6 +143,7 @@ def main():
     ap.add_argument('--datos', required=True)
     ap.add_argument('--salida', required=True)
     ap.add_argument('--pasos', type=int, default=400)
+    ap.add_argument('--prueba', nargs='*', help='hablantes de prueba (un solo pliegue); por defecto, uno fuera cada vez')
     ap.add_argument('--fps', type=float, default=25.0, help='muestras por segundo del conjunto')
     a = ap.parse_args()
     torch.manual_seed(0); np.random.seed(0)
@@ -151,11 +152,13 @@ def main():
     fonemas = sorted({p for fr, _ in hablantes.values() for _, _, segs in fr for p, _, _ in segs})
     idx = {p: i for i, p in enumerate(fonemas)}
     res = {'controles': controles, 'pliegues': {}}
-    for prueba in hablantes:
-        train = [f for h, (fr, _) in hablantes.items() if h != prueba for f in fr]
+    pliegues = [[h] for h in hablantes] if not a.prueba else [a.prueba]
+    for grupo in pliegues:
+        prueba = '+'.join(grupo)
+        train = [f for h, (fr, _) in hablantes.items() if h not in grupo for f in fr]
         m, medias = entrenar(train, idx, len(controles), a.pasos)
         filas = {'dominancia': [], 'escalon': [], 'reglas': []}
-        for fr in hablantes[prueba][0]:
+        for fr in (f for h in grupo for f in hablantes[h][0]):
             t, y, ids, c = tensores(fr, idx)
             with torch.no_grad():
                 p_dom = m(t, ids, c).numpy()
@@ -166,7 +169,7 @@ def main():
                 'pearson': np.mean([x[1] for x in v], 0).round(3).tolist(),
                 'desfase_ms': np.mean([x[2] for x in v], 0).round(1).tolist()}
             for n, v in filas.items()}
-        res['pliegues'][prueba]['n_frases'] = len(hablantes[prueba][0])
+        res['pliegues'][prueba]['n_frases'] = sum(len(hablantes[h][0]) for h in grupo)
         print(prueba, {n: round(float(np.mean(r['pearson'])), 3) for n, r in res['pliegues'][prueba].items() if n != 'n_frases'}, flush=True)
         torch.save({'estado': m.state_dict(), 'fonemas': fonemas, 'controles': [str(c) for c in controles]},
                    os.path.join(os.path.dirname(a.salida), f'dominancia_sin_{prueba}.pt'))
