@@ -75,7 +75,7 @@ def main():
             perdida.backward()
             opt.step()
         sched.step()
-        print(f'época {ep + 1}/{a.epocas} pérdida {float(perdida):.3f}', flush=True)
+        print(f'época {ep + 1}/{a.epocas} pérdida {float(perdida.detach()):.3f}', flush=True)
     m.eval()
     res = {'controles': controles, 'parametros': sum(p.numel() for p in m.parameters()), 'hablantes': {}}
     for (tipo, h), fr in datos.items():

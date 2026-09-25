@@ -55,6 +55,8 @@ def main():
     ap.add_argument('--datos', required=True)
     ap.add_argument('--modelos', required=True)
     ap.add_argument('--salida', required=True)
+    ap.add_argument('--prueba', nargs='*', help='un solo pliegue con estos hablantes (modelos *_sin_a+b+c.pt)')
+    ap.add_argument('--fps', type=float, default=25.0)
     a = ap.parse_args()
     rutas = sorted(glob.glob(os.path.join(a.datos, '*.npz')))
     habl = {os.path.splitext(os.path.basename(r))[0]: r for r in rutas}
@@ -64,17 +66,19 @@ def main():
     k_ap = [c.endswith('apertura_int') for c in controles].index(True)
     k_an = [c.endswith(':ancho') for c in controles].index(True)
     res = {}
-    for prueba in habl:
+    pliegues = [[h] for h in habl] if not a.prueba else [a.prueba]
+    for grupo in pliegues:
+        prueba = '+'.join(grupo)
         dom = torch.load(os.path.join(a.modelos, f'dominancia_sin_{prueba}.pt'), weights_only=True)
         idx = {p: i for i, p in enumerate(dom['fonemas'])}
         md = Dominancia(len(idx), len(controles)); md.load_state_dict(dom['estado']); md.eval()
         tc = torch.load(os.path.join(a.modelos, f'tcn_sin_{prueba}.pt'), weights_only=True)
         idx_t = {p: i for i, p in enumerate(tc['fonemas'])}
         mt = TCN(len(idx_t), len(controles)); mt.load_state_dict(tc['estado']); mt.eval()
-        medias = medias_de([f for h, fr in datos.items() if h != prueba for f in fr], idx, len(controles))
+        medias = medias_de([f for h, fr in datos.items() if h not in grupo for f in fr], idx, len(controles))
         cierre = {m: [] for m in ('real', 'dominancia', 'tcn', 'reglas')}
         adel = {m: [] for m in cierre}
-        for fr, fr_ac in zip(datos[prueba], datos_ac[prueba]):
+        for fr, fr_ac in ((f, g) for h in grupo for f, g in zip(datos[h], datos_ac[h])):
             t, y, segs = fr
             _, _, ids, c = tensores(fr, idx)
             with torch.no_grad():
