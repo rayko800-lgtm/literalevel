@@ -106,7 +106,13 @@ def main():
                 cand = [f for f in os.listdir(tmp) if f.startswith(vid + '_') and f.endswith('.mp4')
                         and abs(float(f[len(vid) + 1:-4]) - ini) < 0.05] if os.path.isdir(tmp) else []
                 if cand:
-                    os.replace(os.path.join(tmp, cand[0]), os.path.join(a.salida, clip + '.mp4'))
+                    origen = os.path.join(tmp, cand[0])
+                    info_ff = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-hide_banner', '-i', origen],
+                                             capture_output=True, text=True, errors='replace').stderr
+                    if 'Video:' in info_ff:
+                        os.replace(origen, os.path.join(a.salida, clip + '.mp4'))
+                    else:
+                        os.remove(origen)   # a veces baja solo el audio del tramo
             if r.returncode != 0:
                 print(f'{vid}: yt-dlp avisó ({r.stderr.strip().splitlines()[-1:]})')
         for clip, ini, fin, t in tramos:

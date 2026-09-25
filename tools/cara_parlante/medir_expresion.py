@@ -38,6 +38,13 @@ def pose_de_matriz(m):
     return guinada, cabeceo, alabeo
 
 
+def tiene_video(ruta):
+    """Algunos tramos bajan solo con audio; cv2 se cuelga con ellos (visto el 25 sep)."""
+    r = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-hide_banner', '-i', ruta],
+                       capture_output=True, text=True, errors='replace')
+    return 'Video:' in r.stderr
+
+
 def prosodia(video, t):
     with tempfile.TemporaryDirectory() as d:
         wav = os.path.join(d, 'a.wav')
@@ -102,6 +109,9 @@ def main():
     for v in a.videos:
         destino = os.path.join(a.salida, os.path.splitext(os.path.basename(v))[0] + '.npz')
         if os.path.exists(destino):
+            continue
+        if not tiene_video(v):
+            print(f'{os.path.basename(v)}: sin imagen, se salta')
             continue
         opts = vision.FaceLandmarkerOptions(
             base_options=mp_python.BaseOptions(model_asset_path=a.modelo),
