@@ -63,28 +63,31 @@ with concurrent.futures.ThreadPoolExecutor(6) as ex:
     res = Counter(ex.map(bajar, sel))
 print(res)
 !du -sh {DESTINO}/videos"""),
-('code', """# --- 3. Medir (MediaPipe en CPU; varios procesos a la vez)
+('code', """# --- 3. Medir en segundo plano (sigue aunque VS Code pierda la conexión con el servidor)
 open('/content/medir_expresion.py', 'w', encoding='utf8').write(MEDIR_PY)
-import glob
-# primero los discursos semanales (de frente, leyendo), luego los cortos: así lo más útil se mide antes
+import glob, subprocess
+# primero los discursos semanales (de frente, leyendo), luego los cortos
 videos = sorted(glob.glob(f'{DESTINO}/videos/*.mp4'), key=lambda v: ('weekly-address' not in v, os.path.getsize(v)))
 faltan = [v for v in videos if not os.path.exists(f"{DESTINO}/medidas/{os.path.basename(v)[:-4]}.npz")]
 print(len(videos), 'vídeos,', len(faltan), 'por medir')
+!pkill -f medir_expresion.py || true
 NPROC = os.cpu_count() or 2
-trozos = [faltan[i::NPROC] for i in range(NPROC)]
-procs = [subprocess.Popen(['python', '/content/medir_expresion.py', '--modelo', '/content/face_landmarker.task',
-                          '--salida', f'{DESTINO}/medidas', '--ancho', '640', *t], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-         for t in trozos if t]
-hechos = len(videos) - len(faltan)
-for p in procs:
-    for linea in p.stdout:
-        if 'fotogramas' in linea or 'salta' in linea:
-            hechos += 1
-            b = int(20 * hechos / len(videos))
-            print('█' * b + '░' * (20 - b), f'{hechos}/{len(videos)}', linea.strip(), flush=True)
-        elif 'Error' in linea or 'Traceback' in linea:
-            print(linea.strip(), flush=True)
-!ls {DESTINO}/medidas | wc -l"""),
+for i in range(NPROC):
+    t = faltan[i::NPROC]
+    if not t: continue
+    # sesión propia: si el kernel se reinicia o VS Code se desconecta, los procesos siguen
+    subprocess.Popen(['python', '-u', '/content/medir_expresion.py', '--modelo', '/content/face_landmarker.task',
+                      '--salida', f'{DESTINO}/medidas', '--ancho', '640', *t],
+                     stdout=open(f'/content/medir_{i}.log', 'w'), stderr=subprocess.STDOUT,
+                     start_new_session=True)
+print(NPROC, 'procesos lanzados en segundo plano')"""),
+('code', """# --- 4. Progreso (ejecutar cuando quieras; no para nada)
+import glob, subprocess
+hechos = len(glob.glob(f'{DESTINO}/medidas/*.npz')); total = len(glob.glob(f'{DESTINO}/videos/*.mp4'))
+b = int(20 * hechos / max(total, 1))
+vivos = subprocess.run('pgrep -fc medir_expresion.py', shell=True, capture_output=True, text=True).stdout.strip()
+print('█' * b + '░' * (20 - b), f'{hechos}/{total}', f'· procesos vivos: {vivos}')
+!tail -q -n 1 /content/medir_*.log 2>/dev/null | grep -v '^$' | tail -n 4"""),
 ]
 
 
