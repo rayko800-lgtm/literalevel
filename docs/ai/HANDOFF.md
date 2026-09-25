@@ -10,9 +10,10 @@ Entrega del Módulo 5 el **3 de octubre de 2026** (rúbrica: skill
 `modulo-5-literalevel`). La app ya tiene usuarios reales probando. Trabajo en
 curso, por orden de Miguel (25 sep):
 
-1. **D5 · lectura guiada en vivo** con la transcripción en tiempo real de
-   OpenAI (pruebas con ~13 USD de créditos de Miguel).
-2. **Ojos de la cabeza 3D** (Blender y visor).
+1. **D5 · lectura guiada en vivo:** PUBLICADA (25 sep). Falta que Miguel la
+   pruebe con su voz y su móvil (~13 USD de créditos para pruebas).
+2. **Ojos de la cabeza 3D:** PUBLICADOS en la malla
+   (`tools/boca3d_blender/ojos_didacticos.py`).
 3. **Modelo articulatorio aprendido:** lo investiga otra sesión con
    `docs/ai/investigacion_modelo_articulatorio.md`; esta no lo toca.
 
@@ -20,17 +21,19 @@ curso, por orden de Miguel (25 sep):
 
 | Pieza | Revisión del Space | Commit |
 |---|---|---|
-| Front Angular (`MikeMaki1763/literalevel-front`) | `a9ae51f` | `acbee33` |
-| API y Gradio (`MikeMaki1763/literalevel`) | `c49604e` | `acbee33` |
+| Front Angular (`MikeMaki1763/literalevel-front`) | `4f94c4e` | `82cb26a` |
+| API y Gradio (`MikeMaki1763/literalevel`) | `79bdcfe` | `82cb26a` |
 
 Incluye D1-D3 (Mi espacio, Repasar, Mi progreso; el tutorial v2 sigue detrás
 de su flag de desarrollo), el aire 2D en /f/, la boca 3D didáctica con lectura
 de frases al compás del audio y la cara del 25 sep, y el arreglo de libros de
-teatro sin capítulos (PG844). Registro completo en `DESPLIEGUE.md`.
+teatro sin capítulos (PG844), la lectura en voz alta en vivo en el lector
+(`POST /api/lectura/vivo` + `front/src/app/compartido/lectura-vivo/`) y los
+ojos abiertos en la malla. Registro completo en `DESPLIEGUE.md`.
 
 ## Líneas de trabajo (git)
 
-- **`master` = `6b7c95c`** = `publicar/v2`: todo lo publicado. Es la línea
+- **`master` = `6c6401e`** = `publicar/v2` = `dev/articulacion-v2`: todo lo publicado. Es la línea
   buena. `origin/master` va muy por detrás (11 sep) y **no se sube** sin
   permiso de Miguel.
 - **`dev/articulacion-v2`** (worktree `.claude/worktrees/articulacion-v2`):
@@ -69,13 +72,17 @@ teatro sin capítulos (PG844). Registro completo en `DESPLIEGUE.md`.
 
 ## Abierto
 
-- 3D: ojos (mirada y párpados), dientes como bloques, costura del mentón en ¾,
-  torso sin ropa.
+- 3D: dientes como bloques, costura del mentón en ¾, torso sin ropa; cara que
+  habla con expresiones (espera al modelo articulatorio).
+- D5: el seguidor a veces marca una palabra corta como saltada si la
+  transcripción la junta o la cambia (visto: «known»); ajustar con lecturas
+  reales de Miguel. Tope de 3 min por sesión, un uso de la cuenta por sesión.
+- «Mi espacio» es la pantalla de Inicio (logo), no una pestaña: Miguel no la
+  encontró el 25 sep. Decidir si se hace más visible.
 - Cola post-entrega antigua: `auditoria/cola_tras_la_entrega_2026-09-16.md`.
 
 ## Siguiente paso exacto
 
-Prototipo de D5 en `dev/articulacion-v2`: token efímero desde la API (la clave
-nunca va al navegador), WebRTC con `gpt-live-transcribe`, seguimiento de la
-posición por alineación del texto y tope de minutos por cuenta. Probar con
-Miguel antes de publicar.
+Recoger la prueba de Miguel de la lectura en vivo (voz real, móvil, cuánto
+tarda y qué marca mal) y ajustar el seguidor; después, dientes y costura del
+mentón.
