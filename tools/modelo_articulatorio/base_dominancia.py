@@ -132,7 +132,9 @@ def metricas(pred, real, fps=25.0, max_lag=5):
         den = np.sqrt((a * a).sum() * (b * b).sum()) or 1.0
         r.append((a * b).sum() / den)
         cc = [np.dot(np.roll(a, s), b) for s in range(-max_lag, max_lag + 1)]
-        lag.append((np.argmax(cc) - max_lag) * 1000 / fps)   # >0: la predicción va tarde
+        # np.roll(pred, s) casa con lo real cuando s = -retraso: se devuelve el
+        # retraso con su signo (>0: la predicción va tarde).
+        lag.append(-(np.argmax(cc) - max_lag) * 1000 / fps)
     return rmse, np.array(r), np.array(lag)
 
 
@@ -165,7 +167,7 @@ def main():
             for n, v in filas.items()}
         res['pliegues'][prueba]['n_frases'] = len(hablantes[prueba][0])
         print(prueba, {n: round(float(np.mean(r['pearson'])), 3) for n, r in res['pliegues'][prueba].items() if n != 'n_frases'}, flush=True)
-        torch.save({'estado': m.state_dict(), 'fonemas': fonemas, 'controles': controles},
+        torch.save({'estado': m.state_dict(), 'fonemas': fonemas, 'controles': [str(c) for c in controles]},
                    os.path.join(os.path.dirname(a.salida), f'dominancia_sin_{prueba}.pt'))
     json.dump(res, open(a.salida, 'w', encoding='utf8'), ensure_ascii=False, indent=1)
 
