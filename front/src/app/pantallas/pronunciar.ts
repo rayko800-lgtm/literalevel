@@ -17,7 +17,7 @@ import {
 } from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
-  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
+  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, PalabraLeida, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
 } from '../nucleo/api';
 import { marcarVista, sinVer } from '../nucleo/banderas';
 import { Preferencias } from '../nucleo/preferencias';
@@ -372,7 +372,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   /** La IPA de cada palabra de las frases que lee el 3D, por texto. */
-  private readonly ipaLectura = new Map<string, { palabra: string; ipa: string | null }[]>();
+  private readonly ipaLectura = new Map<string, PalabraLeida[]>();
   /** Lo que se leyó (las palabras de la frase) y su versión natural. */
   protected readonly textoLeido = computed(() => this.resultado()?.palabras.map(p => p.palabra).join(' ') ?? '');
   protected readonly textoNatural = computed(() => this.vista()?.versionNatural ?? this.textoLeido());
@@ -392,9 +392,13 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected alternarLectura3d(ev?: Event): void {
     this.alternarBoca('lectura', ev);
     if (this.visor3d() !== 'lectura') return;
-    for (const texto of new Set([this.textoLeido(), this.textoNatural()])) {
+    // Cada frase con su audio: la leída con el de referencia y la natural con
+    // el suyo, para que la API añada las marcas por palabra si ya existen.
+    const pares: [string, string | null][] = [[this.textoLeido(), this.resultado()?.audio_correcto ?? null],
+      [this.textoNatural(), this.vista()?.audioNatural ?? null]];
+    for (const [texto, audio] of pares) {
       if (!texto || this.ipaLectura.has(texto)) continue;
-      this.api.ipaDeLectura(texto, this.acento()).subscribe({
+      this.api.ipaDeLectura(texto, this.acento(), audio).subscribe({
         next: r => this.ipaLectura.set(texto, r.palabras),
         error: () => { /* sin IPA: se aproxima por letras */ },
       });

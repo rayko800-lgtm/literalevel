@@ -1822,13 +1822,29 @@ _TOPE_PALABRAS_LECTURA = 400
 
 @app.get("/api/lectura/ipa")
 def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
-                   acento: Literal["US", "UK"] = "US") -> dict:
+                   acento: Literal["US", "UK"] = "US",
+                   audio: str | None = Query(default=None, max_length=160)) -> dict:
     """La IPA de cada palabra de una frase o párrafo, de los diccionarios
     locales (Kaikki y CMUdict; nunca del modelo): la boca 3D la lee al compás
     del audio de referencia (Miguel, 24 sep). Sin coste: no llama a OpenAI.
     Una palabra que no está en ningún diccionario sale con `ipa` null y el
-    front la articula con una aproximación por letras."""
+    front la articula con una aproximación por letras.
+
+    Con `audio` (el nombre de un mp3 generado, el de `/api/audio/{nombre}`),
+    cada palabra que whisper ya marcó en ese audio trae `inicio` y `fin` en
+    segundos: la boca articula cada palabra en su sitio en vez de repartirlas
+    por el tramo (Miguel, 25 sep: «alinea el TTS»; medido en GRID: 0,31 → 0,42
+    de Pearson con las mismas reglas). Solo lee el `.tiempos.json` que la
+    corrección ya guardó al lado del mp3: si no está, no se pide (no cuesta)."""
     palabras = voz.normalizar_palabras(texto)[:_TOPE_PALABRAS_LECTURA]
+    marcas: dict[int, tuple[float, float]] = {}
+    if audio and re.fullmatch(r"[\w.-]{1,160}\.mp3", audio) and ".." not in audio:
+        lado = _DIR_AUDIO / (audio + ".tiempos.json")
+        try:
+            if lado.is_file():
+                marcas = voz._tiempos_por_indice(palabras, json.loads(lado.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            marcas = {}
     vistas: dict[str, str | None] = {}
     salida = []
     for palabra in palabras:
@@ -1837,7 +1853,10 @@ def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
             piezas = [fonemas.ipa_de_palabra(p, acento)[0] for p in palabra.split("-") if p]
             vistas[palabra] = (" ".join(p.split(",")[0].strip().strip("/[]") for p in piezas)
                                if piezas and all(piezas) else None)
-        salida.append({"palabra": palabra, "ipa": vistas[palabra]})
+        dato = {"palabra": palabra, "ipa": vistas[palabra]}
+        if len(salida) in marcas:
+            dato["inicio"], dato["fin"] = (round(x, 3) for x in marcas[len(salida)])
+        salida.append(dato)
     return {"acento": acento, "palabras": salida}
 
 

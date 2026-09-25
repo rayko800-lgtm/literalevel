@@ -159,9 +159,12 @@ export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
  *  la boca vuelve al reposo. Mismo arranque que `alCompasDeTramos`: el archivo
  *  empieza cuando la línea va por `ADELANTO`. Sin sonidos, null. */
 export function lineaFrase(palabras: Segmento[][], catalogo: CatalogoPoses,
-                           tramos: { inicio: number; fin: number }[], silencio: number, duracion: number): Linea | null {
+                           tramos: { inicio: number; fin: number }[], silencio: number, duracion: number,
+                           marcas?: (Marca | null | undefined)[]): Linea | null {
   const llenas = palabras.filter(p => p.length);
   if (!llenas.length) return null;
+  const alineada = marcas ? lineaFraseAlineada(palabras, catalogo, marcas, silencio, duracion) : null;
+  if (alineada) return alineada;
   const R = catalogo.reposo, L = ADELANTO;
   // Sin tramos medidos (audio por <audio>, sin Web Audio): todo lo que suena.
   const tr = tramos.length ? tramos : [{ inicio: silencio, fin: Math.max(silencio + 0.3, duracion - 0.15) }];
@@ -290,6 +293,83 @@ function duracionSegmentos(segmentos: Segmento[], catalogo: CatalogoPoses): numb
  *  audio: la parte hablada del audio (sin el silencio inicial que trae el
  *  TTS y un poco de cola) repartida entre los sonidos. Acotado para que un
  *  audio raro no deje la boca parada ni frenética. */
+/** Dónde suena una palabra en su audio, en segundos desde el principio del
+ *  archivo (las marcas de whisper que la API guarda al lado del mp3). */
+export interface Marca { inicio: number; fin: number }
+
+/** Hueco entre dos palabras a partir del cual la boca vuelve al reposo. */
+export const PAUSA_ENTRE_PALABRAS = 0.25;
+
+/** «Alinea el TTS» (Miguel, 25 sep): con las marcas por palabra del audio,
+ *  cada palabra se articula en su sitio, estirada a lo que dura de verdad, en
+ *  vez de repartir las palabras por el tramo según sus duraciones de regla.
+ *  Medido en GRID (4 hablantes de prueba, 4 000 frases): con las mismas poses
+ *  y el mismo calendario dentro de la palabra, la correlación con la boca
+ *  real sube de 0,31 a 0,42 (`investigacion/modelo_articulatorio/`). Las
+ *  palabras sin marca se colocan entre sus vecinas por su duración de regla;
+ *  con menos de la mitad marcadas, null (se usa el reparto por tramos). */
+export function lineaFraseAlineada(palabras: Segmento[][], catalogo: CatalogoPoses, marcas: (Marca | null | undefined)[],
+                                   silencio: number, duracion: number): Linea | null {
+  const idx = palabras.map((p, i) => i).filter(i => palabras[i].length);
+  const valida = (m: Marca | null | undefined): m is Marca =>
+    !!m && Number.isFinite(m.inicio) && Number.isFinite(m.fin) && m.fin > m.inicio;
+  const conMarca = idx.filter(i => valida(marcas[i]));
+  if (!idx.length || conMarca.length * 2 < idx.length) return null;
+  // Tiempos de cada palabra: los marcados tal cual (crecientes); los demás,
+  // repartidos por peso en el hueco entre las vecinas marcadas.
+  const pesos = idx.map(i => duracionSegmentos(palabras[i], catalogo));
+  const t: (Marca | null)[] = idx.map(i => (valida(marcas[i]) ? { inicio: marcas[i]!.inicio, fin: marcas[i]!.fin } : null));
+  for (let k = 1; k < t.length; k++) {
+    const a = t[k - 1], b = t[k];
+    if (a && b && b.inicio < a.fin) t[k] = null;          // marca fuera de orden: se recoloca
+  }
+  for (let k = 0; k < t.length;) {
+    if (t[k]) { k++; continue; }
+    let j = k;
+    while (j < t.length && !t[j]) j++;
+    const peso = pesos.slice(k, j).reduce((x, y) => x + y, 0);
+    const antes = k > 0 ? t[k - 1]!.fin : null, despues = j < t.length ? t[j]!.inicio : null;
+    let desde = antes ?? Math.max(0, (despues ?? 0) - peso), hasta = despues ?? (antes ?? 0) + peso;
+    if (hasta - desde < 0.05 * (j - k)) hasta = desde + 0.05 * (j - k);
+    let c = desde;
+    for (let q = k; q < j; q++) {
+      const d = (hasta - desde) * pesos[q] / (peso || 1);
+      t[q] = { inicio: c, fin: c + d };
+      c += d;
+    }
+    k = j;
+  }
+  const R = catalogo.reposo, L = ADELANTO;
+  const claves: Clave[] = [{ t: 0, pose: R }];
+  const aspiracion: { en: number; dura: number }[] = [];
+  let libre = 0, finAnterior = -Infinity;
+  idx.forEach((i, k) => {
+    const segs = palabras[i], m = t[k]!;
+    const a = L + m.inicio, b = Math.max(a + 0.06, L + m.fin);
+    if (a - finAnterior >= PAUSA_ENTRE_PALABRAS) {
+      // Pausa (o primera palabra): la boca vuelve al reposo entre medias.
+      if (Number.isFinite(finAnterior)) { libre = finAnterior + 0.18; claves.push({ t: libre, pose: R }); }
+      claves.push({ t: Math.max(libre, a - 0.2), pose: R });
+    }
+    const lento = Math.min(3, Math.max(0.15, (b - a) / Math.max(1e-6, duracionSegmentos(segs, catalogo))));
+    const lp = lineaPalabra(segs, catalogo, lento);
+    // Como en el reparto por tramos: la boca se adelanta 40 ms al sonido.
+    const mover = a - lp.sonidoEn - 0.04;
+    for (const c of lp.claves.slice(2, -2)) claves.push({ ...c, t: c.t + mover });
+    for (const x of lp.aspiracion ?? []) aspiracion.push({ en: x.en + mover, dura: x.dura });
+    finAnterior = b;
+    libre = b;
+  });
+  libre = finAnterior + 0.18;
+  claves.push({ t: libre, pose: R });
+  const total = Math.max(libre, L + duracion) + 0.2;
+  claves.push({ t: total, pose: R });
+  for (let i = 1; i < claves.length; i++) if (claves[i].t <= claves[i - 1].t) claves[i] = { ...claves[i], t: claves[i - 1].t + 0.01 };
+  const linea: Linea = { total: claves[claves.length - 1].t, claves, quieta: R, sonidoEn: L + silencio };
+  if (aspiracion.length) linea.aspiracion = aspiracion;
+  return linea;
+}
+
 export function lentoParaAudio(segmentos: Segmento[], catalogo: CatalogoPoses, duracionAudioS: number,
                                silencioInicialS = 0.12, silencioFinalS = 0.15): number {
   const base = duracionSegmentos(segmentos, catalogo);
