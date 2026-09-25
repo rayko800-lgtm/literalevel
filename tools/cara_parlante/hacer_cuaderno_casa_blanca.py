@@ -76,8 +76,10 @@ for i in range(NPROC):
     t = faltan[i::NPROC]
     if not t: continue
     open(f'/content/lista_{i}.txt', 'w').write(NL.join(t) + NL)
-    lineas.append(f'xargs -d "\\n" -a /content/lista_{i}.txt python -u /content/medir_expresion.py '
-                  f'--modelo /content/face_landmarker.task --salida "{DESTINO}/medidas" --ancho 640 '
+    # un proceso por vídeo: si MediaPipe revienta (señal 11, visto el 25 sep) solo se pierde ese vídeo
+    lineas.append(f'(while IFS= read -r v; do python -u /content/medir_expresion.py '
+                  f'--modelo /content/face_landmarker.task --salida "{DESTINO}/medidas" --ancho 640 "$v" '
+                  f'|| echo "$v" >> /content/fallidos.txt; done < /content/lista_{i}.txt) '
                   f'> /content/medir_{i}.log 2>&1 &')
 lineas.append('wait')
 open('/content/lanzar.sh', 'w').write(NL.join(lineas) + NL)

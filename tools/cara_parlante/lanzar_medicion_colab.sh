@@ -1,0 +1,3 @@
+# Pegar en la terminal del servidor de Colab (Colab: Open Terminal). Un proceso python por vídeo:
+# si MediaPipe revienta (señal 11) solo se pierde ese vídeo, y nada depende del kernel del cuaderno.
+cd /content/drive/MyDrive/literalevel_cara/casa_blanca && rm -f /content/parte_* /content/fallidos.txt && ls videos/*.mp4 > /content/todos.txt && split -n r/6 -d /content/todos.txt /content/parte_ && for f in /content/parte_0?; do setsid nohup bash -c "while read v; do b=\$(basename \$v .mp4); [ -f medidas/\$b.npz ] || python -u /content/medir_expresion.py --modelo /content/face_landmarker.task --salida medidas --ancho 640 \$v || echo \$v >> /content/fallidos.txt; done < $f" > $f.log 2>&1 < /dev/null & done; sleep 20; pgrep -fc 'python -u /content/medir'
