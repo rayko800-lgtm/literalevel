@@ -12,17 +12,19 @@ Aprende, a partir de vídeos de gente hablando (TalkingHead-1KH, CC BY 3.0),
 cómo se mueven **cejas, cabeza y sonrisa** según el tono y la energía de la
 voz. La boca no se toca: la mueve el modelo articulatorio.
 
-Datos: los `.npz` de `tools/cara_parlante/medir_expresion.py`, subidos a
-`MyDrive/literalevel_cara/medidas/`. Reparto por **vídeo** (hablante): ningún
+Datos: los `.npz` de `tools/cara_parlante/medir_expresion.py`, en un
+`medidas.zip` subido a `/content` (en VS Code: «Upload to Colab»). Reparto por **vídeo** (hablante): ningún
 hablante de validación sale en entrenamiento.
 
 Licencia de los datos: CC BY 3.0 (atribución en `creditos.csv`). Nada de
 MetaHuman entra aquí: su EULA prohíbe usar MetaHumans para entrenar o probar IA."""),
-('code', """# --- 1. Drive y dependencias
-from google.colab import drive
-drive.mount('/content/drive')
-BASE = '/content/drive/MyDrive/literalevel_cara'
-import glob, json, os, numpy as np, torch
+('code', """# --- 1. Datos y dependencias
+# Desde VS Code (extensión de Colab): clic derecho en medidas.zip → «Upload to Colab».
+# Desde el navegador: subir medidas.zip al panel de archivos. Queda en /content.
+import glob, json, os, zipfile, numpy as np, torch
+BASE = '/content/literalevel_cara'
+if not glob.glob(f'{BASE}/medidas/*/*.npz'):
+    zipfile.ZipFile('/content/medidas.zip').extractall(BASE)
 from torch import nn
 DISP = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(DISP, torch.cuda.get_device_name(0) if DISP == 'cuda' else '')"""),
@@ -113,10 +115,9 @@ print('Ojo: con MSE la predicción sale más plana que la real (sd menor). En la
 pesos = {k: v.detach().cpu().numpy().round(5).tolist() for k, v in m.state_dict().items()}
 meta = dict(entradas=['lf0', 'voz', 'db', 'dlf0', 'ddb'], salidas=SALIDAS + POSE,
             escala_pose_grados=10.0, fps=25, arquitectura='Expresion(c=64, dils=1..16, k=5)')
-os.makedirs(f'{BASE}/modelos', exist_ok=True)
-with open(f'{BASE}/modelos/expresion.json', 'w') as f:
+with open('/content/expresion.json', 'w') as f:
     json.dump(dict(meta=meta, pesos=pesos), f)
-print(os.path.getsize(f'{BASE}/modelos/expresion.json') / 1e6, 'MB')"""),
+print(os.path.getsize('/content/expresion.json') / 1e6, 'MB  → bajarlo: explorador de Colab, clic derecho, Download')"""),
 ]
 
 
