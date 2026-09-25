@@ -21,6 +21,12 @@
                   aria-label="Ayuda: cómo consultar una palabra">?</button>
         </div>
       </nav>
+      <!-- D5: lectura en voz alta con la transcripción en vivo de OpenAI. -->
+      @if (capitulo() && lecturaVivoDisponible()) {
+        <button type="button" class="boton secundario pequeno leer-vivo" (click)="abrirLecturaVivo()">
+          <app-icono nombre="micro" />Leer en voz alta (en vivo)
+        </button>
+      }
     }
 
     @if (error()) {
@@ -102,7 +108,7 @@
             @if (p.separador) {
               <p class="separador" aria-hidden="true">* * *</p>
             } @else {
-              <p>@for (t of p.trozos; track $index) {<span [class.cursiva]="t.cursiva">{{ t.t }}</span>}</p>
+              <p [attr.data-parrafo]="$index">@for (t of p.trozos; track $index) {<span [class.cursiva]="t.cursiva">{{ t.t }}</span>}</p>
             }
           }
 
@@ -366,4 +372,8 @@
       <button type="button" class="boton secundario bloque" (click)="indiceAbierto.set(false)">Cerrar el índice</button>
     </footer>
   </aside>
+}
+
+@if (lecturaVivo(); as lv) {
+  <app-lectura-vivo #vivo [parrafos]="lv.parrafos" [desde]="lv.desde" (cerrar)="lecturaVivo.set(null)" />
 }

@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
+import { LecturaVivo } from '../compartido/lectura-vivo/lectura-vivo';
 import { familiaDe, paletaDe } from '../compartido/portada';
 import { tinteLector } from '../compartido/tinte';
 import { Api, Capitulo, Libro, Medida, Palabra, mensajeError, urlMotor } from '../nucleo/api';
@@ -51,7 +52,7 @@ function marcarBandera(clave: string): void {
 @Component({
   selector: 'app-lector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, Icono],
+  imports: [RouterLink, FormsModule, Icono, LecturaVivo],
   templateUrl: './lector.html',
   styleUrl: './lector.css',
 })
@@ -144,6 +145,28 @@ export class Lector implements OnDestroy {
    *  estar bloqueada: sin cuenta cuando la puerta la exige, o sin OpenAI.
    *  No cambia el contrato de cuenta/OpenAI, solo lo lee para dar feedback
    *  inmediato (UX-F1, Miguel: el aviso ya existente tardaba en notarse). */
+  /** D5: lectura en voz alta en vivo. Necesita cuenta con OpenAI y un
+   *  navegador con WebRTC y micrófono. */
+  protected readonly lecturaVivoDisponible = computed(() => {
+    const e = this.entrada();
+    return !!e && e.openai && (!e.puerta || e.dentro)
+      && typeof RTCPeerConnection !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+  });
+  protected readonly lecturaVivo = signal<{ parrafos: string[]; desde: number } | null>(null);
+  private readonly vivo = viewChild<LecturaVivo>('vivo');
+
+  /** Abre la hoja desde el primer párrafo visible del capítulo. */
+  protected abrirLecturaVivo(): void {
+    const parrafos = (this.capitulo()?.parrafos ?? []).map(p => p.replace(/_([^_]+)_/g, '$1'));
+    let desde = 0;
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>('[data-parrafo]'))) {
+      const r = el.getBoundingClientRect();
+      if (r.bottom > 80) { desde = Number(el.dataset['parrafo']) || 0; break; }
+    }
+    this.lecturaVivo.set({ parrafos, desde });
+    setTimeout(() => void this.vivo()?.empezar());
+  }
+
   protected readonly sinPerfilParaExplicar = computed(() => {
     const e = this.entrada();
     return !!e && ((e.puerta && !e.dentro) || !e.openai);

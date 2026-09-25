@@ -1841,6 +1841,49 @@ def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
     return {"acento": acento, "palabras": salida}
 
 
+MINUTOS_LECTURA_VIVO = 3
+
+
+@app.post("/api/lectura/vivo")
+def lectura_en_vivo(pet: Lector) -> dict:
+    """D5 (25 sep, Miguel): lectura guiada en vivo. Devuelve una clave EFÍMERA
+    de OpenAI para una sesión de solo transcripción (`gpt-live-transcribe`) a
+    la que el navegador se conecta por WebRTC; la clave de la cuenta nunca sale
+    del servidor. Cada sesión cuesta un uso de la cuenta, como «Corrígeme», y
+    el front la corta a los `MINUTOS_LECTURA_VIVO` minutos: el modelo cobra por
+    minuto de audio. El uso se devuelve si OpenAI no da la clave."""
+    if config.falta():
+        raise _no(503, "La lectura en vivo necesita la clave de OpenAI.")
+    if not ui._dentro_del_limite(pet, "voz", ui.LIMITE_VOZ_HORA):
+        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("voz", pet), "voz"))
+    puede, motivo, codigo = _cobrar(pet)
+    if not puede:
+        raise _no(403, motivo)
+    sesion = {"session": {"type": "transcription", "audio": {"input": {
+        "format": {"type": "audio/pcm", "rate": 24000},
+        "transcription": {"model": "gpt-live-transcribe", "language": "en", "delay": "low",
+                          "prompt": "A learner of English reading a book aloud."},
+        "noise_reduction": {"type": "near_field"},
+        "turn_detection": None}}}}
+    import urllib.request
+    peticion = urllib.request.Request(
+        "https://api.openai.com/v1/realtime/client_secrets", data=json.dumps(sesion).encode(),
+        headers={"Authorization": "Bearer " + os.environ.get("OPENAI_API_KEY", ""),
+                 "Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(peticion, timeout=20) as r:
+            datos = json.loads(r.read())
+        valor = datos.get("value")
+        if not isinstance(valor, str) or not valor:
+            raise ValueError("sin clave efímera")
+    except Exception as e:
+        _devolver(codigo)
+        print(f"lectura vivo: sin clave efímera ({type(e).__name__})", file=sys.stderr)
+        raise _no(502, "OpenAI no ha abierto la sesión de lectura en vivo. Prueba en un momento.") from e
+    return {"clave": valor, "expira": datos.get("expires_at"), "minutos": MINUTOS_LECTURA_VIVO,
+            "restantes": _entrada_json(pet)["restantes"]}
+
+
 @app.get("/api/articulacion/{acento}/{archivo}")
 def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = False,
                     dur: float | None = None, una: bool = False):

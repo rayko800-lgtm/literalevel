@@ -253,3 +253,5 @@
   text-align: center; color: var(--texto-suave);
 }
 .texto .cabecera-cap p.aviso.nota-medida { color: inherit; text-align: left; }
+
+.leer-vivo { margin: .25rem 0 .75rem; }

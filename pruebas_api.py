@@ -1556,6 +1556,43 @@ def corte_de_la_boca_en_svg():
     return f"sonido {len(r.text)} B, quieto {len(q.text)} B, palabra {len(p.text)} B"
 
 
+def lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla():
+    """D5: sin clave de OpenAI, 503 sin cobrar; con clave, una clave EFÍMERA
+    (nunca la de la cuenta) y la sesión de solo transcripción; si OpenAI falla,
+    502 y el uso se devuelve. Sin red: urlopen fingido."""
+    import io, json as _json, urllib.request
+    assert cliente.post("/api/lectura/vivo", headers=A).status_code == 503
+    pedidas, devueltas = [], []
+    class Resp(io.BytesIO):
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    def falso(req, timeout=None):
+        pedidas.append(_json.loads(req.data))
+        return Resp(_json.dumps({"value": "ek_prueba", "expires_at": 123}).encode())
+    orig = (urllib.request.urlopen, api.config.falta, api._devolver, os.environ.get("OPENAI_API_KEY"))
+    urllib.request.urlopen = falso
+    api.config.falta = lambda *a, **k: False
+    api._devolver = lambda codigo: devueltas.append(codigo)
+    os.environ["OPENAI_API_KEY"] = "sk-de-la-cuenta"
+    try:
+        r = cliente.post("/api/lectura/vivo", headers=A)
+        assert r.status_code == 200, (r.status_code, r.text[:200])
+        d = r.json()
+        assert d["clave"] == "ek_prueba" and "sk-de-la-cuenta" not in r.text and d["minutos"] >= 1, d
+        sesion = pedidas[0]["session"]
+        assert sesion["type"] == "transcription"
+        assert sesion["audio"]["input"]["transcription"]["model"] == "gpt-live-transcribe"
+        def rota(req, timeout=None): raise OSError("sin red")
+        urllib.request.urlopen = rota
+        r = cliente.post("/api/lectura/vivo", headers=A)
+        assert r.status_code == 502 and len(devueltas) == 1, (r.status_code, devueltas)
+    finally:
+        urllib.request.urlopen, api.config.falta, api._devolver = orig[:3]
+        if orig[3] is None: os.environ.pop("OPENAI_API_KEY", None)
+        else: os.environ["OPENAI_API_KEY"] = orig[3]
+    return "503 sin clave, clave efímera con sesión de transcripción, 502 con devolución"
+
+
 def ipa_de_lectura_para_la_boca_3d():
     """La boca 3D lee una frase: IPA por palabra de los diccionarios locales,
     null si no está, y topes de tamaño; sin OpenAI (sin clave también va)."""
@@ -1923,7 +1960,7 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
-               ipa_de_lectura_para_la_boca_3d, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
+               lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla, ipa_de_lectura_para_la_boca_3d, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
                temas_para_la_portada, portada_por_ia_si_existe, plurales_de_los_minutos,
                nota_de_nivel_dice_libros_y_cuentos,

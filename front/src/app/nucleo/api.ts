@@ -490,6 +490,10 @@ export class Api {
   fonemas(acento: Acento = 'ga'): Observable<InventarioSonidos> {
     return this.http.get<InventarioSonidos>(`${this.base}/fonemas`, { params: { acento } });
   }
+  /** D5: clave efímera de OpenAI para la lectura en vivo (cuesta un uso). */
+  lecturaVivo(): Observable<{ clave: string; expira: number | null; minutos: number; restantes: number | null }> {
+    return this.http.post<{ clave: string; expira: number | null; minutos: number; restantes: number | null }>(`${this.base}/lectura/vivo`, {});
+  }
   /** La IPA de cada palabra de una frase (diccionarios locales, sin coste):
    *  la boca 3D la lee al compás del audio. `ipa` null si no está. */
   ipaDeLectura(texto: string, acento: Acento = 'ga'): Observable<{ palabras: { palabra: string; ipa: string | null }[] }> {
