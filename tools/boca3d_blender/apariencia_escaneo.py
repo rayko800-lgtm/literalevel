@@ -63,6 +63,9 @@ class AparienciaEscaneo:
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='quitar_interior_bm')
         env={};exec(compile(ast.Module(body=[fn],type_ignores=[]),str(source),'exec'),env)
         env['quitar_interior_bm'](self.superficie)
+        # 25 sep: ojos abiertos en la malla (párpados con grosor sobre el globo).
+        from ojos_didacticos import construir as abrir_ojos
+        abrir_ojos(self.superficie, self.superficie.loops.layers.uv.active)
         # La correspondencia también se calcula sobre la superficie limpia:
         # el escaneo trae fragmentos solapados con UV ajenas a la piel visible.
         muestreo=self.superficie.copy()
