@@ -130,6 +130,15 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
     Probado a 390 px en la app publicada (lectura 3D con `/api/voz` simulado y
     micrófono falso, sin coste) y en local (Mi espacio). `X-Linked-ETag` del
     GLB = sha256 local.
+- **Cuarta publicación (25 sep, madrugada CDMX), API y front del commit
+  `82cb26a`:** API `79bdcfe` (`POST /api/lectura/vivo`: clave efímera de OpenAI
+  para la lectura en voz alta en vivo, un uso por sesión; sin cuenta, 403 sin
+  cobrar) y front `4f94c4e` (botón «Leer en voz alta (en vivo)» en el lector,
+  ojos abiertos en la malla). Pruebas: API 68/68, extremas 355/355, front
+  454/454. Comprobado en producción: salud, Gradio, clave efímera real con la
+  cuenta profesor (60 → 59), y la lectura en vivo en la app publicada con una
+  lectura sintética (69 palabras a 122 por minuto; «universally», omitida
+  adrede, sale como saltada). `X-Linked-ETag` del GLB = sha256 local.
 
 ## Historial de infraestructura y opciones evaluadas
 
