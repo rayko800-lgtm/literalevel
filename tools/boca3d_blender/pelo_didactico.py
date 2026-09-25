@@ -67,7 +67,7 @@ def construir():
             h = _alto(v.co)
             borde = _suave((h + 0.3) / 0.8)            # 0 bajo el nacimiento
             corona = _suave((v.co.z - 4.2) / 3.0)      # más volumen arriba
-            grosor = borde * (0.08 + 0.17 * corona)
+            grosor = borde * (0.10 + 0.22 * corona)
             fuera_dir = (v.co - CENTRO).normalized()
             v.co = v.co + fuera_dir * grosor
             v[capa] = borde
