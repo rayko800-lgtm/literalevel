@@ -139,6 +139,19 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   cuenta profesor (60 → 59), y la lectura en vivo en la app publicada con una
   lectura sintética (69 palabras a 122 por minuto; «universally», omitida
   adrede, sale como saltada). `X-Linked-ETag` del GLB = sha256 local.
+- **Quinta publicación (25 sep, mañana CDMX), API y front del commit
+  `7fe5563`:** API `1630528` (`GET /api/lectura/ipa?audio=`: `inicio` y `fin`
+  por palabra desde el `.tiempos.json` que la corrección ya guarda junto al mp3;
+  sin llamadas nuevas a OpenAI) y front `c3b51ae` (la boca 3D lee la frase del
+  TTS palabra a palabra en su sitio, `lineaFraseAlineada`; /ɛ/ y /eɪ/ con la
+  mandíbula medida en caras reales, 0,67 y 0,70). Pruebas: API 69/69 en árbol
+  limpio (extremas no: solo cambió un endpoint aditivo de `api.py`), front
+  456/456, boca 3D 149 + 2 nuevas, `medir_didactica --exigir` y grosor labial.
+  Comprobado en producción: revisión en marcha `1630528`, salud (buscador
+  listo), Gradio 200, `lectura/ipa` con `audio` inexistente sin marcas, front
+  a 390 px sin errores de consola con la meta de la API correcta, y el chunk
+  servido lleva `ɛ:{mandibula:.67}`. El caso con marcas reales necesita una
+  corrección de pago: queda para la próxima prueba de Miguel.
 
 ## Historial de infraestructura y opciones evaluadas
 
