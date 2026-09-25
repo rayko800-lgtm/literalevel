@@ -151,6 +151,58 @@ export function alCompasDeTramos(pose: PoseSonido, catalogo: CatalogoPoses,
   return linea;
 }
 
+/** Una frase o un párrafo leído por el TTS (Miguel, 24 sep: «que el modelo
+ *  3D nos lea el texto en tiempo real»). Las palabras se reparten entre los
+ *  tramos que suenan del audio en proporción a lo que duran sus sonidos (una
+ *  pausa del audio cae entre las palabras que le tocan), y en cada tramo la
+ *  boca las articula seguidas, estiradas a lo que dura el tramo. Entre tramos,
+ *  la boca vuelve al reposo. Mismo arranque que `alCompasDeTramos`: el archivo
+ *  empieza cuando la línea va por `ADELANTO`. Sin sonidos, null. */
+export function lineaFrase(palabras: Segmento[][], catalogo: CatalogoPoses,
+                           tramos: { inicio: number; fin: number }[], silencio: number, duracion: number): Linea | null {
+  const llenas = palabras.filter(p => p.length);
+  if (!llenas.length) return null;
+  const R = catalogo.reposo, L = ADELANTO;
+  // Sin tramos medidos (audio por <audio>, sin Web Audio): todo lo que suena.
+  const tr = tramos.length ? tramos : [{ inicio: silencio, fin: Math.max(silencio + 0.3, duracion - 0.15) }];
+  const pesos = llenas.map(p => duracionSegmentos(p, catalogo));
+  const totalPeso = pesos.reduce((a, b) => a + b, 0);
+  const largos = tr.map(t => Math.max(0, t.fin - t.inicio));
+  const totalVoz = largos.reduce((a, b) => a + b, 0) || 1;
+  const grupos: Segmento[][] = tr.map(() => []);
+  let acum = 0;
+  llenas.forEach((p, i) => {
+    const medio = (acum + pesos[i] / 2) / totalPeso * totalVoz;
+    acum += pesos[i];
+    let k = 0;
+    for (let c = largos[0]; k < tr.length - 1 && medio >= c; c += largos[++k]) { /* busca el tramo */ }
+    grupos[k].push(...p);
+  });
+  const claves: Clave[] = [{ t: 0, pose: R }];
+  const aspiracion: { en: number; dura: number }[] = [];
+  let libre = 0;
+  tr.forEach(({ inicio, fin }, k) => {
+    const segs = grupos[k];
+    if (!segs.length) return;
+    const a = L + inicio, b = Math.max(a + 0.1, L + fin);
+    const lento = Math.min(3, Math.max(0.2, (b - a) / Math.max(1e-6, duracionSegmentos(segs, catalogo))));
+    const lp = lineaPalabra(segs, catalogo, lento);
+    // La boca se adelanta un poco al sonido (coarticulación anticipatoria).
+    const mover = a - lp.sonidoEn - 0.04;
+    claves.push({ t: Math.max(libre, a - 0.2), pose: R });
+    for (const c of lp.claves.slice(2, -2)) claves.push({ ...c, t: c.t + mover });
+    for (const x of lp.aspiracion ?? []) aspiracion.push({ en: x.en + mover, dura: x.dura });
+    libre = b + 0.18;
+    claves.push({ t: libre, pose: R });
+  });
+  const total = Math.max(libre, L + duracion) + 0.2;
+  claves.push({ t: total, pose: R });
+  for (let i = 1; i < claves.length; i++) if (claves[i].t <= claves[i - 1].t) claves[i] = { ...claves[i], t: claves[i - 1].t + 0.01 };
+  const linea: Linea = { total: claves[claves.length - 1].t, claves, quieta: R, sonidoEn: L + silencio };
+  if (aspiracion.length) linea.aspiracion = aspiracion;
+  return linea;
+}
+
 export function retrasoAudio(sonidoEnLento: number, silencio: number, velocidadAudio: number): number {
   return sonidoEnLento - silencio / (velocidadAudio > 0 ? velocidadAudio : 1);
 }

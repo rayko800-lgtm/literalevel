@@ -251,3 +251,26 @@ export function trocearIpa(ipa: string, catalogo: CatalogoPoses, acento: 'ga' | 
   }
   return { texto, segmentos };
 }
+
+/** Una IPA aproximada, letra a letra, para una palabra que no está en los
+ *  diccionarios del motor («doncha», un nombre propio): basta para que la boca
+ *  se mueva con sus sílabas mientras suena la frase; nunca se enseña escrita. */
+export function ipaPorLetras(palabra: string): string {
+  const w = palabra.toLowerCase().replace(/[^a-z]/g, '').replace(/([^aeiou])\1+/g, '$1').replace(/([^aeiou])e$/, '$1');
+  const grupos: [RegExp, string][] = [
+    [/^th/, 'θ'], [/^sh/, 'ʃ'], [/^ch/, 'tʃ'], [/^ph/, 'f'], [/^ng/, 'ŋ'], [/^ck/, 'k'], [/^qu/, 'kw'],
+    [/^ee|^ea/, 'i'], [/^oo/, 'u'], [/^ou|^ow/, 'aʊ'], [/^ai|^ay/, 'eɪ'], [/^oi|^oy/, 'ɔɪ'],
+  ];
+  const letra: Record<string, string> = {
+    a: 'æ', e: 'ɛ', i: 'ɪ', o: 'ɑ', u: 'ʌ', y: 'i', b: 'b', c: 'k', d: 'd', f: 'f', g: 'ɡ', h: 'h', j: 'dʒ',
+    k: 'k', l: 'l', m: 'm', n: 'n', p: 'p', q: 'k', r: 'ɹ', s: 's', t: 't', v: 'v', w: 'w', x: 'ks', z: 'z',
+  };
+  let salida = '';
+  for (let k = 0; k < w.length;) {
+    const g = grupos.find(([re]) => re.test(w.slice(k)));
+    if (g) { salida += g[1]; k += (w.slice(k).match(g[0])?.[0].length ?? 1); continue; }
+    salida += letra[w[k]] ?? '';
+    k++;
+  }
+  return salida;
+}

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import posesCompletas from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
-import { AjustesPoses3d, CatalogoPoses, conAjustes3d, poseDe, trocearIpa } from './poses';
+import { AjustesPoses3d, CatalogoPoses, conAjustes3d, ipaPorLetras, poseDe, trocearIpa } from './poses';
 import palabrasAudio from './palabras_audio.json';
-import { ADELANTO, alAudio, alCompasDeTramos, cicloSonido } from './animacion';
+import { ADELANTO, alAudio, alCompasDeTramos, cicloSonido, lineaFrase } from './animacion';
 import { finSonoro, tramosSonoros } from './audio';
 
 const catalogo = conAjustes3d(posesCompletas as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d);
@@ -111,5 +111,38 @@ describe('24 sep: la palabra de ejemplo del audio también se articula', () => {
     expect(Object.keys(tabla).length).toBeGreaterThanOrEqual(50);
     for (const entrada of Object.values(tabla)) for (const d of Object.values(entrada)) expect(d.ipa).toBeTruthy();
     expect(tabla['0292.mp3']['ga'].palabra).toBe('vision');
+  });
+});
+
+describe('24 sep: la boca 3D lee una frase entera al compás del audio', () => {
+  const seg = (ipa: string) => trocearIpa(ipa, catalogo, 'ga').segmentos;
+  const frase = ['/ðeɪ/', '/ɑɹ/', '/ˈjuʒəli/', '/kwaɪt/', '/wɛl/', '/səˈplaɪd/'].map(seg);
+
+  it('las poses caen dentro de los tramos que suenan y en la pausa la boca descansa', () => {
+    const tramos = [{ inicio: 0.1, fin: 1.2 }, { inicio: 1.8, fin: 2.6 }];
+    const l = lineaFrase(frase, catalogo, tramos, 0.1, 2.9)!;
+    for (let i = 1; i < l.claves.length; i++) expect(l.claves[i].t).toBeGreaterThan(l.claves[i - 1].t);
+    const habladas = l.claves.filter(k => k.pose !== catalogo.reposo);
+    for (const k of habladas) {
+      const f = k.t - ADELANTO;
+      expect(tramos.some(t => f >= t.inicio - 0.25 && f <= t.fin + 0.05)).toBe(true);
+    }
+    // En medio de la pausa (1,2 a 1,8 s del archivo), reposo.
+    const pausa = l.claves.filter(k => k.t - ADELANTO > 1.4 && k.t - ADELANTO < 1.6);
+    for (const k of pausa) expect(k.pose).toBe(catalogo.reposo);
+    expect(l.sonidoEn - 0.1).toBeCloseTo(ADELANTO);
+    expect(new Set(habladas.map(k => k.pose)).size).toBeGreaterThan(8);
+  });
+
+  it('sin tramos medidos usa todo lo que suena; sin sonidos, null', () => {
+    const l = lineaFrase(frase, catalogo, [], 0.12, 2.5)!;
+    expect(l.claves.some(k => k.pose !== catalogo.reposo)).toBe(true);
+    expect(lineaFrase([[], []], catalogo, [], 0.1, 1)).toBeNull();
+  });
+
+  it('una palabra sin diccionario se aproxima por letras y la boca la articula', () => {
+    expect(ipaPorLetras('doncha')).toBe('dɑntʃæ');
+    expect(ipaPorLetras('Sheena')).toBe('ʃinæ');
+    expect(seg(ipaPorLetras('subaltern')).length).toBeGreaterThanOrEqual(8);
   });
 });
