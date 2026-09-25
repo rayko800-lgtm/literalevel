@@ -22,16 +22,17 @@ curso, por orden de Miguel (25 sep):
    `D:/literalevel_articulatorio/`. 25 sep, decidido por Miguel: alinear
    sin conexión (hechas las 85 palabras grabadas de Pronunciar:
    `investigacion/modelo_articulatorio/datos/palabras_grabadas_tiempos.json`)
-   y ajustar a lo real /ɛ eɪ/ (mandíbula 0,67 y 0,70, commit `b6a0a71` en
-   `dev/articulacion-v2`, **sin publicar**). Las mejillas ya acompañan desde
-   `79982c2`; no se hizo shape key nueva.
+   y ajustar a lo real /ɛ eɪ/ (mandíbula 0,67 y 0,70). **Publicado** en la
+   quinta publicación junto con la frase del TTS alineada por palabras
+   (marcas de whisper ya guardadas; ver `DESPLIEGUE.md`). Las mejillas ya
+   acompañan desde `79982c2`; no se hizo shape key nueva.
 
 ## En producción (25 sep 2026)
 
 | Pieza | Revisión del Space | Commit |
 |---|---|---|
-| Front Angular (`MikeMaki1763/literalevel-front`) | `4f94c4e` | `82cb26a` |
-| API y Gradio (`MikeMaki1763/literalevel`) | `79bdcfe` | `82cb26a` |
+| Front Angular (`MikeMaki1763/literalevel-front`) | `c3b51ae` | `7fe5563` |
+| API y Gradio (`MikeMaki1763/literalevel`) | `1630528` | `7fe5563` |
 
 Incluye D1-D3 (Mi espacio, Repasar, Mi progreso; el tutorial v2 sigue detrás
 de su flag de desarrollo), el aire 2D en /f/, la boca 3D didáctica con lectura
@@ -42,7 +43,7 @@ ojos abiertos en la malla. Registro completo en `DESPLIEGUE.md`.
 
 ## Líneas de trabajo (git)
 
-- **`master` = `6c6401e`** = `publicar/v2`: todo lo publicado (`dev/articulacion-v2` va un commit por delante: `b6a0a71`, /ɛ eɪ/ sin publicar). Es la línea
+- **`master` = `12c42ec`** (merge de `publicar/v2` = `cef3683`): todo lo publicado. `dev/articulacion-v2` tiene además `2159783` (el modelo como módulo, de otra sesión) y le falta fusionar `publicar/v2`. Es la línea
   buena. `origin/master` va muy por detrás (11 sep) y **no se sube** sin
   permiso de Miguel.
 - **`dev/articulacion-v2`** (worktree `.claude/worktrees/articulacion-v2`):
