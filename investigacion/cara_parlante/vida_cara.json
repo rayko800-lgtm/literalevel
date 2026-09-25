@@ -1,0 +1,65 @@
+{
+ "fuente": "TalkingHead-1KH (YouTube, CC BY 3.0), medido con MediaPipe",
+ "clips_entrenamiento": 190,
+ "clips_validacion": 53,
+ "parpadeo": {
+  "gamma_k": 1.646,
+  "gamma_theta_s": 1.007,
+  "media_s": 1.66,
+  "por_min": 36.2,
+  "factor_pausa": 0.97,
+  "fusion_s": 0.25,
+  "validacion": {
+   "ks_modelo": 0.075,
+   "ks_regla_3_6s": 0.888,
+   "por_min_real_validacion": 38.9
+  }
+ },
+ "cejas_en_picos_de_tono": {
+  "amplitud": -0.0087,
+  "adelanto_s": -0.477,
+  "anchura_s": 0.171,
+  "validacion": {
+   "r_curva": -0.223,
+   "amplitud_real": 0.0145,
+   "n_clips": 53
+  }
+ },
+ "cabeza": {
+  "guinada": {
+   "sd_grados": 6.92,
+   "tau_s": 0.76,
+   "validacion": {
+    "sd_grados": 5.72,
+    "tau_s": 0.56
+   }
+  },
+  "cabeceo": {
+   "sd_grados": 3.92,
+   "tau_s": 0.59,
+   "validacion": {
+    "sd_grados": 4.32,
+    "tau_s": 0.6
+   }
+  },
+  "alabeo": {
+   "sd_grados": 4.46,
+   "tau_s": 0.83,
+   "validacion": {
+    "sd_grados": 4.13,
+    "tau_s": 0.6
+   }
+  },
+  "gesto_pausa": {
+   "eje": "cabeceo",
+   "amplitud_grados": 0.94,
+   "adelanto_s": 0.304,
+   "anchura_s": 0.268,
+   "validacion": {
+    "r_curva": 0.789,
+    "amplitud_real": 2.74,
+    "n_clips": 49
+   }
+  }
+ }
+}
