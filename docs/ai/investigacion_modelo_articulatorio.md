@@ -36,6 +36,28 @@ medido contra datos reales. Debe ser pequeño y correr en el navegador en tiempo
 real (objetivo: pesos < 2 MB, < 2 ms por fotograma en un móvil medio), o bien
 exportarse como tablas y pesos que lea `animacion.ts`.
 
+### 2.1 Alcance ampliado (Miguel, 25 sep)
+
+- **La cara entera, no solo la boca.** El fin es que, al reproducir un audio
+  de OpenAI, la cabeza 3D lo «diga» con naturalidad: boca y lengua, pero
+  también cejas, párpados, mirada, mejillas, cabeceo y las expresiones que
+  acompañan al habla. Incluye proponer qué controles nuevos haría falta
+  añadir al rig (hoy no hay cejas ni párpados articulados) y de dónde se
+  aprenderían (los datos de caras hablando y los blendshapes de MediaPipe
+  traen cejas, ojos y mandíbula).
+- **Habla conectada, no palabra a palabra.** Hoy la boca sigue la IPA de
+  diccionario de cada palabra. En el inglés natural los sonidos se relajan y
+  se funden: reducción a schwa en palabras débiles (*to, and, of, can*),
+  elisión (*next day*), asimilación (*ten boys* → /m/), enlace (*far away*),
+  flap americano (*water*), palatalización (*did you* → /dʒ/), *gonna,
+  wanna*. El modelo tiene que aprenderlo: o bien la entrada son los fonemas
+  **realmente pronunciados** (alineación forzada sobre el audio con un
+  diccionario de variantes, o reconocimiento fonético) en vez de los de
+  diccionario, o bien el modelo recibe el texto y aprende él la reducción.
+  Compara las dos opciones con datos. La app ya tiene una lista de
+  reducciones conocidas en `app/voz.py` (`analizar_natural`) que puede servir
+  de semilla o de prueba.
+
 ## 3. Qué tienes que investigar y decidir (con argumentos y cifras)
 
 ### 3.1 Datos
