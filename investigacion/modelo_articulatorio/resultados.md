@@ -105,8 +105,10 @@ mucho 0,02, que es lo que se paga por tener una sola red en el navegador.
 1. **Los tiempos pesan tanto como el modelo.** Con tiempos de regla, el
    mejor modelo pierde 0,04–0,10. Alinear el audio del TTS (o guardar
    alineaciones hechas offline para las palabras y frases fijas de
-   Pronunciar) vale tanto como cambiar la dinámica. Es una decisión de
-   Miguel: alinear en la API cuesta CPU del Space; offline no cuesta nada.
+   Pronunciar) vale tanto como cambiar la dinámica. **Decidido (Miguel,
+   25 sep): sin conexión.** Hechas las 85 palabras grabadas
+   (`datos/palabras_grabadas_tiempos.json`). Las frases del TTS se generan
+   al vuelo con el texto del usuario: no se pueden alinear de antemano.
 2. **Con tiempos bien alineados, dominancia.** Empata con la TCN en labios
    y mandíbula (0,560 contra 0,566), se exporta como tablas de 12,6 KB, se lee
    en `animacion.ts` sin red neuronal y es explicable fonema a fonema.
