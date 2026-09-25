@@ -153,6 +153,13 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   servido lleva `ɛ:{mandibula:.67}`. El caso con marcas reales necesita una
   corrección de pago: queda para la próxima prueba de Miguel.
 
+- **Sexta publicación (25 sep, mañana CDMX), solo front:** revisión `0f41932`
+  desde `de1498e`. La boca 3D mueve palabras y frases con el modelo
+  articulatorio aprendido (dominancia de GRID, `boca3d/modelo.ts`; interruptor
+  `MODELO_ARTICULATORIO_ACTIVO`). Sin cambios en la API. Front 460/460; en la
+  app publicada, «Verla leída en 3D» sin errores a 390 px; tira de fotogramas
+  modelo contra reglas revisada.
+
 ## Historial de infraestructura y opciones evaluadas
 
 Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
