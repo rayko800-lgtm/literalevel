@@ -14,8 +14,14 @@ curso, por orden de Miguel (25 sep):
    pruebe con su voz y su móvil (~13 USD de créditos para pruebas).
 2. **Ojos de la cabeza 3D:** PUBLICADOS en la malla
    (`tools/boca3d_blender/ojos_didacticos.py`).
-3. **Modelo articulatorio aprendido:** lo investiga otra sesión con
-   `docs/ai/investigacion_modelo_articulatorio.md`; esta no lo toca.
+3. **Modelo articulatorio aprendido:** entregables 1-5 del encargo
+   (`docs/ai/investigacion_modelo_articulatorio.md`) hechos la noche del
+   24-25 sep, sin tocar `app/` ni `front/`. Informes en
+   `investigacion/modelo_articulatorio/` (`resultados.md` manda); código en
+   `tools/modelo_articulatorio/`; datos y modelos fuera de Git en
+   `D:/literalevel_articulatorio/`. Espera dos decisiones de Miguel:
+   alinear o no el audio del TTS, y las poses de /ə ɪ eɪ ɛ/ (el rig cierra
+   los labios, las caras reales no).
 
 ## En producción (25 sep 2026)
 

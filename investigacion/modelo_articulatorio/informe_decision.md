@@ -1,8 +1,9 @@
 # Modelo articulatorio para la boca 3D: informe de decisión
 
 **Fecha:** 24 sep 2026 (noche). **Encargo:** `docs/ai/investigacion_modelo_articulatorio.md`.
-**Estado:** entregable 1 cerrado; el piloto (entregable 2) está en marcha, con
-sus resultados en `investigacion/modelo_articulatorio/piloto.md`.
+**Estado:** entregables 1-5 hechos (25 sep, madrugada). Piloto en
+`piloto.md`, cifras finales en `resultados.md`, integración en
+`integracion.md`.
 
 ## Veredicto en una línea
 
@@ -96,9 +97,11 @@ neutro … 2,9 estirado); `labio_atras` del retroceso del labio inferior;
 | TCD-TIMIT, VoxCeleb | vídeo | EULA de investigación (web de TCD caída hoy, 503) | No |
 | Vídeos de Miguel (`Downloads/para astra.mp4`, `para blender.mp4`) | 8K, 30 fps, 200 s y 68 s, boca desde abajo | Privados | Solo calibración local, **nunca** fuera de su máquina/Drive |
 
-**Alineación:** Montreal Forced Aligner, modelo `english_mfa` v3.1.0 y
-diccionario `english_us_arpa`, ambos **CC BY 4.0**
-([mfa-models](https://github.com/MontrealCorpusTools/mfa-models)).
+**Alineación:** Montreal Forced Aligner 3.4.2 con el modelo acústico y el
+diccionario `english_us_arpa` (el diccionario, **CC BY 4.0** según
+[mfa-models](https://github.com/MontrealCorpusTools/mfa-models); la licencia
+del modelo acústico no la comprobé, pero es una herramienta intermedia: ni
+él ni sus salidas se publican).
 **Medidas de vídeo:** MediaPipe Face Landmarker (478 puntos + 52
 blendshapes), código y modelos Apache 2.0.
 
@@ -114,11 +117,11 @@ tiene, además de la lengua.
 ### Combinación elegida
 
 - **Labios, mandíbula, mejillas:** GRID (33 hablantes con vídeo) + Lombard
-  GRID frontal. Protrusión: Lombard perfil.
-- **Lengua y cobertura de fonemas:** USC-TIMIT EMA (4 hablantes) para
+  GRID frontal. Protrusión: Lombard perfil (descargado, **aún sin medir**).
+- **Lengua y cobertura de fonemas:** USC-TIMIT EMA (4 hablantes; M3 apartado porque sus transcripciones son de la sesión de MRI) para
   punta/dorso/labios/mandíbula; rtMRI de USC-TIMIT para la raíz (fase 3).
-- **Descartado por licencia:** VOCASET y todo lo de VOCA/FaceFormer
-  (entrenados con VOCASET o BIWI, ambos no comerciales), LRS3, MOCHA,
+- **Descartado por licencia:** VOCASET y los pesos de VOCA/FaceFormer
+  entrenados con él (la licencia de BIWI no la comprobé), LRS3, MOCHA,
   mngu0, TCD-TIMIT, MEAD, HPRC. Pendiente de Miguel solo HPRC si aparece
   una licencia: es la mejor fuente EMA después de USC-TIMIT.
 
@@ -132,14 +135,13 @@ tiene, además de la lengua.
 - **EMA:** sensores de punta, dorso, labios y mandíbula en el plano
   medio-sagital; se restan la cabeza (referencias) y se normalizan por
   hablante con su rango en la palabra de referencia.
-- **Paso al rig (calibración):** el rig tiene poses de referencia hechas a
-  mano (los 46 sonidos de `poses.ejemplo.json`). Se renderiza cada una de
-  frente con Three.js sin cabeza móvil, se mide el render con el **mismo**
-  `medir_video.py`, y se ajusta por mínimos cuadrados una función monótona
-  por control (isotónica o lineal a trozos) de medida humana normalizada →
-  control del rig. Para la lengua, lo mismo con las coordenadas de los
-  nudos `J[2]`, `J[5]` contra EMA. Sin este paso, el modelo predice
-  medidas humanas que el rig no sabe leer.
+- **Paso al rig (calibración):** el plan era renderizar el rig de frente y
+  medirlo con MediaPipe, pero **el rig es media cabeza en corte sagital**
+  (azimut limitado a −34°): no hay cara frontal que medir. Se calibra con
+  las **poses comunes**: las 46 poses hechas a mano contra la media medida
+  de esos mismos fonemas, una recta por control (`calibrar_rig.py`). La
+  escala la ponen las poses de Miguel; la dinámica, el modelo. Resultado en
+  `resultados.md` y `integracion.md`.
 
 ## 4. Arquitectura
 
