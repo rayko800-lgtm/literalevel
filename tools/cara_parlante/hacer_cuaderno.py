@@ -24,7 +24,9 @@ MetaHuman entra aquí: su EULA prohíbe usar MetaHumans para entrenar o probar I
 import glob, json, os, zipfile, numpy as np, torch
 BASE = '/content/literalevel_cara'
 if not glob.glob(f'{BASE}/medidas/*/*.npz'):
-    zipfile.ZipFile('/content/medidas.zip').extractall(BASE)
+    for z in glob.glob('/content/**/medidas*.zip', recursive=True):
+        zipfile.ZipFile(z).extractall(BASE)
+print(len(glob.glob(f'{BASE}/medidas/*/*.npz')), 'clips medidos')
 from torch import nn
 DISP = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(DISP, torch.cuda.get_device_name(0) if DISP == 'cuda' else '')"""),
