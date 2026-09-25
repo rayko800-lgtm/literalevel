@@ -7,11 +7,11 @@ import { Icono } from '../icono';
 import posesCompletas from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
 import palabrasAudio from './palabras_audio.json';
-import { Linea, Velocidad, aVelocidad, alAudio, alCompasDeTramos, cicloSonido, giroPara, lentoParaAudio, lineaPalabra, retrasoAudio } from './animacion';
+import { Linea, Velocidad, aVelocidad, alAudio, alCompasDeTramos, cicloSonido, giroPara, lentoParaAudio, lineaFrase, lineaPalabra, retrasoAudio } from './animacion';
 import type { Tramo } from './audio';
 import { Sonador } from './audio';
 import { EscenaBoca } from './escena';
-import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, Segmento, conAjustes3d, familiaDe, poseDe, trocearIpa } from './poses';
+import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, Segmento, conAjustes3d, familiaDe, ipaPorLetras, poseDe, trocearIpa } from './poses';
 
 /** La boca en 3D esquemático, girable con el dedo.
  *
@@ -371,6 +371,26 @@ export class Boca3d {
     if (!url) { this.escena.reproducir(this.lenta(lineaPalabra(segs, this.catalogo()))); return; }
     void this.conAudio(url, listo => lineaPalabra(segs, this.catalogo(),
       listo.duracion > 0 ? lentoParaAudio(segs, this.catalogo(), listo.duracion, listo.silencio) : undefined));
+  }
+
+  /** Una frase o un párrafo: su audio (el de referencia o el natural) y la
+   *  boca leyéndolo palabra a palabra, al compás de los tramos que suenan.
+   *  `palabras` trae la IPA de los diccionarios (`/api/lectura/ipa`); la que
+   *  falte se aproxima por letras. Llamar dentro del clic (audio en iOS). */
+  leerFrase(url: string, palabras: { palabra: string; ipa: string | null }[]): void {
+    if (!this.escena) return;
+    const cat = this.catalogo(), acento = this.acentoIpa() ?? this.acento();
+    const segs = palabras.map(w => trocearIpa(w.ipa || ipaPorLetras(w.palabra), cat, acento).segmentos);
+    void this.conAudio(url, listo => lineaFrase(segs, cat, listo.tramos, listo.silencio, listo.duracion)
+      ?? { total: 0.5, claves: [{ t: 0, pose: cat.reposo }, { t: 0.5, pose: cat.reposo }], quieta: cat.reposo, sonidoEn: 0 });
+  }
+
+  /** Para la lectura (audio y boca) si está sonando. */
+  parar(): void {
+    this.peticion++;
+    this.sonador.parar();
+    const R = this.catalogo().reposo;
+    this.escena?.irA(R, 0.3);
   }
 
   private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number; fin: number; tramos: Tramo[] }) => Linea,

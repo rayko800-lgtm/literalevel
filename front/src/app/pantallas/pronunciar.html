@@ -99,7 +99,7 @@
             <app-icono nombre="recargar" /><span>Otra vez</span>
           </button>
         } @else if (resultado()?.audio_correcto; as bien) {
-          <button type="button" class="accion" (click)="sonar(bien)" [disabled]="estado() === 'grabando'">
+          <button type="button" class="accion" (click)="oirLectura(bien, textoLeido())" [disabled]="estado() === 'grabando'">
             <app-icono nombre="play" /><span>Bien leída</span>
           </button>
         }
@@ -330,7 +330,7 @@
                   </ul>
                 }
                 @if (v.audioNatural) {
-                  <button type="button" class="boton secundario" (click)="sonar(v.audioNatural)"><app-icono nombre="play" />Escúchalo natural</button>
+                  <button type="button" class="boton secundario" (click)="oirLectura(v.audioNatural, textoNatural())"><app-icono nombre="play" />Escúchalo natural</button>
                 }
               </div>
             } @else if (!v.natural) {
@@ -343,8 +343,36 @@
       @if (r.audio_correcto) {
         <div class="referencia">
           <span class="etiqueta">Cómo debería sonar</span>
-          <button type="button" class="boton secundario" (click)="sonar(r.audio_correcto)"><app-icono nombre="play" />Escuchar la frase bien leída</button>
+          <button type="button" class="boton secundario" (click)="oirLectura(r.audio_correcto, textoLeido())"><app-icono nombre="play" />Escuchar la frase bien leída</button>
+          <!-- 24 sep (Miguel): la boca 3D lee la frase al compás del audio. -->
+          @if (boca3d) {
+            <button type="button" class="boton secundario" (click)="alternarLectura3d($event)"
+                    [attr.aria-expanded]="visor3d() === 'lectura'">
+              <app-icono [nombre]="visor3d() === 'lectura' ? 'cerrar' : 'ojo'" />
+              {{ visor3d() === 'lectura' ? 'Cerrar 3D' : 'Verla leída en 3D' }}
+            </button>
+          }
         </div>
+        @if (boca3d && visor3d() === 'lectura') {
+          <div class="lectura-3d">
+            @defer (on immediate) {
+              <app-boca3d #visor [didactica]="true" [conEscuchar]="false" [leyenda]="false" [velocidad]="velocidad()"
+                          [acento]="acento()" [svg2dUrl]="''" />
+            } @loading { <p role="status">Cargando modelo…</p> }
+            @error {
+              <p role="status">No se pudo cargar el modelo 3D.
+                <button type="button" class="boton pequeno secundario" (click)="recargarPara3d()">Recargar y reintentar</button></p>
+            }
+            <div class="botones-corte">
+              <button type="button" class="boton" (click)="oirLectura(r.audio_correcto, textoLeido())">
+                <app-icono nombre="altavoz" />Leer la frase</button>
+              @if (vista()?.audioNatural; as nat) {
+                <button type="button" class="boton" (click)="oirLectura(nat, textoNatural())">
+                  <app-icono nombre="altavoz" />Leerla natural</button>
+              }
+            </div>
+          </div>
+        }
       }
 
       <button type="button" class="boton bloque otra" (click)="otraFrase()"><app-icono nombre="recargar" />Otra frase</button>

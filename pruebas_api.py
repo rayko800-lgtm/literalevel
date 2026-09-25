@@ -1556,6 +1556,25 @@ def corte_de_la_boca_en_svg():
     return f"sonido {len(r.text)} B, quieto {len(q.text)} B, palabra {len(p.text)} B"
 
 
+def ipa_de_lectura_para_la_boca_3d():
+    """La boca 3D lee una frase: IPA por palabra de los diccionarios locales,
+    null si no está, y topes de tamaño; sin OpenAI (sin clave también va)."""
+    r = cliente.get("/api/lectura/ipa", params={"texto": "They are usually quite well-known, doncha?", "acento": "US"})
+    assert r.status_code == 200, (r.status_code, r.text[:200])
+    d = r.json()
+    palabras = [w["palabra"] for w in d["palabras"]]
+    assert palabras == ["they", "are", "usually", "quite", "well-known", "doncha"], palabras
+    ipas = {w["palabra"]: w["ipa"] for w in d["palabras"]}
+    assert ipas["they"] and "ð" in ipas["they"] and "/" not in ipas["they"], ipas
+    assert ipas["well-known"] and " " in ipas["well-known"], ipas
+    assert ipas["doncha"] is None, ipas
+    assert cliente.get("/api/lectura/ipa", params={"texto": "x" * 2001}).status_code == 422
+    assert cliente.get("/api/lectura/ipa", params={"texto": "hi", "acento": "FR"}).status_code == 422
+    largo = cliente.get("/api/lectura/ipa", params={"texto": "the " * 480}).json()
+    assert len(largo["palabras"]) == 400, len(largo["palabras"])
+    return f"{len(palabras)} palabras, «they» {ipas['they']}"
+
+
 def corte_de_una_pasada_con_la_duracion_del_audio():
     """«Escuchar y ver»: ?dur= (redondeado a 0,1 s, 0,3..10) y ?una=1 llegan al
     módulo de 4e; fuera de rango se ignora; el quieto no cambia; sin nada, el
@@ -1904,7 +1923,7 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
-               corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
+               ipa_de_lectura_para_la_boca_3d, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
                temas_para_la_portada, portada_por_ia_si_existe, plurales_de_los_minutos,
                nota_de_nivel_dice_libros_y_cuentos,

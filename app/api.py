@@ -1817,6 +1817,30 @@ def corte_de_palabra(ipa: str = Query(..., min_length=1, max_length=60),
     return Response(svg, media_type="image/svg+xml", headers=_CABECERAS_SVG)
 
 
+_TOPE_PALABRAS_LECTURA = 400
+
+
+@app.get("/api/lectura/ipa")
+def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
+                   acento: Literal["US", "UK"] = "US") -> dict:
+    """La IPA de cada palabra de una frase o párrafo, de los diccionarios
+    locales (Kaikki y CMUdict; nunca del modelo): la boca 3D la lee al compás
+    del audio de referencia (Miguel, 24 sep). Sin coste: no llama a OpenAI.
+    Una palabra que no está en ningún diccionario sale con `ipa` null y el
+    front la articula con una aproximación por letras."""
+    palabras = voz.normalizar_palabras(texto)[:_TOPE_PALABRAS_LECTURA]
+    vistas: dict[str, str | None] = {}
+    salida = []
+    for palabra in palabras:
+        if palabra not in vistas:
+            # «well-known» no está entera: se junta la de cada pieza.
+            piezas = [fonemas.ipa_de_palabra(p, acento)[0] for p in palabra.split("-") if p]
+            vistas[palabra] = (" ".join(p.split(",")[0].strip().strip("/[]") for p in piezas)
+                               if piezas and all(piezas) else None)
+        salida.append({"palabra": palabra, "ipa": vistas[palabra]})
+    return {"acento": acento, "palabras": salida}
+
+
 @app.get("/api/articulacion/{acento}/{archivo}")
 def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = False,
                     dur: float | None = None, una: bool = False):

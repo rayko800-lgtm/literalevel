@@ -490,6 +490,12 @@ export class Api {
   fonemas(acento: Acento = 'ga'): Observable<InventarioSonidos> {
     return this.http.get<InventarioSonidos>(`${this.base}/fonemas`, { params: { acento } });
   }
+  /** La IPA de cada palabra de una frase (diccionarios locales, sin coste):
+   *  la boca 3D la lee al compás del audio. `ipa` null si no está. */
+  ipaDeLectura(texto: string, acento: Acento = 'ga'): Observable<{ palabras: { palabra: string; ipa: string | null }[] }> {
+    return this.http.get<{ palabras: { palabra: string; ipa: string | null }[] }>(`${this.base}/lectura/ipa`,
+      { params: { texto: texto.slice(0, 2000), acento: acento === 'rp' ? 'UK' : 'US' } });
+  }
   practicar(frase: string, audio: Blob, nombre: string, acento: Acento = 'ga'): Observable<CorreccionVoz> {
     const datos = new FormData();
     datos.append('frase', frase);

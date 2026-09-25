@@ -119,6 +119,7 @@
   border: 1.5px solid var(--acento); background: var(--superficie); color: var(--acento-texto); font-weight: 700; font-size: 1.1rem; cursor: pointer; }
 .simbolo[disabled] { border-color: var(--borde); color: var(--texto-tenue); cursor: default; }
 .referencia { display: grid; gap: .4rem; justify-items: start; }
+.lectura-3d { margin-top: .6rem; }
 /* El SVG trae sus trazos en gris (#6b7683) y sin fondo: dentro de un <img> no le
    llegan las variables del tema, así que va sobre una lámina clara en todos. */
 .corte { display: block; width: min(240px, 100%); height: auto; margin: .25rem auto; padding: .4rem;

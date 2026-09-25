@@ -371,6 +371,36 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.eyv.escuchar({ audio: urlMotor(url), cortes: [] });
   }
 
+  /** La IPA de cada palabra de las frases que lee el 3D, por texto. */
+  private readonly ipaLectura = new Map<string, { palabra: string; ipa: string | null }[]>();
+  /** Lo que se leyó (las palabras de la frase) y su versión natural. */
+  protected readonly textoLeido = computed(() => this.resultado()?.palabras.map(p => p.palabra).join(' ') ?? '');
+  protected readonly textoNatural = computed(() => this.vista()?.versionNatural ?? this.textoLeido());
+
+  /** El audio de una frase entera. Con el 3D de lectura abierto lo pone el 3D,
+   *  con la boca leyendo al compás; si no, suena solo. */
+  protected oirLectura(url: string | null, texto: string): void {
+    const visor = this.visor(), audio = urlMotor(url);
+    if (!visor || this.visor3d() !== 'lectura' || !audio) { this.sonar(url); return; }
+    this.eyv.parar();
+    const ipa = this.ipaLectura.get(texto);
+    visor.leerFrase(audio, ipa ?? texto.split(/\s+/).filter(Boolean).map(palabra => ({ palabra, ipa: null })));
+  }
+
+  /** Abre o cierra la boca que lee; al abrir, pide la IPA de las dos frases
+   *  (diccionarios del motor, sin coste) para tenerla al pulsar «Leer». */
+  protected alternarLectura3d(ev?: Event): void {
+    this.alternarBoca('lectura', ev);
+    if (this.visor3d() !== 'lectura') return;
+    for (const texto of new Set([this.textoLeido(), this.textoNatural()])) {
+      if (!texto || this.ipaLectura.has(texto)) continue;
+      this.api.ipaDeLectura(texto, this.acento()).subscribe({
+        next: r => this.ipaLectura.set(texto, r.palabras),
+        error: () => { /* sin IPA: se aproxima por letras */ },
+      });
+    }
+  }
+
   /** «Escuchar y ver» de la corrección: la palabra suena (su mp3 o, si no hay,
    *  la voz del navegador) y los dos cortes vuelven a empezar. Con el 3D
    *  abierto, el audio lo pone el 3D (verPalabra, en este mismo clic) y aquí
