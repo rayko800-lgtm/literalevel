@@ -692,55 +692,40 @@ Mi espacio — a evaluar si entra en D3 o queda como incremento propio.
 
 ## D4 — Visualización articulatoria v2
 
-**Status:** 🟡 RUNNING — 2D COMPLETE / FROZEN; 3D pendiente de D4.4
+**Status:** ✅ PUBLICADO (25 sep) — 2D COMPLETE / FROZEN; 3D didáctico en
+producción, con mejoras visuales abiertas.
 
-### D4 2D articulatorio — ✅ COMPLETE / FROZEN
-
-Miguel aprobó la geometría 2D en el checkpoint `f8db895`. Desde ese
-checkpoint quedan congeladas la geometría de lengua, rutas de aire,
-contactos, constricciones, timings internos, ciclo base de 2.0 s y lógica
-fonética. Solo se reabrirán si una auditoría futura demuestra un error
-real.
-
-El commit `44d25f9` añade un selector discreto y móvil de cuatro velocidades:
-0.25× (Muy despacio), 0.50× (Despacio), 1.00× (Normal) y 1.25× (Rápido).
-Una única selección gobierna audio, SVG 2D y reproducción sincronizada 3D;
-se conserva `preservesPitch`, se rechazan valores ajenos al contrato y la
-velocidad solo altera duración/playback, nunca geometría. Verificación:
-44/44 archivos y 388/388 pruebas del front; prueba móvil real a 390 px con
-los cuatro blancos táctiles visibles y duraciones SVG sincronizadas.
-
-**D4 global no está COMPLETE.** La siguiente fase es D4.4: auditoría
-enfocada del 3D actual para separar arreglos de runtime de trabajo real en
-Blender, sin remodelar aún.
-
-**Feedback visual/UX adicional (Miguel, 18 sep), pendiente de D4.4:**
-hallazgo confirmado por Miguel — en `/b/`, los labios
-deberían ser el articulador principal y la vista 3D actual apenas permite
-verlos. D4 debe considerar vistas/encuadre específicos según el tipo de
-fonema, no una cámara universal: bilabiales `/p b m/` → labios claramente
-visibles, preferencia frontal/¾; dentales `/θ ð/` → lengua + dientes;
-alveolares → punta de lengua + alveolos; velares → parte posterior de
-lengua + velo. Principio explícito: "la cámara y la geometría visible
-deben servir al sonido concreto. Claridad pedagógica > una vista 3D
-universal."
-
-La mejora de velocidad 2D ya está cerrada; la mejora pedagógica 3D sigue
-pendiente de D4.4.
+- **2D:** congelado en `f8db895`; selector de velocidad `44d25f9`. El aire de
+  /f/ (y fricativas) llegó a producción el 25 sep (API `a88531b`).
+- **3D didáctico (D4.4b):** cabeza escaneada LPS (CC BY 3.0) con labios de
+  topología regular, dientes, lengua y corte anatómico; vistas Frente/Lado;
+  boca al compás del audio grabado por Miguel (tramos y palabra de ejemplo);
+  lectura de frases al compás del TTS (`lineaFrase`, `GET /api/lectura/ipa`).
+  Cara del 25 sep: mentón y mandíbula (`tools/boca3d_blender/rostro_didactico.py`),
+  mejillas que acompañan, /f v/ con cuerpo, pelo rizado y tez clara.
+  Validadores: `medir_didactica.mjs --completo --exigir --exigir-raices`,
+  `medir_grosor_labial.mjs --exigir`, `medir_lengua.mjs --exigir`.
+- **Publicado:** front `a9ae51f` y API `c49604e`, commit `acbee33`
+  (`DESPLIEGUE.md`).
+- **Abierto:** ojos (expresión y mirada), dientes como bloques, costura del
+  mentón en ¾, torso sin ropa; modelo articulatorio aprendido (encargo en
+  `docs/ai/investigacion_modelo_articulatorio.md`, otra sesión).
 
 ---
 
-## D5 — Read-along MVP [STRETCH]
+## D5 — Lectura guiada en vivo (read-along)
 
-**Status:** ⬜ PENDING
+**Status:** 🟡 RUNNING (25 sep, pedido por Miguel)
 
-Fuera del alcance de esta fase salvo que sobre tiempo tras D1-D4.
+Mientras el lector lee en voz alta, la transcripción en vivo de OpenAI
+(`gpt-live-transcribe`, WebRTC desde el navegador) sigue por dónde va y marca
+palabras saltadas o trabadas. No da tiempos por palabra ni confianza: el
+seguimiento es por alineación de texto. La clave nunca va al navegador (token
+efímero desde la API). Presupuesto de pruebas: ~13 USD de créditos de Miguel.
 
 ---
 
 ## Próximo paso
 
-Ejecutar D4.4 como auditoría enfocada del 3D actual: `/p b m/`, `/f v/`,
-`/θ ð/`, `/t k ŋ/` y `/ʃ ʒ/`. Clasificar cada hallazgo entre ocultación
-selectiva, cámara/target, material, geometría/shape keys y Blender. No
-iniciar todavía una remodelación grande.
+1. D5: prototipo y pruebas reales de la lectura guiada.
+2. D4: ojos de la cabeza 3D.
