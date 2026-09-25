@@ -48,7 +48,7 @@ Pearson / RMSE en unidades z del hablante.
 
 **Desfase** (correlación cruzada ±200 ms; positivo = la predicción llega
 tarde): reglas **+82 ms** en mandíbula, +44 en jawOpen, +35 en apertura;
-dominancia y TCN entre −22 y +11 ms en todos los controles.
+dominancia entre −23 y 0 ms y TCN entre −22 y +11 ms (a tiempo o apenas adelantadas).
 
 ## Pruebas duras
 
