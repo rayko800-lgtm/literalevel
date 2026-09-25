@@ -63,7 +63,7 @@ def main():
     n, tot = (int(m[-1][0]), int(m[-1][1])) if m else (0, 2470)
     if 'Traceback' not in t and not vivo('listar_casa_blanca') and os.path.exists(f'{BASE}/casa_blanca/lista.csv')             and sum(1 for _ in open(f'{BASE}/casa_blanca/lista.csv', encoding='utf8')) > tot:
         n = tot
-    fila('Obama · lista', n, tot, 'listar_casa_blanca', log, f'{BASE}/casa_blanca/cache_html/*')
+    fila('Obama · índice', n, tot, 'listar_casa_blanca', log, f'{BASE}/casa_blanca/cache_html/*')
 
     # TalkingHead-1KH
     clips = len(glob.glob(f'{BASE}/1kh/train/*.mp4'))

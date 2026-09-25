@@ -22,10 +22,17 @@ ARKit, pose de la cabeza, tono y energía). Reanudable: si una sesión se cae,
 se vuelve a ejecutar y sigue donde iba.
 
 Antes: subir `lista.csv` (de `listar_casa_blanca.py`) con «Upload to Colab»."""),
-('code', """# --- 1. Drive (pide permiso la primera vez) y dependencias
-from google.colab import drive
-drive.mount('/content/drive')
-!pip -q install mediapipe==0.10.21 librosa imageio-ffmpeg
+('code', """# --- 1. Drive y dependencias
+# En VS Code, drive.mount() falla (MessageError request_auth): Drive se monta con
+# Ctrl+Shift+P → «Colab: Mount Google Drive to Server...». En el navegador sí vale drive.mount.
+import os
+if not os.path.isdir('/content/drive/MyDrive'):
+    try:
+        from google.colab import drive
+        drive.mount('/content/drive')
+    except Exception as e:
+        raise SystemExit('Monta Drive con «Colab: Mount Google Drive to Server...» y vuelve a ejecutar') from e
+!pip -q install -U mediapipe librosa imageio-ffmpeg   # sin fijar: Colab ya va en Python 3.13
 !wget -q -nc -O /content/face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
 import os, csv
 DESTINO = '/content/drive/MyDrive/literalevel_cara/casa_blanca'
@@ -34,7 +41,10 @@ lista = [f for f in ['/content/lista.csv', f'{DESTINO}/lista.csv'] if os.path.ex
 !cp -n {lista} {DESTINO}/lista.csv
 filas = list(csv.DictReader(open(lista, encoding='utf8')))
 TIPOS = {'discurso_semanal', 'presidente'}
+MAX_VIDEOS = 160   # ~40-60 h; subirlo si hay sitio en Drive
 sel = [f for f in filas if f['tipo'] in TIPOS and f['mp4'] and f['dominio_publico'] == '1']
+# primero los discursos semanales (de frente, leyendo), luego el resto; tope para no llenar Drive
+sel = sorted(sel, key=lambda f: (f['tipo'] != 'discurso_semanal', f['fecha']))[:MAX_VIDEOS]
 print(len(filas), 'vídeos en la lista;', len(sel), 'seleccionados (discursos del presidente, dominio público)')"""),
 ('code', """# --- 2. Bajar a Drive (varios a la vez; se salta lo ya bajado)
 import concurrent.futures, subprocess

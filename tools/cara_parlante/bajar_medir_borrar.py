@@ -32,6 +32,7 @@ def main():
     ap.add_argument('--min-s', type=float, default=180)
     ap.add_argument('--max-s', type=float, default=1500)
     ap.add_argument('--max', type=int, default=0)
+    ap.add_argument('--parte', default='0/1', help='i/n: este proceso hace los vídeos con índice %% n == i')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
 
@@ -41,6 +42,8 @@ def main():
         if len(p) >= 3 and p[1] not in ('NA', '') and a.min_s <= float(p[1]) <= a.max_s:
             filas.append(p)
     filas = filas[: a.max or None]
+    i, n = map(int, a.parte.split('/'))
+    filas = filas[i::n]
     cred_ruta = os.path.join(a.salida, 'creditos.csv')
     nuevo = not os.path.exists(cred_ruta)
     cred = csv.writer(open(cred_ruta, 'a', newline='', encoding='utf8'))
