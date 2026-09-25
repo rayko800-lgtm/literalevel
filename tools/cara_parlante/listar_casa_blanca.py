@@ -20,6 +20,7 @@ import json
 import os
 import re
 import time
+import urllib.error
 import urllib.request
 
 BASE = 'https://obamawhitehouse.archives.gov'
@@ -38,6 +39,12 @@ def bajar(ruta, cache):
             open(f, 'w', encoding='utf8').write(t)
             time.sleep(0.5)
             return t
+        except urllib.error.HTTPError as e:
+            if e.code == 404:            # página retirada: no insistir
+                open(f, 'w', encoding='utf8').write('')
+                return ''
+            print('reintento', ruta, e)
+            time.sleep(5 * (intento + 1))
         except Exception as e:  # noqa: BLE001 — red: reintentar
             print('reintento', ruta, e)
             time.sleep(5 * (intento + 1))
