@@ -69,7 +69,7 @@ open('/content/medir_expresion.py', 'w', encoding='utf8').write(MEDIR_PY)
 import glob
 videos = sorted(glob.glob(f'{DESTINO}/videos/*.mp4'), key=lambda v: ('weekly-address' not in v, os.path.getsize(v)))
 faltan = [v for v in videos if not os.path.exists(f"{DESTINO}/medidas/{os.path.basename(v)[:-4]}.npz")]
-NPROC = os.cpu_count() or 2
+NPROC = min(6, os.cpu_count() or 2)   # 8 a la vez llenaron los 51 GB de RAM
 NL = chr(10)
 lineas = ['#!/bin/bash', 'pkill -f "^python -u /content/medir_expresion" ; sleep 1']
 for i in range(NPROC):

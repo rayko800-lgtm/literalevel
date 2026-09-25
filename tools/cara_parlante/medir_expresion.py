@@ -52,7 +52,20 @@ def prosodia(video, t):
                         '-ac', '1', '-ar', '16000', wav], check=True)
         y, sr = librosa.load(wav, sr=16000)
     salto = 160  # 10 ms
-    f0, voz, _ = librosa.pyin(y, fmin=65, fmax=400, sr=sr, frame_length=1024, hop_length=salto)
+    # pyin por trozos de 60 s: sobre un discurso de una hora entero pide decenas de GB
+    # (matrices de probabilidad por fotograma × tono) y el sistema mata el proceso.
+    trozo = 60 * sr
+    f0s, vozs = [], []
+    for ini in range(0, len(y), trozo):
+        seg = y[ini:ini + trozo]
+        if len(seg) < 2048:
+            n = int(np.ceil(len(seg) / salto))
+            f0s.append(np.full(n, np.nan)); vozs.append(np.zeros(n, bool))
+            continue
+        f, v, _ = librosa.pyin(seg, fmin=65, fmax=400, sr=sr, frame_length=1024, hop_length=salto)
+        n = int(np.ceil(len(seg) / salto))          # fotogramas propios del trozo, sin el de cierre
+        f0s.append(f[:n]); vozs.append(v[:n])
+    f0, voz = np.concatenate(f0s), np.concatenate(vozs)
     f0 = np.where(voz, f0, 0.0)
     rms = librosa.feature.rms(y=y, frame_length=400, hop_length=salto)[0]
     db = 20 * np.log10(rms + 1e-5)
