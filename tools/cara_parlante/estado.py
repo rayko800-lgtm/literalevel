@@ -72,7 +72,9 @@ def main():
 
     # Miralles
     hechos = len(glob.glob(f'{BASE}/medidas/miralles/*.npz'))
-    fila('Miralles · bajar+medir', hechos, 40, 'bajar_medir_borrar', f'{BASE}/miralles/lote.log',
+    log_m = f'{BASE}/miralles/lote.log'
+    fallos = open(log_m, encoding='utf8', errors='replace').read().count('no se pudo bajar') if os.path.exists(log_m) else 0
+    fila('Miralles · bajar+medir', hechos, 40 - fallos, 'bajar_medir_borrar', f'{BASE}/miralles/lote.log',
          f'{BASE}/medidas/miralles/*', f'{BASE}/medidas/tmp*/*')
 
     print('\n'.join(lineas))

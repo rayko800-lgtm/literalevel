@@ -63,31 +63,35 @@ with concurrent.futures.ThreadPoolExecutor(6) as ex:
     res = Counter(ex.map(bajar, sel))
 print(res)
 !du -sh {DESTINO}/videos"""),
-('code', """# --- 3. Medir en segundo plano (sigue aunque VS Code pierda la conexión con el servidor)
+('code', """# --- 3. Preparar la medición (no la lanza: se lanza desde la terminal del servidor, que no depende del kernel)
+# Los procesos hijos del kernel mueren cuando VS Code reconecta el kernel (visto dos veces el 25 sep).
 open('/content/medir_expresion.py', 'w', encoding='utf8').write(MEDIR_PY)
-import glob, subprocess
-# primero los discursos semanales (de frente, leyendo), luego los cortos
+import glob
 videos = sorted(glob.glob(f'{DESTINO}/videos/*.mp4'), key=lambda v: ('weekly-address' not in v, os.path.getsize(v)))
 faltan = [v for v in videos if not os.path.exists(f"{DESTINO}/medidas/{os.path.basename(v)[:-4]}.npz")]
-print(len(videos), 'vídeos,', len(faltan), 'por medir')
-!pkill -f medir_expresion.py || true
 NPROC = os.cpu_count() or 2
+NL = chr(10)
+lineas = ['#!/bin/bash', 'pkill -f "^python -u /content/medir_expresion" ; sleep 1']
 for i in range(NPROC):
     t = faltan[i::NPROC]
     if not t: continue
-    # sesión propia: si el kernel se reinicia o VS Code se desconecta, los procesos siguen
-    subprocess.Popen(['python', '-u', '/content/medir_expresion.py', '--modelo', '/content/face_landmarker.task',
-                      '--salida', f'{DESTINO}/medidas', '--ancho', '640', *t],
-                     stdout=open(f'/content/medir_{i}.log', 'w'), stderr=subprocess.STDOUT,
-                     start_new_session=True)
-print(NPROC, 'procesos lanzados en segundo plano')"""),
+    open(f'/content/lista_{i}.txt', 'w').write(NL.join(t) + NL)
+    lineas.append(f'xargs -d "\\n" -a /content/lista_{i}.txt python -u /content/medir_expresion.py '
+                  f'--modelo /content/face_landmarker.task --salida "{DESTINO}/medidas" --ancho 640 '
+                  f'> /content/medir_{i}.log 2>&1 &')
+lineas.append('wait')
+open('/content/lanzar.sh', 'w').write(NL.join(lineas) + NL)
+print(len(videos), 'vídeos,', len(faltan), 'por medir,', NPROC, 'procesos')
+print('Ahora, en la terminal del servidor (Colab: Open Terminal):')
+print('  nohup setsid bash /content/lanzar.sh > /content/lanzar.log 2>&1 &')"""),
 ('code', """# --- 4. Progreso (ejecutar cuando quieras; no para nada)
 import glob, subprocess
 hechos = len(glob.glob(f'{DESTINO}/medidas/*.npz')); total = len(glob.glob(f'{DESTINO}/videos/*.mp4'))
 b = int(20 * hechos / max(total, 1))
-vivos = subprocess.run('pgrep -fc medir_expresion.py', shell=True, capture_output=True, text=True).stdout.strip()
+vivos = subprocess.run("pgrep -f '^python -u /content/medir_expresion' | wc -l", shell=True, capture_output=True, text=True).stdout.strip()
 print('█' * b + '░' * (20 - b), f'{hechos}/{total}', f'· procesos vivos: {vivos}')
-!tail -q -n 1 /content/medir_*.log 2>/dev/null | grep -v '^$' | tail -n 4"""),
+!grep -h -v -E '^(W0000|I0000|WARNING|INFO)|inference_feedback|XNNPACK' /content/medir_*.log 2>/dev/null | tail -n 6
+!dmesg 2>/dev/null | grep -i -E 'killed process|out of memory' | tail -n 3"""),
 ]
 
 
