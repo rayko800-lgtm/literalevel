@@ -65,6 +65,12 @@
   },
   "v": {
    "mandibula": 0.08
+  },
+  "ɛ": {
+   "mandibula": 0.67
+  },
+  "eɪ": {
+   "mandibula": 0.7
   }
  },
  "rp": {
