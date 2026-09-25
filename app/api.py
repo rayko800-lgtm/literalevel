@@ -1742,7 +1742,10 @@ def audio_fonema(archivo: str):
 # --- El corte de la boca (animacion_articulatoria, entrega-4e) --------------------
 
 _CABECERAS_SVG = {
-    "Cache-Control": "public, max-age=2592000",
+    # El corte depende del código anatómico actual. Una copia pública fresca
+    # durante 30 días hacía que el móvil siguiera pintando una geometría vieja
+    # en la URL normal aunque «Despacio» (otro ?dur=) ya recibiera la nueva.
+    "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
     # Se sirve desde el dominio del Space y la IPA de la palabra la manda el
     # cliente: aunque alguien abra el SVG suelto, no puede ejecutar ni pedir nada.
@@ -2085,13 +2088,65 @@ def mis_palabras(pet: Lector, n: int = 50) -> dict:
 
 @app.get("/api/repaso")
 def repaso(pet: Lector) -> dict:
-    """Sin nota y sin racha: un recordatorio, no un examen (`enganche.md` §5)."""
+    """Sin nota y sin racha: un recordatorio, no un examen (`enganche.md` §5).
+
+    Cada tarjeta lleva su `consulta_id` (D3.2): es lo que el front manda de
+    vuelta al evaluar, para que el servidor sepa EXACTAMENTE qué consulta
+    respondió, sin fiarse de nada más que mande el cliente.
+    """
     anotaciones = cuaderno.para_repasar(5, ui._archivo_lector("cuaderno.db", pet))
     # Con el historial de voz ilegible, el cuaderno se enseña igual y la parte
     # de voz va vacía con su aviso.
     filas, aviso = _historial_voz(lambda: voz.puntos_debiles(n=5, ruta=ui._archivo_lector("voz.db", pet)))
-    return {"palabras": [_anotacion_json(a) for a in anotaciones],
+    return {"palabras": [{**_anotacion_json(a), "consulta_id": a.id} for a in anotaciones],
             "voz": [{"palabra": w, "fallos": n} for w, n in filas], "aviso_voz": aviso}
+
+
+class RepasoEvaluacion(BaseModel):
+    consulta_id: int
+    evaluacion: Literal["no", "dude", "si"]
+
+
+@app.post("/api/repaso")
+def evaluar_repaso(datos: RepasoEvaluacion, pet: Lector) -> dict:
+    """Guarda una evaluación de repaso (D3.2): No/Dudé/Sí sobre una tarjeta
+    concreta, identificada por `consulta_id` — nunca por lo que el front
+    diga que era la palabra/frase, que se recalcula aquí desde el propio
+    cuaderno de este lector (`cuaderno.registrar_repaso`).
+
+    A diferencia de `cuaderno.registrar()` (que se calla y sigue si no
+    puede escribir), aquí SÍ se informa del fallo: el front no debe fingir
+    que guardó algo que no se guardó.
+    """
+    db = ui._archivo_lector("cuaderno.db", pet)
+    if cuaderno.por_id(datos.consulta_id, db) is None:
+        raise _no(404, "Esa palabra no está en tu cuaderno.")
+    if not cuaderno.registrar_repaso(consulta_id=datos.consulta_id, evaluacion=datos.evaluacion, ruta=db):
+        raise _no(500, "No se pudo guardar tu repaso. Vuelve a intentarlo.")
+    return {"ok": True}
+
+
+@app.get("/api/progreso")
+def progreso(pet: Lector, tz: str | None = None) -> dict:
+    """Agregados para «Mi progreso» (D3.3): nunca anotaciones completas, solo
+    lo mínimo para dibujar dos gráficas pequeñas.
+
+    `tz` es la zona IANA real del navegador
+    (`Intl.DateTimeFormat().resolvedOptions().timeZone`), nunca la zona del
+    servidor; si falta o no es una zona válida, `cuaderno.por_dia` degrada a
+    UTC sola, sin lanzar.
+    """
+    db = ui._archivo_lector("cuaderno.db", pet)
+    dias = cuaderno.por_dia(tz, 14, db)
+    evaluaciones = cuaderno.ultimos_repasos(20, db)
+    conteo = {"si": 0, "dude": 0, "no": 0}
+    for e in evaluaciones:
+        if e in conteo:
+            conteo[e] += 1
+    return {
+        "palabras_por_dia": [{"fecha": f, "consultas": c} for f, c in dias],
+        "repasos": {**conteo, "total": len(evaluaciones)},
+    }
 
 
 def _estanteria(pet: _Lector) -> list[dict]:

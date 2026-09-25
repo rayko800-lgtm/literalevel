@@ -8,6 +8,7 @@ import { TarjetaLibro } from '../compartido/tarjeta-libro';
 import { Api, EntradaBiblioteca, LibroTarjeta, Recomendacion, mensajeError } from '../nucleo/api';
 import { cefr, num } from '../nucleo/formato';
 import { Sesion } from '../nucleo/sesion';
+import { Tutorial } from '../nucleo/tutorial';
 
 type Vista = 'buscar' | 'nivel' | 'mios';
 
@@ -23,7 +24,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
         <p>Descríbelo con tus palabras, en español o en inglés. Si ya sabes tu nivel, primero salen los que te quedan mejor.</p>
       </header>
 
-      <form class="buscador" (ngSubmit)="buscar()" role="search">
+      <form class="buscador" (ngSubmit)="buscar()" role="search" data-tutorial="encontrar-buscador">
         <app-icono nombre="lupa" class="lupa" />
         <label class="oculto-visual" for="consulta">Qué te apetece leer</label>
         <input id="consulta" name="consulta" class="entrada" [(ngModel)]="consulta" maxlength="300"
@@ -54,6 +55,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
             <div class="espera cargando"><span class="giro"></span>
               <span>{{ lento() ? 'Despertando el buscador: la primera búsqueda tarda unos 20 segundos. Después va al momento.' : 'Buscando…' }}</span></div>
           } @else if (resultados(); as rs) {
+            <div data-tutorial="encontrar-resultados">
             @if (aviso()) { <p class="aviso pequeno">{{ aviso() }}</p> }
             @if (rs.length && bloques(); as b) {
               @let sinBloques = !b.enTuNivel.length && !b.porEncima.length;
@@ -118,6 +120,7 @@ type Vista = 'buscar' | 'nivel' | 'mios';
               </div>
               @if (nota()) { <p class="tenue pequeno nota">{{ nota() }}</p> }
             }
+            </div>
           } @else {
             <div class="ideas">
               <p class="etiqueta">Prueba con</p>
@@ -251,6 +254,10 @@ export class Encontrar implements OnInit {
   private readonly api = inject(Api);
   private readonly sesion = inject(Sesion);
   private readonly router = inject(Router);
+  // Solo notifica: Encontrar no sabe nada del tutorial más allá de avisarle
+  // cuándo empieza, termina con resultados, sin ellos, o con error. `Tutorial`
+  // decide qué hacer con eso (D1.3); nunca al revés.
+  private readonly tutorial = inject(Tutorial);
 
   protected consulta = '';
   protected readonly vista = signal<Vista>('buscar');
@@ -341,6 +348,7 @@ export class Encontrar implements OnInit {
     this.vista.set('buscar');
     this.error.set('');
     this.cargando.set(true);
+    this.tutorial.notificarBusqueda('inicio');
     // 3 s: con el catálogo de 15.357 externos, la primera tarda unos 21 (f4, reinicio 10).
     const reloj = setTimeout(() => this.lento.set(true), 3000);
     if (navegar) void this.router.navigate([], { queryParams: { q, vista: null }, replaceUrl: true });
@@ -356,8 +364,10 @@ export class Encontrar implements OnInit {
       this.nota.set(r.nota);
       this.ajustado.set(r.ajustado);
       this.ultima.set(q);
+      this.tutorial.notificarBusqueda(r.resultados.length ? 'con-resultados' : 'sin-resultados');
     } catch (e) {
       this.error.set(mensajeError(e, 'No he podido completar la búsqueda.'));
+      this.tutorial.notificarBusqueda('error');
     } finally {
       clearTimeout(reloj);
       this.lento.set(false);

@@ -26,8 +26,9 @@ from __future__ import annotations
 import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 RUTA_POR_DEFECTO = Path(os.path.expanduser("~")) / ".literalevel" / "cuaderno.db"
 
@@ -47,11 +48,33 @@ CREATE TABLE IF NOT EXISTS consultas (
 );
 CREATE INDEX IF NOT EXISTS idx_cuaderno_lema ON consultas(lema);
 CREATE INDEX IF NOT EXISTS idx_cuaderno_creado ON consultas(creado);
+-- D3.2: eventos de repaso, aparte de `consultas` (append-only, nunca se
+-- reescribe ni se borra una fila). `consulta_id` identifica la tarjeta
+-- exacta que se evaluo (la fila de `consultas` vigente en ese momento);
+-- `lema` se repite aqui para que D3.3 pueda agregar por palabra sin tener
+-- que volver a `consultas` (que puede tener varias filas por lema y sigue
+-- cambiando). El resto es una foto de lo que se enseño al evaluar.
+CREATE TABLE IF NOT EXISTS repasos (
+    id          INTEGER PRIMARY KEY,
+    consulta_id INTEGER NOT NULL,
+    lema        TEXT NOT NULL,
+    evaluacion  TEXT NOT NULL CHECK (evaluacion IN ('no', 'dude', 'si')),
+    palabra     TEXT,
+    oracion     TEXT,
+    sentido     TEXT,
+    libro       TEXT,
+    capitulo    INTEGER,
+    creado      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_repasos_lema ON repasos(lema);
+CREATE INDEX IF NOT EXISTS idx_repasos_consulta ON repasos(consulta_id);
+CREATE INDEX IF NOT EXISTS idx_repasos_creado ON repasos(creado);
 """
 
 
 @dataclass
 class Anotacion:
+    id: int
     palabra: str
     lema: str
     categoria: str | None
@@ -115,12 +138,12 @@ def _filas(sql: str, args: tuple, ruta) -> list[Anotacion]:
             filas = con.execute(sql, args).fetchall()
     except (sqlite3.Error, OSError):
         return []
-    return [Anotacion(palabra=f[0], lema=f[1], categoria=f[2], sentido=f[3],
-                      oracion=f[4], libro=f[5], capitulo=f[6], zipf=f[7], creado=f[8])
+    return [Anotacion(id=f[0], palabra=f[1], lema=f[2], categoria=f[3], sentido=f[4],
+                      oracion=f[5], libro=f[6], capitulo=f[7], zipf=f[8], creado=f[9])
             for f in filas]
 
 
-_COLUMNAS = ("palabra, lema, categoria, sentido, oracion, libro, capitulo, "
+_COLUMNAS = ("id, palabra, lema, categoria, sentido, oracion, libro, capitulo, "
              "zipf, creado")
 
 
@@ -153,3 +176,110 @@ def contar(ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> tuple[int, int, int]:
                 " COUNT(DISTINCT COALESCE(libro,'')) FROM consultas").fetchone())
     except (sqlite3.Error, OSError):
         return (0, 0, 0)
+
+
+def por_id(consulta_id: int, ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> Anotacion | None:
+    """La consulta exacta con ese id, o `None` si no existe EN ESTE cuaderno.
+
+    Como cada lector tiene su propio archivo (D2: por `X-Lector`, nunca por
+    cuenta), buscar aqui ya implica "es de este lector": un id que exista en
+    el cuaderno de otro lector simplemente no aparece en este archivo.
+    """
+    filas = _filas(f"SELECT {_COLUMNAS} FROM consultas WHERE id = ?", (int(consulta_id),), ruta)
+    return filas[0] if filas else None
+
+
+EVALUACIONES = ("no", "dude", "si")
+
+
+def registrar_repaso(*, consulta_id: int, evaluacion: str,
+                      ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> bool:
+    """Evento de repaso, append-only: nunca reescribe ni borra nada.
+
+    La foto (palabra/oracion/sentido/libro/capitulo) se toma AQUI, de la
+    propia consulta en este cuaderno — nunca de lo que mande el front, que
+    solo trae `consulta_id` y `evaluacion` (D3.2, decision de Miguel: el
+    front no es la fuente de verdad de que se enseño). Si `consulta_id` no
+    existe en este cuaderno, no se guarda nada y se devuelve `False`: quien
+    llama (la API) lo convierte en 404, no en un evento a medias.
+    """
+    if evaluacion not in EVALUACIONES:
+        return False
+    a = por_id(consulta_id, ruta)
+    if a is None:
+        return False
+    try:
+        with _conectar(ruta) as con:
+            con.execute(
+                "INSERT INTO repasos (consulta_id, lema, evaluacion, palabra, oracion,"
+                " sentido, libro, capitulo, creado) VALUES (?,?,?,?,?,?,?,?,?)",
+                (a.id, a.lema, evaluacion, a.palabra, a.oracion, a.sentido,
+                 a.libro, a.capitulo, _ahora()),
+            )
+        return True
+    except (sqlite3.Error, OSError):
+        return False
+
+
+def _zona(iana: str | None):
+    """La zona IANA real del navegador, o UTC si falta/no es valida.
+
+    Nunca la zona del SERVIDOR (D3.3, Miguel): sin `zoneinfo` estandar, sin
+    dependencias nuevas. `ZoneInfo` valida el nombre al construirla; un
+    nombre inventado o vacio degrada a UTC, nunca lanza."""
+    if not iana:
+        return timezone.utc
+    try:
+        return ZoneInfo(iana)
+    except (ZoneInfoNotFoundError, ValueError, KeyError):
+        return timezone.utc
+
+
+def por_dia(iana: str | None, dias: int = 14,
+            ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> list[tuple[str, int]]:
+    """[(fecha ISO 'AAAA-MM-DD', consultas)] de cada uno de los ultimos
+    `dias` dias del calendario LOCAL de `iana`, mas antiguo primero,
+    siempre `dias` entradas (los dias sin nada quedan en 0).
+
+    Cada FILA de `consultas` cuenta una vez, aunque el lema se repita
+    (D3.3: es "consultas", no "palabras distintas"). El agrupado es en
+    Python, no en SQL: SQLite no conoce zonas IANA (solo desfases fijos),
+    y una fecha de calendario con DST solo se calcula bien convirtiendo
+    cada marca de tiempo de verdad con `zoneinfo`.
+    """
+    zona = _zona(iana)
+    hoy = datetime.now(zona).date()
+    # Margen de un dia extra en UTC: una consulta de las 23:50 UTC puede
+    # caer en el dia siguiente en una zona muy adelantada, y una de las
+    # 00:10 UTC en el dia anterior en una muy atrasada.
+    desde_utc = (datetime.now(timezone.utc) - timedelta(days=dias + 1)).isoformat()
+    try:
+        with _conectar(ruta) as con:
+            filas = con.execute(
+                "SELECT creado FROM consultas WHERE creado >= ?", (desde_utc,)).fetchall()
+    except (sqlite3.Error, OSError):
+        filas = []
+    cuentas: dict[date, int] = {}
+    for (creado,) in filas:
+        try:
+            dt = datetime.fromisoformat(creado)
+        except (TypeError, ValueError):
+            continue  # fecha corrupta: se ignora, nunca rompe la grafica
+        dia_local = dt.astimezone(zona).date()
+        cuentas[dia_local] = cuentas.get(dia_local, 0) + 1
+    return [((hoy - timedelta(days=i)).isoformat(), cuentas.get(hoy - timedelta(days=i), 0))
+            for i in range(dias - 1, -1, -1)]
+
+
+def ultimos_repasos(n: int = 20, ruta: str | os.PathLike = RUTA_POR_DEFECTO) -> list[str]:
+    """Las evaluaciones ('no'/'dude'/'si') de los ultimos `n` eventos de
+    repaso, mas recientes primero. Vacia si no hay ninguno o si la DB no
+    se puede leer — nunca lanza."""
+    try:
+        with _conectar(ruta) as con:
+            filas = con.execute(
+                "SELECT evaluacion FROM repasos ORDER BY id DESC LIMIT ?",
+                (max(1, int(n)),)).fetchall()
+    except (sqlite3.Error, OSError):
+        return []
+    return [f[0] for f in filas]

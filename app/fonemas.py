@@ -91,8 +91,13 @@ INVENTARIO: tuple[Fonema, ...] = (
     _f("ɡ", "g de «gato»", ["go", "bag"], "consonante"),
     _f("f", "f de «foco»", ["fish", "leaf"], "consonante"),
     _f("v", "no existe en español: dientes de arriba sobre el labio de abajo, con zumbido", ["van", "love"], "consonante"),
-    _f("θ", "la z de «zapato» como la dicen en España: lengua entre los dientes, solo aire", ["think", "bath"], "consonante"),
-    _f("ð", "parecida a la d suave de «cada»: lengua entre los dientes, con zumbido", ["this", "mother"], "consonante"),
+    # D4 (Miguel, 18 sep): articulacion antes que comparacion regional. La z de
+    # España con distincion se deja como nota secundaria, no como instruccion
+    # principal ni como pronunciacion universal del español (RAE: la
+    # distincion s/z no es general ni en España ni en el resto del mundo
+    # hispanohablante). Par minimo con /ð/: mismo lugar, y = sin zumbido, ð = con.
+    _f("θ", "punta de la lengua entre los dientes, solo aire, sin zumbido (como la z en España)", ["think", "bath"], "consonante"),
+    _f("ð", "punta de la lengua entre los dientes, con zumbido (como la d suave de «cada»)", ["this", "mother"], "consonante"),
     _f("s", "s de «sol»", ["see", "bus"], "consonante"),
     _f("z", "s con zumbido, como una abeja", ["zoo", "rose"], "consonante"),
     _f("ʃ", "el «shhh» de cuando pides silencio", ["she", "fish"], "consonante"),

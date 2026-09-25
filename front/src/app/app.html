@@ -64,3 +64,7 @@
 @if (sesion.ajustesAbiertos()) {
   <app-ajustes (cerrar)="sesion.ajustesAbiertos.set(false)" />
 }
+
+<!-- Tutorial v2 (D1.1), detrás de un flag de desarrollo: se monta aquí, no
+     dentro de una pantalla, para sobrevivir a los cambios de ruta. -->
+<app-spotlight />

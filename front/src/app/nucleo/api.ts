@@ -15,6 +15,10 @@ function leerBase(): string {
 
 export const BASE_API = leerBase();
 
+/** Versión de la geometría 2D. Invalida en una sola vez los SVG anatómicos que
+ *  un navegador hubiera guardado antes de que el motor dejara de cachearlos. */
+export const VERSION_CORTE_2D = 'd4-canal-20260919';
+
 /** Un audio o recurso del motor: Wiktionary viene entero; lo nuestro, relativo. */
 export function urlMotor(ruta: string | null | undefined): string | null {
   if (!ruta) return null;
@@ -24,7 +28,7 @@ export function urlMotor(ruta: string | null | undefined): string | null {
 /** El corte de la boca de un sonido (SVG de animacion_articulatoria), animado o
  *  quieto para quien pide reducir el movimiento. */
 export function urlCorteSonido(simbolo: string, acento: Acento, quieto = false, pasada?: number | null): string {
-  const q = new URLSearchParams(quieto ? { quieto: '1' } : pasadaUnica(pasada));
+  const q = new URLSearchParams({ v: VERSION_CORTE_2D, ...(quieto ? { quieto: '1' } : pasadaUnica(pasada)) });
   return `${BASE_API}/api/articulacion/${acento}/${encodeURIComponent(simbolo)}.svg${q.size ? '?' + q : ''}`;
 }
 
@@ -38,7 +42,7 @@ function pasadaUnica(pasada: number | null | undefined): Record<string, string> 
 
 /** La boca diciendo una palabra entera, a partir de su IPA. */
 export function urlCortePalabra(ipa: string, acento: Acento, pasada?: number | null): string {
-  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento, ...pasadaUnica(pasada) })}`;
+  return `${BASE_API}/api/articulacion/palabra.svg?${new URLSearchParams({ ipa, acento, v: VERSION_CORTE_2D, ...pasadaUnica(pasada) })}`;
 }
 
 /** Lo que se le enseña al lector cuando algo falla: una frase, nunca un código. */
@@ -367,7 +371,19 @@ export interface Anotacion {
 
 export interface Cuaderno { consultas: number; palabras: number; libros: number; entradas: Anotacion[]; }
 
-export interface Repaso { palabras: Anotacion[]; voz: { palabra: string; fallos: number }[]; aviso_voz?: string | null; }
+/** D3.2: la tarjeta de repaso trae `consulta_id` — la identidad real que
+ *  hay que devolver al evaluar (`Api.evaluarRepaso`), nunca la palabra ni
+ *  la frase: el servidor recalcula esa foto desde su propio cuaderno. */
+export interface TarjetaRepaso extends Anotacion { consulta_id: number; }
+
+export interface Repaso { palabras: TarjetaRepaso[]; voz: { palabra: string; fallos: number }[]; aviso_voz?: string | null; }
+
+export type EvaluacionRepaso = 'no' | 'dude' | 'si';
+
+/** D3.3: "Mi progreso" — agregados nunca anotaciones completas. */
+export interface DiaConsultas { fecha: string; consultas: number; }
+export interface ResumenRepasos { si: number; dude: number; no: number; total: number; }
+export interface Progreso { palabras_por_dia: DiaConsultas[]; repasos: ResumenRepasos; }
 
 export interface EntradaBiblioteca {
   id: string;
@@ -492,6 +508,19 @@ export class Api {
 
   cuaderno(n = 60): Observable<Cuaderno> { return this.http.get<Cuaderno>(`${this.base}/cuaderno`, { params: { n } }); }
   repaso(): Observable<Repaso> { return this.http.get<Repaso>(`${this.base}/repaso`); }
+  /** D3.2: solo `consulta_id` + `evaluacion` — nunca la palabra/frase, que
+   *  el servidor recalcula de su propio cuaderno, no de lo que mande el
+   *  front (ver `app/api.py:evaluar_repaso`). */
+  evaluarRepaso(consulta_id: number, evaluacion: EvaluacionRepaso): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.base}/repaso`, { consulta_id, evaluacion });
+  }
+  /** D3.3: agregados para «Mi progreso» — sin relación con `progreso()`
+   *  (D2, `PUT .../progreso`, el marcapáginas de un libro). `tz` es la zona
+   *  IANA real del navegador, nunca la del servidor — si se omite o no es
+   *  válida, el backend degrada a UTC. */
+  miProgreso(tz?: string): Observable<Progreso> {
+    return this.http.get<Progreso>(`${this.base}/progreso`, { params: tz ? { tz } : {} });
+  }
   biblioteca(): Observable<{ libros: EntradaBiblioteca[] }> {
     return this.http.get<{ libros: EntradaBiblioteca[] }>(`${this.base}/biblioteca`);
   }

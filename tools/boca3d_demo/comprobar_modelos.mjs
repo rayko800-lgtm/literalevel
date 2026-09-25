@@ -30,11 +30,32 @@ for (const nombre of ['lengua.glb', 'cara.glb']) {
 const glb = readFileSync(resolve(RAIZ, 'front', 'public', 'boca3d', 'cara.glb'));
 const largoJson = glb.readUInt32LE(12);
 const doc = JSON.parse(glb.subarray(20, 20 + largoJson).toString('utf8'));
-for (const [malla, esperadas] of [['labio_superior', ['fruncir', 'estirar', 'comisura_abajo']], ['labio_inferior', ['fruncir', 'estirar', 'comisura_arriba']]]) {
-  const m = doc.meshes.find(x => x.name === malla);
+for (const [malla, esperadas] of [['labio_superior', ['fruncir', 'estirar', 'comisura_abajo']], ['labio_inferior', ['fruncir', 'estirar', 'comisura_arriba']],
+  ['cabeza_lejana', ['fruncir', 'estirar', 'labio_atras', 'cierre_labios', 'compresion_labios']],
+  ['cabeza_cercana', ['fruncir', 'estirar', 'labio_atras', 'cierre_labios', 'compresion_labios']]]) {
+  const nodo = doc.nodes.find(x => x.name === malla);
+  const m = nodo?.mesh !== undefined ? doc.meshes[nodo.mesh] : doc.meshes.find(x => x.name === malla);
   const nombres = m?.extras?.targetNames ?? [];
   const faltan = esperadas.filter(n => !nombres.includes(n));
   console.log(`${faltan.length ? 'FALTAN' : 'OK   '} ${malla}: shape keys ${JSON.stringify(nombres)}`);
   if (faltan.length) fallos++;
+}
+for (const [nombre, antes] of [['cara.glb', 1902952], ['lengua.glb', 769224]]) {
+  const bytes = readFileSync(resolve(RAIZ, 'front', 'public', 'boca3d', nombre)).length;
+  const cumple = bytes <= antes * 1.15;
+  console.log(`${cumple ? 'OK   ' : 'EXCESO'} ${nombre}: ${bytes} bytes, limite ${Math.floor(antes * 1.15)}`);
+  if (!cumple) fallos++;
+}
+// D4.4b v4: hidrostato de la lengua (misma regla que medir_lengua.mjs --exigir).
+// Lote fase 2: en TODAS las poses del catálogo, no solo las 13 del piloto.
+{
+  const { execFileSync } = await import('node:child_process');
+  try {
+    const salida = execFileSync(process.execPath, [resolve(RAIZ, 'tools', 'boca3d_demo', 'medir_lengua.mjs'), '--exigir'], { encoding: 'utf8' });
+    console.log('OK    lengua.glb: ' + (salida.trim().split(/\r?\n/).pop() ?? ''));
+  } catch (e) {
+    console.log('FALLA lengua.glb: hidrostato ' + String(e.stderr ?? e.message).trim().slice(0, 300));
+    fallos++;
+  }
 }
 process.exit(fallos ? 1 : 0);

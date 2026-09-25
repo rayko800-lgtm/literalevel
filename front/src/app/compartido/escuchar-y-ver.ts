@@ -21,7 +21,7 @@ export interface PeticionEscuchar {
   voz?: VozNavegador;
   /** Los cortes que vuelven a empezar cuando empieza a sonar. */
   cortes: CorteEnPantalla[];
-  /** «Más lento» (Miguel, 14 sep): 1, 0,5 o 0,25. El audio va a esa velocidad
+  /** Velocidad discreta elegida por el lector. El audio va a esa velocidad
    *  sin cambiar el tono y el corte dura lo que dura el audio así. */
   velocidad?: number;
 }
@@ -39,7 +39,9 @@ export interface EntornoEscuchar {
 const entornoNavegador: EntornoEscuchar = {
   crearAudio: url => { const a = new Audio(url); a.preload = 'auto'; return a; },
   traerSvg: async url => {
-    const r = await fetch(url);
+    // La anatomía debe venir del motor actual: una respuesta antigua de la
+    // caché HTTP no puede reaparecer al convertirla en blob en cada replay.
+    const r = await fetch(url, { cache: 'no-store' });
     if (!r.ok) throw new Error(String(r.status));
     return r.blob();
   },
@@ -65,6 +67,10 @@ const entornoNavegador: EntornoEscuchar = {
  *  y a 0,25× pasa de 30. */
 export const DURACION_MAXIMA = 30;
 
+/** Únicas velocidades admitidas por audio, corte 2D y visor 3D. */
+export const VELOCIDADES_REPRODUCCION = [0.25, 0.5, 1, 1.25] as const;
+export type VelocidadReproduccion = (typeof VELOCIDADES_REPRODUCCION)[number];
+
 /** La duración que se le pide al SVG: la del audio, redondeada a 0,1 s (así la
  *  caché no se multiplica) y dentro de lo que acepta la API, 0,3..30. */
 export function duracionParaCorte(segundos: number): number | null {
@@ -73,8 +79,8 @@ export function duracionParaCorte(segundos: number): number | null {
 }
 
 /** Velocidades de «Más lento»: 1, 0,5 y 0,25; lo demás vuelve a 1. */
-export function velocidadValida(v: number | undefined): number {
-  return v === 0.5 || v === 0.25 ? v : 1;
+export function velocidadValida(v: number | undefined): VelocidadReproduccion {
+  return VELOCIDADES_REPRODUCCION.includes(v as VelocidadReproduccion) ? v as VelocidadReproduccion : 1;
 }
 
 /** «Escuchar y ver» (Miguel, 14 sep): un botón que hace sonar el sonido o la

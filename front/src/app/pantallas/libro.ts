@@ -124,8 +124,11 @@ import { Sesion } from '../nucleo/sesion';
               @if (curva(); as cv) {
                 @if (cv.filas.length === 1) {
                   <!-- Con una sola medida no hay tendencia ni «más llevadero» que decir: la API
-                       calcula la forma con la segunda mitad vacía y salía «Se va soltando». -->
-                  <p class="suave un-capitulo">Es un texto de un solo capítulo, así que no hay curva que dibujar: su dificultad es {{ num(cv.filas[0].dificultad) }} ({{ cefr(cv.filas[0].dificultad) }}).</p>
+                       calcula la forma con la segunda mitad vacía y salía «Se va soltando» — por
+                       eso aquí NO se usa <app-curva> (D3.3, Miguel: nunca dibujar una curva falsa
+                       con un solo punto). En su lugar, una comparación real: nivel del lector
+                       contra dificultad del libro, en la misma escala pública 0–2 de siempre. -->
+                  <p class="suave un-capitulo">Es un texto de un solo capítulo, así que no hay curva que dibujar.</p>
                 } @else if (cv.filas.length) {
                   <p class="suave">
                     @switch (cv.forma) {
@@ -144,6 +147,27 @@ import { Sesion } from '../nucleo/sesion';
               <span class="chip">{{ fuentes[f] }}</span>
             }
           </div>
+
+          @if (curva(); as cv) {
+            @if (cv.filas.length === 1) {
+              <div class="escala-dificultad" role="img" [attr.aria-label]="descripcionEscala(cv.filas[0].dificultad)">
+                <div class="pista">
+                  @if (perfil(); as p) {
+                    <span class="marca tu" [style.left.%]="pctEscala(p.nivel)"><b>Tú</b></span>
+                  }
+                  <span class="marca libro" [style.left.%]="pctEscala(cv.filas[0].dificultad)"><b>Libro</b></span>
+                </div>
+                <div class="eje"><span>0</span><span>2</span></div>
+                <p class="tenue pequeno">
+                  @if (perfil(); as p) {
+                    Tú: {{ num(p.nivel) }} · Libro: {{ num(cv.filas[0].dificultad) }} ({{ cefr(cv.filas[0].dificultad) }})
+                  } @else {
+                    Dificultad del libro: {{ num(cv.filas[0].dificultad) }} ({{ cefr(cv.filas[0].dificultad) }}). Mide tu nivel para comparar.
+                  }
+                </p>
+              </div>
+            }
+          }
 
           @if (trabajo(); as t) {
             <div class="progreso-medida">
@@ -273,6 +297,15 @@ import { Sesion } from '../nucleo/sesion';
     .n { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--superficie); font-weight: 650; font-size: .85rem; }
     .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .curva { margin-bottom: 1.25rem; }
+    /* D3.3: comparación nivel-vs-dificultad para libros de un solo capítulo. */
+    .escala-dificultad { margin-top: .75rem; }
+    .pista { position: relative; height: 2.2rem; background: var(--superficie-3); border-radius: 999px; margin-bottom: .3rem; }
+    .marca { position: absolute; top: -1.5rem; transform: translateX(-50%); display: grid; justify-items: center;
+      font-size: .78rem; font-weight: 650; color: var(--texto-suave); white-space: nowrap; }
+    .marca::after { content: '▲'; display: block; color: inherit; margin-top: -.1rem; }
+    .marca.tu { color: var(--acento-texto); }
+    .marca.libro { color: var(--verde); }
+    .eje { display: flex; justify-content: space-between; font-size: .78rem; color: var(--texto-tenue); padding: 0 .2rem; }
     .cab-seccion { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
     .cab-seccion h2 { margin-bottom: .25rem; }
     .progreso-medida { display: grid; gap: .8rem; }
@@ -435,4 +468,17 @@ export class FichaLibro implements OnDestroy {
   }
 
   protected abrirAjustes(): void { this.sesion.abrirPerfil(); }
+
+  /** D3.3: posición en la escala pública 0–2, en %, para el libro de un
+   *  solo capítulo. Mismos datos que ya usa el resto de la ficha
+   *  (`l.dificultad`/`perfil().nivel`), sin tocar `scoring.py`. */
+  protected pctEscala(valor: number): number {
+    return Math.max(0, Math.min(100, (valor / 2) * 100));
+  }
+
+  protected descripcionEscala(dificultadLibro: number): string {
+    const libro = `dificultad del libro ${this.num(dificultadLibro)} de 2 (${this.cefr(dificultadLibro)})`;
+    const p = this.perfil();
+    return p ? `Comparación en una escala de 0 a 2: tu nivel ${this.num(p.nivel)}, ${libro}.` : `Escala de 0 a 2: ${libro}.`;
+  }
 }

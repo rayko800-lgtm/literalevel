@@ -32,7 +32,10 @@ import bpy
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, "..", ".."))
 SALIDA = os.environ.get("SALIDA_GLB", os.path.join(AQUI, "..", "boca3d_demo", "lengua.glb"))
+MAND_MAX = 0.21   # radianes con mandibula = 1: el MISMO valor que MAND_MAX en escena.ts y cara.py
+                  # (cierre de cara, 22 sep: 0,42 -> 0,21; la lengua tiene menos sitio al abrir)
 POSES = os.path.join(RAIZ, "front", "src", "app", "compartido", "boca3d", "poses.ejemplo.json")
+AJUSTES_3D = os.path.join(RAIZ, "front", "src", "app", "compartido", "boca3d", "poses.ajustes3d.json")
 
 # --- El techo de la boca, igual que en escena.ts -----------------------------
 
@@ -42,7 +45,22 @@ GROSOR_PALADAR = 0.26
 PIVOTE_VELO, LARGO_VELO = (2.05, 1.22), 1.2
 VELO_CERRADO, VELO_ABIERTO = -0.44, -1.22
 SUELO_Y = -1.1                                  # cara de arriba del suelo de la boca
-FARINGE_X = 3.0                                 # cara delantera de la pared
+FARINGE_X = 3.0                                 # cara delantera de la pared (referencia; la comprobacion usa PARED_FARINGE)
+# Lote fase 1 (22 sep): la cara delantera de la pared faringea de cara.glb
+# (pieza `faringe`, |lateral| < 0,3), medida en la demo por franjas de altura:
+# (altura, x). Las roticas de GA llevan la raiz contra ella (constriccion).
+PARED_FARINGE = [(1.6, 2.82), (1.2, 2.94), (0.8, 2.99), (0.4, 3.0), (0.0, 2.97), (-0.4, 2.93),
+                 (-0.8, 2.89), (-1.2, 2.84), (-1.6, 2.78), (-2.0, 2.70)]
+
+
+def pared_faringe(alt):
+    """x de la cara delantera de la pared faringea a la altura `alt` (interpolada)."""
+    if alt >= PARED_FARINGE[0][0]:
+        return PARED_FARINGE[0][1]
+    for (a0, x0), (a1, x1) in zip(PARED_FARINGE, PARED_FARINGE[1:]):
+        if a1 <= alt <= a0:
+            return x1 + (x0 - x1) * (alt - a1) / (a0 - a1)
+    return PARED_FARINGE[-1][1]
 HOLGURA = 0.06                                  # separacion minima con el techo
 TOLERANCIA_TOQUE = 0.08                         # lo que puede entrar cuando toca (punta_toca, dorso_velo)
 
@@ -166,8 +184,9 @@ ob.name = "lengua"
 ob.data.name = "lengua"
 bpy.ops.object.shade_smooth()
 
-LARGO, ANCHO, ALTO = 2.2, 1.0, 0.42   # semiejes
+LARGO, ANCHO, ALTO = 2.2, 1.0, 0.39   # semiejes (v5: 0,42 -> 0,39, la lengua se veia gruesa)
 CENTRO = (0.2, 0.0, -0.45)            # la punta queda en x=-2.0, la raiz en 2.4
+PUNTA_N = 2.9                          # v5: 3,2 -> 2,9, punta algo menos roma
 
 
 def suave(t):
@@ -185,11 +204,18 @@ def campana(x, c, w):
 
 for v in ob.data.vertices:
     ux, uy, uz = v.co.x, v.co.y, v.co.z          # en la esfera unidad
+    if ux < 0:
+        # D4.4b v4: punta roma (superelipse, N=3,2) en vez del apice de un
+        # elipsoide. A 0,2 del apice la seccion conserva ~el 90 % del grosor de
+        # la lamina: la punta se redondea, no se afila (lamina y punta 11-14 mm).
+        rho = math.sqrt(max(0.0, 1 - ux * ux))
+        ux = -(1 - rho ** PUNTA_N) ** (1 / PUNTA_N)
     x, y, z = ux * LARGO, uy * ANCHO, uz * ALTO
-    # Afinar hacia la punta (mas estrecha y mas plana).
-    f = 0.42 + 0.58 * rampa(x, -2.2, -0.3)
+    # Piloto D4.4b: punta redondeada con espesor, no una lamina.
+    # Se conserva la topologia; el ensanchamiento acaba en el predorso.
+    f = 0.76 + 0.24 * rampa(x, -2.2, -0.3)
     y *= f
-    z *= 0.55 + 0.45 * rampa(x, -2.2, -0.9)
+    z *= 0.92 + 0.08 * rampa(x, -2.2, -0.9)
     # Seccion con bordes: arriba plano y las esquinas marcadas, abajo mas redondo.
     lateral = abs(uy)
     if z > 0:
@@ -197,8 +223,9 @@ for v in ob.data.vertices:
         z += 0.03 * campana(lateral, 0.78, 0.16) * rampa(x, -1.8, -0.8)   # el borde lateral, suave
         z -= 0.05 * campana(y, 0.0, 0.16) * rampa(x, -1.6, -0.6) * (1 - rampa(x, 1.2, 2.2))  # surco
     # La raiz baja hacia el suelo de la boca y engorda: no queda flotando.
-    z -= 0.7 * rampa(x, 1.0, 2.4)
-    y *= 1 + 0.15 * rampa(x, 0.6, 2.0)
+    z *= 1 + 0.35 * rampa(x, 0.3, 2.1)
+    z -= 0.55 * rampa(x, 0.35, 2.4)
+    y *= 1 + 0.28 * rampa(x, 0.3, 2.0)
     v.co = (x + CENTRO[0], y + CENTRO[1], z + CENTRO[2])
 
 # La forma base tampoco roza dientes ni encias.
@@ -215,17 +242,36 @@ ob.shape_key_add(name="Basis", from_mix=False)
 CLAVES = {}
 
 
-def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0)):
+def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0), libre=False):
     """`delta(x, y, z) -> (dx, dy, dz)` sobre la forma base; el resultado no
     entra en el techo (salvo la holgura de un toque, si `toca`). `margen_x`
     recorta tambien contra el techo desplazado, porque otra shape key
-    (cuerpo_delante, cuerpo_atras) puede mover la lengua en x a la vez."""
+    (cuerpo_delante, cuerpo_atras) puede mover la lengua en x a la vez.
+
+    `libre` (D4.4b v4): sin recorte por vertice. El recorte se hace con la
+    boca CERRADA, pero /θ ð/ se dicen con la mandibula abierta (0,36): contra
+    ese techo y esos incisivos la punta quedaba aplastada y arrugada. Una
+    clave libre tiene que caber por su propia forma; la comprobacion por pose
+    de abajo (con el giro real de la mandibula) es la que la valida."""
     k = ob.shape_key_add(name=nombre, from_mix=False)
     deltas = []
     muestras = [margen_x[0] + (margen_x[1] - margen_x[0]) * j / 4 for j in range(5)]
     for i, (x, y, z) in enumerate(base):
         dx, dy, dz = delta(x, y, z)
         nx, nz = x + dx, z + dz
+        if libre:
+            # Los dientes de abajo giran con la lengua: en coordenadas locales
+            # valen. Solo se aparta de lado (los bordes de la lamina sobre los
+            # premolares); nunca hacia arriba, que es lo que aplastaba la punta.
+            ny = y + dy
+            for _ in range(30):
+                if pen_inferior(nx, nz, ny) > -HOLGURA and abs(ny) > 0.45:
+                    ny -= math.copysign(0.02, ny)
+                else:
+                    break
+            k.data[i].co = (nx, ny, nz)
+            deltas.append((dx, ny - y, dz))
+            continue
         tope = min(techo(nx + d, velo_abierto) for d in muestras) - (-TOLERANCIA_TOQUE if toca else HOLGURA)
         if nz > tope:
             nz = tope
@@ -243,22 +289,89 @@ def clave(nombre, delta, velo_abierto=False, toca=False, margen_x=(0.0, 0.0)):
 
 punta_w = lambda x: 1 - rampa(x, -2.0, -0.6)
 cuerpo_w = lambda x: campana(x, 0.1, 1.3)
-dorso_w = lambda x: campana(x, 1.45, 0.75)
+dorso_w = lambda x: campana(x, 1.45, 1.05)
 raiz_w = lambda x: rampa(x, 0.8, 2.4)
 arriba = lambda z: 0.6 + 0.4 * (z > CENTRO[2])    # la cara de arriba sube mas que la de abajo
 
 clave("mandibula", lambda x, y, z: (0.0, 0.0, -0.55 * (0.35 + 0.65 * raiz_w(x))), margen_x=(-0.7, 0.6))
-clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.0, 1.15 * punta_w(x) ** 1.3), toca=True, margen_x=(-0.3, 0.1))
+# Lote fase 2 (hidrostato): `punta_arriba` estrechaba TODO el cuerpo un 16 %
+# (-0,16 y (1 - punta_w)), compensacion del engorde de la antigua `cuerpo_alto`;
+# sin ese engorde dejaba /t d n/ en -12 %. Ahora el cuerpo se estrecha un 4 %.
+clave("punta_arriba", lambda x, y, z: (0.1 * punta_w(x), 0.16 * y * punta_w(x) - 0.04 * y * (1 - punta_w(x)), 1.15 * punta_w(x) ** 1.3 + 0.65 * min(0, z - CENTRO[2]) * punta_w(x)), toca=True, margen_x=(-0.3, 0.1))
 # Retrofleja: la punta se alza y se recoge un poco; la lamina sube con ella
 # para que la punta no se doble sobre el cuerpo (comprobado abajo).
 clave("punta_atras", lambda x, y, z: (0.4 * punta_w(x) ** 1.5, 0.0, 0.95 * punta_w(x) + 0.3 * campana(x, -0.9, 0.5)))
-clave("punta_interdental", lambda x, y, z: (-0.95 * punta_w(x), 0.0, 1.25 * punta_w(x)), margen_x=(-0.5, 0.1))
-clave("cuerpo_alto", lambda x, y, z: (0.0, 0.0, 1.35 * cuerpo_w(x) * arriba(z)), margen_x=(-0.8, 0.7))
+# Compensa lateralmente el alargamiento: el volumen de /theta/ queda cerca
+# del reposo, conservando la nueva punta gruesa y el frente x=-3,03.
+def interdental(x, y, z):
+    """/θ ð/ (D4.4b v4): toda la lengua avanza (la raiz algo menos) y la
+    parte anterior sube por cizalla vertical, que conserva el volumen y el
+    grosor. La lamina se ensancha un poco. Sin recorte por vertice (`libre`):
+    la punta queda entre los incisivos con la mandibula de la pose abierta."""
+    avance = 0.85 * (1 - 0.25 * rampa(x, -1.0, 2.4))
+    alza = INTERDENTAL_ALZA * (1 - rampa(x, -1.9, 0.8))
+    # Hidrostato: el avance estira el cuerpo (~5 % de largo); la seccion del
+    # cuerpo se adelgaza en la misma medida. La punta conserva su grosor.
+    fino = rampa(x, -1.4, 0.4)
+    return (-avance, -0.035 * y * fino, alza - 0.035 * (z - CENTRO[2]) * fino)
+
+
+# Cierre de cara (22 sep): con MAND_MAX 0,21 y la mandibula de /θ ð/ en 0,36 la
+# punta (0,64 de grosor) no cabia entre los bordes incisales (hueco 0,54): o
+# chocaba arriba (alza 1,25 -> y 0,63 > 0,45) o se hundia en las coronas de
+# abajo (alza 0,88-0,93 -> roce +0,037). Decision de e6/Miguel: la mandibula
+# de /θ ð/ sube a 0,6 en poses.ejemplo.json (dato, no excepcion en codigo) y la
+# alza aprobada en v4 se conserva.
+INTERDENTAL_ALZA = 1.25
+clave("punta_interdental", interdental, libre=True)
+# Lote fase 2 (hidrostato): la cara de abajo subia 0,81 y la de arriba 1,35: la
+# lengua engordaba en vez de subir (17 de 47 poses fuera de +-10 %, /u i j/ hasta
+# +49 %). Ahora la de abajo sube 1,08 (80 %) y la seccion se estrecha a lo ancho
+# lo que engorda: el cuerpo sube y se hace mas alto y estrecho, como un hidrostato.
+arriba_alto = lambda z: 0.8 + 0.2 * (z > CENTRO[2])
+clave("cuerpo_alto", lambda x, y, z: (0.0, -0.20 * y * cuerpo_w(x), 1.35 * cuerpo_w(x) * arriba_alto(z)), margen_x=(-0.8, 0.7))
 clave("cuerpo_bajo", lambda x, y, z: (0.0, 0.0, -0.7 * cuerpo_w(x)), margen_x=(-0.7, 0.6))
 clave("cuerpo_delante", lambda x, y, z: (-0.8 * campana(x, 0.0, 2.0), 0.0, 0.0))
 clave("cuerpo_atras", lambda x, y, z: (0.7 * campana(x, 0.3, 2.0), 0.0, 0.0))
-clave("dorso_velo", lambda x, y, z: (0.15 * dorso_w(x), 0.0, 1.6 * dorso_w(x) * arriba(z)), velo_abierto=True, toca=True, margen_x=(-0.1, 0.4))
-clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), 0.0, -0.1 * raiz_w(x)))
+# La cara inferior acompaña al dorso: el antiguo salto 0,6/1,0 estiraba
+# solo el techo de la lengua y estrangulaba el puente hacia la raiz.
+def elevar_dorso(x, y, z):
+    # Cupula ancha, con descenso continuo: la campana anterior y el recorte
+    # escalonado contra el velo abierto dejaban un pico seguido de un gancho.
+    # La base no cambia. El mismo desplazamiento sube ambas caras de la masa.
+    ascenso = rampa(x, -0.8, 1.0)
+    descenso = 1 - rampa(x, 1.75, 2.55)
+    # El predorso debe dejar espacio a cuerpo_alto cuando ambos se suman.
+    alza = 2.05 * ascenso * descenso - 0.60 * campana(x, 0.8, 0.55)
+    # Limitar el desplazamiento de TODA la seccion, no recortar sus vertices
+    # superiores por separado: eso aplastaba el grosor y producia una aleta.
+    u = (x - CENTRO[0]) / LARGO
+    cima = (ALTO * math.sqrt(max(0.0, 1 - u * u))
+            * (0.92 + 0.08 * rampa(x - CENTRO[0], -2.2, -0.9))
+            * (1 + 0.35 * rampa(x - CENTRO[0], 0.3, 2.1))
+            - 0.55 * rampa(x - CENTRO[0], 0.35, 2.4) + CENTRO[2] + 0.03)
+    limite = min(techo(x + d, True) for d in [-0.1, -0.005, 0.09, 0.185, 0.28]) + TOLERANCIA_TOQUE
+    alza = min(alza, limite - cima)
+    alza += 0.10 * rampa(x, 1.0, 1.25) * (1 - rampa(x, 1.65, 1.9))
+    # El extremo queda enterrado en el suelo: no acaba en una punta flotante.
+    # La cara inferior se prolonga hacia delante al bajar: espesor horizontal
+    # de la raiz, que en una esfera simplemente estirada se vuelve una aleta.
+    base_raiz = rampa(x, 0.9, 2.2) * rampa(-z, 0.45, 1.15)
+    # El suelo se queda bajo la cúpula: levantar toda la sección creaba
+    # un tubo arqueado. La cara inferior conserva masa hasta la raíz.
+    inferior = rampa(-z, 0.5, 0.95)
+    # Hidrostato (D4.4b v4): la cara de abajo sube casi tanto como la de
+    # arriba (el suelo de la boca acompaña al dorso) y la parte anterior se
+    # recoge y baja: la masa que sube al velo sale de la lamina, no se crea.
+    recoge = 1 - rampa(x, -1.7, 0.3)
+    return (-0.55 * base_raiz + 0.5 * recoge, -0.08 * y * recoge,
+            alza * (1 - 0.07 * inferior) - 0.36 * recoge - 0.65 * rampa(x, 1.85, 2.4))
+
+clave("dorso_velo", elevar_dorso, velo_abierto=True, toca=True, margen_x=(-0.1, 0.28))
+# Lote fase 2 (hidrostato): la raiz se va 0,5 atras y la lengua se alargaba sin
+# adelgazar (/ɹ/ +10,5 puntos de volumen solo por `raiz`); ahora estrecha a lo
+# ancho en la misma medida que se alarga.
+clave("raiz_atras", lambda x, y, z: (0.5 * raiz_w(x), -0.16 * y * raiz_w(x), -0.08 * raiz_w(x)))
 
 MORFOS = ["mandibula", "punta_arriba", "punta_atras", "punta_interdental", "cuerpo_alto", "cuerpo_bajo",
           "cuerpo_delante", "cuerpo_atras", "dorso_velo", "raiz_atras"]
@@ -271,14 +384,21 @@ def morfos_de(p):
     punta = p["punta"]
     return [
         0.3 * min(1.0, max(0.0, p["mandibula"])),
-        (1.0 if toca else 0.75) if punta in ("alveolar", "postalveolar") else 0.45 if punta == "dental" else 0.0,
+        # Cierre de cara: postalveolar con toque 0,85 (era 1,0): con la mandibula
+        # de 0,21 rad la suma punta_arriba + cuerpo_alto de /tʃ dʒ/ entraba
+        # 0,155 en el paladar (toque permitido 0,08). Mismo valor en escena.ts
+        # (morfosDe) y en tools/boca3d_demo/medir_lengua.mjs.
+        (1.0 if toca and punta == "alveolar" else 0.85 if toca else 0.75) if punta in ("alveolar", "postalveolar") else 0.45 if punta == "dental" else 0.0,
         1.0 if punta == "retrofleja" else 0.0,
         1.0 if punta == "interdental" else 0.0,
         max(0.0, (alt - 0.45) / 0.55),
         max(0.0, (0.45 - alt) / 0.45),
         max(0.0, (ade - 0.5) / 0.5),
         max(0.0, (0.5 - ade) / 0.5),
-        1.0 if p["dorso_velo"] else min(1.0, p["dorso_alto"]),
+        # Cierre de cara: sin toque, el dorso sube un 10 % menos (/w/ entraba
+        # 0,013 en el velo con la mandibula de 0,21). Mismo factor en escena.ts
+        # (morfosDe) y en medir_lengua.mjs.
+        1.0 if p["dorso_velo"] else 0.9 * min(1.0, p["dorso_alto"]),
         min(1.0, max(0.0, p["raiz"])),
     ]
 
@@ -287,14 +407,56 @@ def morfos_de(p):
 
 with open(POSES, encoding="utf-8") as f:
     catalogo = json.load(f)
+# Lote fase 1: los ajustes del 3D (poses.ajustes3d.json) encima de la
+# exportacion, con la misma regla que `conAjustes3d` en poses.ts: campos
+# sueltos por simbolo; un simbolo RP sin entrada propia parte de su pose de GA.
+if os.path.exists(AJUSTES_3D):
+    with open(AJUSTES_3D, encoding="utf-8") as f:
+        ajustes = json.load(f)
+    for simbolo, extra in ajustes.get("sonidos", {}).items():
+        if simbolo in catalogo["sonidos"]:
+            catalogo["sonidos"][simbolo] = {**catalogo["sonidos"][simbolo], **extra}
+    for simbolo, extra in ajustes.get("rp", {}).items():
+        pose_base = catalogo["rp"].get(simbolo) or catalogo["sonidos"].get(simbolo)
+        if pose_base:
+            catalogo["rp"][simbolo] = {**pose_base, **extra}
 poses = dict(catalogo["sonidos"])
 poses.update({f"rp:{k}": v for k, v in catalogo["rp"].items()})
 poses["reposo"] = catalogo["reposo"]
+
+CARAS = [list(pg.vertices) for pg in ob.data.polygons]
+
+
+def volumen(puntos):
+    """Volumen de la malla cerrada (teorema de la divergencia, caras en abanico)."""
+    v = 0.0
+    for cara in CARAS:
+        a = puntos[cara[0]]
+        for i in range(1, len(cara) - 1):
+            b, c = puntos[cara[i]], puntos[cara[i + 1]]
+            v += (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0])
+                  + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6.0
+    return abs(v)
+
+
+def grosor_en(puntos, x0, ancho=0.2, lateral=0.15):
+    """Grosor vertical de la linea media en la franja [x0, x0 + ancho]."""
+    zs = [p[2] for p in puntos if x0 <= p[0] <= x0 + ancho and abs(p[1]) < lateral]
+    return max(zs) - min(zs) if len(zs) >= 2 else 0.0
+
+
+VOLUMEN_BASE = volumen(base)
+# Hidrostato (D4.4b v4): ninguna pose cambia el volumen mas de un 10 %, y la
+# punta (a 0,2 del apice) nunca es mas fina que el 75 % de la lamina (a 0,75).
+TOL_VOLUMEN, PUNTA_MIN_RELATIVA = 0.10, 0.75
+volumenes, grosores = {}, {}
 
 informe = []
 peor = 0.0
 peor_pliegue = 0.0
 peor_roce = -9.0        # cuanto entra la lengua en dientes, encias o hueso (negativo = holgura)
+peor_faringe = -9.0     # cuanto entra la raiz en la pared faringea (negativo = holgura); las roticas toleran un toque
+faringes = {}
 interdentales = []
 ES_PUNTA = [punta_w(x) > 0.6 for x, _, _ in base]
 ES_CUERPO = [punta_w(x) < 0.15 for x, _, _ in base]
@@ -303,8 +465,8 @@ for nombre, p in poses.items():
     toca = p["punta_toca"] or p["dorso_velo"]
     permitido = TOLERANCIA_TOQUE if toca else 0.0
     entra = 0.0
-    pos = []
-    angulo = min(1.0, max(0.0, p["mandibula"])) * 0.42
+    pos, pos_local = [], []
+    angulo = min(1.0, max(0.0, p["mandibula"])) * MAND_MAX
     coseno, seno = math.cos(angulo), math.sin(angulo)
     roce_sup = roce_inf = -9.0
     for i, (x, y, z) in enumerate(base):
@@ -312,23 +474,37 @@ for nombre, p in poses.items():
         ny = y + sum(w * CLAVES[m][i][1] for w, m in zip(inf, MORFOS))
         nz = z + sum(w * CLAVES[m][i][2] for w, m in zip(inf, MORFOS))
         # Los dientes de abajo giran con la lengua: se miden en coordenadas locales.
-        roce_inf = max(roce_inf, pen_inferior(nx, nz, ny))
+        r_inf = pen_inferior(nx, nz, ny)
+        if os.environ.get("DEBUG_POSE") == nombre and r_inf > 0.0:
+            print("DEBUG_ROCE_INF", nombre, [round(c, 3) for c in (nx, ny, nz)], round(r_inf, 3))
+        roce_inf = max(roce_inf, r_inf)
         # EscenaBoca monta el GLB dentro de la mandibula: comparar el techo
         # contra coordenadas locales ocultaba el error de la punta interdental.
+        pos_local.append((nx, ny, nz))
         nx, nz = (2.6 + (nx - 2.6) * coseno - (nz - 0.9) * seno,
                   0.9 + (nx - 2.6) * seno + (nz - 0.9) * coseno)
         pos.append((nx, ny, nz))
         entra = max(entra, nz - techo(nx, p["velo_abierto"]))
         # Los de arriba estan fijos: se miden con la lengua ya girada.
-        roce_sup = max(roce_sup, pen_superior(nx, nz, ny))
+        r_sup = pen_superior(nx, nz, ny)
+        if os.environ.get("DEBUG_POSE") == nombre and r_sup > 0.0:
+            print("DEBUG_ROCE_SUP", nombre, [round(c, 3) for c in (nx, ny, nz)], round(r_sup, 3))
+        roce_sup = max(roce_sup, r_sup)
     # La lengua no se dobla sobre si misma: ningun vertice de la punta queda
-    # por debajo de la cara de arriba del cuerpo en su misma vertical.
-    cuerpo = [(px, py, pz) for (px, py, pz), c in zip(pos, ES_CUERPO) if c]
+    # por debajo de la cara de arriba del cuerpo en su misma vertical. Se mide
+    # en coordenadas LOCALES (antes del giro de la mandibula): el giro es
+    # rigido para toda la lengua y, con la punta gruesa y la boca muy abierta
+    # (/æ/), las columnas giradas mezclaban el vientre de la punta con el
+    # dorso y daban un pliegue falso de 0,7.
+    cuerpo = [(px, py, pz) for (px, py, pz), c in zip(pos_local, ES_CUERPO) if c]
     pliegue = 0.0
-    for (px, py, pz), es_punta in zip(pos, ES_PUNTA):
+    for (px, py, pz), es_punta in zip(pos_local, ES_PUNTA):
         if not es_punta:
             continue
         techo_cuerpo = max((cz for cx, cy, cz in cuerpo if abs(cx - px) < 0.1 and abs(cy - py) < 0.12), default=-9.0)
+        if os.environ.get("DEBUG_POSE") == nombre and techo_cuerpo - pz > 0.3:
+            print("DEBUG_PLIEGUE", nombre, "punta", [round(c, 3) for c in (px, py, pz)],
+                  "cuerpo", [[round(c, 3) for c in v] for v in cuerpo if abs(v[0] - px) < 0.1 and abs(v[1] - py) < 0.12][:2])
         pliegue = max(pliegue, techo_cuerpo - pz)
     exceso = entra - permitido
     if p["punta"] == "interdental":
@@ -337,8 +513,22 @@ for nombre, p in poses.items():
         y_min, y_max = min(v[2] for v in punta), max(v[2] for v in punta)
         assert frente < -2.72 and y_min > -0.41 and y_max < 0.45, (nombre, frente, y_min, y_max)
         interdentales.append((nombre, round(frente, 4), round(y_min, 4), round(y_max, 4)))
-    roce = max(roce_sup, roce_inf)
+    # En /θ ð/ la lengua DESCANSA sobre los incisivos de abajo (es la postura):
+    # se tolera el mismo toque que contra el paladar cuando la punta toca.
+    roce = max(roce_sup, roce_inf) - (TOLERANCIA_TOQUE if p["punta"] == "interdental" else 0.0)
+    # Lote fase 1: la raiz contra la pared faringea, en coordenadas del mundo
+    # (`pos` es (x, lateral, altura)). Una rotica de GA la roza a proposito
+    # (constriccion faringea): se le tolera lo mismo que a un toque.
+    faringe = max((x - pared_faringe(alt) for x, lat, alt in pos if x > 2.0 and abs(lat) < 0.3), default=-9.0)
+    # Una rotica de GA la roza a proposito (toque); a las demas se les deja el
+    # grosor de la banda de la pared (radio 0,075): nada asoma por detras.
+    faringe -= TOLERANCIA_TOQUE if p.get("rotica") else 0.06
+    faringes[nombre] = round(faringe, 3)
+    peor_faringe = max(peor_faringe, faringe)
     informe.append((nombre, round(entra, 3), round(exceso, 3), round(pliegue, 3), round(roce, 3)))
+    volumenes[nombre] = round(volumen(pos) / VOLUMEN_BASE - 1, 4)
+    frente_x = min(v[0] for v in pos_local)
+    grosores[nombre] = (round(grosor_en(pos_local, frente_x + 0.2), 3), round(grosor_en(pos_local, frente_x + 0.75), 3))
     peor = max(peor, exceso)
     peor_roce = max(peor_roce, roce)
     peor_pliegue = max(peor_pliegue, pliegue)
@@ -375,9 +565,21 @@ print("LENGUA_OK", json.dumps({
     "targetNames": malla.get("extras", {}).get("targetNames"),
     "poses_comprobadas": len(poses), "peor_exceso": round(peor, 3), "peor_pliegue": round(peor_pliegue, 3),
     "peor_roce_dientes": round(peor_roce, 3),
+    "peor_faringe": round(peor_faringe, 3),
+    "faringe (pose: entra en la pared, negativo = holgura)": {k: v for k, v in sorted(faringes.items(), key=lambda t: -t[1])[:8]},
     "interdentales (nombre, x, ymin, ymax)": interdentales,
     "peores (nombre, entra, exceso, pliegue, roce)": sorted(informe, key=lambda r: -max(r[2], r[3], r[4]))[:6],
+    "volumen_base": round(VOLUMEN_BASE, 4),
+    "volumen (pose: relativo a la base)": {k: volumenes[k] for k in ["reposo", "θ", "ð", "s", "t", "k", "ŋ", "p", "m", "f", "n"] if k in volumenes},
+    "peor_volumen": max(volumenes.items(), key=lambda kv: abs(kv[1])),
+    "grosor (pose: punta, lamina)": {k: grosores[k] for k in ["reposo", "θ", "ð", "s", "t", "k", "ŋ", "p", "f", "n"] if k in grosores},
 }, ensure_ascii=False))
-if peor > 0.005 or peor_pliegue > 0.005 or peor_roce > 0.005:
-    print("COLISION: alguna pose entra en el techo, en los dientes, o la punta se dobla sobre el cuerpo", file=sys.stderr)
+fuera_volumen = {k: v for k, v in volumenes.items() if abs(v) > TOL_VOLUMEN}
+punta_fina = {k: g for k, g in grosores.items() if g[1] > 0 and g[0] < PUNTA_MIN_RELATIVA * g[1]}
+print("HIDROSTATO", json.dumps({"fuera_de_volumen": fuera_volumen, "punta_mas_fina_que_lamina": punta_fina}, ensure_ascii=False))
+if os.environ.get("EXIGIR_HIDROSTATO") == "1" and (fuera_volumen or punta_fina):
+    print("HIDROSTATO: volumen fuera de ±10 % o punta mas fina que la lamina", file=sys.stderr)
+    sys.exit(1)
+if peor > 0.005 or peor_pliegue > 0.005 or peor_roce > 0.005 or peor_faringe > 0.005:
+    print("COLISION: alguna pose entra en el techo, en los dientes, en la pared faringea, o la punta se dobla sobre el cuerpo", file=sys.stderr)
     sys.exit(1)

@@ -1,4 +1,4 @@
-"""Labios y perfil seccionado propios, sin texturas ni modelos de terceros.
+"""Perfil seccionado y labios sobre la cabeza CC0 de MakeHuman.
 
 Blender 2.93: blender -b --python tools/boca3d_blender/cara.py
 Exporta cara.glb junto a la demo. Es una ilustracion didactica, no un modelo
@@ -17,6 +17,33 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 # piel, la nariz y el menton salen de ella; si no, del loft y las bandas de antes.
 CABEZA_MH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "makehuman_cabeza.obj")
 CON_MH = os.path.exists(CABEZA_MH)
+# D4.4b v5: la cabeza escaneada «Infinite, 3D Head Scan» de Lee Perry-Smith
+# (Infinite Realities), CC BY 3.0 Unported, en la version decimada y con
+# texturas de 1024 px que distribuye three.js (examples/models/gltf/
+# LeePerrySmith/). Licencia y atribucion en lps/LeePerrySmith_License.txt y en
+# el README de boca3d. Si esta, manda sobre MakeHuman.
+LPS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lps")
+LPS_GLB = os.path.join(LPS_DIR, "LeePerrySmith.glb")
+CON_LPS = os.path.exists(LPS_GLB) and os.environ.get("SIN_LPS") != "1"
+# Medido sobre el escaneo (sonda por rayos y por la textura, 22 sep): la linea
+# de contacto de los labios es el pliegue oscuro de la textura, z = -0,13 en el
+# centro (el bermellon va de -0,23 a -0,03), comisuras en x = +-0,55 y la
+# superficie en el centro de la linea en y = -2,262 (delante es -y). Escala:
+# la boca (1,1) pasa a 2,3-2,4 unidades del visor, como la de MakeHuman, para
+# que caiga sobre la misma arcada dental.
+LPS_S = 2.15
+LPS_LINEA = (-2.262, -0.10)            # (y, z) del escaneo importado en Blender
+LPS_X_LINEA = -3.15                    # x del visor de la linea de los labios
+RANURA = 0.012                         # medio hueco de la ranura entre los labios (0,5 mm)
+MANDIBULA_CIERRE = 0.2                 # mandibula para la que se calcula `cierre_labios` (= reposo)
+MAND_MAX = 0.21                        # radianes con mandibula = 1: el MISMO valor que MAND_MAX en escena.ts
+                                       # y en lengua.py (cierre de cara, 22 sep: 0,42 -> 0,21 para que /ae/
+                                       # abra ~30 mm entre los labios como la boca de Miguel, no 53)
+
+
+def lps_a_visor(x, y, z):
+    """Del escaneo importado (x lateral, -y delante, z arriba) al visor."""
+    return ((y - LPS_LINEA[0]) * LPS_S + LPS_X_LINEA, (z - LPS_LINEA[1]) * LPS_S + 0.15, x * LPS_S)
 
 
 def material(nombre, color, rugosidad=0.6):
@@ -236,7 +263,14 @@ def elipsoide(nombre, centro, escala, mat, segmentos=32):
 
 # Sin aletas ni punta aparte: el cono ya lleva el volumen, y de frente las
 # bolas quedaban raras (Central, 14 sep). `elipsoide` queda para otros usos.
-perfil("techo_nasal", [(-2.55, 3.15), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11, 0.9, MUCOSA)
+if CON_LPS:
+    # v5: la nariz del escaneo es mas estrecha en el puente (piel a |lateral| 0,4-0,6:
+    # x = -3,1 en y = 3,0 y -2,56 en y = 3,2; medido el 22 sep): el frente del techo
+    # empieza mas atras y mas estrecho para no asomar por los lados del puente.
+    perfil("techo_nasal", [(-2.2, 3.0), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11,
+           [0.45, 0.75, 0.9, 0.9, 0.9], MUCOSA)
+else:
+    perfil("techo_nasal", [(-2.55, 3.15), (-1.4, 2.85), (0.4, 2.8), (1.8, 2.6), (2.8, 2.1)], 0.11, 0.9, MUCOSA)
 perfil("faringe", [(2.8, 2.1), (3.05, 1.55), (3.16, 0.6), (3.08, -0.55),
                    (2.95, -1.65), (2.8, -2.5), (2.75, -3.1)], 0.15, 1.0, MUCOSA)
 perfil("garganta", [(1.9, -1.9), (2.0, -2.4), (2.08, -3.1)], 0.11, 0.85, MUCOSA)
@@ -383,14 +417,41 @@ perfil("uvula", [(0.95, -0.04), (1.06, -0.2), (1.1, -0.39)],
        0.075, [0.12, 0.11, 0.035], MUCOSA)
 
 # Suelo muscular continuo y menton: coordenadas de reposo, ancladas a mandibula.
+# v5: la barbilla del escaneo es mas corta que la de MakeHuman (bajo el menton
+# la piel esta en -0,87 en x = -2,2 y en -1,22 en x = -1,2, con la mandibula a
+# 0; el hueso llega a -0,84) y el tubo colgaba entero por debajo de ella. Con
+# el escaneo empieza en x = -1,5, su fondo sigue la piel medida bajo la
+# mandibula a |lateral| 0,35-0,7 (la mas alta de las que toca; 22 sep, a
+# mandibula 0) con 0,12 de margen, el techo no pasa de -0,9 (la lengua y el
+# hueso quedan por encima) y la seccion se estrecha un 20 % porque la
+# mandibula del escaneo se cierra hacia abajo.
+FONDO_LPS = [(-1.6, -1.10), (-1.4, -1.15), (-1.2, -1.22), (-1.0, -1.30), (-0.8, -1.42), (-0.6, -1.52),
+             (-0.4, -1.73), (-0.2, -2.04), (0.0, -2.55)]
+
+
+def fondo_lps(x):
+    """Altura de la piel bajo la mandibula del escaneo en x (interpolada)."""
+    if x >= FONDO_LPS[-1][0]:
+        return -9.0
+    for (x0, y0), (x1, y1) in zip(FONDO_LPS, FONDO_LPS[1:]):
+        if x0 <= x <= x1:
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+    return FONDO_LPS[0][1]
+
+
 vertices, caras = [], []
 pasos, lados = 64, 32
+X_SUELO = -1.5 if CON_LPS else -2.2
 for i in range(pasos + 1):
     t = i / pasos
-    x = -2.2 + 4.7*t
+    x = X_SUELO + (2.5 - X_SUELO)*t
     ancho = 0.12 + 0.98*math.sin(math.pi*t)**0.48
     altura = 0.1 + 0.32*math.sin(math.pi*t)**0.6
     centro = -1.6 + 0.18*t
+    if CON_LPS:
+        fondo = max(centro - altura, fondo_lps(x) + 0.12)
+        techo = min(-0.9, max(centro + altura, fondo + 0.14))
+        centro, altura, ancho = (techo + fondo) / 2, (techo - fondo) / 2, ancho * 0.8
     for j in range(lados):
         a = math.tau*j/lados
         vertices.append((x, centro + altura*math.cos(a), ancho*math.sin(a)))
@@ -543,6 +604,11 @@ def cabeza_loft():
 # que la arcada. La cara mira a -x, como todo el visor.
 ESCALA_MH, MH_BOCA_Y, MH_LABIO_Z = 4.4, 6.63, 1.60
 Y_CORTE_ARRIBA, Y_CORTE_ABAJO = 4.0, -2.55
+if CON_LPS:
+    # El escaneo, a la escala de la boca, tiene los ojos en y ~ 4,7 y las
+    # cejas en ~ 5,1: el corte de MakeHuman (4,0) decapitaba la cara por los
+    # ojos. Justo por encima de las cejas, como estaba el de MakeHuman.
+    Y_CORTE_ARRIBA = 5.6
 
 
 def a_visor(x, y, z):
@@ -564,21 +630,45 @@ def leer_obj_mh():
 
 
 def sin_boca_interior(vertices, caras):
-    """Quita el saco de la boca de MakeHuman (la cara interior de los labios y
-    la cavidad): un vertice es interior si, en su celda (lateral, altura),
-    queda claramente por detras de la piel mas adelantada."""
-    celda = 0.22
-    delante = {}
-    for x, y, z in vertices:
-        k = (round(z / celda), round(y / celda))
-        delante[k] = min(delante.get(k, 9.0), x)
-    def interior(i):
-        x, y, z = vertices[i]
+    """Quita el saco interior mediante rayos sobre las caras originales;
+    conserva la piel exterior y sus anillos labiales conectados."""
+    from mathutils.bvhtree import BVHTree
+    arbol = BVHTree.FromPolygons(vertices, caras)
+    def interior(c):
+        centro = tuple(sum(vertices[i][k] for i in c)/len(c) for k in range(3))
+        x, y, z = centro
         if not (abs(z) < 2.7 and -1.4 < y < 1.6 and x < 1.4):
             return False
-        k = (round(z / celda), round(y / celda))
-        return x > delante[k] + 0.35
-    return [c for c in caras if sum(interior(i) for i in c) < 3]
+        # Muestreo sobre la cara exacta, sin celdas ni vértices de otra altura.
+        for i in c:
+            q = tuple(0.9*vertices[i][k]+0.1*centro[k] for k in range(3))
+            hit, _, _, _ = arbol.ray_cast((-10, q[1], q[2]), (1, 0, 0))
+            if hit is None or q[0] - hit.x < 0.18:
+                return False
+        return True
+    conservadas = [c for c in caras if not interior(c)]
+    # El saco puede dejar islotes ocultos: conservar la superficie conectada
+    # de la cabeza, sin triángulos sueltos en el interior del corte.
+    por_vertice = {}
+    for j, c in enumerate(conservadas):
+        for i in c:
+            por_vertice.setdefault(i, []).append(j)
+    pendientes = set(range(len(conservadas)))
+    componentes = []
+    while pendientes:
+        cola = [pendientes.pop()]
+        grupo = []
+        while cola:
+            j = cola.pop()
+            grupo.append(j)
+            for i in conservadas[j]:
+                for k in por_vertice[i]:
+                    if k in pendientes:
+                        pendientes.remove(k)
+                        cola.append(k)
+        componentes.append(grupo)
+    mayor = max(componentes, key=len)
+    return [conservadas[j] for j in sorted(mayor)]
 
 
 def malla_mh(nombre, vertices, caras, mat):
@@ -608,7 +698,65 @@ def recortar(ob, y, arriba, plano=(0, 0, 1)):
     ob.data.update()
 
 
-def labios_en_piel(ob):
+PERFIL_MH = {
+    "contacto": lambda z: (0.149 + 0.055 * math.sin(math.pi * min(1.0, abs(z) / 1.05)) + 0.054 + 0.065 * min(1.0, abs(z) / 1.05)) / 2,
+    "superior": lambda z: 0.149 + 0.055 * math.sin(math.pi * min(1.0, abs(z) / 1.05)),
+    "inferior": lambda z: 0.054 + 0.065 * min(1.0, abs(z) / 1.05),
+    "curva": 0.5,                      # x del frente de los labios = -3,15 + curva * z^2
+}
+
+
+def peso_labio_inferior_lps(y, mandibula=0.2):
+    """v6: cuanto sigue a la mandibula la piel de delante por debajo de la
+    ranura (misma formula que `pielQueSigueLaMandibula` + `deformarPiel` en
+    escena.ts). El labio se RETRASA respecto al hueso: junto a la ranura
+    sigue solo un 20 % con la mandibula de reposo (0,2) y hasta un 60 % en
+    las vocales (k), y el retraso muere linealmente hacia la barbilla
+    (-1,2), que va entera con el hueso. Asi el giro de reposo (1 cm en los
+    labios) se reparte como un estiron uniforme del ~28 % del labio a la
+    barbilla en vez de rasgar el bermellon (la «herida» de v5), y la
+    abertura de vocal queda en la banda de Miguel (8-14 mm, ~24 de maximo)."""
+    def suave(t):
+        t = max(0.0, min(1.0, t))
+        return t * t * (3 - 2 * t)
+    seco = suave((0.15 - y) / 0.02)
+    retraso = max(0.0, min(1.0, (y + 1.2) / 1.35))
+    # v7: 1 en las vocales (con 0,6 los incisivos de abajo, que van con el
+    # hueso, quedaban siempre detras del labio; se ven si k > 0,83 y con 1
+    # asoman 4,6 mm). Las claves se calculan a mandibula 0,2 (k = 0,2): este
+    # tramo solo documenta la formula del visor.
+    k = 0.2 + 0.8 * suave((mandibula - 0.2) / 0.3)
+    # v7: el labio de arriba SUBE con la apertura (peso negativo -0,22): el
+    # borde incisal superior esta en y = 0,46, 7 mm por encima de la linea de
+    # contacto; con la mandibula de reposo sube 0,106 y el sello lo baja.
+    arriba = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.55) / 0.25))
+    return seco * (1 - retraso * (1 - k)) - 0.22 * arriba
+
+
+def perfil_lps():
+    """El bermellon del escaneo en coordenadas del visor: contacto casi recto
+    (sube 0,04 hacia las comisuras), 0,24 de bermellon arriba y 0,26 abajo
+    (el de abajo mas alto, como en la anatomia), que se afinan hacia las
+    comisuras (+-1,18); el frente se curva 0,69 z^2 hacia atras."""
+    ancho = 0.45 * LPS_S
+
+    def afina(z):
+        return max(0.0, 1 - (abs(z) / (ancho + 0.1)) ** 2) ** 0.5
+    contacto = lambda z: 0.15 + 0.04 * min(1.0, (z / ancho) ** 2)
+    # `superior`/`inferior` son los BORDES LIBRES (lo que `cierre` lleva a la
+    # linea de contacto): en el escaneo los labios ya se tocan, asi que son
+    # la ranura misma (+-RANURA). El bermellon, que es lo que se pinta en la
+    # seccion, va en `bermellon` (arriba, abajo).
+    return {"contacto": contacto,
+            "superior": lambda z: contacto(z) + RANURA,
+            "inferior": lambda z: contacto(z) - RANURA,
+            "bermellon": (0.22, 0.28),
+            "ancho": ancho,
+            "escaneo": True,
+            "curva": 0.69}
+
+
+def labios_en_piel(ob, perfil=None):
     """Shape keys de los labios sobre la piel de MakeHuman, en coordenadas del
     visor (Blender guarda (x, -lateral, altura)): `fruncir` (/u/, /o/),
     `estirar` (/i/) y `labio_atras` (/f v/). Esculpido procedimental con tres
@@ -617,6 +765,8 @@ def labios_en_piel(ob):
     mejilla con el pomulo (que se hunde al fruncir y sube y sale al
     estirar). El visor las mezcla desde el largo de los labios de la pose,
     como hacia con los tubos."""
+    perfil = perfil or PERFIL_MH
+    escaneo = bool(perfil.get("escaneo"))
     ob.shape_key_add(name="Basis", from_mix=False)
     base = [(v.co.x, v.co.z, -v.co.y) for v in ob.data.vertices]      # (x, altura, lateral) del visor
 
@@ -640,10 +790,43 @@ def labios_en_piel(ob):
         d = math.sqrt(((x + 1.9) / 1.0) ** 2 + ((y - 0.7) / 1.0) ** 2 + ((abs(z) - 2.0) / 0.9) ** 2)
         return suave(1 - d)
 
+    grupo_mucosa = ob.vertex_groups.get("mucosa")
+    es_mucosa = set()
+    if grupo_mucosa is not None:
+        for v in ob.data.vertices:
+            if any(g.group == grupo_mucosa.index and g.weight > 0.5 for g in v.groups):
+                es_mucosa.add(v.index)
+    # v7: la mucosa (tiras) evalua las claves en su vertice de BORDE real mas
+    # cercano (por lateral, en su lado de la ranura), no en la curva ajustada
+    # `frente(z)`: en la mitad lejana la comisura del escaneo esta 0,3 mas
+    # adelante que la curva y con la curva la tira quedaba 0,1 mas afuera que
+    # el borde al fruncir (/u/ pasaba de -31,6 % a -25,7 % de anchura).
+    import bisect
+    bordes = {True: [], False: []}
+    for i, (x, y, z) in enumerate(base):
+        if i not in es_mucosa and x < -2.4 and abs(z) < perfil.get("ancho", 1.2) + 0.1 and abs(abs(y - 0.15) - RANURA) < 1e-4:
+            bordes[y >= 0.15].append((z, x, y))
+    for lado_borde in bordes:
+        bordes[lado_borde].sort()
+    zs_borde = {lado_borde: [t[0] for t in bordes[lado_borde]] for lado_borde in bordes}
+
+    def punto_borde(y, z):
+        lista = bordes[y >= 0.15]
+        if not lista:
+            return (-3.15 + perfil["curva"] * z * z, 0.15 + (RANURA if y >= 0.15 else -RANURA), z)
+        zs = zs_borde[y >= 0.15]
+        j = bisect.bisect_left(zs, z)
+        candidatos = [lista[m] for m in (j - 1, j) if 0 <= m < len(lista)]
+        zb, xb, yb = min(candidatos, key=lambda t: abs(t[0] - z))
+        return (xb, yb, zb)
+
     def clave(nombre, delta):
         k = ob.shape_key_add(name=nombre, from_mix=False)
         for i, (x, y, z) in enumerate(base):
-            dx, dy, dz = delta(x, y, z)
+            if i in es_mucosa:
+                dx, dy, dz = delta(*punto_borde(y, z))
+            else:
+                dx, dy, dz = delta(x, y, z)
             k.data[i].co = (x + dx, -(z + dz), y + dy)
 
     abre = lambda y: (1.0 if y > 0.15 else -1.0) * max(0.0, 1 - abs(y - 0.15) / 0.5)
@@ -671,11 +854,166 @@ def labios_en_piel(ob):
                 0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m,
                 0.45 * z * b + 0.18 * z * a + 0.06 * lado(z) * m)
 
-    clave("fruncir", fruncir)
-    clave("estirar", estirar)
+    def fruncir_escaneo(x, y, z):
+        # Cifras de Miguel (/kw/, /u/): anchura -30..-45 %, avance ~10 mm y
+        # un orificio pequeno y redondo. El campo de MakeHuman avanzaba 19 mm
+        # y abria 10 mm (medido en v6): se escala.
+        b = peso_boca(x, y, z)
+        a = anillo(x, y, z)
+        m = mejilla(x, y, z)
+        dx = -0.45 * b - 0.25 * a + 0.1 * m
+        dy = 0.06 * abre(y) * peso_boca(x, y, z, 0.8, 0.6, 0.9) - 0.3 * (y - 0.15) * a
+        dz = -0.6 * z * b - 0.35 * z * a - 0.16 * lado(z) * m
+        # Eversion contenida: la mucosa de detras del borde (las tiras) asoma
+        # una pizca hacia delante y se separa de la linea de contacto.
+        frente = -3.15 + perfil["curva"] * z * z
+        tira = suave((x - frente - 0.02) / 0.10) * (1 - suave((x - frente - 0.16) / 0.08)) * (1 - suave((abs(z) - perfil["ancho"]) / 0.3))
+        return (dx - 0.12 * tira, dy + (0.06 if y > 0.15 else -0.06) * tira, dz)
+
+    def estirar_escaneo(x, y, z):
+        # Miguel (/i/): anchura +33 % y se ven los incisivos superiores. El
+        # campo de MakeHuman daba +21 % y 1 mm de abertura (medido en v6).
+        b = peso_boca(x, y, z)
+        a = anillo(x, y, z)
+        m = mejilla(x, y, z)
+        # v7: +33 % (medido +28,5 % con 0,66) y el labio de arriba sube en su
+        # bermellon (el borde incisal superior esta 0,31 por encima de la linea
+        # de contacto); el de abajo baja una pizca. Cierre de cara: la subida
+        # baja de 0,50 a 0,40, porque en /ae/ (estirados + mandibula 1) sumaba
+        # ~8 mm fijos a la abertura y se pasaba de los 30 mm de Miguel.
+        lateral = 1 - suave((abs(z) - perfil["ancho"]) / 0.35)
+        frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
+        sube = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.6) / 0.3)) * lateral * frente
+        baja = suave((0.15 - y) / 0.02) * (1 - suave((-0.15 - y) / 0.3)) * lateral * frente
+        return (0.2 * b + 0.05 * a - 0.2 * m,
+                0.1 * b * min(1.0, abs(z) / 1.2) + 0.06 * a + 0.14 * m + 0.40 * sube - 0.10 * baja,
+                0.76 * z * b + 0.25 * z * a + 0.06 * lado(z) * m)
+
+    clave("fruncir", fruncir_escaneo if escaneo else fruncir)
+    clave("estirar", estirar_escaneo if escaneo else estirar)
     abajo = lambda y: max(0.0, min(1.0, (0.15 - y) / 0.08))
-    clave("labio_atras", lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
-                                          0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0))
+
+    def labio_atras_escaneo(x, y, z):
+        """/f v/ (lote fase 2): el labio de ABAJO entero sube contra el filo de
+        los incisivos de arriba y se mete hacia dentro. La version de MakeHuman
+        pesaba por `abajo(y)`, que vale 0,1 justo en el BORDE de la ranura (y
+        0,142 con el borde en 0,15): movia el cuerpo del labio 1 mm y dejaba su
+        linea donde estaba, 7,3 mm por debajo del filo incisal (medido en la
+        demo el 22 sep). Ahora el peso es 1 en el borde y muere 0,45 mas abajo,
+        hacia el surco mentolabial."""
+        contacto = perfil["contacto"](z)
+        lateral = 1 - suave((abs(z) - perfil["ancho"]) / 0.35)
+        frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
+        arco = max(0.0, 1 - (z / 0.75) ** 2)
+        if y >= contacto:
+            # El labio de ARRIBA se levanta un poco en su bermellon (0,14 en el
+            # borde, 0 a 0,4 por encima) para que asome el filo de los incisivos
+            # de arriba apoyado en el labio de abajo: la imagen de /f v/.
+            sube = max(0.0, 1 - (y - contacto) / 0.4)
+            return (0.0, 0.14 * sube * lateral * frente * arco, 0.0)
+        w = max(0.0, min(1.0, 1 - (contacto - y) / 0.45))     # 1 en el borde, 0 a 0,45 por debajo
+        # El labio de abajo se arquea hacia arriba en el centro, contra los
+        # incisivos centrales, y menos hacia las comisuras: con la subida entera
+        # hasta |lateral| 0,5 su mucosa entraba en los incisivos laterales de abajo.
+        w *= lateral * frente * arco
+        # Sube 0,24 hacia el filo incisal (y 0,45) y retrocede solo 0,08: el labio
+        # de abajo sube POR DELANTE de los incisivos de abajo (con 0,22 atras su
+        # mucosa entraba en ellos: 26 caras en la banda labios-dientes).
+        return (0.08 * w, 0.24 * w, 0.0)
+
+    clave("labio_atras", labio_atras_escaneo if escaneo else
+          (lambda x, y, z: (0.32 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y),
+                            0.14 * peso_boca(x, y, z, 0.9, 0.6, 1.4) * abajo(y), 0.0)))
+
+    def peso_labial(x, y, z):
+        # Banda completa, incluidas comisuras: no una campana solo central.
+        frente = -3.15 + perfil["curva"] * z * z
+        return suave((frente + 0.48 - x) / 0.18) * (1 - suave((abs(z) - 0.95) / 0.30)) * (1 - suave((abs(y - 0.15) - 0.20) / 0.50))
+
+    def linea_labial(z):
+        # Contornos del bermellon de la cabeza que sea (PERFIL_MH o perfil_lps).
+        return perfil["superior"](z), perfil["inferior"](z), perfil["contacto"](z)
+
+    def peso_mandibula(x, y, z):
+        # Misma transformacion de pielQueSigueLaMandibula en escena.ts.
+        bajo = suave((0.45 - y) / 1.35)
+        frente = suave((-1.6 - x) / 0.8) * (1 - suave((abs(z) - 0.85) / 0.5))
+        seco = peso_labio_inferior_lps(y) if escaneo else suave((0.2 - y) / 0.1)
+        bajo += (seco - bajo) * frente
+        return bajo * suave((2.3 - x) / 0.9)
+
+    def cierre_escaneo(x, y, z):
+        # v6: en v5 el cierre devolvia el BORDE del labio de abajo a la linea
+        # de contacto contra un giro de reposo de 0,48, con un peso que moria
+        # a 0,4 en la base del bermellon: el labio quedaba estirado en una
+        # banda roja («la herida»). Ahora el labio de abajo sigue a la
+        # mandibula solo un 20 % en reposo (peso_labio_inferior_lps: baja
+        # ~0,10 en la ranura) y el sello es suave: el labio de arriba baja
+        # 0,05 y el borde de abajo sube lo que le falta, con pesos que mueren
+        # dentro del bermellon. Nada rigido; el estiron va a la barbilla.
+        superior, inferior, contacto = linea_labial(z)
+        arriba, abajo = perfil["bermellon"]
+        lateral = 1 - suave((abs(z) - perfil["ancho"]) / 0.35)
+        # Solo la superficie de delante y las tiras de mucosa (hasta 0,45 por
+        # detras del frente): el escaneo conserva restos interiores detras del
+        # labio de abajo que no deben moverse hacia los incisivos.
+        frente = suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
+        if y >= contacto:
+            # La misma banda `arriba` de peso_labio_inferior_lps: asi la bajada
+            # del sello cancela exactamente la subida de reposo (0,22 * 0,48) en
+            # cada vertice; con otra rampa los labios se solapaban 1,6 mm.
+            banda = suave((y - 0.15) / 0.02) * (1 - suave((y - 0.55) / 0.25))
+            # 0,106 era 0,22 (peso) x la caida del labio a mandibula 0,2 con 0,42 rad;
+            # con MAND_MAX se escala igual que el giro del visor.
+            return (0.0, -0.106 * (MAND_MAX / 0.42) * banda * lateral * frente, 0.0)
+        a = MANDIBULA_CIERRE * MAND_MAX * peso_mandibula(x, y, z)
+        gy = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
+        caida = y - gy                                   # lo que baja este punto en reposo
+        w = max(0.0, 1 - (contacto - y) / (abajo + 0.1)) * lateral * frente
+        return (0.0, (caida + 0.005) * w, 0.0)
+
+    def cierre(x, y, z):
+        if escaneo:
+            return cierre_escaneo(x, y, z)
+        w = peso_labial(x, y, z)
+        superior, inferior, contacto = linea_labial(z)
+        borde = superior if y >= contacto else inferior
+        objetivo = contacto + 0.88 * (y - borde) + (-0.025 if y >= contacto else 0.025)
+        # El morfo se suma DESPUES del giro ponderado de la piel. Compensa
+        # ese giro para mantener el sello en toda la linea, no solo al centro.
+        # v5: se calcula para la mandibula de REPOSO (0,2) y el visor escala la
+        # influencia por mandibula/0,2 (`REFERENCIA_CIERRE` en escena.ts): en
+        # reposo los labios se tocan; en /p b m/ (0,08) la influencia es 0,4 y
+        # cierran exactos; a partir de media apertura no hay cierre.
+        a = MANDIBULA_CIERRE * MAND_MAX * peso_mandibula(x, y, z)
+        mandibula_y = 0.9 + (x - 2.6) * math.sin(a) + (y - 0.9) * math.cos(a)
+        # Llevar el borde al frente del bermellon: cerrar solo en altura
+        # hundia la sutura entre dos crestas y duplicaba el surco oscuro.
+        sutura = math.exp(-((y - borde) / 0.14) ** 2)
+        frente_contacto = -3.36 + perfil["curva"] * z * z
+        dx = (-0.045 + min(0.0, frente_contacto - x) * sutura) * w
+        return (dx, (objetivo - mandibula_y) * w, 0.0)
+
+    clave("cierre_labios", cierre)
+    # Compresion separada del contacto: /m/ mantiene el sello con menos
+    # presion que /p b/. El visor interpola ambos con los tiempos congelados.
+    def compresion(x, y, z):
+        superior, inferior, contacto = linea_labial(z)
+        if escaneo:
+            # v6, como en las vinetas /m b/ de Miguel: el bermellon se recoge
+            # hacia la linea de contacto (los labios se aplanan y se ve menos
+            # rojo), se aprieta hacia atras y las comisuras se ensanchan.
+            arriba, abajo = perfil["bermellon"]
+            d = (y - contacto) / (arriba if y >= contacto else abajo)
+            banda = 1.0 if abs(d) <= 1.0 else max(0.0, (1.6 - abs(d)) / 0.6)
+            w = banda * (1 - suave((abs(z) - perfil["ancho"]) / 0.35)) * suave((-3.15 + perfil["curva"] * z * z + 0.45 - x) / 0.15)
+            lado = (1.0 if z > 0 else -1.0) * min(1.0, abs(z) / perfil["ancho"])
+            return (0.06 * w, -0.6 * (y - contacto) * w, 0.05 * lado * w)
+        borde = superior if y >= contacto else inferior
+        w = peso_labial(x, y, z)
+        return (-0.025 * w, -0.08 * (y - borde) * w, 0.0)
+
+    clave("compresion_labios", compresion)
 
 
 def pared_por_corte(ob, nombre, z):
@@ -760,37 +1098,83 @@ def contorno_a_profundidad(ob, z):
     return [(x, y) for x, y in zip(cara_x, alturas)] + [(x, y) for x, y in reversed(list(zip(nuca_x, alturas)))]
 
 
+def acabado_piel(ob, ojos):
+    """Bermellón integrado y párpados relajados sobre la topología CC0."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    def perioral(v):
+        return abs(v.co.y) < 1.45 and -0.55 < v.co.z < 0.68 and v.co.x < -2.35
+    aristas = [e for e in bm.edges if all(perioral(v) for v in e.verts)]
+    bmesh.ops.subdivide_edges(bm, edges=aristas, cuts=1, use_grid_fill=True, smooth=0.35)
+    bm.to_mesh(ob.data)
+    bm.free()
+    for v in ob.data.vertices:
+        x, y, z = v.co.x, v.co.z, -v.co.y
+        for ox, oy, oz in ojos.values():
+            d = ((z - oz) / 0.95) ** 2 + ((y - oy) / 0.82) ** 2
+            if x < ox and d < 1:
+                v.co.z -= 0.20 * (y - oy) * (1 - d) ** 2
+    colores = ob.data.vertex_colors.new(name="piel_bermellon")
+    for bucle in ob.data.loops:
+        v = ob.data.vertices[bucle.vertex_index].co
+        x, y, z = v.x, v.z, -v.y
+        ancho = max(0, 1 - (z / 1.2) ** 2)
+        centro = 0.12 + 0.035 * math.sin(math.pi * min(1, abs(z)))
+        alto = 0.24 * ancho ** 0.6 + 0.025
+        f = max(0, min(1, (alto - abs(y - centro)) / 0.065))
+        f *= max(0, min(1, (-2.7 + 0.45 * z*z - x) / 0.25))
+        # Colores lineales; variación suave, sin maquillaje ni ruido pintado.
+        piel, labio = (0.78, 0.57, 0.46), (0.57, 0.25, 0.24)
+        colores.data[bucle.index].color = tuple(a + (b-a)*f for a,b in zip(piel,labio)) + (1,)
+    ob.data.update()
+    # Normales comunes en el plano medio: las dos mitades no se solapan.
+    normales = []
+    for v in ob.data.vertices:
+        n = v.normal.copy()
+        if abs(v.co.y) < 1e-5:
+            n.y = 0
+            n.normalize()
+        normales.append(tuple(n))
+    ob.data.use_auto_smooth = True
+    ob.data.normals_split_custom_set_from_vertices(normales)
+
+
 def cabeza_makehuman():
     vertices, caras, ojos = leer_obj_mh()
+    # Conservar los anillos originales: el filtro por celdas arrancaba también
+    # piel exterior de nariz, comisuras y mentón y dejaba bordes dentados.
     caras = sin_boca_interior(vertices, caras)
     # La mitad lejana se corta por el plano sagital con bisect (quedarse solo
     # con las caras enteras dejaba una franja sin piel por el centro de la
     # cara, donde las caras cruzan el plano). Lateral del visor = -y en Blender.
     ob = malla_mh("cabeza_lejana", vertices, caras, PIEL)
-    # El corte sagital pasa un poco del plano (0,08 hacia la camara): la piel
-    # tapa el canto de las caras del corte, que de frente asomaban como una
-    # raya clara por el centro de la cara (el plano se ve casi de canto).
-    recortar(ob, -0.08, arriba=True, plano=(0, -1, 0))   # fuera lo de y_blender < -0,08, es decir z_visor > 0,08
+    # Mitades complementarias sin solapamiento. El detalle frontal no dibuja
+    # planos de corte; no hace falta taparlos duplicando piel sobre el centro.
+    recortar(ob, 0, arriba=True, plano=(0, -1, 0))
     recortar(ob, Y_CORTE_ARRIBA, arriba=True)
     recortar(ob, Y_CORTE_ABAJO, arriba=False)
+    acabado_piel(ob, ojos)
     ob["labios_en_piel"] = 1                  # el visor esconde sus tubos de labios
     labios_en_piel(ob)
-    # La piel cercana: la misma, reflejada (MakeHuman es simetrica), con las
-    # mismas shape keys reflejadas.
-    espejo = ob.copy()
-    espejo.data = ob.data.copy()
-    espejo.name = "cabeza_cercana"
-    bpy.context.collection.objects.link(espejo)
-    for v in espejo.data.vertices:
-        v.co.y = -v.co.y                       # el lateral del visor es -y en Blender
-    for bloque in espejo.data.shape_keys.key_blocks:
-        for punto in bloque.data:
-            punto.co.y = -punto.co.y
-    espejo.data.flip_normals()
-    espejo.data.update()
+    # Segunda mitad del original, con el mismo acabado y deformaciones.
+    espejo = malla_mh("cabeza_cercana", vertices, caras, PIEL)
+    recortar(espejo, 0, arriba=False, plano=(0, -1, 0))
+    recortar(espejo, Y_CORTE_ARRIBA, arriba=True)
+    recortar(espejo, Y_CORTE_ABAJO, arriba=False)
+    acabado_piel(espejo, ojos)
+    labios_en_piel(espejo)
+    corte_y_paredes(ob, ojos, len(caras))
+
+
+def corte_y_paredes(ob, ojos, caras_quitadas=0, perfil_labios=None):
+    """Las placas del corte sagital (craneo, nariz, maxilar, mandibula y las
+    secciones de los labios), las paredes del fondo y los ojos, todo derivado
+    del perfil REAL de la mitad lejana `ob` en el plano medio."""
+    perfil_labios = perfil_labios or PERFIL_MH
     # El perfil del corte: por cada altura, el punto mas adelantado (la cara) y
     # el mas atrasado (la nuca) de los vertices que quedan en el plano.
-    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y + 0.08) < 1e-3]
+    seam = [(v.co.x, v.co.z) for v in ob.data.vertices if abs(v.co.y) < 1e-3]
     # Dos ramas: la cara (x < 1,5) y la nuca; cada una, ordenada por altura e
     # interpolada en alturas regulares (la nuca del cuello tiene pocos vertices).
     def rama(puntos, elegir):
@@ -830,14 +1214,58 @@ def cabeza_makehuman():
     nariz_corte = [(x_frente(Y_NARIZ), Y_NARIZ)] + frente_entre(Y_NARIZ, Y_PUENTE) + [(-2.5, 3.0), (-2.5, 1.72), (-2.55, 1.6)]
     # Maxilar: del labio superior (linea de la boca) a la base de la nariz por
     # delante; el paladar y la nasofaringe por dentro.
-    maxilar = [(x_frente(Y_BOCA), Y_BOCA)] + frente_entre(Y_BOCA, Y_NARIZ) + [(-2.55, 1.6), (-2.5, 1.72)] + PALADAR_CORTE + [(-2.6, 0.45)]
+    # D4.4b v4: la seccion de cada labio va aparte, del color del labio y con
+    # las MISMAS shape keys que la piel (los campos de `labios_en_piel` se
+    # evaluan sobre sus vertices): en el corte sagital cada labio es un
+    # volumen que se mueve con la boca, no la lamina roja de la piel vista de
+    # canto sobre hueso. El de arriba llega hasta la base del filtrum; el de
+    # abajo, hasta el surco mentolabial; por dentro, hasta el hueso alveolar.
+    Y_LABIO_SUP, Y_LABIO_INF = Y_BOCA + 0.7, -0.35
+    # v5: la cara interior (mucosa) de cada labio es una curva que va de la
+    # linea de contacto hacia atras y hacia la encia: la seccion tiene forma
+    # de labio, no de bloque. Bermellon y piel van en colores por vertice.
+    labio_sup = ([(-2.62, Y_LABIO_SUP), (-2.62, Y_BOCA + 0.36), (-2.72, Y_BOCA + 0.2), (-2.86, Y_BOCA + 0.09),
+                  (-2.98, Y_BOCA + 0.02), (x_frente(Y_BOCA), Y_BOCA)] + frente_entre(Y_BOCA, Y_LABIO_SUP))
+    labio_inf = ([(-2.55, Y_LABIO_INF), (x_frente(Y_LABIO_INF), Y_LABIO_INF)] + frente_entre(Y_LABIO_INF, Y_BOCA)
+                 + [(-2.98, Y_BOCA - 0.02), (-2.86, Y_BOCA - 0.1), (-2.72, Y_BOCA - 0.22), (-2.55, Y_BOCA - 0.38)])
+    if perfil_labios and perfil_labios.get("escaneo"):
+        # v6: el escaneo trae los labios planos de perfil y en el corte casi
+        # no se veian. Cada seccion se abomba hacia delante en su bermellon
+        # (0,10 arriba, 0,14 abajo: el de abajo mas grueso, como en Miguel).
+        arriba, abajo = perfil_labios["bermellon"]
+
+        def abombar(puntos, alto, cuanto, signo):
+            salida = []
+            for x, y in puntos:
+                d = (y - Y_BOCA) * signo / alto
+                campana = max(0.0, 1 - ((d - 0.55) / 0.6) ** 2) if 0.0 <= d <= 1.3 else 0.0
+                salida.append((x - cuanto * campana * (1 if x < -2.75 else 0.5), y))
+            return salida
+        labio_sup = abombar(labio_sup, arriba, 0.10, 1.0)
+        labio_inf = abombar(labio_inf, abajo, 0.14, -1.0)
+    maxilar = ([(-2.62, Y_LABIO_SUP), (x_frente(Y_LABIO_SUP), Y_LABIO_SUP)] + frente_entre(Y_LABIO_SUP, Y_NARIZ)
+               + [(-2.55, 1.6), (-2.5, 1.72)] + PALADAR_CORTE + [(-2.6, 0.45)])
     # Mandibula: del labio inferior al cuello por delante, el corte del cuello,
     # la garganta y el suelo de la boca por dentro.
-    mandibula = list(reversed(frente_entre(Y_CORTE_ABAJO, Y_BOCA))) + [(2.04, Y_CORTE_ABAJO)] + SUELO_CORTE
+    mandibula = list(reversed(frente_entre(Y_CORTE_ABAJO, Y_LABIO_INF))) + [(2.04, Y_CORTE_ABAJO)] + SUELO_CORTE[:-1]
     placa("corte_craneo", craneo, -0.01, CORTE)
     placa("corte_nariz", nariz_corte, -0.01, CORTE)
     placa("corte_maxilar", maxilar, -0.01, CORTE)
     placa("corte_mandibula", mandibula, -0.01, CORTE)
+    for nombre, poligono in (("corte_labio_sup", labio_sup), ("corte_labio_inf", labio_inf)):
+        pieza = placa(nombre, poligono, -0.01, LABIOS)
+        # Bermellon (rojo) en la banda del contacto y pegado al frente; el
+        # resto de la seccion, carne clara. El visor pinta vertexColors.
+        colores = pieza.data.vertex_colors.new(name="labio")
+        arriba, abajo = perfil_labios.get("bermellon", (0.10, 0.10))
+        sup, inf = perfil_labios["contacto"](0.0) + arriba, perfil_labios["contacto"](0.0) - abajo
+        for bucle in pieza.data.loops:
+            x, y = pieza.data.vertices[bucle.vertex_index].co.x, pieza.data.vertices[bucle.vertex_index].co.z
+            en_banda = inf - 0.03 <= y <= sup + 0.03
+            f = max(0.0, min(1.0, (x_frente(y) + 0.42 - x) / 0.12)) if en_banda else 0.0
+            carne, rojo = (0.80, 0.50, 0.47), (0.62, 0.24, 0.24)
+            colores.data[bucle.index].color = tuple(a + (b - a) * f for a, b in zip(carne, rojo)) + (1.0,)
+        labios_en_piel(pieza, perfil_labios)
     # Las paredes del fondo de las cavidades, a tres profundidades (de tres
     # cuartos, a traves de la mitad translucida, se veia el reves oscuro de
     # la piel y la cabeza parecia hueca). Cada una con el contorno REAL de la
@@ -848,26 +1276,638 @@ def cabeza_makehuman():
         if contorno:
             # Un solo poligono (n-gon): la teselacion de Blender al exportar
             # aguanta los contornos concavos; tessellate_polygon dejaba huecos.
-            placa(nombre, contorno, z, PARED, escala=0.97, centro=centroide(contorno), ngon=True)
+            placa(nombre, contorno, z, PARED, escala=0.90, centro=centroide(contorno), ngon=True)
     # El ojo del lado lejano: globo blanco e iris oscuro; el hueco de la cuenca
-    # de MakeHuman queda cubierto.
-    x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]
-    elipsoide("ojo_lejano", (x, y, z), (0.62, 0.62, 0.62), ESMALTE, segmentos=20)
-    elipsoide("iris_lejano", (x - 0.42, y, z), (0.22, 0.27, 0.27), HUESO, segmentos=16)
-    print("MH_OK", {"vertices_lejana": len(ob.data.vertices), "caras_quitadas": len(caras), "frente": frente[::11], "nuca": nuca[::11]})
+    # de MakeHuman queda cubierto. El escaneo trae los parpados: sin ojos.
+    if ojos:
+        x, y, z = ojos["joint-r-eye"] if ojos["joint-r-eye"][2] < 0 else ojos["joint-l-eye"]
+        elipsoide("ojo_lejano", (x, y, z), (0.62, 0.62, 0.62), ESMALTE, segmentos=20)
+        elipsoide("iris_lejano", (x - 0.42, y, z), (0.22, 0.27, 0.27), HUESO, segmentos=16)
+        elipsoide("ojo_cercano", (x, y, -z), (0.62, 0.62, 0.62), ESMALTE, segmentos=20)
+        elipsoide("iris_cercano", (x - 0.42, y, -z), (0.22, 0.27, 0.27), HUESO, segmentos=16)
+    print("MH_OK", {"vertices_lejana": len(ob.data.vertices), "caras_quitadas": caras_quitadas, "frente": frente[::11], "nuca": nuca[::11]})
 
 
-if CON_MH:
+DECIMADO_LPS = 0.55
+
+
+def uv_mas_oscuro(imagen, u0, u1, v0, v1, rojez_min):
+    """La UV del texel mas oscuro de la textura en la caja (u0..u1, v0..v1)
+    con rojez (r - (g+b)/2) >= rojez_min, muestreando cada 4 px. Sirve para
+    dar a la mucosa y a las tapas un color oscuro de la propia textura."""
+    W, H = imagen.size
+    px = imagen.pixels[:]
+    mejor, mejor_uv = 9.0, (0.5, 0.5)
+    for j in range(int(v0 * H), int(v1 * H), 4):
+        for i in range(int(u0 * W), int(u1 * W), 4):
+            k = 4 * (j * W + i)
+            r, g, b = px[k], px[k + 1], px[k + 2]
+            if r - (g + b) / 2 >= rojez_min and (r + g + b) / 3 < mejor:
+                mejor, mejor_uv = (r + g + b) / 3, ((i + 0.5) / W, (j + 0.5) / H)
+    print("UV_OSCURO", round(mejor, 3), mejor_uv)
+    return mejor_uv
+
+
+TIRAS_VERTS = []                       # los BMVert de las tiras (para el grupo "mucosa")
+
+
+def tiras_de_mucosa_bm(bm, ancho, uv_mucosa=None):
+    """v6: el escaneo trae los labios como una sola superficie sin grosor: al
+    abrirse la ranura se veia el interior de la cabeza por un canto de cero.
+    Detras de cada borde de la ranura se extruye una tira de tres anillos
+    hacia dentro y hacia la encia (arriba la del labio superior, abajo la del
+    inferior): es la mucosa del labio, que da grosor al canto, se ve al abrir y
+    se evierte al fruncir. Toma la UV del borde (el bermellon de la textura).
+    Devuelve cuantas caras nuevas hay."""
+    import bmesh
+    uv_lay = bm.loops.layers.uv.active
+    nuevas = 0
+    for lado, signo in (("sup", 1.0), ("inf", -1.0)):
+        borde = [v for v in bm.verts if abs(v.co.z - (0.15 + signo * RANURA)) < 1e-4
+                 and abs(v.co.y) < ancho and v.co.x < -2.4 and v.link_faces]
+        borde.sort(key=lambda v: v.co.y)
+        if len(borde) < 3:
+            continue
+        anillos = [borde]
+        # Cortas (0,16 hacia atras como maximo): con 0,30 el tercer anillo
+        # tocaba las coronas de los incisivos laterales (banda labios-dientes).
+        # v7: cuatro anillos hasta el surco vestibular (0,22 hacia atras y
+        # 0,40 hacia la encia, 0,36 abajo): por encima de la tira corta se
+        # veia el reverso beige de la piel del labio al abrir la boca.
+        # (con el cuarto anillo a 0,32 hacia atras rozaba las coronas de los
+        # laterales: 25 roces en la banda labios-dientes; a 0,22, ninguno)
+        # (y a 0,40 de altura el ultimo anillo asomaba por el filtrum al fruncir: 0,30 / 0,28)
+        for dx, dz, encoge in ((0.05, 0.0, 0.99), (0.12, 0.07, 0.965), (0.20, 0.18, 0.93), (0.22, 0.30 if signo > 0 else 0.28, 0.90)):
+            anillo = []
+            for v in borde:
+                afina = max(0.0, 1 - (abs(v.co.y) / (ancho + 0.02)) ** 2) ** 0.5   # las tiras mueren en las comisuras
+                nv = bm.verts.new((v.co.x + dx * (0.35 + 0.65 * afina), v.co.y * encoge, v.co.z + signo * dz * afina))
+                anillo.append(nv)
+                TIRAS_VERTS.append(nv)
+            anillos.append(anillo)
+        bm.verts.ensure_lookup_table()
+        for a, b in zip(anillos, anillos[1:]):
+            for i in range(len(borde) - 1):
+                cuad = (a[i], a[i + 1], b[i + 1], b[i]) if signo > 0 else (a[i + 1], a[i], b[i], b[i + 1])
+                try:
+                    f = bm.faces.new(cuad)
+                except ValueError:
+                    continue
+                f.smooth = True
+                nuevas += 1
+                for bucle in f.loops:
+                    if uv_mucosa is not None:
+                        bucle[uv_lay].uv = uv_mucosa
+                        continue
+                    origen = borde[min(i + (0 if bucle.vert in (a[i], b[i]) else 1), len(borde) - 1)]
+                    bucle[uv_lay].uv = origen.link_loops[0][uv_lay].uv if origen.link_loops else (0.5, 0.5)
+    return nuevas
+
+
+def tapar_agujeros_bm(bm, uv_oscuro=(0.5, 0.5)):
+    """v7: el boquete bajo la nariz del escaneo (una cadena ABIERTA de ~66
+    aristas de borde en la region de la nariz) se cierra con geometria
+    propia: un abanico desde el borde hasta un centro metido 0,15 hacia
+    dentro, con la UV mas oscura de la textura (sombreado hacia dentro).
+    Los bucles cerrados de la region se rellenan con holes_fill.
+    Devuelve cuantas tapas."""
+    import bmesh
+    from mathutils import Vector
+    uv_lay = bm.loops.layers.uv.active
+    bm.edges.ensure_lookup_table()
+    borde = [e for e in bm.edges if e.is_boundary]
+    ady = {}
+    for e in borde:
+        for v in e.verts:
+            ady.setdefault(v, []).append(e)
+    visto, bucles = set(), []
+    for e0 in borde:
+        if e0 in visto:
+            continue
+        pila, comp = [e0], []
+        visto.add(e0)
+        while pila:
+            e = pila.pop()
+            comp.append(e)
+            for v in e.verts:
+                for g in ady[v]:
+                    if g not in visto:
+                        visto.add(g)
+                        pila.append(g)
+        bucles.append(comp)
+
+    def en_nariz(v):
+        return v.co.x < 1.0 and 0.3 < v.co.z < 2.8 and abs(v.co.y) < 1.9
+    tapas = 0
+    for comp in bucles:
+        verts = {v for e in comp for v in e.verts}
+        if not (6 <= len(comp) <= 80 and all(en_nariz(v) for v in verts)):
+            continue
+        grados = {v: len([g for g in ady[v] if g in comp]) for v in verts}
+        extremos = [v for v in verts if grados[v] == 1]
+        if extremos:
+            if len(extremos) != 2:
+                continue
+            # recorrer la cadena desde un extremo
+            orden, actual, previa = [extremos[0]], extremos[0], None
+            while True:
+                siguiente = None
+                for g in ady[actual]:
+                    if g in comp and g is not previa:
+                        siguiente = g
+                        break
+                if siguiente is None:
+                    break
+                previa = siguiente
+                actual = siguiente.other_vert(actual)
+                orden.append(actual)
+                if actual is extremos[1]:
+                    break
+            centro = sum((v.co for v in orden), Vector()) / len(orden) + Vector((0.15, 0.0, 0.0))
+            vc = bm.verts.new(centro)
+            nuevas = []
+            for a, b in zip(orden, orden[1:]):
+                try:
+                    nuevas.append(bm.faces.new((a, b, vc)))
+                except ValueError:
+                    continue
+            try:
+                nuevas.append(bm.faces.new((orden[-1], orden[0], vc)))
+            except ValueError:
+                pass
+        else:
+            nuevas = bmesh.ops.holes_fill(bm, edges=comp, sides=0)["faces"]
+        for f in nuevas:
+            f.smooth = True
+            for bucle in f.loops:
+                bucle[uv_lay].uv = uv_oscuro
+            tapas += 1
+        print("NARIZ_LPS", {"bucle": len(comp), "abierto": bool(extremos), "caras": len(nuevas)})
+    return tapas
+
+
+OJOS_LPS = (("ojo_der", 4.11, 1.53), ("ojo_izq", 4.10, -1.12))   # (nombre, altura, lateral) del centro del hueco de los parpados (medido)
+
+
+def ranura_parpados_bm(bm):
+    """v7: los parpados del escaneo son UNA superficie continua (deformarla
+    solo estiraba la piel del ojo). Como con la boca: bisect por el plano de
+    la linea del parpado (altura cy) en la banda de cada ojo, split de las
+    aristas del corte y los dos lados separados 0,01. Devuelve las aristas."""
+    import bmesh
+    total = 0
+    for _, cy, cz in OJOS_LPS:
+        banda = [f for f in bm.faces if f.calc_center_median().x < -1.5 and abs(-f.calc_center_median().y - cz) < 0.55
+                 and abs(f.calc_center_median().z - cy) < 0.45]
+        geom = list({g for f in banda for g in (f.verts[:] + f.edges[:])}) + banda
+        corte = bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0.0, 0.0, cy), plane_no=(0.0, 0.0, 1.0),
+                                       clear_outer=False, clear_inner=False)
+        aristas = [g for g in corte["geom_cut"] if isinstance(g, bmesh.types.BMEdge)
+                   and all(abs(-v.co.y - cz) < 0.55 and v.co.x < -1.5 for v in g.verts)]
+        bmesh.ops.split_edges(bm, edges=aristas)
+        for v in bm.verts:
+            if abs(v.co.z - cy) < 1e-4 and abs(-v.co.y - cz) < 0.55 and v.co.x < -1.5 and v.link_faces:
+                medio = sum(f.calc_center_median().z for f in v.link_faces) / len(v.link_faces)
+                v.co.z += 0.01 if medio > cy else -0.01
+        total += len(aristas)
+    return total
+
+
+def abrir_parpados(ob):
+    """v7: tras `ranura_parpados_bm`, el parpado de arriba sube 0,26 y el de
+    abajo baja 0,10 con una campana en lateral (0,75) y en altura, solo en
+    la piel de delante: queda el hueco y detras el globo. Devuelve cuantos
+    vertices se mueven."""
+    n = 0
+    for v in ob.data.vertices:
+        x, y, lateral = v.co.x, v.co.z, -v.co.y
+        if x > -1.4:
+            continue
+        for _, cy, cz in OJOS_LPS:
+            campana = max(0.0, 1 - ((lateral - cz) / 0.75) ** 2)
+            if campana <= 0:
+                continue
+            if y >= cy:
+                w = campana * max(0.0, 1 - ((y - cy - 0.05) / 0.5) ** 2)
+                if w > 0:
+                    v.co.z += 0.26 * w
+                    n += 1
+            else:
+                w = campana * max(0.0, 1 - ((cy - y) / 0.35) ** 2)
+                if w > 0:
+                    v.co.z -= 0.10 * w
+                    n += 1
+    ob.data.update()
+    return n
+
+
+def ojos_lps():
+    """v7: dos globos oculares (esclerotica, iris y pupila por colores de
+    vertice, `ojo_*` en el visor) detras de los parpados abiertos. La
+    superficie del parpado en el centro del ojo esta en x ~ -2,3 (medido):
+    el globo (radio 0,53 = 12 mm) va con el frente en -2,2."""
+    r = 0.53
+    for nombre, cy, cz in OJOS_LPS:
+        cx = -2.25 + r
+        vertices, caras = [], []
+        seg, anillos = 24, 12
+        for i in range(anillos + 1):
+            t = math.pi * i / anillos
+            for j in range(seg):
+                a = math.tau * j / seg
+                vx, vy, vz = -math.cos(t), math.sin(t) * math.sin(a), math.sin(t) * math.cos(a)   # eje hacia delante (-x)
+                vertices.append((cx + r * vx, cy + r * vy, cz + r * vz))
+        for i in range(anillos):
+            for j in range(seg):
+                a, b = i * seg + j, i * seg + (j + 1) % seg
+                caras.append((a, b, b + seg, a + seg))
+        ob = malla(nombre, vertices, caras, PIEL)
+        colores = ob.data.vertex_colors.new(name="ojo")
+        for poly in ob.data.polygons:
+            poly.use_smooth = True
+            for li in poly.loop_indices:
+                v = ob.data.vertices[ob.data.loops[li].vertex_index].co
+                frente = -(v.x - cx) / r
+                # pupila 4 mm (cos 9,6 grados), iris 12 mm (cos 30 grados), limbo, esclerotica
+                if frente > 0.975:
+                    c = (0.02, 0.02, 0.02)
+                elif frente > 0.87:
+                    f = (frente - 0.87) / 0.105
+                    c = (0.32 - 0.14 * f, 0.20 - 0.10 * f, 0.09 - 0.05 * f)
+                elif frente > 0.85:
+                    c = (0.14, 0.09, 0.06)
+                else:
+                    c = (0.90, 0.87, 0.84)
+                colores.data[li].color = (c[0], c[1], c[2], 1.0)
+
+
+def cabeza_escaneada():
+    """La cabeza de Lee Perry-Smith (CC BY 3.0): importada del GLB, llevada a
+    las coordenadas del visor, con una ranura en la linea de los labios (el
+    escaneo los trae sellados), partida en dos mitades por el plano sagital y
+    con las mismas shape keys labiales que la piel de MakeHuman."""
+    import bmesh
+    antes = set(bpy.context.scene.objects)
+    bpy.ops.import_scene.gltf(filepath=LPS_GLB)
+    nuevos = [o for o in bpy.context.scene.objects if o not in antes]
+    ob = [o for o in nuevos if o.type == 'MESH'][0]
+    for o in nuevos:
+        if o is not ob:
+            bpy.data.objects.remove(o, do_unlink=True)
+    ob.name = "cabeza_lejana"
+    ob.data.name = "cabeza_lejana"
+    ob.matrix_world.identity()
+    for v in ob.data.vertices:
+        x, y, z = lps_a_visor(v.co.x, v.co.y, v.co.z)
+        v.co = (x, -z, y)                        # (x, -lateral, altura): la convencion de malla()
+    # Material con las texturas del escaneo (color y normales); el exportador
+    # las incrusta como JPEG. El visor usa map y normalMap del GLB.
+    piel = bpy.data.materials.new("piel_escaneo")
+    piel.use_nodes = True
+    nodos, enlaces = piel.node_tree.nodes, piel.node_tree.links
+    bsdf = nodos["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.6
+    color = nodos.new("ShaderNodeTexImage")
+    color.image = bpy.data.images.load(os.path.join(LPS_DIR, "Map-COL.jpg"))
+    enlaces.new(color.outputs["Color"], bsdf.inputs["Base Color"])
+    normal = nodos.new("ShaderNodeTexImage")
+    normal.image = bpy.data.images.load(os.path.join(LPS_DIR, "Infinite-Level_02_Tangent_SmoothUV.jpg"))
+    normal.image.colorspace_settings.name = "Non-Color"
+    mapa = nodos.new("ShaderNodeNormalMap")
+    mapa.inputs["Strength"].default_value = 0.8
+    enlaces.new(normal.outputs["Color"], mapa.inputs["Color"])
+    enlaces.new(mapa.outputs["Normal"], bsdf.inputs["Normal"])
+    ob.data.materials.clear()
+    ob.data.materials.append(piel)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    # El escaneo trae geometria DENTRO de la boca (detras de los labios, a la
+    # altura de las encias): se quita con el mismo criterio de rayos que
+    # `sin_boca_interior` (una cara es interior si todos sus puntos quedan
+    # 0,18 o mas por detras de la primera superficie que ve un rayo desde
+    # delante), sin tocar orejas ni nuca, y se conserva la superficie conexa
+    # mayor. Sin esto, el perfil sagital y la banda labios-dientes se rompen.
+    n_interior = quitar_interior_bm(bm)
+    # La ranura de los labios: el escaneo los trae sellados. Se corta por el
+    # plano de la linea de contacto (y = 0,15, casi recta) solo en la banda de
+    # los labios y se separan las caras a lo largo del corte: queda un rasgon
+    # que muere en las comisuras, y el labio de abajo puede irse con la
+    # mandibula (pielQueSigueLaMandibula ya corta seco en la linea de la boca).
+    ancho = 0.45 * LPS_S + 0.05
+    banda = [f for f in bm.faces if f.calc_center_median().x < -2.4 and abs(f.calc_center_median().y) < ancho
+             and abs(f.calc_center_median().z - 0.15) < 0.45]
+    geom = list({g for f in banda for g in (f.verts[:] + f.edges[:])}) + banda
+    corte = bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0.0, 0.0, 0.15), plane_no=(0.0, 0.0, 1.0),
+                                   clear_outer=False, clear_inner=False)
+    aristas = [g for g in corte["geom_cut"] if isinstance(g, bmesh.types.BMEdge)
+               and abs(g.verts[0].co.y) < ancho and abs(g.verts[1].co.y) < ancho]
+    bmesh.ops.split_edges(bm, edges=aristas)
+    # Los dos lados de la ranura se separan RANURA hacia arriba y hacia abajo:
+    # el visor corta seco en la linea de la boca (y = 0,15 +- 0,01) y asi cada
+    # lado cae entero de un lado del corte (antes, con los dos en y = 0,15,
+    # los vertices de la ranura iban a medias con la mandibula y la boca
+    # quedaba rasgada).
+    for v in bm.verts:
+        if abs(v.co.z - 0.15) < 1e-4 and abs(v.co.y) < ancho and v.co.x < -2.4 and v.link_faces:
+            medio = sum(f.calc_center_median().z for f in v.link_faces) / len(v.link_faces)
+            v.co.z += RANURA if medio > 0.15 else -RANURA
+    # v7: la ranura se subdivide x3 (19 -> 57 aristas por lado) para que las
+    # tiras de mucosa no salgan facetadas.
+    ranura_aristas = [e for e in bm.edges if all(abs(abs(v.co.z - 0.15) - RANURA) < 1e-4 and abs(v.co.y) < ancho and v.co.x < -2.4 for v in e.verts)]
+    bmesh.ops.subdivide_edges(bm, edges=ranura_aristas, cuts=2, use_grid_fill=False)
+    # Cierre de cara (22 sep): los ojos se dejan CERRADOS como los trae el
+    # escaneo (abiertos quedaban bizcos de frente y el alumno no los ve);
+    # `ranura_parpados_bm`, `abrir_parpados` y `ojos_lps` quedan sin llamar.
+    n_parpados = 0
+    n_tiras = tiras_de_mucosa_bm(bm, ancho, uv_mucosa=uv_mas_oscuro(color.image, 0.30, 0.70, 0.55, 0.80, 0.12))
+    n_tapas = tapar_agujeros_bm(bm, uv_oscuro=uv_mas_oscuro(color.image, 0.30, 0.70, 0.55, 0.95, 0.0))
+    bm.verts.index_update()
+    indices_mucosa = [v.index for v in TIRAS_VERTS if v.is_valid]
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.update()
+    # v7: las tiras van al grupo "mucosa" (sobrevive a la copia, al Decimate y
+    # al bisect de `recortar`): `labios_en_piel` les evalua las shape keys en
+    # su borde, no en su posicion, y asi se mueven rigidas con el labio (si
+    # no, con fruncir se plegaban en zigzag y asomaban por el filtrum).
+    ob.vertex_groups.new(name="mucosa").add(indices_mucosa, 1.0, 'REPLACE')
+    n_ranura = len(aristas)
+    # Presupuesto de bytes (cara.glb <= 1,9 MB + 15 %, texturas incluidas):
+    # la nuca, el cuello y la coronilla (x > 0,6 o y > 2,6) se decimán al 35 %;
+    # la cara, donde estan los labios, la ranura y las shape keys, no se toca.
+    grupo = ob.vertex_groups.new(name="atras")
+    for v in ob.data.vertices:
+        x, y = v.co.x, v.co.z
+        peso = max(0.0, min(1.0, (x - 0.2) / 0.8)) if y < 2.6 else max(0.0, min(1.0, (y - 2.2) / 0.6))
+        if peso > 0:
+            grupo.add([v.index], peso, 'REPLACE')
+    n_cara_antes = sum(1 for v in ob.data.vertices if v.co.x < 0.2)
+    decimar = ob.modifiers.new("menos_nuca", "DECIMATE")
+    # v6: ratio alto y factor de grupo alto: el total se cumple casi entero en la
+    # nuca (peso 1) y la cara conserva sus vertices (medido: LPS_OK).
+    decimar.ratio = DECIMADO_LPS
+    decimar.vertex_group = "atras"
+    decimar.vertex_group_factor = 20.0
+    decimar.use_collapse_triangulate = True
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.modifier_apply(modifier=decimar.name)
+    ob.vertex_groups.remove(grupo)
+    # Mitad cercana: copia entera antes de recortar.
+    espejo = ob.copy()
+    espejo.data = ob.data.copy()
+    espejo.name = espejo.data.name = "cabeza_cercana"
+    bpy.context.collection.objects.link(espejo)
+    recortar(ob, 0, arriba=True, plano=(0, -1, 0))
+    recortar(ob, Y_CORTE_ARRIBA, arriba=True)
+    recortar(ob, Y_CORTE_ABAJO, arriba=False)
+    acabado_lps(ob)
+    ob["labios_en_piel"] = 2                  # 2: ranura seca en y = 0,15 (escaneo)
+    # La nariz del escaneo queda mas alta que la de MakeHuman (subnasal en
+    # y ~ 2,3, no 1,55): el visor lleva la salida del aire nasal a la ventana
+    # real (medido: base de la nariz en z_lps = 0,86 y punta en 1,1).
+    ob["nariz_salida"] = [-3.45, 2.4]
+    perfil = perfil_lps()
+    labios_en_piel(ob, perfil)
+    recortar(espejo, 0, arriba=False, plano=(0, -1, 0))
+    recortar(espejo, Y_CORTE_ARRIBA, arriba=True)
+    recortar(espejo, Y_CORTE_ABAJO, arriba=False)
+    acabado_lps(espejo)
+    labios_en_piel(espejo, perfil)
+    print("LPS_OK", {"vertices_lejana": len(ob.data.vertices), "vertices_cercana": len(espejo.data.vertices),
+                     "aristas_ranura": n_ranura, "caras_interiores_quitadas": n_interior,
+                     "vertices_cara_lejana": sum(1 for v in ob.data.vertices if v.co.x < 0.2),
+                     "vertices_cara_antes_de_decimar": n_cara_antes, "tiras": n_tiras, "tapas": n_tapas})
+    corte_y_paredes(ob, None, 0, perfil)
+
+
+def quitar_interior_bm(bm):
+    """Borra del bmesh las caras interiores de la boca (rayos desde delante)
+    y todo lo que no sea la superficie conexa mayor. Devuelve cuantas caras
+    interiores habia. Coordenadas de Blender: (x, -lateral, altura)."""
+    import bmesh
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+    bm.faces.ensure_lookup_table()
+    arbol = BVHTree.FromBMesh(bm)
+    interiores = []
+    for f in bm.faces:
+        c = f.calc_center_median()
+        x, lateral, y = c.x, -c.y, c.z
+        # Solo la boca: por debajo de -0,9 el rayo desde delante pega antes en
+        # el menton y borraba la piel de debajo de la barbilla (se veia la
+        # lengua por el agujero); por encima de 1,3 empiezan las fosas nasales.
+        if not (abs(lateral) < 1.6 and -0.9 < y < 1.3 and -3.4 < x < -0.6):
+            continue
+        dentro = True
+        for v in f.verts:
+            q = 0.9 * v.co + 0.1 * c
+            hit, _, _, _ = arbol.ray_cast(Vector((-10.0, q.y, q.z)), Vector((1.0, 0.0, 0.0)))
+            if hit is None or q.x - hit.x < 0.18:
+                dentro = False
+                break
+        if dentro:
+            interiores.append(f)
+    n = len(interiores)
+    bmesh.ops.delete(bm, geom=interiores, context='FACES')
+    vistos, componentes = set(), []
+    for f in bm.faces:
+        if f in vistos:
+            continue
+        pila, comp = [f], []
+        while pila:
+            g = pila.pop()
+            if g in vistos:
+                continue
+            vistos.add(g)
+            comp.append(g)
+            for e in g.edges:
+                for h in e.link_faces:
+                    if h not in vistos:
+                        pila.append(h)
+        componentes.append(comp)
+    mayor = max(componentes, key=len)
+    sueltas = [g for comp in componentes if comp is not mayor for g in comp]
+    if sueltas:
+        bmesh.ops.delete(bm, geom=sueltas, context='FACES')
+    return n
+
+
+def acabado_lps(ob):
+    """Normales comunes en el plano medio (las dos mitades no se solapan) y
+    sombreado suave; el color viene de la textura, no de vertices."""
+    for p in ob.data.polygons:
+        p.use_smooth = True
+    ob.data.update()
+    normales = []
+    for v in ob.data.vertices:
+        n = v.normal.copy()
+        if abs(v.co.y) < 1e-5:
+            n.y = 0
+            n.normalize()
+        normales.append(tuple(n))
+    ob.data.use_auto_smooth = True
+    ob.data.normals_split_custom_set_from_vertices(normales)
+
+
+def hundir_bajo_la_piel(nombre, margen=0.1, y0=0.0):
+    """v5: la cabeza del escaneo no es simetrica (el cuello se estrecha mas por
+    un lado) y las tablas por x no bastan: cada vertice de `nombre` que quede
+    por debajo de la piel (primer impacto de un rayo hacia abajo desde
+    (x, y0, z), que a esa altura esta dentro de la cabeza) sube hasta `margen`
+    por encima de ella. Devuelve cuantos subieron y el peor exceso."""
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+    deps = bpy.context.evaluated_depsgraph_get()
+    arboles = [BVHTree.FromObject(bpy.data.objects[n], deps) for n in ("cabeza_lejana", "cabeza_cercana")]
+    ob = bpy.data.objects[nombre]
+    subidos, peor = 0, 0.0
+    for v in ob.data.vertices:
+        co = ob.matrix_world @ v.co
+        piel = None
+        for arbol in arboles:
+            impacto = arbol.ray_cast(Vector((co.x, y0, co.z)), Vector((0.0, -1.0, 0.0)))[0]
+            if impacto is not None and (piel is None or impacto.y > piel):
+                piel = impacto.y
+        if piel is not None and co.y < piel + margen:
+            peor = max(peor, piel + margen - co.y)
+            v.co.y += piel + margen - co.y
+            subidos += 1
+    ob.data.update()
+    return {"subidos": subidos, "peor_exceso": round(peor, 3)}
+
+
+if CON_LPS:
+    cabeza_escaneada()
+    print("SUELO_LPS", hundir_bajo_la_piel("suelo_boca"))
+elif CON_MH:
     cabeza_makehuman()
 else:
     cabeza_loft()
+
+
+def comprobar_labios_dientes():
+    """Intersecciones de triangulos: labios deformados frente a las coronas.
+
+    Muestrea la transicion reposo-cierre a cinco fracciones, y las dos
+    compresiones del piloto. No sustituye la revision visual del sello.
+    """
+    from mathutils.bvhtree import BVHTree
+    from mathutils import Vector
+
+    def suave(t):
+        t = min(1.0, max(0.0, t))
+        return t * t * (3 - 2 * t)
+
+    def rotar(v, angulo):
+        x, lat, y = v
+        c, s = math.cos(angulo), math.sin(angulo)
+        return Vector((2.6 + (x - 2.6) * c - (y - 0.9) * s, lat,
+                       0.9 + (x - 2.6) * s + (y - 0.9) * c))
+
+    comprobaciones, max_heredadas = 0, 0
+    for cierre in [0, 0.25, 0.5, 0.75, 1]:
+        # Transicion reposo -> /p/: la mandibula va de 0,2 a 0,08 y la
+        # influencia del cierre, de 1 a 0,4 (mandibula / 0,2, como el visor).
+        angulo = (0.2 - 0.12 * cierre) * MAND_MAX
+        influencia = min(1.0, (0.2 - 0.12 * cierre) / MANDIBULA_CIERRE)
+        dientes = []
+        for diente in bpy.context.scene.objects:
+            if not diente.name.startswith('diente_'):
+                continue
+            puntos = [diente.matrix_world @ v.co for v in diente.data.vertices]
+            if diente.name.startswith('diente_inf_'):
+                puntos = [rotar(v, angulo) for v in puntos]
+            dientes.append(BVHTree.FromPolygons(puntos, [list(p.vertices) for p in diente.data.polygons]))
+        for presion in [1.0, 0.35]:
+            for nombre in ['cabeza_lejana', 'cabeza_cercana']:
+                ob = bpy.data.objects[nombre]
+                claves = ob.data.shape_keys.key_blocks
+                base = claves['Basis'].data
+                puntos, puntos_antes, activos = [], [], set()
+                for i, p in enumerate(base):
+                    x, lat, y = p.co
+                    bajo = suave((0.45-y)/1.35)
+                    frente = suave((-1.6-x)/0.8) * (1-suave((abs(lat)-0.85)/0.5))
+                    seco = peso_labio_inferior_lps(y, 0.2 - 0.12*cierre) if CON_LPS else suave((0.2-y)/0.1)
+                    peso = (bajo + (seco-bajo)*frente) * suave((2.3-x)/0.9)
+                    v = rotar(p.co, angulo*peso)
+                    puntos_antes.append(v + 0.08*cierre*(claves['fruncir'].data[i].co-p.co))
+                    for clave, valor in [('cierre_labios', influencia), ('compresion_labios', presion*cierre), ('fruncir', 0.08*cierre*(1-cierre))]:
+                        delta = claves[clave].data[i].co - p.co
+                        v += valor * delta
+                        if clave == 'cierre_labios' and delta.length > 0.002:
+                            activos.add(i)
+                    puntos.append(v)
+                caras = [list(p.vertices) for p in ob.data.polygons if any(i in activos for i in p.vertices)]
+                piel = BVHTree.FromPolygons(puntos, caras)
+                antes = BVHTree.FromPolygons(puntos_antes, caras)
+                nuevos = 0
+                heredadas = 0
+                for d in dientes:
+                    anteriores = set(antes.overlap(d))
+                    actuales = set(piel.overlap(d))
+                    if actuales - anteriores:
+                        print('ROCE_NUEVO', cierre, nombre, [[tuple(round(c, 4) for c in base[i].co) for i in caras[a]] for a, b in actuales - anteriores])
+                    nuevos += len(actuales - anteriores)
+                    heredadas += len(actuales & anteriores)
+                assert nuevos == 0, ('labios-dientes-nuevos', cierre, presion, nombre, nuevos)
+                max_heredadas = max(max_heredadas, heredadas)
+                comprobaciones += 1
+    # Lote fase 2: /f v/ (mandibula 0,14, solo `labio_atras`, sin cierre ni
+    # compresion): el labio de abajo sube hasta el filo de los incisivos de
+    # arriba y no debe atravesar ninguna corona. Cinco fracciones del gesto.
+    angulo_fv = 0.14 * MAND_MAX
+    dientes_fv = []
+    for diente in bpy.context.scene.objects:
+        if not diente.name.startswith('diente_'):
+            continue
+        puntos = [diente.matrix_world @ v.co for v in diente.data.vertices]
+        if diente.name.startswith('diente_inf_'):
+            puntos = [rotar(v, angulo_fv) for v in puntos]
+        dientes_fv.append(BVHTree.FromPolygons(puntos, [list(p.vertices) for p in diente.data.polygons]))
+    for nombre in ['cabeza_lejana', 'cabeza_cercana']:
+        ob = bpy.data.objects[nombre]
+        claves = ob.data.shape_keys.key_blocks
+        base = claves['Basis'].data
+        movidos = {i for i, p in enumerate(base) if (claves['labio_atras'].data[i].co - p.co).length > 0.002}
+        caras = [list(p.vertices) for p in ob.data.polygons if any(i in movidos for i in p.vertices)]
+        for fraccion in [0.25, 0.5, 0.75, 1.0]:
+            pts, pts_antes = [], []
+            for i, p in enumerate(base):
+                x, lat, y = p.co
+                bajo = suave((0.45-y)/1.35)
+                frente = suave((-1.6-x)/0.8) * (1-suave((abs(lat)-0.85)/0.5))
+                seco = peso_labio_inferior_lps(y, 0.14) if CON_LPS else suave((0.2-y)/0.1)
+                peso = (bajo + (seco-bajo)*frente) * suave((2.3-x)/0.9)
+                v = rotar(p.co, angulo_fv*peso)
+                pts_antes.append(v.copy())
+                pts.append(v + fraccion * (claves['labio_atras'].data[i].co - p.co))
+            ahora, antes = BVHTree.FromPolygons(pts, caras), BVHTree.FromPolygons(pts_antes, caras)
+            nuevos = 0
+            for d, nd in zip(dientes_fv, [o.name for o in bpy.context.scene.objects if o.name.startswith('diente_')]):
+                pares = set(ahora.overlap(d)) - set(antes.overlap(d))
+                nuevos += len(pares)
+                if pares and os.environ.get('DEBUG_FV'):
+                    for a, _ in list(pares)[:3]:
+                        cara = caras[a]; c = [sum(pts[i][k] for i in cara) / len(cara) for k in range(3)]
+                        c0 = [sum(base[i].co[k] for i in cara) / len(cara) for k in range(3)]
+                        print('ROCE_FV', fraccion, nombre, nd, 'centro', [round(v, 3) for v in c], 'base', [round(v, 3) for v in c0])
+            assert nuevos == 0, ('labio_atras-dientes', fraccion, nombre, nuevos)
+            comprobaciones += 1
+    print('LABIOS_DIENTES_OK', {'comprobaciones': comprobaciones, 'intersecciones_nuevas': 0,
+                              'max_pares_heredados_en_borde_de_banda': max_heredadas})
+
+
+if CON_MH or CON_LPS:
+    comprobar_labios_dientes()
 
 for ob in bpy.context.scene.objects:
     assert all(math.isfinite(c) for v in ob.data.vertices for c in v.co)
     assert all(p.area > 1e-10 for p in ob.data.polygons), ob.name
 
 bpy.ops.export_scene.gltf(filepath=os.path.abspath(SALIDA), export_format="GLB", export_yup=True,
-                          export_materials="EXPORT", export_morph=True, export_morph_normal=True, export_extras=True)
+                          export_materials="EXPORT", export_morph=True, export_morph_normal=False, export_extras=True,
+                          export_image_format="AUTO")
 # El mismo archivo va a front/public/boca3d/, que es el que carga la app: los
 # dos tienen que ser identicos (lo comprueba boca3d.modelos.spec.ts).
 PUBLICO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "front", "public", "boca3d", "cara.glb"))

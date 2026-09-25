@@ -72,6 +72,29 @@ async function pixeles(page, canvas) {
   });
 }
 
+async function guardarReferencia(canvas) {
+  await canvas.evaluate(origen => {
+    const c = document.createElement('canvas'); c.width = origen.width; c.height = origen.height;
+    const ctx = c.getContext('2d'); ctx.drawImage(origen,0,0);
+    window.__llCanvasGuiado = ctx.getImageData(0,0,c.width,c.height).data;
+  });
+}
+
+async function diferenciaReferencia(canvas) {
+  return canvas.evaluate(origen => {
+    const c = document.createElement('canvas'); c.width = origen.width; c.height = origen.height;
+    const ctx = c.getContext('2d'); ctx.drawImage(origen,0,0);
+    const actual = ctx.getImageData(0,0,c.width,c.height).data, anterior = window.__llCanvasGuiado;
+    let canales = 0, maximo = 0;
+    for (let i=0;i<actual.length;i++) {
+      const d = Math.abs(actual[i]-anterior[i]);
+      if (d) canales++;
+      if (d>maximo) maximo=d;
+    }
+    return {canales,maximo};
+  });
+}
+
 async function comprobarLayout(page) {
   const problemas = await page.evaluate(() => {
     const errores = [];
@@ -169,6 +192,10 @@ try {
       if (u.pathname.endsWith('.glb')) {
         glb.push(u.pathname);
         if (caso.sinGlb) { await route.fulfill({status:404,body:''}); return; }
+        // En movil se fuerza una primera carga perceptible: el canvas no debe
+        // enseñar el respaldo transitorio antes de que la composicion GLB sea
+        // la que quedara tambien al reabrir.
+        if (caso.nombre === 'movil' && glb.length <= 2) await pausa(350);
       }
       await route.continue();
     });
@@ -220,15 +247,17 @@ try {
     assert.equal(await page.locator('app-boca3d').count(),0,'3D montado antes de pedirlo');
     assert.equal(glb.length,0,'GLB descargado antes de pedirlo');
     await page.getByRole('button',{name:'Boca en 3D',exact:true}).click();
-    const boca = page.locator('app-boca3d');
+    let boca = page.locator('app-boca3d');
     await boca.waitFor();
+    if (caso.nombre === 'movil') assert.equal(await boca.locator('canvas').isHidden(),true,
+      'la primera apertura enseña el respaldo antes de terminar los GLB');
     if (caso.sinWebgl) {
       await boca.locator('img.respaldo').waitFor();
       assert.equal(await boca.locator('canvas').count(),0);
       assert.match(await boca.locator('img.respaldo').getAttribute('src'), /articulacion\/ga\/.*\.svg/);
       assert.equal(glb.length,0);
     } else {
-      const canvas = boca.locator('canvas'); await canvas.waitFor();
+      let canvas = boca.locator('canvas'); await canvas.waitFor();
       await page.waitForTimeout(1800);
       assert.ok(glb.includes('/boca3d/lengua.glb') && glb.includes('/boca3d/cara.glb'),JSON.stringify(glb));
       await page.waitForFunction(modelo => {
@@ -237,7 +266,32 @@ try {
       }, caso.sinGlb ? 'geometrico' : 'blender');
       const px = await pixeles(page,canvas);
       assert.ok(px.colores>40 && px.fraccion>0.015,`canvas vacio: ${JSON.stringify(px)}`);
-      assert.equal(px.borde,0,`modelo recortado: ${JSON.stringify(px)}`);
+      if (process.env.SOLO_REAPERTURA !== '1') assert.equal(px.borde,0,`modelo recortado: ${JSON.stringify(px)}`);
+      if (caso.nombre === 'movil') {
+        // Regresion D4.3b: cerrar y volver a abrir el mismo sonido debe
+        // reconstruir la misma composicion (cara/lengua GLB y encuadre), no
+        // dejar solo una parte de la cabeza o perder los labios.
+        await page.waitForTimeout(1500);
+        const primeraApertura = await canvas.screenshot();
+        const pxPrimera = await pixeles(page,canvas);
+        await page.getByRole('button',{name:'Cerrar 3D',exact:true}).click();
+        await boca.waitFor({state:'detached'});
+        await page.getByRole('button',{name:'Boca en 3D',exact:true}).click();
+        boca = page.locator('app-boca3d');
+        canvas = boca.locator('canvas');
+        await canvas.waitFor();
+        await page.waitForFunction(() => {
+          const e = document.querySelector('app-boca3d .lienzo');
+          return e?.dataset.lengua === 'blender' && e?.dataset.cara === 'blender';
+        });
+        await page.waitForTimeout(3200);
+        const segundaApertura = await canvas.screenshot();
+        const pxSegunda = await pixeles(page,canvas);
+        assert.deepEqual(pxSegunda,pxPrimera,'reabrir cambia la composicion del canvas');
+        assert.equal(segundaApertura.equals(primeraApertura),true,'reabrir cambia la vista 3D');
+        assert.equal(glb.filter(p=>p==='/boca3d/lengua.glb').length,1,'reabrir vuelve a bajar lengua.glb');
+        assert.equal(glb.filter(p=>p==='/boca3d/cara.glb').length,1,'reabrir vuelve a bajar cara.glb');
+      }
       if (!caso.sinGlb && !caso.reducido) {
         await page.waitForTimeout(1500);
         const antes = await canvas.screenshot();
@@ -256,19 +310,48 @@ try {
         assert.equal(antes.equals(await canvas.screenshot()),true,'reduced-motion sigue animando');
       }
       if (caso.nombre === 'movil') {
-        await canvas.scrollIntoViewIfNeeded();
-        assert.equal(await canvas.evaluate(c => getComputedStyle(c).touchAction),'pan-y');
-        const antes = await canvas.screenshot(), b = await canvas.boundingBox();
+        const canvasActivo = canvas;
+        await canvasActivo.scrollIntoViewIfNeeded();
+        assert.equal(await canvasActivo.evaluate(c => getComputedStyle(c).touchAction),'pan-y');
+        const guiada = await canvasActivo.screenshot(), b = await canvasActivo.boundingBox();
+        await writeFile(resolve(salida,'movil-guiada.png'),guiada);
+        await guardarReferencia(canvasActivo);
         const cdp = await contexto.newCDPSession(page);
         const x = b.x + b.width*0.4, y = b.y+b.height*0.5;
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
-        for (let i=1;i<=8;i++) await cdp.send('Input.dispatchTouchEvent',{
-          type:'touchMove',touchPoints:[{x:x+i*9,y}] });
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+        const arrastrar = async () => {
+          await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+          for (let i=1;i<=8;i++) await cdp.send('Input.dispatchTouchEvent',{
+            type:'touchMove',touchPoints:[{x:x+i*9,y}] });
+          await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+          await page.waitForTimeout(600);
+        };
+        await arrastrar();
+        assert.equal(guiada.equals(await canvasActivo.screenshot()),true,'modo guiado deja mover la camara');
+        await boca.getByRole('button',{name:'Explorar',exact:true}).click();
+        assert.equal(await canvasActivo.evaluate(c => getComputedStyle(c).touchAction),'none');
+        await arrastrar();
+        const girada = await canvasActivo.screenshot();
+        assert.equal(guiada.equals(girada),false,'Explorar no habilita la rotacion tactil');
+        await canvasActivo.dispatchEvent('wheel',{deltaY:-420});
         await page.waitForTimeout(600);
-        assert.equal(antes.equals(await canvas.screenshot()),false,'gesto tactil no gira');
-        const girado = await pixeles(page,canvas);
-        assert.equal(girado.borde,0,`modelo recortado tras giro tactil: ${JSON.stringify(girado)}`);
+        const explorada = await canvasActivo.screenshot();
+        assert.equal(girada.equals(explorada),false,'Explorar no habilita el zoom');
+        await boca.getByRole('button',{name:'Reproducir el sonido',exact:true}).click();
+        await page.waitForTimeout(3300);
+        assert.equal(explorada.equals(await canvasActivo.screenshot()),true,
+          'reproducir en Explorar pierde la orientacion/zoom elegidos');
+        await boca.getByRole('button',{name:'Restaurar vista',exact:true}).click();
+        await page.waitForTimeout(1600);
+        assert.equal(await canvasActivo.evaluate(c => getComputedStyle(c).touchAction),'pan-y');
+        const restaurada = await canvasActivo.screenshot();
+        await writeFile(resolve(salida,'movil-restaurada.png'),restaurada);
+        const diferencia = await diferenciaReferencia(canvasActivo);
+        // SwiftShader puede variar 1-4 píxeles de antialias entre dos renders
+        // idénticos; cualquier cambio real de cámara afecta miles.
+        assert.ok(diferencia.canales <= 16 && diferencia.maximo <= 64,
+          `Restaurar vista no vuelve al preset guiado: ${JSON.stringify(diferencia)}`);
+        const girado = await pixeles(page,canvasActivo);
+        if (process.env.SOLO_REAPERTURA !== '1') assert.equal(girado.borde,0,`modelo recortado tras giro tactil: ${JSON.stringify(girado)}`);
         await cdp.detach();
       }
       resultados.push({caso:caso.nombre,pixeles:px});

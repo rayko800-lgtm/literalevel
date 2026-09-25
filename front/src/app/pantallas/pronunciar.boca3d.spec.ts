@@ -44,14 +44,14 @@ describe('Pronunciar con la boca 3D encendida', () => {
     const botones3d = [...raiz.querySelectorAll('button')].filter(b => /Boca en 3D/.test(b.textContent ?? ''));
     // Uno en la ficha del sonido y otro en el detalle de la corrección.
     expect(botones3d.length).toBe(2);
-    expect(raiz.querySelector('.ficha-sonido button[aria-expanded]')?.textContent).toContain('Boca en 3D');
-    expect(raiz.querySelector('details.boca button[aria-expanded]')?.textContent).toContain('Boca en 3D');
+    expect(botones3d.find(b => b.closest('.ficha-sonido'))?.getAttribute('aria-expanded')).toBe('false');
+    expect(botones3d.find(b => b.closest('details.boca'))?.getAttribute('aria-expanded')).toBe('false');
     // Sin pulsar, no se monta el visor.
     expect(raiz.querySelector('app-boca3d')).toBeNull();
     // «Escuchar y ver»: uno solo en cada sitio, junto a «Boca en 3D».
-    // «Escuchar y ver», «🐢 Despacio» (antes «Más lento», propuesta A) y «Boca en 3D».
+    // «Escuchar y ver», selector de velocidad y «Boca en 3D».
     expect(raiz.querySelectorAll('.ficha-sonido .botones-corte button').length).toBe(3);
-    expect(raiz.querySelector('.ficha-sonido .botones-corte button:nth-child(2)')?.textContent).toContain('Despacio');
+    expect(raiz.querySelector('.ficha-sonido .disparador-velocidad')?.textContent).toContain('Despacio');
     expect(raiz.querySelector('.ficha-sonido .botones-corte button')?.textContent).toContain('Escuchar y ver');
     expect(raiz.querySelector('details.boca .botones-corte button')?.textContent).toContain('Escuchar y ver');
     expect([...raiz.querySelectorAll('button')].filter(b => /Escuchar y ver/.test(b.textContent ?? '')).length).toBe(2);

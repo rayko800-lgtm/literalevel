@@ -4,13 +4,15 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { Ajustes } from './compartido/ajustes';
 import { Icono } from './compartido/icono';
+import { Spotlight } from './compartido/spotlight';
 import { Preferencias } from './nucleo/preferencias';
 import { Sesion } from './nucleo/sesion';
+import { Tutorial } from './nucleo/tutorial';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Ajustes],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Ajustes, Spotlight],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -19,6 +21,9 @@ export class App {
   // Se inyecta aquí para que aplique el tema y la letra desde el arranque.
   private readonly prefs = inject(Preferencias);
   private readonly router = inject(Router);
+  // Tutorial v2 (D1.1), detrás de un flag de desarrollo: se inyecta aquí para
+  // que `<app-spotlight>` funcione en cualquier ruta, no solo en Inicio.
+  private readonly tutorial = inject(Tutorial);
 
   protected readonly navegacion = [
     { ruta: '/leer', etiqueta: 'Leer', icono: 'libro', seccion: 'leer' },
@@ -38,6 +43,11 @@ export class App {
         this.barraOculta.set(false);
         this.ultimoY = 0;
       });
+    // Solo para nosotros, en desarrollo: `?tutorialv2=on` activa el tutorial
+    // v2 sin tocar nada visible para quien no pase ese parámetro.
+    if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('tutorialv2') === 'on') {
+      this.tutorial.activarDesarrollo();
+    }
   }
 
   @HostListener('window:scroll')

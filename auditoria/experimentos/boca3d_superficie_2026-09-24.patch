@@ -1,0 +1,23 @@
+diff --git a/front/src/app/compartido/boca3d/escena.ts b/front/src/app/compartido/boca3d/escena.ts
+index a07aba1..4acae28 100644
+--- a/front/src/app/compartido/boca3d/escena.ts
++++ b/front/src/app/compartido/boca3d/escena.ts
+@@ -2285,10 +2285,16 @@ export class EscenaBoca {
+               `#include <roughnessmap_fragment>
+               #ifdef USE_COLOR
+                 float bermellon = smoothstep(0.33, 0.57, (vColor.r-vColor.g)/max(0.001,vColor.r+vColor.g));
+-                roughnessFactor = mix(roughnessFactor, 0.38, bermellon);
++                ${fotografica ? `// Humedad junto a la abertura; exterior más mate. Coordenadas
++                // de reposo para que el acabado acompañe el gesto sin deslizarse.
++                float altoLabial = mix(0.29,0.23,step(0.15,vPielReposo.y));
++                float contornoLabial = length(vec2(vPielReposo.z/1.16,(vPielReposo.y-0.15)/altoLabial));
++                float humedadLabial = 1.0-smoothstep(0.18,0.80,contornoLabial);
++                roughnessFactor = mix(roughnessFactor,mix(0.54,0.30,humedadLabial),bermellon);`
++                : 'roughnessFactor = mix(roughnessFactor, 0.38, bermellon);'}
+               #endif`);
+           };
+-          material.customProgramCacheKey = () => fotografica ? 'piel-morena-astra-v1' : 'piel-didactica-bermellon-v1';
++          material.customProgramCacheKey = () => fotografica ? 'piel-morena-astra-v2' : 'piel-didactica-bermellon-v1';
+           const pieza = new THREE.Mesh(geometria, material);
+           pieza.layers.set(1);
+           pieza.userData['sinSombraRecibida'] = true;

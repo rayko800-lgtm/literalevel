@@ -12,6 +12,7 @@ import { Api, Capitulo, Libro, Medida, Palabra, mensajeError, urlMotor } from '.
 import { cefr, miles, minutosDe, num } from '../nucleo/formato';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
+import { Tutorial } from '../nucleo/tutorial';
 
 const PISTA = 'literalevel.pista-palabra';
 const PISTA_PAGINAS = 'literalevel.pista-paginas';
@@ -62,6 +63,10 @@ export class Lector implements OnDestroy {
   private readonly sesion = inject(Sesion);
   private readonly router = inject(Router);
   protected readonly prefs = inject(Preferencias);
+  // Solo notifica: el lector no sabe nada del tutorial más allá de avisarle
+  // cuándo hay una hoja de palabra local utilizable (D1.4). Tutorial decide
+  // qué hacer con eso; nunca al revés.
+  private readonly tutorial = inject(Tutorial);
 
   protected readonly libro = signal<Libro | null>(null);
   protected readonly capitulo = signal<Capitulo | null>(null);
@@ -111,6 +116,7 @@ export class Lector implements OnDestroy {
   private espera: ReturnType<typeof setTimeout> | undefined;
   private reloj: ReturnType<typeof setTimeout> | undefined;
   private relojPosicion: ReturnType<typeof setTimeout> | undefined;
+  private relojRecolocar: ReturnType<typeof setTimeout> | undefined;
   private audio: HTMLAudioElement | null = null;
   private abrirAlFinal = false;
   private toque: { x: number; y: number; t: number; tipo: string } | null = null;
@@ -133,6 +139,21 @@ export class Lector implements OnDestroy {
   protected readonly siguiente = computed(() => (this.indice() + 1 < this.total() ? this.indice() + 1 : null));
   protected readonly sugeridos = computed(() => new Set((this.libro()?.sugeridos ?? []).map(s => s.indice)));
   protected readonly entrada = this.sesion.entrada;
+  /** Mismo criterio ya usado en Pronunciar (D1.4/D1.5) para saber, sin
+   *  esperar respuesta del servidor, si la explicación de contexto va a
+   *  estar bloqueada: sin cuenta cuando la puerta la exige, o sin OpenAI.
+   *  No cambia el contrato de cuenta/OpenAI, solo lo lee para dar feedback
+   *  inmediato (UX-F1, Miguel: el aviso ya existente tardaba en notarse). */
+  protected readonly sinPerfilParaExplicar = computed(() => {
+    const e = this.entrada();
+    return !!e && ((e.puerta && !e.dentro) || !e.openai);
+  });
+  /** Toast breve al pulsar «Consultar» (o al seleccionar una palabra) sin
+   *  perfil: no espera a que la etapa completa resuelva para avisar. */
+  protected readonly avisoRapidoPerfil = signal(false);
+  /** Pulso corto sobre la tarjeta de aviso ya existente, una vez llega. */
+  protected readonly pulsarAvisoPerfil = signal(false);
+  private avisoRapidoTimeout: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly num = num;
   protected readonly cefr = cefr;
@@ -146,11 +167,17 @@ export class Lector implements OnDestroy {
       untracked(() => void this.cargar(id, cap));
     });
     // Cambiar de modo o de tamaño de letra redistribuye el texto: se vuelve a
-    // medir conservando por dónde ibas.
+    // medir conservando por dónde ibas. El temporizador se guarda y se limpia
+    // en `ngOnDestroy` como los demás: sin eso, un componente destruido antes
+    // de los 30 ms seguía llamando `recolocar()` sobre su propio `nativeElement`
+    // ya fuera de uso (jsdom en los tests: `el.scrollTo is not a function`).
     effect(() => {
       this.paginado();
       this.prefs.letra();
-      untracked(() => setTimeout(() => this.recolocar(), 30));
+      untracked(() => {
+        clearTimeout(this.relojRecolocar);
+        this.relojRecolocar = setTimeout(() => this.recolocar(), 30);
+      });
     });
     // El elemento del texto aparece cuando llega el capítulo: se observa su tamaño
     // (girar el móvil, abrir el panel de la palabra en escritorio).
@@ -164,9 +191,17 @@ export class Lector implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Invalida cualquier `token === this.carga` todavía pendiente (D2: lo
+    // reprodujo un test con temporizadores reales) — en particular el doble
+    // requestAnimationFrame de más abajo, que si no se destruye a tiempo
+    // sigue viendo su propio token como vigente y llama recolocar()/
+    // aplicarPagina() sobre un componente ya destruido.
+    this.carga++;
     clearTimeout(this.espera);
     clearTimeout(this.reloj);
     clearTimeout(this.relojPosicion);
+    clearTimeout(this.relojRecolocar);
+    clearTimeout(this.avisoRapidoTimeout);
     this.observador?.disconnect();
     this.audio?.pause();
   }
@@ -239,12 +274,27 @@ export class Lector implements OnDestroy {
     }
   }
 
+  /** La escritura de verdad, sin temporizador: la usan tanto el guardado con
+   *  espera (`guardarPosicion`) como el volcado inmediato antes de salir del
+   *  lector (`alSalirAPronunciar`, D1.4) — una sola lógica, no dos. */
+  private escribirPosicion(fraccion: number, clave = this.clavePosicion()): void {
+    try { localStorage.setItem(clave, fraccion.toFixed(4)); } catch { /* sin almacenamiento */ }
+  }
+
   private guardarPosicion(fraccion: number): void {
     const clave = this.clavePosicion();
     clearTimeout(this.relojPosicion);
-    this.relojPosicion = setTimeout(() => {
-      try { localStorage.setItem(clave, fraccion.toFixed(4)); } catch { /* sin almacenamiento */ }
-    }, 300);
+    this.relojPosicion = setTimeout(() => this.escribirPosicion(fraccion, clave), 300);
+  }
+
+  /** Antes de ir a Pronunciar desde la hoja de la palabra (D1.4): la posición
+   *  se guarda cada 300 ms, pero si el lector se va antes de que pase ese
+   *  plazo, «Continuar leyendo» volvería a un punto viejo. Se vuelca ya,
+   *  reutilizando `escribirPosicion`, sin duplicar el cálculo de la fracción
+   *  (que ya vive en `avance()`, actualizado por el scroll/paso de página). */
+  protected alSalirAPronunciar(): void {
+    clearTimeout(this.relojPosicion);
+    this.escribirPosicion(this.avance());
   }
 
   private restaurarPosicion(id: string, n: number): void {
@@ -448,6 +498,12 @@ export class Lector implements OnDestroy {
     // Una palabra o un phrasal verb corto; más que eso es subrayar para leer.
     if (!txt || txt.split(/\s+/).length > 4 || txt.length > 40) return;
     if (txt.toLowerCase() === this.consultada().toLowerCase() && this.panelAbierto()) return;
+    // UX-F2: solo ahora, con la selección ya aceptada, se limpia el menú
+    // nativo (Copiar/Seleccionar todo/tiradores) — nunca antes de saber que
+    // se va a usar (una selección inválida se deja tal cual, sin tocarla).
+    // Un nuevo long-press/doble clic crea su propio rango: quitar este no
+    // le afecta.
+    sel.removeAllRanges();
     void this.consultar(txt);
   }
 
@@ -469,12 +525,28 @@ export class Lector implements OnDestroy {
     this.errorPalabra.set('');
     this.buscandoPalabra.set(true);
     this.explicando.set(false);
+    // UX-F1: feedback al instante, sin esperar la respuesta — el diccionario
+    // sigue funcionando igual, solo se avisa de antemano que la explicación
+    // de contexto no va a llegar.
+    if (this.sinPerfilParaExplicar()) {
+      clearTimeout(this.avisoRapidoTimeout);
+      this.avisoRapidoPerfil.set(true);
+      this.pulsarAvisoPerfil.set(true);
+      this.avisoRapidoTimeout = setTimeout(() => this.avisoRapidoPerfil.set(false), 4000);
+      setTimeout(() => this.pulsarAvisoPerfil.set(false), 900);
+    }
     const cuerpo = { palabra: texto, libro_id: this.id(), capitulo: this.indice(), idioma: this.prefs.idioma() };
     try {
       const rapida = await firstValueFrom(this.api.palabra({ ...cuerpo, etapa: 'diccionario' }));
       if (token !== this.consulta) return;
       this.palabra.set(rapida);
       this.buscandoPalabra.set(false);
+      // D1.4: solo cuenta como "seleccionó una palabra" si la hoja local ya
+      // tiene algo que enseñar (igual que decide el propio `lector.html` para
+      // no mostrar «no está en el diccionario»). Nunca espera a la IA.
+      if (rapida.sentido || rapida.acepciones_principales?.length || rapida.ipa_uk || rapida.ipa_us) {
+        this.tutorial.notificarLector('palabra');
+      }
       this.explicando.set(rapida.explicacion_pendiente);
       const completa = await firstValueFrom(this.api.palabra({ ...cuerpo, etapa: 'completa' }));
       if (token !== this.consulta) return;

@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, Injector, OnDestroy, OnInit, afterNextRender, computed, inject, input, signal, viewChild,
+  ChangeDetectionStrategy, Component, Injector, OnDestroy, OnInit, afterNextRender, computed, effect, inject, input, signal, viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -11,7 +11,10 @@ import { Icono } from '../compartido/icono';
 // Pronunciar en vez de bajar al pulsar «Boca en 3D».
 import { Boca3d } from '../compartido/boca3d/boca3d';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
-import { CorteEnPantalla, EscucharYVer, PeticionEscuchar, duracionParaCorte } from '../compartido/escuchar-y-ver';
+import {
+  CorteEnPantalla, EscucharYVer, PeticionEscuchar, VelocidadReproduccion,
+  VELOCIDADES_REPRODUCCION, duracionParaCorte,
+} from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
   Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
@@ -19,6 +22,7 @@ import {
 import { marcarVista, sinVer } from '../nucleo/banderas';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
+import { Tutorial } from '../nucleo/tutorial';
 
 type Grabacion = 'lista' | 'grabando' | 'grabada';
 type Detalle = CorreccionVoz['detalles'][number];
@@ -41,6 +45,11 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   private readonly api = inject(Api);
   protected readonly sesion = inject(Sesion);
+  // Solo notifica, nunca al revés (D1.4): Pronunciar no decide nada del
+  // tutorial, solo le dice cuándo empieza a corregir, cuándo hay resultado y
+  // cuándo hay error, y le pasa el {libro, cap} de origen para que
+  // «Continuar leyendo» se pueda reconocer al volver.
+  private readonly tutorial = inject(Tutorial);
 
   protected frase = '';
   protected readonly estado = signal<Grabacion>('lista');
@@ -73,15 +82,19 @@ export class Pronunciar implements OnInit, OnDestroy {
   private reloj: ReturnType<typeof setInterval> | undefined;
   /** «Escuchar y ver»: el audio y el corte 2D arrancan juntos (compartido/escuchar-y-ver.ts). */
   protected readonly eyv = new EscucharYVer();
-  /** «🐢 Despacio» (Miguel, 14 sep: «va muy rápida, no se ve cada movimiento»): 1× o
-   *  0,5× para el audio, el corte 2D y el 3D. El tipo admite 0,25×, que el 3D y
-   *  escuchar-y-ver siguen sabiendo hacer, pero la pantalla ya no lo ofrece. */
-  protected readonly velocidad = signal<1 | 0.5 | 0.25>(1);   // el tipo `Velocidad` del 3D (b9, 6b2579b)
-  // Un interruptor con nombre de estado y no de orden: «Más lento» se leía como un
-  // consejo («tienes que ir más lento», Esmeralda) y chocaba con las marcas de ritmo.
-  // Encendido va a 0,5× (propuesta A de Pronunciar, Miguel, 15 sep), y la etiqueta lo
-  // dice a la vista además del estilo de activado (condición de 4e y la Central).
-  protected readonly etiquetaVelocidad = computed(() => (this.velocidad() === 1 ? '🐢 Despacio' : '🐢 Despacio · activado'));
+  /** Una sola velocidad gobierna audio, SVG 2D y visor 3D. */
+  protected readonly velocidad = signal<VelocidadReproduccion>(1);
+  protected readonly opcionesVelocidad = [
+    { valor: 0.25, multiplicador: '0.25×', etiqueta: 'Muy despacio' },
+    { valor: 0.5, multiplicador: '0.50×', etiqueta: 'Despacio' },
+    { valor: 1, multiplicador: '1.00×', etiqueta: 'Normal' },
+    { valor: 1.25, multiplicador: '1.25×', etiqueta: 'Rápido' },
+  ] as const;
+  /** Solo se abre el selector de la barra pulsada: puede haber una ficha y
+   *  varios detalles de corrección en el DOM al mismo tiempo. */
+  protected readonly selectorVelocidad = signal<string | null>(null);
+  protected readonly opcionVelocidad = computed(() =>
+    this.opcionesVelocidad.find(o => o.valor === this.velocidad()) ?? this.opcionesVelocidad[2]);
   /** El visor 3D abierto, si lo hay. Por referencia de plantilla y no por clase:
    *  `viewChild(Boca3d)` usaría la clase como valor y el @defer dejaría de
    *  separar three.js. */
@@ -123,11 +136,23 @@ export class Pronunciar implements OnInit, OnDestroy {
     return this.acento() === 'ga' ? f.ga : f.rp;
   });
 
+  constructor() {
+    // D1.V: notifica al tutorial, reactivamente, si «Corrígeme» está
+    // disponible y si ya hay una grabación lista — nunca al revés, Pronunciar
+    // no lee nada del tutorial. Sin efecto si el tutorial no está activo.
+    effect(() => this.tutorial.notificarDisponibilidadCorregir(!this.bloqueada()));
+    effect(() => this.tutorial.notificarGrabacionLista(this.estado() === 'grabada'));
+  }
+
   ngOnInit(): void {
     const f = (this.frase_() ?? '').trim();
     if (f) this.frase = f.slice(0, 300);
     else if (this.libro()) void this.traerFrase();
     this.cargarDebiles();
+    // D1.4: registra de dónde viene (si viene de un libro concreto) para que
+    // el tutorial sepa a qué vuelta reconocer como «Continuar leyendo».
+    // Sin efecto si el tutorial no está activo en el paso que lo espera.
+    this.tutorial.registrarContextoPronunciar(this.contexto());
   }
 
   ngOnDestroy(): void {
@@ -219,6 +244,8 @@ export class Pronunciar implements OnInit, OnDestroy {
     // El micrófono ya no va desactivado sin frase: un toque que no hace nada es lo que contó Ismael.
     if (!this.frase.trim()) { this.error.set(this.avisoSinFrase); return; }
     if (!this.puedeGrabar()) { this.error.set(this.textoSinGrabacion()); return; }
+    // Un intento nuevo: si el anterior falló (D1.V), el tutorial lo olvida.
+    this.tutorial.notificarPronunciar('inicio');
     this.pidiendo.set(true);
     this.relojPermiso = setTimeout(() => this.pidiendoLento.set(true), 5000);
     let flujo: MediaStream;
@@ -226,6 +253,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
       this.error.set(this.mensajeMicrofono(e));
+      this.tutorial.notificarPronunciar('error');
       return;
     } finally {
       clearTimeout(this.relojPermiso);
@@ -270,6 +298,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       // El permiso ya se dio: lo que falló es MediaRecorder. Se suelta el micrófono.
       flujo.getTracks().forEach(t => t.stop());
       this.error.set('No se pudo empezar a grabar. Vuelve a intentar.');
+      this.tutorial.notificarPronunciar('error');
     }
   }
 
@@ -304,11 +333,13 @@ export class Pronunciar implements OnInit, OnDestroy {
         ? 'La corrección necesita tu perfil. Grabarte y escucharte, no.'
         : 'La corrección no está disponible en este servidor. Grabarte y escucharte, sí.');
       this.necesitaEntrar.set(puedeEntrar);
+      this.tutorial.notificarPronunciar('error');
       return;
     }
     this.corrigiendo.set(true);
     this.error.set('');
     this.necesitaEntrar.set(false);
+    this.tutorial.notificarPronunciar('inicio');
     const ext = (this.blob.type.includes('mp4') ? 'm4a' : this.blob.type.includes('ogg') ? 'ogg' : 'webm');
     try {
       const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`, this.acento()));
@@ -317,9 +348,11 @@ export class Pronunciar implements OnInit, OnDestroy {
       const e = this.entrada();
       if (e && r.restantes !== null) this.sesion.entrada.set({ ...e, restantes: r.restantes });
       this.cargarDebiles();
+      this.tutorial.notificarPronunciar('resultado');
     } catch (err) {
       this.error.set(mensajeError(err));
       this.necesitaEntrar.set(err instanceof HttpErrorResponse && err.status === 403);
+      this.tutorial.notificarPronunciar('error');
     } finally {
       this.corrigiendo.set(false);
     }
@@ -372,9 +405,31 @@ export class Pronunciar implements OnInit, OnDestroy {
       cortes: this.cortesDelDetalle(d, i), velocidad: this.velocidad() };
   }
 
-  /** Interruptor: 1× ↔ 0,5×. */
-  protected cambiarVelocidad(): void {
-    this.velocidad.update(v => (v === 1 ? 0.5 : 1));
+  /** El botón heredado «Despacio» abre su selector en 0,50× y lleva ahí el foco. */
+  protected abrirVelocidad(clave: string, ev?: Event): void {
+    this.velocidad.set(0.5);
+    this.selectorVelocidad.set(clave);
+    const boton = ev?.currentTarget as HTMLElement | null;
+    requestAnimationFrame(() => boton?.closest('.control-velocidad')
+      ?.querySelector<HTMLElement>('[data-velocidad="0.5"]')?.focus());
+  }
+
+  protected elegirVelocidad(valor: number): void {
+    if (!VELOCIDADES_REPRODUCCION.includes(valor as VelocidadReproduccion)) return;
+    this.velocidad.set(valor as VelocidadReproduccion);
+  }
+
+  /** Flechas/Home/End siguen el patrón ARIA de un radiogroup. */
+  protected teclaVelocidad(ev: KeyboardEvent, indice: number): void {
+    let siguiente = indice;
+    if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') siguiente = (indice + 1) % this.opcionesVelocidad.length;
+    else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') siguiente = (indice - 1 + this.opcionesVelocidad.length) % this.opcionesVelocidad.length;
+    else if (ev.key === 'Home') siguiente = 0;
+    else if (ev.key === 'End') siguiente = this.opcionesVelocidad.length - 1;
+    else return;
+    ev.preventDefault();
+    this.elegirVelocidad(this.opcionesVelocidad[siguiente].valor);
+    (ev.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>('[role="radio"]')[siguiente]?.focus();
   }
 
   /** Al pulsar, que la animación quede a la vista entre la cabecera y la barra
@@ -387,6 +442,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   private colocarALaVista(boton: HTMLElement | null): void {
     const grupo = boton?.closest?.('details.boca, .ficha-sonido');
     const blanco = grupo?.querySelector<HTMLElement>('app-boca3d') ?? grupo?.querySelector<HTMLElement>('.cortes, img.corte');
+    this.colocarElementoALaVista(blanco, boton);
+  }
+
+  private colocarElementoALaVista(blanco: HTMLElement | null | undefined, boton: HTMLElement | null): void {
     if (!blanco || typeof window === 'undefined') return;
     const r = blanco.getBoundingClientRect();
     const arriba = 64;                                   // la cabecera fija
@@ -400,6 +459,17 @@ export class Pronunciar implements OnInit, OnDestroy {
     // Si no cabe entera, arriba pegada a la cabecera: lo que se pierde es el pie, no la lengua.
     const destino = r.height <= abajo - arriba ? r.top + r.height / 2 - (arriba + abajo) / 2 : r.top - arriba;
     window.scrollBy({ top: destino, behavior: this.sinMovimiento ? 'auto' : 'smooth' });
+  }
+
+  /** La ficha se inserta después del clic. Espera al siguiente pintado y lleva
+   *  SU corte 2D a la zona visible; no toma otro corte anterior de la pantalla. */
+  private mostrarCorteSeleccionado(boton: HTMLElement | null): void {
+    if (!boton || typeof requestAnimationFrame !== 'function') return;
+    requestAnimationFrame(() => {
+      const corte = boton.closest('details.afi')
+        ?.querySelector<HTMLElement>('.ficha-sonido img.corte');
+      this.colocarElementoALaVista(corte, boton);
+    });
   }
 
   /** Con el audio del sonido, su corte dura lo que el mp3; con el de la palabra,
@@ -527,9 +597,10 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   /** Tocar un símbolo: suena, abre su ficha debajo de su grupo y su corte arranca con el audio. */
-  protected tocarSonido(sonido: Fonema): void {
+  protected tocarSonido(sonido: Fonema, ev?: Event): void {
     const otro = this.elegido()?.simbolo !== sonido.simbolo;
     this.elegido.set(sonido);
+    this.mostrarCorteSeleccionado(ev?.currentTarget as HTMLElement | null);
     // Con otro sonido, el 3D abierto aún tiene el anterior: suena por aquí.
     if (otro) this.eyv.escuchar(this.pedidoSonido(sonido));
     else this.escucharSonido(sonido);

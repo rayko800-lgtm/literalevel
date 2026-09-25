@@ -93,6 +93,10 @@
   background: var(--superficie); border-top: 1px solid var(--borde);
 }
 .pie-hoja .boton { min-height: 48px; }
+/* UX-F1: toast breve, no modal, pegado al pie — desaparece solo, no bloquea Cerrar. */
+.toast-perfil { margin: 0 -1.2rem .5rem; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+@keyframes pulso-aviso { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px var(--ambar); } }
+.pulso { animation: pulso-aviso .9s ease-out; }
 .otra { display: flex; flex: 1; gap: .5rem; min-width: 0; }
 .otra .entrada { min-height: 48px; min-width: 0; }
 .velo-palabra { display: none; }

@@ -75,7 +75,18 @@
     <!-- La barra de acción: en el móvil va fija abajo, al alcance del pulgar
          (investigacion/una_mano.md §3.4). El botón del centro no se mueve entre
          estados: grabar, parar y corregir caen en el mismo sitio. -->
-    <div class="grabadora">
+    <div class="grabadora" data-tutorial="pronunciar-practica">
+      <!-- UX0 (Miguel, 18 sep): el mismo contexto de D1.4, repetido aquí para
+           que «Continuar leyendo» no dependa de bajar hasta el final de la
+           página. Sin lógica de navegación nueva: mismo [routerLink] que el
+           enlace de abajo. Visible en cualquier estado (grabando, error,
+           resultado, explorando IPA/3D): la barra entera es `position: fixed`
+           en móvil. Sin contexto, no se muestra nada aquí. -->
+      @if (contexto(); as c) {
+        <a class="continuar-sticky" [routerLink]="['/leer', c.id, c.cap]" data-tutorial="pronunciar-continuar">
+          <app-icono nombre="libro" />Continuar leyendo
+        </a>
+      }
       @if (lineaBarra(); as l) {
         <p class="linea-barra" [class.error]="l.tipo === 'error'" [class.aviso]="l.tipo === 'aviso'" [class.grabando]="l.tipo === 'grabando'"
            [attr.role]="l.tipo === 'error' ? 'alert' : 'status'">{{ l.texto }}
@@ -241,8 +252,27 @@
                             [attr.aria-label]="'Escuchar y ver cómo se mueve la boca al decir ' + d.palabra">
                       <app-icono nombre="altavoz" />Escuchar y ver
                     </button>
-                    <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
-                            aria-label="Despacio">{{ etiquetaVelocidad() }}</button>
+                    <div class="control-velocidad">
+                      <button type="button" class="boton secundario disparador-velocidad"
+                              (click)="abrirVelocidad('detalle-' + $index, $event)"
+                              [attr.aria-expanded]="selectorVelocidad() === 'detalle-' + $index"
+                              [attr.aria-label]="'Despacio. Velocidad actual: ' + opcionVelocidad().etiqueta + ', ' + opcionVelocidad().multiplicador">
+                        <span>🐢 Despacio</span>
+                        <small>{{ opcionVelocidad().etiqueta }} · {{ opcionVelocidad().multiplicador }}</small>
+                      </button>
+                      @if (selectorVelocidad() === 'detalle-' + $index) {
+                        <div class="selector-velocidad" role="radiogroup" aria-label="Velocidad de reproducción">
+                          @for (o of opcionesVelocidad; track o.valor; let i = $index) {
+                            <button type="button" role="radio" [attr.aria-checked]="velocidad() === o.valor"
+                                    [attr.tabindex]="velocidad() === o.valor ? 0 : -1"
+                                    [attr.data-velocidad]="o.valor" [class.elegida]="velocidad() === o.valor"
+                                    (click)="elegirVelocidad(o.valor)" (keydown)="teclaVelocidad($event, i)">
+                              <strong>{{ o.multiplicador }}</strong><span>{{ o.etiqueta }}</span>
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
                     @if (boca3d) {
                     <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index, $event)"
                             [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
@@ -337,7 +367,7 @@
         <div class="rejilla-fonemas">
           @for (f of g.sonidos; track f.simbolo) {
             <button type="button" class="celda" [class.activo]="elegido()?.simbolo === f.simbolo"
-                    [attr.aria-pressed]="elegido()?.simbolo === f.simbolo" (click)="tocarSonido(f)">
+                    [attr.aria-pressed]="elegido()?.simbolo === f.simbolo" (click)="tocarSonido(f, $event)">
               <strong>/{{ f.simbolo }}/</strong>
               <span class="pequeno" lang="en">{{ f.ejemplos[0] }}</span>
               <span class="tenue diminuto">{{ f.nombre }}</span>
@@ -379,8 +409,27 @@
                         [attr.aria-label]="'Escuchar y ver cómo se mueve la boca con /' + s.simbolo + '/'">
                   <app-icono nombre="altavoz" />Escuchar y ver
                 </button>
-                <button type="button" class="boton secundario" (click)="cambiarVelocidad()" [attr.aria-pressed]="velocidad() !== 1"
-                        aria-label="Despacio">{{ etiquetaVelocidad() }}</button>
+                <div class="control-velocidad">
+                  <button type="button" class="boton secundario disparador-velocidad"
+                          (click)="abrirVelocidad('sonido', $event)"
+                          [attr.aria-expanded]="selectorVelocidad() === 'sonido'"
+                          [attr.aria-label]="'Despacio. Velocidad actual: ' + opcionVelocidad().etiqueta + ', ' + opcionVelocidad().multiplicador">
+                    <span>🐢 Despacio</span>
+                    <small>{{ opcionVelocidad().etiqueta }} · {{ opcionVelocidad().multiplicador }}</small>
+                  </button>
+                  @if (selectorVelocidad() === 'sonido') {
+                    <div class="selector-velocidad" role="radiogroup" aria-label="Velocidad de reproducción">
+                      @for (o of opcionesVelocidad; track o.valor; let i = $index) {
+                        <button type="button" role="radio" [attr.aria-checked]="velocidad() === o.valor"
+                                [attr.tabindex]="velocidad() === o.valor ? 0 : -1"
+                                [attr.data-velocidad]="o.valor" [class.elegida]="velocidad() === o.valor"
+                                (click)="elegirVelocidad(o.valor)" (keydown)="teclaVelocidad($event, i)">
+                          <strong>{{ o.multiplicador }}</strong><span>{{ o.etiqueta }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
                 @if (boca3d) {
                 <button type="button" class="boton secundario" (click)="alternarBoca('sonido', $event)"
                         [attr.aria-expanded]="visor3d() === 'sonido'">
@@ -421,5 +470,15 @@
     </section>
   }
 
-  <p class="tenue pequeno volver"><a routerLink="/leer">Volver al libro</a></p>
+  <p class="tenue pequeno volver">
+    @if (contexto(); as c) {
+      <!-- En móvil, este enlace queda redundante con el de la barra fija de
+           abajo (UX0, Miguel: quedaba enterrado bajo IPA/sonidos) — se
+           oculta solo ahí. En escritorio no hay ese problema de scroll, así
+           que se conserva. -->
+      <a class="volver-contextual" [routerLink]="['/leer', c.id, c.cap]">Continuar leyendo</a>
+    } @else {
+      <a routerLink="/leer">Volver al libro</a>
+    }
+  </p>
 </div>

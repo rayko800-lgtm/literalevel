@@ -6,7 +6,7 @@ import { Pronunciar } from './pronunciar';
 
 /** Propuesta A de Pronunciar (Miguel, 15 sep; auditoria/esmeralda_ux_2026-09-15.md):
  *  primero el resumen, la frase solo con bien o a revisar, «Practica esta palabra» con
- *  «Escuchar y ver» y el interruptor «🐢 Despacio» a la vista, y el ritmo y lo natural
+ *  «Escuchar y ver» y el selector «🐢 Despacio» a la vista, y el ritmo y lo natural
  *  plegados en «Para sonar más natural», con las marcas detrás de su palabra. */
 describe('Pronunciar (propuesta A)', () => {
   beforeEach(async () => {
@@ -54,26 +54,39 @@ describe('Pronunciar (propuesta A)', () => {
     expect([...frase.querySelectorAll('li.mal')].map(li => li.firstChild?.textContent)).toEqual(['want']);
   });
 
-  it('«Practica esta palabra» con «Escuchar y ver» y «🐢 Despacio» a la vista; Despacio es un interruptor', async () => {
+  it('«Despacio» abre un selector discreto en 0,50× con cuatro opciones táctiles y accesibles', async () => {
     const { fixture, c, raiz } = await pintar();
     const detalle = raiz.querySelector('.detalle') as HTMLElement;
     expect(detalle.textContent).toContain('Practica esta palabra');
     expect((detalle.querySelector('details.boca') as HTMLDetailsElement).open).toBe(true);
     const botones = [...detalle.querySelectorAll('.botones-corte button')];
     expect(botones.map(b => b.textContent?.trim())).toContain('Escuchar y ver');
-    const despacio = botones.find(b => b.textContent?.includes('Despacio')) as HTMLButtonElement;
-    expect(despacio.textContent?.trim()).toBe('🐢 Despacio');
-    expect(despacio.getAttribute('aria-label')).toBe('Despacio');   // sin el emoji ni «Pulsa para cambiarla»
-    expect(despacio.getAttribute('aria-pressed')).toBe('false');
+    const despacio = detalle.querySelector('.disparador-velocidad') as HTMLButtonElement;
+    expect(despacio.textContent).toContain('🐢 Despacio');
+    expect(despacio.textContent).toContain('Normal · 1.00×');
+    expect(despacio.getAttribute('aria-label')).toContain('Normal, 1.00×');
+    expect(despacio.getAttribute('aria-expanded')).toBe('false');
     despacio.click();
     fixture.detectChanges();
     expect(c.velocidad()).toBe(0.5);
-    expect(despacio.getAttribute('aria-pressed')).toBe('true');
-    expect(despacio.textContent?.trim()).toBe('🐢 Despacio · activado');   // encendido se dice a la vista (4e)
-    despacio.click();
+    expect(despacio.getAttribute('aria-expanded')).toBe('true');
+    expect(despacio.textContent).toContain('Despacio · 0.50×');
+    const selector = detalle.querySelector('[role="radiogroup"]') as HTMLElement;
+    expect(selector.getAttribute('aria-label')).toBe('Velocidad de reproducción');
+    const opciones = [...selector.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+    expect(opciones.map(o => o.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      '0.25×Muy despacio', '0.50×Despacio', '1.00×Normal', '1.25×Rápido',
+    ]);
+    expect(opciones.map(o => o.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false']);
+    opciones[3].click();
     fixture.detectChanges();
-    expect(c.velocidad()).toBe(1);                       // dos estados, no tres
-    expect(despacio.textContent?.trim()).toBe('🐢 Despacio');
+    expect(c.velocidad()).toBe(1.25);
+    expect(opciones[3].getAttribute('aria-checked')).toBe('true');
+    c.elegirVelocidad(3);
+    expect(c.velocidad()).toBe(1.25);                    // fuera del conjunto: se rechaza
+    opciones[3].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    fixture.detectChanges();
+    expect(c.velocidad()).toBe(0.25);
     expect(raiz.textContent).not.toContain('Más lento');
   });
 

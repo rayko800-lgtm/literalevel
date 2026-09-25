@@ -210,10 +210,10 @@ describe('Boca3d', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const img = (fixture.nativeElement as HTMLElement).querySelector('img.respaldo') as HTMLImageElement;
-    expect(img.getAttribute('src')).toBe('/api/articulacion/ga/%C5%8B.svg');
+    expect(img.getAttribute('src')).toBe('/api/articulacion/ga/%C5%8B.svg?v=d4-canal-20260919');
     fixture.componentRef.setInput('acento', 'rp');
     fixture.detectChanges();
-    expect(img.getAttribute('src')).toBe('/api/articulacion/rp/%C5%8B.svg');
+    expect(img.getAttribute('src')).toBe('/api/articulacion/rp/%C5%8B.svg?v=d4-canal-20260919');
   });
 
   it('con la URL apagada y sin WebGL lo dice con una frase, y el selector cambia la leyenda', async () => {
