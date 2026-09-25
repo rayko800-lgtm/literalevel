@@ -83,10 +83,12 @@ del profesor.
 - **Las correcciones, contadas.** «Corrígeme» tiene 10 por hora, por conexión y no
   por cuenta: si ensayas en ráfaga desde la misma red en la hora antes de grabar, te
   quedas sin ellas para la toma. El aviso dice cuándo vuelve la primera, no todas.
-- **La boca en 3D.** El front publicado —revisión `f4920fa` del Space, del commit `a656c2e`— lleva la
+- **La boca en 3D.** El front publicado —revisión `ec68419` del Space, del commit `8a992af`— lleva la
   cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
-  `master`): comprobado hoy, `boca3d/cara.glb` y `boca3d/lengua.glb` responden
-  200 en el Space publicado. **Ábrela una vez antes de grabar**: la cara
+  `master`), con el giro ya limitado a donde el modelo se lee de perfil
+  (`a70af4e`): el ensayo final del 16 de septiembre abrió la boca 3D en esa
+  misma revisión y cargó con normalidad (`auditoria/ensayo_demo_final_2026-09-16.md`).
+  **Ábrela una vez antes de grabar**: la cara
   tarda unos 3–4 s la primera vez (depende de la red; medido el 15 de
   septiembre) y menos de 1 s después. Si no carga, basta el corte 2D.
 - **El perfil 1,20, receta** (medida por e6 contra el Space y por 4e con la
