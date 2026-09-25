@@ -115,6 +115,21 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   una sonrisa leve en reposo y la tez más clara. Comprobado en la app pública a
   390 px (/ʒ/ de frente, alejada con «Explorar» y de lado); `X-Linked-ETag`
   del GLB = sha256 local.
+- **Tercera publicación (24-25 sep, noche CDMX), front y API:**
+  - API: revisión del Space `a88531b` desde `cca283a` (aire 2D en /f/,
+    `/api/progreso`, `POST /api/repaso`, textos de θ/ð y `GET /api/lectura/ipa`)
+    y después `c49604e` desde `acbee33` (`ficha.py`: una obra de teatro sin
+    capítulos ya no se toma por portadilla; PG844 se mide). Pruebas en árbol
+    limpio: API 67/67, extremas 355/355, ficha, progreso 22/22, repaso 15/15,
+    animación. Comprobado: salud, Gradio, SVG de /f/ con aire, progreso,
+    lectura/ipa y el vistazo rápido de PG844 (1,36, B2).
+  - Front: revisión `a9ae51f` desde `acbee33`: D1-D3 (Mi espacio, Repasar, Mi
+    progreso), lectura de frases en 3D al compás del audio («Verla leída en
+    3D»), cara nueva (mentón firme, mejillas que acompañan, /f v/ con cuerpo,
+    pelo castaño rizado, tez clara), reposo sin vibración. Front 446/446 y build.
+    Probado a 390 px en la app publicada (lectura 3D con `/api/voz` simulado y
+    micrófono falso, sin coste) y en local (Mi espacio). `X-Linked-ETag` del
+    GLB = sha256 local.
 
 ## Historial de infraestructura y opciones evaluadas
 
