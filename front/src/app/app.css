@@ -83,7 +83,7 @@
   .pie { padding-bottom: calc(var(--barra-inf) + 1.5rem + env(safe-area-inset-bottom)); }
   .nav-movil {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-    display: grid; grid-template-columns: repeat(4, 1fr);
+    display: grid; grid-template-columns: repeat(5, 1fr);
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: var(--superficie); border-top: 1px solid var(--borde);
     box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, .35);

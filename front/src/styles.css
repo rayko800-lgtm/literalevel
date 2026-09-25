@@ -284,6 +284,7 @@ textarea.entrada { line-height: 1.55; resize: vertical; }
 [data-seccion="encontrar"] { --seccion: var(--c-encontrar); --seccion-suave: var(--c-encontrar-suave); }
 [data-seccion="voz"] { --seccion: var(--c-voz); --seccion-suave: var(--c-voz-suave); }
 [data-seccion="nivel"] { --seccion: var(--c-nivel); --seccion-suave: var(--c-nivel-suave); }
+[data-seccion="inicio"] { --seccion: var(--acento); --seccion-suave: var(--acento-suave, rgba(47, 91, 234, .12)); }
 /* En bloque: el h1 es `inline` (por el subrayado de rotulador) y, si no, se
    subía a la línea de la pastilla («TU NIVEL · MIS PALABRAS Mis»). */
 [data-seccion] .cabecera-pagina .antetitulo {

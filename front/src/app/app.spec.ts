@@ -19,13 +19,13 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('pinta la marca y las cuatro funciones de la navegación', async () => {
+  it('pinta la marca, Mi espacio y las cuatro funciones de la navegación', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const raiz = fixture.nativeElement as HTMLElement;
     expect(raiz.querySelector('.marca')?.textContent).toContain('LiteraLevel');
     const funciones = [...raiz.querySelectorAll('.nav-escritorio a')].map(a => a.textContent?.trim());
-    expect(funciones).toEqual(['Leer', 'Encontrar', 'Pronunciar', 'Tu nivel']);
+    expect(funciones).toEqual(['Mi espacio', 'Leer', 'Encontrar', 'Pronunciar', 'Tu nivel']);
   });
 
   it('manda X-Lector en las peticiones al motor', () => {

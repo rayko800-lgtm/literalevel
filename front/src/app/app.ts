@@ -25,7 +25,10 @@ export class App {
   // que `<app-spotlight>` funcione en cualquier ruta, no solo en Inicio.
   private readonly tutorial = inject(Tutorial);
 
+  // 25 sep (Miguel no encontraba «Mi espacio» dos veces): la portada tiene su
+  // pestaña. Con un lector nuevo sigue siendo la puerta de entrada.
   protected readonly navegacion = [
+    { ruta: '/', etiqueta: 'Mi espacio', icono: 'casa', seccion: 'inicio' },
     { ruta: '/leer', etiqueta: 'Leer', icono: 'libro', seccion: 'leer' },
     { ruta: '/encontrar', etiqueta: 'Encontrar', icono: 'lupa', seccion: 'encontrar' },
     { ruta: '/pronunciar', etiqueta: 'Pronunciar', icono: 'micro', seccion: 'voz' },
