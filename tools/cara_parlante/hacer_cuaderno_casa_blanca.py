@@ -53,7 +53,7 @@ def bajar(f):
     ruta = f'{DESTINO}/videos/{nombre}'
     if os.path.exists(ruta) and os.path.getsize(ruta) > 1e5:
         return 'ya'
-    r = subprocess.run(['wget', '-q', '-O', ruta + '.part', f['mp4']])
+    r = subprocess.run(['wget', '-q', '--tries=5', '-O', ruta + '.part', f['mp4']])
     if r.returncode == 0:
         os.replace(ruta + '.part', ruta); return 'ok'
     if os.path.exists(ruta + '.part'): os.remove(ruta + '.part')
@@ -66,16 +66,24 @@ print(res)
 ('code', """# --- 3. Medir (MediaPipe en CPU; varios procesos a la vez)
 open('/content/medir_expresion.py', 'w', encoding='utf8').write(MEDIR_PY)
 import glob
-videos = sorted(glob.glob(f'{DESTINO}/videos/*.mp4'))
+# primero los discursos semanales (de frente, leyendo), luego los cortos: así lo más útil se mide antes
+videos = sorted(glob.glob(f'{DESTINO}/videos/*.mp4'), key=lambda v: ('weekly-address' not in v, os.path.getsize(v)))
 faltan = [v for v in videos if not os.path.exists(f"{DESTINO}/medidas/{os.path.basename(v)[:-4]}.npz")]
 print(len(videos), 'vídeos,', len(faltan), 'por medir')
-trozos = [faltan[i::4] for i in range(4)]
+NPROC = os.cpu_count() or 2
+trozos = [faltan[i::NPROC] for i in range(NPROC)]
 procs = [subprocess.Popen(['python', '/content/medir_expresion.py', '--modelo', '/content/face_landmarker.task',
-                          '--salida', f'{DESTINO}/medidas', *t], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                          '--salida', f'{DESTINO}/medidas', '--ancho', '640', *t], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
          for t in trozos if t]
+hechos = len(videos) - len(faltan)
 for p in procs:
     for linea in p.stdout:
-        if 'fotogramas' in linea or 'salta' in linea: print(linea.strip())
+        if 'fotogramas' in linea or 'salta' in linea:
+            hechos += 1
+            b = int(20 * hechos / len(videos))
+            print('█' * b + '░' * (20 - b), f'{hechos}/{len(videos)}', linea.strip(), flush=True)
+        elif 'Error' in linea or 'Traceback' in linea:
+            print(linea.strip(), flush=True)
 !ls {DESTINO}/medidas | wc -l"""),
 ]
 

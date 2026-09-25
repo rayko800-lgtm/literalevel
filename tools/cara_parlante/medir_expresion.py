@@ -63,8 +63,40 @@ def prosodia(video, t):
     return f0[idx], np.interp(t, tr, db)
 
 
-def medir(video, lmk, salida):
-    cap = cv2.VideoCapture(video)
+class LectorFfmpeg:
+    """Fotogramas ya reducidos a `ancho` px y a `fps_max`: ffmpeg decodifica y escala
+    con varios hilos, y MediaPipe recibe imágenes pequeñas. Con vídeo HD es 2-3 veces
+    más rápido que leer con cv2 a tamaño completo. Devuelve BGR, como cv2."""
+
+    def __init__(self, video, ancho, fps_max=25):
+        cap = cv2.VideoCapture(video)
+        w, h = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 25
+        cap.release()
+        self.w = int(min(ancho, w)) // 2 * 2
+        self.h = int(round(h * self.w / w / 2)) * 2
+        self.fps = min(fps, fps_max)
+        self.p = subprocess.Popen([imageio_ffmpeg.get_ffmpeg_exe(), '-loglevel', 'error', '-i', video,
+                                   '-vf', f'fps={self.fps},scale={self.w}:{self.h}', '-f', 'rawvideo',
+                                   '-pix_fmt', 'bgr24', '-'], stdout=subprocess.PIPE)
+        self.n = self.w * self.h * 3
+
+    def get(self, prop):
+        return self.fps
+
+    def read(self):
+        b = self.p.stdout.read(self.n)
+        if len(b) < self.n:
+            return False, None
+        return True, np.frombuffer(b, np.uint8).reshape(self.h, self.w, 3)
+
+    def release(self):
+        self.p.stdout.close()
+        self.p.wait()
+
+
+def medir(video, lmk, salida, ancho=0):
+    cap = LectorFfmpeg(video, ancho) if ancho else cv2.VideoCapture(video)
     fps = cap.get(cv2.CAP_PROP_FPS) or 25
     t, bs, pose, ok = [], [], [], []
     nombres = None
@@ -103,6 +135,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--modelo', required=True)
     ap.add_argument('--salida', required=True)
+    ap.add_argument('--ancho', type=int, default=0,
+                    help='reducir el vídeo a este ancho (p. ej. 640) antes de medir; 0 = tamaño original')
     ap.add_argument('videos', nargs='+')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
@@ -118,7 +152,7 @@ def main():
             running_mode=vision.RunningMode.VIDEO, num_faces=2,
             output_face_blendshapes=True, output_facial_transformation_matrixes=True)
         with vision.FaceLandmarker.create_from_options(opts) as lmk:
-            n, frac = medir(v, lmk, destino)
+            n, frac = medir(v, lmk, destino, a.ancho)
         print(f'{os.path.basename(v)}: {n} fotogramas, cara en {frac:.0%}')
 
 
