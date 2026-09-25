@@ -8,6 +8,7 @@ y los nombres de los controles en `CONTROLES`.
 """
 import argparse
 import glob
+import json
 import os
 import re
 
@@ -34,6 +35,14 @@ def leer_textgrid(ruta, capa='phones'):
     return []
 
 
+def leer_json_lombard(ruta):
+    """Alineación de Lombard GRID: [{phone: 'b_B', offset, duration}], con el
+    sufijo de posición en la palabra (_B/_I/_E/_S) que aquí se quita."""
+    d = json.load(open(ruta, encoding='utf8'))
+    fon = next(iter(d.values()))
+    return [(f['phone'].split('_')[0].upper().replace('SIL', ''), f['offset'], f['offset'] + f['duration']) for f in fon]
+
+
 def controles(npz):
     d = np.load(npz)
     geo_n, bs_n = list(d['geo_nombres']), list(d['bs_nombres'])
@@ -53,15 +62,21 @@ def main():
     ap.add_argument('--alineacion', required=True, help='carpeta con <frase>.TextGrid del mismo hablante')
     ap.add_argument('--salida', required=True)
     ap.add_argument('--hablante', required=True)
+    ap.add_argument('--patron', default='*.npz', help='p. ej. s10_p_*.npz para un hablante de Lombard')
     a = ap.parse_args()
     frases, ys = [], []
-    for npz in sorted(glob.glob(os.path.join(a.medidas, '*.npz'))):
+    for npz in sorted(glob.glob(os.path.join(a.medidas, a.patron))):
         nombre = os.path.splitext(os.path.basename(npz))[0]
         tg = os.path.join(a.alineacion, nombre + '.TextGrid')
-        if not os.path.exists(tg):
+        js = os.path.join(a.alineacion, nombre + '.json')
+        if os.path.exists(tg):
+            fon = leer_textgrid(tg)
+        elif os.path.exists(js):
+            fon = leer_json_lombard(js)
+        else:
             continue
+        fon = [(f, i, z) for f, i, z in fon if z > i]
         t, y = controles(npz)
-        fon = [(f, i, z) for f, i, z in leer_textgrid(tg) if z > i]
         if not fon or np.isnan(y).mean() > 0.1:
             continue
         # Huecos sueltos sin cara: interpolación lineal por columna.

@@ -143,6 +143,7 @@ def main():
     ap.add_argument('--datos', required=True)
     ap.add_argument('--salida', required=True)
     ap.add_argument('--pasos', type=int, default=400)
+    ap.add_argument('--fps', type=float, default=25.0, help='muestras por segundo del conjunto')
     a = ap.parse_args()
     torch.manual_seed(0); np.random.seed(0)
     hablantes = {os.path.splitext(os.path.basename(p))[0]: cargar(p) for p in sorted(glob.glob(os.path.join(a.datos, '*.npz')))}
@@ -159,7 +160,7 @@ def main():
             with torch.no_grad():
                 p_dom = m(t, ids, c).numpy()
             for nombre, pred in (('dominancia', p_dom), ('escalon', escalon(fr, idx, medias)), ('reglas', reglas(fr, idx, medias))):
-                filas[nombre].append(metricas(pred, fr[1]))
+                filas[nombre].append(metricas(pred, fr[1], a.fps))
         res['pliegues'][prueba] = {
             n: {'rmse': np.mean([x[0] for x in v], 0).round(3).tolist(),
                 'pearson': np.mean([x[1] for x in v], 0).round(3).tolist(),

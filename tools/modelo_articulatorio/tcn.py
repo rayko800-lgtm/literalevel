@@ -103,6 +103,7 @@ def main():
     ap.add_argument('--salida', required=True)
     ap.add_argument('--epocas', type=int, default=30)
     ap.add_argument('--prueba', nargs='*', help='hablantes de prueba; por defecto, uno fuera cada vez')
+    ap.add_argument('--fps', type=float, default=25.0, help='muestras por segundo del conjunto')
     a = ap.parse_args()
     hablantes = {os.path.splitext(os.path.basename(p))[0]: cargar_con_acento(p) for p in sorted(glob.glob(os.path.join(a.datos, '*.npz')))}
     controles = cargar(next(iter(sorted(glob.glob(os.path.join(a.datos, '*.npz'))))))[1]
@@ -120,7 +121,7 @@ def main():
                 ids, ex = entrada(fr, idx)
                 with torch.no_grad():
                     pred = m(ids[None], ex[None])[0].numpy()
-                filas.append(metricas(pred, fr[1]))
+                filas.append(metricas(pred, fr[1], a.fps))
         clave = '+'.join(prueba)
         res['pliegues'][clave] = {'tcn': {
             'rmse': np.mean([x[0] for x in filas], 0).round(3).tolist(),

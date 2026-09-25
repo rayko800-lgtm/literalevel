@@ -18,12 +18,19 @@ def main():
     ap.add_argument('--ffmpeg', required=True)
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
+    # En el ZIP de Zenodo las alineaciones de s5 y s6 están cambiadas de carpeta
+    # (comprobado por los nombres, que codifican la frase): se busca cada
+    # frase por nombre en todas las carpetas hermanas de --align.
+    indice = {os.path.splitext(os.path.basename(r))[0]: r
+              for r in glob.glob(os.path.join(os.path.dirname(os.path.normpath(a.align)), '*', '*.align'))}
     n = 0
     for v in sorted(glob.glob(os.path.join(a.videos, '*.mpg'))):
         nombre = os.path.splitext(os.path.basename(v))[0]
         al = os.path.join(a.align, nombre + '.align')
-        wav = os.path.join(a.salida, nombre + '.wav')
         if not os.path.exists(al):
+            al = indice.get(nombre)
+        wav = os.path.join(a.salida, nombre + '.wav')
+        if not al:
             continue
         palabras = [l.split()[2] for l in open(al) if len(l.split()) == 3 and l.split()[2] not in ('sil', 'sp')]
         open(os.path.join(a.salida, nombre + '.lab'), 'w').write(' '.join(palabras) + '\n')
