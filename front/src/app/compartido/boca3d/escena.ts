@@ -2529,8 +2529,8 @@ export class EscenaBoca {
                   // El vídeo tiene luz fuerte; esto no es colorimetría medida.
                   float superior = smoothstep(0.15, 0.26, vPielReposo.y);
                   vec3 pigmentoLabio = mix(vec3(0.70,0.73,0.79),vec3(0.51,0.59,0.65),superior);
-                  // 24 sep: tez más clara (petición de Miguel); los labios conservan su pigmento.
-                  diffuseColor.rgb *= mix(vec3(0.70,0.61,0.54),pigmentoLabio,labioFoto);
+                  // 24-25 sep: tez clara (petición de Miguel); los labios conservan su pigmento.
+                  diffuseColor.rgb *= mix(vec3(0.86,0.76,0.68),pigmentoLabio,labioFoto);
                   // Ojos abiertos: fuera la abertura; pestañas oscuras en el borde
                   // superior y más suaves en el inferior.
                   float aberturaPiel = aberturaOjo(vPielReposo);

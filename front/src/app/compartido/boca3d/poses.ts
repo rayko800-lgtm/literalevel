@@ -83,7 +83,10 @@ export function conAjustes3d(catalogo: CatalogoPoses, ajustes: AjustesPoses3d): 
     const base = rp[s] ?? sonidos[s];
     if (base) rp[s] = { ...base, ...extra };
   }
-  return { ...catalogo, sonidos, rp };
+  // 25 sep (Miguel): en el 3D el reposo es respirar en silencio. Marcado como
+  // sonoro, el punto de vibración latía en la garganta antes y después de
+  // sonidos sordos como /f/, y parecía que /f/ vibraba.
+  return { ...catalogo, reposo: { ...catalogo.reposo, sonora: false }, sonidos, rp };
 }
 
 export const REPOSO: PoseSonido = {
