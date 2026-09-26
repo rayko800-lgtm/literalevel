@@ -200,14 +200,45 @@ def gestos_voz2cara(wav, n, modelo_dir):
             'guinada': z('cabeza_guinada'), 'cabeceo': z('cabeza_cabeceo'), 'alabeo': z('cabeza_alabeo')}
 
 
+def prediccion_fusion(mp3, palabras, dur, modelo_dir):
+    """Red de fusión (voz2cara/entrenar_fusion.py): la boca de Blender + la voz → 55 salidas
+    (52 blendshapes MediaPipe y 3 de cabeza, como diferencia sobre la media del clip), a 30 fps."""
+    import sys
+    import torch
+    from transformers import Wav2Vec2Model
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'voz2cara'))
+    from articulacion import entrada
+    from entrenar_fusion import Fusion, N_FON
+    from extraer import audio
+    import imageio_ffmpeg
+    x = audio(mp3, imageio_ffmpeg.get_ffmpeg_exe())
+    tt = np.arange(0, dur, 1 / 30)
+    art, fon = entrada(palabras, tt)
+    fon = fon.astype(np.int64); fon[fon < 0] = N_FON - 1
+    w2v = Wav2Vec2Model.from_pretrained('facebook/wav2vec2-base').eval()
+    norm = json.load(open(os.path.join(modelo_dir, 'normalizacion.json')))
+    red = Fusion(sal=len(norm['columnas']))
+    red.load_state_dict(torch.load(os.path.join(modelo_dir, 'modelo.pt'), map_location='cpu', weights_only=True))
+    red.eval()
+    with torch.no_grad():
+        h = w2v(torch.tensor(x)[None], output_hidden_states=True).hidden_states
+        f50 = torch.stack(h[6:10]).mean(0)[0].numpy()
+        f25 = f50[: len(f50) // 2 * 2].reshape(-1, 2, 768).mean(1)
+        voz = f25[np.clip(np.searchsorted(np.arange(len(f25)) / 25.0, tt), 0, len(f25) - 1)]
+        p = red(torch.tensor(voz)[None].float(), torch.tensor(art)[None], torch.tensor(fon)[None])[0].numpy()
+    return tt, p * np.array(norm['sd']), norm['columnas']
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--texto', required=True)
     ap.add_argument('--salida', required=True)
     ap.add_argument('--voz', default='en-US-AvaNeural')
     ap.add_argument('--semilla', type=int, default=7)
-    ap.add_argument('--gestos', choices=['prosodia', 'voz2cara'], default='prosodia',
-                    help='quién decide cejas, sonrisa, ojos y cabeza: la red de prosodia o el modelo voz→cara')
+    ap.add_argument('--gestos', choices=['prosodia', 'voz2cara', 'fusion'], default='prosodia',
+                    help='quién decide la cara: la red de prosodia, el modelo voz→cara o la red de fusión '
+                         '(Blender + voz: también la boca)')
+    ap.add_argument('--modelo_fusion', default='D:/literalevel_cara/fusion_modelo')
     ap.add_argument('--modelo_voz2cara', default='D:/literalevel_cara/voz2cara_modelo')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
@@ -237,6 +268,33 @@ def main():
     # labio inferior y superior acompañan a la mandíbula (MediaPipe los mide aparte; el modelo no los tiene)
     cur['mouthLowerDownLeft'] = cur['mouthLowerDownRight'] = 0.35 * cur['jawOpen']
     cur['mouthUpperUpLeft'] = cur['mouthUpperUpRight'] = 0.12 * cur['jawOpen']
+
+    if a.gestos == 'fusion':
+        # la boca de la red de fusión: Blender corregido con la naturalidad de las caras reales
+        # (unidades MediaPipe → morphs ARKit con las mismas ganancias). Garantía pedagógica: en
+        # p/b/m los labios cierran al menos lo que cierra Blender, y en u/o/w redondean al menos igual.
+        tfus, pf, colf = prediccion_fusion(mp3, palabras, dur, a.modelo_fusion)
+        cf = {c: i for i, c in enumerate(colf)}
+        t60 = np.arange(n) / FPS
+        def fus(c):
+            return np.interp(t60, tfus, pf[:, cf[c]])
+        blender = {k: v.copy() for k, v in cur.items()}
+        ganancia = dict(GANANCIA, mouthPressLeft=GANANCIA['mouthPress'], mouthPressRight=GANANCIA['mouthPress'],
+                        mouthLowerDownLeft=3.0, mouthLowerDownRight=3.0, mouthUpperUpLeft=3.0, mouthUpperUpRight=3.0)
+        for c in ('jawOpen', 'mouthPucker', 'mouthFunnel', 'mouthRollLower', 'mouthPressLeft', 'mouthPressRight',
+                  'mouthClose', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthUpperUpLeft', 'mouthUpperUpRight'):
+            base = esc.get(c, esc.get(c.replace('Right', 'Left'), {'media': 0.0}))['media']
+            cur[c] = np.clip(ganancia[c] * (base + fus(c)), 0, 1)
+        cur['mouthClose'] = np.minimum(cur['mouthClose'], cur['jawOpen'])
+        for f0, t0, t1 in fons:
+            i, j = int(t0 * FPS), int(t1 * FPS) + 1
+            if f0 in ('p', 'b', 'm'):
+                for c in ('mouthClose', 'mouthPressLeft', 'mouthPressRight'):
+                    cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
+                cur['jawOpen'][i:j] = np.minimum(cur['jawOpen'][i:j], blender['jawOpen'][i:j])
+            elif f0 in ('uw', 'ow', 'w'):
+                for c in ('mouthPucker', 'mouthFunnel'):
+                    cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
 
     # en los silencios la boca descansa: el modelo de dominancia va interpolando hacia la
     # siguiente vocal y abría la boca en plena pausa (visto el 26 sep: 0,36 en un silencio)
@@ -295,7 +353,15 @@ def main():
     # y se multiplican por EXPRESIVIDAD para que el gesto se vea sin exagerar.
     EXPRESIVIDAD = 0.8
     inf = json.load(open(os.path.join(os.path.dirname(GESTOS), 'informe.json')))['sd_prediccion_z']
-    if a.gestos == 'voz2cara':   # ya salen en z por clip
+    if a.gestos == 'fusion':     # cejas, sonrisa, ojos y cabeza de la misma red, en z por clip
+        def zf(*nombres):
+            v = np.mean([np.interp(np.arange(n) / FPS, tfus, pf[:, cf[c]]) for c in nombres], 0)
+            return EXPRESIVIDAD * (v - v.mean()) / (v.std() + 1e-6)
+        z = {'cejas_int': zf('browInnerUp'), 'cejas_ext': zf('browOuterUpLeft', 'browOuterUpRight'),
+             'sonrisa': zf('mouthSmileLeft', 'mouthSmileRight'), 'entrecerrar': zf('eyeSquintLeft', 'eyeSquintRight'),
+             'parpadeo': zf('eyeBlinkLeft', 'eyeBlinkRight'), 'guinada': zf('cabeza_guinada'),
+             'cabeceo': zf('cabeza_cabeceo'), 'alabeo': zf('cabeza_alabeo')}
+    elif a.gestos == 'voz2cara':   # ya salen en z por clip
         z = {k: EXPRESIVIDAD * v for k, v in gestos_voz2cara(wav, n, a.modelo_voz2cara).items()}
     else:
         z = {k: EXPRESIVIDAD * v / inf[k] for k, v in gestos(f0, db, FPS).items()}
@@ -335,6 +401,7 @@ def main():
 
     json.dump({'fps': FPS, 'duracion': dur, 'texto': a.texto, 'voz': a.voz,
                'palabras': [[w, round(x, 3), round(y, 3)] for w, x, y in palabras],
+               'fonemas': [[f, round(x, 3), round(y, 3)] for f, x, y in fons],
                'curvas': {k: [round(float(v), 3) for v in arr] for k, arr in cur.items()},
                'cabeza': [[round(float(v), 2) for v in fila] for fila in cabeza]},
               open(os.path.join(a.salida, 'curvas.json'), 'w'))
