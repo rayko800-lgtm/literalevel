@@ -124,7 +124,9 @@ zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
     .chip.elegido { background: var(--acento, #2f5bea); color: #fff; border-color: var(--acento, #2f5bea); }
     .ipa { font-family: 'Charis SIL', 'Doulos SIL', 'DejaVu Sans', 'Segoe UI', sans-serif; }
     .visor { position: relative; width: 100%; overflow: hidden; min-height: 220px; }
-    .zoom { position: absolute; bottom: 8px; right: 8px; z-index: 2; display: grid; gap: 6px; }
+    /* Arriba a la izquierda: abajo la tapaba la barra pegada de Pronunciar (390 px) y arriba
+       a la derecha va el aviso de vibración. */
+    .zoom { position: absolute; top: 8px; left: 8px; z-index: 2; display: grid; gap: 6px; }
     .boton-zoom { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--borde, #d6deeb);
       background: color-mix(in srgb, var(--superficie, #fff) 88%, transparent); color: var(--texto, #18223a);
       font: 700 1.4rem/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
