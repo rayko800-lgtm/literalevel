@@ -174,6 +174,14 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   1366 px, sin respuestas 4xx/5xx, sin desplazamiento lateral y con el panel
   abriéndose desde el logo.
 
+- **Novena publicación (26 sep, CDMX), solo front:** revisión `72b3dd7`
+  desde `df7b6ad`. El fondo astral pasa a todas las pantallas (body); cada
+  pantalla se lee sobre una lámina translúcida de su tema (93 % en claro y
+  papel, 74 % en noche), sin desenfoque. Front 460/460; capturas de
+  Encontrar, libro, lector, Pronunciar, Mis palabras y Mi espacio a 390 px y
+  1366 px en claro, noche y papel; en la app publicada, galaxia y lámina
+  presentes y sin respuestas de error.
+
 ## Historial de infraestructura y opciones evaluadas
 
 Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
