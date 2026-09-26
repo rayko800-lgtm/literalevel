@@ -53,3 +53,46 @@ function avisar(): void {
     + 'box-shadow:0 6px 20px rgba(0,0,0,.3)';
   document.body.appendChild(aviso);
 }
+
+/** Un móvil que guarda el index.html viejo (26 sep: el Space no manda
+ *  Cache-Control, y el de Miguel siguió con el build anterior en todas las
+ *  pestañas menos la portada). El chunk viejo sigue existiendo, así que no
+ *  hay 404 que lo delate: se pregunta al servidor por el index actual, sin
+ *  caché, y si su main-*.js no es el que corre aquí, se recarga una vez. */
+const PATRON_MAIN = /main-[A-Za-z0-9_-]+\.js/;
+const CADA_MS = 60_000;
+let ultimaConsulta = 0;
+
+export function mainActual(doc: Document = document): string | null {
+  for (const s of Array.from(doc.querySelectorAll('script[src]'))) {
+    const m = (s.getAttribute('src') ?? '').match(PATRON_MAIN);
+    if (m) return m[0];
+  }
+  return null;
+}
+
+/** true si ha pedido recargar. En desarrollo (sin hash en main.js) no hace nada. */
+export async function buscarVersionNueva(
+  recargar: () => void = () => location.reload(),
+  pedir: (url: string) => Promise<string> = url => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.text() : ''),
+  ahora = Date.now(),
+): Promise<boolean> {
+  const actual = mainActual();
+  if (!actual || ahora - ultimaConsulta < CADA_MS) return false;
+  ultimaConsulta = ahora;
+  let html = '';
+  try { html = await pedir('index.html?v=' + ahora); } catch { return false; }
+  const servido = html.match(PATRON_MAIN)?.[0];
+  if (!servido || servido === actual) return false;
+  try {
+    const antes = Number(sessionStorage.getItem(CLAVE) || 0);
+    if (ahora - antes < VENTANA_MS) return false;
+    sessionStorage.setItem(CLAVE, String(ahora));
+  } catch { /* sin sessionStorage: recarga igual */ }
+  avisar();
+  setTimeout(recargar, 400);
+  return true;
+}
+
+/** Solo para las pruebas. */
+export function reiniciarConsultaVersion(): void { ultimaConsulta = 0; }

@@ -9,6 +9,7 @@ import { Spotlight } from './compartido/spotlight';
 import { Preferencias } from './nucleo/preferencias';
 import { Sesion } from './nucleo/sesion';
 import { Tutorial } from './nucleo/tutorial';
+import { buscarVersionNueva } from './nucleo/version';
 
 @Component({
   selector: 'app-root',
@@ -49,7 +50,14 @@ export class App {
       .subscribe(() => {
         this.barraOculta.set(false);
         this.ultimoY = 0;
+        // Al cambiar de pestaña, como mucho una vez por minuto: ¿hay build nuevo?
+        void buscarVersionNueva();
       });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') void buscarVersionNueva();
+      });
+    }
     // Solo para nosotros, en desarrollo: `?tutorialv2=on` activa el tutorial
     // v2 sin tocar nada visible para quien no pase ese parámetro.
     if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('tutorialv2') === 'on') {
