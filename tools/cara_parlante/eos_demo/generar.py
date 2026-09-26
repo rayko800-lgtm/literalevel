@@ -186,7 +186,7 @@ def gestos_voz2cara(wav, n, modelo_dir):
         f25 = f50[: len(f50) // 2 * 2].reshape(-1, 2, 768).mean(1)
         norm = json.load(open(os.path.join(modelo_dir, 'normalizacion.json')))
         red = Red(sal=len(norm['columnas']))
-        red.load_state_dict(torch.load(os.path.join(modelo_dir, 'modelo.pt'), map_location='cpu'))
+        red.load_state_dict(torch.load(os.path.join(modelo_dir, 'modelo.pt'), map_location='cpu', weights_only=True))
         red.eval()
         p = red(torch.tensor(f25)[None].float())[0].numpy() * np.array(norm['sd'])
     col = {c: i for i, c in enumerate(norm['columnas'])}
