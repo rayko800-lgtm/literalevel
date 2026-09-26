@@ -1,5 +1,5 @@
 % ===========================================================================
-%  LiteraLevel — Documento final del Módulo 5 (Integrador)
+%  Pléyade (proyecto LiteraLevel) — Documento final del Módulo 5 (Integrador)
 %  Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
 %  Autor: Miguel Reyes Carrillo · Profesor: Mtro. Fernando Barranco Rodríguez
 %
@@ -96,7 +96,7 @@
 
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\footnotesize\color{llgris}LiteraLevel — Módulo 5 (Integrador)}
+\fancyhead[L]{\footnotesize\color{llgris}Pléyade (proyecto LiteraLevel) — Módulo 5 (Integrador)}
 \fancyhead[R]{\footnotesize\color{llgris}\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
@@ -170,7 +170,11 @@
 
 \vspace{2.0cm}
 
-{\Huge\bfseries\color{llazul} LiteraLevel\par}
+{\Huge\bfseries\color{llazul} Pléyade\par}
+
+\vspace{0.15cm}
+
+{\large\color{llgris} proyecto LiteraLevel\par}
 
 \vspace{0.6cm}
 
@@ -218,7 +222,7 @@ Diplomado en Ciencia de Datos --- Generación 34
 
 \vspace{0.6cm}
 
-{\normalsize Ciudad de México, septiembre de 2026\par}
+{\normalsize Ciudad de México, octubre de 2026\par}
 
 \end{titlepage}
 
@@ -231,7 +235,7 @@ abre. Un lector que elige un libro demasiado difícil no aprende: lo abandona. Y
 no hay forma sencilla de saber, antes de empezar, si \emph{ese} libro concreto está a
 su alcance.
 
-LiteraLevel es una aplicación que responde esa pregunta. Le da al lector un número
+Pléyade, la aplicación del proyecto LiteraLevel, responde esa pregunta. Le da al lector un número
 entre 0 y 2 que dice cuánta dificultad tiene un texto en inglés, y lo hace leyendo el
 texto de verdad, no contando páginas. Con ese número le busca libros que le queden a
 mano, se los abre dentro de la propia aplicación, le enseña la dificultad capítulo
@@ -253,12 +257,15 @@ cifras}: el escalón A1--A2 es de 0,052 sobre desviaciones de 0,111 y 0,223, y d
 tres textos. Está dentro del ruido. Los tres escalones siguientes, no.
 
 Conviene decirlo desde la primera página: \textbf{la escala 0--2 es propia y
-LiteraLevel no certifica ningún nivel del Marco Común Europeo}. Las letras A1 a C2
+Pléyade no certifica ningún nivel del Marco Común Europeo}. Las letras A1 a C2
 fueron el ancla con la que se entrenó el modelo, no un título que la aplicación
 expida. Sirven para elegir qué leer, no para acreditar nada.
 
-La entrega usa \textbf{Angular como interfaz y una API FastAPI sobre el motor Python};
-Gradio 6.26 \parencite{abid2019gradio} se conserva como respaldo. Las pruebas de usabilidad
+La entrega usa \textbf{Angular como interfaz}, publicada en Vercel
+(\url{https://pleyade-app.vercel.app}), y \textbf{una API FastAPI sobre el motor Python} en
+Hugging Face; Gradio 6.26 \parencite{abid2019gradio} se conserva como respaldo. Un segundo
+modelo, pequeño y aprendido de vídeos de caras reales, mueve la boca 3D con la que la
+aplicación enseña a pronunciar (apartado~\ref{sec:articulatorio}). Las pruebas de usabilidad
 de la interfaz anterior con Esmeralda y Laura motivaron esta separación, pero no equivalen
 a una validación de usuario de todos los cambios posteriores. El catálogo medido
 contiene \textbf{53.179 libros} en inglés de dominio
@@ -268,7 +275,7 @@ sino leer y guardar los archivos.
 
 \vspace{0.4cm}
 \noindent\textbf{Palabras clave:} legibilidad automática, MCER, adquisición de
-segundas lenguas, lectura extensiva, transformers, Project Gutenberg, Angular.
+segundas lenguas, lectura extensiva, transformers, Project Gutenberg, Angular, coarticulación.
 
 \vspace{0.8cm}
 \noindent\fbox{\begin{minipage}{0.97\textwidth}
@@ -535,7 +542,16 @@ verificación (\cod{validar\_local.py}, \cod{tools/\allowbreak bajar\_corpus\_bc
 \cod{entrenamiento\_v4/}) no viajan con los entregables y se comparten a petición; y el
 corpus de British Council no se redistribuye, se reconstruye con su manifiesto.
 
-El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
+\textbf{Tres nombres para tres cosas.} Peldaño es la compañía; \textbf{Pléyade} es su
+aplicación, el nombre que ve el lector desde el 26 de septiembre de 2026; y
+\textbf{LiteraLevel} es el nombre del proyecto y de su modelo (\cod{literalevel-v4}). Los
+repositorios, los Spaces de Hugging Face y el paquete de Python lo conservan a propósito:
+renombrarlos habría roto los enlaces publicados y la descarga que hace el cuaderno. Una
+\emph{pléyade} es un grupo de personas célebres de una misma época, sobre todo en las letras,
+y las Pléyades son un cúmulo de estrellas de Tauro: el nombre junta la literatura y el cielo, y
+el emblema ---un pegaso sobre un libro abierto cuyas páginas son alas--- lo dice en imagen.
+
+El nombre de la compañía no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 \emph{input} comprensible sostiene que se aprende con material que está justo un
 escalón por encima de lo que uno ya domina \parencite{krashen1985input}. Ese
 escalón es el peldaño, y encontrarlo es exactamente el problema que el lector no puede
@@ -588,7 +604,7 @@ medida, y la aplicación los dice en pantalla en vez de esconderlos.
 
 La lectura extensiva es uno de los métodos con más respaldo para aprender una segunda
 lengua, y sin embargo casi nadie la practica bien, porque elegir el libro adecuado es
-un problema que el lector no puede resolver solo. LiteraLevel convierte una medida
+un problema que el lector no puede resolver solo. Pléyade convierte una medida
 continua de dificultad —producida por un modelo que lee el texto entero, no la
 portada— en tres decisiones cotidianas: \textbf{qué leer ahora}, \textbf{por dónde se
 va a complicar} y \textbf{qué significa esta palabra en esta frase}. El activo
@@ -682,7 +698,7 @@ No puede leerse cuarenta libros para clasificarlos.
   \item Un catálogo \textbf{medido}, no etiquetado a ojo, con la dificultad por capítulo
         para poder asignar fragmentos y no obras completas.
   \item Una declaración honesta de lo que la herramienta no es, para poder usarla sin
-        incurrir en una promesa que no puede cumplir: \textbf{LiteraLevel no certifica
+        incurrir en una promesa que no puede cumplir: \textbf{Pléyade no certifica
         ningún nivel del MCER}.
   \item Reproducibilidad: poder comprobar de dónde salen los números.
 \end{itemize}
@@ -1053,14 +1069,17 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
 
 \begin{itemize}
   \item \textbf{El \emph{front}} es una aplicación de Angular 22 (componentes
-        independientes, sin \cod{zone.js}) publicada como \textbf{Space estático} de
-        Hugging Face (\cod{MikeMaki1763/\allowbreak literalevel-front}), gratuito y siempre
-        despierto: es HTML, CSS y JavaScript ya compilados. Tiene cuatro sitios en vez de
-        ocho pestañas —\emph{Leer}, \emph{Encontrar}, \emph{Pronunciar} y \emph{Tu
-        nivel}—, más \emph{Mis palabras}; los ajustes (paleta, tamaño de letra, idioma de
-        las explicaciones) y el estado del servicio salen de la navegación, que es lo que
+        independientes, sin \cod{zone.js}): HTML, CSS y JavaScript ya compilados, así que
+        no se duerme. Desde el 26 de septiembre de 2026 se publica en \textbf{Vercel}
+        (\url{https://pleyade-app.vercel.app}, plan gratuito), como pidió el profesor, y se
+        vuelve a publicar sola con cada cambio de la rama principal del repositorio; el
+        \textbf{Space estático} de Hugging Face (\cod{MikeMaki1763/\allowbreak literalevel-front})
+        sirve la misma aplicación como respaldo. Tiene cinco sitios en vez de ocho
+        pestañas —\emph{Mi espacio}, \emph{Leer}, \emph{Encontrar}, \emph{Pronunciar} y
+        \emph{Tu nivel}—, más \emph{Mis palabras} y \emph{Repasar}; los ajustes (tema,
+        tamaño de letra, idioma de las explicaciones) y el estado del servicio salen de la navegación, que es lo que
         Laura y el profesor habían pedido por separado.
-  \item \textbf{La API} es un servicio FastAPI (\cod{app/api.py}, 40 rutas bajo \cod{/api} a fecha de \cod{8ee42f0}, el \cod{app/} que publica el Space en su revisión \cod{7c09d90}, subida desde \cod{ab4e36f}) \textbf{montado en el mismo Space de Gradio} que ya existía, con Gradio
+  \item \textbf{La API} es un servicio FastAPI (\cod{app/api.py}, 44 rutas bajo \cod{/api} a fecha de \cod{06a16db}, el commit que publica el Space en su revisión \cod{103eef5}) \textbf{montado en el mismo Space de Gradio} que ya existía, con Gradio
         en la raíz como motor y respaldo. \textbf{Reutiliza el motor y ayudantes de Gradio},
         pero sus adaptadores contienen lógica propia: topes, cobro, aislamiento y
         degradación requieren pruebas también en la API. Compartir funciones no basta
@@ -1069,7 +1088,12 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         puede escribir el cliente. Solo cuentan los que fallan, y son valores por
         defecto que se cambian por variable de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora ---40 medidas de nivel o de capítulo y 6 curvas nuevas--- y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, en su revisión \cod{2bb1276} (del commit \cod{0ba8219}), la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo. La identidad del lector
         viaja en una cabecera (\cod{X-Lector}) y sus datos siguen en el bucket montado en
-        \cod{/data}. El primer montaje falló ---el proxy de renderizado en servidor de
+        \cod{/data}. Desde el 26 de septiembre, quien entra con usuario y contraseña deja de ser un
+        navegador: sus libros, sus palabras y su nivel pasan a ser \textbf{de la cuenta}
+        (\cod{cuentas/}\emph{nombre} en el bucket) y se ven igual en el teléfono, la tableta
+        o el equipo; sin cuenta siguen siendo de ese navegador. Salió de un caso real: con
+        la misma cuenta, el teléfono y la tableta del autor enseñaban dos lectores
+        distintos. El primer montaje falló ---el proxy de renderizado en servidor de
         Gradio no dejaba pasar \cod{/api}--- y el segundo, sin ese proxy, es el que está en
         marcha.
   \item \textbf{Regla de entrega:} una función existe cuando tiene ruta en la API
@@ -1089,7 +1113,10 @@ motor. Se hizo al día siguiente, y es lo que se entrega:
         \cod{0319290} (\cod{1643c4b}, cada suite corrida sola): 66 de 66 pruebas API,
         351 pruebas extremas del motor sin ningún fallo y 48 de 48 de corpus
         (\cod{DESPLIEGUE.md}). Las 34 de 34 de lectura natural son del corte anterior,
-        \cod{d58b0be}.
+        \cod{d58b0be}. La última publicación de la API (26 de septiembre, revisión
+        \cod{103eef5} del Space, del commit \cod{06a16db}) pasó 70 de 70 pruebas API, las
+        extremas sin fallos y 464 de 464 del \emph{front}; en vivo, la misma cuenta entró
+        desde dos aparatos nuevos y los dos vieron los mismos datos (\cod{DESPLIEGUE.md}).
 \end{itemize}
 
 \medskip\noindent\textbf{Lo que el \emph{front} añadió a la usabilidad en un día.} Tres
@@ -1122,19 +1149,45 @@ cosas, y las tres salieron de mirar cómo se usa un teléfono:
         con «reducir movimiento» del sistema los deja quietos.
 \end{itemize}
 
-\noindent\textbf{Boca 3D y portadas, a fecha de la revisión \cod{ec957d0} del \emph{front} (del commit \cod{4e6276e}).} La boca 3D ya está publicada: el \emph{front} sirve \cod{boca3d/cara.glb} y \cod{lengua.glb}, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir) \parencite{makehuman_licencia}; paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son \textbf{tipográficas}: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del \emph{front} que fija esos contrastes recorre 12 familias, 200 libros y dos temas (\cod{b2003e5}). Las portadas FLUX no se generaron: el pipeline
+\noindent\textbf{Boca 3D, a 26 de septiembre de 2026.} En \emph{Pronunciar}, junto al corte 2D, hay una boca 3D didáctica que se descarga solo al abrirla, con el corte 2D de respaldo si no carga. La cabeza parte de un escaneo publicado bajo CC BY 3.0 ---\emph{Infinite, 3D Head Scan}, de Lee Perry-Smith \parencite{perrysmith_infinite}---, cuya atribución se sirve con el modelo; los labios, la lengua, el corte anatómico y los materiales son adaptación propia en Blender. Enseña el aire y la vibración de cada sonido, lee palabras y frases al compás del audio ---con el modelo del apartado~\ref{sec:articulatorio}---, y tiene zoom, cámara lenta («Despacio») y giro libre («Explorar»). El 26 de septiembre sus texturas pasaron a WebP y lo que baja por la red se quedó en 1,4 MB en vez de 3,5 (commit \cod{1f5f2c9}). Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son \textbf{tipográficas}: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del \emph{front} que fija esos contrastes recorre 12 familias, 200 libros y dos temas (\cod{b2003e5}). Las portadas FLUX no se generaron: el pipeline
 exige saldo, tarifa actual, aprobación de muestras y permiso separado para publicar.
 La selección local de 1.200 libros contiene 746 motivos temáticos y 454 genéricos.
 Su calidad visual sigue sin comprobarse. El enlace del lector es
+\url{https://pleyade-app.vercel.app}, y el de respaldo,
 \url{https://mikemaki1763-literalevel-front.static.hf.space/}.
 
 El 14 de septiembre se volvieron a contar con pandas \textbf{53.179 IDs únicos y 585.111 capítulos} en el catálogo local. A fecha de \cod{740eb84}, el catálogo externo de textos libres tiene 15.367 filas y los vectores de búsqueda suman 68.546 (53.179 + 15.367). El Space publicado cuenta los mismos 68.546 libros en \cod{/api/estado} a fecha de la revisión \cod{384a206} del Space (del commit \cod{ef1138c}), el reinicio 21. Es una comprobación del artefacto, no una
-nueva inferencia. Las 40 rutas API se contaron en el código a fecha de \cod{8ee42f0}. En el cierre remoto
+nueva inferencia. Las 44 rutas API se contaron en el código a fecha de \cod{06a16db}. En el cierre remoto
 anterior, \emph{house} eligió un sentido no adecuado para una frase sobre la ubicación
 de un edificio: disponibilidad del diccionario no demuestra desambiguación correcta
 en todos los casos. Estos límites también forman parte de la entrega.
 
 \textbf{Lectura natural, medida con diez frases.} En \emph{Pronunciar}, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (\emph{want to} \textrightarrow{} \emph{wanna}). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (\cod{auditoria/\allowbreak bateria\_lectura\_natural\_\allowbreak 2026-09-14.md}), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, \textbf{todos correctos}, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como \emph{an argument}. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de \emph{gonna}, \emph{wanna} o \emph{gotta} (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space, en su revisión \cod{7c09d90}, las reducciones \emph{doncha} y \emph{wanna}, marcadas como generadas por IA, y ningún enlace. Esa comprobación es anterior a la pantalla de hoy, donde la lectura natural va plegada bajo «Para sonar más natural»; como la propone un modelo generativo, la respuesta puede cambiar, y el guion de la demostración la vuelve a comprobar con cuenta antes de enseñarla.
+
+\medskip\noindent\textbf{Lo añadido entre el 16 y el 26 de septiembre.} Todo está publicado y
+registrado en \cod{DESPLIEGUE.md}:
+
+\begin{itemize}
+  \item \textbf{Mi espacio}, la pantalla de inicio y primera pestaña: los libros empezados,
+        las palabras pendientes de practicar y \emph{Mi progreso}, que enseña las palabras
+        consultadas por día en las dos últimas semanas y los resultados de los últimos
+        repasos, con las cifras siempre a la vista y sin gráficas en cero cuando todavía no
+        hay datos. \textbf{Repasar} enseña hasta cinco palabras guardadas: el lector intenta
+        recordarlas, ve la respuesta y dice si la sabía, dudó o no, y eso se guarda.
+  \item \textbf{Leer en voz alta, en vivo.} En el lector, la aplicación escucha mientras se
+        lee un pasaje y marca en el texto las palabras leídas, la actual y las saltadas; al
+        terminar da un resumen con el ritmo. Usa un servicio de transcripción en tiempo real
+        de pago, así que pide cuenta, gasta un uso por sesión y se corta a los tres minutos.
+        Está probado de extremo a extremo con una lectura sintética; con la voz real de un
+        lector, pendiente.
+  \item \textbf{La boca 3D didáctica} y \textbf{los datos por cuenta}, descritos arriba, y el
+        modelo que mueve la boca (apartado~\ref{sec:articulatorio}).
+  \item \textbf{La marca Pléyade}: nombre, emblema, un texto «Sobre Pléyade» que se abre al
+        pulsar el logo, y un fondo de galaxia en todas las pantallas, con cada una sobre una
+        lámina translúcida de su tema (claro, noche o papel). \textbf{El contraste de este
+        tema sobre la galaxia no se ha medido}: las pruebas de contraste del \emph{front}
+        cubren las portadas y el lector teñido, no el fondo.
+\end{itemize}
 
 \subsection{Accionables}
 
@@ -1160,13 +1213,13 @@ terminado. No son «se podría»: son «se hace».
 \endlastfoot
 \textbf{A1} & \textbf{Publicar el modelo y el diccionario} como repositorios abiertos & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO a medias}: el modelo está en \cod{MikeMaki1763/\allowbreak literalevel-v4}, público y con la descarga sin credenciales verificada; el diccionario (243 MB) sigue sin publicar \\
 \addlinespace
-\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware \cod{cpu-basic} no añade coste, y el Space estático del \emph{front} es gratuito & \textbf{HECHO}: \cod{MikeMaki1763/\allowbreak literalevel-\allowbreak front} (el \emph{front}) y \cod{MikeMaki1763/\allowbreak literalevel} (API y motor), públicos y en marcha; el disco persistente es A4 \\
+\textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware \cod{cpu-basic} no añade coste, y el \emph{front}, en Vercel y en el Space estático, es gratuito & \textbf{HECHO}: el \emph{front} en Vercel (\url{https://pleyade-app.vercel.app}), con respaldo en \cod{MikeMaki1763/\allowbreak literalevel-\allowbreak front}, y \cod{MikeMaki1763/\allowbreak literalevel} (API y motor), públicos y en marcha; el disco persistente es A4 \\
 \addlinespace
 \textbf{A3 · HECHO} & \textbf{Terminar la remedición del catálogo} con el modelo v4, libro entero & Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras $\sim$190 palabras— por medidas reales & T4 gratuita; la descarga por el volcado de Common Pile (57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión (\S\ref{sec:escalado}) & \textbf{Cumplido el 12 de septiembre de 2026}: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa \\
 \addlinespace
-\textbf{A4 · HECHO} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» & 18 USD por TB y mes en repositorio privado; los datos del lector ocupan 10,9 MB medidos, así que el coste es despreciable & \textbf{Cumplido y verificado}: bucket montado en \cod{/data}; se fijó un perfil, se reinició el Space y el perfil seguía ahí \\
+\textbf{A4 · HECHO} & \textbf{Montar almacenamiento persistente} para los datos del lector & Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» & 18 USD por TB y mes en repositorio privado; los datos del lector ocupan 10,9 MB medidos, así que el coste es despreciable & \textbf{Cumplido y verificado}: bucket montado en \cod{/data}; se fijó un perfil, se reinició el Space y el perfil seguía ahí. Desde el 26 de septiembre, con cuenta, los datos son de la cuenta y se ven en cualquier aparato \\
 \addlinespace
-\textbf{A5} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla \\
+\textbf{A5 · HECHO} & \textbf{Conseguir un micrófono} (auriculares con micro) & El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» & Coste mínimo de hardware & \textbf{Cumplido con el teléfono}: el 16 de septiembre, desde el teléfono del autor y con cuenta, el micrófono grabó y la corrección salió; se vuelve a ensayar antes de la demo \\
 \addlinespace
 \textbf{A6 · HECHO} & \textbf{Sustituir el catálogo heredado} de 1.197 registros & Incluía 1.049 registros sin texto descargable, el 87,6\pct{} de aquella versión, no de la actual & Incluido en A3 & El catálogo medido actual contiene 53.179 IDs de Gutenberg; a fecha de \cod{db366b8} se excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos, directorios) y, desde \cod{3524357} (163 entonces, 203 hoy), textos libres que no son lectura en inglés (relleno o en otra lengua), y por nivel solo se ofrecen obras literarias. Una medida del precálculo se corrige al cargar (\cod{correcciones\_\allowbreak catalogo.csv}): PG2242, \emph{A Midsummer Night's Dream} del First Folio, guardó 0,697 y releída por el mismo camino da 1,713 (C1) \\
 \addlinespace
@@ -1180,7 +1233,7 @@ terminado. No son «se podría»: son «se hace».
 \end{longtable}
 \end{small}
 
-\noindent\textbf{Orden de ejecución actualizado:} ensayar la voz con micrófono real
+\noindent\textbf{Orden de ejecución actualizado:} volver a ensayar la voz con cuenta
 (A5), recorrer Angular con usuarios (A8), grabar el video y comprobar los archivos
 de entrega. A2, A3, A4 y la sustitución del catálogo de A6 ya tienen evidencia de
 cierre; no se vuelven a presentar como trabajo por empezar. Las mejoras visuales
@@ -1198,9 +1251,9 @@ pendientes no deben desplazar el ensayo de la demo.
 Modelo & Orden estrictamente creciente por nivel MCER en corpus externo & \textbf{Cumplido}: 0,5040 · 0,5561 · 0,9276 · 1,2414 · 1,4952 \\
 Modelo & Señal por encima de la longitud del texto & \textbf{Cumplido}: correlación parcial 0,668 \\
 Producto & Un usuario sin formación técnica completa el recorrido & \textbf{Cumplido con reservas, sobre la interfaz anterior}: lo completó en Gradio, y de esa sesión salieron las nueve correcciones del Cuadro~1 de la estrategia ---seis de ellas etiquetas---; sobre el \emph{front} de Angular, pendiente (A8) \\
-Producto & Accesibilidad de color & \textbf{Cumplido}: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) \\
-Producto & Robustez & \textbf{Parcial}: recuento sin claves del 15 de septiembre sobre el árbol del despliegue \cod{0319290} ---API 66 de 66, 351 pruebas extremas sin ningún fallo y corpus 48 de 48---, más lectura natural 34 de 34 y voz concurrente 10 de 10 del corte anterior \cod{d58b0be}; no equivalen a una prueba completa de usuario \\
-Operación & Enlace permanente disponible & \textbf{Cumplido}: el \emph{front} en \cod{MikeMaki1763/\allowbreak literalevel-front} y la API con el motor en \cod{MikeMaki1763/\allowbreak literalevel}, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en \cod{/data} \\
+Producto & Accesibilidad de color & \textbf{Cumplido en la interfaz anterior}: las ochenta y cinco parejas de color de las cinco paletas de Gradio superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título). En el \emph{front}, las portadas y el lector teñido tienen pruebas de contraste; el tema de la marca sobre el fondo de galaxia, \textbf{sin medir} \\
+Producto & Robustez & \textbf{Parcial}: recuento sin claves del 15 de septiembre sobre el árbol del despliegue \cod{0319290} ---API 66 de 66, 351 pruebas extremas sin ningún fallo y corpus 48 de 48---, más lectura natural 34 de 34 y voz concurrente 10 de 10 del corte anterior \cod{d58b0be}; la última publicación de la API (26 de septiembre, \cod{06a16db}): API 70 de 70, extremas sin fallos y \emph{front} 464 de 464. No equivalen a una prueba completa de usuario \\
+Operación & Enlace permanente disponible & \textbf{Cumplido}: el \emph{front} en Vercel (\url{https://pleyade-app.vercel.app}), con respaldo en \cod{MikeMaki1763/\allowbreak literalevel-front}, y la API con el motor en \cod{MikeMaki1763/\allowbreak literalevel}, en Hugging Face Spaces, con los datos del lector o de su cuenta en un bucket montado en \cod{/data} \\
 Operación & Catálogo medido, no heredado & \textbf{Cumplido} el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) \\
 Impacto & Proporción de libros terminados & \textbf{Sin instrumentar} (A9) \\
 \bottomrule
@@ -2546,6 +2599,86 @@ donde más pesa. Los nombres de los 59 archivos están en
 \cod{entrega/manifiesto\_corpus\_externo.md}, y \cod{validar\_local.py} imprime los diez
 rechazados con su motivo.
 
+\subsection{Un segundo modelo: la boca que se mueve como una real}
+\label{sec:articulatorio}
+
+La corrección de pronunciación enseña cómo se mueve la boca en cada sonido. Hasta el 25 de
+septiembre de 2026 ese movimiento lo decidía una regla escrita a mano: una pose por fonema y
+un calendario de transiciones (\cod{animacion.ts}). Una boca real no funciona así:
+\textbf{coarticula} ---empieza a redondear los labios antes de llegar a una /uː/ y no cierra
+igual una /p/ entre vocales abiertas que entre cerradas---. Se entrenó un modelo pequeño para
+aprender ese movimiento de caras reales y se midió contra la regla.
+
+\textbf{Datos, todos bajo CC BY 4.0.} GRID \parencite{cooke2006grid}: 33 hablantes, 32.936
+frases y 27,4 horas de vídeo frontal; Lombard GRID \parencite{alghamdi2018lombard}: 54
+hablantes y 5.385 frases medidas; y la articulografía electromagnética (EMA) de USC-TIMIT
+\parencite{narayanan2014usctimit}: sensores en labios, mandíbula y lengua de tres hablantes,
+1.450 frases. Otros conjuntos más grandes se descartaron por licencia ---de uso solo no
+comercial o sin licencia publicada--- (\cod{investigacion/\allowbreak modelo\_articulatorio/\allowbreak informe\_decision.md}).
+
+\textbf{Procesamiento.} Cada fotograma se mide con MediaPipe Face Landmarker
+\parencite{lugaresi2019mediapipe}, que da 478 puntos y 52 coeficientes de expresión de la
+cara; de ahí salen doce controles de la boca (apertura, ancho, mandíbula, protrusión, mejillas
+y los coeficientes de los labios), normalizados por hablante (unidades $z$), porque lo que se
+aprende es el movimiento y no la forma de cada cara. Los tiempos de cada fonema salen de
+alinear audio y transcripción con Montreal Forced Aligner 3.4.2 \parencite{mcauliffe2017mfa}.
+
+\textbf{Modelos comparados.} (1) \emph{Escalón}: la pose del fonema, sin transición.
+(2) \emph{Reglas}: el calendario que usaba la aplicación, con las mismas poses objetivo
+medidas, de modo que solo cambia la dinámica. (3) \emph{Dominancia}: el modelo clásico de
+coarticulación de \textcite{cohen1993coarticulation}, en el que cada fonema tira de la boca con
+un peso que decae con la distancia en el tiempo, con sus parámetros aprendidos por fonema y
+control. (4) Una red convolucional temporal (TCN) \parencite{bai2018tcn} de 86.380 parámetros
+(0,35 MB). La evaluación es sobre \textbf{hablantes que ningún modelo vio}: los cuatro últimos
+de GRID (4.000 frases), seis de Lombard y, en la EMA, uno fuera cada vez.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}Y c c c@{}}
+\toprule
+\textbf{Modelo} & \textbf{GRID} & \textbf{Lombard} & \textbf{EMA, lengua} \\
+ & {\footnotesize 4 hablantes} & {\footnotesize 6 hablantes} & {\footnotesize 3 pruebas} \\
+\midrule
+Escalón & 0,432 & 0,364 & 0,40--0,46 \\
+Reglas de la aplicación & 0,443 & 0,406 & 0,43--0,48 \\
+Dominancia aprendida & 0,560 & 0,550 & 0,63--0,65 \\
+TCN & \textbf{0,566} & \textbf{0,564} & \textbf{0,65--0,67} \\
+\midrule
+Reglas, con los tiempos que calcula la aplicación & 0,315 & 0,271 & --- \\
+TCN entrenada con esos mismos tiempos & 0,530 & 0,498 & --- \\
+\bottomrule
+\end{tabularx}
+\caption[Modelo articulatorio contra las reglas]{Pearson medio entre el movimiento predicho y
+el real, sobre hablantes no vistos. En GRID y Lombard es la media de los doce controles; en la
+EMA, el rango de las tres pruebas. Fuente:
+\cod{investigacion/\allowbreak modelo\_articulatorio/\allowbreak resultados.md}.}
+\label{cuad:articulatorio}
+\end{table}
+
+\textbf{Lo que dice el cuadro~\ref{cuad:articulatorio}.} Aprender la dinámica mejora a las
+reglas en los tres conjuntos: en GRID, de 0,443 a 0,560--0,566. Las reglas además llegan tarde
+---60 ms en la mandíbula--- y en el redondeo anticipado van al revés: la cara real llega a
+medio camino del redondeo unos 40 ms antes de /uː/ o /w/ (mediana), y las reglas, 20 ms
+después. En el cierre de /p b m/, el mínimo de apertura cae a menos de 0,3 $z$ del real en el
+73\pct{} de los casos con la dominancia, frente al 58\pct{} con las reglas. Pero la fila de
+abajo es la importante: \textbf{con los tiempos de fonema que la aplicación sabía calcular, sin
+alinear el audio, las reglas caen a 0,315}. Los tiempos pesaban tanto como el modelo.
+
+\textbf{Decisión.} Con tiempos bien alineados, la dominancia empata con la TCN en labios y
+mandíbula (0,560 frente a 0,566), cabe en unas tablas de 12,6 KB que el navegador lee sin red
+neuronal y se explica fonema a fonema; la TCN solo gana en la lengua, por unas dos centésimas.
+Se publicó la dominancia (25 de septiembre, revisión \cod{0f41932} del \emph{front}, del
+commit \cod{de1498e}). Los tiempos de las 85 palabras grabadas de \emph{Pronunciar} se
+alinearon de antemano, y las frases de la voz sintética se leen con las marcas por palabra que
+la corrección ya guarda junto a su audio.
+
+\textbf{Límites.} Es correlación con el movimiento de caras en vídeo, no una prueba de que la
+boca 3D ayude a pronunciar mejor, que nadie ha medido con lectores. GRID no ve el contacto de
+/f v/ (la cámara está lejos) y la protrusión desde un vídeo frontal es débil. Y la boca de la
+aplicación es un corte de media cabeza, no una cara de vídeo: los controles se trasladan a ella
+con una calibración por poses comunes, que es una decisión de diseño y no algo medido.
+
 % ===========================================================================
 \section{Resolución del problema}
 \label{sec:resolucion}
@@ -2572,7 +2705,9 @@ decisiones, y el producto está construido para producir exactamente esas tres
 \addlinespace
 ¿Qué significa esta palabra \emph{aquí}? & Mantener presionada la palabra (con ratón, doble clic): lema, IPA británica y americana cuando el diccionario la trae (el 58\pct{} de las consultas sobre un libro real), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio & Unos 0,7~s en caliente y unos 5~s la primera consulta de la sesión; la explicación contextual tarda más \\
 \addlinespace
-¿Lo estoy pronunciando bien? & Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla & Una frase \\
+¿Lo estoy pronunciando bien? & Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla y cómo se mueve la boca, en corte 2D o en 3D; en el lector, un pasaje leído en vivo con las palabras saltadas marcadas & Una frase; el pasaje en vivo, hasta tres minutos \\
+\addlinespace
+¿Cómo voy? & \emph{Mi espacio}: libros empezados, palabras consultadas por día y resultados de los repasos; con cuenta, lo mismo en cualquier aparato & Nada \\
 \bottomrule
 \end{tabularx}
 \caption{Del modelo a las decisiones del usuario.}
@@ -3119,7 +3254,7 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
 
 \begin{enumerate}[leftmargin=*, itemsep=4pt]
   \item \textbf{La escala 0--2 es propia y no es una certificación.} El MCER fue el ancla
-        del entrenamiento. LiteraLevel no acredita ningún nivel, y decirlo en el documento
+        del entrenamiento. Pléyade no acredita ningún nivel, y decirlo en el documento
         no basta: la aplicación lo repite en pantalla.
   \item \textbf{La escala está comprimida.} El ajuste contra el ancla real ronda
         $\text{predicho} \approx 0{,}72 \times \text{real} + 0{,}38$
@@ -3187,10 +3322,11 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         comparte a petición. Recalculadas en CPU en menos de un minuto, dan las mismas cifras
         a cuatro decimales.
   \item \textbf{El despliegue está en el escalón más barato, y eso tiene dos
-        consecuencias.} La aplicación está publicada en dos Spaces de Hugging Face con
+        consecuencias.} La aplicación está publicada con
         dirección fija que sobrevive a apagar el equipo del autor: el \emph{front} de
-        Angular en un Space estático (\cod{MikeMaki1763/\allowbreak literalevel-front}),
-        gratuito y sin suspensión, y la API con el motor de Gradio en
+        Angular en Vercel (\url{https://pleyade-app.vercel.app}) y, de respaldo, en un Space
+        estático (\cod{MikeMaki1763/\allowbreak literalevel-front}), los dos gratuitos y sin
+        suspensión, y la API con el motor de Gradio en
         \cod{MikeMaki1763/\allowbreak literalevel}, hardware \cod{cpu-basic}. Este segundo
         cuesta \textbf{7 USD al mes}: un Space de Gradio exige cuenta Pro, y
         \cod{cpu-basic} es el hardware que no añade coste sobre esa suscripción. Pero ese
@@ -3209,7 +3345,7 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
         hasta que la página respondía. Todas son cotas inferiores: despertar de una
         suspensión de 48 h añade traer la imagen. El disco del
         contenedor \textbf{sí es efímero}, y por eso la estantería, el avance de
-        lectura, el cuaderno y el perfil del lector se guardan en un \textbf{bucket de
+        lectura, el cuaderno y el perfil del lector ---o de su cuenta--- se guardan en un \textbf{bucket de
         almacenamiento montado en \cod{/data}} (18 USD por TB y mes en repositorio
         privado, y esto ocupa megas). Verificado de punta a punta: se fijó un perfil,
         se reinició el Space y el perfil seguía ahí. Era la acción A4 de la estrategia
@@ -3292,6 +3428,9 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
   \item Medir el efecto real sobre el abandono: comparar la tasa de libros terminados
         entre lectores que eligen con recomendación y sin ella. Es la única métrica que
         verdaderamente valida la propuesta.
+  \item \textbf{Una cara que habla de frente.} La boca 3D enseña la articulación en corte;
+        una cara completa que lea las frases de frente (\emph{Eos}, sobre un MetaHuman de
+        Epic) está en desarrollo y \textbf{no forma parte de esta entrega}.
   \item \textbf{Convertir las cinco acciones en herramientas de un agente}
         (\emph{function calling}). Hoy cada una tiene su botón: medir un capítulo,
         buscar por significado, abrir un libro, explicar una palabra y corregir la
@@ -3379,6 +3518,13 @@ rechazaron dos palancas más rápidas —int8 y fp16 en la tarjeta local— porq
 0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. \textbf{Medir antes de
 optimizar, y medir también lo que se descarta.}
 
+\textbf{La misma lección, en el segundo modelo.} Para mover la boca 3D, un modelo aprendido
+de caras reales supera a las reglas escritas a mano ---Pearson 0,566 frente a 0,443 con
+hablantes que no vio---, pero con los tiempos de fonema que la aplicación sabía calcular las
+reglas caían a 0,315: los datos de entrada pesaban tanto como el modelo. Y entre la red y
+unas tablas de 12,6 KB que empataban con ella se eligieron las tablas, por coste y porque se
+explican fonema a fonema (apartado~\ref{sec:articulatorio}).
+
 \textbf{Lo que convierte esto en un producto no es el modelo, es lo que se hizo con lo que
 dijo una lectora de quince años.} Un ciclo completo —observar, escuchar la queja,
 diagnosticar el fallo propio y corregirlo— vale más que un punto de correlación. Ese ciclo
@@ -3387,7 +3533,8 @@ reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y 
 interfaz que se puede usar con el pulgar.
 
 \textbf{Y queda pendiente lo que más pesa.} La aplicación funciona y ya tiene dirección
-fija ---el \emph{front} de Angular en un Space estático y la API con el motor en otro---,
+fija ---el \emph{front} de Angular en Vercel, con un respaldo en Hugging Face, y la API con el
+motor en un Space---,
 pero el motor corre sobre el hardware más barato: se suspende por inactividad. El catálogo ya está
 medido entero ---53.179 libros--- y las métricas del v4, que el documento citaba sin poder
 recalcular, ya se recalculan fuera del cuaderno con el guion y las 144 parejas de
@@ -3416,7 +3563,7 @@ la diferencia entre decirle a alguien que un libro es A2 y que lo sea.
 \addcontentsline{toc}{section}{Declaración de alcance}
 % ===========================================================================
 
-LiteraLevel es una herramienta de apoyo a la lectura. \textbf{No es un instrumento de
+Pléyade es una herramienta de apoyo a la lectura. \textbf{No es un instrumento de
 evaluación ni de certificación lingüística.} No debe usarse para asignar calificaciones,
 para decidir la admisión de una persona a un programa, para acreditar un nivel del Marco
 Común Europeo de Referencia ni para ninguna decisión con consecuencias para el evaluado.
@@ -3429,7 +3576,8 @@ obras. El catálogo no se filtra por contenido: se informa al lector mediante un
 la ficha del libro y la decisión queda en sus manos.
 
 Los datos personales del lector —los libros empezados, el vocabulario consultado y el
-perfil de nivel— se guardan separados por navegador y no se comparten entre visitantes. Sí
+perfil de nivel— se guardan separados por cuenta, o por navegador si no se entra, y no se
+comparten entre lectores. Sí
 se comparten las cachés de contenido ---definiciones, audio generado, curvas y resúmenes de
 un mismo texto y el análisis de lectura natural de una frase---, que no son historial de
 nadie. Ningún texto con derechos se distribuye ni se imprime fuera del entorno de cómputo:

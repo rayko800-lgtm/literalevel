@@ -1,10 +1,10 @@
-# LiteraLevel: medición automática de la dificultad de lectura en inglés y su entrega a un lector real
+# Pléyade (proyecto LiteraLevel): medición automática de la dificultad de lectura en inglés y su entrega a un lector real
 
 **Proyecto integrador — Módulo 5 (Integrador)**
 Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
 Profesor: Mtro. Fernando Barranco Rodríguez
 Autor: Miguel Reyes Carrillo
-Septiembre de 2026
+Octubre de 2026
 
 > **Dónde vive la Estrategia, que no es lo mismo aquí y en el PDF.** La rúbrica
 > la pide como entregable propio *y* como sección del documento. En el PDF
@@ -29,7 +29,7 @@ lo abre. Un lector que elige un libro demasiado difícil no aprende: lo
 abandona. Y hoy no hay forma sencilla de saber, antes de empezar, si *ese*
 libro concreto está a su alcance.
 
-LiteraLevel es una aplicación que responde esa pregunta. Le da al lector un
+Pléyade, la aplicación del proyecto LiteraLevel, responde esa pregunta. Le da al lector un
 número entre 0 y 2 que dice cuánta dificultad tiene un texto en inglés, y lo
 hace leyendo el texto de verdad, no contando páginas. Con ese número le busca
 libros que le queden a mano, se los abre dentro de la propia aplicación, le
@@ -52,12 +52,15 @@ a las cifras**: el escalón A1–A2 es de 0,052 sobre desviaciones de 0,111 y
 siguientes, no.
 
 Conviene decirlo desde la primera página: **la escala 0–2 es propia y
-LiteraLevel no certifica ningún nivel del Marco Común Europeo**. Las letras
+Pléyade no certifica ningún nivel del Marco Común Europeo**. Las letras
 A1 a C2 fueron el ancla con la que se entrenó el modelo, no un título que la
 aplicación expida. Sirven para elegir qué leer, no para acreditar nada.
 
-La entrega usa **Angular como interfaz y una API FastAPI sobre el motor Python**;
-Gradio 6.26 se conserva como respaldo. Las pruebas de usabilidad de la interfaz
+La entrega usa **Angular como interfaz**, publicada en Vercel
+(https://pleyade-app.vercel.app), y **una API FastAPI sobre el motor Python** en
+Hugging Face; Gradio 6.26 se conserva como respaldo. Un segundo modelo, pequeño
+y aprendido de vídeos de caras reales, mueve la boca 3D con la que la
+aplicación enseña a pronunciar (apartado 7.8). Las pruebas de usabilidad de la interfaz
 anterior con Esmeralda y Laura motivaron esta separación, pero no equivalen a
 una validación de usuario de todos los cambios posteriores. El catálogo medido
 contiene **53.179 libros** en inglés de
@@ -66,7 +69,7 @@ capítulo. La última tanda, en una GPU gratuita, tardó 55 minutos: el cuello d
 botella nunca fue el modelo, sino leer y guardar los archivos.
 
 **Palabras clave:** legibilidad automática, MCER, adquisición de segundas
-lenguas, lectura extensiva, transformers, Project Gutenberg, Angular.
+lenguas, lectura extensiva, transformers, Project Gutenberg, Angular, coarticulación.
 
 ---
 
@@ -206,6 +209,11 @@ seguido:
   la aplicación, dijo *«o yo soy muy tonta para esto»* —que es un fallo de
   diseño, no suyo— y de ahí salieron seis etiquetas reescritas, cinco paletas
   de color, objetivos táctiles de 44 px y esquinas redondeadas.
+- **Nombres.** Peldaño es la compañía ficticia del módulo; **Pléyade**, su
+  aplicación, el nombre que ve el lector desde el 26 de septiembre de 2026; y
+  **LiteraLevel**, el proyecto y su modelo (`literalevel-v4`). Repositorios,
+  Spaces y paquete conservan ese nombre para no romper los enlaces publicados ni
+  la descarga del cuaderno.
 - **Accionables.** Diez, con coste y criterio de terminado; los
   tres primeros son publicar modelo y diccionario, desplegar en enlace
   permanente y terminar la remedición del catálogo, que se completó el 12 de
@@ -1041,6 +1049,83 @@ justo donde más pesa. Los nombres de los 59 archivos están en
 `entrega/manifiesto_corpus_externo.md`, y `validar_local.py` imprime los diez
 rechazados con su motivo.
 
+### 7.8 Un segundo modelo: la boca que se mueve como una real
+
+La corrección de pronunciación enseña cómo se mueve la boca en cada sonido.
+Hasta el 25 de septiembre de 2026 ese movimiento lo decidía una regla escrita a
+mano: una pose por fonema y un calendario de transiciones (`animacion.ts`). Una
+boca real no funciona así: **coarticula** —empieza a redondear los labios antes
+de llegar a una /uː/ y no cierra igual una /p/ entre vocales abiertas que entre
+cerradas—. Se entrenó un modelo pequeño para aprender ese movimiento de caras
+reales y se midió contra la regla.
+
+**Datos, todos bajo CC BY 4.0.** GRID (Cooke et al., 2006): 33 hablantes,
+32.936 frases y 27,4 horas de vídeo frontal; Lombard GRID (Alghamdi et al.,
+2018): 54 hablantes y 5.385 frases medidas; y la articulografía
+electromagnética (EMA) de USC-TIMIT (Narayanan et al., 2014): sensores en
+labios, mandíbula y lengua de tres hablantes, 1.450 frases. Otros conjuntos más
+grandes se descartaron por licencia —de uso solo no comercial o sin licencia
+publicada— (`investigacion/modelo_articulatorio/informe_decision.md`).
+
+**Procesamiento.** Cada fotograma se mide con MediaPipe Face Landmarker
+(Lugaresi et al., 2019), que da 478 puntos y 52 coeficientes de expresión de la
+cara; de ahí salen doce controles de la boca (apertura, ancho, mandíbula,
+protrusión, mejillas y los coeficientes de los labios), normalizados por
+hablante (unidades *z*), porque lo que se aprende es el movimiento y no la forma
+de cada cara. Los tiempos de cada fonema salen de alinear audio y transcripción
+con Montreal Forced Aligner 3.4.2 (McAuliffe et al., 2017).
+
+**Modelos comparados.** (1) *Escalón*: la pose del fonema, sin transición.
+(2) *Reglas*: el calendario que usaba la aplicación, con las mismas poses
+objetivo medidas, de modo que solo cambia la dinámica. (3) *Dominancia*: el
+modelo clásico de coarticulación de Cohen y Massaro (1993), en el que cada
+fonema tira de la boca con un peso que decae con la distancia en el tiempo, con
+sus parámetros aprendidos por fonema y control. (4) Una red convolucional
+temporal (TCN; Bai et al., 2018) de 86.380 parámetros (0,35 MB). La evaluación
+es sobre **hablantes que ningún modelo vio**: los cuatro últimos de GRID (4.000
+frases), seis de Lombard y, en la EMA, uno fuera cada vez.
+
+| Modelo | GRID (4 hablantes) | Lombard (6 hablantes) | EMA, lengua (3 pruebas) |
+|---|---|---|---|
+| Escalón | 0,432 | 0,364 | 0,40–0,46 |
+| Reglas de la aplicación | 0,443 | 0,406 | 0,43–0,48 |
+| Dominancia aprendida | 0,560 | 0,550 | 0,63–0,65 |
+| TCN | **0,566** | **0,564** | **0,65–0,67** |
+| Reglas, con los tiempos que calcula la aplicación | 0,315 | 0,271 | — |
+| TCN entrenada con esos mismos tiempos | 0,530 | 0,498 | — |
+
+*Cuadro 14b. Pearson medio entre el movimiento predicho y el real, sobre
+hablantes no vistos. En GRID y Lombard es la media de los doce controles; en la
+EMA, el rango de las tres pruebas. Fuente:
+`investigacion/modelo_articulatorio/resultados.md`.*
+
+**Lo que dice el Cuadro 14b.** Aprender la dinámica mejora a las reglas en los
+tres conjuntos: en GRID, de 0,443 a 0,560–0,566. Las reglas además llegan
+tarde —60 ms en la mandíbula— y en el redondeo anticipado van al revés: la
+cara real llega a medio camino del redondeo unos 40 ms antes de /uː/ o /w/
+(mediana), y las reglas, 20 ms después. En el cierre de /p b m/, el mínimo de
+apertura cae a menos de 0,3 *z* del real en el 73 % de los casos con la
+dominancia, frente al 58 % con las reglas. Pero la fila de abajo es la
+importante: **con los tiempos de fonema que la aplicación sabía calcular, sin
+alinear el audio, las reglas caen a 0,315**. Los tiempos pesaban tanto como el
+modelo.
+
+**Decisión.** Con tiempos bien alineados, la dominancia empata con la TCN en
+labios y mandíbula (0,560 frente a 0,566), cabe en unas tablas de 12,6 KB que
+el navegador lee sin red neuronal y se explica fonema a fonema; la TCN solo
+gana en la lengua, por unas dos centésimas. Se publicó la dominancia (25 de
+septiembre, revisión `0f41932` del front, del commit `de1498e`). Los tiempos de
+las 85 palabras grabadas de *Pronunciar* se alinearon de antemano, y las frases
+de la voz sintética se leen con las marcas por palabra que la corrección ya
+guarda junto a su audio.
+
+**Límites.** Es correlación con el movimiento de caras en vídeo, no una prueba
+de que la boca 3D ayude a pronunciar mejor, que nadie ha medido con lectores.
+GRID no ve el contacto de /f v/ (la cámara está lejos) y la protrusión desde un
+vídeo frontal es débil. Y la boca de la aplicación es un corte de media cabeza,
+no una cara de vídeo: los controles se trasladan a ella con una calibración por
+poses comunes, que es una decisión de diseño y no algo medido.
+
 ---
 
 ## 8. Resolución del problema
@@ -1057,7 +1142,8 @@ esas tres:
 | ¿Qué leo ahora? | Búsqueda por significado en español sobre el catálogo; el nivel del perfil ordena lo más parecido y lo de otros niveles sale aparte, sin filtrar | Segundos |
 | ¿Por dónde se va a complicar? | Curva de dificultad capítulo a capítulo, medida sobre el libro entero sin muestrear | De 12,7 s (vistazo, medido sobre Crime and Punishment) a minutos (libro completo) |
 | ¿Qué significa esta palabra *aquí*? | Mantener presionada la palabra (con ratón, doble clic): lema, IPA británica y americana cuando el diccionario la trae (el 58 % de las consultas sobre un libro real, §6.4), definición de Wiktionary, el sentido concreto en esa frase, gramática y audio | Unos 0,7 s en caliente y unos 5 s la primera consulta de la sesión; la explicación contextual tarda más |
-| ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla | Una frase |
+| ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla y cómo se mueve la boca, en corte 2D o en 3D; en el lector, un pasaje leído en vivo con las palabras saltadas marcadas | Una frase; el pasaje en vivo, hasta tres minutos |
+| ¿Cómo voy? | *Mi espacio*: libros empezados, palabras consultadas por día y resultados de los repasos; con cuenta, lo mismo en cualquier aparato | Nada |
 
 *Cuadro 15. Del modelo a las decisiones del usuario.*
 
@@ -1277,10 +1363,15 @@ argumenta en lugar de ocultarse.
 
 ### 8.5 Entrega web y corte de verificación
 
-**Estado documental al 14 de septiembre de 2026.** El enlace para el lector es
-https://mikemaki1763-literalevel-front.static.hf.space/ . Es el front Angular;
-el Space `MikeMaki1763/literalevel` aloja FastAPI y conserva Gradio como respaldo.
-La API tiene **40 rutas bajo `/api`** a fecha de `8ee42f0` (el `app/` que publica el Space en su revisión `7c09d90`, subida desde `ab4e36f`), contadas en el
+**Estado documental al 26 de septiembre de 2026.** El enlace para el lector es
+https://pleyade-app.vercel.app . Es el front Angular, publicado en Vercel (plan
+gratuito) desde el 26 de septiembre, como pidió el profesor; se vuelve a publicar
+solo con cada cambio de la rama principal del repositorio, y el Space estático
+https://mikemaki1763-literalevel-front.static.hf.space/ sirve la misma aplicación
+como respaldo. Tiene cinco pestañas —*Mi espacio*, *Leer*, *Encontrar*,
+*Pronunciar* y *Tu nivel*—, más *Mis palabras* y *Repasar*. El Space
+`MikeMaki1763/literalevel` aloja FastAPI y conserva Gradio como respaldo.
+La API tiene **44 rutas bajo `/api`** a fecha de `06a16db` (el commit que publica el Space en su revisión `103eef5`), contadas en el
 código local, y reutiliza
 los módulos Python y ayudantes de acceso. Sus adaptadores tienen lógica propia
 y se prueban por separado: compartir funciones no garantiza por sí solo que
@@ -1289,6 +1380,13 @@ frena los intentos fallidos en una hora: 15 por IP y, desde `514786b`, 20 por
 usuario, porque la IP sale de una cabecera que puede escribir el cliente. Solo
 cuentan los que fallan, y son valores por defecto que se cambian por variable
 de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora —40 medidas de nivel o de capítulo y 6 curvas nuevas— y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, en su revisión `2bb1276` (del commit `0ba8219`), la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo.
+
+**Datos por cuenta.** Desde el 26 de septiembre, quien entra con usuario y
+contraseña deja de ser un navegador: sus libros, sus palabras y su nivel pasan
+a ser **de la cuenta** (`cuentas/<nombre>` en el bucket) y se ven igual en el
+teléfono, la tableta o el equipo; sin cuenta siguen siendo de ese navegador.
+Salió de un caso real: con la misma cuenta, el teléfono y la tableta del autor
+enseñaban dos lectores distintos.
 
 El catálogo local se volvió a contar con pandas: **53.179 IDs únicos y 585.111 capítulos**. A fecha de `740eb84`, el catálogo externo de textos libres tiene 15.367 filas y los vectores de búsqueda suman 68.546 (53.179 + 15.367). El Space publicado cuenta los mismos 68.546 libros en `/api/estado` a fecha de la revisión `384a206` del Space (del commit `ef1138c`), el reinicio 21. Esto confirma el tamaño del artefacto, no repite su inferencia ni
 garantiza que toda descarga futura esté disponible. A fecha de `db366b8` se
@@ -1309,17 +1407,45 @@ alcances separados. No se probó OpenAI real ni micrófono físico en ese cierre
 Recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290`
 (`1643c4b`, cada suite corrida sola): **66 de 66 pruebas API**, las **351 pruebas extremas**
 del motor sin ningún fallo y 48 de 48 de corpus (`DESPLIEGUE.md`). Las 34 de 34 de lectura
-natural son del corte anterior, `d58b0be`.
+natural son del corte anterior, `d58b0be`. La última publicación de la API
+(26 de septiembre, revisión `103eef5` del Space, del commit `06a16db`) pasó
+70 de 70 pruebas API, las extremas sin fallos y 464 de 464 del front; en vivo,
+la misma cuenta entró desde dos aparatos nuevos y los dos vieron los mismos
+datos (`DESPLIEGUE.md`).
 La consulta de *house* eligió un sentido no adecuado al contexto: disponibilidad
 del diccionario no demuestra que su desambiguación sea correcta en todos los
 casos. Evidencia: `auditoria/despliegue_codex_2026-09-13_noche.md`.
 
-**Boca 3D y portadas, a fecha de la revisión `ec957d0` del front (del commit `4e6276e`).** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
+**Boca 3D, a 26 de septiembre de 2026.** En *Pronunciar*, junto al corte 2D, hay una boca 3D didáctica que se descarga solo al abrirla, con el corte 2D de respaldo si no carga. La cabeza parte de un escaneo publicado bajo CC BY 3.0 —*Infinite, 3D Head Scan*, de Lee Perry-Smith (Perry-Smith, s. f.)—, cuya atribución se sirve con el modelo; los labios, la lengua, el corte anatómico y los materiales son adaptación propia en Blender. Enseña el aire y la vibración de cada sonido, lee palabras y frases al compás del audio —con el modelo del apartado 7.8—, y tiene zoom, cámara lenta («Despacio») y giro libre («Explorar»). El 26 de septiembre sus texturas pasaron a WebP y lo que baja por la red se quedó en 1,4 MB en vez de 3,5 (commit `1f5f2c9`). Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
 
 **Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space, en su revisión `7c09d90`, las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace. Esa comprobación es anterior a la pantalla de hoy, donde la lectura
 natural va plegada bajo «Para sonar más natural»; como la propone un modelo generativo, la
 respuesta puede cambiar, y el guion de la demostración la vuelve a comprobar con cuenta antes
 de enseñarla.
+
+**Lo añadido entre el 16 y el 26 de septiembre.** Todo está publicado y
+registrado en `DESPLIEGUE.md`:
+
+- **Mi espacio**, la pantalla de inicio y primera pestaña: los libros
+  empezados, las palabras pendientes de practicar y *Mi progreso*, que enseña
+  las palabras consultadas por día en las dos últimas semanas y los resultados
+  de los últimos repasos, con las cifras siempre a la vista y sin gráficas en
+  cero cuando todavía no hay datos. **Repasar** enseña hasta cinco palabras
+  guardadas: el lector intenta recordarlas, ve la respuesta y dice si la sabía,
+  dudó o no, y eso se guarda.
+- **Leer en voz alta, en vivo.** En el lector, la aplicación escucha mientras
+  se lee un pasaje y marca en el texto las palabras leídas, la actual y las
+  saltadas; al terminar da un resumen con el ritmo. Usa un servicio de
+  transcripción en tiempo real de pago, así que pide cuenta, gasta un uso por
+  sesión y se corta a los tres minutos. Está probado de extremo a extremo con
+  una lectura sintética; con la voz real de un lector, pendiente.
+- **La boca 3D didáctica** y **los datos por cuenta**, descritos arriba, y el
+  modelo que mueve la boca (apartado 7.8).
+- **La marca Pléyade**: nombre, emblema, un texto «Sobre Pléyade» que se abre
+  al pulsar el logo, y un fondo de galaxia en todas las pantallas, con cada una
+  sobre una lámina translúcida de su tema (claro, noche o papel). **El
+  contraste de este tema sobre la galaxia no se ha medido**: las pruebas de
+  contraste del front cubren las portadas y el lector teñido, no el fondo.
 
 ### 8.6 Contra quién compite esto
 
@@ -1395,7 +1521,7 @@ Parece razonable decirlo una vez, al principio de la lista, en lugar de
 repetirlo en cada párrafo corregido.
 
 1. **La escala 0–2 es propia y no es una certificación.** El MCER fue el ancla
-   del entrenamiento. LiteraLevel no acredita ningún nivel, y decirlo en el
+   del entrenamiento. Pléyade no acredita ningún nivel, y decirlo en el
    documento no basta: la aplicación lo repite en pantalla.
 2. **La escala está comprimida.** El ajuste contra el ancla real ronda
    `predicho ≈ 0,72 × real + 0,38` (mínimos cuadrados sobre las cuatro medias
@@ -1466,9 +1592,11 @@ repetirlo en cada párrafo corregido.
     menos de un minuto, dan las mismas
     cifras a cuatro decimales.
 12. **El despliegue está en el escalón más barato, y eso tiene dos
-    consecuencias.** La aplicación está publicada en Hugging Face Spaces
-    (`MikeMaki1763/literalevel`), con dirección fija que sobrevive a apagar el
-    equipo del autor. Cuesta **7 USD al mes**: un Space de Gradio exige cuenta
+    consecuencias.** La aplicación está publicada con dirección fija que
+    sobrevive a apagar el equipo del autor: el front en Vercel
+    (https://pleyade-app.vercel.app) y, de respaldo, en un Space estático, los
+    dos gratuitos y sin suspensión, y la API con el motor en Hugging Face Spaces
+    (`MikeMaki1763/literalevel`). Cuesta **7 USD al mes**: un Space de Gradio exige cuenta
     Pro, y el hardware elegido, `cpu-basic`, es el que no añade coste sobre esa
     suscripción. Pero ese hardware **suspende el servicio tras 48 h sin
     visitas** (`gcTimeout` = 172.800 s según la API de
@@ -1484,7 +1612,7 @@ repetirlo en cada párrafo corregido.
     respondía. Todas son cotas inferiores: despertar de una suspensión de 48 h
     añade traer la imagen. El disco del contenedor **sí es
     efímero**, y por eso la estantería, el avance de lectura, el cuaderno y el
-    perfil del lector se guardan en un **bucket de almacenamiento montado en
+    perfil del lector —o de su cuenta— se guardan en un **bucket de almacenamiento montado en
     `/data`** (18 USD por TB y mes en repositorio privado, y esto ocupa
     megas). Verificado de punta a punta: se fijó un perfil, se reinició el
     Space y el perfil seguía ahí. Era la acción A4 de la estrategia y está
@@ -1565,7 +1693,10 @@ repetirlo en cada párrafo corregido.
 6. Medir el efecto real sobre el abandono: comparar la tasa de libros
    terminados entre lectores que eligen con recomendación y sin ella. Es la
    única métrica que verdaderamente valida la propuesta.
-7. **Convertir las cinco acciones en herramientas de un agente**
+7. **Una cara que habla de frente.** La boca 3D enseña la articulación en
+   corte; una cara completa que lea las frases de frente (*Eos*, sobre un
+   MetaHuman de Epic) está en desarrollo y **no forma parte de esta entrega**.
+8. **Convertir las cinco acciones en herramientas de un agente**
    (*function calling*). Hoy cada una tiene su botón: medir un capítulo,
    buscar por significado, abrir un libro, explicar una palabra y corregir la
    pronunciación. Las cinco ya son funciones con argumentos y salida
@@ -1652,6 +1783,14 @@ palancas más rápidas —int8 y fp16 en la tarjeta local— porque una desviaba
 0,210 sobre una escala de 0 a 2 y la otra era 4,8 veces más lenta. **Medir
 antes de optimizar, y medir también lo que se descarta.**
 
+**La misma lección, en el segundo modelo.** Para mover la boca 3D, un modelo
+aprendido de caras reales supera a las reglas escritas a mano —Pearson 0,566
+frente a 0,443 con hablantes que no vio—, pero con los tiempos de fonema que la
+aplicación sabía calcular las reglas caían a 0,315: los datos de entrada
+pesaban tanto como el modelo. Y entre la red y unas tablas de 12,6 KB que
+empataban con ella se eligieron las tablas, por coste y porque se explican
+fonema a fonema (apartado 7.8).
+
 **Lo que convierte esto en un producto no es el modelo, es lo que se hizo con
 lo que dijo una lectora de quince años.** Un ciclo completo —observar, escuchar
 la queja, diagnosticar el fallo propio y corregirlo— vale más que un punto de
@@ -1660,7 +1799,8 @@ resultado son seis etiquetas reescritas, cinco paletas verificadas contra el
 criterio de contraste WCAG AA y una interfaz que se puede usar con el pulgar.
 
 **Y queda pendiente lo que más pesa.** La aplicación funciona y ya tiene
-dirección fija, pero sobre el hardware más barato: se suspende por
+dirección fija —el front en Vercel, con un respaldo en Hugging Face, y la API
+con el motor en un Space—, pero el motor corre sobre el hardware más barato: se suspende por
 inactividad, y el primer visitante tras la siesta paga el arranque en frío.
 El catálogo ya está medido entero —53.179 libros— y las métricas del v4, que
 el documento citaba sin poder recalcular, ya se recalculan desde el
@@ -1688,7 +1828,7 @@ diferencia entre decirle a alguien que un libro es A2 y que lo sea.
 
 ## Declaración de alcance
 
-LiteraLevel es una herramienta de apoyo a la lectura. **No es un instrumento de
+Pléyade es una herramienta de apoyo a la lectura. **No es un instrumento de
 evaluación ni de certificación lingüística.** No debe usarse para asignar
 calificaciones, para decidir la admisión de una persona a un programa, para
 acreditar un nivel del Marco Común Europeo de Referencia ni para ninguna
@@ -1703,8 +1843,8 @@ lector mediante un aviso en la ficha del libro y la decisión queda en sus
 manos.
 
 Los datos personales del lector —los libros empezados, el vocabulario
-consultado y el perfil de nivel— se guardan separados por navegador y no se
-comparten entre visitantes. Sí se comparten las cachés de contenido —definiciones,
+consultado y el perfil de nivel— se guardan separados por cuenta, o por navegador si no se
+entra, y no se comparten entre lectores. Sí se comparten las cachés de contenido —definiciones,
 audio generado, curvas y resúmenes de un mismo texto y el análisis de lectura
 natural de una frase—, que no son historial de nadie. Ningún texto con derechos se
 distribuye ni se imprime fuera del entorno de cómputo: de los corpus con
@@ -1718,6 +1858,15 @@ Abid, A., Abdalla, A., Abid, A., Khan, D., Alfozan, A., & Zou, J. (2019).
 *Gradio: Hassle-free sharing and testing of ML models in the wild*
 (arXiv:1906.02569). arXiv. https://arxiv.org/abs/1906.02569
 
+Alghamdi, N., Maddock, S., Marxer, R., Barker, J., & Brown, G. J. (2018). A
+corpus of audio-visual Lombard speech with frontal and profile views. *The
+Journal of the Acoustical Society of America, 143*(6), EL523–EL529.
+https://doi.org/10.1121/1.5042758
+
+Bai, S., Kolter, J. Z., & Koltun, V. (2018). *An empirical evaluation of
+generic convolutional and recurrent networks for sequence modeling*
+(arXiv:1803.01271). arXiv. https://arxiv.org/abs/1803.01271
+
 Breuker, M. (2023). CEFR labelling and assessment services. En G. Rehm (Ed.),
 *European Language Grid* (pp. 277–282). Springer.
 https://doi.org/10.1007/978-3-031-17258-8_16
@@ -1729,6 +1878,16 @@ Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system. En
 *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
 Discovery and Data Mining* (pp. 785–794). ACM.
 https://doi.org/10.1145/2939672.2939785
+
+Cohen, M. M., & Massaro, D. W. (1993). Modeling coarticulation in synthetic
+visual speech. En N. Magnenat Thalmann & D. Thalmann (Eds.), *Models and
+techniques in computer animation* (pp. 139–156). Springer.
+https://doi.org/10.1007/978-4-431-66911-1_13
+
+Cooke, M., Barker, J., Cunningham, S., & Shao, X. (2006). An audio-visual
+corpus for speech perception and automatic speech recognition. *The Journal of
+the Acoustical Society of America, 120*(5), 2421–2424.
+https://doi.org/10.1121/1.2229005
 
 Council of Europe. (2020). *Common European Framework of Reference for
 Languages: Learning, teaching, assessment — Companion volume*. Council of
@@ -1785,14 +1944,28 @@ Zettlemoyer, L., & Stoyanov, V. (2019). *RoBERTa: A robustly optimized BERT
 pretraining approach* (arXiv:1907.11692). arXiv.
 https://arxiv.org/abs/1907.11692
 
-MakeHuman Community. (s. f.). *License*.
-https://static.makehumancommunity.org/about/license.html
+Lugaresi, C., Tang, J., Nash, H., McClanahan, C., Uboweja, E., Hays, M.,
+Zhang, F., Chang, C.-L., Yong, M. G., Lee, J., Chang, W.-T., Hua, W., Georg,
+M., & Grundmann, M. (2019). *MediaPipe: A framework for building perception
+pipelines* (arXiv:1906.08172). arXiv. https://arxiv.org/abs/1906.08172
+
+McAuliffe, M., Socolof, M., Mihuc, S., Wagner, M., & Sonderegger, M. (2017).
+Montreal Forced Aligner: Trainable text-speech alignment using Kaldi. En
+*Proceedings of Interspeech 2017* (pp. 498–502).
+https://doi.org/10.21437/Interspeech.2017-1386
 
 MetaMetrics. (2026). *Lexile® Text Analyzer content creator annual tiered pricing
 program*. https://www2.metametricsinc.com/content-creator-annual-pricing
 
 Nakanishi, T. (2015). A meta-analysis of extensive reading research. *TESOL
 Quarterly, 49*(1), 6–37. https://doi.org/10.1002/tesq.157
+
+Narayanan, S., Toutios, A., Ramanarayanan, V., Lammert, A., Kim, J., Lee, S.,
+Nayak, K., Kim, Y.-C., Zhu, Y., Goldstein, L., Byrd, D., Bresch, E., Ghosh,
+P., Katsamanis, A., & Proctor, M. (2014). Real-time magnetic resonance imaging
+and electromagnetic articulography database for speech production research
+(TC). *The Journal of the Acoustical Society of America, 136*(3), 1307–1311.
+https://doi.org/10.1121/1.4890284
 
 Nation, I. S. P. (2013). *Learning vocabulary in another language* (2ª ed.).
 Cambridge University Press.
@@ -1806,6 +1979,9 @@ O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J.,
 Passos, A., Cournapeau, D., Brucher, M., Perrot, M., & Duchesnay, É. (2011).
 Scikit-learn: Machine learning in Python. *Journal of Machine Learning
 Research, 12*, 2825–2830.
+
+Perry-Smith, L. (s. f.). *Infinite, 3D Head Scan* [Modelo 3D, licencia CC BY
+3.0]. Infinite-Realities. http://www.ir-ltd.net/
 
 Pratham Books. (s. f.). *StoryWeaver* [Biblioteca digital].
 https://storyweaver.org.in
