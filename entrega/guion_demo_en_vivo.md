@@ -65,8 +65,10 @@ Una por una, y marcando:
       en la sexta: «Capto bien la idea» da 1,46, que ya es C1.
 - [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
       sonido → «Boca en 3D»). Es la boca didáctica nueva: desde el 26 de septiembre
-      baja 1,4 MB por la red en vez de 3,5, pero **su tiempo de carga en Vercel no
-      se ha medido**: ábrela antes para que en directo salga de la caché. Tiene zoom
+      baja 1,7 MB por la red en vez de 3,5 y **tarda unos 3 s en verse** (medido el
+      26 de septiembre contra Vercel, en un navegador sin caché y desde el equipo del
+      autor: 3,0 y 3,1 s; 8,9 s la primera vez, cuando la CDN aún no tenía el
+      archivo): ábrela antes para que en directo salga de la caché. Tiene zoom
       (+ y −), «Despacio» y «Explorar».
 - [ ] **_Crime and Punishment_ abierto una vez** y con su **curva ya
       calculada**: queda guardada y en directo sale al momento.

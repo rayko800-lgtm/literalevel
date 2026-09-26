@@ -49,7 +49,7 @@ entero, que Miguel lo vea, y luego sigue con el resto.
 - **Diseño:** tema de la marca (azul del icono, oro rosa y azul noche) con fondo de galaxia en todas
   las pantallas, sobre una lámina translúcida del tema. Siguen los temas claro, noche y papel.
   «Sobre Pléyade» al pulsar el logo.
-- **Boca 3D (modelo de Blender, en Pronunciar):** más ligera (texturas WebP: 3,5 → 1,4 MB por la
+- **Boca 3D (modelo de Blender, en Pronunciar):** más ligera (texturas WebP: 3,5 → 1,7 MB por la
   red), con botones de zoom + y −, cámara lenta («Despacio») y giro («Explorar»). La cara parlante
   **Eos** (MetaHuman de Epic) sigue en desarrollo en otra sesión: no la presentes como terminada.
 - **Fecha de entrega:** 3 oct 2026.
@@ -116,8 +116,10 @@ y los desbordes que quedan son de menos de 3 pt o no se ven.
 - Miguel: revisar y fusionar `dev/entregables` en master.
 - Miguel: poner a cero `uso_openai.json`, probar la lectura en vivo con su voz, grabar el
   vídeo y ensayar la demo (poner el perfil 1,20 en la cuenta y volver a medirse después).
-- Declarado como hueco en los documentos: el contraste del tema de la marca sobre la galaxia,
-  el tiempo de carga de la boca 3D en Vercel y la prueba con lectores del front nuevo (A8).
+- Declarado como hueco en los documentos: el contraste del tema de la marca sobre la galaxia
+  y la prueba con lectores del front nuevo (A8). El tiempo de carga de la boca 3D en Vercel lo
+  midió f3 el 26 sep (3,0–3,1 s sin caché del navegador; 8,9 s con la CDN fría; 1,7 MB por la
+  red, no 1,4: corregido en los siete archivos que lo decían).
 - ~~La bienvenida enseñaba una «L»~~: la cambió literalevel-f3 por el icono de Pléyade
   (`2b37573`, publicado). Ninguna de las 22 capturas muestra esa tarjeta, así que no hay
   que rehacer ninguna.
