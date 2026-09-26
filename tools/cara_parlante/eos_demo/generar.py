@@ -79,6 +79,30 @@ def boca(fons, n):
     return {c: y[:, i] for i, c in enumerate(M['controles'])}
 
 
+def alinear(palabras, mp3):
+    """Las marcas de palabra de edge-tts van ~0,2-0,4 s por delante del audio (el mp3 trae
+    relleno al principio). Se busca el desfase que mejor casa la mandíbula del modelo con la
+    energía del audio y se corren todas las palabras; se deja que la boca se adelante 40 ms,
+    como en el habla real."""
+    import subprocess
+    import wave
+    import imageio_ffmpeg
+    wav = mp3[:-4] + '.wav'
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', mp3, '-ac', '1', wav], check=True)
+    with wave.open(wav) as w:
+        sr = w.getframerate(); pcm = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(float)
+    hop = sr // FPS
+    env = np.array([np.sqrt(np.mean(pcm[i * hop:(i + 1) * hop] ** 2)) for i in range(len(pcm) // hop)])
+    fons = fonemas(palabras)
+    jaw = boca(fons, len(env))['bs:jawOpen']
+    e = (env - env.mean()) / (env.std() + 1e-9); j = (jaw - jaw.mean()) / (jaw.std() + 1e-9)
+    n = len(e)
+    corr = lambda L: np.mean(e[max(0, L):n + min(0, L)] * j[max(0, -L):n - max(0, L)])
+    lag = max(range(-int(0.7 * FPS), int(0.7 * FPS) + 1), key=corr) / FPS - 0.04
+    print(f'desfase palabras-audio: {lag * 1000:+.0f} ms')
+    return [(w, t0 + lag, t1 + lag) for w, t0, t1 in palabras]
+
+
 def ou(n, sd, tau, rng):
     a = np.exp(-1 / (FPS * tau)); x = np.zeros(n)
     for i in range(1, n):
@@ -150,6 +174,7 @@ def main():
     os.makedirs(a.salida, exist_ok=True)
     mp3 = os.path.join(a.salida, 'voz.mp3')
     palabras = asyncio.run(_tts(a.texto, a.voz, mp3))
+    palabras = alinear(palabras, mp3)
     fons = fonemas(palabras)
     dur = palabras[-1][2] + 0.8
     n = int(dur * FPS)
@@ -220,14 +245,23 @@ def main():
     EXPRESIVIDAD = 0.8
     inf = json.load(open(os.path.join(os.path.dirname(GESTOS), 'informe.json')))['sd_prediccion_z']
     z = {k: EXPRESIVIDAD * v / inf[k] for k, v in gestos(f0, db, FPS).items()}
-    cur['browInnerUp'] = np.clip(0.06 + 0.11 * z['cejas_int'], 0, 0.6)
-    cur['browOuterUpLeft'] = cur['browOuterUpRight'] = np.clip(0.04 + 0.09 * z['cejas_ext'], 0, 0.5)
+    cur['browInnerUp'] = np.clip(0.08 + 0.22 * z['cejas_int'], 0, 0.7)
+    cur['browOuterUpLeft'] = cur['browOuterUpRight'] = np.clip(0.05 + 0.18 * z['cejas_ext'], 0, 0.6)
     cur['browDownLeft'] = cur['browDownRight'] = np.clip(-0.06 * z['cejas_int'], 0, 0.3)
     extra = np.clip(0.07 * z['sonrisa'], -0.08, 0.2)
     for k in ('mouthSmileLeft', 'mouthSmileRight'):
         cur[k] = np.clip(cur[k] + extra, 0, 0.65)
+    # sonrisa de verdad (Duchenne): los ojos se cierran un poco y suben los pómulos en
+    # proporción a la sonrisa por encima de la base; también sube un poco la ceja interior
+    sonr = (cur['mouthSmileLeft'] + cur['mouthSmileRight']) / 2
+    duch = np.clip(sonr - 0.12, 0, None)
     for k in ('eyeSquintLeft', 'eyeSquintRight'):
-        cur[k] = np.clip(cur[k] + 0.03 * z['entrecerrar'], 0, 0.35)
+        cur[k] = np.clip(0.9 * duch + 0.03 * z['entrecerrar'], 0, 0.45)
+    for k in ('cheekSquintLeft', 'cheekSquintRight'):
+        cur[k] = np.clip(0.8 * duch, 0, 0.4)
+    cur['eyeBlinkLeft'] = np.maximum(cur['eyeBlinkLeft'], 0.35 * duch)       # párpado baja al sonreír
+    cur['eyeBlinkRight'] = np.maximum(cur['eyeBlinkRight'], 0.35 * duch)
+    cur['browInnerUp'] = np.clip(cur['browInnerUp'] + 0.15 * duch, 0, 0.7)
 
     # cabeza: la del modelo (grados de 1KH) más un poco de ruido OU para que no se repita
     cab = vida['cabeza']
