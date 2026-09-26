@@ -1,4 +1,8 @@
-# LiteraLevel
+# Pléyade (proyecto LiteraLevel)
+
+La aplicación se llama **Pléyade** desde el 26 de septiembre de 2026. El proyecto,
+el modelo (`literalevel-v4`), los repositorios, los Spaces y el paquete conservan
+el nombre LiteraLevel.
 
 App de lectura en inglés que estima la dificultad de un texto y acompaña al
 lector mientras lee. Proyecto integrador del Módulo 5, Diplomado en Ciencia de
@@ -71,10 +75,15 @@ en un solo proceso, solo en local. Los recursos del apartado Datos también hace
    el lector y qué tramos van lentos para su nivel, énfasis, enlaces y
    reducciones del habla rápida (*don't you* → *doncha*), y la frase dicha de
    corrido.
-6. **Recuerda.** *Mis libros* guarda todos los libros empezados, con la
+6. **Recuerda.** *Mi espacio* guarda todos los libros empezados, con la
    barra de avance y el capítulo por el que iba cada uno, y los reabre ahí
-   mismo. *Mis palabras* guarda cada palabra consultada con su frase y su
-   libro.
+   mismo, con *Mi progreso* (palabras por día y repasos). *Mis palabras* guarda
+   cada palabra consultada con su frase y su libro, y *Repasar* las pregunta.
+   Con usuario y contraseña, todo eso es de la cuenta y se ve igual en
+   cualquier aparato (desde el 26 sep); sin cuenta, es de ese navegador.
+7. **Lee contigo en voz alta.** En el lector, «Leer en voz alta (en vivo)»
+   marca las palabras leídas y las saltadas mientras se lee (con cuenta; hasta
+   tres minutos por sesión).
 
 ## El modelo
 
@@ -252,8 +261,12 @@ conexión; disponer del diccionario local no significa que toda la app sea offli
 ## Lo que sigue pendiente
 
 Portadas: en la app hay portadas tipográficas por familia de tema; las generadas
-por IA siguen sin hacerse (sin presupuesto). La boca 3D, con la cabeza de
-MakeHuman, está publicada en la app, con el corte 2D de respaldo.
+por IA siguen sin hacerse (sin presupuesto). La boca 3D didáctica (cabeza
+escaneada de Lee Perry-Smith, CC BY 3.0; labios, lengua y corte propios) está
+publicada en la app, con el corte 2D de respaldo, y se mueve con el modelo
+articulatorio aprendido (`investigacion/modelo_articulatorio/`). La cara que
+habla de frente (Eos) sigue en desarrollo. El contraste del tema de la marca
+sobre el fondo de galaxia no se ha medido.
 
 ## Más
 

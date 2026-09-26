@@ -1,10 +1,10 @@
-# LiteraLevel — Estrategia
+# Pléyade (proyecto LiteraLevel) — Estrategia
 
 **Proyecto integrador — Módulo 5 (Integrador)**
 Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
 Profesor: Mtro. Fernando Barranco Rodríguez
 Autor: Miguel Reyes Carrillo
-Septiembre de 2026
+Octubre de 2026
 
 > Documento complementario de `documento.md`, al que corresponde el apartado 3.
 > Aquí se desarrollan las tres piezas que la rúbrica pide de forma explícita:
@@ -30,7 +30,17 @@ guiones de verificación (`validar_local.py`, `tools/bajar_corpus_bc.py`,
 el corpus de British Council no se redistribuye, se reconstruye con su
 manifiesto.
 
-El nombre no es decorativo. En adquisición de segundas lenguas, la hipótesis del
+**Tres nombres para tres cosas.** Peldaño es la compañía; **Pléyade** es su
+aplicación, el nombre que ve el lector desde el 26 de septiembre de 2026; y
+**LiteraLevel** es el nombre del proyecto y de su modelo (`literalevel-v4`).
+Los repositorios, los Spaces de Hugging Face y el paquete de Python lo conservan
+a propósito: renombrarlos habría roto los enlaces publicados y la descarga que
+hace el cuaderno. Una *pléyade* es un grupo de personas célebres de una misma
+época, sobre todo en las letras, y las Pléyades son un cúmulo de estrellas de
+Tauro: el nombre junta la literatura y el cielo, y el emblema —un pegaso sobre un
+libro abierto cuyas páginas son alas— lo dice en imagen.
+
+El nombre de la compañía no es decorativo. En adquisición de segundas lenguas, la hipótesis del
 *input* comprensible sostiene que se aprende con material que está justo un
 escalón por encima de lo que uno ya domina (Krashen, 1985). Ese escalón es el
 peldaño, y encontrarlo es exactamente el problema que el lector no puede
@@ -81,7 +91,7 @@ aplicación los dice en pantalla en vez de esconderlos.
 
 La lectura extensiva es uno de los métodos con más respaldo para aprender una
 segunda lengua (Nakanishi, 2015), y sin embargo casi nadie la practica bien, porque elegir el
-libro adecuado es un problema que el lector no puede resolver solo. LiteraLevel
+libro adecuado es un problema que el lector no puede resolver solo. Pléyade
 convierte una medida continua de dificultad —producida por un modelo que lee el
 texto entero, no la portada— en tres decisiones cotidianas: **qué leer ahora**,
 **por dónde se va a complicar** y **qué significa esta palabra en esta frase**.
@@ -126,7 +136,7 @@ recuerda por dónde iba en ninguno.
 
 **Qué necesita.**
 
-- **Continuidad.** «Mis libros» guarda cada libro empezado con su barra de
+- **Continuidad.** *Mi espacio* («Donde lo dejaste») guarda cada libro empezado con su barra de
   avance y el capítulo por el que iba, y lo reabre exactamente ahí. Es la
   petición literal que originó el módulo: *«un apartado con mis libros, los que
   estoy leyendo, que se queden guardados, en qué partes voy»*.
@@ -152,7 +162,7 @@ graduadas. No puede leerse cuarenta libros para clasificarlos.
 - Un catálogo **medido**, no etiquetado a ojo, con la dificultad por capítulo
   para poder asignar fragmentos y no obras completas.
 - Una declaración honesta de lo que la herramienta no es, para poder usarla sin
-  incurrir en una promesa que no puede cumplir: **LiteraLevel no certifica
+  incurrir en una promesa que no puede cumplir: **Pléyade no certifica
   ningún nivel del MCER**.
 - Reproducibilidad: poder comprobar de dónde salen los números.
 
@@ -437,14 +447,18 @@ del avance de ese día, el profesor Barranco pidió que la entrega fuera un fron
 propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
 
 - **El front** es una aplicación de Angular 22 (componentes independientes, sin
-  `zone.js`) publicada como **Space estático** de Hugging Face
-  (`MikeMaki1763/literalevel-front`), gratuito y siempre despierto: es HTML, CSS
-  y JavaScript ya compilados. Tiene cuatro sitios en vez de ocho pestañas
-  —*Leer*, *Encontrar*, *Pronunciar* y *Tu nivel*—, más *Mis palabras*; los
-  ajustes (paleta, tamaño de letra, idioma de las explicaciones) y el estado del
+  `zone.js`): HTML, CSS y JavaScript ya compilados, así que no se duerme. Desde
+  el 26 de septiembre de 2026 se publica en **Vercel**
+  (https://pleyade-app.vercel.app, plan gratuito), como pidió el profesor, y se
+  vuelve a publicar sola con cada cambio de la rama principal del repositorio;
+  el **Space estático** de Hugging Face (`MikeMaki1763/literalevel-front`) sirve
+  la misma aplicación como respaldo. Tiene cinco sitios en vez de ocho pestañas
+  —*Mi espacio*, *Leer*, *Encontrar*, *Pronunciar* y *Tu nivel*—, más *Mis
+  palabras* y *Repasar*; los ajustes (tema, tamaño de letra, idioma de las
+  explicaciones) y el estado del
   servicio salen de la navegación, que es lo que Laura y el profesor habían
   pedido por separado.
-- **La API** es un servicio FastAPI (`app/api.py`, 40 rutas bajo `/api` a fecha de `8ee42f0`, el `app/` que publica el Space en su revisión `7c09d90`, subida desde `ab4e36f`)
+- **La API** es un servicio FastAPI (`app/api.py`, 44 rutas bajo `/api` a fecha de `06a16db`, el commit que publica el Space en su revisión `103eef5`)
   **montado en el mismo Space de Gradio** que ya existía, con Gradio en la raíz
   como motor y respaldo. **Reutiliza el motor y ayudantes de Gradio**, pero sus
   adaptadores contienen lógica propia: topes, cobro, aislamiento y degradación
@@ -454,7 +468,12 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   escribir el cliente. Solo cuentan los que fallan, y son valores por defecto
   que se cambian por variable de entorno. Medir tampoco es ilimitado: cada medida ocupa la CPU del único proceso del Space, así que desde el 14 de septiembre hay topes por IP y hora —40 medidas de nivel o de capítulo y 6 curvas nuevas— y como mucho 4 curvas en cola a la vez; lo ya medido no gasta ficha. En el Space, en su revisión `2bb1276` (del commit `0ba8219`), la séptima curva seguida dio 429 y un libro ya medido siguió respondiendo. Lo mismo protege lo que cuesta dinero, con sus propios topes por hora y conexión: 10 correcciones de voz, 30 explicaciones en contexto, 6 resúmenes y 20 libros nuevos. **Y hay un dato que conviene contar, porque es el que enseña algo:** el propio autor se topó con uno de esos topes probando su aplicación, sin esperarlo. Un tope que no se anuncia se vive como una avería, y esa es la lección de usabilidad, no la cifra. **No se sube para la entrega**, porque protege la factura y la CPU del único proceso del Space; lo que se cambia después es **avisar antes de grabar**, y hoy no se puede porque el contador no se expone en la API. La identidad del lector
   viaja en una cabecera (`X-Lector`) y sus datos siguen en el bucket montado en
-  `/data`. El primer montaje falló —el proxy de renderizado en servidor de
+  `/data`. Desde el 26 de septiembre, quien entra con usuario y contraseña deja de ser
+  un navegador: sus libros, sus palabras y su nivel pasan a ser **de la cuenta**
+  (`cuentas/<nombre>` en el bucket) y se ven igual en el teléfono, la tableta o
+  el equipo; sin cuenta siguen siendo de ese navegador. Salió de un caso real:
+  con la misma cuenta, el teléfono y la tableta del autor enseñaban dos
+  lectores distintos. El primer montaje falló —el proxy de renderizado en servidor de
   Gradio no dejaba pasar `/api`— y el segundo, sin ese proxy, es el que está en
   marcha.
 - **Regla de entrega:** una función existe cuando tiene ruta en la API **y**
@@ -471,7 +490,11 @@ propio, separado del motor. Se hizo al día siguiente, y es lo que se entrega:
   Recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290`
   (`1643c4b`, cada suite corrida sola): 66 de 66 pruebas API, 351 pruebas extremas sin
   ningún fallo y 48 de 48 de corpus (`DESPLIEGUE.md`). Las 34 de 34 de lectura natural
-  son del corte anterior, `d58b0be`.
+  son del corte anterior, `d58b0be`. La última publicación de la API (26 de
+  septiembre, revisión `103eef5` del Space, del commit `06a16db`) pasó 70 de 70
+  pruebas API, las extremas sin fallos y 464 de 464 del front; en vivo, la misma
+  cuenta entró desde dos aparatos nuevos y los dos vieron los mismos datos
+  (`DESPLIEGUE.md`).
 
 **Lo que el front añadió a la usabilidad en un día.** Tres cosas, y las tres
 salieron de mirar cómo se usa un teléfono:
@@ -501,7 +524,7 @@ salieron de mirar cómo se usa un teléfono:
   en la ficha de cada sonido y en la corrección —primero el sonido que falla y
   después la palabra—, y con «reducir movimiento» del sistema los deja quietos.
 
-**Boca 3D y portadas, a fecha de la revisión `ec957d0` del front (del commit `4e6276e`).** La boca 3D ya está publicada: el front sirve `boca3d/cara.glb` y `lengua.glb`, idénticos byte a byte a los del repositorio, con 72 mallas entre los dos y respaldo 2D si no cargan. La piel de la media cabeza sale de la malla base de MakeHuman 1.3.0, publicada bajo CC0 1.0 (no obliga a atribuir; MakeHuman Community, s. f.); paladar, velo, encías, dientes y lengua son modelos propios, y sus 53 poses se validan contra ellos. Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
+**Boca 3D, a 26 de septiembre de 2026.** En *Pronunciar*, junto al corte 2D, hay una boca 3D didáctica que se descarga solo al abrirla, con el corte 2D de respaldo si no carga. La cabeza parte de un escaneo publicado bajo CC BY 3.0 —*Infinite, 3D Head Scan*, de Lee Perry-Smith (Perry-Smith, s. f.)—, cuya atribución se sirve con el modelo; los labios, la lengua, el corte anatómico y los materiales son adaptación propia en Blender. Enseña el aire y la vibración de cada sonido, lee palabras y frases al compás del audio, y tiene zoom, cámara lenta («Despacio») y giro libre («Explorar»). El 26 de septiembre sus texturas pasaron a WebP y lo que baja por la red se quedó en 1,4 MB en vez de 3,5 (commit `1f5f2c9`). Es un corte esquemático, no anatomía validada clínicamente. Las portadas publicadas son **tipográficas**: una de 12 familias según los temas del catálogo, con una paleta de cinco colores sacada de la huella del identificador y el título a un contraste de al menos 4,5:1. El lector toma el fondo y el acento de esa paleta, con el texto a 7:1 o más y el acento a 4,5:1 sobre el fondo (sobre el color suave del acento, la pista del lector baja a 4,17:1 en algunos libros en tema claro, como SWV369), y el ajuste «Color del libro en el lector» lo apaga; la prueba del front que fija esos contrastes recorre 12 familias, 200 libros y dos temas (`b2003e5`). El pipeline de portadas FLUX está bloqueado por defecto; no generó imágenes nuevas ni consumió GPU. Sus 1.200 candidatos tienen 746 motivos temáticos y 454 genéricos, pendientes de muestra y revisión visual.
 
 **Lectura natural, medida con diez frases.** En *Pronunciar*, además del sonido que falla, la aplicación mide el ritmo de la lectura y enseña cómo se dice la frase de corrido: énfasis, enlaces entre palabras y reducciones (*want to* → *wanna*). Lo propone un modelo generativo y lo filtra un validador: las reducciones solo salen de una lista cerrada y los enlaces se comprueban con la pronunciación de diccionario. Con diez frases reales del catálogo evaluadas a mano (`auditoria/bateria_lectura_natural_2026-09-14.md`), el modelo propuso 11 reducciones y 29 enlaces; llegaron al lector 2 reducciones y 4 enlaces, **todos correctos**, y las diez versiones naturales quedaron fieles a la frase (8 reconstruidas por el validador). La exhaustividad es baja: se quedan fuera enlaces claros como *an argument*. En esa batería todo lo que llegó al lector era correcto, y eso no es una garantía: desde el 15 de septiembre el validador exige además un verbo detrás de *gonna*, *wanna* o *gotta* (antes aceptaba «I am gonna school» si el modelo lo proponía) y no enlaza a través de un punto. La frase de la demostración, «Don't you want to come with us?», da en el Space, en su revisión `7c09d90`, las reducciones *doncha* y *wanna*, marcadas como generadas por IA, y ningún enlace. Esa comprobación es anterior a la pantalla de hoy, donde la lectura natural va plegada bajo «Para sonar más natural»; como la propone un modelo generativo, la respuesta puede cambiar, y el guion de la demostración la vuelve a comprobar con cuenta antes de enseñarla.
 
@@ -509,7 +532,36 @@ salieron de mirar cómo se usa un teléfono:
 
 **Límites de la búsqueda, declarados.** Tres quedan sin cambio de código porque los arreglos probados estropeaban más búsquedas de las que salvaban (medido el 15 de septiembre sobre el Space del reinicio 28, `DESPLIEGUE.md`). Con perfil, un autor buscado por una sola palabra trae cuentos sin relación: con 1,20, «dostoyevski» marca 15 textos en la franja y «tolstoy», «cervantes» y «oscar wilde», 12, porque el modelo de parecido acerca a «historias de X» y «libros sobre X» títulos de misterio, bestias o fantasía; con título y autor, «Crimen y castigo de Dostoyevski» da 0. En las consultas de varias palabras el título pesa demasiado: «Historias de amor» marca cuentos titulados «My stories», y solo unos 5 (A2) y 7 (B1) de sus resultados son de amor. Y con una sola palabra sube un título que solo la contiene: «rosa» trae «The Water Supply of the El Paso…» y «luna», con B1, «Luna, The Rajapalayam Puppy».
 
-El enlace del lector es https://mikemaki1763-literalevel-front.static.hf.space/ .
+El enlace del lector es https://pleyade-app.vercel.app, y el de respaldo,
+https://mikemaki1763-literalevel-front.static.hf.space/ .
+
+**Lo añadido entre el 16 y el 26 de septiembre.** Todo está publicado y
+registrado en `DESPLIEGUE.md`:
+
+- **Mi espacio**, la pantalla de inicio y primera pestaña: los libros
+  empezados, las palabras pendientes de practicar y *Mi progreso*, que enseña
+  las palabras consultadas por día en las dos últimas semanas y los resultados
+  de los últimos repasos, con las cifras siempre a la vista y sin gráficas en
+  cero cuando todavía no hay datos. **Repasar** enseña hasta cinco palabras
+  guardadas: el lector intenta recordarlas, ve la respuesta y dice si la sabía,
+  dudó o no, y eso se guarda.
+- **Leer en voz alta, en vivo.** En el lector, la aplicación escucha mientras
+  se lee un pasaje y marca en el texto las palabras leídas, la actual y las
+  saltadas; al terminar da un resumen con el ritmo. Usa un servicio de
+  transcripción en tiempo real de pago, así que pide cuenta, gasta un uso por
+  sesión y se corta a los tres minutos. Está probado de extremo a extremo con
+  una lectura sintética; con la voz real de un lector, pendiente.
+- **La boca 3D didáctica** y **los datos por cuenta**, descritos arriba. La
+  boca se mueve con un segundo modelo, aprendido de vídeos de caras reales, que
+  se describe en el apartado 7.8 del documento principal.
+- **La marca Pléyade**: nombre, emblema, un texto «Sobre Pléyade» que se abre
+  al pulsar el logo, y un fondo de galaxia en todas las pantallas, con cada una
+  sobre una lámina translúcida de su tema (claro, noche o papel). **El
+  contraste de este tema sobre la galaxia no se ha medido**: las pruebas de
+  contraste del front cubren las portadas y el lector teñido, no el fondo.
+
+Las capturas de todo esto, hechas el 26 de septiembre desde la app publicada,
+están en `capturas/` con su procedencia en `capturas/registro.txt`.
 
 ---
 
@@ -662,10 +714,10 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 | # | Acción | Por qué | Coste | Terminado cuando |
 |---|---|---|---|---|
 | **A1** | **Publicar el modelo y el diccionario** como repositorios abiertos | Desbloquea la reproducibilidad del cuaderno, que antes no corría en un Colab ajeno | ~30 min; gratuito. Requiere un token que solo el autor puede crear | **HECHO a medias**: el modelo (328 MB) está en `MikeMaki1763/literalevel-v4`, público y con la descarga sin credenciales verificada. El diccionario (243 MB) sigue sin publicar |
-| **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware `cpu-basic` no añade coste, y el Space estático del front es gratuito | **HECHO**: `MikeMaki1763/literalevel-front` (el front) y `MikeMaki1763/literalevel` (API y motor), públicos y en marcha. El disco persistente es A4 |
+| **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware `cpu-basic` no añade coste, y el front, en Vercel y en el Space estático, es gratuito | **HECHO**: el front en Vercel (https://pleyade-app.vercel.app), con respaldo en `MikeMaki1763/literalevel-front` (el front) y `MikeMaki1763/literalevel` (API y motor), públicos y en marcha. El disco persistente es A4 |
 | ~~**A3**~~ **HECHO** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales | T4 gratuita; la descarga por `common-pile/project_gutenberg` (Kandpal et al., 2025; 57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión | **Cumplido el 12 de septiembre de 2026**: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa |
-| ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí |
-| **A5** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | Se graba una frase desde el equipo del autor y la corrección palabra por palabra aparece en pantalla |
+| ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí. Desde el 26 de septiembre, con cuenta, los datos son de la cuenta y se ven en cualquier aparato |
+| **A5 · HECHO** | **Conseguir un micrófono** (auriculares con micro) | El equipo actual no tiene. Sin él no se puede demostrar la corrección de pronunciación, que es la función más vistosa y la que mejor encaja con «usabilidad para el usuario final» | Coste mínimo de hardware | **Cumplido con el teléfono**: el 16 de septiembre, desde el teléfono del autor y con cuenta, el micrófono grabó y la corrección salió; se vuelve a ensayar antes de la demo |
 | **A6 · HECHO** | **Sustituir el catálogo heredado** de 1.197 registros | Incluía 1.049 registros sin texto descargable, el 87,6 % de aquella versión, no de la actual | Incluido en A3 | El catálogo medido actual contiene 53.179 IDs de Gutenberg; a fecha de `db366b8` se excluyen al recomendar y al buscar 600 que no son lectura (índices, catálogos, directorios) y, desde `3524357` (163 entonces, 203 hoy), textos libres que no son lectura en inglés (relleno o en otra lengua), y por nivel solo se ofrecen obras literarias. Una medida del precálculo se corrige al cargar (`correcciones_catalogo.csv`): PG2242, *A Midsummer Night's Dream* del First Folio, guardó 0,697 y releída por el mismo camino da 1,713 (C1) |
 | **A7** | **Calibrar la escala** con una transformación afín de dos parámetros ajustada sobre entrenamiento, sin tocar los pesos | La escala está comprimida y un A2 puntúa cerca de B1. La técnica ya se aplicó con éxito a una variante anterior | Una tarde | Las medias por nivel siguen estrictamente crecientes **y** se acercan a sus anclas |
 | **A8** | **Repetir la prueba de usuario con cinco lectores** de perfiles distintos sobre Angular, con guion de tareas y observación en silencio | Los dos ciclos previos encontraron fallos graves; no validan todos los cambios del nuevo front (Nielsen, 2000) | Cinco sesiones de 20 min | Estará hecho cuando exista una lista priorizada de hallazgos y las tres primeras correcciones estén hechas |
@@ -674,7 +726,7 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 
 *Cuadro 2. Accionables, con coste y criterio de terminado.*
 
-**Orden de ejecución actualizado:** ensayar la voz con micrófono real (A5),
+**Orden de ejecución actualizado:** volver a ensayar la voz con cuenta (A5),
 recorrer Angular con usuarios (A8), grabar el video y comprobar los archivos
 de entrega. A2, A3, A4 y la sustitución del catálogo de A6 ya tienen evidencia
 de cierre; no se vuelven a presentar como trabajo por empezar. Las mejoras
@@ -689,9 +741,9 @@ visuales pendientes no deben desplazar el ensayo de la demo.
 | Modelo | Orden estrictamente creciente por nivel MCER en corpus externo | **Cumplido**: 0,5040 · 0,5561 · 0,9276 · 1,2414 · 1,4952 |
 | Modelo | Señal por encima de la longitud del texto | **Cumplido**: correlación parcial 0,668 |
 | Producto | Un usuario sin formación técnica completa el recorrido | **Cumplido con reservas, sobre la interfaz anterior**: lo completó en Gradio, y de esa sesión salieron las nueve correcciones del Cuadro 1 —seis de ellas etiquetas—; sobre el front de Angular, pendiente (A8) |
-| Producto | Accesibilidad de color | **Cumplido**: las ochenta y cinco parejas de color de las cinco paletas superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título) |
-| Producto | Robustez | **Parcial**: recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290` —API 66 de 66, 351 pruebas extremas sin ningún fallo y corpus 48 de 48—, más lectura natural 34 de 34 y voz concurrente 10 de 10 del corte anterior `d58b0be`; no equivalen a una prueba completa de usuario |
-| Operación | Enlace permanente disponible | **Cumplido**: el front en `MikeMaki1763/literalevel-front` y la API con el motor en `MikeMaki1763/literalevel`, los dos en Hugging Face Spaces, públicos y en marcha, con los datos del lector en un bucket montado en `/data` |
+| Producto | Accesibilidad de color | **Cumplido en la interfaz anterior**: las ochenta y cinco parejas de color de las cinco paletas de Gradio superan WCAG AA; las más ajustadas, 4,53 (texto) y 3,11 (título). En el front, las portadas y el lector teñido tienen pruebas de contraste; el tema de la marca sobre el fondo de galaxia, **sin medir** |
+| Producto | Robustez | **Parcial**: recuento sin claves del 15 de septiembre sobre el árbol del despliegue `0319290` —API 66 de 66, 351 pruebas extremas sin ningún fallo y corpus 48 de 48—, más lectura natural 34 de 34 y voz concurrente 10 de 10 del corte anterior `d58b0be`; la última publicación de la API (26 de septiembre, `06a16db`): API 70 de 70, extremas sin fallos y front 464 de 464. No equivalen a una prueba completa de usuario |
+| Operación | Enlace permanente disponible | **Cumplido**: el front en Vercel (https://pleyade-app.vercel.app), con respaldo en `MikeMaki1763/literalevel-front`, y la API con el motor en `MikeMaki1763/literalevel`, en Hugging Face Spaces, con los datos del lector o de su cuenta en un bucket montado en `/data` |
 | Operación | Catálogo medido, no heredado | **Cumplido** el 12 de septiembre de 2026: 53.179 libros y 585.111 capítulos medidos por el v4 (A3) |
 | Impacto | Proporción de libros terminados | **Sin instrumentar** (A9) |
 
@@ -759,9 +811,6 @@ Longman.
 Krug, S. (2014). *Don't make me think, revisited: A common sense approach to
 web usability* (3ª ed.). New Riders.
 
-MakeHuman Community. (s. f.). *License*.
-https://static.makehumancommunity.org/about/license.html
-
 MetaMetrics. (2026). *Lexile® Text Analyzer content creator annual tiered pricing
 program*. https://www2.metametricsinc.com/content-creator-annual-pricing
 
@@ -771,6 +820,9 @@ Quarterly, 49*(1), 6–37. https://doi.org/10.1002/tesq.157
 Nielsen, J. (2000, 18 de marzo). *Why you only need to test with 5 users*.
 Nielsen Norman Group.
 https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/
+
+Perry-Smith, L. (s. f.). *Infinite, 3D Head Scan* [Modelo 3D, licencia CC BY
+3.0]. Infinite-Realities. http://www.ir-ltd.net/
 
 Pratham Books. (s. f.). *StoryWeaver* [Biblioteca digital].
 https://storyweaver.org.in

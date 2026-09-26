@@ -1,5 +1,5 @@
 % ===========================================================================
-%  LiteraLevel — Presentación (Módulo 5, 10 puntos)
+%  Pléyade (proyecto LiteraLevel) — Presentación (Módulo 5, 10 puntos)
 %  Diplomado en Ciencia de Datos, FES Acatlán (UNAM), Generación 34
 %
 %  Mismos colores, misma tipografia y mismos escudos que documento.tex y
@@ -54,7 +54,7 @@
 
 \setbeamertemplate{footline}{%
   \hfill\raisebox{2mm}{\color{llgris}\scriptsize
-    LiteraLevel · Módulo 5 \quad \insertframenumber\hspace{6mm}}}
+    Pléyade · proyecto LiteraLevel · Módulo 5 \quad \insertframenumber\hspace{6mm}}}
 
 % --- Una cifra grande y sola, que es la regla del guion --------------------
 \newcommand{\cifra}[2]{%
@@ -65,10 +65,10 @@
 
 \newcommand{\cod}[1]{{\ttfamily\small #1}}
 
-\title{LiteraLevel}
+\title{Pléyade}
 \subtitle{¿Está este libro en inglés a tu nivel de lectura?}
 \author{Miguel Reyes Carrillo}
-\date{Septiembre de 2026}
+\date{Octubre de 2026}
 
 \begin{document}
 
@@ -92,7 +92,9 @@
 
 \vspace{6mm}
 \begin{center}
-  {\Huge\bfseries\color{llazul} LiteraLevel}\\[6pt]
+  \includegraphics[height=1.5cm]{logos/pleyade_icono.png}\\[3pt]
+  {\Huge\bfseries\color{llazul} Pléyade}\\[1pt]
+  {\small\color{llgris} proyecto LiteraLevel}\\[5pt]
   {\large ¿Está este libro en inglés a tu nivel de lectura?}\\[10mm]
   {\normalsize Miguel Reyes Carrillo}\\[3pt]
   {\small\color{llgris} Proyecto integrador --- Módulo 5 \quad·\quad Generación 34}\\[2pt]
@@ -272,9 +274,44 @@ no.}
 \end{frame}
 
 % ===========================================================================
+\begin{frame}{Segundo modelo · la boca que se mueve como una real}
+\vspace{1mm}
+{\small La boca 3D de \emph{Pronunciar} ya no sigue reglas escritas a mano: aprendió
+el movimiento de \textbf{vídeos de caras reales} (GRID y Lombard GRID) y de sensores en
+la lengua (USC-TIMIT), todos CC BY 4.0.}
+\vspace{2mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.86\linewidth, height=3.5cm, xbar, bar width=8pt, bar shift=0pt,
+  xmin=0, xmax=0.72, xlabel={Pearson con el movimiento real, 4 hablantes no vistos (GRID)},
+  symbolic y coords={tcn,dom,reglas,app},
+  ytick={app,reglas,dom,tcn},
+  yticklabels={Reglas con los tiempos de la app,Reglas de antes,Dominancia aprendida,Red TCN},
+  yticklabel style={font=\scriptsize}, tick style={draw=none},
+  xmajorgrids=true, grid style={llgrisclaro},
+  axis line style={draw=llgrisclaro}, enlarge y limits=0.25,
+  nodes near coords={\pgfmathprintnumber[fixed,fixed zerofill,precision=3]{\pgfplotspointmeta}},
+  nodes near coords style={font=\scriptsize, color=llgris},
+  nodes near coords align={horizontal},
+]
+\addplot[fill=llgris!25, draw=llgris!60] coordinates {(0.315,app) (0.443,reglas)};
+\addplot[fill=llcian!45, draw=llcian!90] coordinates {(0.560,dom) (0.566,tcn)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\vspace{-1mm}
+{\footnotesize \textbf{Se publicó la dominancia}: empata con la red, cabe en tablas de
+12,6 KB y se explica fonema a fonema. Y la lección es la del primer modelo: \textbf{los
+datos de entrada pesaban tanto como el modelo} ---con los tiempos de fonema mal medidos,
+las reglas caían a 0,315---. {\color{llgris} Es correlación con caras en vídeo, no
+prueba de que ayude a pronunciar mejor (documento, §7.8).}}
+\end{frame}
+
+% ===========================================================================
 \begin{frame}{La aplicación entregada}
 \vspace{1mm}
-{\small Angular es la interfaz del lector; la API conecta con el motor de Python.}
+{\small Angular es la interfaz del lector, en Vercel; la API conecta con el motor de Python.}
 \vspace{2mm}
 
 \begin{center}
@@ -282,12 +319,12 @@ no.}
 \tikzset{caja/.style={draw=llcian!70, fill=llfondo, rounded corners=2pt,
                       text width=3.4cm, align=center, inner sep=4pt,
                       minimum height=1.5cm}}
-\node[caja] (f) {\textbf{Front · Angular 22}\\ Interfaz entregada\\
-  Space estático\\ \emph{Leer · Encontrar · Pronunciar · Tu nivel}};
+\node[caja] (f) {\textbf{Front · Angular 22}\\ En Vercel; respaldo en\\
+  un Space estático\\ \emph{Mi espacio · Leer · Encontrar\\ Pronunciar · Tu nivel}};
 \node[caja, right=of f] (a) {\textbf{API · FastAPI}\\ Rutas bajo \cod{/api}\\
   reutiliza los módulos\\ y las puertas de pago\\ del motor};
 \node[caja, right=of a] (m) {\textbf{Motor}\\ modelo v4 · diccionario\\
-  Space de Gradio,\\ \cod{cpu-basic}; Gradio\\ en la raíz, de respaldo};
+  Space de Gradio,\\ \cod{cpu-basic}; datos\\ por cuenta en un bucket};
 \draw[->, llcian!80, thick] (f) -- (a);
 \draw[->, llcian!80, thick] (a) -- (m);
 \end{tikzpicture}
@@ -307,8 +344,8 @@ audio y orientación para practicar el sonido.}
 \end{column}
 \begin{column}{0.32\textwidth}
 \textbf{\color{llazul} Apoyo articulatorio}\\[2pt]
-{\small Boca 3D publicada: 72 mallas, con la piel de la cabeza de MakeHuman (CC0).
-Se carga al abrirla, con respaldo 2D. Apoyo didáctico, no clínico.}
+{\small Boca 3D didáctica (cabeza escaneada, CC BY 3.0) movida por un modelo
+aprendido. Respaldo 2D. No clínica.}
 \end{column}
 \end{columns}
 
@@ -320,7 +357,8 @@ con su paleta; las portadas FLUX siguen pendientes y la demostración no depende
 % ===========================================================================
 \begin{frame}{Lo que hace por el lector}
 \vspace{1mm}
-{\small Lo añadido en los dos últimos días, ya publicado en el \emph{front}.}
+{\small Publicado en el \emph{front}. Además: \emph{Mi espacio} con el progreso,
+\emph{Repasar}, lectura en voz alta en vivo y datos de la cuenta en cualquier aparato.}
 \vspace{3mm}
 
 \begin{columns}[T]
@@ -441,7 +479,7 @@ nadie.}
 \toprule
 \textbf{Acción} & \textbf{Recursos} & \textbf{Criterio de terminado} \\
 \midrule
-Servir interfaz y motor & Angular estático + API en Space de Gradio;
+Servir interfaz y motor & Angular en Vercel + API en Space de Gradio;
   IA con cuota &
   \textbf{Publicado}: comprobar navegación y respuesta JSON antes de la demo \\[3mm]
 Ofrecer lecturas ajustadas & Catálogo medido por v4 y corpus graduados abiertos &
@@ -476,7 +514,7 @@ en una escala continua propia.}\\[8mm]
 \begin{center}
 {\Large\bfseries\color{llazul} Funcionando ahora mismo}\\[8mm]
 
-{\large\ttfamily mikemaki1763-literalevel-front.static.hf.space}\\[6mm]
+{\large\ttfamily pleyade-app.vercel.app}\\[6mm]
 
 {\small\color{llgris} API y motor:
 \ttfamily huggingface.co/spaces/MikeMaki1763/literalevel}\\[3mm]
