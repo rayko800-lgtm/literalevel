@@ -75,7 +75,7 @@ export class Estado implements OnInit {
     try {
       this.estado.set((await firstValueFrom(this.api.estado())) as unknown as EstadoMotor);
     } catch (e) {
-      this.error.set(mensajeError(e, 'El motor de LiteraLevel no está respondiendo.'));
+      this.error.set(mensajeError(e, 'El motor de Pléyade no está respondiendo.'));
     }
   }
 }

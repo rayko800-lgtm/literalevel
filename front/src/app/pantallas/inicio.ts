@@ -22,9 +22,12 @@ import { Sesion } from '../nucleo/sesion';
     @if (bienvenida() && !ajustesAbiertos() && sesionConocida()) { <app-bienvenida /> }
     <div class="pagina">
       @if (modoEspacio()) {
-        <header class="cabecera-espacio">
-          <span class="antetitulo">Mi espacio</span>
-          <h1>Lo que ya llevas hecho</h1>
+        <header class="cabecera-espacio cielo">
+          <img class="icono-espacio" src="marca/icono-96.webp" width="48" height="48" alt="">
+          <div>
+            <span class="antetitulo">Mi espacio</span>
+            <h1>Lo que ya llevas hecho</h1>
+          </div>
         </header>
 
         @if (seguir(); as s) {
@@ -149,11 +152,14 @@ import { Sesion } from '../nucleo/sesion';
           <span class="enlace">{{ perfil() ? 'Ver' : 'Medir mi nivel' }} <app-icono nombre="flecha" /></span>
         </a>
       } @else {
-        <section class="heroe">
+        <section class="heroe cielo">
           <div class="texto-heroe">
+            <img class="logo-heroe" src="marca/logo-cosmos-600.webp"
+                 srcset="marca/logo-cosmos-600.webp 600w, marca/logo-cosmos-1200.webp 1200w"
+                 sizes="(max-width: 640px) 240px, 320px" width="600" height="512" alt="Pléyade">
             <span class="antetitulo">Lee en inglés a tu medida</span>
             <h1>Libros de verdad en inglés, <span class="realce">sin perderte</span>.</h1>
-            <p class="entradilla">LiteraLevel mide lo difícil que es cada capítulo y te explica cualquier palabra
+            <p class="entradilla">Pléyade mide lo difícil que es cada capítulo y te explica cualquier palabra
               en su frase, sin salir del libro.</p>
             <div class="fila acciones-heroe">
               <a class="boton" [routerLink]="['/leer', 'PG11', 'auto']"><app-icono nombre="libro" />Empezar a leer</a>
@@ -213,7 +219,37 @@ import { Sesion } from '../nucleo/sesion';
   `,
   styles: `
     .heroe { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(1.5rem, 4vw, 3.5rem);
-      align-items: center; padding: clamp(.5rem, 2vw, 2rem) 0 clamp(1.5rem, 3vw, 3rem); }
+      align-items: center; padding: clamp(1.25rem, 3vw, 2.75rem); margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
+    /* La marca: el cielo del logo (azul noche, estrellas y oro rosa). Es igual
+       en los tres temas: es el logo, no una superficie de lectura. */
+    .cielo { position: relative; border-radius: var(--radio-lg); color: var(--crema); overflow: hidden;
+      background:
+        radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, .8) 50%, transparent 51%),
+        radial-gradient(1px 1px at 38% 78%, rgba(255, 255, 255, .7) 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 64% 14%, rgba(243, 201, 180, .9) 50%, transparent 51%),
+        radial-gradient(1px 1px at 86% 58%, rgba(255, 255, 255, .6) 50%, transparent 51%),
+        radial-gradient(1px 1px at 92% 18%, rgba(255, 255, 255, .7) 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 24% 90%, rgba(243, 199, 104, .8) 50%, transparent 51%),
+        radial-gradient(900px 420px at 18% -20%, color-mix(in srgb, var(--marca-azul) 55%, transparent) 0%, transparent 70%),
+        /* Sin brillo de oro rosa en el fondo: mezclado con el azul se vuelve morado. */
+        var(--marca-noche);
+      box-shadow: var(--sombra-alta); }
+    .cielo h1, .cielo h2 { color: var(--crema); }
+    .cielo .antetitulo { color: var(--oro-rosa); }
+    /* La ficha del ejemplo es una superficie de la app, no del cielo. */
+    .cielo .demo { color: var(--texto); }
+    .cielo .entradilla { color: #c8d3ee; }
+    .cielo .boton { background: linear-gradient(135deg, var(--oro-rosa-brillo), var(--oro-rosa) 55%, var(--oro-rosa-sombra));
+      color: var(--marca-noche); box-shadow: 0 8px 22px -10px var(--oro-rosa); }
+    .cielo .boton:hover { background: var(--oro-rosa-brillo); }
+    .cielo .boton.secundario { background: transparent; color: var(--crema);
+      border-color: color-mix(in srgb, var(--oro-rosa) 60%, transparent); box-shadow: none; }
+    .cielo .boton.secundario:hover { background: rgba(255, 255, 255, .08); }
+    .cielo :focus-visible { outline-color: var(--oro-rosa-brillo); }
+    .logo-heroe { display: block; width: 320px; max-width: 100%; height: auto; margin: -.75rem 0 .5rem -1rem;
+      -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent 100%);
+      mask-image: radial-gradient(closest-side, #000 70%, transparent 100%); }
+    .cielo .realce { background-image: linear-gradient(100deg, var(--oro-rosa-brillo), var(--oro-rosa) 60%, var(--estrella)); }
     .realce { background: linear-gradient(100deg, var(--acento), var(--verde)); -webkit-background-clip: text; background-clip: text; color: transparent; }
     @media (forced-colors: active) { .realce { color: CanvasText; background: none; } }
     .entradilla { font-size: clamp(1.05rem, 1rem + .35vw, 1.25rem); color: var(--texto-suave); max-width: 46ch; margin-bottom: 1.5rem; }
@@ -228,8 +264,11 @@ import { Sesion } from '../nucleo/sesion';
     .demo-ficha p { margin: .35rem 0 0; }
     .demo-cab { gap: .5rem; }
     .demo-cab strong { font-size: 1.15rem; }
-    .cabecera-espacio { margin-bottom: 1.2rem; }
-    .cabecera-espacio h1 { margin: .2rem 0 0; }
+    .cabecera-espacio { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem;
+      padding: clamp(1rem, 2.5vw, 1.4rem) clamp(1.1rem, 3vw, 1.75rem); }
+    .cabecera-espacio h1 { margin: .1rem 0 0; font-family: var(--fuente-libro); font-weight: 700; letter-spacing: 0; }
+    .cabecera-espacio .antetitulo { margin-bottom: 0; }
+    .icono-espacio { flex: none; width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 6px 18px -6px rgba(0, 0, 0, .6); }
     .seguir { display: block; margin-bottom: 1.5rem; color: inherit; text-decoration: none; border-color: color-mix(in srgb, var(--acento) 35%, var(--borde));
       background: linear-gradient(135deg, var(--superficie), color-mix(in srgb, var(--acento-suave) 55%, var(--superficie))); }
     .seguir:hover { box-shadow: var(--sombra-alta); }
@@ -287,6 +326,10 @@ import { Sesion } from '../nucleo/sesion';
     .punto.no { background: var(--rojo); }
     @media (max-width: 900px) {
       .heroe { grid-template-columns: 1fr; }
+      .logo-heroe { margin: -.5rem auto .25rem; width: 240px; }
+      .texto-heroe { text-align: center; }
+      .texto-heroe .entradilla { margin-inline: auto; }
+      .acciones-heroe { justify-content: center; }
       .demo { max-width: 560px; }
       .puertas, .pasos { grid-template-columns: 1fr; }
       .demo-ficha { right: 0; }

@@ -28,14 +28,18 @@
   width: min(var(--ancho), 100% - 2rem); margin: 0 auto; height: var(--barra-sup);
   display: flex; align-items: center; gap: 1rem;
 }
-.marca { display: inline-flex; align-items: center; gap: .6rem; color: var(--texto); text-decoration: none; font-weight: 750; }
-.logo {
-  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px;
-  font-family: var(--fuente-libro); font-size: 1.35rem; font-weight: 700; color: #fff;
-  background: linear-gradient(145deg, var(--acento), var(--acento-hondo));
-  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--acento) 70%, transparent);
+.marca {
+  display: inline-flex; align-items: center; gap: .6rem; min-height: 44px; padding: 0 .4rem 0 0; margin-left: -.1rem;
+  border: 0; border-radius: 12px; background: none; color: var(--texto); font: inherit; font-weight: 750; cursor: pointer;
 }
-.nombre { font-size: 1.12rem; letter-spacing: -.01em; }
+.logo {
+  display: block; width: 36px; height: 36px; border-radius: 9px;
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--marca-azul) 70%, transparent);
+  transition: transform .2s ease;
+}
+.marca:hover .logo { transform: rotate(-4deg) scale(1.06); }
+/* El nombre con el serif del libro, como en el logo. */
+.nombre { font-family: var(--fuente-libro); font-size: 1.2rem; letter-spacing: .02em; }
 
 .nav-escritorio { display: flex; gap: .25rem; margin: 0 auto; }
 .nav-escritorio a {
@@ -79,7 +83,7 @@
 
 @media (max-width: 760px) {
   .nav-escritorio { display: none; }
-  .nombre { font-size: 1.05rem; }
+  .nombre { font-size: 1.12rem; }
   .pie { padding-bottom: calc(var(--barra-inf) + 1.5rem + env(safe-area-inset-bottom)); }
   .nav-movil {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;

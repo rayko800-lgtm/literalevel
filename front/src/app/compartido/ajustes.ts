@@ -122,7 +122,7 @@ import { Icono } from './icono';
           <a routerLink="/" (click)="repetirTutorial()">Repetir tutorial (v2, desarrollo)</a>
         }
         <a routerLink="/estado" (click)="cerrar.emit()">Estado del sistema</a>
-        <span class="tenue pequeno">LiteraLevel no certifica niveles del MCER: orienta para elegir qué leer.</span>
+        <span class="tenue pequeno">Pléyade no certifica niveles del MCER: orienta para elegir qué leer.</span>
       </footer>
     </aside>
   `,

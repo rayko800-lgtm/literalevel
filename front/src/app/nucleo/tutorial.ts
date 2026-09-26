@@ -227,7 +227,7 @@ const PASOS_D1_2: readonly PasoTutorial[] = [
   },
   {
     id: 'tutorial-final',
-    titulo: 'Ya conoces lo esencial de LiteraLevel',
+    titulo: 'Ya conoces lo esencial de Pléyade',
     texto: 'Encuentra algo que quieras leer, consulta lo que no entiendas y practica tu pronunciación mientras avanzas.',
     opciones: [{ etiqueta: 'Terminar tutorial', accion: 'terminar' }],
     // Única pantalla sin «Saltar» (Miguel, D1.5): ya no aporta nada aquí.

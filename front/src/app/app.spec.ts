@@ -23,7 +23,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const raiz = fixture.nativeElement as HTMLElement;
-    expect(raiz.querySelector('.marca')?.textContent).toContain('LiteraLevel');
+    expect(raiz.querySelector('.marca')?.textContent).toContain('Pléyade');
     const funciones = [...raiz.querySelectorAll('.nav-escritorio a')].map(a => a.textContent?.trim());
     expect(funciones).toEqual(['Mi espacio', 'Leer', 'Encontrar', 'Pronunciar', 'Tu nivel']);
   });

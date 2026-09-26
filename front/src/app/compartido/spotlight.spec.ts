@@ -463,7 +463,7 @@ describe('Spotlight (D1.2)', () => {
       pulsar('Ver mis palabras');
       await new Promise(r => setTimeout(r, 0));
       fixture.detectChanges();
-      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Ya conoces lo esencial de LiteraLevel');
+      expect(dialogo()?.querySelector('h2')?.textContent).toBe('Ya conoces lo esencial de Pléyade');
       expect(boton('Saltar')).toBeUndefined(); // ocultado a propósito, único paso sin él
       expect(boton('Terminar tutorial')).toBeTruthy();
     });

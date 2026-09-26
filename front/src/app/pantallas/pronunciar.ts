@@ -210,7 +210,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (e) return { texto: e, tipo: 'error' };
     if (this.estado() === 'grabando') return { texto: `Grabando: habla ahora · ${this.segundos()} s`, tipo: 'grabando' };
     if (this.pidiendo()) {
-      return { texto: this.pidiendoLento() ? '¿No ves el permiso? Abre LiteraLevel en Chrome o Safari.' : 'Acepta el permiso del micrófono.', tipo: 'aviso' };
+      return { texto: this.pidiendoLento() ? '¿No ves el permiso? Abre Pléyade en Chrome o Safari.' : 'Acepta el permiso del micrófono.', tipo: 'aviso' };
     }
     // Antes de pulsar: si aquí no se puede grabar, que se sepa sin tocar nada.
     if (this.estado() === 'lista' && (this.enWebView || !this.puedeGrabar())) return { texto: this.textoSinGrabacion(), tipo: 'aviso' };
@@ -223,8 +223,8 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   private textoSinGrabacion(): string {
     return this.enWebView
-      ? 'Para grabar tu voz, abre LiteraLevel en Chrome: toca ⋮ y luego «Abrir en Chrome».'
-      : 'Este navegador no puede grabar. Abre LiteraLevel en Chrome o Safari.';
+      ? 'Para grabar tu voz, abre Pléyade en Chrome: toca ⋮ y luego «Abrir en Chrome».'
+      : 'Este navegador no puede grabar. Abre Pléyade en Chrome o Safari.';
   }
 
   /** Un mensaje por cada rechazo de getUserMedia: antes todos decían «no tengo permiso». */

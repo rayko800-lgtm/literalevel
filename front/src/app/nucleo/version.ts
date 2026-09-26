@@ -47,7 +47,7 @@ function avisar(): void {
   if (typeof document === 'undefined') return;
   const aviso = document.createElement('div');
   aviso.setAttribute('role', 'status');
-  aviso.textContent = 'Hay una versión nueva de LiteraLevel. Recargando…';
+  aviso.textContent = 'Hay una versión nueva de Pléyade. Recargando…';
   aviso.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9999;'
     + 'padding:.6rem 1rem;border-radius:999px;background:#1f2a44;color:#fff;font:600 14px system-ui,sans-serif;'
     + 'box-shadow:0 6px 20px rgba(0,0,0,.3)';

@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { Ajustes } from './compartido/ajustes';
 import { Icono } from './compartido/icono';
+import { SobrePleyade } from './compartido/sobre-pleyade';
 import { Spotlight } from './compartido/spotlight';
 import { Preferencias } from './nucleo/preferencias';
 import { Sesion } from './nucleo/sesion';
@@ -12,7 +13,7 @@ import { Tutorial } from './nucleo/tutorial';
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Ajustes, Spotlight],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono, Ajustes, Spotlight, SobrePleyade],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -34,6 +35,9 @@ export class App {
     { ruta: '/pronunciar', etiqueta: 'Pronunciar', icono: 'micro', seccion: 'voz' },
     { ruta: '/nivel', etiqueta: 'Tu nivel', icono: 'nivel', seccion: 'nivel' },
   ];
+
+  /** «Sobre Pléyade», al pulsar el logo. */
+  protected readonly sobreAbierto = signal(false);
 
   /** La barra de abajo se esconde al bajar leyendo y vuelve al subir. */
   protected readonly barraOculta = signal(false);

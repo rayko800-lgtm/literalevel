@@ -1,4 +1,4 @@
-/* LiteraLevel — sistema visual.
+/* Pléyade — sistema visual.
  *
  * Tres decisiones que no son de gusto y vienen de la investigación del proyecto
  * (investigacion/diseno_lector.md, enganche.md, retencion_movil.md) y de las
@@ -28,10 +28,23 @@
   --fuente-libro: "Iowan Old Style", "Charter", "Bitstream Charter", "Source Serif 4",
                   Georgia, "Times New Roman", serif;
 
+  /* La marca Pléyade (26 sep): un reloj de oro rosa con manecilla azul. El
+     oro rosa nunca lleva texto sobre claro (3,5:1 en la sombra); para eso
+     está --oro-rosa-texto. Sobre --marca-noche todo pasa AA de sobra. */
+  --marca-azul: #1a4fb5;
+  --marca-azul-hondo: #0b2a7a;
+  --marca-noche: #0a1030;
+  --oro-rosa: #e7a98c;
+  --oro-rosa-brillo: #f3c9b4;
+  --oro-rosa-sombra: #b87a62;
+  --oro-rosa-texto: #8f5440;
+  --estrella: #f3c768;
+  --crema: #fbf4ec;
+
   /* Claro: azul profundo sobre un gris azulado muy suave. */
   --fondo: #f4f6fb;
-  --fondo-degradado: radial-gradient(1200px 520px at 12% -10%, #e3ecff 0%, transparent 60%),
-                     radial-gradient(900px 480px at 100% 0%, #e6f5ef 0%, transparent 55%);
+  --fondo-degradado: radial-gradient(1200px 520px at 12% -10%, #e3eaf8 0%, transparent 60%),
+                     radial-gradient(900px 480px at 100% 0%, #f7e9e1 0%, transparent 55%);
   --superficie: #ffffff;
   --superficie-2: #eef2f9;
   --superficie-3: #e1e8f3;
@@ -40,10 +53,10 @@
   --texto: #18223a;
   --texto-suave: #48566f;
   --texto-tenue: #647189;
-  --acento: #2f5bea;
-  --acento-hondo: #1f44c2;
-  --acento-texto: #2449c9;
-  --acento-suave: #e6ecff;
+  --acento: #1a4fb5;
+  --acento-hondo: #143f94;
+  --acento-texto: #1a47a8;
+  --acento-suave: #e5ecfa;
   --sobre-acento: #ffffff;
   --verde: #17805b;
   --verde-suave: #e0f4ea;
@@ -53,11 +66,11 @@
   --rojo-suave: #fde7ea;
   --lector-fondo: #ffffff;
   --lector-texto: #1f2638;
-  --seleccion: rgba(47, 91, 234, .22);
+  --seleccion: rgba(26, 79, 181, .2);
   /* Un color por destino (Miguel: «más color y más intuitivo»). Sirve para
      saber dónde estás de un vistazo: la navegación y la etiqueta de cada
      pantalla llevan el suyo. Nunca llevan texto largo encima. */
-  --c-leer: #2f5bea;       --c-leer-suave: #e6ecff;
+  --c-leer: #1a4fb5;       --c-leer-suave: #e5ecfa;
   --c-encontrar: #c2410c;  --c-encontrar-suave: #ffeddf;
   --c-voz: #0e7c86;        --c-voz-suave: #dff5f4;
   --c-nivel: #6d3fd8;      --c-nivel-suave: #eee7fe;
@@ -98,6 +111,7 @@
     --lector-fondo: #151c2d;
     --lector-texto: #e4e9f3;
     --seleccion: rgba(124, 155, 255, .34);
+    --oro-rosa-texto: #e7a98c;
     --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .6);
     --sombra-alta: 0 2px 8px rgba(0, 0, 0, .35), 0 28px 60px -24px rgba(0, 0, 0, .7);
     --velo: rgba(3, 6, 14, .6);
@@ -135,6 +149,7 @@
   --lector-fondo: #151c2d;
   --lector-texto: #e4e9f3;
   --seleccion: rgba(124, 155, 255, .34);
+  --oro-rosa-texto: #e7a98c;
   --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .6);
   --sombra-alta: 0 2px 8px rgba(0, 0, 0, .35), 0 28px 60px -24px rgba(0, 0, 0, .7);
   --velo: rgba(3, 6, 14, .6);

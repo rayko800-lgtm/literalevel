@@ -72,7 +72,7 @@ import { Sesion } from '../nucleo/sesion';
           <summary><app-icono nombre="info" />¿Qué significa cada nivel?</summary>
           <div class="tabla-niveles">
             <table>
-              <thead><tr><th scope="col">LiteraLevel</th><th scope="col">MCER</th><th scope="col">Qué suele significar</th></tr></thead>
+              <thead><tr><th scope="col">Pléyade</th><th scope="col">MCER</th><th scope="col">Qué suele significar</th></tr></thead>
               <tbody>
                 @for (n of niveles; track n.letra) {
                   <tr [class.este]="l.cefr === n.letra">
@@ -82,7 +82,7 @@ import { Sesion } from '../nucleo/sesion';
               </tbody>
             </table>
           </div>
-          <p class="suave pequeno"><strong>LiteraLevel no certifica ningún nivel del MCER</strong>, y esta columna no equivale a un examen.
+          <p class="suave pequeno"><strong>Pléyade no certifica ningún nivel del MCER</strong>, y esta columna no equivale a un examen.
             El modelo aprendió a colocar un texto en una recta continua; la letra es la etiqueta más cercana.
             Sirve para elegir qué leer, no para acreditar nada ante nadie.</p>
         </details>

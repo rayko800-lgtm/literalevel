@@ -2,10 +2,11 @@
 
 <header class="barra" [class.oculta]="barraOculta()">
   <div class="barra-in">
-    <a class="marca" routerLink="/" aria-label="LiteraLevel, inicio">
-      <span class="logo" aria-hidden="true">L</span>
-      <span class="nombre">LiteraLevel</span>
-    </a>
+    <!-- El logo explica el nombre (Miguel, 26 sep); Mi espacio ya tiene su pestaña. -->
+    <button class="marca" type="button" (click)="sobreAbierto.set(true)" aria-haspopup="dialog" aria-label="Pléyade: por qué se llama así">
+      <img class="logo" src="marca/icono-96.webp" width="36" height="36" alt="">
+      <span class="nombre">Pléyade</span>
+    </button>
 
     <nav class="nav-escritorio" aria-label="Principal">
       @for (item of navegacion; track item.ruta) {
@@ -33,11 +34,11 @@
   @if (sesion.motor() === 'despertando') {
     <div class="motor" role="status">
       <span class="giro"></span>
-      <span>Despertando el motor de LiteraLevel. Si llevaba rato sin usarse tarda unos 30 segundos; puedes ir mirando mientras.</span>
+      <span>Despertando el motor de Pléyade. Si llevaba rato sin usarse tarda unos 30 segundos; puedes ir mirando mientras.</span>
     </div>
   } @else if (sesion.motor() === 'caido') {
     <div class="motor error" role="alert">
-      <span>No consigo hablar con el motor de LiteraLevel.</span>
+      <span>No consigo hablar con el motor de Pléyade.</span>
       <button class="boton pequeno secundario" type="button" (click)="sesion.comprobar()">Reintentar</button>
     </div>
   }
@@ -48,7 +49,7 @@
 </main>
 
 <footer class="pie">
-  <span><strong>LiteraLevel</strong> · la dificultad la mide un modelo propio sobre el texto; orienta, no certifica.</span>
+  <span><strong>Pléyade</strong> · la dificultad la mide un modelo propio sobre el texto; orienta, no certifica.</span>
   <span>Libros de Project Gutenberg y corpus libres · diccionario de Wiktionary</span>
 </footer>
 
@@ -60,6 +61,10 @@
     </a>
   }
 </nav>
+
+@if (sobreAbierto()) {
+  <app-sobre-pleyade (cerrar)="sobreAbierto.set(false)" />
+}
 
 @if (sesion.ajustesAbiertos()) {
   <app-ajustes (cerrar)="sesion.ajustesAbiertos.set(false)" />

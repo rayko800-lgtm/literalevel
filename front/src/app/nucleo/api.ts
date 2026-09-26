@@ -50,10 +50,10 @@ export function urlCortePalabra(ipa: string, acento: Acento, pasada?: number | n
 }
 
 /** Lo que se le enseña al lector cuando algo falla: una frase, nunca un código. */
-export function mensajeError(error: unknown, porDefecto = 'No he podido hablar con LiteraLevel.'): string {
+export function mensajeError(error: unknown, porDefecto = 'No he podido hablar con Pléyade.'): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) {
-      return 'No hay conexión con el motor de LiteraLevel. Si llevaba rato sin usarse, tarda unos 30 segundos en despertar: vuelve a intentarlo.';
+      return 'No hay conexión con el motor de Pléyade. Si llevaba rato sin usarse, tarda unos 30 segundos en despertar: vuelve a intentarlo.';
     }
     const detalle = error.error?.detail;
     if (typeof detalle === 'string' && detalle) return detalle;

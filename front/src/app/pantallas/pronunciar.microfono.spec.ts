@@ -82,10 +82,10 @@ describe('Pronunciar: lo que se ve al tocar el micrófono', () => {
   it('sin navigator.mediaDevices: lo dice antes de pulsar y al pulsar', async () => {
     ponerNavegador(UA_CHROME);
     const { linea, tocar } = await montar();
-    expect(linea()?.textContent).toContain('Este navegador no puede grabar. Abre LiteraLevel en Chrome o Safari.');
+    expect(linea()?.textContent).toContain('Este navegador no puede grabar. Abre Pléyade en Chrome o Safari.');
     await tocar();
     expect(linea()?.classList).toContain('error');
-    expect(linea()?.textContent).toContain('Abre LiteraLevel en Chrome o Safari');
+    expect(linea()?.textContent).toContain('Abre Pléyade en Chrome o Safari');
   });
 
   it('NotAllowedError en Chrome normal: dice cómo dar el permiso', async () => {
@@ -121,7 +121,7 @@ describe('Pronunciar: lo que se ve al tocar el micrófono', () => {
     expect(linea()?.textContent).toContain('Acepta el permiso del micrófono.');
     vi.advanceTimersByTime(5000);
     fixture.detectChanges();
-    expect(linea()?.textContent).toContain('¿No ves el permiso? Abre LiteraLevel en Chrome o Safari.');
+    expect(linea()?.textContent).toContain('¿No ves el permiso? Abre Pléyade en Chrome o Safari.');
   });
 
   it('concedido: «Grabando: habla ahora» con los segundos, y al parar desaparece', async () => {
@@ -167,7 +167,7 @@ describe('Pronunciar: lo que se ve al tocar el micrófono', () => {
   it('WebView de Android («; wv)»): el aviso de abrir en Chrome sale antes de pulsar', async () => {
     ponerNavegador(UA_WEBVIEW, rechazo('NotAllowedError'));
     const { linea, tocar } = await montar();
-    expect(linea()?.textContent).toContain('Para grabar tu voz, abre LiteraLevel en Chrome: toca ⋮ y luego «Abrir en Chrome».');
+    expect(linea()?.textContent).toContain('Para grabar tu voz, abre Pléyade en Chrome: toca ⋮ y luego «Abrir en Chrome».');
     await tocar();
     expect(linea()?.textContent).toContain('Abrir en Chrome');
   });
