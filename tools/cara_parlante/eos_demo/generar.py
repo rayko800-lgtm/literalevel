@@ -82,27 +82,29 @@ def boca(fons, n):
 
 
 def alinear(palabras, mp3):
-    """Las marcas de palabra de edge-tts van ~0,2-0,4 s por delante del audio (el mp3 trae
-    relleno al principio). Se busca el desfase que mejor casa la mandíbula del modelo con la
-    energía del audio y se corren todas las palabras; se deja que la boca se adelante 40 ms,
-    como en el habla real."""
+    """Dónde suena de verdad cada palabra: alineación forzada CTC del texto sobre el audio
+    (alinear_ctc.py). Las marcas de edge-tts no casan con el mp3 y la correlación
+    mandíbula-energía que se usaba antes fallaba según la frase (una vez 0,2 s tarde, otra
+    0,13 s pronto). El CTC marca letras cortas: el final de cada palabra se alarga hasta la
+    siguiente si el hueco es breve. La boca se adelanta 40 ms, como en el habla real."""
     import subprocess
-    import wave
+    import sys
     import imageio_ffmpeg
-    wav = mp3[:-4] + '.wav'
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', mp3, '-ac', '1', wav], check=True)
-    with wave.open(wav) as w:
-        sr = w.getframerate(); pcm = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(float)
-    hop = sr // FPS
-    env = np.array([np.sqrt(np.mean(pcm[i * hop:(i + 1) * hop] ** 2)) for i in range(len(pcm) // hop)])
-    fons = fonemas(palabras)
-    jaw = boca(fons, len(env))['bs:jawOpen']
-    e = (env - env.mean()) / (env.std() + 1e-9); j = (jaw - jaw.mean()) / (jaw.std() + 1e-9)
-    n = len(e)
-    corr = lambda L: np.mean(e[max(0, L):n + min(0, L)] * j[max(0, -L):n - max(0, L)])
-    lag = max(range(-int(0.7 * FPS), int(0.7 * FPS) + 1), key=corr) / FPS - 0.04
-    print(f'desfase palabras-audio: {lag * 1000:+.0f} ms')
-    return [(w, t0 + lag, t1 + lag) for w, t0, t1 in palabras]
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'voz2cara'))
+    from alinear_ctc import alinear as ctc
+    from extraer import audio
+    ff = imageio_ffmpeg.get_ffmpeg_exe()
+    subprocess.run([ff, '-y', '-loglevel', 'error', '-i', mp3, '-ac', '1', mp3[:-4] + '.wav'], check=True)
+    al = ctc([w for w, _, _ in palabras], audio(mp3, ff))
+    if len(al) != len(palabras):
+        raise RuntimeError(f'la alineación perdió palabras ({len(al)} de {len(palabras)})')
+    out = []
+    for k, (w, t0, t1) in enumerate(al):
+        sig = al[k + 1][1] if k + 1 < len(al) else t1 + 0.12
+        t1 = sig if sig - t1 < 0.15 else t1 + 0.08
+        out.append((w, t0 - 0.04, t1 - 0.04))
+    print(f'alineación CTC: primera palabra en {al[0][1]:.2f} s (edge-tts decía {palabras[0][1]:.2f} s)')
+    return out
 
 
 def ou(n, sd, tau, rng):
@@ -235,6 +237,18 @@ def main():
     # labio inferior y superior acompañan a la mandíbula (MediaPipe los mide aparte; el modelo no los tiene)
     cur['mouthLowerDownLeft'] = cur['mouthLowerDownRight'] = 0.35 * cur['jawOpen']
     cur['mouthUpperUpLeft'] = cur['mouthUpperUpRight'] = 0.12 * cur['jawOpen']
+
+    # en los silencios la boca descansa: el modelo de dominancia va interpolando hacia la
+    # siguiente vocal y abría la boca en plena pausa (visto el 26 sep: 0,36 en un silencio)
+    habla = np.zeros(n)
+    for _, t0, t1 in palabras:
+        habla[max(0, int((t0 - 0.06) * FPS)):int((t1 + 0.06) * FPS)] = 1
+    kk = np.exp(-0.5 * (np.arange(-9, 10) / 3.0) ** 2); kk /= kk.sum()       # ~50 ms de transición
+    habla = np.convolve(np.pad(habla, 9, mode='edge'), kk, mode='valid')[:n]
+    for k in ('jawOpen', 'mouthPucker', 'mouthFunnel', 'mouthRollLower', 'mouthPressLeft', 'mouthPressRight',
+              'mouthClose', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthUpperUpLeft', 'mouthUpperUpRight'):
+        reposo = 0.04 if k == 'jawOpen' else 0.0
+        cur[k] = cur[k] * habla + reposo * (1 - habla)
 
     # pausas: huecos entre palabras de más de 180 ms, más el final
     pausas = [(b[2], c[1]) for b, c in zip(palabras, palabras[1:]) if c[1] - b[2] > 0.18]
