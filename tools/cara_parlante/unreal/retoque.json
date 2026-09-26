@@ -1,0 +1,1 @@
+{"labios_tipo": "NATURAL", "labios_color": [0.45, 0.14, 0.15], "labios_opacidad": 0.5, "labios_rugosidad": 0.45, "acento_labios": {"lightness": 0.4, "redness": 0.55, "saturation": 0.55}, "pecas": {"mask": "TYPE1", "density": 0.15, "strength": 0.25}, "iris": {"primary_color_u": 0.7, "primary_color_v": 0.8, "secondary_color_u": 0.7, "secondary_color_v": 0.8}}
