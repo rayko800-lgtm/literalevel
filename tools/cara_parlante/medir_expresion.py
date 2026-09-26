@@ -50,28 +50,42 @@ def tiene_video(ruta):
     return 'Video:' in r.stderr
 
 
-def prosodia(video, t):
+def prosodia(video, t, metodo='pyin'):
     with tempfile.TemporaryDirectory() as d:
         wav = os.path.join(d, 'a.wav')
         subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-loglevel', 'error', '-y', '-i', video,
                         '-ac', '1', '-ar', '16000', wav], check=True)
         y, sr = librosa.load(wav, sr=16000)
     salto = 160  # 10 ms
-    # pyin por trozos de 60 s: sobre un discurso de una hora entero pide decenas de GB
-    # (matrices de probabilidad por fotograma × tono) y el sistema mata el proceso.
-    trozo = 60 * sr
-    f0s, vozs = [], []
-    for ini in range(0, len(y), trozo):
-        seg = y[ini:ini + trozo]
-        if len(seg) < 2048:
-            n = int(np.ceil(len(seg) / salto))
-            f0s.append(np.full(n, np.nan)); vozs.append(np.zeros(n, bool))
-            continue
-        f, v, _ = librosa.pyin(seg, fmin=65, fmax=400, sr=sr, frame_length=1024, hop_length=salto)
-        n = int(np.ceil(len(seg) / salto))          # fotogramas propios del trozo, sin el de cierre
-        f0s.append(f[:n]); vozs.append(v[:n])
-    f0, voz = np.concatenate(f0s), np.concatenate(vozs)
-    f0 = np.where(voz, f0, 0.0)
+    if metodo == 'praat':
+        # Praat (parselmouth), sin numba: librosa.pyin revienta con señal 11 en Colab
+        # (Python 3.13) en discursos largos, también con numba a un hilo (25 sep).
+        import parselmouth
+        pit = parselmouth.Sound(y, sampling_frequency=sr).to_pitch_ac(
+            time_step=salto / sr, pitch_floor=65, pitch_ceiling=400)
+        ta_p = pit.xs()
+        f0_p = pit.selected_array['frequency']          # 0 = sin voz
+        n = int(np.ceil(len(y) / salto))
+        ta = np.arange(n) * salto / sr
+        idx = np.clip(np.searchsorted(ta_p, ta), 0, len(f0_p) - 1)
+        f0 = f0_p[idx]
+        f0[(ta < ta_p[0] - salto / sr) | (ta > ta_p[-1] + salto / sr)] = 0.0
+    else:
+        # pyin por trozos de 60 s: sobre un discurso de una hora entero pide decenas de GB
+        # (matrices de probabilidad por fotograma × tono) y el sistema mata el proceso.
+        trozo = 60 * sr
+        f0s, vozs = [], []
+        for ini in range(0, len(y), trozo):
+            seg = y[ini:ini + trozo]
+            if len(seg) < 2048:
+                n = int(np.ceil(len(seg) / salto))
+                f0s.append(np.full(n, np.nan)); vozs.append(np.zeros(n, bool))
+                continue
+            f, v, _ = librosa.pyin(seg, fmin=65, fmax=400, sr=sr, frame_length=1024, hop_length=salto)
+            n = int(np.ceil(len(seg) / salto))          # fotogramas propios del trozo, sin el de cierre
+            f0s.append(f[:n]); vozs.append(v[:n])
+        f0, voz = np.concatenate(f0s), np.concatenate(vozs)
+        f0 = np.where(voz, f0, 0.0)
     rms = librosa.feature.rms(y=y, frame_length=400, hop_length=salto)[0]
     db = 20 * np.log10(rms + 1e-5)
     ta = np.arange(len(f0)) * salto / sr
@@ -113,7 +127,7 @@ class LectorFfmpeg:
         self.p.wait()
 
 
-def medir(video, lmk, salida, ancho=0):
+def medir(video, lmk, salida, ancho=0, metodo_f0='pyin'):
     cap = LectorFfmpeg(video, ancho) if ancho else cv2.VideoCapture(video)
     fps = cap.get(cv2.CAP_PROP_FPS) or 25
     t, bs, pose, ok = [], [], [], []
@@ -142,10 +156,10 @@ def medir(video, lmk, salida, ancho=0):
         i += 1
     cap.release()
     t = np.array(t)
-    f0, db = prosodia(video, t)
+    f0, db = prosodia(video, t, metodo_f0)
     np.savez_compressed(salida, t=t, bs=np.array(bs, np.float32), pose=np.array(pose, np.float32),
                         ok=np.array(ok, np.uint8), f0=f0.astype(np.float32), db=db.astype(np.float32),
-                        bs_nombres=np.array(nombres or []), fps=fps)
+                        bs_nombres=np.array(nombres or []), fps=fps, f0_metodo=metodo_f0)
     return len(t), float(np.mean(ok)) if ok else 0.0
 
 
@@ -155,6 +169,8 @@ def main():
     ap.add_argument('--salida', required=True)
     ap.add_argument('--ancho', type=int, default=0,
                     help='reducir el vídeo a este ancho (p. ej. 640) antes de medir; 0 = tamaño original')
+    ap.add_argument('--f0', choices=['pyin', 'praat'], default='pyin',
+                    help='método de tono: pyin (librosa) o praat (parselmouth, sin numba)')
     ap.add_argument('videos', nargs='+')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
@@ -170,7 +186,7 @@ def main():
             running_mode=vision.RunningMode.VIDEO, num_faces=2,
             output_face_blendshapes=True, output_facial_transformation_matrixes=True)
         with vision.FaceLandmarker.create_from_options(opts) as lmk:
-            n, frac = medir(v, lmk, destino, a.ancho)
+            n, frac = medir(v, lmk, destino, a.ancho, a.f0)
         print(f'{os.path.basename(v)}: {n} fotogramas, cara en {frac:.0%}')
 
 
