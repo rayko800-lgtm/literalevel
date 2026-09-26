@@ -4,7 +4,7 @@
 .barra-avance i { display: block; height: 100%; background: linear-gradient(90deg, var(--acento-hondo), var(--acento)); transition: width .1s linear; }
 
 .lectura {
-  width: min(1240px, 100% - 2rem); margin: 0 auto; padding: 1rem 0 3rem;
+  width: min(1240px, 100% - 2rem); margin-inline: auto; padding: 1rem clamp(.25rem, 3vw - .5rem, 2.25rem) 3rem;
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem;
 }
 .columna { min-width: 0; }

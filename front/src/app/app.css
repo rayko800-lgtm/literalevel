@@ -75,8 +75,10 @@
 .pie {
   width: min(var(--ancho), 100% - 2rem); margin: 0 auto; padding: 1.5rem 0 2rem;
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1.5rem;
-  border-top: 1px solid var(--borde); color: var(--texto-tenue); font-size: .85rem;
+  /* El pie va siempre sobre el cielo: colores claros en los tres temas. */
+  border-top: 1px solid rgba(243, 201, 180, .18); color: #aeb9d6; font-size: .85rem;
 }
+.pie strong { color: var(--crema); }
 
 /* --- Navegación inferior del móvil ---------------------------------------------- */
 .nav-movil { display: none; }

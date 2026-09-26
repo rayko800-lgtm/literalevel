@@ -112,6 +112,7 @@
     --lector-texto: #e4e9f3;
     --seleccion: rgba(124, 155, 255, .34);
     --oro-rosa-texto: #e7a98c;
+    --lamina: 74%;
     --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .6);
     --sombra-alta: 0 2px 8px rgba(0, 0, 0, .35), 0 28px 60px -24px rgba(0, 0, 0, .7);
     --velo: rgba(3, 6, 14, .6);
@@ -150,6 +151,7 @@
   --lector-texto: #e4e9f3;
   --seleccion: rgba(124, 155, 255, .34);
   --oro-rosa-texto: #e7a98c;
+  --lamina: 74%;
   --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .6);
   --sombra-alta: 0 2px 8px rgba(0, 0, 0, .35), 0 28px 60px -24px rgba(0, 0, 0, .7);
   --velo: rgba(3, 6, 14, .6);
@@ -210,9 +212,12 @@ body {
   font-size: 16px;
   line-height: 1.55;
   color: var(--texto);
-  background: var(--fondo);
-  background-image: var(--fondo-degradado);
-  background-repeat: no-repeat;
+  /* El cielo de Pléyade detrás de TODAS las pantallas (Miguel, 26 sep: «las
+     demás también tienen que estar así»), en los tres temas. La galaxia es
+     propia (tools/marca/galaxia.py) y abajo se funde con una trama que se
+     repite, para páginas de cualquier largo. */
+  background: url(/marca/galaxia.webp) center top / max(100%, 1500px) auto no-repeat,
+              url(/marca/estrellas.webp) 0 0 / 512px 512px repeat, var(--marca-noche);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   /* Laura: al llegar al tope «se traba». En un libro no hay nada que refrescar. */
@@ -230,6 +235,24 @@ h3 { font-size: 1.12rem; font-weight: 680; }
 p { margin: 0 0 1em; }
 
 button, input, textarea, select { font: inherit; color: inherit; }
+
+@media (max-width: 640px) {
+  body { background: url(/marca/galaxia-960.webp) center top / auto 820px no-repeat,
+                     url(/marca/estrellas.webp) 0 0 / 384px 384px repeat, var(--marca-noche); }
+}
+
+/* Cada pantalla se lee sobre una lámina de su tema, translúcida para que el
+   cielo asome: casi opaca en claro y papel (el texto es oscuro), más
+   transparente en noche. Sin desenfoque: en el móvil de Laura cada panel
+   desenfocado repintaba al desplazar. La portada no lleva lámina: su
+   diseño ya va sobre el cielo. */
+.pagina, .lectura {
+  background: color-mix(in srgb, var(--fondo) var(--lamina, 93%), transparent);
+  border-radius: var(--radio-lg);
+  margin-block: clamp(.75rem, 2.5vw, 1.75rem) 2rem;
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, .8);
+}
+app-inicio .pagina { background: none; box-shadow: none; margin-block: 0; padding-inline: 0; border-radius: 0; }
 
 /* --- Botones ---------------------------------------------------------------- */
 .boton {
@@ -286,8 +309,8 @@ textarea.entrada { line-height: 1.55; resize: vertical; }
   box-shadow: var(--sombra);
 }
 .tarjeta.plana { box-shadow: none; }
-.pagina { width: min(var(--ancho), 100% - 2rem); margin: 0 auto;
-  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem) 0 3rem; }
+.pagina { width: min(var(--ancho), 100% - 2rem); margin-inline: auto;
+  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem) clamp(1rem, 3vw, 2.25rem) 3rem; }
 .pagina.estrecha { --ancho: 760px; }
 .cabecera-pagina { margin-bottom: 1.5rem; }
 .cabecera-pagina p { color: var(--texto-suave); max-width: 62ch; margin: 0; font-size: 1.05rem; }

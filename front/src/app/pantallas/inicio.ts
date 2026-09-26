@@ -218,18 +218,8 @@ import { Sesion } from '../nucleo/sesion';
     </div>
   `,
   styles: `
-    /* La portada vive en el cielo del logo (Miguel, 26 sep: «que tenga de fondo
-       las estrellas»), en los tres temas. Las tarjetas siguen siendo del tema:
-       claro, noche o papel se eligen en Ajustes. La galaxia es propia
-       (tools/marca/galaxia.py); abajo se funde con una trama que se repite,
-       para que Mi espacio pueda ser tan largo como haga falta. */
-    :host { display: block; min-height: 100%;
-      background: url(/marca/galaxia.webp) center top / max(100%, 1500px) auto no-repeat,
-                  url(/marca/estrellas.webp) 0 0 / 512px 512px repeat, var(--marca-noche); }
-    @media (max-width: 640px) {
-      :host { background: url(/marca/galaxia-960.webp) center top / auto 820px no-repeat,
-                          url(/marca/estrellas.webp) 0 0 / 384px 384px repeat, var(--marca-noche); }
-    }
+    /* La portada va directamente sobre el cielo (el fondo astral de body, en
+       styles.css), sin lámina; las tarjetas siguen el tema elegido. */
     .heroe { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(1.5rem, 4vw, 3.5rem);
       align-items: center; padding: clamp(1.25rem, 3vw, 2.75rem); margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
     /* La marca: el cielo del logo (azul noche, estrellas y oro rosa). Es igual
