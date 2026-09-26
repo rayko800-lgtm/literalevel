@@ -6,7 +6,9 @@ Vida: parpadeo gamma, cabeza Ornstein-Uhlenbeck, cabeceo antes de las pausas y
 cejas en los picos de tono, todo con las constantes de vida_cara.json (1KH).
 Sonrisa: una base suave y más sonrisa en las pausas largas (Eos es risueña).
 
-Uso:  python generar.py --texto "..." --salida DIR [--voz en-US-AvaNeural] [--semilla 7]
+Uso:  python generar.py --texto "..." --salida DIR [--voz en-US-AvaNeural] [--semilla 7] [--gestos voz2cara]
+Con --gestos voz2cara, cejas, sonrisa, ojos y cabeza salen del modelo voz→cara (voz2cara/);
+la boca sigue siendo la del modelo articulatorio, que va pegada a los fonemas del texto.
 Deja DIR/voz.mp3 y DIR/curvas.json ({fps, duracion, curvas: {nombre: [..]}, cabeza: [[guiñada, cabeceo, alabeo]..]}).
 """
 import argparse
@@ -164,12 +166,47 @@ def gestos(f0, db, fps_in):
     return {s: np.interp(t, g, y[k]) for k, s in enumerate(M['salidas'])}
 
 
+def gestos_voz2cara(wav, n, modelo_dir):
+    """Los mismos gestos que gestos() (z por clip), pero del modelo voz→cara (wav2vec2 +
+    transformer, 28 h de Obama y 1KH): oye la voz entera, no solo tono y volumen."""
+    import sys
+    import torch
+    from transformers import Wav2Vec2Model
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'voz2cara'))
+    from entrenar import Red
+    from extraer import audio
+    import imageio_ffmpeg
+    x = audio(wav, imageio_ffmpeg.get_ffmpeg_exe())
+    w2v = Wav2Vec2Model.from_pretrained('facebook/wav2vec2-base').eval()
+    with torch.no_grad():
+        h = w2v(torch.tensor(x)[None], output_hidden_states=True).hidden_states
+        f50 = torch.stack(h[6:10]).mean(0)[0].numpy()
+        f25 = f50[: len(f50) // 2 * 2].reshape(-1, 2, 768).mean(1)
+        norm = json.load(open(os.path.join(modelo_dir, 'normalizacion.json')))
+        red = Red(sal=len(norm['columnas']))
+        red.load_state_dict(torch.load(os.path.join(modelo_dir, 'modelo.pt'), map_location='cpu'))
+        red.eval()
+        p = red(torch.tensor(f25)[None].float())[0].numpy() * np.array(norm['sd'])
+    col = {c: i for i, c in enumerate(norm['columnas'])}
+    def z(*nombres):
+        v = np.mean([p[:, col[c]] for c in nombres], 0)
+        v = np.interp(np.arange(n) / FPS, np.arange(len(v)) / 25.0, v)
+        return (v - v.mean()) / (v.std() + 1e-6)
+    return {'cejas_int': z('browInnerUp'), 'cejas_ext': z('browOuterUpLeft', 'browOuterUpRight'),
+            'sonrisa': z('mouthSmileLeft', 'mouthSmileRight'), 'entrecerrar': z('eyeSquintLeft', 'eyeSquintRight'),
+            'parpadeo': z('eyeBlinkLeft', 'eyeBlinkRight'),
+            'guinada': z('cabeza_guinada'), 'cabeceo': z('cabeza_cabeceo'), 'alabeo': z('cabeza_alabeo')}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--texto', required=True)
     ap.add_argument('--salida', required=True)
     ap.add_argument('--voz', default='en-US-AvaNeural')
     ap.add_argument('--semilla', type=int, default=7)
+    ap.add_argument('--gestos', choices=['prosodia', 'voz2cara'], default='prosodia',
+                    help='quién decide cejas, sonrisa, ojos y cabeza: la red de prosodia o el modelo voz→cara')
+    ap.add_argument('--modelo_voz2cara', default='D:/literalevel_cara/voz2cara_modelo')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
     mp3 = os.path.join(a.salida, 'voz.mp3')
@@ -244,7 +281,10 @@ def main():
     # y se multiplican por EXPRESIVIDAD para que el gesto se vea sin exagerar.
     EXPRESIVIDAD = 0.8
     inf = json.load(open(os.path.join(os.path.dirname(GESTOS), 'informe.json')))['sd_prediccion_z']
-    z = {k: EXPRESIVIDAD * v / inf[k] for k, v in gestos(f0, db, FPS).items()}
+    if a.gestos == 'voz2cara':   # ya salen en z por clip
+        z = {k: EXPRESIVIDAD * v for k, v in gestos_voz2cara(wav, n, a.modelo_voz2cara).items()}
+    else:
+        z = {k: EXPRESIVIDAD * v / inf[k] for k, v in gestos(f0, db, FPS).items()}
     cur['browInnerUp'] = np.clip(0.08 + 0.22 * z['cejas_int'], 0, 0.7)
     cur['browOuterUpLeft'] = cur['browOuterUpRight'] = np.clip(0.05 + 0.18 * z['cejas_ext'], 0, 0.6)
     cur['browDownLeft'] = cur['browDownRight'] = np.clip(-0.06 * z['cejas_int'], 0, 0.3)
@@ -284,7 +324,7 @@ def main():
                'curvas': {k: [round(float(v), 3) for v in arr] for k, arr in cur.items()},
                'cabeza': [[round(float(v), 2) for v in fila] for fila in cabeza]},
               open(os.path.join(a.salida, 'curvas.json'), 'w'))
-    print(f'{len(palabras)} palabras, {len(fons)} fonemas, {dur:.1f} s, gestos del modelo, {len(pausas)} pausas')
+    print(f'{len(palabras)} palabras, {len(fons)} fonemas, {dur:.1f} s, gestos: {a.gestos}, {len(pausas)} pausas')
 
 
 if __name__ == '__main__':
