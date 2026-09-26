@@ -1,9 +1,18 @@
 # Desplegar LiteraLevel: Angular y backend
 
-**Corte operativo del 14 de septiembre de 2026.** Son dos despliegues:
+**Actualizado el 26 de septiembre de 2026 (la app se llama Pléyade).**
 
-- Angular: `MikeMaki1763/literalevel-front`, sitio estático en
-  <https://mikemaki1763-literalevel-front.static.hf.space/>.
+- **Angular en Vercel (principal desde el 26 sep):** proyecto `pleyade` del
+  equipo `mike-d120` (plan Hobby, gratis), en <https://pleyade-app.vercel.app>
+  (`pleyade.vercel.app` ya era de otro; Vercel dio también `pleyade-phi`).
+  Construye desde `front/` con `front/vercel.json` y `front/scripts/meta-api.mjs`
+  (la URL del motor sale de la variable `LITERALEVEL_API` del proyecto). A mano,
+  con las comprobaciones de siempre: `python tools/desplegar_vercel.py`.
+  GitHub: `rayko800-lgtm/literalevel` (privado) recibe `master`; falta que
+  Miguel conecte GitHub en Vercel para que cada push publique solo.
+- Angular en Hugging Face (respaldo): `MikeMaki1763/literalevel-front`, sitio
+  estático en <https://mikemaki1763-literalevel-front.static.hf.space/>
+  (`tools/desplegar_front.py`).
 - FastAPI y motor/respaldo Gradio: `MikeMaki1763/literalevel`, hardware
   `cpu-basic` existente. El despliegue selectivo `e56cf08` fue cotejado por
   hash el 13 de septiembre; véase el informe enlazado abajo.
@@ -191,6 +200,22 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   app; si su `main-*.js` no es el que corre, recarga una vez. Front 463/463;
   en la app publicada, una pestaña con `main` falseado se recargó sola al
   cambiar de pestaña.
+
+- **Undécima publicación (26 sep, tarde CDMX), API y cuentas:** Space
+  `103eef5` desde `06a16db` (`app/ui.py`, `app/api.py`; los dos iguales en el
+  Space al commit anterior antes de subir). **Datos por cuenta:** al entrar,
+  el navegador queda atado a la cuenta y los datos van a `cuentas/<nombre>` del
+  bucket (`cuentas_atadas.json` guarda solo el nombre). CORS para
+  `pleyade-(app|phi).vercel.app`. **Contraseñas rotadas** con
+  `tools/rotar_cuentas.py` (10 perfiles, los mismos usuarios; archivo local y
+  copia en la carpeta «claves»). Las cuentas empiezan en cero. **No hecho:**
+  poner a cero `uso_openai.json` del bucket (los usos gastados); el permiso de
+  la sesión lo denegó y queda para Miguel. Pruebas: API 70/70, extremas sin
+  fallos, front 464/464; en vivo, la cuenta `miguel` entra con la clave nueva
+  desde dos aparatos nuevos y los dos ven la misma cuenta vacía.
+- **Vercel (26 sep):** primer front en <https://pleyade-app.vercel.app>; en
+  vivo, las cinco pestañas en claro, noche y papel con galaxia y lámina, la
+  ficha de un libro con el motor respondiendo (CORS) y `cara.glb` (7 MB) 200.
 
 ## Historial de infraestructura y opciones evaluadas
 
