@@ -1,0 +1,46 @@
+Capturas del 26 de septiembre de 2026 (Pléyade en Vercel)
+
+De dónde salen: tools/capturas_2026_09_26.mjs (copia adaptada de tools/capturas_guion.mjs),
+Chrome sin ventana con Playwright, contra la app publicada:
+  front  https://pleyade-app.vercel.app
+  API    https://mikemaki1763-literalevel.hf.space
+Cuenta: miguel (la contraseña se lee de literalevel_codigos.txt dentro del guion; no se
+imprime ni se guarda). Las ayudas de la primera vez se marcan como vistas, como en el guion.
+Móvil: 390x844 con tacto, escala 2. Escritorio: 1366x800 (18-20) y 1280x720 (21).
+
+Estado que prepara el guion por la API antes de fotografiar:
+  perfil 1,20 (B2) para el recorrido del guion; libro PG2554 Crime and Punishment,
+  40 capítulos, 203.415 palabras, curva ya medida (media 1,70);
+  palabra poverty (capítulo «Antes del primer capítulo»); palabra que marca la IA: Dostoevsky;
+  frase de Pronunciar leída con dos palabras cambiadas a propósito (voz sintética):
+    «The father and mother spent their evenings in reading aloud to their children,
+     generally from books of a serious character.»
+    dicha: «The feather and matter spent …»
+Al final (22) se responde el cuestionario en la app con el nivel de Miguel: 1,88 de 2, C2
+(la combinación más cercana a 1,85 que permite el cuestionario; la otra da 1,81).
+La cuenta miguel queda con ese perfil.
+
+01_inicio               Mi espacio con cuenta
+02_ajustes_entrar       Ajustes → Tu perfil (usuario escrito, contraseña vacía)
+03_nivel                Tu nivel, «Ver el detalle» abierto: 1,20 de 2
+04_nivel_afinar         pie del resultado: afinar con un libro · con un texto · volver a medirme
+05_encontrar            «Crimen y castigo de Dostoyevski»: aviso y el libro primero en «De otros niveles»
+06_ficha                ficha y curva (página completa)
+07_palabra_poverty      hoja de poverty: IPA US/UK, «En español», «Aquí significa», diccionario
+08_palabra_ia           Dostoevsky: marcas IA
+09_pronunciar           la frase escrita y grabada, «Corrígeme»
+10_correccion           corrección palabra por palabra
+11_boca_2d              «Cómo se mueve la boca», cortes 2D
+12_boca_3d              boca 3D didáctica, con zoom + y −
+13_lector_en_vivo       lector con «Leer en voz alta (en vivo)» (sin grabar la sesión en vivo)
+14_mis_palabras         Mis palabras, «Repasa cinco»
+15_repasar              Repasar, tarjeta con «Mostrar respuesta»
+16_mi_espacio           Mi espacio entero con Mi progreso (página completa)
+17_sobre_pleyade        «Sobre Pléyade» al pulsar el logo
+18_escritorio_encontrar Encontrar en escritorio
+19_escritorio_ficha     ficha en escritorio
+20_escritorio_pronunciar Pronunciar en escritorio
+21_cierre               Mi espacio en escritorio
+22_nivel_c2             Tu nivel de Miguel: C2, 1,88 de 2
+
+Las 13 capturas anteriores (14-15 sep, interfaz LiteraLevel) siguen en el historial de git.
