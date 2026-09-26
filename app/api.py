@@ -87,8 +87,8 @@ app = FastAPI(
     description="El motor de LiteraLevel para el cliente Angular. Escala publica 0..2.",
 )
 
-# El front vive en otro origen: `ng serve` en local y un Space estatico en
-# produccion. Sin credenciales -la identidad va en una cabecera propia, no en
+# El front vive en otro origen: `ng serve` en local, un Space estatico y, desde
+# el 26 sep, Vercel (`pleyade.vercel.app`, solo su dominio de produccion). Sin credenciales -la identidad va en una cabecera propia, no en
 # una cookie-, asi que un origen de mas no abre la puerta a leer datos ajenos.
 _ORIGENES = [o.strip() for o in os.environ.get("LITERALEVEL_ORIGENES", "").split(",")
              if o.strip()]
@@ -96,6 +96,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_ORIGENES,
     allow_origin_regex=(r"^(https://[a-z0-9-]+\.(static\.)?hf\.space"
+                        r"|https://pleyade\.vercel\.app"
                         r"|http://(localhost|127\.0\.0\.1)(:\d+)?)$"),
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
