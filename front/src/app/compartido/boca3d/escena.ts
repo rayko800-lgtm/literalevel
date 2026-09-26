@@ -2132,6 +2132,7 @@ export class EscenaBoca {
     this.libre = activo;
     this.controles.enableRotate = activo;
     this.controles.enableZoom = activo;
+    this.limitesZoom();
     this.controles.enablePan = false;
     if (this.exploracionDidactica) {
       this.controles.minAzimuthAngle = -Infinity;
@@ -2146,6 +2147,29 @@ export class EscenaBoca {
 
   get giraLibre(): boolean {
     return this.libre;
+  }
+
+  /** Zoom a mano (Miguel, 26 sep: «que se pueda hacer zoom»), con los botones
+   *  + y − del visor: acerca o aleja la cámara hacia lo que mira, sin girarla.
+   *  Límites relativos al encuadre, para no meterse dentro de la cabeza ni
+   *  perderla de vista. El pellizco de «Explorar» respeta los mismos límites.
+   *  Devuelve cuánto se ha acercado respecto al encuadre (1 = el del preset). */
+  acercar(factor: number): number {
+    this.limitesZoom();
+    const direccion = this.camara.position.clone().sub(this.controles.target);
+    const actual = direccion.length() || 1;
+    const nueva = Math.min(this.controles.maxDistance, Math.max(this.controles.minDistance, actual / factor));
+    this.camara.position.copy(this.controles.target).addScaledVector(direccion.normalize(), nueva);
+    this.controles.update();
+    this.sucio = true;
+    return (this.distanciaEncuadre() * this.zoomActual) / nueva;
+  }
+
+  private limitesZoom(): void {
+    if (!this.camara) return;   // antes de montar la cámara (y en las pruebas de controles)
+    const base = this.distanciaEncuadre() * this.zoomActual;
+    this.controles.minDistance = base * 0.35;
+    this.controles.maxDistance = base * 1.6;
   }
 
   /** Lo que pide quien integra (rendimiento/preferencia). El preset de la

@@ -42,6 +42,13 @@ import { AjustesPoses3d, CatalogoPoses, DURACION_S, PoseSonido, Segmento, conAju
            [attr.aria-label]="descripcion() + '. Flechas izquierda y derecha para girar.'"
            aria-keyshortcuts="ArrowLeft ArrowRight" (keydown)="teclaGiro($event)"
            [attr.data-acento-sonido]="acento()" [attr.data-acento-palabra]="acentoIpa() ?? acento()"></div>
+      @if (modo() === '3d') {
+        <!-- Zoom a mano (Miguel, 26 sep). Siempre a la vista; «Restaurar vista» lo deshace. -->
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button type="button" class="boton-zoom" (click)="acercar(1.25)" aria-label="Acercar" title="Acercar">+</button>
+          <button type="button" class="boton-zoom" (click)="acercar(0.8)" aria-label="Alejar" title="Alejar">−</button>
+        </div>
+      }
       @if (modo() === '3d' && vibracionVisible()) {
         <div class="indicador-vibracion" role="status" aria-label="Vibración: sonido sonoro">
           <span class="pulso" aria-hidden="true"></span><span>Vibración · sonora</span>
@@ -117,6 +124,11 @@ zoom: {{ d.zoom }} · target: {{ d.target }}</pre>
     .chip.elegido { background: var(--acento, #2f5bea); color: #fff; border-color: var(--acento, #2f5bea); }
     .ipa { font-family: 'Charis SIL', 'Doulos SIL', 'DejaVu Sans', 'Segoe UI', sans-serif; }
     .visor { position: relative; width: 100%; overflow: hidden; min-height: 220px; }
+    .zoom { position: absolute; bottom: 8px; right: 8px; z-index: 2; display: grid; gap: 6px; }
+    .boton-zoom { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--borde, #d6deeb);
+      background: color-mix(in srgb, var(--superficie, #fff) 88%, transparent); color: var(--texto, #18223a);
+      font: 700 1.4rem/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+    .boton-zoom:hover { background: var(--superficie-2, #eef2f9); }
     /* --boca3d-alto la pone la pantalla que tenga barras encima (Pronunciar a 390 px). */
     .lienzo { width: 100%; height: var(--boca3d-alto, 420px); max-height: 65vh; min-height: 220px; }
     .lienzo[hidden] { display: none; }
@@ -442,6 +454,10 @@ export class Boca3d {
   elegir(simbolo: string): void {
     this.sonador.parar();
     this.elegidoPorChip.set(simbolo);
+  }
+
+  acercar(factor: number): void {
+    this.escena?.acercar(factor);
   }
 
   restablecer(): void {

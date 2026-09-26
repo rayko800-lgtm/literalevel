@@ -567,3 +567,23 @@ describe('EscenaBoca.aplicar: el pulso de vibración sigue la pose activa (D4.3b
     expect(instancia.marcaVibracion.visible).toBe(false);
   });
 });
+
+/** Zoom a mano con + y − (Miguel, 26 sep): acerca y aleja sin girar, dentro de límites. */
+describe('EscenaBoca.acercar', () => {
+  it('acerca y aleja hacia el objetivo, sin pasarse de los límites', () => {
+    const camara = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
+    camara.position.set(0, 0, 17.5);
+    const controles = new OrbitControls(camara, document.createElement('canvas'));
+    controles.target.set(0, 0, 0);
+    const instancia = Object.assign(Object.create(EscenaBoca.prototype), {
+      camara, controles, zoomActual: 1, cabezaEntera: true, caraModelada: true, sucio: false,
+    }) as EscenaBoca;
+    instancia.acercar(1.25);
+    expect(camara.position.z).toBeCloseTo(14, 5);
+    expect(camara.position.x).toBeCloseTo(0, 5);
+    for (let i = 0; i < 20; i++) instancia.acercar(1.25);
+    expect(camara.position.z).toBeCloseTo(17.5 * 0.35, 5);
+    for (let i = 0; i < 20; i++) instancia.acercar(0.8);
+    expect(camara.position.z).toBeCloseTo(17.5 * 1.6, 5);
+  });
+});

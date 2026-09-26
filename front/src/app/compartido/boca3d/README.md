@@ -43,6 +43,15 @@ y `tools/boca3d_demo/medir_fps.mjs` mide los cuadros por segundo con la CPU fren
   se usa solo si falta el escaneo (`SIN_LPS=1`).
 - El resto (dientes, encías, paladar, velo, lengua) es procedimental, hecho aquí.
 
+## Peso de los modelos (26 sep 2026)
+
+Las texturas de `cara.glb` y `didactica/cara.glb` van en WebP
+(`npx @gltf-transform/cli webp <entrada> <salida> --quality 88`): 7,0 MB → 5,2 MB en
+disco y 3,5 MB → 1,4 MB por la red (Vercel comprime con brotli). La geometría no se
+toca: `escena.ts` lee las posiciones como Float32 y fija la escala de los nodos, así
+que **no se puede cuantizar** (meshopt con cuantización la rompe; sin ella apenas
+ahorra). Render comparado con el original: diferencia media 0,9/255.
+
 ## Cómo se usa
 
 ```html
