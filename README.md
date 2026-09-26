@@ -6,7 +6,8 @@ Datos (Generación 34).
 
 **Entrega web: Angular + API**, con Gradio como respaldo:
 
-- Aplicación Angular → <https://mikemaki1763-literalevel-front.static.hf.space/>
+- Aplicación (Pléyade, Angular en Vercel) → <https://pleyade-app.vercel.app>
+- La misma aplicación en Hugging Face (respaldo) → <https://mikemaki1763-literalevel-front.static.hf.space/>
 - API y respaldo Gradio → <https://huggingface.co/spaces/MikeMaki1763/literalevel>
 - Modelo v4 → <https://huggingface.co/MikeMaki1763/literalevel-v4>
 
