@@ -1,4 +1,4 @@
-"""Renderiza la secuencia de Eos (Speech2Face) a PNG con la captura de Sequencer.
+"""Renderiza la secuencia de Eos (Speech2Face) a PNG con Movie Render Queue.
 
 Lee D:/literalevel_cara/ue/eos_render.json: {"secuencia": "/Game/Eos/hola/LS_hola",
 "mapa": "/Game/Eos/Escena", "salida": "D:/literalevel_cara/eos_demo/render/hola", "ancho": 1280, "alto": 720}
@@ -28,21 +28,31 @@ if not any(a.get_actor_label().startswith('Eos_') for a in acts.get_all_level_ac
         c.set_editor_property('intensity', inten)
 unreal.EditorLoadingAndSavingUtils.save_map(mundo, cfg['mapa'])
 
-# Captura de Sequencer (viene con el motor; Movie Render Queue es un plugin aparte)
-cap = unreal.AutomatedLevelSequenceCapture()
-cap.level_sequence_asset = unreal.SoftObjectPath(cfg['secuencia'])
-ajustes = cap.get_editor_property('settings')
-ajustes.output_directory = unreal.DirectoryPath(cfg['salida'])
-ajustes.output_format = '{frame}'
-ajustes.resolution = unreal.CaptureResolution(cfg.get('ancho', 1280), cfg.get('alto', 720))
-ajustes.overwrite_existing = True
-ajustes.use_relative_frame_numbers = True
-cap.set_editor_property('settings', ajustes)
-cap.set_image_capture_protocol_type(unreal.ImageSequenceProtocol_PNG)
+# Movie Render Queue (plugin MovieRenderPipeline activado en el .uproject)
+sub = unreal.get_editor_subsystem(unreal.MoviePipelineQueueSubsystem)
+cola = sub.get_queue()
+for j in list(cola.get_jobs()):
+    cola.delete_job(j)
+trabajo = cola.allocate_new_job(unreal.MoviePipelineExecutorJob)
+trabajo.sequence = unreal.SoftObjectPath(cfg['secuencia'])
+trabajo.map = unreal.SoftObjectPath(cfg['mapa'])
+conf = trabajo.get_configuration()
+salida = conf.find_or_add_setting_by_class(unreal.MoviePipelineOutputSetting)
+salida.output_directory = unreal.DirectoryPath(cfg['salida'])
+salida.output_resolution = unreal.IntPoint(cfg.get('ancho', 1280), cfg.get('alto', 720))
+salida.file_name_format = '{frame_number}'
+salida.zero_pad_frame_numbers = 4
+conf.find_or_add_setting_by_class(unreal.MoviePipelineDeferredPassBase)
+conf.find_or_add_setting_by_class(unreal.MoviePipelineImageSequenceOutput_PNG)
+aa = conf.find_or_add_setting_by_class(unreal.MoviePipelineAntiAliasingSetting)
+aa.override_anti_aliasing = True
+aa.spatial_sample_count = 1
+aa.temporal_sample_count = cfg.get('muestras', 4)
+ejecutor = sub.render_queue_with_executor(unreal.MoviePipelinePIEExecutor)
 
 
-def fin(ok):
+def fin(ej, ok):
     open(D + 'eos_render.ok', 'w').write(json.dumps({'ok': bool(ok)}))
 
 
-unreal.SequencerTools.render_movie(cap, unreal.OnRenderMovieStopped(fin))
+ejecutor.on_executor_finished_delegate.add_callable(fin)
