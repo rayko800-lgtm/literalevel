@@ -40,7 +40,7 @@ def pares(dir_voz, dir_med):
 
 def cargar(fv, fm):
     v, m = np.load(fv), np.load(fm)
-    x = v['voz'].astype(np.float32)
+    x = v['voz'].astype(np.float16)                 # float16 en memoria: Obama entero cabe en ~6 GB
     ok = m['ok'].astype(bool)
     if ok.mean() < 0.6 or len(x) < 75:
         return None
@@ -83,56 +83,72 @@ def main():
     es_val = lambda i, n, fm: (os.sep + 'val' + os.sep in fm.replace('/', os.sep)) or \
         (externo(fm) and i % 8 == 0) or \
         (not externo(fm) and zlib.crc32(n.rsplit('_', 1)[0].encode()) % 8 == 0)
-    ent, val, nombres, horas = [], [], None, 0.0
+    L = 250
+    # Todos los clips de entrenamiento van a un único array float16 reservado de antemano
+    # (cada uno rellenado hasta L fotogramas); por ventana (L fotogramas cada L/2) solo se
+    # guarda su posición de inicio. Así Obama + 1KH (~28 h, ~4,6 GB) cabe en los 12 GB de Colab:
+    # nunca hay dos copias de los rasgos a la vez.
+    elegidos = []
     for i, (n, fv, fm) in enumerate(todos):
+        m = np.load(fm)
+        largo = len(m['t'])
+        if m['ok'].mean() < 0.6 or largo < 75:
+            continue
+        elegidos.append((es_val(i, n, fm), fv, fm, largo))
+    total = sum(max(largo, L) for v, _, _, largo in elegidos if not v)
+    Xn = np.zeros((total, 768), np.float16)
+    val, Ys, Ms, inicios, pos, nombres, horas = [], [], [], [], 0, None, 0.0
+    for v, fv, fm, largo in elegidos:
         r = cargar(fv, fm)
         if r is None:
             continue
-        nombres = r[3]
-        if es_val(i, n, fm):
-            val.append(r[:3])
-        else:
-            ent.append(r[:3]); horas += r[4] / 3600
-    Y = np.concatenate([y[ok] for _, y, ok in ent])
-    sd = Y.std(0) + 1e-3
-    print(f'entrenamiento {len(ent)} clips ({horas:.1f} h), validación {len(val)} clips', flush=True)
-
-    L = 250
-    def ventanas(datos):
-        X, Yv, M = [], [], []
-        for x, y, ok in datos:
-            for i in range(0, max(1, len(x) - L + 1), L // 2):
-                xs, ys, ms = x[i:i + L], y[i:i + L] / sd, ok[i:i + L]
-                if len(xs) < L:
-                    pad = L - len(xs)
-                    xs, ys, ms = np.pad(xs, ((0, pad), (0, 0))), np.pad(ys, ((0, pad), (0, 0))), np.pad(ms, (0, pad))
-                X.append(xs); Yv.append(ys); M.append(ms)
-        return torch.tensor(np.array(X)), torch.tensor(np.array(Yv), dtype=torch.float32), torch.tensor(np.array(M))
-    Xe, Ye, Me = ventanas(ent)
+        x, y, ok, nombres, dur = r
+        if v:
+            val.append((x, y, ok))
+            continue
+        pad = max(0, L - len(x))
+        Xn[pos:pos + len(x)] = x
+        y, ok = np.pad(y, ((0, pad), (0, 0))), np.pad(ok, (0, pad))
+        inicios += [pos + k for k in range(0, len(y) - L + 1, L // 2)]
+        Ys.append(y); Ms.append(ok); pos += len(y); horas += dur / 3600
+    Yn, Mn = np.concatenate(Ys), np.concatenate(Ms); del Ys, Ms
+    sd = Yn[Mn].std(0) + 1e-3
+    print(f'entrenamiento {len(inicios)} ventanas ({horas:.1f} h), validación {len(val)} clips', flush=True)
+    Xe, Ye, Me = torch.from_numpy(Xn), torch.from_numpy((Yn / sd).astype(np.float32)), torch.from_numpy(Mn)
+    inicios, rango = torch.tensor(inicios), torch.arange(L)
     dev = a.dispositivo
-    red = Red(sal=Ye.shape[2]).to(dev)
+    red = Red(sal=Ye.shape[1]).to(dev)
     opt = torch.optim.AdamW(red.parameters(), 3e-4, weight_decay=0.01)
-    pasos = a.epocas * ((len(Xe) + 31) // 32)
+    pasos = a.epocas * ((len(inicios) + 31) // 32)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, 1e-3, total_steps=pasos)
+    gpu = dev.startswith('cuda')
+    escala = torch.amp.GradScaler(enabled=gpu)                       # float16 mixto en la T4
     for ep in range(a.epocas):
-        red.train(); perm = torch.randperm(len(Xe)); tot = 0
+        red.train(); perm = torch.randperm(len(inicios)); tot = 0
         for i in range(0, len(perm), 32):
             b = perm[i:i + 32]
-            x, y, m = Xe[b].to(dev), Ye[b].to(dev), Me[b].to(dev).unsqueeze(-1).float()
+            idx = inicios[b][:, None] + rango                                    # [B, L]
+            x, y, m = Xe[idx].to(dev).float(), Ye[idx].to(dev), Me[idx].to(dev).unsqueeze(-1).float()
             x = x + 0.05 * torch.randn_like(x)
-            p = red(x)
+            with torch.autocast('cuda' if gpu else 'cpu', dtype=torch.float16, enabled=gpu):
+                p = red(x)
+            p = p.float()
             l1 = ((p - y) ** 2 * m).sum() / (m.sum() * y.shape[2])
             dv = (p[:, 1:] - p[:, :-1]) - (y[:, 1:] - y[:, :-1])
             l2 = (dv ** 2 * m[:, 1:] * m[:, :-1]).sum() / (m.sum() * y.shape[2])
             loss = l1 + 0.5 * l2
-            opt.zero_grad(); loss.backward(); nn.utils.clip_grad_norm_(red.parameters(), 1.0); opt.step(); sched.step()
+            opt.zero_grad(); escala.scale(loss).backward(); escala.unscale_(opt)
+            nn.utils.clip_grad_norm_(red.parameters(), 1.0); escala.step(opt); escala.update(); sched.step()
             tot += loss.item() * len(b)
-        print(f'época {ep + 1}: {tot / len(perm):.4f}', flush=True)
+        print(f'epoca {ep + 1}: {tot / len(perm):.4f}', flush=True)
+        torch.save(red.state_dict(), os.path.join(a.salida, 'modelo.pt'))     # por si la sesión se cae
 
     red.eval(); P, T = [], []
     with torch.no_grad():
         for x, y, ok in val:
-            p = red(torch.tensor(x)[None].to(dev))[0].cpu().numpy() * sd
+            # por trozos de 1000 fotogramas: un discurso entero (~50 000) no cabe en la atención
+            p = np.concatenate([red(torch.tensor(x[k:k + 1000])[None].to(dev).float())[0].float().cpu().numpy()
+                                for k in range(0, len(x), 1000)]) * sd
             P.append(p[ok]); T.append(y[ok])
     P, T = np.concatenate(P), np.concatenate(T)
     col = nombres + ['cabeza_guinada', 'cabeza_cabeceo', 'cabeza_alabeo']
@@ -142,7 +158,7 @@ def main():
     print('r por grupo:', grupos, flush=True)
     torch.save(red.state_dict(), os.path.join(a.salida, 'modelo.pt'))
     json.dump({'columnas': col, 'sd': sd.tolist()}, open(os.path.join(a.salida, 'normalizacion.json'), 'w'))
-    json.dump({'clips_entrenamiento': len(ent), 'horas_entrenamiento': round(horas, 2), 'clips_validacion': len(val),
+    json.dump({'ventanas_entrenamiento': len(inicios), 'horas_entrenamiento': round(horas, 2), 'clips_validacion': len(val),
                'r_grupos': grupos, 'r': {k: (round(v, 3) if v is not None else None) for k, v in r.items()}},
               open(os.path.join(a.salida, 'informe.json'), 'w'), indent=1)
 
