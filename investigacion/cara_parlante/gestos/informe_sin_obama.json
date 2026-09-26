@@ -1,0 +1,28 @@
+{
+ "clips_entrenamiento": 654,
+ "horas_entrenamiento": 9.85,
+ "clips_validacion": 26,
+ "horas_validacion": 4.87,
+ "sin_obama": true,
+ "r_validacion": {
+  "cejas_int": 0.103,
+  "cejas_ext": 0.097,
+  "sonrisa": 0.042,
+  "entrecerrar": 0.078,
+  "parpadeo": 0.06,
+  "cabeceo": 0.158,
+  "guinada": 0.137,
+  "alabeo": 0.113
+ },
+ "sd_prediccion_z": {
+  "cejas_int": 0.176,
+  "cejas_ext": 0.204,
+  "sonrisa": 0.134,
+  "entrecerrar": 0.216,
+  "parpadeo": 0.171,
+  "cabeceo": 0.307,
+  "guinada": 0.224,
+  "alabeo": 0.246
+ },
+ "nota": "z por clip; r>0 = acierta la direcci\u00f3n del gesto frente a no moverse (r=0)"
+}

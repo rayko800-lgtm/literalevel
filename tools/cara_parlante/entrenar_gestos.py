@@ -109,12 +109,19 @@ def main():
     ap.add_argument('--datos', required=True)
     ap.add_argument('--salida', required=True)
     ap.add_argument('--epocas', type=int, default=25)
+    ap.add_argument('--sin_obama', action='store_true', help='entrenar sin Obama (misma validación), para comparar')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
     arch = sorted(glob.glob(os.path.join(a.datos, '**', '*.npz'), recursive=True))
     # validación: la carpeta val de 1KH y 1 de cada 8 vídeos de Miralles (por vídeo, no por trozo)
-    val = [f for i, f in enumerate(arch) if os.sep + 'val' + os.sep in f or ('miralles' in f and i % 8 == 0)]
-    ent = [f for f in arch if f not in val]
+    # validación fija, por vídeo: la carpeta val de 1KH y 1 de cada 8 vídeos de Miralles y de Obama
+    arch = [f.replace('/', os.sep) for f in arch]
+    def en(f, c):
+        return os.sep + c + os.sep in f
+    val = [f for f in arch if en(f, 'val')]
+    for c in ('miralles', 'obama'):
+        val += [f for i, f in enumerate(sorted(x for x in arch if en(x, c))) if i % 8 == 0]
+    ent = [f for f in arch if f not in val and not (a.sin_obama and en(f, 'obama'))]
     cd = lambda fs: [r for r in (cargar(f) for f in fs) if r is not None]
     de, dv = cd(ent), cd(val)
     horas = sum(len(x) for x, _, _ in de) / FPS / 3600
@@ -144,12 +151,13 @@ def main():
             P.append(p[ok]); Y.append(y[ok])
     P, Y = np.concatenate(P), np.concatenate(Y)
     r = {s: round(float(np.corrcoef(P[:, k], Y[:, k])[0, 1]), 3) for k, s in enumerate(SALIDAS)}
+    horas_val = sum(len(x) for x, _, _ in dv) / FPS / 3600
     esc = {s: round(float(P[:, k].std()), 3) for k, s in enumerate(SALIDAS)}
     print('r en validación:', r)
     pesos = {k: v.detach().numpy().round(5).tolist() for k, v in red.state_dict().items()}
     json.dump({'fps': FPS, 'salidas': SALIDAS, 'entradas': ['st/6', 'voz', 'db/2', 'dst', 'ddb', 'dist_pausa', 'pausa'],
                'dilataciones': [1, 2, 4, 8], 'pesos': pesos}, open(os.path.join(a.salida, 'modelo_gestos.json'), 'w'))
-    json.dump({'clips_entrenamiento': len(de), 'horas_entrenamiento': round(horas, 2), 'clips_validacion': len(dv),
+    json.dump({'clips_entrenamiento': len(de), 'horas_entrenamiento': round(horas, 2), 'clips_validacion': len(dv), 'horas_validacion': round(horas_val, 2), 'sin_obama': a.sin_obama,
                'r_validacion': r, 'sd_prediccion_z': esc,
                'nota': 'z por clip; r>0 = acierta la dirección del gesto frente a no moverse (r=0)'},
               open(os.path.join(a.salida, 'informe.json'), 'w'), indent=1)
