@@ -1,4 +1,8 @@
-# Guion de la demo en vivo — LiteraLevel (Módulo 5)
+# Guion de la demo en vivo — Pléyade, proyecto LiteraLevel (Módulo 5)
+
+*Puesto al día el 26 de septiembre de 2026: Vercel, datos por cuenta, boca 3D
+didáctica y Mi espacio. Las capturas de referencia están en `capturas/`
+(`registro.txt` dice de dónde sale cada una).*
 
 **Formato de la rúbrica:** de 3 a 5 minutos, **cámara abierta y pantalla
 compartida**, centrado en la **usabilidad**, y después preguntas del profesor.
@@ -22,7 +26,8 @@ Cómo leer este guion:
 
 Una por una, y marcando:
 
-- [ ] **Front abierto** en `https://mikemaki1763-literalevel-front.static.hf.space/`,
+- [ ] **Front abierto** en `https://pleyade-app.vercel.app` (respaldo:
+      `https://mikemaki1763-literalevel-front.static.hf.space/`, la misma app),
       en el navegador del equipo con la vista de dispositivo a 390 px, o el
       móvil duplicado en pantalla. Solo esa pestaña compartida: nada de consola,
       contraseñas ni otras pestañas.
@@ -37,7 +42,15 @@ Una por una, y marcando:
 - [ ] **Sesión iniciada** en *Ajustes → Tu perfil*, **fuera de plano**, con una
       cuenta que tenga **cupo**: explicar una palabra, resumir un libro y
       corregir la pronunciación salen a un servicio de pago y gastan cupo.
-- [ ] **Perfil de 1,20 sobre 2 ya puesto** (banda intermedia). En directo no se
+      **Desde el 26 de septiembre el perfil y las palabras son de la cuenta**, no
+      del navegador: lo que prepares en el ordenador lo verás igual en el móvil,
+      y al revés.
+- [ ] **Perfil de 1,20 sobre 2 ya puesto** (banda intermedia). **Ojo: es el perfil
+      de tu cuenta.** Tu nivel real, medido en la app el 26 de septiembre, es C2,
+      1,88 (receta: «Casi todos los días» · fácil «Lo entiendo con naturalidad, sin
+      necesidad de releer» · «Sí, una obra clásica o especializada» · medio, lo mismo ·
+      «También los detalles y las relaciones entre ideas» · difícil, lo mismo). Pon el
+      de 1,20 para la demo y vuelve a medirte después. En directo no se
       responde el cuestionario: no garantiza ese número. **Receta** (medida por e6
       en local y contra el Space, y por 4e con la fórmula, 15 de septiembre): en
       *Tu nivel*, las seis respuestas en orden: «Varias veces por semana»; en el
@@ -51,8 +64,10 @@ Una por una, y marcando:
       opción en cualquier respuesta deja el perfil en B2, entre 1,07 y 1,27, salvo
       en la sexta: «Capto bien la idea» da 1,46, que ya es C1.
 - [ ] **Boca 3D abierta una vez** antes de compartir pantalla (*Pronunciar* → un
-      sonido → «Boca en 3D»): la cara tarda unos 3–4 s la primera vez (depende de la
-      red; medido el 15 de septiembre) y menos de 1 s después.
+      sonido → «Boca en 3D»). Es la boca didáctica nueva: desde el 26 de septiembre
+      baja 1,4 MB por la red en vez de 3,5, pero **su tiempo de carga en Vercel no
+      se ha medido**: ábrela antes para que en directo salga de la caché. Tiene zoom
+      (+ y −), «Despacio» y «Explorar».
 - [ ] **_Crime and Punishment_ abierto una vez** y con su **curva ya
       calculada**: queda guardada y en directo sale al momento.
 - [ ] **Una palabra ensayada** del capítulo abierto y **otra que el diccionario
@@ -183,7 +198,7 @@ que dice el **Plan B** para ese paso.
 **Hace:** cámara a pantalla completa un momento; luego comparte el front.
 
 **Dice:** «Quien quiere leer en inglés suele fallar antes de la primera página:
-elige un libro que le queda grande y lo abandona. LiteraLevel le dice, antes de
+elige un libro que le queda grande y lo abandona. Pléyade le dice, antes de
 empezar, qué libro le va y le acompaña mientras lo lee. Se lo enseño en el
 móvil.»
 
@@ -258,7 +273,7 @@ libro» solo existe si hay un libro empezado. Púlsalo, o escribe una frase cort
 mano, que también vale. Graba
 leyendo con una palabra mal dicha a propósito. Pulsa «Corrígeme». En «Practica
 esta palabra» la boca ya está abierta: pulsa «Escuchar y ver»; si da tiempo,
-«🐢 Despacio» o «Boca en 3D».
+«Despacio» o «Boca en 3D» (con + y − se acerca).
 
 **Dice:** «Ahora la leo en voz alta, y una palabra la digo mal a propósito.
 Me marca palabra por palabra lo que se entendió y el sonido que falla. Lo oigo
@@ -274,14 +289,16 @@ sonar más natural» y señala el «no pares aquí» y las reducciones. Pulsa
 dónde me paré y me enseña cómo se dice de corrido: *don't you* suena
 *doncha* y *want to* suena *wanna*. Y así suena natural.»
 
-**7. Mis palabras (3:20 – 3:40)**
+**7. Mis palabras y Mi espacio (3:20 – 3:40)**
 
-**Hace:** *Mis palabras*. Enseña la lista con su frase y «Repasa cinco». La
+**Hace:** *Mis palabras*. Enseña la lista con su frase y «Repasa cinco». Si da
+tiempo, toca *Mi espacio*: el libro donde lo dejaste y *Mi progreso*. La
 tarjeta de *poverty* dice «cap. 1» aunque la palabra es del prefacio: no lo leas
 en voz alta.
 
 **Dice:** «Todo lo que consulto y lo que pronuncio mal se queda aquí, con la
-frase donde lo encontré, para repasar.»
+frase donde lo encontré, para repasar. Y es de mi cuenta: en el móvil y en la
+computadora veo lo mismo.»
 
 ### V — Visualización · 3:40 – 3:55
 
@@ -330,11 +347,23 @@ correlación parcial de 0,668: hay señal que no es longitud.»
 
 **¿Por qué Angular y no Gradio?**
 **Dice:** «Usted lo pidió en la revisión del avance: un front propio, separado del
-motor. Gradio sigue como motor y respaldo, y el front es una aplicación estática,
-gratuita y siempre despierta, pensada para el móvil.»
+motor, y después, en Vercel. Gradio sigue como motor y respaldo, y el front es una
+aplicación estática, gratuita y siempre despierta, pensada para el móvil; se
+publica sola cada vez que subo un cambio.»
+
+**¿Por qué Pléyade, si el proyecto es LiteraLevel?**
+**Dice:** «LiteraLevel es el proyecto y el modelo; Pléyade es el nombre de la
+aplicación, el que ve el lector. Una pléyade es un grupo de escritores célebres de
+una época, y también un cúmulo de estrellas: junta la literatura y el cielo.»
+
+**¿Hay más de un modelo?**
+**Dice:** «Dos. El que mide la dificultad, un distilroberta afinado, y uno pequeño
+que mueve la boca 3D, aprendido de vídeos de caras reales: con hablantes que no
+vio sigue el movimiento real con una correlación de 0,56, frente a 0,44 de las
+reglas que había antes. Está en el apartado 7.8 del documento.»
 
 **¿Qué límites tiene respecto al Marco Común Europeo?**
-**Dice:** «LiteraLevel no certifica ningún nivel: la letra es solo el ancla más
+**Dice:** «Pléyade no certifica ningún nivel: la letra es solo el ancla más
 cercana en una escala propia de 0 a 2. Además la escala del modelo sale
 comprimida, por eso la interfaz enseña bandas y no decimales.»
 
@@ -352,7 +381,8 @@ derechos, el de British Council, no se redistribuye: se reconstruye con su
 manifiesto.»
 
 **¿Qué haría con más tiempo?**
-**Dice:** «Repetir la prueba de usuario con cinco lectores sobre el front nuevo y
+**Dice:** «Terminar la cara que lee de frente, que está en desarrollo, repetir la
+prueba de usuario con cinco lectores sobre el front nuevo y
 medir cuántos libros empezados se terminan, que es la métrica que valida la
 idea. Y calibrar la escala y ampliar el corpus de anclaje del Marco Común, que hoy
 tiene 654 documentos.»
