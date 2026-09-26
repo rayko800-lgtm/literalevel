@@ -76,3 +76,47 @@ entero, que Miguel lo vea, y luego sigue con el resto.
 - Actualiza `docs/ai/HANDOFF.md` con el estado y el siguiente paso.
 - Avísale a Miguel. Si la Central o la sesión `literalevel-f3` necesitan saberlo, mándales un
   mensaje en español.
+
+---
+
+## Registro vivo (lo lleva la sesión de los entregables)
+
+Rama `dev/entregables`, worktree `.claude/worktrees/entregables`. **Sin fusionar en master.**
+
+### Decisiones de Miguel (26 sep)
+
+- Nombre en los documentos: **«Pléyade (proyecto LiteraLevel)»**. El modelo sigue siendo
+  `literalevel-v4` y la compañía ficticia sigue siendo **Peldaño**.
+- El modelo articulatorio entra en los entregables: un subapartado (documento §7.8) y una
+  diapositiva.
+- Para las capturas con cuenta se usa la cuenta `miguel`, cuya contraseña se lee dentro del
+  guion y nunca se imprime. El nivel real de Miguel es C2: el cuestionario en la app da
+  **1,88**, lo más cercano a 1,85 que permite (la otra opción es 1,81). La cuenta queda con
+  ese perfil.
+- La cuenta Pro de Hugging Face sigue activa (7 USD al mes).
+- El borrador de `mensaje_profesor.md` del 16 de septiembre ya se envió. Ahora el archivo es
+  el mensaje de la entrega final.
+- Classroom: queda fuera. Habría que entrar desde el navegador de Miguel, y el encargo
+  prohíbe tocar la pantalla.
+
+### Hecho (commits en `dev/entregables`)
+
+| Commit | Qué |
+|---|---|
+| `1352740` | Inventario (`docs/ai/inventario_entregables_2026-09-26.md`); documento tex, pdf y md; 8 referencias nuevas con DOI comprobados |
+| `942b6ed` | 22 capturas desde Vercel (móvil a 390 px y escritorio), con `entrega/capturas/registro.txt`; guion `tools/capturas_2026_09_26.mjs` |
+| `2426f70` | Mensaje de entrega final al profesor; guion de la demo; guion del vídeo (md, tex y pdf), con 514 palabras habladas |
+| `b4bdc8e` | Estrategia; presentación (16 diapositivas, con la del modelo articulatorio); cuaderno, solo el texto markdown, con las salidas intactas; README y PENDIENTES |
+
+Los PDF se recompilaron con tectonic y se revisaron página por página: ninguna referencia rota,
+y los desbordes que quedan son de menos de 3 pt o no se ven.
+
+### Pendiente
+
+- Miguel: revisar y fusionar `dev/entregables` en master.
+- Miguel: poner a cero `uso_openai.json`, probar la lectura en vivo con su voz, grabar el
+  vídeo y ensayar la demo (poner el perfil 1,20 en la cuenta y volver a medirse después).
+- Declarado como hueco en los documentos: el contraste del tema de la marca sobre la galaxia,
+  el tiempo de carga de la boca 3D en Vercel y la prueba con lectores del front nuevo (A8).
+- Detalle de la app, sin tocar porque la tarea es solo de documentos: la bienvenida todavía
+  enseña una «L» (`front/src/app/compartido/bienvenida.ts:22`).
