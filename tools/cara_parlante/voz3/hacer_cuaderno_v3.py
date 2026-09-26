@@ -37,8 +37,13 @@ GUION = r"""#!/bin/bash
 # Eos v3 en Colab: SMIRK → fiabilidad → etiquetas → voz → articulación → boca + no verbal. Reanudable.
 # Variables: SOLO_PILOTO=1 (parar tras el piloto), N_PROC (procesos de etiquetado), CODIFICADOR (hubert-large|wavlm-large).
 set -x
-CB=/content/drive/MyDrive/literalevel_cara/casa_blanca
-V2C=/content/drive/MyDrive/literalevel_cara/voz2cara
+# RAIZ: la carpeta literalevel_cara en Drive (la pone el cuaderno; con la carpeta compartida sin acceso
+# directo en «Mi unidad» está en /content/drive/.shortcut-targets-by-id/<id>/literalevel_cara)
+RAIZ=${RAIZ:-/content/drive/MyDrive/literalevel_cara}
+[ -d "$RAIZ" ] || { echo "### ERROR: no existe RAIZ=$RAIZ"; exit 1; }
+echo "RAIZ=$RAIZ"
+CB=$RAIZ/casa_blanca
+V2C=$RAIZ/voz2cara
 V3=$V2C/v3
 D=/content/datos
 S=/content/tools/cara_parlante
@@ -115,8 +120,9 @@ CELDAS = [
 ('md', """# Pléyade · Eos · cara v3 (SMIRK + HuBERT + boca por regresión + no verbal generativo) — A100
 
 Entorno: **A100, High-RAM**, Drive montado (funciona en T4, más lento y con menos capas de voz).
-Todo corre en `/content/v3.sh`, independiente del kernel. Salidas en Drive
-`literalevel_cara/voz2cara/v3/`: `fiabilidad_piloto.json`, `smirk/`, `mapa_arkit.json`, `voz/`,
+La celda 2 fija `RAIZ` (la carpeta `literalevel_cara` en Drive: en «Mi unidad» o, si es la carpeta
+compartida sin acceso directo, en `.shortcut-targets-by-id/<id>/`) y lo escribe en el log.
+Todo corre en `/content/v3.sh`, independiente del kernel. Salidas en Drive `RAIZ/voz2cara/v3/`: `fiabilidad_piloto.json`, `smirk/`, `mapa_arkit.json`, `voz/`,
 `art/`, `boca/`, `noverbal/` y `estado.txt` (se reescribe cada minuto).
 
 Para Eos en el PC: copiar `v3/boca/{modelo.pt,normalizacion.json}` y `v3/noverbal/{...}` a
@@ -125,26 +131,35 @@ Para Eos en el PC: copiar `v3/boca/{modelo.pt,normalizacion.json}` y `v3/noverba
 from google.colab import drive
 drive.mount('/content/drive')"""),
 ('code', """# --- 2. Escribir los guiones y lanzar todo
+import os
+# RAIZ: dónde está literalevel_cara en Drive. Con la cuenta a la que se compartió la carpeta (sin acceso
+# directo en «Mi unidad») no aparece en MyDrive sino en .shortcut-targets-by-id/<id>/. Se usa la primera que exista.
+RAIZ = next((r for r in ('/content/drive/MyDrive/literalevel_cara',
+                         '/content/drive/.shortcut-targets-by-id/1TTkwNLgu2BVs0KkGD85sgcXI_52KfNBm/literalevel_cara')
+             if os.path.isdir(r)), None)
+assert RAIZ, 'no encuentro literalevel_cara en Drive: ¿está montado? ¿otra cuenta? Pon RAIZ a mano.'
+print('RAIZ =', RAIZ)
 SOLO_PILOTO = 0      # 1: parar tras el piloto de fiabilidad (1 h de Obama) y mirar fiabilidad_piloto.json
 N_PROC = 6           # procesos de etiquetado SMIRK a la vez (MediaPipe va en CPU; el A100 High-RAM tiene 12 vCPU)
 CODIFICADOR = 'hubert-large'   # o 'wavlm-large'
-import base64, os, subprocess, torch
+import base64, subprocess, torch
 print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NINGUNA')
 for nombre, b64 in ARCHIVOS.items():
     os.makedirs(os.path.dirname('/content/' + nombre) or '/content', exist_ok=True)
     open('/content/' + nombre, 'wb').write(base64.b64decode(b64))
 open('/content/v3.sh', 'w').write(GUION)
-env = dict(os.environ, SOLO_PILOTO=str(SOLO_PILOTO), N_PROC=str(N_PROC), CODIFICADOR=CODIFICADOR)
+env = dict(os.environ, RAIZ=RAIZ, SOLO_PILOTO=str(SOLO_PILOTO), N_PROC=str(N_PROC), CODIFICADOR=CODIFICADOR)
 subprocess.Popen(['setsid', 'bash', '-c', 'bash /content/v3.sh > /content/v3.log 2>&1'],
                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, env=env)
-V3 = '/content/drive/MyDrive/literalevel_cara/voz2cara/v3'
+V3 = RAIZ + '/voz2cara/v3'
 os.makedirs(V3, exist_ok=True)
+open('/content/v3_raiz.txt', 'w').write(V3)
 subprocess.Popen(['setsid', 'python', '/content/tools/cara_parlante/voz3/estado_v3.py', '--log', '/content/v3.log',
                   '--v3', V3, '--medidas', '/content/datos/medidas'],
                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 print('lanzado: /content/v3.log y', V3 + '/estado.txt')"""),
 ('code', """# --- 3. Estado (vuelve a ejecutar esta celda con Ctrl+Enter)
-!cat /content/drive/MyDrive/literalevel_cara/voz2cara/v3/estado.txt 2>/dev/null
+!cat "$(cat /content/v3_raiz.txt)/estado.txt" 2>/dev/null
 !grep -a -E '^### |listo|por grupo|parada|Error|Traceback|Killed' /content/v3.log | tail -n 8"""),
 ]
 
