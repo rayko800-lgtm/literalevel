@@ -25,6 +25,12 @@ cambio de teclado. Lo que la hace segura para esta app no es la longitud sino
 el freno de la puerta: 15 intentos fallidos por IP y hora, y un tope de usos
 de pago por perfil.
 
+26 SEP 2026: CUENTAS EN CERO
+----------------------------
+Desde hoy los datos del lector son de la CUENTA (`ui._dir_lector`): Miguel pidio
+empezar de cero con contrasenas nuevas. La direccion para mandar es la del
+front en Vercel.
+
 TRES REGLAS QUE ESTE GUION RESPETA
 ----------------------------------
 1. **Las contrasenas no se imprimen nunca.** Van a los archivos locales y a la
@@ -45,11 +51,12 @@ import getpass
 import os
 import pathlib
 import secrets
+from datetime import date
 import sys
 
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 SPACE = "MikeMaki1763/literalevel"
-URL_APP = "https://mikemaki1763-literalevel.hf.space"
+URL_APP = "https://pleyade-app.vercel.app"
 URL_PAGINA = "https://huggingface.co/spaces/MikeMaki1763/literalevel"
 DESTINOS = [
     RAIZ / "literalevel_codigos.txt",
@@ -134,12 +141,12 @@ def main() -> int:
         return 1
 
     lineas = [
-        "CONTRASENAS DEL SPACE DE LITERALEVEL",
+        "CONTRASENAS DE PLEYADE (Space MikeMaki1763/literalevel)",
         "",
         f"Aplicacion (para mandar):  {URL_APP}",
         f"Pagina del Space:          {URL_PAGINA}",
         "",
-        "Generadas por tools/rotar_cuentas.py el 13 sep 2026. Sustituyen a todas las",
+        f"Generadas por tools/rotar_cuentas.py el {date.today():%d-%m-%Y}. Sustituyen a todas las",
         "anteriores, que ya no funcionan. Son dos palabras y tres cifras, en",
         "minusculas y sin espacios, para poder teclearlas en el telefono. El usuario",
         "no distingue mayusculas; la contrasena si, y va toda en minusculas.",
