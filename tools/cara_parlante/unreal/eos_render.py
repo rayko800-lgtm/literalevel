@@ -48,6 +48,10 @@ aa = conf.find_or_add_setting_by_class(unreal.MoviePipelineAntiAliasingSetting)
 aa.override_anti_aliasing = True
 aa.spatial_sample_count = 1
 aa.temporal_sample_count = cfg.get('muestras', 4)
+# sin simulación del pelo (arrancaba desde reposo y el pelo volaba sobre la cara)
+cv = conf.find_or_add_setting_by_class(unreal.MoviePipelineConsoleVariableSetting)
+cv.add_or_update_console_variable('r.HairStrands.Simulation', 0)
+cv.add_or_update_console_variable('r.MotionBlurQuality', 0)
 ejecutor = sub.render_queue_with_executor(unreal.MoviePipelinePIEExecutor)
 
 

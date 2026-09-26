@@ -40,9 +40,9 @@ fondo.static_mesh_component.set_material(0, mi)
 
 # luces (del lado de la cámara, fuera de cuadro)
 for nombre, pos, color, inten, ancho in [
-        ('Eos_llave', unreal.Vector(-30, -70, 210), unreal.Color(170, 214, 255, 255), 7.0, 60.0),   # BGRA: cálida
-        ('Eos_relleno', unreal.Vector(-40, 80, 175), unreal.Color(255, 215, 195, 255), 2.0, 80.0),   # fría suave
-        ('Eos_contra', unreal.Vector(110, 60, 220), unreal.Color(110, 190, 255, 255), 6.0, 40.0)]:  # dorada detrás
+        ('Eos_llave', unreal.Vector(-30, -70, 210), unreal.Color(170, 214, 255, 255), 3.0, 60.0),   # BGRA: cálida
+        ('Eos_relleno', unreal.Vector(-40, 80, 175), unreal.Color(255, 215, 195, 255), 1.0, 80.0),   # fría suave
+        ('Eos_contra', unreal.Vector(110, 60, 220), unreal.Color(110, 190, 255, 255), 4.0, 40.0)]:  # dorada detrás
     luz = acts.spawn_actor_from_class(unreal.RectLight, pos, rotar_hacia(pos, CABEZA))
     luz.set_actor_label(nombre)
     c = luz.get_component_by_class(unreal.RectLightComponent)
@@ -65,6 +65,8 @@ cc.set_editor_property('current_aperture', 2.8)
 pp = cc.get_editor_property('post_process_settings')
 pp.set_editor_property('override_motion_blur_amount', True)
 pp.set_editor_property('motion_blur_amount', 0.0)
+pp.set_editor_property('override_auto_exposure_bias', True)
+pp.set_editor_property('auto_exposure_bias', -1.0)
 cc.set_editor_property('post_process_settings', pp)
 
 # corte de cámara → nuestra cámara
