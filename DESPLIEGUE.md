@@ -182,6 +182,16 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   1366 px en claro, noche y papel; en la app publicada, galaxia y lámina
   presentes y sin respuestas de error.
 
+- **Décima publicación (26 sep, CDMX), solo front:** revisión `be6a190`
+  desde `1df10b5`. Miguel seguía viendo el tema viejo fuera de la portada: el
+  Space estático no manda `Cache-Control` y su móvil conservó el `index.html`
+  anterior (el servidor ya servía el nuevo: comprobado pestaña por pestaña en
+  claro, noche y papel). El front ahora pide `index.html` sin caché al
+  arrancar, al cambiar de pestaña (máx. una vez por minuto) y al volver a la
+  app; si su `main-*.js` no es el que corre, recarga una vez. Front 463/463;
+  en la app publicada, una pestaña con `main` falseado se recargó sola al
+  cambiar de pestaña.
+
 ## Historial de infraestructura y opciones evaluadas
 
 Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
