@@ -44,14 +44,19 @@ def boca(fons, t, modelo=MODELO):
         + [(idx['sil'], fons[-1][2] + 0.25)]
     ids = np.array([s[0] for s in segs]); cs = np.array([s[1] for s in segs])
     y = np.zeros((len(t), T.shape[1]))
-    for i0 in range(0, len(t), 2000):                   # por bloques: un discurso son ~50 000 fotogramas
-        dt = cs[None, :] - t[i0:i0 + 2000, None]
+    orden = np.argsort(cs); ids, cs = ids[orden], cs[orden]
+    for i0 in range(0, len(t), 500):                   # por bloques; solo pesan los segmentos cercanos
+        tb = t[i0:i0 + 500]
+        a, b = np.searchsorted(cs, tb[0] - 3.0), np.searchsorted(cs, tb[-1] + 3.0)
+        a, b = max(0, a - 1), min(len(cs), b + 1)
+        ib, cb = ids[a:b], cs[a:b]
+        dt = cb[None, :] - tb[:, None]
         for k in range(T.shape[1]):
-            theta = np.where(dt > 0, np.exp(ta[ids, k]), np.exp(tr[ids, k]))
-            logd = la[ids, k] - theta * np.abs(dt)
+            theta = np.where(dt > 0, np.exp(ta[ib, k]), np.exp(tr[ib, k]))
+            logd = la[ib, k] - theta * np.abs(dt)
             logd -= logd.max(1, keepdims=True)
             d = np.exp(logd); d /= d.sum(1, keepdims=True)
-            y[i0:i0 + 2000, k] = d @ T[ids, k]
+            y[i0:i0 + 500, k] = d @ T[ib, k]
     return {c: y[:, i] for i, c in enumerate(M['controles'])}
 
 
@@ -68,8 +73,8 @@ def entrada(palabras, t, modelo=MODELO):
     b = boca(fons, t, modelo)
     art[:, :-1] = np.stack([b[c] for c in M['controles']], 1)
     for f, a, z in fons:
-        m = (t >= a) & (t < z)
-        fon[m] = idx.get(f, idx['ah'])
+        i, j = np.searchsorted(t, a), np.searchsorted(t, z)
+        fon[i:j] = idx.get(f, idx['ah'])
     for _, a, z in palabras:
-        art[(t >= a) & (t < z), -1] = 1
+        art[np.searchsorted(t, a):np.searchsorted(t, z), -1] = 1
     return art, fon

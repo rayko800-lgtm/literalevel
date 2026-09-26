@@ -42,10 +42,10 @@ ls $CB/videos/*.mp4 | xargs -P 12 -I{} bash -c 'o=$0/$(basename "{}" .mp4).m4a; 
 echo "audio obama: $(ls $CB/audio | wc -l)"
 # 2. palabras (Whisper large-v3) → modelo articulatorio
 cp -n $V2C/art_obama/*.npz $V2C/art_obama/*.json $D/art/ 2>/dev/null
-python -u /content/preparar_art.py --medidas $D/medidas/obama --videos $CB/audio --salida $D/art --modelo_art /content/modelo_articulatorio.json
+python -u /content/preparar_art.py --medidas $D/medidas/obama --videos $CB/audio --salida $D/art --whisper large-v3-turbo --modelo_art /content/modelo_articulatorio.json
 cp -n $D/art/*.npz $D/art/*.json $V2C/art_obama/
-python -u /content/preparar_art.py --medidas $D/medidas/train --videos $D/audio_1kh --salida $D/art --modelo_art /content/modelo_articulatorio.json
-python -u /content/preparar_art.py --medidas $D/medidas/val --videos $D/audio_1kh --salida $D/art --modelo_art /content/modelo_articulatorio.json
+python -u /content/preparar_art.py --medidas $D/medidas/train --videos $D/audio_1kh --salida $D/art --whisper large-v3-turbo --modelo_art /content/modelo_articulatorio.json
+python -u /content/preparar_art.py --medidas $D/medidas/val --videos $D/audio_1kh --salida $D/art --whisper large-v3-turbo --modelo_art /content/modelo_articulatorio.json
 echo "art: $(ls $D/art/*.npz | wc -l)"
 # 3. entrenar
 python -u /content/entrenar_fusion.py --voz $D/voz --art $D/art --medidas $D/medidas --salida $V2C/fusion \
