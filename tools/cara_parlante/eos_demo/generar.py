@@ -184,8 +184,8 @@ def main():
     son += 0.25 * np.clip((t - palabras[-1][2]) / 0.6, 0, 1)
     son = np.clip(son - 0.5 * cur['mouthPucker'], 0, 0.6)
     cur['mouthSmileLeft'] = cur['mouthSmileRight'] = son
-    cur['cheekSquintLeft'] = cur['cheekSquintRight'] = 0.5 * son
-    cur['eyeSquintLeft'] = cur['eyeSquintRight'] = 0.35 * son
+    cur['cheekSquintLeft'] = cur['cheekSquintRight'] = 0.2 * son   # más, y los pómulos se ven hinchados
+    cur['eyeSquintLeft'] = cur['eyeSquintRight'] = 0.15 * son
 
     # parpadeo: intervalos gamma de 1KH, a ~20/min (la media real, 36/min, se ve nerviosa en una cara quieta)
     pb = vida['parpadeo']
@@ -227,7 +227,7 @@ def main():
     for k in ('mouthSmileLeft', 'mouthSmileRight'):
         cur[k] = np.clip(cur[k] + extra, 0, 0.65)
     for k in ('eyeSquintLeft', 'eyeSquintRight'):
-        cur[k] = np.clip(cur[k] + 0.05 * z['entrecerrar'], 0, 0.5)
+        cur[k] = np.clip(cur[k] + 0.03 * z['entrecerrar'], 0, 0.35)
 
     # cabeza: la del modelo (grados de 1KH) más un poco de ruido OU para que no se repita
     cab = vida['cabeza']
@@ -235,6 +235,14 @@ def main():
     cabe = 0.8 * cab['cabeceo']['sd_grados'] * z['cabeceo'] + ou(n, 0.8, 1.2, rng)
     alab = 0.6 * cab['alabeo']['sd_grados'] * z['alabeo'] + ou(n, 1.0, 1.6, rng) + 2.0
     picos = []
+    # suavizado (gaussiana de 0,12 s): el modelo va a 25 fps y el ruido OU da tirones a 60 fps
+    def suave(v, sd=0.12):
+        k = np.exp(-0.5 * (np.arange(-3 * sd * FPS, 3 * sd * FPS + 1) / (sd * FPS)) ** 2); k /= k.sum()
+        return np.convolve(np.pad(v, len(k) // 2, mode='edge'), k, mode='valid')[:len(v)]
+    guin, cabe, alab = suave(guin), suave(cabe), suave(alab)
+    for k in ('browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'browDownLeft', 'browDownRight',
+              'mouthSmileLeft', 'mouthSmileRight', 'eyeSquintLeft', 'eyeSquintRight'):
+        cur[k] = np.clip(suave(cur[k], 0.08), 0, 1)
     cabeza = np.stack([guin, cabe, alab], 1)
 
     json.dump({'fps': FPS, 'duracion': dur, 'texto': a.texto, 'voz': a.voz,

@@ -152,7 +152,9 @@ vPelo = aPelo;`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying float vPelo; uniform vec3 uRaiz;`)
         .replace('#include <map_fragment>', `#include <map_fragment>
-diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.35 + uRaiz, 0.8 * vPelo);`);
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.6 + uRaiz * 0.5, 0.45 * vPelo * vPelo);
+{ float g = dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15));            // menos rojo: el bake trae párpados y mejillas muy rojos
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(g) * vec3(1.06, 1.0, 0.97), 0.22); }`);
     };
     m.needsUpdate = true;
   });
@@ -241,7 +243,7 @@ function reposo(dt) {
   if (reposoParp < 0) { b = Math.max(0, 1 - Math.abs(reposoParp + 0.08) / 0.08); if (reposoParp < -0.16) reposoParp = 2 + Math.random() * 3.5; }
   poner('eyeBlinkLeft', b); poner('eyeBlinkRight', b);
   poner('mouthSmileLeft', 0.16); poner('mouthSmileRight', 0.16);
-  poner('cheekSquintLeft', 0.08); poner('cheekSquintRight', 0.08);
+  poner('cheekSquintLeft', 0.03); poner('cheekSquintRight', 0.03);
   if (cabeza) {
     const e = new THREE.Euler(0.02 * Math.sin(tReposo * 0.9), 0.03 * Math.sin(tReposo * 0.37), 0.035, 'YXZ');
     girar(e);
