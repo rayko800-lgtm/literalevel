@@ -1,15 +1,40 @@
-# Pendientes de LiteraLevel
+# Pendientes de Pléyade (proyecto LiteraLevel)
 
-Actualizado: **14 de septiembre de 2026**. El plan de aquí al 3 de
-octubre está en [`PLAN_3_OCTUBRE.md`](PLAN_3_OCTUBRE.md).
+Actualizado: **26 de septiembre de 2026**. Entrega: **3 de octubre de 2026**.
+El estado operativo del día está en [`docs/ai/HANDOFF.md`](docs/ai/HANDOFF.md).
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por
 puntos en juego, no por comodidad.
 
-## Estado actual antes de leer el histórico
+## Estado al 26 de septiembre
+
+- **Entrega:** la app es **Pléyade**, Angular en Vercel
+  (<https://pleyade-app.vercel.app>), con la misma app de respaldo en
+  <https://mikemaki1763-literalevel-front.static.hf.space/>. API y motor en el
+  Space `MikeMaki1763/literalevel` (revisión `103eef5`, commit `06a16db`),
+  cuenta Pro de Hugging Face activa (7 USD/mes).
+- **Entregables puestos al día el 26 sep** (rama `dev/entregables`): documento
+  (con el modelo articulatorio en §7.8), estrategia, presentación, guiones del
+  vídeo y de la demo, mensaje al profesor, cuaderno (solo texto) y 22 capturas
+  nuevas desde Vercel (`entrega/capturas/registro.txt`).
+- **Pendientes de Miguel, por puntos:**
+  1. **Demo en vivo (25):** ensayarla con cuenta, micrófono y el perfil de 1,20
+     puesto en la cuenta (tu nivel real, C2 1,88, se vuelve a poner después).
+  2. **Vídeo (20):** grabarlo con Pléyade (el guion ya está al día: 514
+     palabras, 3:26 a 150 ppm).
+  3. Poner a cero `uso_openai.json` del bucket, para que la cuenta del profesor
+     tenga cupo.
+  4. Probar la lectura en vivo con tu voz (solo se probó con voz sintética).
+- **Abierto, declarado en el documento:** contraste del tema de la marca sobre la
+  galaxia sin medir; tiempo de carga de la boca 3D en Vercel sin medir; Eos en
+  desarrollo, fuera de la entrega; prueba de usuario sobre el front nuevo (A8).
+- **Detalle visto al hacer las capturas:** la «L» de la tarjeta de bienvenida ya es
+  el icono de Pléyade (commit `2b37573`, literalevel-f3, publicado el 26 sep).
+
+## Estado al 14 de septiembre (histórico)
 
 - **Entrega:** Angular es la interfaz principal; FastAPI adapta el motor Python
-  y Gradio queda de respaldo. Enlace:
+  y Gradio queda de respaldo. Enlace de entonces:
   <https://mikemaki1763-literalevel-front.static.hf.space/>.
 - **Primero leer:** [relevo de Codex](auditoria/relevo_codex_2026-09-13_noche.md),
   [despliegue selectivo](auditoria/despliegue_codex_2026-09-13_noche.md) y

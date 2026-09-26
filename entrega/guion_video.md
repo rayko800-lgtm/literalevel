@@ -1,4 +1,8 @@
-# Guion del vídeo — LiteraLevel (Módulo 5)
+# Guion del vídeo — Pléyade, proyecto LiteraLevel (Módulo 5)
+
+*Puesto al día el 26 de septiembre de 2026: la app se llama Pléyade y está en
+Vercel. Las capturas de referencia están hechas: `capturas/01`–`22`
+(`capturas/registro.txt`).*
 
 **Formato exigido:** MP4, **máximo 5 minutos**, Miguel **hablando a cámara todo el
 tiempo** con las diapositivas de fondo. Vale 20 de los 110 puntos.
@@ -7,9 +11,9 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 496 palabras: 3:18 a 150 palabras por minuto y 3:49 a 130.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. Lo que falta hasta 4:40 no es un descuido: es el presupuesto para lo que la demo tarda *de verdad*
+**El texto hablado son 514 palabras: 3:26 a 150 palabras por minuto y 3:57 a 130.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. Lo que falta hasta 4:40 no es un descuido: es el presupuesto para lo que la demo tarda *de verdad*
 —esperar a que responda la búsqueda, a que llegue la explicación, que suene el
-audio, leer la frase en voz alta—, hasta unos 55 segundos. Si al ensayar te sale
+audio, leer la frase en voz alta—, unos 45 segundos. Si al ensayar te sale
 muy corto, no metas más texto: ve más despacio y deja respirar las pausas.
 
 Esta versión fusiona el guion de b9 (698b804) con tres cambios del de Codex
@@ -44,7 +48,7 @@ Aquí es **el mismo caso que recorren el documento (§8.2) y la diapositiva
 «Ejemplo de uso y aplicación»**: un perfil **1,20 sobre 2**, preparado para el
 ejemplo, y *Crime and Punishment*. Los tres entregables cuentan el mismo
 recorrido, con el mismo perfil y el mismo libro. **La aplicación que se enseña
-es el front de Angular** (`mikemaki1763-literalevel-front.static.hf.space`), en
+es el front de Angular** (`pleyade-app.vercel.app`), en
 el móvil: es lo que se entrega desde el 13 de septiembre de 2026, a petición
 del profesor.
 
@@ -83,14 +87,17 @@ del profesor.
 - **Las correcciones, contadas.** «Corrígeme» tiene 10 por hora, por conexión y no
   por cuenta: si ensayas en ráfaga desde la misma red en la hora antes de grabar, te
   quedas sin ellas para la toma. El aviso dice cuándo vuelve la primera, no todas.
-- **La boca en 3D.** El front publicado —revisión `ec68419` del Space, del commit `8a992af`— lleva la
-  cabeza de MakeHuman y la lengua corregida de la rama `boca3d` (75f334a está en
-  `master`), con el giro ya limitado a donde el modelo se lee de perfil
-  (`a70af4e`): el ensayo final del 16 de septiembre abrió la boca 3D en esa
-  misma revisión y cargó con normalidad (`auditoria/ensayo_demo_final_2026-09-16.md`).
-  **Ábrela una vez antes de grabar**: la cara
-  tarda unos 3–4 s la primera vez (depende de la red; medido el 15 de
-  septiembre) y menos de 1 s después. Si no carga, basta el corte 2D.
+- **La boca en 3D.** Desde el 24 de septiembre es la boca didáctica nueva (cabeza
+  escaneada bajo CC BY 3.0, labios, lengua y corte propios), que se mueve con el
+  modelo aprendido de caras reales (documento §7.8). Desde el 26 de septiembre
+  baja 1,4 MB por la red en vez de 3,5 y tiene zoom (+ y −), «Despacio» y
+  «Explorar». **Su tiempo de carga en Vercel no se ha medido: ábrela una vez
+  antes de grabar**, para que en la toma salga de la caché. Si no carga, basta el
+  corte 2D.
+- **El perfil es de la cuenta.** Desde el 26 de septiembre, al entrar, el perfil
+  y las palabras son de la cuenta y se ven igual en el móvil y en el equipo. Poner
+  el 1,20 cambia tu nivel real (C2, 1,88, medido en la app el 26 de septiembre):
+  vuelve a medirte después de grabar.
 - **El perfil 1,20, receta** (medida por e6 contra el Space y por 4e con la
   fórmula, 15 de septiembre): en *Tu nivel*, «Varias veces por semana» →
   fragmento fácil «Lo entiendo con naturalidad, sin necesidad de releer» → «Sí,
@@ -115,7 +122,7 @@ del profesor.
 
 ## A — ATENCIÓN · 0:00 – 0:30
 
-> **En pantalla:** portada. Solo el nombre *LiteraLevel* y una frase.
+> **En pantalla:** portada. Solo el nombre *Pléyade*, su emblema y una frase.
 > Sin logotipo animado, sin música.
 
 **Miguel, a cámara:**
@@ -126,7 +133,7 @@ muro. Elige un libro que suena bien, lo abre… y a las tres páginas lo cierra.
 No porque no sepa inglés. Porque **eligió mal el libro**.
 
 Nadie le dijo que *Moby Dick* le quedaba grande y que *El sabueso de los
-Baskerville* le quedaba justo. Eso es lo que hace LiteraLevel.»
+Baskerville* le quedaba justo. Eso es lo que hace Pléyade.»
 
 > *Pausa de un segundo antes de pasar de diapositiva.*
 
@@ -298,9 +305,13 @@ capítulo.»
 >   frase, y «Repasa cinco». La tarjeta de *poverty* dice «cap. 1» aunque es
 >   del prefacio: no leerlo en voz alta]
 > - [CAPTURA: para el cierre, la dirección del front grande sobre la
->   portada: `mikemaki1763-literalevel-front.static.hf.space`]
+>   portada: `pleyade-app.vercel.app`]
+>
+> Hechas el 26 de septiembre desde Vercel con tu cuenta: `capturas/01`–`22`,
+> más la boca 3D (12), el lector con la lectura en vivo (13), Repasar (15), Mi
+> espacio (16), «Sobre Pléyade» (17) y tres de escritorio (18–20).
 
-«Esto es LiteraLevel, en el móvil. Este front lo pidió el profesor en la
+«Esto es Pléyade, en el móvil. Este front lo pidió el profesor en la
 revisión.
 
 **Uno.** Mido mi nivel con tres preguntas y tres fragmentos reales, o con un texto mío.
@@ -321,11 +332,12 @@ trae, la define un modelo y lo marca: **IA**.
 
 **Cinco.** *(leer la frase y pulsar Corrígeme)* Leo en voz alta y pulso
 *Corrígeme*: me marca lo que se entendió, me señala **el
-sonido** que falla, lo oigo bien dicho y veo **cómo se mueve la boca**.
+sonido** que falla, lo oigo bien dicho y veo **cómo se mueve la boca**, también
+en 3D.
 *(pulsar Escuchar y ver en Practica esta palabra)*
 
 **Seis.** Lo que consulto se queda en **Mis palabras**, con su frase, para
-repasar.»
+repasar, y lo veo igual en cualquier aparato donde entre.»
 
 > **En pantalla, al terminar la demo:** las métricas desnudas.
 > **distilroberta-base** · Spearman **0,908** interno · orden MCER
@@ -361,10 +373,10 @@ lee, **y seguir**.»
 ## A — ACCIÓN · 4:15 – 4:40
 
 > **En pantalla:** el enlace del front, grande:
-> `mikemaki1763-literalevel-front.static.hf.space`. Y debajo, pequeño: el
+> `pleyade-app.vercel.app`. Y debajo, pequeño: el
 > repositorio y el motor (`huggingface.co/spaces/MikeMaki1763/literalevel`).
 
-«LiteraLevel funciona ahora mismo, no es una maqueta. Este es el enlace; se
+«Pléyade funciona ahora mismo, no es una maqueta. Este es el enlace; se
 abre en el móvil.
 
 Si hablas español y alguna vez abandonaste un libro en inglés pensando que el

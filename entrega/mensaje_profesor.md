@@ -1,81 +1,73 @@
-# Mensaje para el profesor: adelanto de LiteraLevel
+# Mensaje para el profesor: entrega final de Pléyade
 
-Versión revisada el 16 de septiembre de 2026. Borrador: no se ha enviado.
+Versión del 26 de septiembre de 2026, para acompañar la entrega del 3 de octubre.
+El adelanto del 16 de septiembre ya se envió; este es otro mensaje.
 
-> **Antes de mandarlo:** abrir el enlace desde el móvil, comprobar lectura y
-> acceso, y despertar el backend. El front estático y la API son servicios
-> distintos: que cargue la página no demuestra que el motor esté disponible.
+> **Antes de mandarlo:** abrir el enlace desde el móvil y comprobar que el motor
+> responde (`https://mikemaki1763-literalevel.hf.space/api/salud` debe decir
+> `"buscador_listo": true`). El front y la API son servicios distintos: que la
+> página cargue no demuestra que el motor esté despierto.
 >
-> **No escribir contraseñas en este archivo versionado.** Compartir el acceso
-> de invitado por un canal privado y comprobarlo antes de la demostración.
-> La credencial incluida aquí hasta el 10 de septiembre debe rotarse;
-> borrar el texto del archivo no la elimina del historial de Git.
+> **Aquí no van contraseñas.** El usuario y la contraseña del profesor se mandan
+> aparte, por un canal privado. Las contraseñas se cambiaron el 26 de septiembre:
+> las del adelanto ya no sirven.
 
 ## Versión para WhatsApp o correo
 
-Profe, buenas. Le comparto un adelanto de **LiteraLevel**, todavía no como
-entrega final. Retomé su recomendación: la interfaz ahora está hecha con
-**Angular**, separada del motor Python mediante una API.
+Profe, buenas. Le comparto la entrega final del proyecto. La aplicación ahora se
+llama **Pléyade**; el proyecto y el modelo siguen llamándose LiteraLevel, así que
+verá los dos nombres. Como me recomendó, el front ya está en Vercel:
 
-**https://mikemaki1763-literalevel-front.static.hf.space/**
+**https://pleyade-app.vercel.app**
 
-La idea es ayudar a elegir lecturas en inglés con una estimación de dificultad
-antes de empezar. Se puede abrir un libro, ver cómo cambia la dificultad entre
-capítulos y consultar palabras dentro de su frase. La escala es propia, de 0 a
-2: **no certifica un nivel del MCER ni mide la comprensión del lector**.
+Sigue siendo lo mismo: ayuda a elegir lecturas en inglés con una estimación de
+dificultad antes de empezar, enseña cómo cambia la dificultad entre capítulos y
+explica las palabras dentro de su frase. La escala es propia, de 0 a 2: **no
+certifica un nivel del MCER ni mide la comprensión del lector**.
 
-El catálogo ya no es el adelanto de 1.197 registros. El archivo medido contiene
-**53.179 libros de Gutenberg y 585.111 capítulos**, contados de nuevo el 14 de
-septiembre. Si abre *Encontrar* verá 68.546: son esos 53.179 más 15.367 textos
-cortos y libres de otras fuentes, medidos igual. La recomendación excluye índices y materiales no literarios; no
-todo el catálogo es adecuado para un principiante.
+Desde el adelanto añadí:
 
-Sin entrar con una cuenta puede leer, buscar, consultar el diccionario, medir la
-dificultad de un capítulo y, en *Pronunciar*, grabarse, escucharse y ver cómo se
-dice cada sonido.
-Para la explicación por IA, el resumen y la corrección de pronunciación le
-comparto un acceso de invitado por separado: usan un servicio externo que
-pago yo y tienen límites de uso. Hay además topes por hora, que van por conexión
-y no por cuenta, para no dispararme la factura ni el servidor, que es uno solo:
-10 correcciones de voz, 30 explicaciones, 6 resúmenes, 20 libros nuevos, 40
-capítulos medidos y 6 curvas. Si le sale el aviso de que llegó al tope, espere
-unos minutos y vuelva a intentarlo; mientras tanto puede seguir leyendo lo que ya
-abrió, buscar, consultar el diccionario y, en *Pronunciar*, grabarse y escucharse.
-Si falta una palabra en el diccionario, la definición por IA aparece identificada
-como tal.
+- **Mi espacio**, la pantalla de inicio: el libro que dejó a medias, las
+  palabras que consultó, las que le costó pronunciar y su progreso.
+- **Repasar**: las palabras guardadas, con su frase, para recordarlas.
+- **Una boca en 3D** en *Pronunciar*, que se mueve con un modelo entrenado con
+  vídeos de caras reales. Tiene zoom, cámara lenta y giro libre.
+- **Leer en voz alta en vivo**: en el lector, la aplicación sigue lo que usted
+  va leyendo y marca las palabras que se saltó.
+- **Datos por cuenta**: si entra con su usuario, sus libros, palabras y nivel se
+  ven igual en el teléfono y en la computadora.
 
-En **Pronunciar** se lee una frase y se compara con lo que se transcribió;
-no es un chat de voz ni una evaluación fonética de laboratorio. Conviene
-probarlo desde un teléfono con micrófono. Lo probé el 16 de septiembre desde el
-mío, con cuenta y micrófono real, y graba y corrige; antes de la demostración lo
-ensayo otra vez con la frase concreta que voy a leer.
+Sin cuenta puede leer, buscar, consultar el diccionario, medir su nivel y, en
+*Pronunciar*, grabarse y escucharse. La explicación con IA, el resumen, la
+corrección de pronunciación y la lectura en vivo necesitan cuenta, porque usan un
+servicio de pago y tienen límites. Su usuario y su contraseña se los mando aparte.
 
-Lo que más me interesa de su opinión es **la usabilidad**: si se entiende por
-dónde empezar, qué le estorba y qué falta. Dos lectoras encontraron problemas
-en la interfaz anterior y esos comentarios guiaron los cambios. Ya se ha probado
-también en Angular y en teléfono —un lector nuevo y una de ellas otra vez—, y de
-ahí salieron la bienvenida de la primera visita y los avisos de ayuda de cada
-pantalla.
+Hay además topes por hora, que van por conexión y no por cuenta: 10 correcciones
+de voz, 30 explicaciones, 6 resúmenes, 20 libros nuevos, 40 capítulos medidos y
+6 curvas. Si le sale el aviso de tope, espere unos minutos; mientras tanto puede
+seguir leyendo, buscar y consultar el diccionario.
 
-El cuaderno va con la entrega, y el repositorio y los guiones de verificación,
-que no viajan con los entregables, se los comparto a petición para revisar cómo
-se obtuvieron las métricas. Las pruebas técnicas y lo que todavía no se ha
-validado están separados en el documento, sin presentarlos como una garantía
-de que toda la aplicación esté libre de fallos.
+El motor se duerme si pasa dos días sin visitas. Si la primera búsqueda tarda,
+es que está despertando: en uno o dos minutos responde.
 
-Gracias, profe.
+Con la entrega van el documento, la estrategia, el cuaderno de Colab, la
+presentación y el vídeo. En el documento están separados lo que está medido y lo
+que todavía no se ha validado con lectores.
+
+Gracias por las recomendaciones de la revisión, profe.
 
 ## Notas para Miguel, no enviar
 
-- El enlace principal es Angular. Gradio queda como motor y respaldo en
-  `MikeMaki1763/literalevel`, no como la interfaz que se presenta primero.
-- No prometer portadas FLUX terminadas: no hay imágenes nuevas generadas y
-  falta aprobar la muestra. No presentar la demo local de Blender como una
-  función publicada sin comprobar primero su integración con Angular.
-- No repetir que el catálogo sigue a mitad del precálculo. El registro actual
-  contiene 53.179 IDs únicos; el tamaño no demuestra calidad de recomendación.
-- Ensayar la función de voz con micrófono real y acceso de invitado antes de
-  la demo. La comprobación publicada del 13 de septiembre verificó lectura,
-  diccionario local y rechazo de voz anónima, no corrección pagada.
-- El video, con cámara visible y máximo cinco minutos, sigue siendo un
-  entregable distinto del documento y del guion: falta grabarlo.
+- El enlace principal es Vercel. El Space estático
+  (`mikemaki1763-literalevel-front.static.hf.space`) sirve la misma aplicación
+  de respaldo. Gradio sigue en `MikeMaki1763/literalevel` como motor y respaldo.
+- **Eos** (la cara MetaHuman) está en desarrollo: no la menciones como
+  terminada.
+- Los topes son los de `app/ui.py:493-503` y `app/api.py:228-229` a fecha de
+  `06a16db`. Si cambian, cambia este párrafo.
+- La lectura en vivo solo se ha probado con una lectura sintética. Antes de
+  enseñarla en la demo, pruébala con tu voz.
+- El contraste del tema nuevo sobre la galaxia no se ha medido.
+- Antes de mandar el mensaje, la cuenta del profesor tiene que tener cupo.
+  `uso_openai.json` del bucket sigue sin ponerse a cero: lo tienes pendiente
+  (HANDOFF).

@@ -1,5 +1,5 @@
 # %% [markdown]
-# # LiteraLevel — cuadernillo del proyecto
+# # Pléyade (proyecto LiteraLevel) — cuadernillo del proyecto
 #
 # **Diplomado en Ciencia de Datos, FES Acatlán (UNAM) · Generación 34**
 # **Módulo 5, proyecto integrador · Mtro. Fernando Barranco Rodríguez**
@@ -7,9 +7,11 @@
 # Estimar la dificultad de un texto en inglés para un lector hispanohablante, y
 # usar esa estimación para que el lector elija bien qué libro abrir.
 #
-# **Entrega web al 15 de septiembre de 2026:** Angular es la interfaz principal
-# sobre una API FastAPI; Gradio conserva el motor y la interfaz de respaldo.
-# Enlace del lector: https://mikemaki1763-literalevel-front.static.hf.space/
+# **Entrega web al 26 de septiembre de 2026:** la aplicación se llama **Pléyade**;
+# Angular es la interfaz principal, publicada en Vercel, sobre una API FastAPI;
+# Gradio conserva el motor y la interfaz de respaldo.
+# Enlace del lector: https://pleyade-app.vercel.app (respaldo, la misma app:
+# https://mikemaki1763-literalevel-front.static.hf.space/)
 # Este cuaderno explica datos, modelos e inferencia: no instala ni ejecuta la
 # aplicación Angular. Su narrativa se sincronizó con la entrega sin modificar
 # las celdas de cálculo ni reentrenar el modelo.
@@ -233,7 +235,7 @@ print("Librerías cargadas correctamente. Semilla fija:", SEMILLA)
 # que existen —«clásico», «juvenil», «nivel intermedio»— las pone un editor a
 # ojo, y solo cubren el catálogo comercial.
 #
-# **LiteraLevel** es una aplicación que mide esa dificultad con un modelo de
+# **Pléyade**, la aplicación del proyecto LiteraLevel, mide esa dificultad con un modelo de
 # lenguaje afinado para ello, acompaña al lector mientras lee (diccionario,
 # pronunciación, progreso) y le recomienda qué abrir a continuación. Este
 # cuadernillo documenta la parte cuantitativa: de dónde salen los datos, qué
@@ -2364,7 +2366,7 @@ print(decisiones.to_string(index=False))
 #
 # ## 8.1 Los usuarios, y qué necesita cada uno
 #
-# | Usuario | Quién es | Qué necesita | Qué le da LiteraLevel |
+# | Usuario | Quién es | Qué necesita | Qué le da Pléyade |
 # |---|---|---|---|
 # | **El lector autodidacta** | Hispanohablante con inglés intermedio que quiere leer de verdad, no hacer ejercicios | Saber si *este* libro le queda grande **antes** de empezarlo | Una cifra y una banda por libro, y un catálogo filtrado por su nivel |
 # | **El estudiante de bachillerato** | Perfil de la primera lectora ajena al proyecto: 15 años, preparatoria | Que no se sienta tonta usando la herramienta | Etiquetas reescritas y una interfaz que explica en vez de suponer |
@@ -2481,11 +2483,13 @@ plt.show()
 #    una factura actual. Las etiquetas del catálogo heredado de la Figura 8
 #    ya no son las que usa la aplicación.
 # 3. **Más lectores, ahora que los datos se conservan.** El despliegue
-#    permanente está hecho —Angular en `MikeMaki1763/literalevel-front` y
-#    API/motor en `MikeMaki1763/literalevel`, en Hugging Face Spaces,
-#    público y en marcha, 7 USD/mes de cuenta Pro— y desde el 10 de septiembre
-#    de 2026 la estantería, el avance, el cuaderno y el perfil del lector viven
-#    en un bucket montado en `/data` y sobreviven a un reinicio. Lo que sigue
+#    permanente está hecho —Angular en Vercel (`pleyade-app.vercel.app`, gratis),
+#    con respaldo en `MikeMaki1763/literalevel-front`, y API/motor en
+#    `MikeMaki1763/literalevel`, en Hugging Face Spaces, 7 USD/mes de cuenta
+#    Pro— y desde el 10 de septiembre de 2026 la estantería, el avance, el
+#    cuaderno y el perfil del lector viven en un bucket montado en `/data` y
+#    sobreviven a un reinicio; desde el 26, con cuenta, son de la cuenta y se
+#    ven igual en cualquier aparato. Lo que sigue
 #    siendo cierto es que el servicio se suspende tras 48 h sin visitas y que
 #    el primero en volver paga el arranque. Consumo medido: **1,05 GB de
 #    RSS** con modelo y catálogo cargados, con pico realista de 1,2-1,5 GB, y
@@ -2493,8 +2497,10 @@ plt.show()
 # 4. **Repetir el ciclo de usuario sobre Angular.** Esmeralda y Laura encontraron
 #    problemas de la interfaz anterior; esos ciclos no validan automáticamente
 #    los cambios posteriores. Faltan recorrido con nuevos lectores, ensayo con
-#    micrófono físico y grabación del video. Las portadas FLUX no se generaron;
-#    la demo 3D local no se cuenta como publicada sin verificar su integración.
+#    micrófono físico y grabación del video. Las portadas FLUX no se generaron.
+#    La boca 3D didáctica está publicada desde el 24 de septiembre y se mueve
+#    con un segundo modelo, aprendido de caras reales (documento, §7.8), que
+#    este cuaderno no reproduce.
 #
 # ## 8.5 Usabilidad: cómo se presenta el modelo al usuario
 #
