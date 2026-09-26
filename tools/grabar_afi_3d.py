@@ -85,6 +85,12 @@ def main():
         if a.solo_medir: ctx.close(); nav.close(); srv.shutdown(); return
         pg.wait_for_timeout(1500)
         pg.evaluate('window.__inicios = []')
+        # Marca para casar el reloj de la página con el del vídeo: un destello rojo a pantalla completa.
+        t_destello = pg.evaluate("""() => new Promise(ok => { const d = document.createElement('div');
+          d.style.cssText = 'position:fixed;inset:0;background:#ff0000;z-index:99999';
+          requestAnimationFrame(() => { document.body.appendChild(d); requestAnimationFrame(() => {
+            const t = performance.timeOrigin + performance.now(); setTimeout(() => { d.remove(); ok(t); }, 400); }); }); })""")
+        pg.wait_for_timeout(600)
         for s in sonidos:
             celda = pg.locator(f'.celda:has(strong:text-is("/{s["simbolo"]}/"))').first
             celda.evaluate('b => b.click()'); pg.wait_for_timeout(350)
@@ -103,6 +109,15 @@ def main():
         recorte = (int(caja['width'] * 2), int((caja['height'] + 70) * 2), int(caja['x'] * 2), int(caja['y'] * 2))
         ctx.close(); nav.close()
     srv.shutdown()
+    # Dónde cae el destello en el vídeo (primer fotograma casi todo rojo).
+    import numpy as np
+    raw = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-loglevel', 'error', '-i', video, '-vf', 'fps=50,scale=16:16',
+                          '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], capture_output=True).stdout
+    fr = np.frombuffer(raw, np.uint8).reshape(-1, 16, 16, 3).astype(int)
+    rojos = [i for i, f in enumerate(fr) if f[..., 0].mean() > 200 and f[..., 1].mean() < 60]
+    t0_video = rojos[0] / 50 * 1000   # ms del vídeo en que la página marcó t_destello
+    print('destello en el vídeo a', t0_video, 'ms', flush=True)
+    t_video = t_destello - t0_video
     # Audio: cada mp3 en su sitio.
     entradas, filtros = [], []
     for i, (simbolo, t) in enumerate(tiempos):
