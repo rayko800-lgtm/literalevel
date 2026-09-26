@@ -104,9 +104,24 @@ class NoVerbal(nn.Module):
         return self.salida(self.tronco(voz, art, fon, extra))
 
     @torch.no_grad()
-    def muestrear(self, voz, art, fon, estilo=None, pasos=32, guia=1.5, generador=None):
-        """Euler desde ruido N(0,1) hasta la muestra; guía sin clasificador sobre la voz."""
+    def muestrear(self, voz, art, fon, estilo=None, pasos=32, guia=1.5, generador=None, ventana=500, solape=50):
+        """Euler desde ruido N(0,1) hasta la muestra; guía sin clasificador sobre la voz. Las secuencias
+        más largas que `ventana` se muestrean por trozos con fundido lineal de `solape` fotogramas."""
         B, T = voz.shape[:2]
+        if T > ventana:
+            out = torch.zeros(B, T, self.c, device=voz.device); peso = torch.zeros(1, T, 1, device=voz.device)
+            for i in range(0, max(1, T - solape), ventana - solape):
+                j = min(T, i + ventana)
+                x = self.muestrear(voz[:, i:j], art[:, i:j], fon[:, i:j], estilo, pasos, guia, generador, ventana, solape)
+                w = torch.ones(1, j - i, 1, device=voz.device)
+                if i > 0:
+                    w[:, :solape] = torch.linspace(0, 1, solape, device=voz.device)[None, :, None]
+                if j < T:
+                    w[:, -solape:] = torch.linspace(1, 0, solape, device=voz.device)[None, :, None]
+                out[:, i:j] += x * w; peso[:, i:j] += w
+                if j == T:
+                    break
+            return out / peso.clamp(min=1e-6)
         x = torch.randn(B, T, self.c, generator=generador, device=voz.device)
         for i in range(pasos):
             t = torch.full((B,), i / pasos, device=voz.device)

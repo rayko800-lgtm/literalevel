@@ -42,7 +42,7 @@ V2C=/content/drive/MyDrive/literalevel_cara/voz2cara
 V3=$V2C/v3
 D=/content/datos
 S=/content/tools/cara_parlante
-N_PROC=${N_PROC:-4}
+N_PROC=${N_PROC:-6}
 CODIFICADOR=${CODIFICADOR:-hubert-large}
 mkdir -p $D/medidas/obama $D/cache $V3/smirk/obama $V3/smirk/1kh $V3/voz/obama $V3/voz/1kh $V3/art $V3/boca $V3/noverbal $CB/audio
 paso() { echo "### $1"; }
@@ -72,7 +72,10 @@ for f in sorted(glob.glob('/content/datos/medidas/obama/*.npz')):
 print(','.join(out))
 EOF
 )
-python -u $S/voz3/etiquetar_smirk.py --medidas $D/medidas/obama --videos $CB/videos --salida $V3/smirk/obama $SM --lista "$LISTA" || falla "piloto SMIRK"
+for i in $(seq 1 $N_PROC); do
+  python -u $S/voz3/etiquetar_smirk.py --medidas $D/medidas/obama --videos $CB/videos --salida $V3/smirk/obama $SM --lista "$LISTA" --parte $i/$N_PROC > /content/smirk_piloto_$i.log 2>&1 &
+done; wait
+grep -h "listo:" /content/smirk_piloto_*.log
 python -u $S/voz3/fiabilidad.py --smirk $V3/smirk/obama --medidas $D/medidas/obama --salida $V3/fiabilidad_piloto.json | tail -n 8
 [ "${SOLO_PILOTO:-0}" = "1" ] && { paso "FIN (solo piloto)"; exit 0; }
 
@@ -123,7 +126,7 @@ from google.colab import drive
 drive.mount('/content/drive')"""),
 ('code', """# --- 2. Escribir los guiones y lanzar todo
 SOLO_PILOTO = 0      # 1: parar tras el piloto de fiabilidad (1 h de Obama) y mirar fiabilidad_piloto.json
-N_PROC = 4           # procesos de etiquetado SMIRK a la vez (MediaPipe va en CPU)
+N_PROC = 6           # procesos de etiquetado SMIRK a la vez (MediaPipe va en CPU; el A100 High-RAM tiene 12 vCPU)
 CODIFICADOR = 'hubert-large'   # o 'wavlm-large'
 import base64, os, subprocess, torch
 print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NINGUNA')

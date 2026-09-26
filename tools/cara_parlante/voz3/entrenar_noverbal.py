@@ -9,8 +9,9 @@ condicionada por la voz (HuBERT, suma de capas), «habla» + articulación, y un
 (sd de cada canal en el clip: cuánto se mueve ese hablante), que se apaga el 20 % de las veces
 para poder muestrear sin él. La voz se apaga el 10 % para la guía sin clasificador.
 
-Validación (EMA, semilla fija): pérdida de flujo; y sobre una muestra por clip (Euler 32 pasos):
-r por grupo (orientativo), FDD (distancia de Fréchet, covarianza diagonal, entre la sd por clip
+Validación (EMA, semilla fija) sobre hasta 4 ventanas de 10 s por clip: pérdida de flujo; y sobre una
+muestra por ventana (Euler 32 pasos):
+r por grupo (orientativo), FDD (distancia de Fréchet, covarianza diagonal, entre la sd por ventana
 de cada canal real y generada), diversidad (RMS entre dos semillas, en sd) y alineación con los
 golpes de voz (picos de subida de dB del .npz de medidas vs mínimos de velocidad de la cabeza;
 se da también la de las caras reales como referencia). El mejor modelo es el de menor pérdida
@@ -19,7 +20,7 @@ informe.json, progreso.json y ultimo.pt (reanuda solo).
 
 Uso: python entrenar_noverbal.py --voz DIR --art DIR --smirk DIR --medidas DIR --mapa mapa_arkit.json
         --salida DIR [--cache DIR] [--epocas 300] [--paciencia 30] [--lote 48] [--lr 3e-4]
-        [--capas_usar ...] [--voz_en_gpu] [--max_horas 0] [--d 256 --capas 4] [--pasos 32] [--guia 1.5]
+        [--capas_usar ...] [--voz_en_gpu] [--max_horas 0] [--d 256 --capas 4] [--pasos 32] [--guia 1.5] [--ventanas_val 4]
 """
 import argparse
 import copy
@@ -93,6 +94,7 @@ def main():
     ap.add_argument('--max_horas', type=float, default=0)
     ap.add_argument('--d', type=int, default=256); ap.add_argument('--capas', type=int, default=4)
     ap.add_argument('--pasos', type=int, default=32); ap.add_argument('--guia', type=float, default=1.5)
+    ap.add_argument('--ventanas_val', type=int, default=4, help='ventanas de validación por clip')
     ap.add_argument('--dispositivo', default='cuda' if torch.cuda.is_available() else 'cpu')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
@@ -117,7 +119,20 @@ def main():
         m = datos.m[i:i + D.L]
         estilos[j] = (datos.y[i:i + D.L][m] / sd).std(0) if m.sum() > 10 else 1.0
     estilos_t = torch.from_numpy(estilos)
-    estilos_val = [((c['y'][c['ok']] / sd).std(0)).astype(np.float32) for c in datos.val]
+    # validación: hasta --ventanas_val ventanas de L por clip (repartidas), evaluadas por lotes; un
+    # discurso entero de 30 min no puede muestrearse con atención completa
+    V = []
+    for c in datos.val:
+        est = ((c['y'][c['ok']] / sd).std(0)).astype(np.float32)
+        n = len(c['ok'])
+        if n < D.L:
+            continue
+        for i in np.linspace(0, n - D.L, min(a.ventanas_val, max(1, n // D.L))).astype(int):
+            V.append((c, int(i), est))
+    Vx1 = torch.from_numpy(np.stack([c['y'][i:i + D.L] / sd for c, i, _ in V]).astype(np.float32))
+    Vm = torch.from_numpy(np.stack([c['ok'][i:i + D.L] for c, i, _ in V]))
+    Vest = torch.from_numpy(np.stack([e for _, _, e in V]))
+    Vdb = [c['db'][i:i + D.L] if c['db'] is not None else None for c, i, _ in V]
     rng = np.random.default_rng(0)
     muestra_estilos = estilos[rng.choice(len(estilos), min(16, len(estilos)), replace=False)].tolist()
 
@@ -143,57 +158,57 @@ def main():
                'estilo_medio': estilos.mean(0).tolist()},
               open(os.path.join(a.salida, 'normalizacion.json'), 'w'))
     inicios = torch.from_numpy(datos.inicios)
+    print(f'validación: {len(V)} ventanas de {D.L} fotogramas de {len(datos.val)} clips', flush=True)
 
-    def tensores_clip(c):
-        tv = torch.from_numpy(c['voz'].astype(np.float32)).to(dev)[None]
-        ta = torch.from_numpy(c['art'].astype(np.float32)).to(dev)[None]
-        return tv, ta, torch.from_numpy(c['fon']).to(dev)[None]
+    def lote_val(j0, j1):
+        vs = [V[j] for j in range(j0, min(j1, len(V)))]
+        tv = torch.from_numpy(np.stack([c['voz'][i:i + D.L] for c, i, _ in vs]).astype(np.float32)).to(dev)
+        ta = torch.from_numpy(np.stack([c['art'][i:i + D.L] for c, i, _ in vs]).astype(np.float32)).to(dev)
+        tf = torch.from_numpy(np.stack([c['fon'][i:i + D.L] for c, i, _ in vs])).to(dev)
+        return tv, ta, tf, Vest[j0:j1].to(dev)
 
     def perdida_val(modelo):
         """Pérdida de flujo en las ventanas de validación con t y ruido fijos (semilla)."""
         g = torch.Generator(device=dev).manual_seed(1)
         tot, n = 0.0, 0
         with torch.no_grad(), torch.autocast('cuda' if gpu else 'cpu', dtype=tipo, enabled=gpu):
-            for c, est in zip(datos.val, estilos_val):
-                for k in range(0, len(c['ok']) - D.L + 1, D.L):
-                    tv, ta, tf = (x[:, k:k + D.L] for x in tensores_clip(c))
-                    x1 = torch.from_numpy(c['y'][k:k + D.L] / sd).to(dev)[None].float()
-                    m = torch.from_numpy(c['ok'][k:k + D.L]).to(dev)[None, :, None].float()
-                    x0 = torch.randn(x1.shape, generator=g, device=dev); t = torch.rand(1, generator=g, device=dev)
-                    xt = (1 - t)[:, None, None] * x0 + t[:, None, None] * x1
-                    v = modelo(xt, t, tv, ta, tf, torch.from_numpy(est).to(dev)[None]).float()
-                    tot += (((v - (x1 - x0)) ** 2) * m).sum().item() / C; n += m.sum().item()
+            for j in range(0, len(V), a.lote):
+                tv, ta, tf, est = lote_val(j, j + a.lote)
+                x1 = Vx1[j:j + a.lote].to(dev); m = Vm[j:j + a.lote].to(dev)[..., None].float()
+                x0 = torch.randn(x1.shape, generator=g, device=dev); t = torch.rand(x1.shape[0], generator=g, device=dev)
+                xt = (1 - t)[:, None, None] * x0 + t[:, None, None] * x1
+                v = modelo(xt, t, tv, ta, tf, est).float()
+                tot += (((v - (x1 - x0)) ** 2) * m).sum().item() / C; n += m.sum().item()
         return tot / max(n, 1)
 
     def muestras(modelo, semilla):
+        """Una muestra por ventana de validación [N, L, C] en unidades reales."""
         g = torch.Generator(device=dev).manual_seed(semilla)
         out = []
         with torch.no_grad(), torch.autocast('cuda' if gpu else 'cpu', dtype=tipo, enabled=gpu):
-            for c, est in zip(datos.val, estilos_val):
-                tv, ta, tf = tensores_clip(c)
-                x = modelo.muestrear(tv, ta, tf, torch.from_numpy(est).to(dev)[None], a.pasos, a.guia, g)
-                out.append(x[0].float().cpu().numpy() * sd)
-        return out
+            for j in range(0, len(V), a.lote):
+                tv, ta, tf, est = lote_val(j, j + a.lote)
+                out.append(modelo.muestrear(tv, ta, tf, est, a.pasos, a.guia, g).float().cpu().numpy())
+        return np.concatenate(out) * sd
 
     def evaluar(modelo, ep):
         pv = perdida_val(modelo)
         S1, S2 = muestras(modelo, 1), muestras(modelo, 2)
-        P = np.concatenate([s[c['ok']] for s, c in zip(S1, datos.val)])
-        T = np.concatenate([c['y'][c['ok']] for c in datos.val])
-        r = R.correlaciones(P, T, COLUMNAS)
-        din_real = np.stack([(c['y'][c['ok']] / sd).std(0) for c in datos.val])
-        din_gen = np.stack([(s[c['ok']] / sd).std(0) for s, c in zip(S1, datos.val)])
-        div = float(np.mean([np.sqrt(np.mean(((s1 - s2) / sd) ** 2)) for s1, s2 in zip(S1, S2)]))
+        Y = Vx1.numpy() * sd; M = Vm.numpy()
+        r = R.correlaciones(S1[M], Y[M], COLUMNAS)
+        din_real = np.stack([(Y[j][M[j]] / sd).std(0) for j in range(len(V)) if M[j].sum() > 10])
+        din_gen = np.stack([(S1[j][M[j]] / sd).std(0) for j in range(len(V)) if M[j].sum() > 10])
+        div = float(np.sqrt(np.mean(((S1 - S2) / sd) ** 2)))
         al_gen, al_real = [], []
-        for s, c in zip(S1, datos.val):
-            if c['db'] is not None:
-                gv = golpes_voz(c['db'])
-                al_gen.append(alineacion(s[:, CABEZA], gv)); al_real.append(alineacion(c['y'][:, CABEZA], gv))
+        for j, db in enumerate(Vdb):
+            if db is not None:
+                gv = golpes_voz(db)
+                al_gen.append(alineacion(S1[j][:, CABEZA], gv)); al_real.append(alineacion(Y[j][:, CABEZA], gv))
         return {'epocas_hechas': ep, 'perdida_val': round(pv, 4), 'r_grupos': R.media_grupos(r, GRUPOS, COLUMNAS), 'r': r,
                 'fdd': round(frechet_diagonal(din_real, din_gen), 4), 'diversidad': round(div, 3),
                 'alineacion_golpes': {'red': round(float(np.nanmean(al_gen)), 3) if al_gen else None,
                                       'real': round(float(np.nanmean(al_real)), 3) if al_real else None},
-                'clips_validacion': len(datos.val), 'ventanas_entrenamiento': int(len(inicios)),
+                'clips_validacion': len(datos.val), 'ventanas_validacion': len(V), 'ventanas_entrenamiento': int(len(inicios)),
                 'horas_entrenamiento': round(datos.horas, 2), 'pesos_capas': modelo.tronco.voz.pesos_capas()}
 
     for ep in range(ep0, a.epocas):
