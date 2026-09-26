@@ -1,4 +1,8 @@
-"""Publica el build de Angular en Vercel (proyecto `pleyade`), el mismo que va al Space.
+"""Publica a mano el build de Angular en Vercel (proyecto `pleyade`), el mismo que va al Space.
+
+Lo normal es que publique GitHub: cada push a master construye `front/` en
+Vercel (`front/vercel.json`). Este guion es la via manual y de respaldo, con
+las comprobaciones de siempre.
 
     python tools/desplegar_vercel.py --seco   # build y carpeta preparada, sin subir
     python tools/desplegar_vercel.py          # sube y lo pone en produccion
@@ -49,11 +53,17 @@ CABECERAS = {
 
 
 def preparar(contenidos, destino: Path) -> None:
+    """El proyecto construye desde `front/` cuando llega de GitHub. Aqui el build ya
+    esta hecho y revisado: se sube como `front/sitio` con un vercel.json que no
+    instala ni construye nada y solo sirve esa carpeta."""
+    raiz = destino / "front"
     for rel, contenido in contenidos.items():
-        ruta = destino / rel
+        ruta = raiz / "sitio" / rel
         ruta.parent.mkdir(parents=True, exist_ok=True)
         ruta.write_bytes(contenido)
-    (destino / "vercel.json").write_text(json.dumps(CABECERAS, indent=2), encoding="utf-8")
+    config = {"installCommand": "echo sin instalar", "buildCommand": "echo ya construido",
+              "outputDirectory": "sitio", "framework": None, **CABECERAS}
+    (raiz / "vercel.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
 
 
 def main(argv=None):
