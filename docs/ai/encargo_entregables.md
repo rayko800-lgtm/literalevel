@@ -118,5 +118,6 @@ y los desbordes que quedan son de menos de 3 pt o no se ven.
   vídeo y ensayar la demo (poner el perfil 1,20 en la cuenta y volver a medirse después).
 - Declarado como hueco en los documentos: el contraste del tema de la marca sobre la galaxia,
   el tiempo de carga de la boca 3D en Vercel y la prueba con lectores del front nuevo (A8).
-- Detalle de la app, sin tocar porque la tarea es solo de documentos: la bienvenida todavía
-  enseña una «L» (`front/src/app/compartido/bienvenida.ts:22`).
+- ~~La bienvenida enseñaba una «L»~~: la cambió literalevel-f3 por el icono de Pléyade
+  (`2b37573`, publicado). Ninguna de las 22 capturas muestra esa tarjeta, así que no hay
+  que rehacer ninguna.

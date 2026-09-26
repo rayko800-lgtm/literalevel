@@ -28,8 +28,8 @@ puntos en juego, no por comodidad.
 - **Abierto, declarado en el documento:** contraste del tema de la marca sobre la
   galaxia sin medir; tiempo de carga de la boca 3D en Vercel sin medir; Eos en
   desarrollo, fuera de la entrega; prueba de usuario sobre el front nuevo (A8).
-- **Detalle visto al hacer las capturas:** la tarjeta de bienvenida («1 de 4»)
-  todavía enseña una «L» como icono, no el emblema de Pléyade.
+- **Detalle visto al hacer las capturas:** la «L» de la tarjeta de bienvenida ya es
+  el icono de Pléyade (commit `2b37573`, literalevel-f3, publicado el 26 sep).
 
 ## Estado al 14 de septiembre (histórico)
 
