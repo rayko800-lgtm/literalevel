@@ -297,6 +297,42 @@ def con_perfiles_sin_entrar_no_paga():
     return "403 sin entrar; la sesion es de B"
 
 
+def datos_de_la_cuenta_en_cualquier_aparato():
+    """Miguel, 26 sep: con la misma cuenta, el movil y la tablet eran dos lectores.
+    Con cuenta, los datos son de la cuenta; al salir, vuelve lo del navegador."""
+    os.environ["LITERALEVEL_CUENTAS"] = "Profe:una-clave-larga:3,ana:otra-clave-larga:3"
+    movil, tablet, ajeno = nuevo_lector(), nuevo_lector(), nuevo_lector()
+    try:
+        # Lo que el movil tenia ANTES de entrar se queda en el navegador (las cuentas empiezan en cero).
+        _ok(cliente.post("/api/perfil/cuestionario", headers=movil,
+                         json={"respuestas": {"fragmento_medio": 0.4}, "nombre": "Antes"}))
+        assert _ok(cliente.post("/api/entrar", headers=movil,
+                                json={"usuario": "profe", "clave": "una-clave-larga"}))["dentro"]
+        assert _ok(cliente.get("/api/perfil", headers=movil))["perfil"] is None, "la cuenta no empieza en cero"
+        _ok(cliente.post("/api/perfil/cuestionario", headers=movil,
+                         json={"respuestas": {"fragmento_medio": 1.5}, "nombre": "Miguel"}))
+        # Otro aparato, misma cuenta (el usuario no distingue mayusculas): lo ve.
+        assert _ok(cliente.post("/api/entrar", headers=tablet,
+                                json={"usuario": "PROFE", "clave": "una-clave-larga"}))["dentro"]
+        pt = _ok(cliente.get("/api/perfil", headers=tablet))["perfil"]
+        assert pt and pt["nivel"] == 1.5 and pt["nombre"] == "Miguel", pt
+        # Otra cuenta no lo ve.
+        _ok(cliente.post("/api/entrar", headers=ajeno, json={"usuario": "ana", "clave": "otra-clave-larga"}))
+        assert _ok(cliente.get("/api/perfil", headers=ajeno))["perfil"] is None
+        # La atadura sobrevive a un reinicio (sin la sesion de pago en memoria).
+        ui._CODIGO_SESION.clear(); ui._reiniciar_ataduras()
+        pt = _ok(cliente.get("/api/perfil", headers=tablet))["perfil"]
+        assert pt and pt["nivel"] == 1.5, f"tras reiniciar: {pt}"
+        assert "una-clave-larga" not in (ui.BASE_DATOS_LECTOR / ui._ARCHIVO_ATADURAS).read_text(encoding="utf-8")
+        # Al salir, el movil vuelve a lo suyo de antes.
+        _ok(cliente.post("/api/salir", headers=movil))
+        pm = _ok(cliente.get("/api/perfil", headers=movil))["perfil"]
+        assert pm and pm["nombre"] == "Antes", pm
+    finally:
+        os.environ.pop("LITERALEVEL_CUENTAS", None)
+    return "cuenta compartida entre aparatos, aislada entre cuentas"
+
+
 # --- Varios --------------------------------------------------------------------
 
 def audio_y_fonemas_sin_traversal():
@@ -1978,7 +2014,8 @@ if __name__ == "__main__":
                progreso_fuera_de_rango, subir_txt_y_solo_lo_ve_quien_lo_subio,
                palabra_sin_clave_no_sale_a_la_red, palabra_larguisima_y_frase,
                cuaderno_aislado, lo_de_pago_sin_clave_no_cobra_ni_gasta_ficha,
-               con_perfiles_sin_entrar_no_paga, audio_y_fonemas_sin_traversal,
+               con_perfiles_sin_entrar_no_paga, datos_de_la_cuenta_en_cualquier_aparato,
+               audio_y_fonemas_sin_traversal,
                estado_sin_rutas, curva_de_libro_sin_medir, cors_del_front,
                libro_con_licencia_abre_en_la_obra, cuento_de_parrafos_cortos_no_pierde_el_principio,
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,

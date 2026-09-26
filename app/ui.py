@@ -375,7 +375,88 @@ def _dir_lector(peticion=None) -> Path:
     sesion = getattr(peticion, "session_hash", None) if peticion is not None else None
     propio = _lector_de_sesion(sesion)
     limpio = propio or (_SESION_SEGURA.sub("", str(sesion))[:64] if sesion else "")
+    # Con cuenta, los datos son de la CUENTA y no del navegador (Miguel, 26 sep:
+    # en el movil y en la tablet, con la misma cuenta, veia dos lectores).
+    cuenta = _cuenta_atada(limpio)
+    if cuenta:
+        return BASE_DATOS_LECTOR / "cuentas" / cuenta
     return BASE_DATOS_LECTOR / "lectores" / (limpio or "anonimo")
+
+
+# --- Datos por cuenta -------------------------------------------------------
+# Al entrar con usuario y contrasena, el navegador queda ATADO a la cuenta, y
+# `_dir_lector` le da la carpeta `cuentas/<nombre>`: la misma desde cualquier
+# aparato. Sin cuenta, todo sigue como antes, por navegador. Las cuentas
+# empezaron en cero el 26 sep: lo guardado antes en cada navegador se queda en
+# `lectores/<id>` y no se copia (decision de Miguel).
+#
+# La atadura se guarda en disco (el bucket de /data en el Space) y no solo en
+# memoria, como la sesion de pago: tras un reinicio del Space el lector sigue
+# viendo lo de su cuenta aunque para lo que cuesta dinero tenga que volver a
+# entrar. En disco va solo el NOMBRE de la cuenta, nunca la contrasena.
+_ARCHIVO_ATADURAS = "cuentas_atadas.json"
+_ATADURAS: dict[str, str] | None = None
+_CANDADO_ATADURAS = threading.Lock()
+
+
+def _nombre_cuenta(nombre: str | None) -> str:
+    return _SESION_SEGURA.sub("", str(nombre or "").strip().lower())[:64]
+
+
+def _ataduras() -> dict[str, str]:
+    """Carga perezosa: la base de datos puede cambiar entre pruebas."""
+    global _ATADURAS
+    if _ATADURAS is None:
+        try:
+            crudo = json.loads((BASE_DATOS_LECTOR / _ARCHIVO_ATADURAS).read_text(encoding="utf-8"))
+            _ATADURAS = {str(k): _nombre_cuenta(v) for k, v in crudo.items() if _nombre_cuenta(v)}
+        except (OSError, ValueError, AttributeError):
+            _ATADURAS = {}
+    return _ATADURAS
+
+
+def _guardar_ataduras() -> None:
+    ruta = BASE_DATOS_LECTOR / _ARCHIVO_ATADURAS
+    try:
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        tmp = ruta.with_suffix(".tmp")
+        tmp.write_text(json.dumps(_ATADURAS or {}, ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, ruta)
+    except OSError as e:
+        print(f"_guardar_ataduras: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def _cuenta_atada(lector: str | None) -> str | None:
+    if not lector:
+        return None
+    with _CANDADO_ATADURAS:
+        return _ataduras().get(str(lector))
+
+
+def _atar_cuenta(peticion, nombre: str | None) -> None:
+    """Ata (o, con `nombre` vacio, desata) este navegador a una cuenta."""
+    if not EN_LA_NUBE:
+        return
+    lector = _sesion_de(peticion)
+    if not lector or lector == "local":
+        return
+    limpio = _nombre_cuenta(nombre)
+    with _CANDADO_ATADURAS:
+        tabla = _ataduras()
+        if limpio:
+            if tabla.get(lector) == limpio:
+                return
+            tabla[lector] = limpio
+        elif tabla.pop(lector, None) is None:
+            return
+        _guardar_ataduras()
+
+
+def _reiniciar_ataduras() -> None:
+    """Solo para las pruebas: olvida lo cargado de disco."""
+    global _ATADURAS
+    with _CANDADO_ATADURAS:
+        _ATADURAS = None
 
 
 def _lector_de_sesion(sesion) -> str | None:
@@ -663,6 +744,7 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
         if c is None:
             with _CANDADO_CODIGO:
                 _CODIGO_SESION.pop(_sesion_de(peticion), None)
+            _atar_cuenta(peticion, None)
             # La ficha la gasta el que falla, no el que entra: una de cada cubo.
             _dentro_del_limite(peticion, "entrar", LIMITE_INTENTOS_ENTRAR)
             _dentro_del_limite(peticion, "entrar-usuario", LIMITE_INTENTOS_USUARIO,
@@ -671,6 +753,7 @@ def _entrar(usuario: str, clave: str, peticion: gr.Request = None) -> str:
                     "se distinguen mayúsculas en la contraseña, no en el usuario.")
         with _CANDADO_CODIGO:
             _CODIGO_SESION[_sesion_de(peticion)] = f"{usuario.strip()}:{clave.strip()}"
+        _atar_cuenta(peticion, c.nombre)
         resto = cuentas.queda(BASE_DATOS_LECTOR, c)
     except Exception as e:
         # El detalle va al registro del Space y NO a la pantalla: aqui, a
@@ -716,6 +799,7 @@ def _estado_de_entrada(peticion: gr.Request = None) -> str:
             # El secreto del Space pudo cambiar con la sesion viva.
             with _CANDADO_CODIGO:
                 _CODIGO_SESION.pop(_sesion_de(peticion), None)
+            _atar_cuenta(peticion, None)
             return ""
         return _bienvenida(c, cuentas.queda(BASE_DATOS_LECTOR, c))
     except Exception as e:
@@ -727,6 +811,7 @@ def _salir(peticion: gr.Request = None) -> str:
     """Olvida el perfil de esta sesion. Util en un ordenador compartido."""
     with _CANDADO_CODIGO:
         _CODIGO_SESION.pop(_sesion_de(peticion), None)
+    _atar_cuenta(peticion, None)
     return "Has salido. Lo gratuito sigue funcionando."
 
 

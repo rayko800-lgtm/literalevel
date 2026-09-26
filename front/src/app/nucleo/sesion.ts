@@ -110,6 +110,13 @@ export class Sesion {
     this.libros.clear();
   }
 
+  /** Entrar o salir cambia de QUIÉN son los datos (26 sep: con cuenta, los de la
+   *  cuenta en cualquier aparato; sin ella, los del navegador): fuera lo cacheado. */
+  async cambioDeCuenta(): Promise<void> {
+    this.libros.clear();
+    await this.refrescar();
+  }
+
   /** El índice y la ficha de un libro se piden una vez por visita. */
   libro(id: string, forzar = false): Promise<Libro> {
     if (forzar || !this.libros.has(id)) {

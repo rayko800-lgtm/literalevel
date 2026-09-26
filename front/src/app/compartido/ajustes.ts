@@ -221,7 +221,10 @@ export class Ajustes {
       const e = await firstValueFrom(this.api.entrar(this.usuario, this.clave));
       this.sesion.entrada.set(e);
       this.mensaje.set(e.mensaje);
-      if (e.dentro) this.clave = '';
+      if (e.dentro) {
+        this.clave = '';
+        await this.sesion.cambioDeCuenta();
+      }
     } catch (err) {
       this.mensaje.set(mensajeError(err));
     } finally {
@@ -243,6 +246,7 @@ export class Ajustes {
     try {
       this.sesion.entrada.set(await firstValueFrom(this.api.salir()));
       this.mensaje.set('');
+      await this.sesion.cambioDeCuenta();
     } catch (err) {
       this.mensaje.set(mensajeError(err));
     }
