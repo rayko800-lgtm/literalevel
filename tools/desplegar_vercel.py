@@ -35,7 +35,7 @@ except ImportError:
 
 PROYECTO = "pleyade"
 EQUIPO = "mike-d120"
-DOMINIO = "https://pleyade.vercel.app"
+DOMINIO = "https://pleyade-app.vercel.app"   # `pleyade.vercel.app` ya era de otro
 
 CABECERAS = {
     "headers": [

@@ -88,7 +88,8 @@ app = FastAPI(
 )
 
 # El front vive en otro origen: `ng serve` en local, un Space estatico y, desde
-# el 26 sep, Vercel (`pleyade.vercel.app`, solo su dominio de produccion). Sin credenciales -la identidad va en una cabecera propia, no en
+# el 26 sep, Vercel (`pleyade-app.vercel.app`; `pleyade.vercel.app` ya era de
+# otro, y Vercel dio tambien `pleyade-phi`). Solo esos dominios exactos. Sin credenciales -la identidad va en una cabecera propia, no en
 # una cookie-, asi que un origen de mas no abre la puerta a leer datos ajenos.
 _ORIGENES = [o.strip() for o in os.environ.get("LITERALEVEL_ORIGENES", "").split(",")
              if o.strip()]
@@ -96,7 +97,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_ORIGENES,
     allow_origin_regex=(r"^(https://[a-z0-9-]+\.(static\.)?hf\.space"
-                        r"|https://pleyade\.vercel\.app"
+                        r"|https://pleyade-(app|phi)\.vercel\.app"
                         r"|http://(localhost|127\.0\.0\.1)(:\d+)?)$"),
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE"],

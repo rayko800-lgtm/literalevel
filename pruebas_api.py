@@ -385,14 +385,14 @@ def cors_del_front():
         "Access-Control-Request-Headers": "x-lector"})
     assert r.headers.get("access-control-allow-origin"), r.headers
     r = cliente.options("/api/salud", headers={
-        "Origin": "https://pleyade.vercel.app", "Access-Control-Request-Method": "GET",
+        "Origin": "https://pleyade-app.vercel.app", "Access-Control-Request-Method": "GET",
         "Access-Control-Request-Headers": "x-lector"})
-    assert r.headers.get("access-control-allow-origin") == "https://pleyade.vercel.app", r.headers
-    for ajeno in ("https://malicioso.example.com", "https://otro.vercel.app",
-                  "https://pleyade.vercel.app.malicioso.com"):
+    assert r.headers.get("access-control-allow-origin") == "https://pleyade-app.vercel.app", r.headers
+    for ajeno in ("https://malicioso.example.com", "https://otro.vercel.app", "https://pleyade.vercel.app",
+                  "https://pleyade-app.vercel.app.malicioso.com", "https://pleyade-otro.vercel.app"):
         r = cliente.options("/api/salud", headers={"Origin": ajeno, "Access-Control-Request-Method": "GET"})
         assert not r.headers.get("access-control-allow-origin"), ajeno
-    return "static.hf.space y pleyade.vercel.app sí, otros no"
+    return "static.hf.space y pleyade-app.vercel.app sí, otros no"
 
 
 def libro_con_licencia_abre_en_la_obra():
