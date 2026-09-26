@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eos · Pléyade</title>
+<style>
+  :root { --azul: #0b1840; --azul2: #16296b; --oro-rosa: #e7a98c; --oro: #f3c768; --texto: #f6ece4; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 35%, #25397f 0%, var(--azul) 55%, #050a1f 100%); color: var(--texto); font-family: Georgia, 'Times New Roman', serif; overflow: hidden; }
+  canvas { display: block; }
+  #ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+  #subt { min-height: 2.6em; max-width: 760px; text-align: center; font-size: clamp(16px, 2.4vw, 22px); line-height: 1.3; text-shadow: 0 1px 6px #000a; }
+  #subt .ya { color: var(--oro); }
+  #barra { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; pointer-events: auto; }
+  button, select { font: inherit; font-size: 15px; background: #0b1840cc; color: var(--texto); border: 1px solid var(--oro-rosa); border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+  button:hover { background: var(--azul2); }
+  #titulo { position: fixed; top: 14px; left: 0; right: 0; text-align: center; letter-spacing: .25em; color: var(--oro-rosa); font-size: 15px; }
+  #estado { position: fixed; top: 38px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .7; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="titulo">PLÉYADE · EOS</div>
+<div id="estado">cargando…</div>
+<div id="ui">
+  <div id="subt"></div>
+  <div id="barra">
+    <select id="clip"></select>
+    <button id="hablar">▶ Hablar</button>
+    <button id="lentes">Gafas</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const CLIPS = await fetch('clips.json').then(r => r.json());   // [{id, titulo}]
+const estado = document.getElementById('estado');
+const subt = document.getElementById('subt');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+// luz de amanecer: una llave cálida alta a un lado, relleno frío y un contraluz dorado
+const llave = new THREE.DirectionalLight(0xffd6a8, 2.6); llave.position.set(0.6, 1.9, 1.2); scene.add(llave);
+const relleno = new THREE.DirectionalLight(0xbfd0ff, 0.7); relleno.position.set(-1.2, 1.5, 0.8); scene.add(relleno);
+const contra = new THREE.DirectionalLight(0xffc36b, 2.2); contra.position.set(-0.4, 2.0, -1.2); scene.add(contra);
+
+const camara = new THREE.PerspectiveCamera(22, innerWidth / innerHeight, 0.01, 50);
+const controles = new OrbitControls(camara, renderer.domElement);
+controles.enableDamping = true;
+
+const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
+const cargador = new GLTFLoader().setDRACOLoader(draco);
+
+const gltf = await cargador.loadAsync('eos.glb');
+const eos = gltf.scene; scene.add(eos);
+const morphs = [];            // [{mesh, dict}]
+let cabeza = null;
+eos.traverse(o => {
+  if (o.isMesh && o.morphTargetDictionary) morphs.push(o);
+  if (o.isBone && !cabeza && /^head$/i.test(o.name)) cabeza = o;
+  if (o.isMesh) o.frustumCulled = false;
+});
+// encuadre: la cabeza (el hueso, o el punto más alto del modelo)
+const caja = new THREE.Box3().setFromObject(eos);
+const centro = new THREE.Vector3();
+if (cabeza) cabeza.getWorldPosition(centro); else { caja.getCenter(centro); centro.y = caja.max.y - 0.12; }
+centro.y += 0.03;
+controles.target.copy(centro);
+camara.position.set(centro.x, centro.y + 0.02, centro.z + 0.95);
+controles.update();
+const cabezaBase = cabeza ? cabeza.quaternion.clone() : null;
+
+// gafas: se cuelgan del hueso de la cabeza con la pose de descanso
+let gafas = null;
+try {
+  gafas = (await cargador.loadAsync('gafas.glb')).scene;
+  if (cabeza) {
+    const inv = new THREE.Matrix4().copy(cabeza.matrixWorld).invert();
+    gafas.applyMatrix4(inv); cabeza.add(gafas);
+  } else scene.add(gafas);
+} catch (e) { console.warn('sin gafas', e); }
+document.getElementById('lentes').onclick = () => { if (gafas) gafas.visible = !gafas.visible; };
+
+function poner(nombre, v) {
+  for (const m of morphs) {
+    const i = m.morphTargetDictionary[nombre];
+    if (i !== undefined) m.morphTargetInfluences[i] = v;
+  }
+}
+
+// reposo con vida: parpadeo y respiración aunque no hable
+let reposoParp = 2 + Math.random() * 2, tReposo = 0;
+function reposo(dt) {
+  tReposo += dt; reposoParp -= dt;
+  let b = 0;
+  if (reposoParp < 0) { b = Math.max(0, 1 - Math.abs(reposoParp + 0.08) / 0.08); if (reposoParp < -0.16) reposoParp = 2 + Math.random() * 3.5; }
+  poner('eyeBlinkLeft', b); poner('eyeBlinkRight', b);
+  poner('mouthSmileLeft', 0.16); poner('mouthSmileRight', 0.16);
+  poner('cheekSquintLeft', 0.08); poner('cheekSquintRight', 0.08);
+  if (cabeza) {
+    const e = new THREE.Euler(0.02 * Math.sin(tReposo * 0.9), 0.03 * Math.sin(tReposo * 0.37), 0.035, 'YXZ');
+    cabeza.quaternion.copy(cabezaBase).multiply(new THREE.Quaternion().setFromEuler(e));
+  }
+}
+
+let actual = null;   // {datos, audio, t0}
+const ctx = new AudioContext();
+const sel = document.getElementById('clip');
+for (const c of CLIPS) sel.add(new Option(c.titulo, c.id));
+
+document.getElementById('hablar').onclick = async () => {
+  await ctx.resume();
+  const id = sel.value;
+  const [datos, buf] = await Promise.all([
+    fetch(`${id}/curvas.json`).then(r => r.json()),
+    fetch(`${id}/voz.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)),
+  ]);
+  if (actual) actual.fuente.stop();
+  const fuente = ctx.createBufferSource(); fuente.buffer = buf; fuente.connect(ctx.destination);
+  const t0 = ctx.currentTime + 0.05; fuente.start(t0);
+  actual = { datos, fuente, t0 };
+  fuente.onended = () => { if (actual && actual.fuente === fuente) { actual = null; subt.textContent = ''; } };
+};
+
+const reloj = new THREE.Clock();
+function cuadro() {
+  requestAnimationFrame(cuadro);
+  const dt = reloj.getDelta();
+  if (actual) {
+    const { datos } = actual;
+    const t = ctx.currentTime - actual.t0;
+    const f = Math.max(0, Math.min(datos.cabeza.length - 1, t * datos.fps));
+    const i = Math.floor(f), a = f - i, j = Math.min(i + 1, datos.cabeza.length - 1);
+    for (const [n, arr] of Object.entries(datos.curvas)) poner(n, arr[i] * (1 - a) + arr[j] * a);
+    if (cabeza) {
+      const g = datos.cabeza[i].map((v, k) => v * (1 - a) + datos.cabeza[j][k] * a);
+      const e = new THREE.Euler(THREE.MathUtils.degToRad(-g[1]), THREE.MathUtils.degToRad(g[0]), THREE.MathUtils.degToRad(g[2]), 'YXZ');
+      cabeza.quaternion.copy(cabezaBase).multiply(new THREE.Quaternion().setFromEuler(e));
+    }
+    subt.innerHTML = datos.palabras.map(([w, x]) => `<span class="${t >= x ? 'ya' : ''}">${w}</span>`).join(' ');
+  } else reposo(dt);
+  controles.update();
+  renderer.render(scene, camara);
+}
+estado.textContent = `${morphs.length} mallas con gestos · ${Object.keys(morphs[0]?.morphTargetDictionary ?? {}).length} gestos · ${cabeza ? 'cabeza articulada' : 'sin hueso de cabeza'}`;
+cuadro();
+addEventListener('resize', () => { camara.aspect = innerWidth / innerHeight; camara.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+</script>
+</body>
+</html>

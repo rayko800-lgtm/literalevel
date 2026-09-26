@@ -1,0 +1,70 @@
+{
+ "jawOpen": {
+  "media": 0.0342,
+  "sd": 0.0455
+ },
+ "mouthPucker": {
+  "media": 0.0448,
+  "sd": 0.0941
+ },
+ "mouthFunnel": {
+  "media": 0.0052,
+  "sd": 0.0078
+ },
+ "mouthRollLower": {
+  "media": 0.0161,
+  "sd": 0.0194
+ },
+ "mouthPressLeft": {
+  "media": 0.0534,
+  "sd": 0.0477
+ },
+ "mouthPressRight": {
+  "media": 0.0493,
+  "sd": 0.0476
+ },
+ "mouthClose": {
+  "media": 0.0024,
+  "sd": 0.0025
+ },
+ "cheekSquintLeft": {
+  "media": 0.0,
+  "sd": 0.0
+ },
+ "cheekSquintRight": {
+  "media": 0.0,
+  "sd": 0.0
+ },
+ "mouthSmileLeft": {
+  "media": 0.0585,
+  "sd": 0.1075
+ },
+ "mouthSmileRight": {
+  "media": 0.0557,
+  "sd": 0.1036
+ },
+ "browInnerUp": {
+  "media": 0.0424,
+  "sd": 0.0665
+ },
+ "browOuterUpLeft": {
+  "media": 0.075,
+  "sd": 0.0832
+ },
+ "eyeSquintLeft": {
+  "media": 0.4133,
+  "sd": 0.1043
+ },
+ "mouthStretchLeft": {
+  "media": 0.0104,
+  "sd": 0.0165
+ },
+ "mouthLowerDownLeft": {
+  "media": 0.0161,
+  "sd": 0.0325
+ },
+ "mouthUpperUpLeft": {
+  "media": 0.0083,
+  "sd": 0.0212
+ }
+}
