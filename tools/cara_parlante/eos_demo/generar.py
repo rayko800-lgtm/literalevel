@@ -93,6 +93,53 @@ def pulso(n, centros, amp, anchura):
     return y
 
 
+GESTOS = os.path.join(RAIZ, 'investigacion', 'cara_parlante', 'gestos', 'modelo_gestos.json')
+
+
+def gestos(f0, db, fps_in):
+    """El modelo aprendido (entrenar_gestos.py): prosodia → cejas, sonrisa, ojos y cabeza en z.
+    Devuelve {salida: curva} al ritmo de fps_in."""
+    M = json.load(open(GESTOS))
+    W = {k: np.array(v) for k, v in M['pesos'].items()}
+    n = len(f0); g = np.arange(0, n / fps_in, 1 / M['fps'])
+    t = np.arange(n) / fps_in
+    f0g, dbg = np.interp(g, t, f0), np.interp(g, t, db)
+    voz = f0g > 0
+    st = np.where(voz, 12 * np.log2(np.maximum(f0g, 1) / np.median(f0g[voz])), 0)
+    dbn = (dbg - np.median(dbg[voz])) / (dbg[voz].std() + 1e-6)
+    pausa = np.zeros(len(g), bool); i = 0
+    while i < len(g):
+        if not voz[i]:
+            j = i
+            while j < len(g) and not voz[j]:
+                j += 1
+            if j - i >= 0.2 * M['fps']:
+                pausa[i:j] = True
+            i = j
+        else:
+            i += 1
+    dist = np.full(len(g), 1e9); ult = -1e9
+    for i in range(len(g)):
+        ult = i if pausa[i] else ult; dist[i] = i - ult
+    ult = 1e9
+    for i in range(len(g) - 1, -1, -1):
+        ult = i if pausa[i] else ult; dist[i] = min(dist[i], ult - i)
+    x = np.stack([st / 6, voz.astype(float), dbn / 2, np.gradient(st) / 2, np.gradient(dbn),
+                  np.minimum(1, dist / M['fps']), pausa.astype(float)], 0)       # [E, T]
+
+    def conv(x, w, b, dil):
+        k = w.shape[2]; pad = dil * (k - 1) // 2
+        xp = np.pad(x, ((0, 0), (pad, pad)))
+        return sum(np.einsum('oi,it->ot', w[:, :, j], xp[:, j * dil: j * dil + x.shape[1]]) for j in range(k)) + b[:, None]
+
+    gelu = lambda v: 0.5 * v * (1 + np.tanh(0.7978845608 * (v + 0.044715 * v ** 3)))
+    h = x
+    for capa, dil in zip((0, 2, 4, 6), M['dilataciones']):
+        h = gelu(conv(h, W[f'cuerpo.{capa}.weight'], W[f'cuerpo.{capa}.bias'], dil))
+    y = conv(h, W['cabeza.weight'], W['cabeza.bias'], 1)            # [S, T]
+    return {s: np.interp(t, g, y[k]) for k, s in enumerate(M['salidas'])}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--texto', required=True)
@@ -159,21 +206,35 @@ def main():
     subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', mp3, '-ac', '1', wav], check=True)
     p = parselmouth.Sound(wav).to_pitch(time_step=1 / FPS, pitch_floor=120, pitch_ceiling=500)
     f0 = np.interp(t, p.xs(), np.nan_to_num(p.selected_array['frequency']))
-    voz = f0 > 0
-    semit = np.where(voz, 12 * np.log2(np.maximum(f0, 1) / np.median(f0[voz])), 0)
-    picos = [t[i] for i in range(2, n - 2) if voz[i] and semit[i] > 2.0 and semit[i] == semit[i - 6:i + 7].max()]
-    ceja = pulso(n, [c - 0.12 for c in picos], 0.28, 0.17)
-    cur['browInnerUp'] = np.clip(0.05 + ceja, 0, 0.6)
-    cur['browOuterUpLeft'] = cur['browOuterUpRight'] = np.clip(0.6 * ceja, 0, 0.5)
+    # volumen en dB por fotograma (RMS de ventanas de 40 ms)
+    import wave
+    with wave.open(wav) as w:
+        sr = w.getframerate(); pcm = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(float) / 32768
+    hop = int(sr / FPS); win = int(0.04 * sr)
+    db = np.array([10 * np.log10(np.mean(pcm[k * hop:k * hop + win] ** 2) + 1e-9) if k * hop + win <= len(pcm) else -90.0
+                   for k in range(n)])   # tras el final del audio: silencio
 
-    # cabeza: OU calibrado (más suave: la media de 1KH son presentadores moviéndose) + cabeceo antes de pausa
+    # gestos: el modelo aprendido de caras reales (1KH + Miralles) decide cejas, sonrisa y cabeza.
+    # Sus predicciones salen encogidas (regresión a la media); se reescalan a su sd de validación
+    # y se multiplican por EXPRESIVIDAD para que el gesto se vea sin exagerar.
+    EXPRESIVIDAD = 0.8
+    inf = json.load(open(os.path.join(os.path.dirname(GESTOS), 'informe.json')))['sd_prediccion_z']
+    z = {k: EXPRESIVIDAD * v / inf[k] for k, v in gestos(f0, db, FPS).items()}
+    cur['browInnerUp'] = np.clip(0.06 + 0.11 * z['cejas_int'], 0, 0.6)
+    cur['browOuterUpLeft'] = cur['browOuterUpRight'] = np.clip(0.04 + 0.09 * z['cejas_ext'], 0, 0.5)
+    cur['browDownLeft'] = cur['browDownRight'] = np.clip(-0.06 * z['cejas_int'], 0, 0.3)
+    extra = np.clip(0.07 * z['sonrisa'], -0.08, 0.2)
+    for k in ('mouthSmileLeft', 'mouthSmileRight'):
+        cur[k] = np.clip(cur[k] + extra, 0, 0.65)
+    for k in ('eyeSquintLeft', 'eyeSquintRight'):
+        cur[k] = np.clip(cur[k] + 0.05 * z['entrecerrar'], 0, 0.5)
+
+    # cabeza: la del modelo (grados de 1KH) más un poco de ruido OU para que no se repita
     cab = vida['cabeza']
-    guin = ou(n, 0.45 * cab['guinada']['sd_grados'], cab['guinada']['tau_s'] * 2, rng)
-    cabe = ou(n, 0.45 * cab['cabeceo']['sd_grados'], cab['cabeceo']['tau_s'] * 2, rng)
-    alab = ou(n, 0.45 * cab['alabeo']['sd_grados'], cab['alabeo']['tau_s'] * 2, rng) + 2.0
-    g = cab['gesto_pausa']
-    cabe += pulso(n, [p0 - g['adelanto_s'] for p0, _ in pausas], 2.2, g['anchura_s'])
-    cabe -= 0.9 * ceja  # al subir las cejas la cabeza sube un poco
+    guin = 0.6 * cab['guinada']['sd_grados'] * z['guinada'] + ou(n, 1.2, 1.5, rng)
+    cabe = 0.8 * cab['cabeceo']['sd_grados'] * z['cabeceo'] + ou(n, 0.8, 1.2, rng)
+    alab = 0.6 * cab['alabeo']['sd_grados'] * z['alabeo'] + ou(n, 1.0, 1.6, rng) + 2.0
+    picos = []
     cabeza = np.stack([guin, cabe, alab], 1)
 
     json.dump({'fps': FPS, 'duracion': dur, 'texto': a.texto, 'voz': a.voz,
@@ -181,7 +242,7 @@ def main():
                'curvas': {k: [round(float(v), 3) for v in arr] for k, arr in cur.items()},
                'cabeza': [[round(float(v), 2) for v in fila] for fila in cabeza]},
               open(os.path.join(a.salida, 'curvas.json'), 'w'))
-    print(f'{len(palabras)} palabras, {len(fons)} fonemas, {dur:.1f} s, {len(picos)} picos de tono, {len(pausas)} pausas')
+    print(f'{len(palabras)} palabras, {len(fons)} fonemas, {dur:.1f} s, gestos del modelo, {len(pausas)} pausas')
 
 
 if __name__ == '__main__':

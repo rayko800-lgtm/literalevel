@@ -37,8 +37,8 @@ for clip in cfg['clips']:
         onda = importar_wav(f"{cfg['wav_dir']}/{clip}/voz.wav", dest, f'SW_{clip}')
         perf = unreal.load_asset(f'{dest}/MHP_{clip}') or herr.create_asset(
             f'MHP_{clip}', dest, unreal.MetaHumanPerformance, None)
-        perf.set_input_type(unreal.DataInputType.AUDIO)
-        perf.set_audio(onda)
+        perf.set_editor_property('input_type', unreal.DataInputType.AUDIO)
+        perf.set_editor_property('audio', onda)
         perf.set_editor_property('generate_blinks', True)
         try:   # el ánimo solo se expone para audio en tiempo real en algunas versiones; se intenta
             ov = perf.get_editor_property('audio_driven_animation_solve_overrides')

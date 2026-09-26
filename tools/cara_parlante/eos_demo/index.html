@@ -44,7 +44,7 @@ const CLIPS = await fetch('clips.json').then(r => r.json());   // [{id, titulo}]
 const estado = document.getElementById('estado');
 const subt = document.getElementById('subt');
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -71,12 +71,59 @@ const cargador = new GLTFLoader().setDRACOLoader(draco);
 const gltf = await cargador.loadAsync('eos.glb');
 const eos = gltf.scene; scene.add(eos);
 const morphs = [];            // [{mesh, dict}]
-let cabeza = null;
+let cabeza = null; const cabezas = [];
 eos.traverse(o => {
   if (o.isMesh && o.morphTargetDictionary) morphs.push(o);
-  if (o.isBone && !cabeza && /^head$/i.test(o.name)) cabeza = o;
+  if (o.isBone && /^head$/i.test(o.name)) { cabezas.push(o); cabeza = cabeza ?? o; }
   if (o.isMesh) o.frustumCulled = false;
 });
+// materiales que el GLB de MetaHuman trae planos (ver mh_materials.json del exportador):
+// pelo y cejas son tarjetas cuya cobertura va en el canal R del atlas de atributos, y el G
+// va de la raíz a la punta; con eso se pinta el degradado raíz castaña → puntas rubias.
+async function atlasPelo(url, raiz, punta, reflejo) {
+  const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = url; });
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const cob = p[i], t = p[i + 1] / 255, v = ((i * 2654435761) >>> 24) / 255;   // v: variación por hebra
+    const mezcla = k => raiz[k] + (punta[k] - raiz[k]) * t + (reflejo[k] - raiz[k]) * 0.18 * v;
+    p[i] = mezcla(0); p[i + 1] = mezcla(1); p[i + 2] = mezcla(2); p[i + 3] = cob;
+  }
+  g.putImageData(d, 0, 0);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false;
+  return tex;
+}
+const TEX = 'textures/';
+const peloMap = await atlasPelo(TEX + 'Hair_M_Layered_CardsAtlas_Attribute.png', [92, 60, 38], [214, 170, 112], [190, 96, 52]);
+const cejaMap = await atlasPelo(TEX + 'Eyebrows_M_Full_CardsAtlas_Attribute.png', [48, 31, 20], [66, 44, 30], [80, 50, 32]);
+const pestanaMap = await new THREE.TextureLoader().loadAsync(TEX + 'T_Eyelashes_L_ThickCurl_Coverage.png');
+pestanaMap.flipY = false;
+eos.traverse(o => {
+  if (!o.isMesh) return;
+  for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+    const n = m.name;
+    if (/Hair_.*CardMat|Eyebrows_.*CardMat/.test(n)) {
+      m.map = /Hair/.test(n) ? peloMap : cejaMap; m.color.set(0xffffff);
+      m.alphaTest = /Hair/.test(n) ? 0.06 : 0.015; m.alphaToCoverage = true; m.transparent = false; m.side = THREE.DoubleSide;
+      m.roughness = 0.5; m.metalness = 0; m.needsUpdate = true;
+    } else if (/LashMat/.test(n)) {
+      m.alphaMap = pestanaMap; m.color.setRGB(0.03, 0.02, 0.012); m.transparent = true; m.depthWrite = false; m.needsUpdate = true;
+    } else if (/M_Hide|EyeShell|LacrimalFluid/.test(n)) {
+      o.visible = false;
+    } else if (/DefaultGarment.*Shirt/.test(n)) {
+      m.color.setRGB(0.16, 0.085, 0.05); m.map = null; m.roughness = 0.85; m.needsUpdate = true;   // blusa café
+    }
+  }
+});
+
+const extra = [];
+eos.traverse(o => { if (o.isMesh && /(Hair|Eyebrows)_.*CardMat/.test(o.material.name)) extra.push(o); });
+for (const o of extra) {
+  const m2 = o.material.clone(); m2.alphaTest = 0; m2.alphaToCoverage = false; m2.transparent = true; m2.opacity = 0.9; m2.depthWrite = false;
+  const o2 = o.clone(); o2.material = m2; o2.renderOrder = 2; o.parent.add(o2);
+}
+
 // encuadre: la cabeza (el hueso, o el punto más alto del modelo)
 const caja = new THREE.Box3().setFromObject(eos);
 const centro = new THREE.Vector3();
@@ -85,16 +132,26 @@ centro.y += 0.03;
 controles.target.copy(centro);
 camara.position.set(centro.x, centro.y + 0.02, centro.z + 0.95);
 controles.update();
-const cabezaBase = cabeza ? cabeza.quaternion.clone() : null;
+const bases = cabezas.map(b => b.quaternion.clone());
+function girar(e) { const q = new THREE.Quaternion().setFromEuler(e); cabezas.forEach((b, i) => b.quaternion.copy(bases[i]).multiply(q)); }
 
 // gafas: se cuelgan del hueso de la cabeza con la pose de descanso
 let gafas = null;
 try {
-  gafas = (await cargador.loadAsync('gafas.glb')).scene;
-  if (cabeza) {
-    const inv = new THREE.Matrix4().copy(cabeza.matrixWorld).invert();
-    gafas.applyMatrix4(inv); cabeza.add(gafas);
-  } else scene.add(gafas);
+  // gafas.glb sale de Blender con los aros en (±3,25; 12,4; 168,3) cm y el frente hacia -Z
+  const g = (await cargador.loadAsync('gafas.glb')).scene;
+  gafas = new THREE.Group(); gafas.add(g);
+  g.rotation.y = Math.PI;                                   // frente hacia +Z, como la cara
+  g.position.set(0, -1.683, -0.124);                        // centro de los aros al origen del grupo
+  const ojoI = eos.getObjectByName('FACIAL_L_Eye'), ojoD = eos.getObjectByName('FACIAL_R_Eye');
+  eos.updateMatrixWorld(true);
+  const pI = ojoI.getWorldPosition(new THREE.Vector3()), pD = ojoD.getWorldPosition(new THREE.Vector3());
+  const medio = pI.clone().add(pD).multiplyScalar(0.5);
+  const esc = pI.distanceTo(pD) / 0.065;
+  gafas.scale.setScalar(esc);
+  gafas.position.copy(medio).add(new THREE.Vector3(0, 0.002, 0.018));
+  scene.add(gafas); gafas.updateMatrixWorld(true);
+  if (cabeza) cabeza.attach(gafas);
 } catch (e) { console.warn('sin gafas', e); }
 document.getElementById('lentes').onclick = () => { if (gafas) gafas.visible = !gafas.visible; };
 
@@ -116,7 +173,7 @@ function reposo(dt) {
   poner('cheekSquintLeft', 0.08); poner('cheekSquintRight', 0.08);
   if (cabeza) {
     const e = new THREE.Euler(0.02 * Math.sin(tReposo * 0.9), 0.03 * Math.sin(tReposo * 0.37), 0.035, 'YXZ');
-    cabeza.quaternion.copy(cabezaBase).multiply(new THREE.Quaternion().setFromEuler(e));
+    girar(e);
   }
 }
 
@@ -139,28 +196,38 @@ document.getElementById('hablar').onclick = async () => {
   fuente.onended = () => { if (actual && actual.fuente === fuente) { actual = null; subt.textContent = ''; } };
 };
 
-const reloj = new THREE.Clock();
-function cuadro() {
-  requestAnimationFrame(cuadro);
-  const dt = reloj.getDelta();
-  if (actual) {
-    const { datos } = actual;
-    const t = ctx.currentTime - actual.t0;
-    const f = Math.max(0, Math.min(datos.cabeza.length - 1, t * datos.fps));
-    const i = Math.floor(f), a = f - i, j = Math.min(i + 1, datos.cabeza.length - 1);
-    for (const [n, arr] of Object.entries(datos.curvas)) poner(n, arr[i] * (1 - a) + arr[j] * a);
-    if (cabeza) {
-      const g = datos.cabeza[i].map((v, k) => v * (1 - a) + datos.cabeza[j][k] * a);
-      const e = new THREE.Euler(THREE.MathUtils.degToRad(-g[1]), THREE.MathUtils.degToRad(g[0]), THREE.MathUtils.degToRad(g[2]), 'YXZ');
-      cabeza.quaternion.copy(cabezaBase).multiply(new THREE.Quaternion().setFromEuler(e));
-    }
-    subt.innerHTML = datos.palabras.map(([w, x]) => `<span class="${t >= x ? 'ya' : ''}">${w}</span>`).join(' ');
-  } else reposo(dt);
-  controles.update();
-  renderer.render(scene, camara);
+function aplicar(datos, t) {
+  const f = Math.max(0, Math.min(datos.cabeza.length - 1, t * datos.fps));
+  const i = Math.floor(f), a = f - i, j = Math.min(i + 1, datos.cabeza.length - 1);
+  for (const [n, arr] of Object.entries(datos.curvas)) poner(n, arr[i] * (1 - a) + arr[j] * a);
+  if (cabeza) {
+    const g = datos.cabeza[i].map((v, k) => v * (1 - a) + datos.cabeza[j][k] * a);
+    girar(new THREE.Euler(THREE.MathUtils.degToRad(-g[1]), THREE.MathUtils.degToRad(g[0]), THREE.MathUtils.degToRad(g[2]), 'YXZ'));
+  }
+  subt.innerHTML = datos.palabras.map(([w, x]) => `<span class="${t >= x ? 'ya' : ''}">${w}</span>`).join(' ');
 }
-estado.textContent = `${morphs.length} mallas con gestos · ${Object.keys(morphs[0]?.morphTargetDictionary ?? {}).length} gestos · ${cabeza ? 'cabeza articulada' : 'sin hueso de cabeza'}`;
-cuadro();
+
+// ?grabar=<clip>: sin bucle ni audio; quien graba llama a window.pintar(t) fotograma a fotograma
+const grabar = new URLSearchParams(location.search).get('grabar');
+if (grabar) {
+  const datos = await fetch(`${grabar}/curvas.json`).then(r => r.json());
+  document.getElementById('barra').style.display = 'none';
+  estado.style.display = 'none';
+  window.duracion = datos.duracion;
+  window.pintar = t => { aplicar(datos, t); controles.update(); renderer.render(scene, camara); return true; };
+  window.listo = true;
+} else {
+  const reloj = new THREE.Clock();
+  function cuadro() {
+    requestAnimationFrame(cuadro);
+    const dt = reloj.getDelta();
+    if (actual) aplicar(actual.datos, ctx.currentTime - actual.t0); else reposo(dt);
+    controles.update();
+    renderer.render(scene, camara);
+  }
+  cuadro();
+}
+if (!grabar) estado.textContent = `${morphs.length} mallas con gestos · ${Object.keys(morphs[0]?.morphTargetDictionary ?? {}).length} gestos · ${cabeza ? 'cabeza articulada' : 'sin hueso de cabeza'}`;
 addEventListener('resize', () => { camara.aspect = innerWidth / innerHeight; camara.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 </script>
 </body>
