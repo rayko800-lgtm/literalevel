@@ -164,6 +164,16 @@ conexión API y pantallas móvil/escritorio, incluido el respaldo si falta el GL
   desde el merge de `dev/articulacion-v2` (pestaña «Mi espacio» en la barra de
   navegación). Front 460/460; comprobado en la app publicada a 390 px.
 
+- **Octava publicación (26 sep, CDMX), solo front:** revisión `7820589`
+  desde `37f5845` (master y `publicar/v2` avanzados en rápido). La app pasa a
+  llamarse **Pléyade** en la interfaz (API, Spaces y paquetes siguen igual),
+  iconos y manifest nuevos, «Sobre Pléyade» al pulsar el logo, y la portada
+  sobre un fondo astral propio (`tools/marca/galaxia.py`).
+  `desplegar_front.py` admite los binarios de `marca/` y los iconos. Front
+  460/460, `pruebas_despliegue_front.py` 16/16; en la app publicada a 390 px y
+  1366 px, sin respuestas 4xx/5xx, sin desplazamiento lateral y con el panel
+  abriéndose desde el logo.
+
 ## Historial de infraestructura y opciones evaluadas
 
 Lo siguiente conserva decisiones y observaciones de los días 10 al 13 de
