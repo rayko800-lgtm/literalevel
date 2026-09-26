@@ -19,7 +19,7 @@ interface Paso { titulo: string; texto: string; puerta?: boolean; }
     <div class="velo"></div>
     <section class="tarjeta-bienvenida" role="dialog" aria-modal="true" aria-labelledby="titulo-bienvenida">
       <header>
-        <span class="marca-b" aria-hidden="true">L</span>
+        <img class="marca-b" src="marca/icono-96.webp" width="36" height="36" alt="">
         <span class="cuenta">{{ paso() + 1 }} de {{ pasos().length }}</span>
         <button type="button" class="boton pequeno fantasma saltar" (click)="cerrar()">Saltar</button>
       </header>
@@ -51,8 +51,7 @@ interface Paso { titulo: string; texto: string; puerta?: boolean; }
       background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra-alta);
     }
     header { display: flex; align-items: center; gap: .6rem; }
-    .marca-b { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; font-weight: 800;
-      color: #fff; background: linear-gradient(145deg, var(--acento), var(--acento-hondo)); }
+    .marca-b { display: block; width: 36px; height: 36px; border-radius: 9px; }
     .cuenta { color: var(--texto-tenue); font-size: .9rem; font-variant-numeric: tabular-nums; }
     .saltar { margin-left: auto; }
     h2 { margin: .2rem 0 0; font-size: 1.45rem; line-height: 1.25; }
