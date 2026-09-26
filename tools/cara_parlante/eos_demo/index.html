@@ -37,6 +37,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -66,9 +67,10 @@ const controles = new OrbitControls(camara, renderer.domElement);
 controles.enableDamping = true;
 
 const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
-const cargador = new GLTFLoader().setDRACOLoader(draco);
+const cargador = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
+const MODELO = new URLSearchParams(location.search).get('modelo') || 'eos.glb';   // eos_web.glb: la versión comprimida
 
-const gltf = await cargador.loadAsync('eos.glb');
+const gltf = await cargador.loadAsync(MODELO);
 const eos = gltf.scene; scene.add(eos);
 const morphs = [];            // [{mesh, dict}]
 let cabeza = null; const cabezas = [];
@@ -116,6 +118,36 @@ eos.traverse(o => {
     }
   }
 });
+
+// cuero cabelludo: las tarjetas de pelo del GLB dejan ver la piel del cráneo; se tiñe la piel
+// por encima de la línea del pelo con el color de la raíz (en la pose de reposo de la malla).
+{
+  eos.updateMatrixWorld(true);
+  const ojos = ['FACIAL_L_Eye', 'FACIAL_R_Eye'].map(n => eos.getObjectByName(n).getWorldPosition(new THREE.Vector3()));
+  const ojoW = ojos[0].add(ojos[1]).multiplyScalar(0.5);
+  eos.traverse(o => {
+    if (!o.isMesh || !/MI_Face_Skin/.test(o.material.name)) return;
+    const ojoL = o.worldToLocal(ojoW.clone());
+    // eje "arriba" y "adelante" de la malla en su espacio local
+    const arriba = o.worldToLocal(ojoW.clone().add(new THREE.Vector3(0, 1, 0))).sub(ojoL).normalize();
+    const adelante = o.worldToLocal(ojoW.clone().add(new THREE.Vector3(0, 0, 1))).sub(ojoL).normalize();
+    const m = o.material;
+    m.onBeforeCompile = sh => {
+      Object.assign(sh.uniforms, { uOjo: { value: ojoL }, uArriba: { value: arriba }, uAdelante: { value: adelante },
+                                   uRaiz: { value: new THREE.Color(0.23, 0.14, 0.09) } });
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vPosReposo;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPosReposo = position;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vPosReposo; uniform vec3 uOjo, uArriba, uAdelante, uRaiz;`)
+        .replace('#include <map_fragment>', `#include <map_fragment>
+{ vec3 d = vPosReposo - uOjo; float h = dot(d, uArriba), f = dot(d, uAdelante);
+  float linea = 0.066 - 0.35 * max(0.0, 0.06 - f);          // la línea baja hacia las sienes y la nuca
+  float k = smoothstep(linea, linea + 0.018, h);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uRaiz, 0.85 * k); }`);
+    };
+    m.needsUpdate = true;
+  });
+}
 
 const extra = [];
 eos.traverse(o => { if (o.isMesh && /(Hair|Eyebrows)_.*CardMat/.test(o.material.name)) extra.push(o); });
