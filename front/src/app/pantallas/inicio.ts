@@ -218,22 +218,25 @@ import { Sesion } from '../nucleo/sesion';
     </div>
   `,
   styles: `
+    /* La portada vive en el cielo del logo (Miguel, 26 sep: «que tenga de fondo
+       las estrellas»), en los tres temas. Las tarjetas siguen siendo del tema:
+       claro, noche o papel se eligen en Ajustes. La galaxia es propia
+       (tools/marca/galaxia.py); abajo se funde con una trama que se repite,
+       para que Mi espacio pueda ser tan largo como haga falta. */
+    :host { display: block; min-height: 100%;
+      background: url(/marca/galaxia.webp) center top / max(100%, 1500px) auto no-repeat,
+                  url(/marca/estrellas.webp) 0 0 / 512px 512px repeat, var(--marca-noche); }
+    @media (max-width: 640px) {
+      :host { background: url(/marca/galaxia-960.webp) center top / auto 820px no-repeat,
+                          url(/marca/estrellas.webp) 0 0 / 384px 384px repeat, var(--marca-noche); }
+    }
     .heroe { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(1.5rem, 4vw, 3.5rem);
       align-items: center; padding: clamp(1.25rem, 3vw, 2.75rem); margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
     /* La marca: el cielo del logo (azul noche, estrellas y oro rosa). Es igual
        en los tres temas: es el logo, no una superficie de lectura. */
-    .cielo { position: relative; border-radius: var(--radio-lg); color: var(--crema); overflow: hidden;
-      background:
-        radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, .8) 50%, transparent 51%),
-        radial-gradient(1px 1px at 38% 78%, rgba(255, 255, 255, .7) 50%, transparent 51%),
-        radial-gradient(1.5px 1.5px at 64% 14%, rgba(243, 201, 180, .9) 50%, transparent 51%),
-        radial-gradient(1px 1px at 86% 58%, rgba(255, 255, 255, .6) 50%, transparent 51%),
-        radial-gradient(1px 1px at 92% 18%, rgba(255, 255, 255, .7) 50%, transparent 51%),
-        radial-gradient(1.5px 1.5px at 24% 90%, rgba(243, 199, 104, .8) 50%, transparent 51%),
-        radial-gradient(900px 420px at 18% -20%, color-mix(in srgb, var(--marca-azul) 55%, transparent) 0%, transparent 70%),
-        /* Sin brillo de oro rosa en el fondo: mezclado con el azul se vuelve morado. */
-        var(--marca-noche);
-      box-shadow: var(--sombra-alta); }
+    .cielo { position: relative; border-radius: var(--radio-lg); color: var(--crema);
+      background: linear-gradient(160deg, rgba(6, 11, 36, .62), rgba(10, 16, 48, .42));
+      border: 1px solid rgba(243, 201, 180, .16); box-shadow: 0 30px 80px -40px rgba(0, 0, 0, .8); }
     .cielo h1, .cielo h2 { color: var(--crema); }
     .cielo .antetitulo { color: var(--oro-rosa); }
     /* La ficha del ejemplo es una superficie de la app, no del cielo. */
@@ -290,6 +293,9 @@ import { Sesion } from '../nucleo/sesion';
     .icono-puerta.acento { background: var(--acento-suave); color: var(--acento-texto); }
     .icono-puerta.ambar { background: var(--ambar-suave); color: var(--ambar); }
     .como { padding-top: 1rem; }
+    .como h2, .como h3 { color: var(--crema); }
+    .como .pasos p { color: #c8d3ee; }
+    .como .numero { background: linear-gradient(135deg, var(--oro-rosa-brillo), var(--oro-rosa)); color: var(--marca-noche); }
     .pasos { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
     .pasos li { display: flex; gap: .9rem; }
     .pasos h3 { margin: .2rem 0 .3rem; }

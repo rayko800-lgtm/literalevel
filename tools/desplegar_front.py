@@ -27,7 +27,8 @@ BINARIOS = {"favicon.ico", "boca3d/cara.glb", "boca3d/lengua.glb",
             "boca3d/didactica/cara.glb", "boca3d/didactica/lengua.glb",
             # 26 sep: la marca Pléyade (iconos de la app y logo).
             "icon-192.png", "icon-512.png", "apple-touch-icon.png",
-            "marca/icono-96.webp", "marca/logo-cosmos-600.webp", "marca/logo-cosmos-1200.webp"}
+            "marca/icono-96.webp", "marca/logo-cosmos-600.webp", "marca/logo-cosmos-1200.webp",
+            "marca/galaxia.webp", "marca/galaxia-960.webp", "marca/estrellas.webp"}
 REGLA_GLB = b"*.glb filter=lfs diff=lfs merge=lfs -text"
 
 
