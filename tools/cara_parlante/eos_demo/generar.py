@@ -9,6 +9,9 @@ Sonrisa: una base suave y más sonrisa en las pausas largas (Eos es risueña).
 Uso:  python generar.py --texto "..." --salida DIR [--voz en-US-AvaNeural] [--semilla 7] [--gestos voz2cara]
 Con --gestos voz2cara, cejas, sonrisa, ojos y cabeza salen del modelo voz→cara (voz2cara/);
 la boca sigue siendo la del modelo articulatorio, que va pegada a los fonemas del texto.
+Con --gestos v3 (--modelo_v3 DIR), la boca la da la regresión v3 (HuBERT + Blender, etiquetas
+SMIRK) y cejas, ojos, sonrisa y cabeza una muestra del modelo generativo v3 (voz3/), con la
+misma garantía pedagógica y el mismo camino de curvas que el modo fusion.
 Deja DIR/voz.mp3 y DIR/curvas.json ({fps, duracion, curvas: {nombre: [..]}, cabeza: [[guiñada, cabeceo, alabeo]..]}).
 """
 import argparse
@@ -235,10 +238,12 @@ def main():
     ap.add_argument('--salida', required=True)
     ap.add_argument('--voz', default='en-US-AvaNeural')
     ap.add_argument('--semilla', type=int, default=7)
-    ap.add_argument('--gestos', choices=['prosodia', 'voz2cara', 'fusion'], default='prosodia',
-                    help='quién decide la cara: la red de prosodia, el modelo voz→cara o la red de fusión '
-                         '(Blender + voz: también la boca)')
+    ap.add_argument('--gestos', choices=['prosodia', 'voz2cara', 'fusion', 'v3'], default='prosodia',
+                    help='quién decide la cara: la red de prosodia, el modelo voz→cara, la red de fusión '
+                         '(Blender + voz: también la boca) o v3 (boca por regresión + no verbal generativo)')
     ap.add_argument('--modelo_fusion', default='D:/literalevel_cara/fusion_modelo')
+    ap.add_argument('--modelo_v3', default='D:/literalevel_cara/v3_modelo', help='carpeta con boca/ y noverbal/')
+    ap.add_argument('--estilo_v3', choices=['real', 'medio'], default='real', help='estilo del no verbal v3')
     ap.add_argument('--modelo_voz2cara', default='D:/literalevel_cara/voz2cara_modelo')
     a = ap.parse_args()
     os.makedirs(a.salida, exist_ok=True)
@@ -269,11 +274,18 @@ def main():
     cur['mouthLowerDownLeft'] = cur['mouthLowerDownRight'] = 0.35 * cur['jawOpen']
     cur['mouthUpperUpLeft'] = cur['mouthUpperUpRight'] = 0.12 * cur['jawOpen']
 
-    if a.gestos == 'fusion':
+    if a.gestos in ('fusion', 'v3'):
         # la boca de la red de fusión: Blender corregido con la naturalidad de las caras reales
         # (unidades MediaPipe → morphs ARKit con las mismas ganancias). Garantía pedagógica: en
         # p/b/m los labios cierran al menos lo que cierra Blender, y en u/o/w redondean al menos igual.
-        tfus, pf, colf = prediccion_fusion(mp3, palabras, dur, a.modelo_fusion)
+        # v3 da lo mismo en la misma forma (boca por regresión con etiquetas SMIRK + no verbal generativo).
+        if a.gestos == 'v3':
+            import sys
+            sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'voz3'))
+            from inferir_v3 import prediccion_v3
+            tfus, pf, colf = prediccion_v3(mp3, palabras, dur, a.modelo_v3, a.semilla, a.estilo_v3)
+        else:
+            tfus, pf, colf = prediccion_fusion(mp3, palabras, dur, a.modelo_fusion)
         cf = {c: i for i, c in enumerate(colf)}
         t60 = np.arange(n) / FPS
         def fus(c):
@@ -353,7 +365,7 @@ def main():
     # y se multiplican por EXPRESIVIDAD para que el gesto se vea sin exagerar.
     EXPRESIVIDAD = 0.8
     inf = json.load(open(os.path.join(os.path.dirname(GESTOS), 'informe.json')))['sd_prediccion_z']
-    if a.gestos == 'fusion':     # cejas, sonrisa, ojos y cabeza de la misma red, en z por clip
+    if a.gestos in ('fusion', 'v3'):     # cejas, sonrisa, ojos y cabeza de la misma red (o de la muestra v3), en z por clip
         def zf(*nombres):
             v = np.mean([np.interp(np.arange(n) / FPS, tfus, pf[:, cf[c]]) for c in nombres], 0)
             return EXPRESIVIDAD * (v - v.mean()) / (v.std() + 1e-6)
