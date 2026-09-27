@@ -21,7 +21,10 @@ OpenAI (`gpt-4o-mini-tts-2025-12-15`: coral, marin, sage, shimmer y nova), todas
 mismas instrucciones: «Eos, asistente de Pléyade; español de México neutro; mujer joven,
 cálida y luminosa; energía de anuncio de una app educativa, sonriendo al hablar, ritmo
 ágil y muy claro». Las cinco dijeron el texto completo y en español: se comprobó
-transcribiéndolas con whisper.
+transcribiéndolas con whisper. **Miguel las descartó: no suenan naturales.** La voz
+que le gusta es la de la Eos inglesa (edge-tts, en-US-AvaNeural). La segunda tanda: Ava
+Multilingual hablando español (la misma voz), Emma Multilingual y gpt-audio-1.5 (marin y
+coral), todas comprobadas con whisper.
 
 **Duración.** El texto hablado son **unas 470 palabras**, unos 3:10 a 150 palabras por
 minuto. Deja hueco para las pausas y para que se vean los pasos de la app sin prisa, y el

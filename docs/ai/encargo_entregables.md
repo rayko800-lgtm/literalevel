@@ -125,3 +125,22 @@ y los desbordes que quedan son de menos de 3 pt o no se ven.
 - ~~La bienvenida enseñaba una «L»~~: la cambió literalevel-f3 por el icono de Pléyade
   (`2b37573`, publicado). Ninguna de las 22 capturas muestra esa tarjeta, así que no hay
   que rehacer ninguna.
+
+### 27 sep: vídeo narrado por Eos (pedido por Miguel)
+
+- Miguel quiere que el vídeo lo narre **Eos**, en formato de anuncio al estilo Duolingo, y le
+  preguntó al profesor si el formato vale. Mientras no conteste, la versión que cumple la rúbrica
+  es `guion_video.md` (Miguel a cámara).
+- Reparto: esta sesión lleva el guion (`entrega/guion_video_eos.md`) y la voz; literalevel-d6
+  lleva la animación y el montaje; f3 (literalevel-86) lleva la lista de planos. El audio elegido
+  se deja en `D:/literalevel_respaldos/eos_voz/`.
+- Voz, primera tanda: gpt-4o-mini-tts-2025-12-15 (coral, marin, sage, shimmer, nova). **Miguel
+  la descartó**: no suena natural.
+- Voz, segunda tanda: Ava Multilingual (la misma voz de la Eos inglesa, en-US-AvaNeural, hablando
+  en español; gratis con edge-tts), Emma Multilingual y gpt-audio-1.5 (marin y coral).
+  `gpt-6-astra` no genera audio (400). Pendiente de que Miguel elija.
+- Gasto de OpenAI: aprobado expresamente por Miguel el 27 sep («Tenemos la API. Utiliza el modelo
+  más reciente»).
+- Pendiente de Miguel: la duración (un anuncio corto de 60 a 90 s o el vídeo completo de unos
+  3 a 4 min).
+
