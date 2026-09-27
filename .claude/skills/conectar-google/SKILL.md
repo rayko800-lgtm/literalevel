@@ -155,6 +155,32 @@ puesta. Pelearse con ese menú es trabajo tirado.
 
 ---
 
+## 3 ter. Drive y Colab sin robar el foco (verificado el 26 sep 2026)
+
+- **Colab desde VS Code** (extensión `google.colab`): «Seleccionar el kernel →
+  Colab → New Colab Server → GPU → A100/T4 → High-RAM → Latest → alias (Enter)»;
+  el primer arranque pide iniciar sesión con Google en Chrome (elige la cuenta
+  Miguel) y `drive.mount` abre el diálogo «Permit … to access your Google Drive
+  files?» → «Connect to Google Drive» (también él). Si una celda queda en
+  «Conectando con kernel», reinicia el kernel y vuelve a elegir «Python 3
+  (ipykernel)». Apagar: paleta → «Colab: Remove Server» → Enter → Enter; la barra
+  de estado debe marcar `0.00/hr`. Todo eso se pilota con `gui.ps1`/`teclas.ps1`
+  (el ayudante comprueba la ventana activa) y **necesita el foco**: pide turno.
+- **Bajar archivos de Drive sin foco:** por `chrome-devtools`, `new_page` a
+  `https://drive.google.com/uc?id=<id>&export=download` (en fondo). Devuelve
+  `net::ERR_ABORTED`: es normal, la descarga ya cayó en `C:\Users\laura\Downloads`.
+  Por encima de ~50 MB sale «Advertencia de análisis de virus»: `take_snapshot` y
+  `click` en «Descargar de todos modos». Los ids salen con `evaluate_script` en la
+  carpeta abierta: `document.querySelectorAll('[data-id]')` (innerText = nombre).
+- **No uses la vista previa** (`/file/d/<id>/view`) para vigilar un archivo que se
+  reescribe: Drive la cachea (mostró la misma versión 25 min). Baja el archivo o
+  mira «Modificado» en la carpeta.
+- **El conector de Drive de claude.ai** contesta a ratos «Operation is not
+  implemented, or supported, or enabled»: `search_files` con `mimeType` de carpeta
+  funcionó una vez y falló después; `share_file` no tiene permiso. Compartir se
+  hace en la web (menú de la carpeta → Compartir) y `get_file_permissions` sí
+  confirma el resultado.
+
 ## 4. Qué puede y qué no puede hacer Claude Code aquí
 
 - **No puede lanzar ni completar un flujo OAuth de Google**, y **tampoco debe**.
