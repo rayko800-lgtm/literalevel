@@ -179,6 +179,60 @@ diffuseColor.rgb = mix(diffuseColor.rgb, uRaiz * (0.9 + 0.2 * fract(sin(dot(floo
   });
 }
 
+// blusa que deja ver los hombros (Miguel, 26 sep): se recorta la camisa por encima de un escote
+// recto sobre el pecho y la parte alta de los brazos; en la piel que queda al aire se tapan los
+// tirantes grises que el bake del cuerpo trae pintados (píxeles poco saturados → tono de piel).
+// PRUEBA, solo con ?hombros=1: el cuerpo exportado viene recortado bajo la camisa (hombros sin
+// malla) y el corte se ve tosco; la blusa de verdad se hará en Unreal/Blender y se volverá a exportar.
+if (new URLSearchParams(location.search).get('hombros') === '1') {
+  eos.updateMatrixWorld(true);
+  const ALTURA_ESCOTE = 0.095;          // m por debajo de lo más alto de la camisa (base del cuello)
+  let techo = -Infinity;
+  eos.traverse(o => { if (o.isMesh && /Shirt/.test(o.material.name)) techo = Math.max(techo, new THREE.Box3().setFromObject(o, true).max.y); });
+  const escote = techo - ALTURA_ESCOTE;
+  const mascaraAltura = (o, fn) => {    // atributo por vértice con la altura en mundo (reposo), como el cuero cabelludo
+    const pos = o.geometry.attributes.position;
+    const cg = new THREE.Box3().setFromBufferAttribute(pos), cw = new THREE.Box3().setFromObject(o, true);
+    const esc = new THREE.Vector3().subVectors(cw.max, cw.min).divide(new THREE.Vector3().subVectors(cg.max, cg.min));
+    const a = new Float32Array(pos.count), v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).sub(cg.min).multiply(esc).add(cw.min); a[i] = fn(v); }
+    return a;
+  };
+  const linea = () => escote;          // escote recto (bardot)
+  eos.traverse(o => {
+    if (!o.isMesh) return;
+    const m = o.material;
+    if (/Shirt/.test(m.name)) {
+      o.geometry.setAttribute('aSobre', new THREE.BufferAttribute(mascaraAltura(o, v => v.y - linea(v)), 1));
+      m.side = THREE.DoubleSide;
+      m.onBeforeCompile = sh => {
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+attribute float aSobre; varying float vSobre;`).replace('#include <begin_vertex>', `#include <begin_vertex>
+vSobre = aSobre;`);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying float vSobre;`).replace('#include <map_fragment>', `#include <map_fragment>
+if (vSobre > 0.0) discard;
+diffuseColor.rgb *= mix(1.0, 0.75, smoothstep(-0.012, 0.0, vSobre));   // un dobladillo algo más oscuro en el borde`);
+      };
+      m.needsUpdate = true;
+    } else if (/MI_Body/.test(m.name)) {
+      o.geometry.setAttribute('aSobre', new THREE.BufferAttribute(mascaraAltura(o, v => v.y - linea(v)), 1));
+      m.onBeforeCompile = sh => {
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+attribute float aSobre; varying float vSobre;`).replace('#include <begin_vertex>', `#include <begin_vertex>
+vSobre = aSobre;`);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying float vSobre;`).replace('#include <map_fragment>', `#include <map_fragment>
+{ vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+  float gris = 1.0 - smoothstep(0.08, 0.2, (mx - mn) / max(mx, 1e-3));      // tirante: casi sin saturación
+  vec3 piel = vec3(0.62, 0.40, 0.31);                                        // tono medio de la piel (lineal)
+  diffuseColor.rgb = mix(c, piel * (0.85 + 0.3 * mx), gris * step(-0.16, vSobre)); }`);   // la parte alta del cuerpo (en su propia escala, donde van los tirantes)
+      };
+      m.needsUpdate = true;
+    }
+  });
+}
+
 // pelo y cejas: el GLB los trae como mallas sueltas (sin piel ni huesos), así que no siguen a la
 // cabeza al moverse; se cuelgan del hueso `head`. El pelo lleva además dos capas más: una
 // translúcida para rellenar y otra un 4 % más grande, escalada desde la coronilla, que da
@@ -232,11 +286,23 @@ if (cabeza) cabeza.getWorldPosition(centro); else { caja.getCenter(centro); cent
 centro.y += 0.03;
 controles.target.copy(centro);
 camara.position.set(centro.x, centro.y + 0.02, centro.z + 0.95);
+if (new URLSearchParams(location.search).get('plano') !== 'cara') {   // de presentadora: cabeza, hombros y escote
+  controles.target.set(centro.x, centro.y - 0.09, centro.z);
+  camara.position.set(centro.x, centro.y - 0.05, centro.z + 1.3);
+}
 // ?vista=boca: de cerca y un poco de lado, para ver labios, dientes y lengua
 if (new URLSearchParams(location.search).get('vista') === 'boca') {
   const b = eos.getObjectByName('FACIAL_C_Tongue3')?.getWorldPosition(new THREE.Vector3()) ?? centro;
   controles.target.set(b.x, b.y, b.z + 0.03);
   camara.position.set(b.x + 0.06, b.y + 0.01, b.z + 0.26);
+}
+// ?camara=dx,dy,dz: cámara libre respecto a los ojos (para revisar gafas, lengua, etc. desde cualquier lado)
+const camLibre = new URLSearchParams(location.search).get('camara');
+if (camLibre) {
+  const [dx, dy, dz] = camLibre.split(',').map(Number);
+  const o = eos.getObjectByName('FACIAL_L_Eye').getWorldPosition(new THREE.Vector3())
+    .add(eos.getObjectByName('FACIAL_R_Eye').getWorldPosition(new THREE.Vector3())).multiplyScalar(0.5);
+  controles.target.copy(o); camara.position.set(o.x + dx, o.y + dy, o.z + dz);
 }
 controles.update();
 const bases = cabezas.map(b => b.quaternion.clone());
@@ -255,8 +321,10 @@ try {
   const pI = ojoI.getWorldPosition(new THREE.Vector3()), pD = ojoD.getWorldPosition(new THREE.Vector3());
   const medio = pI.clone().add(pD).multiplyScalar(0.5);
   const esc = pI.distanceTo(pD) / 0.065;
-  gafas.scale.setScalar(esc);
-  gafas.position.copy(medio).add(new THREE.Vector3(0, -0.0045, 0.016));   // aro un poco bajo la pupila, puente sobre la nariz
+  gafas.scale.setScalar(esc * 0.88);                      // aros de ~41 mm: su cara es pequeña
+  // los ojos (huesos) están en el centro del globo: la córnea queda ~12 mm delante y los cristales
+  // van ~12 mm más allá; así el aro no atraviesa cejas, pestañas ni mejillas
+  gafas.position.copy(medio).add(new THREE.Vector3(0, -0.004, 0.027));
   gafas.traverse(o => { if (o.isMesh && /cristal/i.test(o.material.name)) { o.material.transparent = true; o.material.opacity = 0.06; o.material.roughness = 0.02; o.material.depthWrite = false; } });
   scene.add(gafas); gafas.updateMatrixWorld(true);
   if (cabeza) cabeza.attach(gafas);
@@ -283,9 +351,18 @@ let lenguaAdelante = null;
 if (LENGUA.length === 4) {
   eos.updateMatrixWorld(true);
   const p1 = LENGUA[0].getWorldPosition(new THREE.Vector3()), p4 = LENGUA[3].getWorldPosition(new THREE.Vector3());
-  lenguaAdelante = p4.sub(p1).normalize();
+  lenguaAdelante = p4.clone().sub(p1).normalize();
 }
-function lengua(c) {           // c: {altura, adelante, velo, alto, raiz, alveolar, interdental, postalveolar, retrofleja}
+// todo en el espacio del padre de Tongue1 (se mueve con la cabeza): punta en reposo y dirección «adelante»
+const padreL = LENGUA[0]?.parent;
+const puntaReposo = LENGUA.length === 4 ? padreL.worldToLocal(LENGUA[3].getWorldPosition(new THREE.Vector3())) : null;
+const adelanteL = LENGUA.length === 4 ? padreL.worldToLocal(LENGUA[3].getWorldPosition(new THREE.Vector3()))
+  .sub(padreL.worldToLocal(LENGUA[0].getWorldPosition(new THREE.Vector3()))).normalize() : null;
+const escalaL = LENGUA.length === 4 ? padreL.getWorldScale(new THREE.Vector3()).x : 1;   // m por unidad local
+// «física» mínima: la punta no puede pasar de los incisivos. En reposo la punta queda ~6 mm detrás
+// de ellos; se deja avanzar 4 mm como mucho, y 8 mm solo en los interdentales (th), donde asoma.
+const AVANCE_MAX = 0.004, AVANCE_MAX_TH = 0.008;
+function lengua(c, jaw = 0.2) {           // c: {altura, adelante, velo, alto, raiz, alveolar, interdental, postalveolar, retrofleja}
   if (!lenguaAdelante) return;
   LENGUA.forEach((h, i) => { h.quaternion.copy(lenguaReposo[i].q); h.position.copy(lenguaReposo[i].p); });
   const y = [0, 0, 0, 0];
@@ -300,6 +377,50 @@ function lengua(c) {           // c: {altura, adelante, velo, alto, raiz, alveol
     .applyQuaternion(padre.getWorldQuaternion(new THREE.Quaternion()).invert())
     .divide(padre.getWorldScale(new THREE.Vector3()));
   LENGUA[0].position.add(d);
+  // límite de los dientes: si la punta pasó, se retrae toda la lengua lo que sobre
+  if (puntaReposo) {
+    LENGUA[0].updateMatrixWorld(true);
+    const punta = padreL.worldToLocal(LENGUA[3].getWorldPosition(new THREE.Vector3()));
+    const avanceReal = punta.sub(puntaReposo).dot(adelanteL) * escalaL;              // m
+    // con los dientes casi juntos la punta no cabe entre ellos: el tope crece con la apertura
+    const abierta = THREE.MathUtils.clamp((jaw - 0.03) / 0.12, 0, 1);
+    const tope = (AVANCE_MAX + (AVANCE_MAX_TH - AVANCE_MAX) * Math.min(1, c.interdental)) * abierta - 0.002 * (1 - abierta);
+    if (avanceReal > tope) LENGUA[0].position.addScaledVector(adelanteL, -(avanceReal - tope) / escalaL);
+  }
+}
+
+// Mirada: Eos nos mira (nos está guiando). Cada fotograma, los huesos de los ojos apuntan a la
+// cámara aunque la cabeza se mueva, con microsacadas pequeñas cada 0,4-1,5 s y, en algunas pausas,
+// una mirada breve a un lado y abajo (como quien piensa) antes de volver a la cámara.
+const OJOS = ['FACIAL_L_Eye', 'FACIAL_R_Eye'].map(n => eos.getObjectByName(n)).filter(Boolean);
+eos.updateMatrixWorld(true);
+const ojosReposo = OJOS.map(o => ({
+  q: o.quaternion.clone(),
+  // «al frente» (+Z del mundo en la pose de reposo) en el espacio del padre del ojo
+  dir: new THREE.Vector3(0, 0, 1).applyQuaternion(o.parent.getWorldQuaternion(new THREE.Quaternion()).invert()),
+}));
+function azar(k) { const x = Math.sin(k * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function sacada(t) {                   // desplazamiento de la mirada (radianes) en el instante t
+  let t0 = 0, k = 0;
+  while (true) { const d = 0.4 + 1.1 * azar(k); if (t0 + d > t) break; t0 += d; k++; }
+  return [(azar(k + 0.5) - 0.5) * 0.035, (azar(k + 0.7) - 0.5) * 0.025];
+}
+let pausasMirada = [];
+function mirar(t) {
+  if (!OJOS.length) return;
+  let [dx, dy] = sacada(t);
+  for (const [p0, p1] of pausasMirada) if (t > p0 + 0.08 && t < Math.min(p1, p0 + 0.55)) { dx += 0.16; dy -= 0.06; }
+  OJOS.forEach((o, i) => {
+    o.quaternion.copy(ojosReposo[i].q);
+    o.updateMatrixWorld(true);
+    const hacia = camara.position.clone().sub(o.getWorldPosition(new THREE.Vector3())).normalize()
+      .applyEuler(new THREE.Euler(-dy, dx, 0, 'YXZ'));                                     // sacada, en ejes del mundo
+    const enPadre = hacia.applyQuaternion(o.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
+    const giro = new THREE.Quaternion().setFromUnitVectors(ojosReposo[i].dir, enPadre);
+    const ang = 2 * Math.acos(Math.min(1, Math.abs(giro.w)));
+    if (ang > 0.4) giro.slerp(new THREE.Quaternion(), 1 - 0.4 / ang);                // como mucho ~23°
+    o.quaternion.copy(giro.multiply(ojosReposo[i].q));
+  });
 }
 
 // reposo con vida: parpadeo y respiración aunque no hable
@@ -315,6 +436,7 @@ function reposo(dt) {
     const e = new THREE.Euler(0.02 * Math.sin(tReposo * 0.9), 0.03 * Math.sin(tReposo * 0.37), 0.035, 'YXZ');
     girar(e);
   }
+  mirar(tReposo);
 }
 
 let actual = null;   // {datos, audio, t0}
@@ -340,11 +462,16 @@ function aplicar(datos, t) {
   const f = Math.max(0, Math.min(datos.cabeza.length - 1, t * datos.fps));
   const i = Math.floor(f), a = f - i, j = Math.min(i + 1, datos.cabeza.length - 1);
   for (const [n, arr] of Object.entries(datos.curvas)) poner(n, arr[i] * (1 - a) + arr[j] * a);
-  if (datos.lengua) lengua(Object.fromEntries(Object.entries(datos.lengua).map(([k, arr]) => [k, arr[i] * (1 - a) + arr[j] * a])));
+  if (datos.lengua) {
+    const jaw = datos.curvas.jawOpen ? datos.curvas.jawOpen[i] * (1 - a) + datos.curvas.jawOpen[j] * a : 0.2;
+    lengua(Object.fromEntries(Object.entries(datos.lengua).map(([k, arr]) => [k, arr[i] * (1 - a) + arr[j] * a])), jaw);
+  }
   if (cabeza) {
     const g = datos.cabeza[i].map((v, k) => v * (1 - a) + datos.cabeza[j][k] * a);
     girar(new THREE.Euler(THREE.MathUtils.degToRad(-g[1]), THREE.MathUtils.degToRad(g[0]), THREE.MathUtils.degToRad(g[2]), 'YXZ'));
   }
+  if (datos !== mirar.ultimos) { mirar.ultimos = datos; pausasMirada = datos.palabras.slice(1).map((w, k) => [datos.palabras[k][2], w[1]]).filter(([a, b]) => b - a > 0.3 && azar(a * 7) < 0.6); }
+  mirar(t);
   subt.innerHTML = datos.palabras.map(([w, x]) => `<span class="${t >= x ? 'ya' : ''}">${w}</span>`).join(' ');
 }
 

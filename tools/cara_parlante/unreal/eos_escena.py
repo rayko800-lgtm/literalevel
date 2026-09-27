@@ -17,7 +17,7 @@ for a in acts.get_all_level_actors():
     if a.get_actor_label().startswith('Eos_'):
         acts.destroy_actor(a)
 
-CABEZA = unreal.Vector(40.0, 0.5, 166.0)          # cara de la MetaHuman de la secuencia
+CABEZA = unreal.Vector(40.0, 0.5, 169.5)          # cara de la MetaHuman de la secuencia
 
 
 def rotar_hacia(desde, hacia):
@@ -53,7 +53,7 @@ for nombre, pos, color, inten, ancho in [
     c.set_editor_property('attenuation_radius', 600.0)
 
 # cámara de retrato
-pos_cam = unreal.Vector(-95, 0.5, 164)
+pos_cam = unreal.Vector(-95, 0.5, 169.5)   # a la altura de los ojos: mira a cámara
 cam = acts.spawn_actor_from_class(unreal.CineCameraActor, pos_cam, rotar_hacia(pos_cam, CABEZA))
 cam.set_actor_label('Eos_camara')
 cc = cam.get_cine_camera_component()

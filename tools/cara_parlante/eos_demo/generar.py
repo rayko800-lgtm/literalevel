@@ -343,6 +343,8 @@ def main():
             elif f0 in ('uw', 'ow', 'w'):
                 for c in ('mouthPucker', 'mouthFunnel'):
                     cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
+            elif f0 in ('th', 'dh'):                     # th: dientes algo separados para que asome la punta
+                cur['jawOpen'][i:j] = np.maximum(cur['jawOpen'][i:j], 0.2)
 
     # en los silencios la boca descansa: el modelo de dominancia va interpolando hacia la
     # siguiente vocal y abría la boca en plena pausa (visto el 26 sep: 0,36 en un silencio)
@@ -369,15 +371,31 @@ def main():
     cur['cheekSquintLeft'] = cur['cheekSquintRight'] = 0.2 * son   # más, y los pómulos se ven hinchados
     cur['eyeSquintLeft'] = cur['eyeSquintRight'] = 0.15 * son
 
-    # parpadeo: intervalos gamma de 1KH, a ~20/min (la media real, 36/min, se ve nerviosa en una cara quieta)
-    pb = vida['parpadeo']
-    parp = np.zeros(n); tt = rng.uniform(0.4, 1.5)
-    while tt < dur:
-        c = int(tt * FPS)
-        for i, v in enumerate([0.35, 0.8, 1.0, 1.0, 0.75, 0.45, 0.2, 0.05]):
-            if c + i < n:
-                parp[c + i] = max(parp[c + i], v)
-        tt += max(1.2, rng.gamma(pb['gamma_k'], pb['gamma_theta_s']) * 36.2 / 20)
+    # parpadeo: como al hablar de verdad, unos 24 por minuto y sobre todo en las pausas (Nakano y
+    # Kitazawa 2010): uno al empezar cada pausa (a veces doble), y si pasan más de ~3,5 s sin ninguno,
+    # otro entre palabras. Cada parpadeo dura ~0,3 s: cierra en 90 ms, se queda 40 ms y abre en 170 ms
+    # (antes duraba 0,13 s a 60 fps y apenas se veía).
+    def perfil(t0, fuerza=1.0):
+        tt = t - t0
+        cierra = np.clip(tt / 0.09, 0, 1)
+        abre = 1 - np.clip((tt - 0.13) / 0.17, 0, 1)
+        return fuerza * np.where((tt >= 0) & (tt < 0.30), np.minimum(cierra, abre) ** 0.8, 0.0)
+    momentos = []
+    for p0, p1 in pausas:
+        if rng.random() < 0.85:
+            momentos.append((p0 + rng.uniform(0.03, 0.12), 1.0))
+            if p1 - p0 > 0.6 and rng.random() < 0.25:            # doble parpadeo en pausas largas
+                momentos.append((momentos[-1][0] + 0.38, 0.9))
+    momentos.sort()
+    rellenos, previo = [], rng.uniform(0.3, 1.0)
+    for m, _ in momentos + [(dur, 0)]:
+        while m - previo > 3.6:
+            previo += rng.uniform(2.2, 3.4)
+            rellenos.append((previo, rng.uniform(0.85, 1.0)))
+        previo = max(previo, m)
+    parp = np.zeros(n)
+    for m, f in momentos + rellenos:
+        parp = np.maximum(parp, perfil(m, f))
     cur['eyeBlinkLeft'] = cur['eyeBlinkRight'] = parp
 
     # cejas: suben en los picos de tono (Praat), un poco antes, suaves
@@ -430,6 +448,14 @@ def main():
     cur['eyeBlinkLeft'] = np.maximum(cur['eyeBlinkLeft'], 0.35 * duch)       # párpado baja al sonreír
     cur['eyeBlinkRight'] = np.maximum(cur['eyeBlinkRight'], 0.35 * duch)
     cur['browInnerUp'] = np.clip(cur['browInnerUp'] + 0.15 * duch, 0, 0.7)
+    # párpados vivos: se abren un poco cuando suben las cejas (énfasis, sorpresa amable) y se
+    # relajan un pelín en las pausas; así no se quedan fijos entre parpadeo y parpadeo
+    abrir = np.clip(0.22 * np.maximum(z['cejas_int'], 0) + 0.12 * np.maximum(z['cejas_ext'], 0) - 0.6 * duch, 0, 0.3)
+    for k in ('eyeWideLeft', 'eyeWideRight'):
+        cur[k] = abrir
+    relajar = sum(pulso(n, [(p0 + p1) / 2], 0.10, 0.25) for p0, p1 in pausas[:-1]) if len(pausas) > 1 else np.zeros(n)
+    for k in ('eyeBlinkLeft', 'eyeBlinkRight'):
+        cur[k] = np.maximum(cur[k], np.clip(relajar, 0, 0.12))
 
     # cabeza: la del modelo (grados de 1KH) más un poco de ruido OU para que no se repita
     cab = vida['cabeza']
@@ -443,7 +469,7 @@ def main():
         return np.convolve(np.pad(v, len(k) // 2, mode='edge'), k, mode='valid')[:len(v)]
     guin, cabe, alab = suave(guin), suave(cabe), suave(alab)
     for k in ('browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'browDownLeft', 'browDownRight',
-              'mouthSmileLeft', 'mouthSmileRight', 'eyeSquintLeft', 'eyeSquintRight'):
+              'mouthSmileLeft', 'mouthSmileRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight'):
         cur[k] = np.clip(suave(cur[k], 0.08), 0, 1)
     cabeza = np.stack([guin, cabe, alab], 1)
 
