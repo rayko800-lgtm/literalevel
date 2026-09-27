@@ -1,6 +1,9 @@
 # Pendientes de Pléyade (proyecto LiteraLevel)
 
-Actualizado: **26 de septiembre de 2026**. Entrega: **3 de octubre de 2026**.
+Actualizado: **26 de septiembre de 2026**. Entrega de archivos en Classroom
+(«Trabajo Final»): **4 de octubre de 2026, 11:59 p.m.** Demo en vivo de Miguel:
+**10 de octubre de 2026, turno 5** (el otro día es el 8; «M5G34 - Proyectos.pdf»,
+publicado el 26 sep en la tarea).
 El estado operativo del día está en [`docs/ai/HANDOFF.md`](docs/ai/HANDOFF.md).
 
 La rúbrica son 110 puntos y se aprueba con 80. El orden de esta lista es por

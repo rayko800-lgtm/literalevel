@@ -1,6 +1,8 @@
 # Mensaje para el profesor: entrega final de Pléyade
 
-Versión del 26 de septiembre de 2026, para acompañar la entrega del 3 de octubre.
+Versión del 26 de septiembre de 2026, para acompañar la entrega en Classroom
+(«Trabajo Final», fecha límite 4 de octubre, 11:59 p.m.; la demo en vivo es el
+10 de octubre, turno 5).
 El adelanto del 16 de septiembre ya se envió; este es otro mensaje.
 
 > **Antes de mandarlo:** abrir el enlace desde el móvil y comprobar que el motor

@@ -65,6 +65,15 @@ del profesor.
 
 ## Preparación de la toma
 
+- **Las diapositivas, de fondo todo el rato.** La rúbrica publicada en Classroom
+  («Trabajo Final - Rúbrica.pdf», tarea editada el 26 de septiembre) pide aparecer
+  «en todo momento en el video final junto a la presentación en el fondo» y
+  seguir «un hilo narrativo similar al propuesto para la estructura de la
+  presentación». En OBS, una sola escena: la diapositiva de `presentacion.pdf` a
+  pantalla completa como fondo, tu cámara en una esquina y, en la fase S (la
+  demo), la captura del móvil o del navegador **encima** de la diapositiva
+  «Ejemplo de uso y aplicación», sin taparla del todo. Así la demo se ve y la
+  presentación nunca desaparece del plano.
 - **Ensayo cronometrado, y se corta a 4:40.** Si un ensayo pasa de 4:40, se
   detiene y se recortan acciones (menos toques, menos espera), no palabras
   dichas más deprisa. El MP4 final nunca pasa de 5:00.

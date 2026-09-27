@@ -52,7 +52,9 @@ entero, que Miguel lo vea, y luego sigue con el resto.
 - **Boca 3D (modelo de Blender, en Pronunciar):** más ligera (texturas WebP: 3,5 → 1,7 MB por la
   red), con botones de zoom + y −, cámara lenta («Despacio») y giro («Explorar»). La cara parlante
   **Eos** (MetaHuman de Epic) sigue en desarrollo en otra sesión: no la presentes como terminada.
-- **Fecha de entrega:** 3 oct 2026.
+- **Fecha de entrega:** archivos en Classroom el 4 oct 2026 a las 11:59 p.m. («Trabajo Final»,
+  editada el 26 sep); demo en vivo de Miguel el 10 oct, turno 5 (el otro día es el 8 oct). Antes
+  se decía «3 oct»: lo corrigió f3 al leer Classroom el 26 sep.
 
 ## Reglas que no se rompen
 

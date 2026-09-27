@@ -6,6 +6,16 @@ didáctica y Mi espacio. Las capturas de referencia están en `capturas/`
 
 **Formato de la rúbrica:** de 3 a 5 minutos, **cámara abierta y pantalla
 compartida**, centrado en la **usabilidad**, y después preguntas del profesor.
+La rúbrica de Classroom lo dice así: «describir de forma breve el reto que se
+busca resolver y la interfaz de uso donde se evidencie cómo a través de su(s)
+modelo(s) seleccionado(s) se da resolución a la problemática planteada».
+
+**Cuándo:** la demo de Miguel es el **10 de octubre de 2026, turno 5** (lista
+«M5G34 - Proyectos.pdf» de la tarea «Trabajo Final», leída el 26 de septiembre;
+el otro día es el 8 de octubre). Los archivos se entregan en Classroom antes del
+**4 de octubre, 11:59 p.m.** Si no se puede presentar ninguno de los dos días,
+hay que avisar al profesor antes para presentar la semana anterior; si no, los
+25 puntos se pierden solos.
 
 **Objetivo: 4:00 de demo.** Lo que sobra hasta 5:00 es el colchón para las
 esperas reales (despertar el motor, la explicación de la IA, el audio). Si un
