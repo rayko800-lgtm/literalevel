@@ -1,8 +1,8 @@
 # Guion del vídeo narrado por Eos, en formato de anuncio
 
-Versión del 27 de septiembre de 2026. Guion y voz: sesión literalevel-d0. Animación y
-montaje: literalevel-d6. Rig de Eos: literalevel-c2. Lista de planos:
-`docs/ai/guion_eos_planos.md` (f3).
+Versión del 27 de septiembre de 2026. Reparto al 27 sep (HANDOFF 6 bis): **guion y voz,
+literalevel-d0**; **planos y montaje, literalevel-86 (f3)**, en `docs/ai/guion_eos_planos.md`;
+**rúbrica y entrega, literalevel-d9**. d6 y c2 ya no están activas.
 
 **Formato.** Eos presenta Pléyade en lugar de Miguel, hablando a cámara todo el vídeo, y
 detrás se ve la app real funcionando en el celular (pleyade-app.vercel.app a 390 px). El
@@ -16,7 +16,7 @@ ritmo es de anuncio y la voz es natural, aguda y tierna, como la de la Eos ingle
 anuncio no debe dar a entender que quien entre se la va a encontrar.
 
 **Pautas aplicadas** (`entrega/pautas_comercial.md`, §2): Eos y la marca en los primeros 3
-segundos; una cifra por pantalla; un solo momento clave («me queda por encima, y lo sé antes
+segundos (sin empezar presentándose: el gancho va primero y el nombre después); una cifra por pantalla; un solo momento clave («me queda por encima, y lo sé antes
 de la primera página»); la acción es una sola y no pide cuenta; subtítulos siempre.
 
 **Voz.** Ava Multilingual de Microsoft (edge-tts `en-US-AvaMultilingualNeural`, que es la
@@ -42,15 +42,14 @@ Audio: `D:/literalevel_respaldos/eos_voz/piloto/eos_piloto.mp3` (texto exacto en
 [PANTALLA: Eos en primer plano, con el logo de Pléyade a su lado desde el segundo 0; fondo
 de galaxia.]
 
-«¡Hola! Soy Eos, de Pléyade. ¿Te ha pasado? Abres un libro en inglés… y a las tres páginas,
-lo cierras.
-No era tu inglés. Era el libro.
+«¿Te ha pasado? Abres un libro en inglés… y a las tres páginas, lo cierras.
+No era tu inglés. Era el libro. Soy Eos, y esto es Pléyade.
 Libros gratis hay de sobra; el problema es saber cuál.»
 
 [PANTALLA: Eos se hace a un lado y aparece el celular con Pléyade grabada de verdad:
 Mi espacio → Tu nivel (capturas 01 y 03).]
 
-«Por eso creamos Pléyade. Mira: primero, tu nivel. Tres preguntas y tres fragmentos de
+«Por eso la creamos. Mira: primero, tu nivel. Tres preguntas y tres fragmentos de
 libros reales, sin instalar nada.»
 
 ---
@@ -62,9 +61,8 @@ libros reales, sin instalar nada.»
 [PANTALLA: Eos en primer plano, con el logo de Pléyade desde el segundo 0. En «lo cierras»,
 el gesto de cerrar un libro.]
 
-«¡Hola! Soy Eos, de Pléyade. ¿Te ha pasado? Abres un libro en inglés… y a las tres páginas,
-lo cierras.
-No era tu inglés. Era el libro.»
+«¿Te ha pasado? Abres un libro en inglés… y a las tres páginas, lo cierras.
+No era tu inglés. Era el libro. Soy Eos, y esto es Pléyade.»
 
 ### N — Necesidad · 0:12–0:32
 
@@ -79,7 +77,7 @@ capítulo.»
 [PANTALLA: Eos a un lado y, detrás, el celular con la app real, que se ve usarse (entre
 paréntesis, la captura de referencia).]
 
-«Por eso creamos Pléyade. Mira.
+«Por eso la creamos. Mira.
 
 **Uno.** Primero, tu nivel: tres preguntas y tres fragmentos de libros reales, sin instalar
 nada. En este ejemplo, una lectora con uno coma veinte sobre dos: nivel intermedio.» *(03)*
@@ -107,7 +105,8 @@ entendió, te señala el sonido que falla… y te enseña cómo se mueve la boca
 «**Seis.** Y lo que consultas se queda en tu espacio, para repasarlo. Con tu cuenta, lo ves
 igual en el celular y en la computadora.» *(14, 16)*
 
-[PANTALLA: una sola cifra grande: **0,908**, «validación interna».]
+[PANTALLA: una sola cifra grande: **0,91**, «validación interna» (es el Spearman 0,908
+redondeado, igual que lo dice la voz).]
 
 «¿Cómo lo sabe? Un modelo de lenguaje lee cada libro entero. En su validación interna, su
 correlación con el nivel de referencia es de cero coma noventa y uno.
@@ -137,6 +136,12 @@ Y recuerda: no eras tú. Era el libro. ¡Nos vemos leyendo!»
 ---
 
 ## Para generar la voz
+
+- **El nombre, solo en la voz:** Ava lee «Pléyade» como «Playade». El script
+  (`D:/literalevel_respaldos/eos_voz/generar_voz.py`) lo cambia por la grafía `NOMBRE_VOZ` al
+  sintetizar; el .txt de los subtítulos sigue diciendo «Pléyade». La grafía la elige Miguel de
+  oído entre las de `eos_voz/nombre/`: por whisper, «Plé-yade», «Pleyade», «Pléyadé» y
+  «Plé ya de» suenan «Pleiade», y «Pléyade» y «Pléiade» suenan «Playade».
 
 - La voz lee solo el texto entre comillas angulares, sin las marcas de pantalla ni los
   números de captura. Las negritas «Uno»… «Seis» sí se leen.
