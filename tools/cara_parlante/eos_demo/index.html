@@ -204,6 +204,12 @@ if (cabeza) cabeza.getWorldPosition(centro); else { caja.getCenter(centro); cent
 centro.y += 0.03;
 controles.target.copy(centro);
 camara.position.set(centro.x, centro.y + 0.02, centro.z + 0.95);
+// ?vista=boca: de cerca y un poco de lado, para ver labios, dientes y lengua
+if (new URLSearchParams(location.search).get('vista') === 'boca') {
+  const b = eos.getObjectByName('FACIAL_C_Tongue3')?.getWorldPosition(new THREE.Vector3()) ?? centro;
+  controles.target.set(b.x, b.y, b.z + 0.03);
+  camara.position.set(b.x + 0.06, b.y + 0.01, b.z + 0.26);
+}
 controles.update();
 const bases = cabezas.map(b => b.quaternion.clone());
 function girar(e) { const q = new THREE.Quaternion().setFromEuler(e); cabezas.forEach((b, i) => b.quaternion.copy(bases[i]).multiply(q)); }
@@ -233,6 +239,38 @@ function poner(nombre, v) {
     const i = m.morphTargetDictionary[nombre];
     if (i !== undefined) m.morphTargetInfluences[i] = v;
   }
+}
+
+// Lengua: las poses de Blender (boca3d) en los huesos FACIAL_C_Tongue1-4 de Eos. generar.py
+// (lengua.py) da por fotograma canales suaves (cuerpo, dorso, punta); aquí se pasan a giros con
+// las constantes calibradas en lengua_lab.html (eje local y = cabeceo; negativo sube la parte
+// delantera) y un avance de Tongue1 a lo largo de la lengua.
+const LENGUA = ['FACIAL_C_Tongue1', 'FACIAL_C_Tongue2', 'FACIAL_C_Tongue3', 'FACIAL_C_Tongue4']
+  .map(n => eos.getObjectByName(n)).filter(Boolean);
+const lenguaReposo = LENGUA.map(h => ({ q: h.quaternion.clone(), p: h.position.clone() }));
+const KL = { h1: -0.55, h2: -0.45, adel: 0.014, velo2: -0.75, velo1: 0.10, raizM: 0.010, alto2: -0.5,
+  alv3: -0.35, alv4: -0.95, inter1: 0.012, inter3: 0.10, inter4: 0.25, post3: -0.45, post4: -0.55, retro3: -0.3, retro4: -1.3 };
+let lenguaAdelante = null;
+if (LENGUA.length === 4) {
+  eos.updateMatrixWorld(true);
+  const p1 = LENGUA[0].getWorldPosition(new THREE.Vector3()), p4 = LENGUA[3].getWorldPosition(new THREE.Vector3());
+  lenguaAdelante = p4.sub(p1).normalize();
+}
+function lengua(c) {           // c: {altura, adelante, velo, alto, raiz, alveolar, interdental, postalveolar, retrofleja}
+  if (!lenguaAdelante) return;
+  LENGUA.forEach((h, i) => { h.quaternion.copy(lenguaReposo[i].q); h.position.copy(lenguaReposo[i].p); });
+  const y = [0, 0, 0, 0];
+  y[0] += KL.h1 * (c.altura - 0.45) + KL.velo1 * c.velo;
+  y[1] += KL.h2 * (c.altura - 0.45) + KL.velo2 * c.velo + KL.alto2 * c.alto;
+  y[2] += KL.alv3 * c.alveolar + KL.inter3 * c.interdental + KL.post3 * c.postalveolar + KL.retro3 * c.retrofleja;
+  y[3] += KL.alv4 * c.alveolar + KL.inter4 * c.interdental + KL.post4 * c.postalveolar + KL.retro4 * c.retrofleja;
+  LENGUA.forEach((h, i) => h.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, y[i], 0))));
+  const avance = KL.adel * (c.adelante - 0.5) - KL.raizM * c.raiz - 0.004 * c.velo + KL.inter1 * c.interdental;
+  const padre = LENGUA[0].parent; padre.updateWorldMatrix(true, false);
+  const d = lenguaAdelante.clone().multiplyScalar(avance)
+    .applyQuaternion(padre.getWorldQuaternion(new THREE.Quaternion()).invert())
+    .divide(padre.getWorldScale(new THREE.Vector3()));
+  LENGUA[0].position.add(d);
 }
 
 // reposo con vida: parpadeo y respiración aunque no hable
@@ -273,6 +311,7 @@ function aplicar(datos, t) {
   const f = Math.max(0, Math.min(datos.cabeza.length - 1, t * datos.fps));
   const i = Math.floor(f), a = f - i, j = Math.min(i + 1, datos.cabeza.length - 1);
   for (const [n, arr] of Object.entries(datos.curvas)) poner(n, arr[i] * (1 - a) + arr[j] * a);
+  if (datos.lengua) lengua(Object.fromEntries(Object.entries(datos.lengua).map(([k, arr]) => [k, arr[i] * (1 - a) + arr[j] * a])));
   if (cabeza) {
     const g = datos.cabeza[i].map((v, k) => v * (1 - a) + datos.cabeza[j][k] * a);
     girar(new THREE.Euler(THREE.MathUtils.degToRad(-g[1]), THREE.MathUtils.degToRad(g[0]), THREE.MathUtils.degToRad(g[2]), 'YXZ'));

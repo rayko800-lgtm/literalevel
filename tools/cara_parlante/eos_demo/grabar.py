@@ -22,6 +22,7 @@ def main():
     ap.add_argument('--fps', type=int, default=30)
     ap.add_argument('--ancho', type=int, default=1080)
     ap.add_argument('--alto', type=int, default=1080)
+    ap.add_argument('--vista', default='', help='boca: de cerca (labios, dientes y lengua)')
     a = ap.parse_args()
     tmp = os.path.join(DEMO, a.clip, 'fotogramas')
     shutil.rmtree(tmp, ignore_errors=True)
@@ -30,7 +31,7 @@ def main():
         nav = p.chromium.launch(channel='chrome', headless=True,
                                 args=['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'])
         pag = nav.new_page(viewport={'width': a.ancho, 'height': a.alto})
-        pag.goto(f'{a.url}/index.html?grabar={a.clip}')
+        pag.goto(f'{a.url}/index.html?grabar={a.clip}' + (f'&vista={a.vista}' if a.vista else ''))
         pag.wait_for_function('window.listo === true', timeout=300000)
         dur = pag.evaluate('window.duracion')
         n = int(dur * a.fps)
@@ -40,7 +41,7 @@ def main():
             if i % 60 == 0:
                 print(f'{i}/{n}', flush=True)
         nav.close()
-    salida = os.path.join(DEMO, a.clip, f'eos_{a.clip}.mp4')
+    salida = os.path.join(DEMO, a.clip, f'eos_{a.clip}' + (f'_{a.vista}' if a.vista else '') + '.mp4')
     subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-framerate', str(a.fps),
                     '-i', os.path.join(tmp, '%05d.png'), '-i', os.path.join(DEMO, a.clip, 'voz.mp3'),
                     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-c:a', 'aac', '-shortest', salida], check=True)

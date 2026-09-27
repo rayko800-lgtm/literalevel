@@ -22,6 +22,8 @@ import re
 
 import numpy as np
 
+from lengua import curvas_lengua
+
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 MODELO = os.path.join(RAIZ, 'front', 'src', 'app', 'compartido', 'boca3d', 'modelo_articulatorio.json')
 VIDA = os.path.join(RAIZ, 'investigacion', 'cara_parlante', 'vida_cara.json')
@@ -448,6 +450,7 @@ def main():
     json.dump({'fps': FPS, 'duracion': dur, 'texto': a.texto, 'voz': a.voz,
                'palabras': [[w, round(x, 3), round(y, 3)] for w, x, y in palabras],
                'fonemas': [[f, round(x, 3), round(y, 3)] for f, x, y in fons],
+               'lengua': {k: [round(float(v), 3) for v in arr] for k, arr in curvas_lengua(fons, n, FPS).items()},
                'curvas': {k: [round(float(v), 3) for v in arr] for k, arr in cur.items()},
                'cabeza': [[round(float(v), 2) for v in fila] for fila in cabeza]},
               open(os.path.join(a.salida, 'curvas.json'), 'w'))
