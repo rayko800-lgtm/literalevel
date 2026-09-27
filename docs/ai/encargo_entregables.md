@@ -148,3 +148,12 @@ y los desbordes que quedan son de menos de 3 pt o no se ven.
   y los scripts del casting están en `D:/literalevel_respaldos/eos_voz/casting/` (tanda 1:
   `eos_*.mp3`; tanda 2: `tanda2/`). Los dueños de lo demás: el rig de Eos (lengua, dientes,
   mirada, cejas) es de literalevel-c2; la animación y el montaje, de literalevel-d6.
+- **Vuelta (27 sep, tarde):** 0e dejó de estar activa, así que literalevel-d0 recupera el guion y
+  la voz. El profesor aceptó que Eos hable todo el vídeo (confirmado por Miguel el 27 sep; el
+  texto del profesor no está archivado). Guion definitivo: piloto de 30 s y vídeo completo de 379
+  palabras (unos 2:40 a 150 ppm), con las pautas de `pautas_comercial.md`. Voz: Ava Multilingual
+  con los ajustes de la Eos inglesa. Piloto: `D:/literalevel_respaldos/eos_voz/piloto/eos_piloto.mp3`
+  (23,6 s, comprobado con whisper), generado con `D:/literalevel_respaldos/eos_voz/generar_voz.py`.
+  Por comprobar de oído: whisper transcribe «Playade», así que puede que Ava no pronuncie bien
+  «Pléyade».
+
