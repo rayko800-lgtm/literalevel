@@ -99,7 +99,7 @@ async function atlasPelo(url, raiz, punta, reflejo) {
 }
 const TEX = 'textures/';
 const peloMap = await atlasPelo(TEX + 'Hair_M_Layered_CardsAtlas_Attribute.png', [92, 60, 38], [214, 170, 112], [190, 96, 52]);
-const cejaMap = await atlasPelo(TEX + 'Eyebrows_M_Full_CardsAtlas_Attribute.png', [48, 31, 20], [66, 44, 30], [80, 50, 32]);
+const cejaMap = await atlasPelo(TEX + 'Eyebrows_M_Full_CardsAtlas_Attribute.png', [96, 64, 40], [128, 88, 56], [140, 84, 48]);   // castañas, como la raíz del pelo
 const pestanaMap = await new THREE.TextureLoader().loadAsync(TEX + 'T_Eyelashes_L_ThickCurl_Coverage.png');
 pestanaMap.flipY = false;
 eos.traverse(o => {
@@ -137,22 +137,22 @@ eos.traverse(o => {
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i).sub(cg.min).multiply(esc).add(cw.min);
       const h = v.y - ojoW.y, f = v.z - ojoW.z;
-      const ondas = 0.004 * Math.sin(v.x * 260) + 0.003 * Math.sin(v.x * 710 + 1.3);   // borde irregular, como pelo
-      const linea = 0.06 + ondas - 0.35 * Math.max(0, 0.06 - f);      // la línea baja hacia las sienes y la nuca
-      mascara[i] = THREE.MathUtils.smoothstep(h, linea, linea + 0.03);
+      const ondas = 0.0015 * Math.sin(v.x * 260) + 0.001 * Math.sin(v.x * 710 + 1.3);  // borde apenas irregular
+      const linea = 0.065 + ondas - 0.35 * Math.max(0, 0.06 - f);     // la línea baja hacia las sienes y la nuca
+      mascara[i] = THREE.MathUtils.smoothstep(h, linea, linea + 0.05);   // transición ancha: sin borde pintado
     }
     o.geometry.setAttribute('aPelo', new THREE.BufferAttribute(mascara, 1));
     const m = o.material;
     m.onBeforeCompile = sh => {
-      sh.uniforms.uRaiz = { value: new THREE.Color(0.10, 0.045, 0.02) };   // lineal ≈ sRGB (90, 60, 38)
+      sh.uniforms.uRaiz = { value: new THREE.Color(0.105, 0.048, 0.022) };   // lineal ≈ sRGB (92, 60, 38), la raíz del pelo
       sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
-attribute float aPelo; varying float vPelo;`)
+attribute float aPelo; varying float vPelo; varying vec3 vPos;`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
-vPelo = aPelo;`);
+vPelo = aPelo; vPos = position;`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-varying float vPelo; uniform vec3 uRaiz;`)
+varying float vPelo; varying vec3 vPos; uniform vec3 uRaiz;`)
         .replace('#include <map_fragment>', `#include <map_fragment>
-diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.6 + uRaiz * 0.5, 0.45 * vPelo * vPelo);
+diffuseColor.rgb = mix(diffuseColor.rgb, uRaiz * (0.9 + 0.2 * fract(sin(dot(floor(vPos * 1500.0), vec3(12.9898, 78.233, 37.719))) * 43758.5)), 0.75 * smoothstep(0.35, 1.0, vPelo));
 { float g = dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15));            // menos rojo: el bake trae párpados y mejillas muy rojos
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(g) * vec3(1.06, 1.0, 0.97), 0.22); }`);
     };
@@ -193,6 +193,15 @@ for (const o of tarjetas) {
     vol.parent.updateMatrixWorld(true);
     vol.matrix.copy(vol.parent.matrixWorld.clone().invert().multiply(w)); vol.matrix.decompose(vol.position, vol.quaternion, vol.scale);
     capas.push(vol);
+    // tercera capa, un 8 % más grande y translúcida: rellena la coronilla (se veía calva)
+    const vol2 = o.clone(); const m3 = m2.clone(); m3.opacity = 0.7; vol2.material = m3; vol2.renderOrder = 2; o.parent.add(vol2);
+    const ew2 = new THREE.Matrix4().makeTranslation(coronilla.x, coronilla.y, coronilla.z)
+      .multiply(new THREE.Matrix4().makeScale(1.07, 1.03, 1.09))
+      .multiply(new THREE.Matrix4().makeTranslation(-coronilla.x, -coronilla.y + 0.002, -coronilla.z));
+    vol2.updateMatrixWorld(true);
+    const w2 = ew2.multiply(vol2.matrixWorld.clone());
+    vol2.matrix.copy(vol2.parent.matrixWorld.clone().invert().multiply(w2)); vol2.matrix.decompose(vol2.position, vol2.quaternion, vol2.scale);
+    capas.push(vol2);
   }
   if (cabezaHueso) capas.forEach(c => { c.updateMatrixWorld(true); cabezaHueso.attach(c); });
 }
@@ -228,7 +237,8 @@ try {
   const medio = pI.clone().add(pD).multiplyScalar(0.5);
   const esc = pI.distanceTo(pD) / 0.065;
   gafas.scale.setScalar(esc);
-  gafas.position.copy(medio).add(new THREE.Vector3(0, 0.002, 0.018));
+  gafas.position.copy(medio).add(new THREE.Vector3(0, -0.0045, 0.016));   // aro un poco bajo la pupila, puente sobre la nariz
+  gafas.traverse(o => { if (o.isMesh && /cristal/i.test(o.material.name)) { o.material.transparent = true; o.material.opacity = 0.06; o.material.roughness = 0.02; o.material.depthWrite = false; } });
   scene.add(gafas); gafas.updateMatrixWorld(true);
   if (cabeza) cabeza.attach(gafas);
 } catch (e) { console.warn('sin gafas', e); }
