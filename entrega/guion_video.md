@@ -74,6 +74,14 @@ del profesor.
   demo), la captura del móvil o del navegador **encima** de la diapositiva
   «Ejemplo de uso y aplicación», sin taparla del todo. Así la demo se ve y la
   presentación nunca desaparece del plano.
+- **Eos, dentro de la demo y sin sustituir a Miguel.** La cara que habla de
+  frente no está en la app publicada (documento, §7.9); entra en el vídeo
+  como demostración, no como narradora. En la fase S, después de la boca 3D,
+  la misma frase del paso Cinco leída por Eos (el vídeo comparativo de tres
+  versiones que se está grabando, o solo la versión de Audio2Face), unos
+  10 s, encima de la diapositiva «En desarrollo · Eos». Miguel sigue a cámara
+  todo el rato: la rúbrica pide aparecer hablando «en todo momento», así que
+  un vídeo narrado por Eos sería una pieza aparte, no la que se entrega.
 - **Ensayo cronometrado, y se corta a 4:40.** Si un ensayo pasa de 4:40, se
   detiene y se recortan acciones (menos toques, menos espera), no palabras
   dichas más deprisa. El MP4 final nunca pasa de 5:00.
@@ -280,7 +288,8 @@ capítulo.»
 > palabra a practicar, enseña **primero el sonido y después la palabra
 > entera**, animados. Con «Reducir movimiento»
 > del sistema salen quietos: tenlo apagado al grabar. Y la boca en 3D, de
-> lejos (ver *Preparación de la toma*).
+> lejos (ver *Preparación de la toma*). Si el vídeo de Eos está listo, va
+> aquí, tras la boca 3D: la misma frase leída por Eos, unos 10 s.
 >
 > **Planos de pantalla que hacen falta**, en el orden del guion. Son la
 > referencia de lo que tiene que verse en cada paso y el plan B si algo

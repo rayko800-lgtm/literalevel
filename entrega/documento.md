@@ -1126,6 +1126,85 @@ vídeo frontal es débil. Y la boca de la aplicación es un corte de media cabez
 no una cara de vídeo: los controles se trasladan a ella con una calibración por
 poses comunes, que es una decisión de diseño y no algo medido.
 
+### 7.9 En desarrollo: la cara que habla de frente (Eos)
+
+La boca 3D del apartado 7.8 enseña la articulación en corte. Una cara completa
+que lea las frases de frente —**Eos**, una cara MetaHuman de Epic exportada a
+GLB con 52 coeficientes de expresión ARKit— está en desarrollo, **no forma
+parte de la aplicación publicada** y se enseña en el vídeo de la entrega.
+Se documenta aquí porque el camino hasta
+ella ya tiene medidas, y porque dos de esas medidas cambiaron el plan
+(`docs/ai/informe_eos_v3_a2f_2026-09-26.md`).
+
+**Punto de partida.** Una red de fusión (la boca de Blender más la voz)
+entrenada sobre etiquetas de MediaPipe tocó techo: en validación, *r* de 0,33
+en la boca, 0,24 en la sonrisa, 0,14 en las cejas, 0,10 en los ojos y 0,13 en la
+cabeza. El plan siguiente proponía reetiquetar los vídeos con SMIRK (un modelo
+3D de la cara), condicionar por HuBERT-large y separar la boca, que la voz
+determina, de lo no verbal, que no.
+
+**Reetiquetar con SMIRK: descartado con medida, no por opinión.** Un piloto en
+Colab (A100, 37 minutos) etiquetó cuatro discursos de Obama, una hora de vídeo.
+La fiabilidad entre SMIRK y MediaPipe por grupo fue de 0,36 en la boca, 0,44 en
+la sonrisa, 0,31 en los ojos y 0,28 en las cejas, por debajo del umbral de 0,45
+fijado de antemano para seguir. Y una prueba de legibilidad labial sobre 45
+clips de TalkingHead-1KH (12.000 fotogramas, clasificador lineal con validación
+cruzada por clip, cinco clases de sonido) dio 0,217 con SMIRK, 0,206 con
+MediaPipe y 0,217 con los dos juntos, frente a 0,167 del azar: **ninguna
+etiqueta 2D lee bien los labios**. Reetiquetar las 36 horas de Obama habría
+costado unas 12 unidades de cómputo para no ganar nada medible.
+
+**La boca: Audio2Face-3D, sin su SDK.** Audio2Face-3D v3.0 de NVIDIA (modelo
+abierto, con licencia de uso comercial y no comercial) está entrenado con
+captura 4D de caras reales: HuBERT más difusión, 180 millones de parámetros. En
+vez de compilar su SDK (CUDA 12.9 y TensorRT), se reimplementó el ejecutor en
+Python con ONNX Runtime en CPU (`tools/cara_parlante/a2f/a2f_onnx.py`): ventanas
+de un segundo a 16 kHz que avanzan medio segundo, estado recurrente
+realimentado, y un ajuste acotado de *blendshapes* sobre 4.262 vértices
+frontales. Nueve segundos de audio cuestan quince de CPU y salen 52 ARKit a 60
+fotogramas por segundo más 16 poses de lengua. En la misma frase, frente a la
+boca de Blender: mandíbula 0,55 frente a 0,35, cierre de labios 0,42 frente a
+0,06 y redondeo 0,55 frente a 0,15. Sus límites: no anima ojos ni cabeza y su
+emoción por defecto es neutra. Por eso las garantías pedagógicas de Blender
+(las /p b m/ cierran, las /u o/ redondean al menos como Blender; lengua,
+dientes y garganta) van encima de su salida.
+
+**Lo no verbal: un modelo generativo.** La voz no determina la sonrisa, las
+cejas, los ojos ni la cabeza; una regresión los deja quietos. Se entrenó un
+modelo de *flow matching* con un *transformer* condicionado por HuBERT-large,
+por la articulación y por un vector de estilo, con 36 horas de Obama y 3,5 de
+TalkingHead-1KH (etiquetas MediaPipe), en una A100 durante una hora y media
+(unas 11,5 unidades). En validación (111 clips, 215 ventanas de 10 s): la
+alineación de los movimientos de cabeza con los golpes de voz es **0,773,
+frente a 0,74 en las caras reales**; diversidad 0,926; FDD 0,711. Las *r* por
+grupo son bajas (sonrisa 0,12, cabeza 0,07), como corresponde a un modelo que
+no copia una trayectoria sino que genera una plausible.
+
+| Parte de Eos | De dónde sale | Por qué |
+|---|---|---|
+| Labios, mandíbula y mejillas al hablar | Audio2Face-3D (52 ARKit) | captura 4D: articula más y mejor que cualquier etiqueta 2D |
+| Precisión pedagógica de la boca | modelo articulatorio de Blender (apartado 7.8) | es lo que enseña la pronunciación |
+| Sonrisa, ojos, cejas y cabeza | no verbal generativo v3 | la voz no los determina |
+| Voz | edge-tts (en-US-AvaNeural) | sin coste |
+
+*Cuadro 15. Cómo queda Eos a 26 de septiembre de 2026. Fuente: el informe citado.*
+
+**La boca propia (v3): entrenada y descartada con medida.** La noche del 26 se
+entrenó también una boca por regresión (un *transformer* sobre HuBERT y la
+articulación de Blender, con MediaPipe como objetivo; A100, 41 épocas, la mejor
+la 11, después sobreajusta). En validación, *r* de 0,305 en la boca —la fusión
+anterior daba 0,33 y el techo con etiquetas 2D ronda 0,45—; cierre en /p b m/
+de 0,225 frente a 0,155 en las caras reales, y redondeo en /u o/ de 0,245
+frente a 0,502. Coincide con la prueba de legibilidad: con etiquetas 2D la boca
+no pasa de *r* ≈ 0,3. Audio2Face queda como boca de Eos con números, no por
+preferencia. El coste del día fue de unas 30 unidades de cómputo.
+
+**Lo que falta, y por qué no entra.** Queda comparar en vídeo tres versiones de
+la misma frase: la fusión anterior, Audio2Face con el no verbal v3, y la boca
+v3 con el no verbal v3. Ninguna cifra de Eos se ha medido con lectores, y la
+cara no está integrada en *Pronunciar*. Se presenta como trabajo en curso, con
+sus medidas, no como parte de la entrega.
+
 ---
 
 ## 8. Resolución del problema
@@ -1145,7 +1224,7 @@ esas tres:
 | ¿Lo estoy pronunciando bien? | Lectura en voz alta marcada palabra por palabra, con el sonido concreto que falla y cómo se mueve la boca, en corte 2D o en 3D; en el lector, un pasaje leído en vivo con las palabras saltadas marcadas | Una frase; el pasaje en vivo, hasta tres minutos |
 | ¿Cómo voy? | *Mi espacio*: libros empezados, palabras consultadas por día y resultados de los repasos; con cuenta, lo mismo en cualquier aparato | Nada |
 
-*Cuadro 15. Del modelo a las decisiones del usuario.*
+*Cuadro 16. Del modelo a las decisiones del usuario.*
 
 ### 8.2 Un recorrido completo, con números reales
 
@@ -1248,7 +1327,7 @@ Las mediciones que hicieron viable esa decisión:
 | GPU local (GTX 1650 SUPER) | fp32, lote 128 | 112,7 | 13,8× |
 | GPU A100 (Colab) | fp16, lote grande | 2.022 | 247× |
 
-*Cuadro 16. Rendimiento medido de extremo a extremo, incluida la tokenización
+*Cuadro 17. Rendimiento medido de extremo a extremo, incluida la tokenización
 y las transferencias. Son cifras del precálculo, que agrupa en lotes fijos de 64
 en CPU y 128 en GPU. **La aplicación en vivo no llega a esos lotes**: agrupa
 por capítulo, y no por conveniencia sino para poder ir repintando la curva
@@ -1459,7 +1538,7 @@ y la cifra que resume cada una.
 | Mejor LLM *zero-shot* publicado | Pearson **0,725** en CLEAR | **0,89** |
 | Lexile, tarifa de creador de contenido (MetaMetrics, 2026) | **3.824–54.636 USD/año** | A100 de pago hasta el 10 sep y T4 gratuita después; sin coste en USD registrado |
 
-*Cuadro 17. Cifras publicadas frente a las de este proyecto. **No son
+*Cuadro 18. Cifras publicadas frente a las de este proyecto. **No son
 comparaciones cara a cara**: las dos primeras filas vienen de un estudio ajeno
 (Grossman y Chen, 2026) sobre el mismo corpus, con otra partición y otro protocolo. Justifican la
 decisión de afinar un codificador; no demuestran una victoria medida.*
@@ -1695,7 +1774,8 @@ repetirlo en cada párrafo corregido.
    única métrica que verdaderamente valida la propuesta.
 7. **Una cara que habla de frente.** La boca 3D enseña la articulación en
    corte; una cara completa que lea las frases de frente (*Eos*, sobre un
-   MetaHuman de Epic) está en desarrollo y **no forma parte de esta entrega**.
+   MetaHuman de Epic) está en desarrollo, **no está en la aplicación publicada**
+   y se enseña en el vídeo (apartado 7.9).
 8. **Convertir las cinco acciones en herramientas de un agente**
    (*function calling*). Hoy cada una tiene su botón: medir un capítulo,
    buscar por significado, abrir un libro, explicar una palabra y corregir la
