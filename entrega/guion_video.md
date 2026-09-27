@@ -11,7 +11,7 @@ Recomendación del profesor: grabar con **OBS**.
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
 es el único error irrecuperable de este entregable.
 
-**El texto hablado son 514 palabras: 3:26 a 150 palabras por minuto y 3:57 a 130.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. Lo que falta hasta 4:40 no es un descuido: es el presupuesto para lo que la demo tarda *de verdad*
+**El texto hablado son 516 palabras: 3:26 a 150 palabras por minuto y 3:58 a 130.** Lo cuenta `tools/contar_guion.py`, que trae la regla escrita: lo que va entre comillas angulares dentro de las fases ANSVA, descontando las acotaciones entre paréntesis y las notas de producción. Esa cifra se ha publicado mal tres veces por contarla cada vez de una manera; ahora se ejecuta. Lo que falta hasta 4:40 no es un descuido: es el presupuesto para lo que la demo tarda *de verdad*
 —esperar a que responda la búsqueda, a que llegue la explicación, que suene el
 audio, leer la frase en voz alta—, unos 45 segundos. Si al ensayar te sale
 muy corto, no metas más texto: ve más despacio y deja respirar las pausas.
@@ -21,6 +21,16 @@ Esta versión fusiona el guion de b9 (698b804) con tres cambios del de Codex
 contada en dos tiempos (lo local al instante; la traducción y la explicación
 después, con IA) con el perfil 1,20 dicho como preparado para el ejemplo, y la
 preparación de la toma (respaldo rotulado, privacidad y ensayo cronometrado).
+
+**27 de septiembre: retocado para que venda**, con las pautas de
+`entrega/pautas_comercial.md` (investigación sobre anuncios eficaces: ABCD de
+Google y Kantar, atención de System1 y Amplified, simulación mental). La
+estructura ANSVA no cambia; cambian el orden y el foco: la apertura habla de
+tú y empieza con un gesto, la Necesidad pone una sola idea en pantalla, el
+paso Tres se marca como el momento clave, la Visualización es el espectador
+esta noche y no el catálogo, y la Acción pide una cosa concreta que se puede
+hacer sin cuenta, con QR. La frase del cierre («no lo eras. Era el libro»)
+ahora tiene eco en la apertura.
 
 ---
 
@@ -138,36 +148,44 @@ del profesor.
 
 # EL GUION
 
-## A — ATENCIÓN · 0:00 – 0:30
+## A — ATENCIÓN · 0:00 – 0:25
 
 > **En pantalla:** portada. Solo el nombre *Pléyade*, su emblema y una frase.
 > Sin logotipo animado, sin música.
+>
+> **Primer segundo, antes de hablar:** Miguel cierra de golpe, a cámara, un
+> libro en inglés de verdad (cuanto más gordo, mejor). Un gesto inesperado de
+> una persona con un objeto es lo que retiene al espectador en los tres
+> primeros segundos; un logotipo, no (`pautas_comercial.md`, pautas 1 y 2).
 
 **Miguel, a cámara:**
 
-«Un hispanohablante que quiere leer en inglés se topa siempre con el mismo
-muro. Elige un libro que suena bien, lo abre… y a las tres páginas lo cierra.
+«¿Alguna vez abriste un libro en inglés con ganas… y a las tres páginas lo
+cerraste?
 
-No porque no sepa inglés. Porque **eligió mal el libro**.
+No es que no sepas inglés. Es que **elegiste mal el libro**.
 
-Nadie le dijo que *Moby Dick* le quedaba grande y que *El sabueso de los
-Baskerville* le quedaba justo. Eso es lo que hace Pléyade.»
+Nadie te dijo que *Moby Dick* te quedaba grande y que *El sabueso de los
+Baskerville* te quedaba justo. Eso es lo que hace Pléyade: te dice cuál es el
+tuyo antes de abrirlo.»
 
 > *Pausa de un segundo antes de pasar de diapositiva.*
 
 ---
 
-## N — NECESIDAD · 0:30 – 1:00
+## N — NECESIDAD · 0:25 – 0:50
 
-> **En pantalla:** tres cifras grandes, una por línea. Nada más.
-> **1.500 millones** de personas estudian inglés · **la lectura extensiva**
-> es de los métodos con más respaldo · **68.546** libros y textos gratis, medidos.
+> **En pantalla:** una sola idea grande, nada más:
+> **Decenas de miles de libros gratis. ¿Cuál es el tuyo?**
+> Una cifra o una idea por pantalla, y silencio: tres cifras juntas son ruido
+> (pauta 4). Se quitó el «1.500 millones de personas estudian inglés» que iba
+> aquí: no tiene fuente en el documento.
 
 «La investigación es clara: leer mucho, a un nivel algo por encima del tuyo,
 es de lo que mejor funciona.
 
 El problema no es encontrar libros: hay decenas de miles gratis. El problema es
-**saber cuál**.
+**saber cuál**. *(pausa de un segundo)*
 
 Las etiquetas que existen —A1, B2, C1— casi nunca las pone alguien que haya
 leído el libro. Y un libro no tiene una sola dificultad: cambia de capítulo a
@@ -175,7 +193,12 @@ capítulo.»
 
 ---
 
-## S — SATISFACCIÓN · 1:00 – 3:35
+## S — SATISFACCIÓN · 0:50 – 3:30
+
+> **La app tiene que verse funcionando antes del minuto 1** (pauta 5). Y el
+> paso Tres es **el momento clave** del vídeo —«me queda por encima, y lo sé
+> antes de la primera página»—: después de decirlo, un segundo de silencio
+> mirando a cámara (pauta 6).
 
 > **En pantalla:** el **front de Angular en el móvil** y **usarlo de verdad**.
 > Nada de capturas pegadas: que se vea el dedo (o el cursor) moverse. Dos
@@ -342,7 +365,8 @@ lo encuentra.
 
 **Tres.** Abro *Crimen y castigo*: **203.415 palabras**, cuánto es diálogo, qué se repite. Y la curva: **la
 dificultad capítulo a capítulo**. Media **1,70**. Mi perfil es 1,20: me queda
-por encima, y lo sé antes de la primera página.
+por encima, y lo sé antes de la primera página. *(pausa de un segundo, a
+cámara)*
 
 **Cuatro.** *(mantener presionada* poverty*)* Mantengo el dedo sobre una palabra y **al instante**
 tengo el diccionario y la fonética. Unos segundos después llega lo que pone
@@ -362,7 +386,10 @@ repasar, y lo veo igual en cualquier aparato donde entre.»
 > **distilroberta-base** · Spearman **0,908** interno · orden MCER
 > estrictamente creciente en textos externos · escala pública 0–2.
 
-«Detrás, un distilroberta afinado: Spearman de 0,908 en
+> Las métricas van **como razón para fiarse**, en una línea, no como
+> protagonista (pauta 7).
+
+«¿Por qué fiarte? Detrás hay un distilroberta afinado: Spearman de 0,908 en
 validación interna, y en textos externos con nivel oficial, el orden de A1 a
 C1 sale estrictamente creciente.
 
@@ -371,35 +398,47 @@ Sirve para elegir qué leer, no para acreditar nada.»
 
 ---
 
-## V — VISUALIZACIÓN · 3:35 – 4:15
+## V — VISUALIZACIÓN · 3:30 – 4:10
 
-> **En pantalla:** el catálogo. **53.179** libros de Project Gutenberg y
-> **585.111** capítulos, y debajo: *medidos enteros por el modelo*.
+> **En pantalla:** el catálogo. **53.179** libros de Project Gutenberg, y
+> debajo, pequeño: *585.111 capítulos, medidos enteros por el modelo*.
+>
+> La visualización es **el espectador después**, no el catálogo: quien se
+> imagina usando el producto tiene más intención de probarlo (pauta 8). La
+> cifra cabe en una frase.
 
-«Ahora imagina esto a escala.
+«Ahora imagínate esta noche. Abres Pléyade, le pides algo de misterio y te
+enseña los libros que están a tu nivel. Lees veinte páginas sin soltar el
+móvil… y las entiendes.
 
-Hemos medido **53.179 libros** de Project Gutenberg enteros, capítulo a
-capítulo: **585.111 capítulos**.
+Eso vale para **53.179 libros** de Project Gutenberg, medidos capítulo a
+capítulo. Y si uno te queda grande, te dice **qué capítulos sí están a tu
+nivel**.»
 
-Y eso permite algo que una etiqueta por libro no puede: si un libro te queda
-grande, la aplicación te dice **qué capítulos sí están a tu nivel**.
-
-Para el lector eso significa empezar el libro que le toca, entender lo que
-lee, **y seguir**.»
+> **Opcional, solo si es real:** una frase de uno de los primeros usuarios,
+> con su permiso y su nombre de pila, en pantalla (pauta 9). Nunca inventada
+> ni parafraseada como cita. Si no la hay, no se pone nada.
 
 ---
 
-## A — ACCIÓN · 4:15 – 4:40
+## A — ACCIÓN · 4:10 – 4:40
 
-> **En pantalla:** el enlace del front, grande:
+> **En pantalla:** el enlace del front, grande, con su **código QR**:
 > `pleyade-app.vercel.app`. Y debajo, pequeño: el
 > repositorio y el motor (`huggingface.co/spaces/MikeMaki1763/literalevel`).
+>
+> **Una sola acción, concreta y que un desconocido pueda hacer** (pauta 10).
+> Medir el nivel y buscar no piden cuenta: en `app/api.py`,
+> `/api/perfil/cuestionario` y `/api/buscar` van con `LectorOpcional`
+> (comprobado en el código el 27 de septiembre; en vivo sin sesión, no).
+> La explicación con IA y la corrección sí piden entrar: no se prometen aquí.
 
-«Pléyade funciona ahora mismo, no es una maqueta. Este es el enlace; se
-abre en el móvil.
+«Pléyade funciona ahora mismo, no es una maqueta. Entra en este enlace desde
+el móvil, sin instalar nada, y mide tu nivel: tres preguntas y tres
+fragmentos.
 
-Si hablas español y alguna vez abandonaste un libro en inglés pensando que el
-problema eras tú —no lo eras. Era el libro.
+Si alguna vez abandonaste un libro en inglés pensando que el problema eras
+tú —no lo eras. Era el libro.
 
 Pruébalo.»
 

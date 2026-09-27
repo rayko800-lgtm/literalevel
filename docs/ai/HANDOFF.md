@@ -111,6 +111,16 @@ curso, por orden de Miguel (25 sep):
    (corte sagital, lengua separada de los dientes por sus pesos, poses de Blender en los
    huesos Tongue1-4 con constantes K calibradas solo con t, k, θ, l, i) y los guiones
    `lengua_comparar.py` y `lengua_palabra.py` (coarticulación por pesos, sin audio).
+6 bis. **Guion y cierre retocados para vender (27 sep, d9):**
+   investigación de anuncios eficaces en `entrega/pautas_comercial.md` (ABCD de
+   Google/Kantar, System1, Amplified, simulación mental; 10 pautas). Aplicada a
+   `guion_video.md/.tex/.pdf` (apertura en «tú» con gesto, una sola idea en N,
+   V como escena del espectador, acción «mide tu nivel» sin cuenta; **516
+   palabras habladas**, `tools/contar_guion.py`) y a la última diapositiva de
+   `presentacion.tex/.pdf` (QR que se decodifica a `https://pleyade-app.vercel.app`
+   y la acción). **Pendiente:** probar en vivo, sin sesión y a 390 px, que *Tu
+   nivel* y *Encontrar* funcionan (solo se comprobó en `app/api.py`); la
+   diapositiva «Antes de comenzar» sigue en tercera persona.
 7. **Datos por cuenta (26 sep):** publicados (Space `103eef5`). Con usuario y
    contraseña, los datos son de la cuenta en cualquier aparato
    (`cuentas/<nombre>` en el bucket). Contraseñas rotadas (10 perfiles) y

@@ -24,6 +24,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{qrcode}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
@@ -542,19 +543,21 @@ en una escala continua propia.}\\[8mm]
 
 % ===========================================================================
 \begin{frame}[plain]
-\vspace{16mm}
+\vspace{6mm}
 \begin{center}
-{\Large\bfseries\color{llazul} Funcionando ahora mismo}\\[8mm]
+{\Large\bfseries\color{llazul} Funcionando ahora mismo}\\[5mm]
 
-{\large\ttfamily pleyade-app.vercel.app}\\[6mm]
+\qrcode[height=2.6cm]{https://pleyade-app.vercel.app}\\[3mm]
+
+{\large\ttfamily pleyade-app.vercel.app}\\[4mm]
+
+{\normalsize\bfseries Mide tu nivel: tres preguntas, sin instalar nada.}\\[1pt]
+{\normalsize Y te dice qué leer.}\\[6mm]
 
 {\small\color{llgris} API y motor:
-\ttfamily huggingface.co/spaces/MikeMaki1763/literalevel}\\[3mm]
+\ttfamily huggingface.co/spaces/MikeMaki1763/literalevel}\\[2mm]
 {\small\color{llgris} Modelo público:
-\ttfamily huggingface.co/MikeMaki1763/literalevel-v4}\\[10mm]
-
-{\normalsize Elige una lectura, compara su dificultad con tu nivel\\[3pt]
-y prueba si te ayuda a seguir leyendo.}
+\ttfamily huggingface.co/MikeMaki1763/literalevel-v4}
 \end{center}
 \end{frame}
 
