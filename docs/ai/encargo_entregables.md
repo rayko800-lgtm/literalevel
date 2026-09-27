@@ -143,4 +143,8 @@ y los desbordes que quedan son de menos de 3 pt o no se ven.
   más reciente»).
 - Pendiente de Miguel: la duración (un anuncio corto de 60 a 90 s o el vídeo completo de unos
   3 a 4 min).
-
+- **Traspaso (27 sep):** desde ahora el guion y la voz del anuncio los lleva **literalevel-0e**,
+  que recibió de Miguel la instrucción más reciente; literalevel-d0 los deja. Las muestras de voz
+  y los scripts del casting están en `D:/literalevel_respaldos/eos_voz/casting/` (tanda 1:
+  `eos_*.mp3`; tanda 2: `tanda2/`). Los dueños de lo demás: el rig de Eos (lengua, dientes,
+  mirada, cejas) es de literalevel-c2; la animación y el montaje, de literalevel-d6.
