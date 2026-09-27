@@ -242,7 +242,7 @@ def main():
                     help='quién decide la cara: la red de prosodia, el modelo voz→cara, la red de fusión '
                          '(Blender + voz: también la boca) o v3 (boca por regresión + no verbal generativo)')
     ap.add_argument('--modelo_fusion', default='D:/literalevel_cara/fusion_modelo')
-    ap.add_argument('--boca', choices=['modelo', 'a2f'], default='modelo',
+    ap.add_argument('--boca', choices=['modelo', 'a2f'], default='a2f',
                     help='a2f: la boca (mandíbula, labios, mejillas) de NVIDIA Audio2Face-3D v3.0, con las '
                          'garantías pedagógicas de Blender encima; los gestos siguen saliendo de --gestos')
     ap.add_argument('--a2f', default='D:/literalevel_cara/a2f', help='carpeta con a2f_onnx.py y el modelo')
