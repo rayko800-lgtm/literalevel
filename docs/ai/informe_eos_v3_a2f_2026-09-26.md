@@ -68,6 +68,16 @@ diversidad 0,926; FDD 0,711; r por grupo (orientativo, es generativo) sonrisa 0,
 cabeza 0,07, cejas 0,05, ojos 0,03. Modelo en `D:/literalevel_cara/v3_modelo/noverbal/`
 y en Drive `voz2cara/v3/noverbal/`.
 
+## 4 bis. Boca por regresión v3 (entrenada la noche del 26, 22:52-23:42): NO supera a A2F
+
+`entrenar_boca.py` (transformer sobre HuBERT + articulación de Blender, objetivo MediaPipe), A100,
+16,5 s/época, 41 épocas (mejor la 11; después sobreajusta). Validación (111 clips): r boca 0,305
+(fusión anterior 0,33; techo con etiquetas 2D ≈ 0,45); jawOpen 0,58, mouthPucker 0,51, mouthFunnel
+0,36, mouthClose 0,22; cierre en p/b/m 0,225 (real 0,155), redondeo en u/o 0,245 (real 0,502).
+Coincide con la legibilidad labial (§2): con etiquetas 2D la boca no pasa de r ≈ 0,3. Audio2Face
+queda confirmado como boca de Eos con números. Modelo guardado en Drive `voz2cara/v3/boca/` para el
+vídeo comparativo. Coste del día: ≈ 30 unidades (piloto 4,2 + no verbal 11,5 + boca ≈ 14).
+
 ## 5. Cómo queda Eos
 
 | Parte | Fuente | Por qué |
@@ -77,7 +87,7 @@ y en Drive `voz2cara/v3/noverbal/`.
 | Sonrisa, ojos, cejas, cabeza | no verbal generativo v3 | la voz no los determina: hace falta un modelo generativo para que parezcan vivos |
 | Voz | edge-tts (en-US-AvaNeural) | gratis |
 
-Pendiente decidido por Miguel (26 sep, 22:10): entrenar también la boca v3 (6a) y
+Hecho (26 sep, 22:52-23:42): la boca v3 se entrenó y no supera a A2F (§4 bis). Pendiente:
 comparar en vídeo tres versiones de la misma frase: fusión actual, A2F + no verbal v3,
 boca v3 + no verbal v3.
 

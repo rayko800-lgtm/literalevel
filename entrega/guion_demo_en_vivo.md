@@ -4,8 +4,8 @@
 didáctica y Mi espacio. Las capturas de referencia están en `capturas/`
 (`registro.txt` dice de dónde sale cada una).*
 
-**Formato de la rúbrica:** de 3 a 5 minutos, **cámara abierta y pantalla
-compartida**, centrado en la **usabilidad**, y después preguntas del profesor.
+**Formato de la rúbrica:** 5 minutos, **pantalla compartida** y foco en la
+**usabilidad**. El ensayo prevé cámara abierta y preguntas del profesor.
 La rúbrica de Classroom lo dice así: «describir de forma breve el reto que se
 busca resolver y la interfaz de uso donde se evidencie cómo a través de su(s)
 modelo(s) seleccionado(s) se da resolución a la problemática planteada».
@@ -122,7 +122,7 @@ que dice el **Plan B** para ese paso.
 5. **Paso 7:** que la palabra mal pronunciada aparezca en «Mis palabras».
    **Ensáyalo con cuenta:** sin entrar, una palabra que el diccionario no trae no se
    guarda, porque solo se apuntan las que traen acepción.
-6. **El cronómetro:** la demo entera, contra los 3–5 minutos. **La máquina no es
+6. **El cronómetro:** la demo entera, con el límite de 5 minutos. **La máquina no es
    el problema:** suma unos pocos segundos en toda la demo, y las cifras por paso
    cambian de una medida a otra con la red. El 16 de septiembre, la primera
    búsqueda dio 0,90 s en una medida y 1,26 s en otra; la ficha con la curva,

@@ -89,6 +89,8 @@
 % tabularx/longtable ("Incompatible glue units"). Se recupera el signo llano.
 \AtBeginDocument{\def\%{\char`\%\relax}}
 \newcommand{\pct}{\,\%}
+% Latin Modern no contiene la marca de longitud del AFI; Segoe UI sí.
+\newcommand{\ipalong}{\ifPDFTeX:\else{\fontspec{Segoe UI}ː}\fi}
 
 \titleformat{\section}{\normalfont\Large\bfseries\color{llazul}}{\thesection}{0.7em}{}
 \titleformat{\subsection}{\normalfont\large\bfseries\color{llazul!85!black}}{\thesubsection}{0.6em}{}
@@ -1296,13 +1298,18 @@ entorno de cómputo: solo estadísticas agregadas.
 
 \subsection{Inventario de fuentes}
 
-\begin{table}[htbp]
-\centering
-\footnotesize
-\begin{tabularx}{\textwidth}{@{}L{2.4cm} L{3.2cm} L{2.2cm} L{2.8cm} Y@{}}
+\begingroup\footnotesize
+\begin{longtable}{@{}L{2.4cm} L{3.2cm} L{2.2cm} L{2.8cm} L{3.2cm}@{}}
+\caption{Fuentes de datos, con volumen y procedencia. Los recuentos de textos libres son de \texttt{740eb84}, el catálogo publicado en el reinicio 21.}\label{cuad:fuentes}\\
 \toprule
 \textbf{Fuente} & \textbf{Qué aporta} & \textbf{Tamaño} & \textbf{Origen} & \textbf{Licencia / acceso} \\
 \midrule
+\endfirsthead
+\multicolumn{5}{@{}l}{\footnotesize\emph{Fuentes de datos (continuación)}}\\
+\toprule
+\textbf{Fuente} & \textbf{Qué aporta} & \textbf{Tamaño} & \textbf{Origen} & \textbf{Licencia / acceso} \\
+\midrule
+\endhead
 \textbf{CLEAR Corpus} & Etiqueta continua de legibilidad (\cod{BT\_easiness}) para el modelado supervisado & 4.724 extractos & Repositorio público del proyecto CLEAR \parencite{crossley2023clear} & Uso investigador, descarga directa \\
 \addlinespace
 \textbf{One\-Stop\-English} & Corpus de \textbf{afinado} de la variante v2 (151 artículos), validación ordinal en 3 niveles sobre los 38 reservados y \textbf{validación externa del v4} (560 unidades) & 567 textos (189 por nivel) & GitHub \parencite{vajjala2018onestop} & CC BY-SA 4.0 \\
@@ -1331,10 +1338,8 @@ entorno de cómputo: solo estadísticas agregadas.
 \addlinespace
 \textbf{Catálogo heredado} (Story\-Weaver / Global Digital Library) & Registros del catálogo anterior, retirado el 12 de septiembre de 2026; no son los 14.506 textos de arriba & 1.049 registros & API pública de contenidos & Abierta, pero sin descarga de texto \\
 \bottomrule
-\end{tabularx}
-\caption{Fuentes de datos, con volumen y procedencia. Los recuentos de textos libres son de \texttt{740eb84}, el catálogo publicado en el reinicio 21.}
-\label{cuad:fuentes}
-\end{table}
+\end{longtable}
+\endgroup
 
 \subsection{Relevancia de cada fuente}
 
@@ -2605,7 +2610,7 @@ rechazados con su motivo.
 La corrección de pronunciación enseña cómo se mueve la boca en cada sonido. Hasta el 25 de
 septiembre de 2026 ese movimiento lo decidía una regla escrita a mano: una pose por fonema y
 un calendario de transiciones (\cod{animacion.ts}). Una boca real no funciona así:
-\textbf{coarticula} ---empieza a redondear los labios antes de llegar a una /uː/ y no cierra
+\textbf{coarticula} ---empieza a redondear los labios antes de llegar a una /u\ipalong/ y no cierra
 igual una /p/ entre vocales abiertas que entre cerradas---. Se entrenó un modelo pequeño para
 aprender ese movimiento de caras reales y se midió contra la regla.
 
@@ -2659,7 +2664,7 @@ EMA, el rango de las tres pruebas. Fuente:
 \textbf{Lo que dice el cuadro~\ref{cuad:articulatorio}.} Aprender la dinámica mejora a las
 reglas en los tres conjuntos: en GRID, de 0,443 a 0,560--0,566. Las reglas además llegan tarde
 ---60 ms en la mandíbula--- y en el redondeo anticipado van al revés: la cara real llega a
-medio camino del redondeo unos 40 ms antes de /uː/ o /w/ (mediana), y las reglas, 20 ms
+medio camino del redondeo unos 40 ms antes de /u\ipalong/ o /w/ (mediana), y las reglas, 20 ms
 después. En el cierre de /p b m/, el mínimo de apertura cae a menos de 0,3 $z$ del real en el
 73\pct{} de los casos con la dominancia, frente al 58\pct{} con las reglas. Pero la fila de
 abajo es la importante: \textbf{con los tiempos de fonema que la aplicación sabía calcular, sin
@@ -3529,8 +3534,10 @@ explican fonema a fonema (apartado~\ref{sec:articulatorio}).
 dijo una lectora de quince años.} Un ciclo completo —observar, escuchar la queja,
 diagnosticar el fallo propio y corregirlo— vale más que un punto de correlación. Ese ciclo
 se documenta en el apartado~\ref{sec:esmeralda}, y su resultado son seis etiquetas
-reescritas, cinco paletas verificadas contra el criterio de contraste WCAG AA y una
-interfaz que se puede usar con el pulgar.
+reescritas y cinco paletas verificadas contra el criterio de contraste WCAG AA en la
+interfaz anterior de Gradio. El \emph{front} actual tiene pruebas de contraste para las
+portadas y el lector teñido; falta medir el tema de la marca sobre la galaxia y
+repetir la prueba de usuario en Angular.
 
 \textbf{Y queda pendiente lo que más pesa.} La aplicación funciona y ya tiene dirección
 fija ---el \emph{front} de Angular en Vercel, con un respaldo en Hugging Face, y la API con el

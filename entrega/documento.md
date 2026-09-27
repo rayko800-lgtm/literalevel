@@ -1795,8 +1795,11 @@ fonema a fonema (apartado 7.8).
 lo que dijo una lectora de quince años.** Un ciclo completo —observar, escuchar
 la queja, diagnosticar el fallo propio y corregirlo— vale más que un punto de
 correlación. Ese ciclo se documenta en el documento de estrategia, y su
-resultado son seis etiquetas reescritas, cinco paletas verificadas contra el
-criterio de contraste WCAG AA y una interfaz que se puede usar con el pulgar.
+resultado son seis etiquetas reescritas y cinco paletas verificadas contra el
+criterio de contraste WCAG AA en la interfaz anterior de Gradio. El front
+actual tiene pruebas de contraste para las portadas y el lector teñido;
+falta medir el tema de la marca sobre la galaxia y repetir la prueba de usuario
+en Angular.
 
 **Y queda pendiente lo que más pesa.** La aplicación funciona y ya tiene
 dirección fija —el front en Vercel, con un respaldo en Hugging Face, y la API

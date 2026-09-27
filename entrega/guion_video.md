@@ -17,7 +17,7 @@ audio, leer la frase en voz alta—, unos 45 segundos. Si al ensayar te sale
 muy corto, no metas más texto: ve más despacio y deja respirar las pausas.
 
 Esta versión fusiona el guion de b9 (698b804) con tres cambios del de Codex
-(13281a9): el texto recortado a menos de 500 palabras, la hoja de la palabra
+(13281a9): el texto recortado y vuelto a contar (514 palabras habladas), la hoja de la palabra
 contada en dos tiempos (lo local al instante; la traducción y la explicación
 después, con IA) con el perfil 1,20 dicho como preparado para el ejemplo, y la
 preparación de la toma (respaldo rotulado, privacidad y ensayo cronometrado).
