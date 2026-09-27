@@ -299,6 +299,8 @@ def main():
                         mouthLowerDownLeft=3.0, mouthLowerDownRight=3.0, mouthUpperUpLeft=3.0, mouthUpperUpRight=3.0)
         for c in ('jawOpen', 'mouthPucker', 'mouthFunnel', 'mouthRollLower', 'mouthPressLeft', 'mouthPressRight',
                   'mouthClose', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthUpperUpLeft', 'mouthUpperUpRight'):
+            if c not in cf:              # v3 sin boca (solo no verbal): la boca queda la de Blender/A2F
+                continue
             base = esc.get(c, esc.get(c.replace('Right', 'Left'), {'media': 0.0}))['media']
             cur[c] = np.clip(ganancia[c] * (base + fus(c)), 0, 1)
         cur['mouthClose'] = np.minimum(cur['mouthClose'], cur['jawOpen'])
