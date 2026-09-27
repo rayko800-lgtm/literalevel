@@ -29,7 +29,8 @@ puntos en juego, no por comodidad.
      tenga cupo.
   4. Probar la lectura en vivo con tu voz (solo se probó con voz sintética).
 - **Abierto, declarado en el documento:** contraste del tema de la marca sobre la
-  galaxia sin medir; Eos en desarrollo, fuera de la entrega; prueba de usuario
+  galaxia sin medir; Eos en desarrollo (no está en la app publicada; se enseña
+  en vídeo: `docs/ai/informe_eos_v3_a2f_2026-09-26.md`, documento §7.9); prueba de usuario
   sobre el front nuevo (A8). El tiempo de carga de la boca 3D en Vercel ya está
   medido (26 sep, navegador sin caché: 3,0–3,1 s; 8,9 s con la CDN fría; 1,7 MB
   por la red).

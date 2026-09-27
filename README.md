@@ -265,7 +265,9 @@ por IA siguen sin hacerse (sin presupuesto). La boca 3D didáctica (cabeza
 escaneada de Lee Perry-Smith, CC BY 3.0; labios, lengua y corte propios) está
 publicada en la app, con el corte 2D de respaldo, y se mueve con el modelo
 articulatorio aprendido (`investigacion/modelo_articulatorio/`). La cara que
-habla de frente (Eos) sigue en desarrollo. El contraste del tema de la marca
+habla de frente (Eos) sigue en desarrollo y no está en la app publicada: se
+enseña en vídeo (boca de Audio2Face-3D con las garantías de Blender encima, y
+un modelo generativo para lo no verbal; `docs/ai/informe_eos_v3_a2f_2026-09-26.md`). El contraste del tema de la marca
 sobre el fondo de galaxia no se ha medido.
 
 ## Más

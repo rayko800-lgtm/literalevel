@@ -309,6 +309,38 @@ prueba de que ayude a pronunciar mejor (documento, §7.8).}}
 \end{frame}
 
 % ===========================================================================
+\begin{frame}{En desarrollo · Eos, la cara que habla de frente}
+\vspace{1mm}
+{\small Una cara MetaHuman (52 ARKit) que lee las frases de frente. \textbf{No está en la
+aplicación publicada}: se enseña en vídeo. Lo que ya está medido (26 de septiembre):}
+\vspace{2mm}
+
+\begin{columns}[T]
+\begin{column}{0.32\textwidth}
+\textbf{\color{llazul} Descartado con medida}\\[2pt]
+{\small Reetiquetar con SMIRK: fiabilidad con MediaPipe \textbf{0,36} en la boca (umbral
+0,45) y legibilidad labial 0,217 frente a 0,206 (azar 0,167). Ninguna etiqueta 2D lee los
+labios; se ahorraron $\sim$12 unidades.}
+\end{column}
+\begin{column}{0.32\textwidth}
+\textbf{\color{llazul} La boca: Audio2Face-3D}\\[2pt]
+{\small Modelo abierto de NVIDIA (captura 4D), ejecutado sin su SDK en CPU. Frente a
+Blender en la misma frase: cierre de labios \textbf{0,42} vs 0,06, redondeo \textbf{0,55}
+vs 0,15. Las garantías pedagógicas de Blender van encima.}
+\end{column}
+\begin{column}{0.32\textwidth}
+\textbf{\color{llazul} Lo no verbal: generativo}\\[2pt]
+{\small \emph{Flow matching} condicionado por HuBERT (36 h de Obama + 3,5 h de 1KH).
+Cabeza alineada con los golpes de voz: \textbf{0,773}, caras reales 0,74.}
+\end{column}
+\end{columns}
+
+\vspace{4mm}
+{\footnotesize\color{llgris} Sin medir con lectores. Pendiente: boca propia v3 y vídeo
+comparativo de tres versiones (documento, §7.9).}
+\end{frame}
+
+% ===========================================================================
 \begin{frame}{La aplicación entregada}
 \vspace{1mm}
 {\small Angular es la interfaz del lector, en Vercel; la API conecta con el motor de Python.}
