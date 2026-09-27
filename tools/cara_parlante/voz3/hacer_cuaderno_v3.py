@@ -35,7 +35,7 @@ ARCHIVOS['modelo_articulatorio.json'] = os.path.join(RAIZ, 'front', 'src', 'app'
 
 GUION = r"""#!/bin/bash
 # Eos v3 en Colab: SMIRK → fiabilidad → etiquetas → voz → articulación → boca + no verbal. Reanudable.
-# Variables: SOLO_PILOTO=1 (parar tras el piloto), N_PROC (procesos de etiquetado), CODIFICADOR (hubert-large|wavlm-large).
+# Variables: ETIQUETAS=mediapipe|smirk, SOLO_PILOTO=1 (parar tras el piloto), N_PROC (procesos de etiquetado), CODIFICADOR (hubert-large|wavlm-large).
 set -x
 # RAIZ: la carpeta literalevel_cara en Drive (la pone el cuaderno; con la carpeta compartida sin acceso
 # directo en «Mi unidad» está en /content/drive/.shortcut-targets-by-id/<id>/literalevel_cara)
@@ -67,6 +67,14 @@ MEM=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -
 if [ "${MEM:-0}" -lt 20000 ]; then EXTRA="--lote 16 --capas_usar 12,18,24"; BOCA_EXTRA="--d 256 --capas 4"; else EXTRA="--lote 48"; BOCA_EXTRA=""; fi
 SM="--checkpoint $V3/SMIRK_em1.pt --landmarker $V3/face_landmarker.task"
 
+ETIQUETAS=${ETIQUETAS:-smirk}
+if [ "$ETIQUETAS" = "mediapipe" ]; then
+  # plan B (26 sep): SMIRK no lee los labios mejor que MediaPipe (prueba de legibilidad con 48 clips:
+  # 0,217 frente a 0,206, azar 0,167), así que no se paga su etiquetado: objetivo = medidas MediaPipe
+  paso "1-3 sin SMIRK: etiquetas MediaPipe"
+  ETQ="--smirk $D/medidas"; MAPA=""
+else
+  ETQ="--smirk $V3/smirk"; MAPA="--mapa $V3/mapa_arkit.json"
 paso "1 piloto SMIRK (1 h de Obama)"
 LISTA=$(python - <<'EOF'
 import glob, numpy as np, os
@@ -97,6 +105,7 @@ grep -h "listo:" /content/smirk_*.log; grep -h ERROR /content/smirk_*.log | head
 
 paso "3 mapa SMIRK→ARKit"
 python -u $S/voz3/mapa_arkit.py --smirk $V3/smirk --medidas $D/medidas --salida $V3/mapa_arkit.json || falla "mapa"
+fi
 
 paso "4 rasgos de voz ($CODIFICADOR)"
 python -u $S/voz3/extraer_v3.py --medidas $D/medidas/obama --audio $CB/audio --salida $V3/voz/obama --codificador $CODIFICADOR || falla "voz obama"
@@ -108,10 +117,10 @@ python -u $S/voz2cara/preparar_art.py --medidas $D/medidas/obama --videos $CB/au
 python -u $S/voz2cara/preparar_art.py --medidas $D/medidas --videos $D/audio_1kh --salida $V3/art --whisper large-v3-turbo --modelo_art /content/modelo_articulatorio.json
 
 paso "6a entrenar boca"
-python -u $S/voz3/entrenar_boca.py --voz $V3/voz --art $V3/art --smirk $V3/smirk --mapa $V3/mapa_arkit.json --salida $V3/boca \
+python -u $S/voz3/entrenar_boca.py --voz $V3/voz --art $V3/art $ETQ $MAPA --salida $V3/boca \
   --modelo_art /content/modelo_articulatorio.json --cache $D/cache --epocas 300 --paciencia 30 $EXTRA $BOCA_EXTRA || falla "boca"
 paso "6b entrenar no verbal"
-python -u $S/voz3/entrenar_noverbal.py --voz $V3/voz --art $V3/art --smirk $V3/smirk --medidas $D/medidas --mapa $V3/mapa_arkit.json \
+python -u $S/voz3/entrenar_noverbal.py --voz $V3/voz --art $V3/art $ETQ --medidas $D/medidas $MAPA \
   --salida $V3/noverbal --cache $D/cache --epocas 300 --paciencia 30 $EXTRA || falla "no verbal"
 paso "FIN"
 """
@@ -142,13 +151,14 @@ print('RAIZ =', RAIZ)
 SOLO_PILOTO = 0      # 1: parar tras el piloto de fiabilidad (1 h de Obama) y mirar fiabilidad_piloto.json
 N_PROC = 6           # procesos de etiquetado SMIRK a la vez (MediaPipe va en CPU; el A100 High-RAM tiene 12 vCPU)
 CODIFICADOR = 'hubert-large'   # o 'wavlm-large'
+ETIQUETAS = 'mediapipe'        # 'mediapipe' (plan B, sin SMIRK) o 'smirk'
 import base64, subprocess, torch
 print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NINGUNA')
 for nombre, b64 in ARCHIVOS.items():
     os.makedirs(os.path.dirname('/content/' + nombre) or '/content', exist_ok=True)
     open('/content/' + nombre, 'wb').write(base64.b64decode(b64))
 open('/content/v3.sh', 'w').write(GUION)
-env = dict(os.environ, RAIZ=RAIZ, SOLO_PILOTO=str(SOLO_PILOTO), N_PROC=str(N_PROC), CODIFICADOR=CODIFICADOR)
+env = dict(os.environ, RAIZ=RAIZ, SOLO_PILOTO=str(SOLO_PILOTO), N_PROC=str(N_PROC), CODIFICADOR=CODIFICADOR, ETIQUETAS=ETIQUETAS)
 subprocess.Popen(['setsid', 'bash', '-c', 'bash /content/v3.sh > /content/v3.log 2>&1'],
                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, env=env)
 V3 = RAIZ + '/voz2cara/v3'

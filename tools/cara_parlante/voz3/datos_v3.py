@@ -41,6 +41,12 @@ def objetivo_mediapipe(m):
     return y, list(m['bs_nombres']) + GRUPOS['cabeza']
 
 
+def columnas_mediapipe(dir_medidas):
+    """Nombres de las 55 columnas de las medidas MediaPipe (52 blendshapes + cabeza)."""
+    m = np.load(next(iter(mapa_archivos(dir_medidas).values())))
+    return list(m['bs_nombres']) + GRUPOS['cabeza']
+
+
 def pares_smirk(dir_smirk, dir_medidas):
     s, m = mapa_archivos(dir_smirk), mapa_archivos(dir_medidas)
     return [(n, s[n], m[n]) for n in sorted(m) if n in s]
@@ -95,15 +101,19 @@ def pares_entrenamiento(dir_voz, dir_art, dir_smirk):
 
 def cargar_clip(fv, fa, fs, mapa, capas_usar=None, min_ok=0.6):
     """Un clip para entrenar: voz [T,K,1024] f16, art [T,13] f16, fon [T] i64, objetivo [T,55] f32
-    (ARKit vía el mapa SMIRK→ARKit, menos la media del clip), ok [T] bool, duración (s). None si es malo."""
-    import mapa_arkit
+    (ARKit vía el mapa SMIRK→ARKit, menos la media del clip), ok [T] bool, duración (s). None si es malo.
+    Si `fs` es un npz de medidas MediaPipe (tiene 'bs'), el objetivo son sus blendshapes y el mapa no se usa."""
     s, v, a = np.load(fs), np.load(fv), np.load(fa)
     ok = s['ok'].astype(bool)
     k = min(len(ok), len(v['t']), len(a['t']))
     ok = ok[:k]
     if ok.mean() < min_ok or k < 75:
         return None
-    y = mapa_arkit.aplicar(mapa, rasgos(s)[:k])
+    if 'bs' in s.files:                 # etiquetas MediaPipe directas (plan B, sin SMIRK ni mapa)
+        y = objetivo_mediapipe(s)[0][:k]
+    else:
+        import mapa_arkit
+        y = mapa_arkit.aplicar(mapa, rasgos(s)[:k])
     y = y - y[ok].mean(0)
     y[~ok] = 0
     voz = v['voz'][:k]

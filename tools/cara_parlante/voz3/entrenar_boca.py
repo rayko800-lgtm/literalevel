@@ -58,7 +58,7 @@ def pedagogia(P, T, F, columnas, fonemas):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--voz', required=True); ap.add_argument('--art', required=True); ap.add_argument('--smirk', required=True)
-    ap.add_argument('--mapa', required=True); ap.add_argument('--salida', required=True)
+    ap.add_argument('--mapa', default='', help='mapa SMIRK→ARKit; vacío = etiquetas MediaPipe directas (--smirk apunta a las medidas)'); ap.add_argument('--salida', required=True)
     ap.add_argument('--modelo_art', required=True, help='modelo_articulatorio.json (nombres de fonema)')
     ap.add_argument('--cache', default=None, help='carpeta local para el memmap de la voz (por defecto --salida/cache)')
     ap.add_argument('--epocas', type=int, default=300); ap.add_argument('--paciencia', type=int, default=30)
@@ -73,7 +73,7 @@ def main():
     R.semillas(0)
     dev = a.dispositivo; gpu = dev.startswith('cuda')
     fonemas = json.load(open(a.modelo_art))['fonemas']
-    mapa = mapa_arkit.cargar(a.mapa)
+    mapa = mapa_arkit.cargar(a.mapa) if a.mapa else {'columnas': D.columnas_mediapipe(a.smirk)}
     sel = [mapa['columnas'].index(c) for c in COLUMNAS]
     capas_usar = [int(c) for c in a.capas_usar.split(',')] if a.capas_usar else None
 

@@ -86,7 +86,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--voz', required=True); ap.add_argument('--art', required=True); ap.add_argument('--smirk', required=True)
     ap.add_argument('--medidas', required=True, help='para los dB (golpes de voz) de los clips de validación')
-    ap.add_argument('--mapa', required=True); ap.add_argument('--salida', required=True)
+    ap.add_argument('--mapa', default='', help='mapa SMIRK→ARKit; vacío = etiquetas MediaPipe directas (--smirk apunta a las medidas)'); ap.add_argument('--salida', required=True)
     ap.add_argument('--cache', default=None)
     ap.add_argument('--epocas', type=int, default=300); ap.add_argument('--paciencia', type=int, default=30)
     ap.add_argument('--lote', type=int, default=48); ap.add_argument('--lr', type=float, default=3e-4)
@@ -100,7 +100,7 @@ def main():
     os.makedirs(a.salida, exist_ok=True)
     R.semillas(0)
     dev = a.dispositivo; gpu = dev.startswith('cuda')
-    mapa = mapa_arkit.cargar(a.mapa)
+    mapa = mapa_arkit.cargar(a.mapa) if a.mapa else {'columnas': D.columnas_mediapipe(a.smirk)}
     sel = [mapa['columnas'].index(c) for c in COLUMNAS]
     capas_usar = [int(c) for c in a.capas_usar.split(',')] if a.capas_usar else None
     medidas = D.mapa_archivos(a.medidas)
