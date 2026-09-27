@@ -36,7 +36,7 @@ expresión, voz y el corte de Eos a la app. Resolución baja (720 px, 25 fps).
 | Nº | Tiempo | Se dice | En pantalla | Captura / origen |
 |---|---|---|---|---|
 | P1 | 0:00 – 0:04 | «¡Hola! Soy Eos, de Pléyade. ¿Te ha pasado?» | **Eos grande** con el logo de Pléyade a su lado desde el fotograma 0 | render de Eos + marca |
-| P2 | 0:04 – 0:10 | «Abres un libro en inglés… y a las tres páginas, lo cierras.» | Eos grande; a «lo cierras», un libro grueso en inglés que se cierra (imagen o clip corto) sobre el fondo | imagen de un libro cerrándose (sin marca registrada) |
+| P2 | 0:04 – 0:10 | «Abres un libro en inglés… y a las tres páginas, lo cierras.» | Eos grande; a «lo cierras», clip propio de las manos de Miguel cerrando un libro grueso en inglés, grabado con el celular sobre fondo neutro (nada de imagen de banco: pide licencia y no hay presupuesto) | clip de Miguel (pendiente de grabar) |
 | P3 | 0:10 – 0:15 | «No era tu inglés. Era el libro. Libros gratis hay de sobra; el problema es saber cuál.» | Eos grande; rótulo a su lado: «¿Cuál es tu libro?» | rótulo |
 | P4 | 0:15 – 0:19 | «Por eso creamos Pléyade. Mira:» | Eos se desplaza al recuadro y entra el celular con el inicio de la app | 01_inicio.png (mejor: la app en vivo) |
 | P5 | 0:19 – 0:24 | «primero, tu nivel. Tres preguntas y tres fragmentos de libros reales, sin instalar nada.» | *Tu nivel* con el resultado y la barra A1–C2 | 03_nivel.png |
@@ -52,7 +52,7 @@ transcribe «Playade»): lo decide Miguel al escuchar el mp3.
 | Nº | Tiempo | Fase | Se dice | En pantalla | Captura / origen |
 |---|---|---|---|---|---|
 | 1 | 0:00 – 0:04 | A | «¡Hola! Soy Eos, de Pléyade. ¿Te ha pasado?» | **Eos grande**, logo de Pléyade a su lado desde el fotograma 0 | render de Eos + marca |
-| 2 | 0:04 – 0:10 | A | «Abres un libro en inglés… y a las tres páginas, lo cierras.» | Eos grande; a «lo cierras», el gesto de cerrar un libro (imagen o clip de un libro grueso en inglés cerrándose) | imagen de libro |
+| 2 | 0:04 – 0:10 | A | «Abres un libro en inglés… y a las tres páginas, lo cierras.» | Eos grande; a «lo cierras», el clip propio de las manos de Miguel cerrando un libro grueso en inglés (el mismo del piloto) | clip de Miguel (pendiente de grabar) |
 | 3 | 0:10 – 0:12 | A | «No era tu inglés. Era el libro.» | Eos grande, sola; pausa después de «libro» | render de Eos |
 | 4 | 0:12 – 0:20 | N | «Leer mucho funciona, si el libro está a tu nivel. Libros gratis hay de sobra; el problema es saber cuál.» | Eos grande; a su lado, una sola idea: «¿Cuál es tu libro?» | rótulo |
 | 5 | 0:20 – 0:32 | N | «Y un libro no es igual de difícil de principio a fin: cambia de capítulo a capítulo.» | el rótulo se sustituye por la curva de dificultad de la ficha, sin cifras | 06_ficha.png (solo la curva, recortada) |
@@ -67,9 +67,16 @@ transcribe «Playade»): lo decide Miguel al escuchar el mp3.
 | 14 | 2:25 – 2:40 | S · prueba | «¿Cómo lo sabe? Un modelo de lenguaje lee cada libro entero… cero coma noventa y uno.» | el celular se aparta; **una sola cifra grande: 0,908**, debajo «validación interna» | rótulo (misma cifra que la diapositiva de métricas de `presentacion.pdf`) |
 | 15 | 2:40 – 2:50 | S · aviso | «Eso sí: Pléyade no certifica ningún nivel del Marco Común Europeo. Te ayuda a elegir qué leer.» | Eos grande; debajo, una línea: «No certifica ningún nivel del MCER» | rótulo |
 | 16 | 2:50 – 3:05 | V | «Imagínate esta noche. Abres Pléyade, eliges entre más de cincuenta y tres mil libros uno que de verdad es para ti…» | Eos delante; detrás, la estantería de portadas de *Encontrar*; **una sola cifra: 53.179 libros** | 05_encontrar.png o 18_escritorio_encontrar.png (portadas) + rótulo |
-| 17 | 3:05 – 3:20 | V | «…y esta vez no lo cierras a las tres páginas. Vas por el capítulo cinco. Y sigues.» | el lector con la lectura en vivo, de noche (tema oscuro si lo hay); sin cifras | 13_lector_en_vivo.png |
+| 17 | 3:05 – 3:20 | V | «…y esta vez no lo cierras a las tres páginas. Vas por el capítulo cinco. Y sigues.» | el lector con la lectura en vivo, de noche: la app sigue el modo oscuro del sistema (`prefers-color-scheme: dark`, `front/src/styles.css`), así que se graba con el celular en modo oscuro; sin cifras | grabación en vivo del lector en modo oscuro (respaldo: 13_lector_en_vivo.png) |
 | 18 | 3:20 – 3:32 | A | «Mide tu nivel ahora: tres preguntas, sin instalar nada. El enlace está en pantalla.» | el QR de la última diapositiva de `presentacion.pdf` (a `https://pleyade-app.vercel.app`), grande; debajo: «Mide tu nivel: tres preguntas, sin instalar nada» | QR de presentacion.pdf (diapositiva 17) + rótulo |
 | 19 | 3:32 – 3:40 | A | «Y recuerda: no eras tú. Era el libro. ¡Nos vemos leyendo!» | **Eos grande** para la última frase; sonríe un segundo después de la última palabra; abajo, pequeño: «Un proyecto de Miguel Reyes Carrillo · Módulo 5 · Diplomado en Ciencia de Datos, FES Acatlán»; fundido con el QR | render de Eos + rótulo |
+
+## Pendientes con dueño
+
+- **Grabar la app en vivo, con el dedo** (planos 6–13 y 17; pauta 5): nadie lo tiene asignado. Hace falta el celular con la sesión ya iniciada fuera de plano, perfil 1,20, grabación de pantalla a 390 px de ancho, y el lector en modo oscuro para el plano 17. Las capturas 01–22 quedan solo de respaldo. Para el piloto bastan las capturas 01 y 03. **Lo asigna Miguel.**
+- **Clip del libro cerrándose** (P2 y plano 2): las manos de Miguel, con el celular, sobre fondo neutro, unos 3 s. **Miguel.**
+- **Plano 14, cifra 0,908 frente a «cero coma noventa y uno»**: d0 decide si la pantalla dice 0,91 o la voz dice «novecientos ocho»; el rótulo se ajusta a lo que decida.
+- **P1 y plano 1**: si d0 mueve la presentación de Eos («Soy Eos, y esto es Pléyade») detrás de «Era el libro», P1 pasa a abrir con «¿Te ha pasado?» y el libro cerrándose entra en los 3 primeros segundos; se realinea con su hash.
 
 ## Capturas que no entran, y por qué
 
@@ -78,7 +85,7 @@ transcribe «Playade»): lo decide Miguel al escuchar el mp3.
 
 ## Comprobaciones antes de montar
 
-- Cada cifra que se dice está en pantalla en el mismo segundo y sola: 1,20 (plano 7), 1,70 (10), 0,908 (14), 53.179 (16).
+- Cada cifra que se dice está en pantalla en el mismo segundo y sola: 1,20 (plano 7), 1,70 (10), 53.179 (16); la del plano 14 queda pendiente de d0 (0,908 en pantalla y «cero coma noventa y uno» en la voz no coinciden).
 - La tarjeta de *poverty* en 14_mis_palabras.png dice «cap. 1» aunque es del prefacio: no ampliarla.
 - La boca 3D en vivo tarda unos 3 s en verse (8,9 s la primera vez): abrirla una vez antes de grabar.
 - Eos con la boca didáctica de Blender y lo no verbal v3, y con el tope de la lengua integrado (parche `D:/literalevel_respaldos/eos_lengua_tope_2026-09-27.patch`): no montar con un render que tenga la lengua atravesando los dientes.
