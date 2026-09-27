@@ -118,9 +118,15 @@ curso, por orden de Miguel (25 sep):
    V como escena del espectador, acción «mide tu nivel» sin cuenta; **516
    palabras habladas**, `tools/contar_guion.py`) y a la última diapositiva de
    `presentacion.tex/.pdf` (QR que se decodifica a `https://pleyade-app.vercel.app`
-   y la acción). **Pendiente:** probar en vivo, sin sesión y a 390 px, que *Tu
-   nivel* y *Encontrar* funcionan (solo se comprobó en `app/api.py`); la
-   diapositiva «Antes de comenzar» sigue en tercera persona.
+   y la acción). Miguel probó la app sin sesión en el móvil: sin problemas. La
+   diapositiva «Antes de comenzar» ya va en «tú», igual que la apertura del guion.
+   **El profesor aceptó que Eos hable todo el vídeo** (confirmado por Miguel, 27
+   sep; su texto no está archivado): el vídeo evaluado es el comercial de Eos
+   (guion y voz: d0, `entrega/guion_video_eos.md`; planos y montaje: 86,
+   `docs/ai/guion_eos_planos.md`; lengua `148e2b5`, pendiente de integrar por f6).
+   `guion_video.*` queda de respaldo. d9 lleva rúbrica y entrega y revisa el
+   piloto con las pautas, por mensaje. **Falta** anotar la excepción en la skill
+   global `modulo-5-literalevel` (a d9 se le denegó el permiso para editarla).
 7. **Datos por cuenta (26 sep):** publicados (Space `103eef5`). Con usuario y
    contraseña, los datos son de la cuenta en cualquier aparato
    (`cuentas/<nombre>` en el bucket). Contraseñas rotadas (10 perfiles) y

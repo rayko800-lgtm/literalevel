@@ -4,6 +4,15 @@
 Vercel. Las capturas de referencia están hechas: `capturas/01`–`22`
 (`capturas/registro.txt`).*
 
+> **27 de septiembre: este guion queda de respaldo.** El profesor aceptó que
+> **Eos**, la cara parlante, aparezca hablando todo el vídeo en lugar del alumno
+> (lo confirmó Miguel el 27 de septiembre; el texto del profesor no está
+> archivado en el repositorio). El vídeo que se evalúa es el comercial narrado
+> por Eos con la app real detrás: guion en `entrega/guion_video_eos.md` (d0) y
+> planos en `docs/ai/guion_eos_planos.md` (86). Este, con Miguel a cámara, se
+> conserva por si el comercial no llega a tiempo o no convence. Las pautas de
+> `entrega/pautas_comercial.md` valen para los dos.
+
 **Formato exigido:** MP4, **máximo 5 minutos**, Miguel **hablando a cámara todo el
 tiempo** con las diapositivas de fondo. Vale 20 de los 110 puntos.
 Recomendación del profesor: grabar con **OBS**.
