@@ -98,6 +98,25 @@ async function atlasPelo(url, raiz, punta, reflejo) {
   return tex;
 }
 const TEX = 'textures/';
+// tela de la blusa: café con florecitas crema y rosa palo, pintada en un lienzo que se repite
+function telaFlores() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3f2416'; g.fillRect(0, 0, 256, 256);
+  const flor = (x, y, r, color) => {
+    g.fillStyle = color;
+    for (let k = 0; k < 5; k++) { const a = k * 2 * Math.PI / 5; g.beginPath(); g.arc(x + r * Math.cos(a), y + r * Math.sin(a), r * 0.62, 0, 2 * Math.PI); g.fill(); }
+    g.fillStyle = '#e8c36a'; g.beginPath(); g.arc(x, y, r * 0.45, 0, 2 * Math.PI); g.fill();
+  };
+  const r = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  for (let i = 0; i < 34; i++) {
+    const x = r() * 256, y = r() * 256, t = 2.2 + r() * 1.8, col = r() < 0.55 ? '#f1e2cc' : '#e7b4a8';
+    for (const dx of [-256, 0, 256]) for (const dy of [-256, 0, 256]) flor(x + dx, y + dy, t, col);   // costuras sin corte
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(8, 8); tex.anisotropy = 8;
+  return tex;
+}
 const peloMap = await atlasPelo(TEX + 'Hair_M_Layered_CardsAtlas_Attribute.png', [92, 60, 38], [214, 170, 112], [190, 96, 52]);
 const cejaMap = await atlasPelo(TEX + 'Eyebrows_M_Full_CardsAtlas_Attribute.png', [96, 64, 40], [128, 88, 56], [140, 84, 48]);   // castañas, como la raíz del pelo
 const pestanaMap = await new THREE.TextureLoader().loadAsync(TEX + 'T_Eyelashes_L_ThickCurl_Coverage.png');
@@ -115,7 +134,7 @@ eos.traverse(o => {
     } else if (/M_Hide|EyeShell|LacrimalFluid/.test(n)) {
       o.visible = false;
     } else if (/DefaultGarment.*Shirt/.test(n)) {
-      m.color.setRGB(0.16, 0.085, 0.05); m.map = null; m.roughness = 0.85; m.needsUpdate = true;   // blusa café
+      m.color.set(0xffffff); m.map = telaFlores(); m.roughness = 0.8; m.needsUpdate = true;   // blusa café con florecitas
     }
   }
 });
@@ -154,7 +173,7 @@ varying float vPelo; varying vec3 vPos; uniform vec3 uRaiz;`)
         .replace('#include <map_fragment>', `#include <map_fragment>
 diffuseColor.rgb = mix(diffuseColor.rgb, uRaiz * (0.9 + 0.2 * fract(sin(dot(floor(vPos * 1500.0), vec3(12.9898, 78.233, 37.719))) * 43758.5)), 0.75 * smoothstep(0.35, 1.0, vPelo));
 { float g = dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15));            // menos rojo: el bake trae párpados y mejillas muy rojos
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(g) * vec3(1.06, 1.0, 0.97), 0.22); }`);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(g) * vec3(1.08, 1.0, 0.94), 0.12) * vec3(0.97, 0.94, 0.9); }   // un pelín más cálida y menos pálida`);
     };
     m.needsUpdate = true;
   });
