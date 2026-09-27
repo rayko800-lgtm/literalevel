@@ -242,6 +242,10 @@ def main():
                     help='quién decide la cara: la red de prosodia, el modelo voz→cara, la red de fusión '
                          '(Blender + voz: también la boca) o v3 (boca por regresión + no verbal generativo)')
     ap.add_argument('--modelo_fusion', default='D:/literalevel_cara/fusion_modelo')
+    ap.add_argument('--boca', choices=['modelo', 'a2f'], default='modelo',
+                    help='a2f: la boca (mandíbula, labios, mejillas) de NVIDIA Audio2Face-3D v3.0, con las '
+                         'garantías pedagógicas de Blender encima; los gestos siguen saliendo de --gestos')
+    ap.add_argument('--a2f', default='D:/literalevel_cara/a2f', help='carpeta con a2f_onnx.py y el modelo')
     ap.add_argument('--modelo_v3', default='D:/literalevel_cara/v3_modelo', help='carpeta con boca/ y noverbal/')
     ap.add_argument('--estilo_v3', choices=['real', 'medio'], default='real', help='estilo del no verbal v3')
     ap.add_argument('--modelo_voz2cara', default='D:/literalevel_cara/voz2cara_modelo')
@@ -304,6 +308,34 @@ def main():
                 for c in ('mouthClose', 'mouthPressLeft', 'mouthPressRight'):
                     cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
                 cur['jawOpen'][i:j] = np.minimum(cur['jawOpen'][i:j], blender['jawOpen'][i:j])
+            elif f0 in ('uw', 'ow', 'w'):
+                for c in ('mouthPucker', 'mouthFunnel'):
+                    cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
+
+    if a.boca == 'a2f':
+        # Audio2Face-3D (NVIDIA, entrenado con captura facial de calidad) oye el audio y da los 52 ARKit
+        # a 60 fps, ya sincronizados con la voz. Se toma su boca y encima las garantías de Blender:
+        # en p/b/m los labios cierran al menos como Blender (y la mandíbula no abre más), en u/o/w
+        # redondean al menos igual. (En A2F, mouthClose va con la mandíbula abierta, como en ARKit.)
+        import subprocess
+        import sys
+        blender = {k: v.copy() for k, v in cur.items()}
+        salida_a2f = os.path.join(a.salida, 'a2f.json')
+        subprocess.run([sys.executable, os.path.join(a.a2f, 'a2f_onnx.py'), '--wav', mp3[:-4] + '.wav',
+                        '--salida', salida_a2f, '--carpeta', a.a2f], check=True)
+        A = json.load(open(salida_a2f))
+        pesos, ta = np.array(A['pesos']), np.arange(len(A['pesos'])) / A['fps']
+        t60 = np.arange(n) / FPS
+        for i, c in enumerate(A['nombres']):
+            if c.startswith(('jaw', 'mouth')) or c == 'cheekPuff':
+                cur[c] = np.clip(np.interp(t60, ta, pesos[:, i], right=0.0), 0, 1)
+        cur['mouthClose'] = np.minimum(cur['mouthClose'], cur['jawOpen'])
+        for f0, t0, t1 in fons:
+            i, j = int(t0 * FPS), int(t1 * FPS) + 1
+            if f0 in ('p', 'b', 'm'):
+                for c in ('mouthClose', 'mouthPressLeft', 'mouthPressRight'):
+                    cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
+                cur['jawOpen'][i:j] = np.minimum(cur['jawOpen'][i:j], np.maximum(blender['jawOpen'][i:j], 0.05))
             elif f0 in ('uw', 'ow', 'w'):
                 for c in ('mouthPucker', 'mouthFunnel'):
                     cur[c][i:j] = np.maximum(cur[c][i:j], blender[c][i:j])
