@@ -249,10 +249,13 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   `grabar_clips.py` los graba en un visor aislado (`D:/literalevel_eos_pronunciar/visor`,
   puerto 8790; el rig compartido no se toca) a 640×640, 30 fps, cámara cerca de la
   cara, y deja `front/public/eos/<acento>/<archivo>.mp4` + `clips.json` + `reposo.webp`.
-  Piloto de /ʃ/ visto: ≈600 KB por clip de 5,8 s → ≈50 MB los 85. Tanda en marcha
-  (≈2 min por clip: HuBERT se carga en cada uno; `generar.log` y `grabar.log` en
-  `D:/literalevel_eos_pronunciar/`). Primera tanda desechada: un fallo mío
-  contaminaba los fonemas de un clip con los del anterior (arreglado antes de relanzar).
+  **Los 85 hechos** (28 sep, tarde): 0 fallos, todos decodifican, 50,7 MB en total (582 KB
+  de media por clip de ≈5,8 s; ≈2 min por clip de generación, HuBERT se carga en cada
+  uno; registros en `D:/literalevel_eos_pronunciar/`). Los mp4 van en git dentro de
+  `front/public/eos/` (Vercel construye desde GitHub): si pesan demasiado, la
+  alternativa es servirlos desde el Space o un dataset y cambiar `EosClips.url`.
+  Primera tanda desechada: un fallo mío contaminaba los fonemas de un clip con los del
+  anterior (arreglado antes de relanzar).
 - **Front:** `compartido/eos/eos.ts` (`EosClips` lee `eos/clips.json` una vez;
   `app-eos` es un `<video>` que arranca al abrirse) y en Pronunciar «Ver a Eos» en la
   ficha del sonido, en cada palabra fallada (junto a «Boca en 3D») y «Ver a Eos
