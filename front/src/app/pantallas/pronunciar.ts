@@ -11,13 +11,15 @@ import { Icono } from '../compartido/icono';
 // Pronunciar en vez de bajar al pulsar «Boca en 3D».
 import { Boca3d } from '../compartido/boca3d/boca3d';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
+import { Eos, EosClips } from '../compartido/eos/eos';
 import {
   CorteEnPantalla, EscucharYVer, PeticionEscuchar, VelocidadReproduccion,
   VELOCIDADES_REPRODUCCION, duracionParaCorte,
 } from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
-  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, PalabraLeida, mensajeError, urlCortePalabra, urlCorteSonido, urlMotor,
+  Acento, Api, CorreccionVoz, EstadoEos, Fonema, InventarioSonidos, PalabraLeida, mensajeError, urlCortePalabra, urlCorteSonido,
+  urlMotor,
 } from '../nucleo/api';
 import { marcarVista, sinVer } from '../nucleo/banderas';
 import { Preferencias } from '../nucleo/preferencias';
@@ -34,7 +36,7 @@ type Detalle = CorreccionVoz['detalles'][number];
 @Component({
   selector: 'app-pronunciar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icono, Boca3d],
+  imports: [FormsModule, RouterLink, Icono, Boca3d, Eos],
   templateUrl: './pronunciar.html',
   styleUrl: './pronunciar.css',
 })
@@ -72,6 +74,15 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected readonly visor3d = signal<string | null>(null);
   /** Interruptor de compilación (compartido/boca3d/interruptor.ts): apagado, sin botones ni three.js. */
   protected readonly boca3d = BOCA3D_ACTIVO;
+  /** Eos, la cara que habla (Miguel, 28 sep): los sonidos del AFI van pregrabados en
+   *  vídeo (`compartido/eos`, índice `eos/clips.json`); la frase leída se pide a la API,
+   *  que la genera fuera del Space (`app/eos.py`). Un panel abierto a la vez, por id. */
+  private readonly eosClips = inject(EosClips);
+  protected readonly visorEos = signal<string | null>(null);
+  protected readonly eosFrase = signal<EstadoEos | null>(null);
+  protected readonly eosFraseVideo = computed(() => urlMotor(this.eosFrase()?.video ?? null));
+  private relojEos: ReturnType<typeof setTimeout> | undefined;
+  private esperasEos = 0;
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
   protected readonly avisoDebiles = signal<string | null>(null);
 
@@ -149,6 +160,7 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (f) this.frase = f.slice(0, 300);
     else if (this.libro()) void this.traerFrase();
     this.cargarDebiles();
+    this.eosClips.cargar();
     // D1.4: registra de dónde viene (si viene de un libro concreto) para que
     // el tutorial sepa a qué vuelta reconocer como «Continuar leyendo».
     // Sin efecto si el tutorial no está activo en el paso que lo espera.
@@ -158,6 +170,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destruido = true;
     clearTimeout(this.relojPermiso);
+    clearTimeout(this.relojEos);
     this.pararGrabacion(true);
     this.eyv.destruir();
     const u = this.audioUrl();
@@ -345,6 +358,8 @@ export class Pronunciar implements OnInit, OnDestroy {
       const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`, this.acento()));
       this.resultado.set(r);
       this.corregida.set(true);
+      this.eosFrase.set(null);
+      this.visorEos.set(null);
       const e = this.entrada();
       if (e && r.restantes !== null) this.sesion.entrada.set({ ...e, restantes: r.restantes });
       this.cargarDebiles();
@@ -361,6 +376,8 @@ export class Pronunciar implements OnInit, OnDestroy {
   /** «Otra frase ↺»: lo que pidió Laura en vez de borrar a mano. */
   protected otraFrase(): void {
     this.descartar();
+    this.eosFrase.set(null);
+    this.visorEos.set(null);
     this.error.set('');
     if (this.contexto()) void this.traerFrase();
     else this.frase = '';
@@ -628,6 +645,37 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected cerrarFicha(): void {
     this.elegido.set(null);
     if (this.visor3d() === 'sonido') this.visor3d.set(null);
+    if (this.visorEos() === 'sonido') this.visorEos.set(null);
+  }
+
+  /** El clip pregrabado de Eos para el mp3 de un sonido, si existe en el índice. */
+  protected clipEos(audio: string | null | undefined): string | null { return this.eosClips.clipDeAudio(audio); }
+  protected urlEos(clip: string): string { return this.eosClips.url(clip); }
+  protected alternarEos(id: string): void { this.visorEos.update(actual => actual === id ? null : id); }
+
+  /** «Ver a Eos leerla»: pide a la API el vídeo del mp3 de la frase. Mientras un PC
+   *  con Eos lo hace, se pregunta cada 4 s (tres minutos como mucho); el botón,
+   *  con el vídeo abierto, lo cierra. */
+  protected verEosFrase(): void {
+    const audio = this.resultado()?.audio_correcto;
+    if (!audio) return;
+    if (this.eosFrase()?.estado === 'listo') { this.eosFrase.set(null); return; }
+    this.esperasEos = 0;
+    this.api.eosPedir(audio, this.textoLeido()).subscribe({
+      next: r => this.seguirEos(r),
+      error: () => this.eosFrase.set({ estado: 'fallo', clave: '', video: null }),
+    });
+  }
+
+  private seguirEos(r: EstadoEos): void {
+    this.eosFrase.set(r);
+    clearTimeout(this.relojEos);
+    if (r.estado !== 'pendiente' || this.destruido) return;
+    if (++this.esperasEos > 45) { this.eosFrase.set({ ...r, estado: 'fallo', motivo: 'tarda demasiado' }); return; }
+    this.relojEos = setTimeout(() => this.api.eosEstado(r.clave).subscribe({
+      next: s => this.seguirEos(s),
+      error: () => this.eosFrase.set({ ...r, estado: 'fallo' }),
+    }), 4000);
   }
 
   /** Tocar un símbolo: suena, abre su ficha debajo de su grupo y su corte arranca con el audio. */

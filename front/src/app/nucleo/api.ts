@@ -307,6 +307,15 @@ export interface InventarioSonidos {
   grupos: { clave: string; titulo: string; sonidos: Fonema[] }[];
 }
 
+/** El vídeo de Eos para un audio generado (`app/eos.py`): `video` es la ruta
+ *  relativa al motor cuando está «listo». */
+export interface EstadoEos {
+  estado: 'listo' | 'pendiente' | 'fallo' | 'no' | 'sin_trabajador';
+  clave: string;
+  video: string | null;
+  motivo?: string;
+}
+
 export interface CorreccionVoz {
   puntuacion: number;
   transcripcion_ok: boolean;
@@ -510,6 +519,14 @@ export class Api {
     const nombre = /^\/api\/audio\/([\w.-]{1,160}\.mp3)$/.exec(audio ?? '')?.[1];
     return this.http.get<{ palabras: PalabraLeida[] }>(`${this.base}/lectura/ipa`,
       { params: { texto: texto.slice(0, 2000), acento: acento === 'rp' ? 'UK' : 'US', ...(nombre ? { audio: nombre } : {}) } });
+  }
+  /** Eos leyendo una frase nueva (28 sep): el mp3 de `audio_correcto` se encola y
+   *  lo anima un PC con Eos fuera del Space (`app/eos.py`). Sin coste ni uso. */
+  eosPedir(audio: string, texto: string): Observable<EstadoEos> {
+    return this.http.post<EstadoEos>(`${this.base}/eos/pedir`, { audio, texto: texto.slice(0, 600) });
+  }
+  eosEstado(clave: string): Observable<EstadoEos> {
+    return this.http.get<EstadoEos>(`${this.base}/eos/estado/${encodeURIComponent(clave)}`);
   }
   practicar(frase: string, audio: Blob, nombre: string, acento: Acento = 'ga'): Observable<CorreccionVoz> {
     const datos = new FormData();

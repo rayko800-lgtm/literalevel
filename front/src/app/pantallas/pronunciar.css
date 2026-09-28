@@ -236,3 +236,4 @@
   .cab-paso { flex-wrap: wrap; }
   .centrada .boton { flex: 1 1 100%; }
 }
+.botones-corte.pegada.suelta { position: static; }

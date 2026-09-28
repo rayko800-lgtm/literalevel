@@ -71,6 +71,7 @@ import catalogo  # noqa: E402
 import config  # noqa: E402
 import cuaderno  # noqa: E402
 import cuentas  # noqa: E402
+import eos  # noqa: E402
 import ficha  # noqa: E402
 import fonemas  # noqa: E402
 import perfil as perfil_mod  # noqa: E402
@@ -1960,6 +1961,88 @@ def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = Fa
     if not svg:
         raise _no(404, "No existe ese sonido.")
     return Response(svg, media_type="image/svg+xml", headers=_CABECERAS_SVG)
+
+
+# --- Eos: la cara que habla, para los audios nuevos (28 sep, Miguel) ---------------
+# Los 85 sonidos del AFI van pregrabados en el front (front/public/eos/). Aquí solo
+# la frase que el lector acaba de leer: se encola y la genera un PC con Eos
+# (tools/eos_pronunciar/trabajador.py). Contrato y estados en `app/eos.py`.
+
+
+class EosPeticion(BaseModel):
+    audio: str = Field(min_length=5, max_length=170)
+    texto: str = Field(default="", max_length=600)
+
+
+def _nombre_audio_de(audio: str) -> str:
+    """Acepta «/api/audio/x.mp3» o «x.mp3»; solo mp3 que existan en la caché de audio."""
+    nombre = audio.rsplit("/", 1)[-1]
+    if not eos.nombre_audio_valido(nombre) or not (_DIR_AUDIO / nombre).is_file():
+        raise _no(404, "No existe ese audio.")
+    return nombre
+
+
+@app.post("/api/eos/pedir")
+def eos_pedir(pet: Lector, peticion: EosPeticion) -> dict:
+    """Encola el vídeo de Eos leyendo un mp3 generado (audio_correcto). Sin coste."""
+    return eos.pedir(_nombre_audio_de(peticion.audio), peticion.texto)
+
+
+@app.get("/api/eos/estado/{clave}")
+def eos_estado(clave: str) -> dict:
+    return eos.estado(clave)
+
+
+@app.get("/api/eos/video/{archivo}")
+def eos_video(archivo: str):
+    if not re.fullmatch(r"[0-9a-f]{24}\.mp4", archivo):
+        raise _no(404, "No existe ese vídeo.")
+    p = eos.ruta_video(archivo[:-4])
+    if not p.is_file() or p.stat().st_size == 0:
+        raise _no(404, "No existe ese vídeo.")
+    # FileResponse de Starlette contesta a Range (el móvil lo pide para el <video>).
+    return FileResponse(p, media_type="video/mp4",
+                        headers={"Cache-Control": "public, max-age=2592000",
+                                 "X-Content-Type-Options": "nosniff"})
+
+
+def _trabajador(request: Request) -> None:
+    if not eos.token_valido(request.headers.get("X-Eos-Token")):
+        raise _no(403, "Este acceso es solo para el trabajador de Eos.")
+
+
+@app.get("/api/eos/cola")
+def eos_cola(request: Request) -> dict:
+    _trabajador(request)
+    return {"trabajos": [{**t, "audio_url": f"/api/audio/{t['audio']}"} for t in eos.cola()
+                         if eos.nombre_audio_valido(t.get("audio"))]}
+
+
+@app.post("/api/eos/entregar/{clave}")
+async def eos_entregar(clave: str, request: Request) -> dict:
+    _trabajador(request)
+    if not eos.clave_valida(clave):
+        raise _no(404, "No existe ese trabajo.")
+    contenido = bytearray()
+    async for trozo in request.stream():
+        contenido += trozo
+        if len(contenido) > eos.TOPE_MP4:
+            raise _no(413, "El vídeo es demasiado grande.")
+    if not eos.entregar(clave, bytes(contenido)):
+        raise _no(422, "Eso no es un mp4.")
+    return {"estado": "listo", "clave": clave, "video": f"/api/eos/video/{clave}.mp4"}
+
+
+class EosFallo(BaseModel):
+    motivo: str = Field(default="", max_length=300)
+
+
+@app.post("/api/eos/fallo/{clave}")
+def eos_fallo(clave: str, request: Request, cuerpo: EosFallo) -> dict:
+    _trabajador(request)
+    if not eos.fallo(clave, cuerpo.motivo):
+        raise _no(404, "No existe ese trabajo.")
+    return {"estado": "fallo", "clave": clave}
 
 
 # --- Punto 5: pronunciacion ------------------------------------------------------

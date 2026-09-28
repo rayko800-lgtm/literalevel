@@ -24,6 +24,17 @@ decisión antigua concreta.
   de Miguel o un SERIO confirmado.
 - Estado operativo inmediato: `docs/ai/HANDOFF.md`.
 
+## Sesiones activas (28 sep 2026)
+
+| Sesión | Suyo esta tarde | No toca |
+|---|---|---|
+| Codex (vídeo final) | `tools/video_eos_revision/`, `entrega/`, `docs/ai/video_eos_revision_*.md`, `D:/literalevel_video/` | `front/`, `app/api.py`, `app/eos.py`, `tools/eos_pronunciar/` |
+| literalevel-c6 (Claude, Eos en Pronunciar) | `app/eos.py`, rutas `/api/eos/*` en `app/api.py`, `front/src/app/compartido/eos/`, `front/src/app/pantallas/pronunciar.*`, `front/public/eos/`, `tools/eos_pronunciar/`, `pruebas_eos.py` | `entrega/`, `tools/video_eos_revision/`, el `index.html` del rig en `D:/literalevel_cara/eos_demo/` y el worktree `cara-parlante` (solo lo lee) |
+
+Procesos largos de c6 que no hay que matar: `generar_clips.py` y `grabar_clips.py`
+(escriben en `D:/literalevel_eos_pronunciar/` y `front/public/eos/`), y el servidor
+`http.server` del puerto 8790. Ninguno se despliega hasta que Miguel lo apruebe.
+
 ## Reparto de archivos
 
 - `app/ui.py`, interfaz Gradio y coordinación UI: Claude Code.

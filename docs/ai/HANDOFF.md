@@ -235,3 +235,38 @@ mentón.
 - **Verificado:** API simulada, 3 pruebas del front, TypeScript, build y pantalla
   móvil visual. **NO VERIFICADO:** conversación real con voz y consumo.
   **NO INTEGRADO EN PRODUCCIÓN:** falta publicar API y front juntos.
+
+## Eos en Pronunciar (28 sep, literalevel-c6; pedido por Miguel)
+
+Miguel (28 sep): los sonidos van **pregrabados** en vídeo de alta calidad y, para un
+audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin publicar:
+
+- **Pregrabados (85 = 41 GA + 44 RP):** `tools/eos_pronunciar/generar_clips.py` da a
+  Eos el mp3 de cada sonido (`app/audio_fonemas*/`: sonido ×3 + dos palabras), con los
+  tramos por energía y el fonema en ARPAbet (whisper no entiende «shhh»); boca
+  Audio2Face + gestos v3 no verbal, llamando al `generar.py` del worktree
+  `cara-parlante` (copia de trabajo, la misma que usa Codex) sin editarlo.
+  `grabar_clips.py` los graba en un visor aislado (`D:/literalevel_eos_pronunciar/visor`,
+  puerto 8790; el rig compartido no se toca) a 640×640, 30 fps, cámara cerca de la
+  cara, y deja `front/public/eos/<acento>/<archivo>.mp4` + `clips.json` + `reposo.webp`.
+  Piloto de /ʃ/ visto: ≈600 KB por clip de 5,8 s → ≈50 MB los 85. Tanda en marcha
+  (≈2 min por clip: HuBERT se carga en cada uno; `generar.log` y `grabar.log` en
+  `D:/literalevel_eos_pronunciar/`). Primera tanda desechada: un fallo mío
+  contaminaba los fonemas de un clip con los del anterior (arreglado antes de relanzar).
+- **Front:** `compartido/eos/eos.ts` (`EosClips` lee `eos/clips.json` una vez;
+  `app-eos` es un `<video>` que arranca al abrirse) y en Pronunciar «Ver a Eos» en la
+  ficha del sonido, en cada palabra fallada (junto a «Boca en 3D») y «Ver a Eos
+  leerla» en la frase bien leída. Sin índice, no hay botón. Spec:
+  `pronunciar.eos.spec.ts` (4 pruebas). tsc, build y specs de Pronunciar en verde;
+  `pronunciar.css` ya estaba por encima del presupuesto (no crece).
+- **Audios nuevos (`app/eos.py`, rutas `/api/eos/*`):** `POST /api/eos/pedir` encola
+  el mp3 de `audio_correcto`; un PC con Eos (`tools/eos_pronunciar/trabajador.py`, con
+  `LITERALEVEL_EOS_TOKEN` en el entorno y el mismo secreto en el Space) recoge
+  `GET /api/eos/cola`, genera (whisper + A2F + v3), graba y sube
+  `POST /api/eos/entregar/<clave>`; el front pregunta `estado` cada 4 s (3 min) y
+  reproduce `/api/eos/video/<clave>.mp4` (Range soportado). Sin token: «sin_trabajador»
+  y el front manda a la boca 3D. Nada llama a OpenAI ni cobra usos. `pruebas_eos.py`:
+  TODO OK. Trabajador **no probado de punta a punta** contra el Space (falta el secreto).
+- **Para publicar:** front (Vercel, con los mp4) y API juntos; poner
+  `LITERALEVEL_EOS_TOKEN` en el Space y arrancar el trabajador en este PC cuando se
+  quiera la frase leída por Eos. Aprobación de Miguel antes.

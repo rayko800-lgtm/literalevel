@@ -245,9 +245,12 @@
                     <button type="button" class="boton pequeno secundario" (click)="recargarPara3d()">Recargar y reintentar</button></p>
                 }
                   }
+                  @if (visorEos() === 'detalle-' + $index && clipEos(d.fonema?.audio); as clip) {
+                    <app-eos [src]="urlEos(clip)" [titulo]="'el sonido /' + d.fonema?.simbolo + '/ y sus ejemplos'" />
+                  }
                   <!-- Pegada a la animación: debajo de los cortes y del 3D, y fija abajo
                        mientras se ve la boca, para pulsar y mirar a la vez. -->
-                  <div class="botones-corte pegada">
+                  <div class="botones-corte pegada" [class.suelta]="visorEos() === 'detalle-' + $index">
                     <button type="button" class="boton" (click)="escucharPalabra(d, $index, $event)"
                             [attr.aria-label]="'Escuchar y ver cómo se mueve la boca al decir ' + d.palabra">
                       <app-icono nombre="altavoz" />Escuchar y ver
@@ -278,6 +281,13 @@
                             [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
                       <app-icono [nombre]="visor3d() === 'detalle-' + $index ? 'cerrar' : 'ojo'" />
                       {{ visor3d() === 'detalle-' + $index ? 'Cerrar 3D' : 'Boca en 3D' }}
+                    </button>
+                    }
+                    @if (clipEos(d.fonema?.audio)) {
+                    <button type="button" class="boton secundario" (click)="alternarEos('detalle-' + $index)"
+                            [attr.aria-expanded]="visorEos() === 'detalle-' + $index">
+                      <app-icono [nombre]="visorEos() === 'detalle-' + $index ? 'cerrar' : 'persona'" />
+                      {{ visorEos() === 'detalle-' + $index ? 'Cerrar a Eos' : 'Ver a Eos' }}
                     </button>
                     }
                   </div>
@@ -352,7 +362,29 @@
               {{ visor3d() === 'lectura' ? 'Cerrar 3D' : 'Verla leída en 3D' }}
             </button>
           }
+          <!-- Eos lee la frase: el vídeo se genera fuera del Space y se pide a la API (28 sep). -->
+          <button type="button" class="boton secundario" (click)="verEosFrase()"
+                  [attr.aria-expanded]="eosFrase()?.estado === 'listo'">
+            <app-icono [nombre]="eosFrase()?.estado === 'listo' ? 'cerrar' : 'persona'" />
+            {{ eosFrase()?.estado === 'listo' ? 'Cerrar a Eos' : 'Ver a Eos leerla' }}
+          </button>
         </div>
+        @if (eosFrase(); as e) {
+          @switch (e.estado) {
+            @case ('listo') {
+              @if (eosFraseVideo(); as v) { <app-eos [src]="v" titulo="la frase leída" /> }
+            }
+            @case ('pendiente') {
+              <div class="espera eos-estado" role="status"><span class="giro"></span>Eos está preparando la frase. Suele tardar un minuto.</div>
+            }
+            @case ('sin_trabajador') {
+              <p class="tenue pequeno eos-estado" role="status">Eos no puede leer frases nuevas ahora mismo. Mira la boca en 3D.</p>
+            }
+            @default {
+              <p class="tenue pequeno eos-estado" role="status">Eos no ha podido leer esta frase. Mira la boca en 3D.</p>
+            }
+          }
+        }
         @if (boca3d && visor3d() === 'lectura') {
           <div class="lectura-3d">
             @defer (on immediate) {
@@ -431,8 +463,13 @@
                     <button type="button" class="boton pequeno secundario" (click)="recargarPara3d()">Recargar y reintentar</button></p>
                 }
               }
-              <!-- Pegada a la animación, como en la corrección. -->
-              <div class="botones-corte pegada">
+              <!-- Eos dice el sonido y sus ejemplos (vídeo pregrabado; Miguel, 28 sep). -->
+              @if (visorEos() === 'sonido' && clipEos(s.audio); as clip) {
+                <app-eos [src]="urlEos(clip)" [titulo]="'el sonido /' + s.simbolo + '/ y sus ejemplos'" />
+              }
+              <!-- Pegada a la animación, como en la corrección. Con Eos abierta, suelta: la
+                   barra tapaba el vídeo a 390 px (medido el 28 sep). -->
+              <div class="botones-corte pegada" [class.suelta]="visorEos() === 'sonido'">
                 <button type="button" class="boton" (click)="escucharSonido(s, $event)" [disabled]="!s.audio"
                         [attr.aria-label]="'Escuchar y ver cómo se mueve la boca con /' + s.simbolo + '/'">
                   <app-icono nombre="altavoz" />Escuchar y ver
@@ -463,6 +500,13 @@
                         [attr.aria-expanded]="visor3d() === 'sonido'">
                   <app-icono [nombre]="visor3d() === 'sonido' ? 'cerrar' : 'ojo'" />
                   {{ visor3d() === 'sonido' ? 'Cerrar 3D' : 'Boca en 3D' }}
+                </button>
+                }
+                @if (clipEos(s.audio)) {
+                <button type="button" class="boton secundario" (click)="alternarEos('sonido')"
+                        [attr.aria-expanded]="visorEos() === 'sonido'">
+                  <app-icono [nombre]="visorEos() === 'sonido' ? 'cerrar' : 'persona'" />
+                  {{ visorEos() === 'sonido' ? 'Cerrar a Eos' : 'Ver a Eos' }}
                 </button>
                 }
               </div>
