@@ -3,7 +3,7 @@
 **Estado (28 sep 2026):** Miguel vio y aprobó la dirección del primer corte.
 Pidió pausas e inflexión, mejor relación boca/audio, quitar la narración de
 correlación y mostrar una corrección real de pronunciación. El nuevo corte
-de 720p está en preparación en
+de 720p está terminado en
 `D:/literalevel_video/comercial_revision_20260928/`.
 
 ## Decisiones vigentes
@@ -28,13 +28,20 @@ de 720p está en preparación en
 - Guion y scripts: `tools/video_eos_revision/`.
 - La transcripción de Live coincidió con el texto en las doce escenas nuevas
   en español; la escena inglesa usa una toma existente de Eos.
-- El corte preparado dura aproximadamente 132 s a 1280×720/24 fps, bajo el
-  máximo de cinco minutos.
+- El MP4 decodifica completo: 2:12, 1280×720/24 fps, H.264 Baseline y AAC.
+  Queda bajo el máximo de cinco minutos. El QR extraído del video se decodifica
+  como `https://pleyade-app.vercel.app/`.
+- Copia para revisión en Drive:
+  `https://drive.google.com/file/d/1JE_U4xYRg0Pg_Kx-J6AI9tE6DtC2LtyV/view?usp=drivesdk`.
+  La carga se confirmó por metadatos con 12.371.093 bytes; el procesamiento
+  del visor de Drive no equivale a una revisión humana.
 - El ajuste de mandíbula reduce aperturas en silencio y mejora una medida
-  interna de alineación; aún hace falta escuchar y mirar el MP4 completo.
+  interna de alineación; aún hace falta juicio humano sobre sincronía,
+  naturalidad de voz y expresión.
 - Se usó un visor aislado. No se editó `index.html` del rig compartido ni
   `docs/ai/HANDOFF.md`, que tenía cambios ajenos sin confirmar.
 
-**Siguiente paso:** verificar reproducción, lectura de QR y sincronía visual
-del MP4 completo; subirlo a Drive para la revisión de Miguel. Mantener el
-primer corte como referencia, sin sustituirlo.
+**Siguiente paso:** Miguel revisa el nuevo corte en Drive. Si aprueba voz,
+sincronía y recorrido, preparar una prueba corta de calidad visual con el
+proyecto Epic/Unreal antes del master 4K. Mantener el primer corte como
+referencia, sin sustituirlo.

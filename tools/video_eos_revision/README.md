@@ -47,10 +47,12 @@ iluminación y animación de Epic/Unreal requieren su propia revisión.
 
 ## Estado
 
-- Guion, voz, curvas, app real y montaje 720p preparados.
+- Guion, voz, curvas, app real y montaje 720p terminados. El archivo compatible
+  decodifica completo y se subió a Drive para revisión.
 - La boca sigue siendo Blender; v3 solo controla lo no verbal.
 - Comparación interna de mandíbula y energía: correlación de 0,543 a 0,712;
   mandíbula media en silencio de 0,081 a 0,016. Esta medida orienta la
   inspección, pero no demuestra sincronía labial perfecta. No aparece en el
   comercial.
-- **Falta** el visto bueno de Miguel al video completo antes del master.
+- **Falta** el visto bueno de Miguel a voz, sincronía y recorrido antes del
+  master 4K.
