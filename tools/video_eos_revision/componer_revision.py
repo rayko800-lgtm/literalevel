@@ -15,7 +15,7 @@ from pathlib import Path
 import cv2
 import imageio_ffmpeg
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 from playwright.sync_api import sync_playwright
 
 BG_SOURCE = Path('D:/literalevel_video/piloto_20260927/gptlive_piloto_20260927/fondo_formas_willow2.py')
@@ -23,12 +23,23 @@ APP_IMAGES = Path('D:/literalevel_video/comercial_completo_20260928/app_oscura')
 FONT_PATH = 'C:/Windows/Fonts/segoeui.ttf'
 BOLD_PATH = 'C:/Windows/Fonts/segoeuib.ttf'
 W, H, FPS = 1280, 720, 24
-SCREEN_X = 580
+SCREEN_X = 600
 SCREEN_W = 700
-FADE_SECONDS = 0.7
+FADE_SECONDS = 0.5
+AVATAR_BRIGHTNESS = 0.82
+# Segundos desde el inicio de cada escena. Cada cambio acompaña un gesto
+# narrado; durante el resto de la frase, la interfaz permanece inmóvil.
+SCREEN_CUES = {
+    'buscar': [(0, '02_busqueda_inicio.png'),
+               (1.82, '02_encontrar.png'),
+               (6.14, '03_ficha.png')],
+    'practica': [(0, '06_pronunciar_antes.png')],
+    'eos_ingles': [(float(second), f'07_grabando_{second:02d}.png')
+                   for second in range(9)] + [(8.75, '08_grabado.png')],
+    'correccion': [(0, '09_corregido.png'), (6.6, '10_boca.png')],
+}
 _cache = {}
 _mask_cache = {}
-_wipe_cache = {}
 
 
 def ease(x):
@@ -53,15 +64,25 @@ def get_screen(name):
 
 
 def screen_schedule(timeline):
-    shots = []
+    cues = []
     for scene in timeline:
         names = scene['pantallas']
         if not names:
             continue
-        duration = (scene['end'] - scene['start']) / len(names)
-        for index, name in enumerate(names):
-            shots.append((scene['start'] + index * duration,
-                          scene['start'] + (index + 1) * duration, name))
+        scene_cues = SCREEN_CUES.get(scene['id'], [(0, names[0])])
+        for offset, name in scene_cues:
+            if not 0 <= offset < scene['end'] - scene['start']:
+                raise ValueError(f'Cue fuera de escena: {scene["id"]} {offset}')
+            if name not in names and not (scene['id'] == 'eos_ingles' and
+                                          name.startswith('07_grabando_')):
+                raise ValueError(f'Pantalla inesperada: {scene["id"]} {name}')
+            if not (APP_IMAGES / name).is_file():
+                raise FileNotFoundError(APP_IMAGES / name)
+            cues.append((scene['start'] + offset, name))
+    shots = []
+    for index, (start, name) in enumerate(cues):
+        end = cues[index + 1][0] if index + 1 < len(cues) else timeline[-1]['start']
+        shots.append((start, end, name))
     return shots
 
 
@@ -71,11 +92,8 @@ def visible_screen(t, shots):
     for index, (start, end, name) in enumerate(shots):
         if start <= t < end:
             before = shots[index - 1][2] if index > 0 else None
-            after = shots[index + 1][2] if index + 1 < len(shots) else None
             if t - start < FADE_SECONDS and before:
                 return before, name, ease((t - start) / FADE_SECONDS), 1.0
-            if end - t < FADE_SECONDS and after:
-                return name, after, ease((t - (end - FADE_SECONDS)) / FADE_SECONDS), 1.0
             opacity = 1.0
             if index == 0:
                 opacity = min(opacity, ease((t - start) / FADE_SECONDS))
@@ -91,8 +109,8 @@ def screen_mask(opacity):
         xx = np.arange(SCREEN_W, dtype=float)
         yy = np.arange(H, dtype=float)
         smooth = lambda value: np.clip(value, 0, 1) ** 2 * (3 - 2 * np.clip(value, 0, 1))
-        horizontal = np.minimum(smooth(xx / 145), smooth((SCREEN_W - xx) / 30))
-        vertical = np.minimum(smooth(yy / 18), smooth((H - yy) / 45))
+        horizontal = np.minimum(smooth(xx / 28), smooth((SCREEN_W - xx) / 18))
+        vertical = np.minimum(smooth(yy / 12), smooth((H - yy) / 16))
         mask = np.rint(255 * key / 100 * vertical[:, None] * horizontal[None, :]).astype('uint8')
         _mask_cache[key] = Image.fromarray(mask, mode='L')
     return _mask_cache[key]
@@ -104,18 +122,8 @@ def overlay_screen(canvas, t, shots):
         return
     app = get_screen(first)
     if second:
-        key = round(mix * 100)
-        if key not in _wipe_cache:
-            xx = np.arange(SCREEN_W, dtype=float)
-            edge = SCREEN_W * (1 - key / 100)
-            v = np.clip((xx - edge) / 60 + 0.5, 0, 1)
-            v = v * v * (3 - 2 * v)
-            _wipe_cache[key] = Image.fromarray(
-                np.tile(np.rint(v * 255).astype('uint8'), (H, 1)), mode='L')
-        app = Image.composite(get_screen(second), app, _wipe_cache[key])
-    # Un desplazamiento lento mantiene la pantalla viva sin mover los controles.
-    x = SCREEN_X + round(5 * math.sin(t / 6))
-    canvas.paste(app, (x, 0), screen_mask(opacity))
+        app = Image.blend(app, get_screen(second), mix)
+    canvas.paste(app, (SCREEN_X, 0), screen_mask(opacity))
 
 
 def subtitles_at(t, events):
@@ -186,6 +194,7 @@ def make_frame(t, avatar, timeline, shots, subtitles, bg, qr, font, title_font):
         add_close(canvas, t, timeline, qr, title_font)
     if avatar is not None:
         face = avatar.crop((230, 0, 1050, 720)).resize((650, 571), Image.Resampling.LANCZOS)
+        face = ImageEnhance.Brightness(face).enhance(AVATAR_BRIGHTNESS)
         canvas.alpha_composite(face, (0, 110))
     add_subtitle(canvas, subtitles_at(t, subtitles), font)
     return canvas.convert('RGB')
@@ -195,6 +204,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--workdir', type=Path, required=True)
     parser.add_argument('--preview', type=float, nargs='+')
+    parser.add_argument('--viewer-url', default='http://127.0.0.1:8772')
+    parser.add_argument('--clip-start', type=float, default=0)
+    parser.add_argument('--clip-duration', type=float)
     args = parser.parse_args()
     workdir = args.workdir
     timeline = json.loads((workdir / 'timeline.json').read_text(encoding='utf-8'))['escenas']
@@ -203,22 +215,28 @@ def main():
     duration = timeline[-1]['end']
     if duration > 300:
         raise RuntimeError(f'Excede los cinco minutos: {duration:.2f}s')
+    clip_duration = args.clip_duration if args.clip_duration is not None else duration
+    if args.clip_start < 0 or clip_duration <= 0 or args.clip_start + clip_duration > duration:
+        raise ValueError('El intervalo de prueba debe estar dentro del comercial')
     bg = load_bg()
     qr = qr_image()
     font = ImageFont.truetype(FONT_PATH, 27)
     title_font = ImageFont.truetype(BOLD_PATH, 30)
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-    output = workdir / 'eos_pleyade_revision_720p.mp4'
+    output = (workdir / f'piloto_{args.clip_start:g}_{clip_duration:g}_720p.mp4'
+              if args.clip_duration is not None else workdir / 'eos_pleyade_revision_v2_720p.mp4')
     command = [ffmpeg, '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24',
-               '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-', '-i', str(workdir / 'audio_revision.wav'),
-               '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25', '-pix_fmt', 'yuv420p',
+               '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
+               '-ss', str(args.clip_start), '-i', str(workdir / 'audio_revision.wav'),
+               '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
+               '-profile:v', 'baseline', '-level:v', '3.1', '-pix_fmt', 'yuv420p',
                '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart',
-               '-t', str(duration), str(output)]
+               '-t', str(clip_duration), str(output)]
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel='chrome', headless=True,
                                      args=['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'])
         page = browser.new_page(viewport={'width': W, 'height': H})
-        page.goto('http://127.0.0.1:8772/index.html?grabar=.', wait_until='domcontentloaded')
+        page.goto(f'{args.viewer_url}/index.html?grabar=.', wait_until='domcontentloaded')
         page.wait_for_function('window.listo === true', timeout=120000)
         page.add_style_tag(content='html,body{background:transparent!important} #titulo,#subt,#barra,#estado{display:none!important}')
         if args.preview is not None:
@@ -229,10 +247,10 @@ def main():
                 make_frame(t, avatar, timeline, shots, subtitles, bg, qr, font, title_font).save(preview, quality=90)
                 print('PREVIEW', preview, flush=True)
         else:
-            total = math.ceil(duration * FPS)
+            total = math.ceil(clip_duration * FPS)
             with subprocess.Popen(command, stdin=subprocess.PIPE) as process:
                 for frame_index in range(total):
-                    t = frame_index / FPS
+                    t = args.clip_start + frame_index / FPS
                     page.evaluate('(t)=>window.pintar(t)', t)
                     avatar = Image.open(io.BytesIO(page.screenshot(type='png', omit_background=True))).convert('RGBA')
                     frame = make_frame(t, avatar, timeline, shots, subtitles, bg, qr, font, title_font)
