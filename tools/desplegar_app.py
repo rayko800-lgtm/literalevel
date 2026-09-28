@@ -66,6 +66,8 @@ LISTA_BLANCA = [
     "app/config.py",
     "app/cuaderno.py",
     "app/cuentas.py",
+    # Eos para los audios nuevos (28 sep 2026): cola de /api/eos/*.
+    "app/eos.py",
     "app/ficha.py",
     "app/lexicon.py",
     "app/paletas.py",
