@@ -269,7 +269,15 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   `POST /api/eos/entregar/<clave>`; el front pregunta `estado` cada 4 s (3 min) y
   reproduce `/api/eos/video/<clave>.mp4` (Range soportado). Sin token: «sin_trabajador»
   y el front manda a la boca 3D. Nada llama a OpenAI ni cobra usos. `pruebas_eos.py`:
-  TODO OK. Trabajador **no probado de punta a punta** contra el Space (falta el secreto).
-- **Para publicar:** front (Vercel, con los mp4) y API juntos; poner
-  `LITERALEVEL_EOS_TOKEN` en el Space y arrancar el trabajador en este PC cuando se
-  quiera la frase leída por Eos. Aprobación de Miguel antes.
+  TODO OK. Trabajador **probado de punta a punta en local** (API en el puerto 8001 con
+  token y datos temporales: pedir → cola → generar+grabar en 110 s → entregar → estado
+  «listo» → vídeo con Range 206); contra el Space, pendiente del secreto.
+- **Estado (28 sep, noche):** todo en `master` (`56ce899` código, `e639eea` vídeos),
+  árbol limpio en mis rutas, servidores de prueba parados. Miguel dio el visto bueno a
+  guardar; **no se ha hecho push** (cada push a `master` publica en Vercel y el push lo
+  autoriza Miguel). Para publicar: 1) `git push origin master` (front con los mp4);
+  2) API con `desplegar-en-spaces` (lleva `app/eos.py` y las rutas nuevas); 3) para
+  las frases nuevas, `LITERALEVEL_EOS_TOKEN` en los secretos del Space y en este PC
+  `python -m http.server 8790` en `D:/literalevel_eos_pronunciar/visor` +
+  `python -X utf8 tools/eos_pronunciar/trabajador.py --api <url del Space>`.
+  Sin el paso 3, funcionan los 85 sonidos pregrabados y el front avisa en la frase.
