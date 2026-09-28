@@ -223,3 +223,15 @@ ojos abiertos en la malla. Registro completo en `DESPLIEGUE.md`.
 Recoger la prueba de Miguel de la lectura en vivo (voz real, móvil, cuánto
 tarda y qué marca mal) y ajustar el seguidor; después, dientes y costura del
 mentón.
+
+## GPT-Live (27 sep, `f5c1fa8`)
+
+- **CONFIRMADO en código local:** `/api/gpt-live/sesion` crea la sesión WebRTC
+  desde el servidor con el JSON exacto de `app/gpt_live_session.json`; la pantalla
+  `/conversar` reproduce audio remoto, muestra deltas con tiempos y espera
+  `session.closed` antes de soltar el transporte.
+- **Clave local:** guardada fuera del repositorio; `LITERALEVEL_CLAVES_RUTA`
+  apunta al archivo elegido por Miguel para los procesos nuevos de Windows.
+- **Verificado:** API simulada, 3 pruebas del front, TypeScript, build y pantalla
+  móvil visual. **NO VERIFICADO:** conversación real con voz y consumo.
+  **NO INTEGRADO EN PRODUCCIÓN:** falta publicar API y front juntos.
