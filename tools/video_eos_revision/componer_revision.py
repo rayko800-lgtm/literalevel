@@ -82,10 +82,6 @@ def visible_screen(t, shots):
             if index == len(shots) - 1:
                 opacity = min(opacity, ease((end - t) / FADE_SECONDS))
             return name, None, 0.0, opacity
-    if t < shots[0][0]:
-        return shots[0][2], None, 0.0, ease((t - shots[0][0] + FADE_SECONDS) / FADE_SECONDS)
-    if t < shots[-1][1] + FADE_SECONDS:
-        return shots[-1][2], None, 0.0, 1.0 - ease((t - shots[-1][1]) / FADE_SECONDS)
     return None, None, 0.0, 0.0
 
 
