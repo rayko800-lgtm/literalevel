@@ -1,0 +1,122 @@
+{
+  "titulo": "Pléyade — comercial de Eos, revisión de Miguel",
+  "duracion_maxima_s": 300,
+  "voz": "Willow, toma dulce con dirección por escena",
+  "escenas": [
+    {
+      "id": "gancho",
+      "pantallas": [],
+      "texto": "¿Te ha pasado?",
+      "pausa_despues": 0.8,
+      "direccion": "Curiosidad cómplice. Pregunta con un ascenso suave al final, cercana, como a una amiga. Sin tono de anuncio."
+    },
+    {
+      "id": "problema",
+      "pantallas": [],
+      "texto": "Abres un libro en inglés… y a las pocas páginas, lo cierras.",
+      "pausa_despues": 0.55,
+      "direccion": "Al empezar, interés luminoso; después de inglés, una pausa breve y una bajada de tono. Lo cierras suena a frustración reconocible, sin dramatismo."
+    },
+    {
+      "id": "alivio",
+      "pantallas": [],
+      "texto": "No era tu inglés. Era el libro.",
+      "pausa_despues": 0.55,
+      "direccion": "Alivio cálido y sereno. Deja respirar entre las dos frases; la segunda baja un poco más y transmite que no es culpa del lector."
+    },
+    {
+      "id": "presentacion",
+      "pantallas": [],
+      "texto": "Soy Eos, y esto es Pléyade. Ven, te enseño.",
+      "pausa_despues": 0.6,
+      "direccion": "Sonríe de manera audible al decir Soy Eos; la palabra Pléyade sube con alegría breve, sin locución. Ven, te enseño es una invitación natural. Pronuncia PLÉ-ya-de."
+    },
+    {
+      "id": "nivel",
+      "pantallas": [
+        "01_nivel.png"
+      ],
+      "texto": "Primero, Pléyade te ayuda a reconocer qué lecturas te resultan cómodas. Respondes unas preguntas y lees fragmentos breves. Ese resultado no te encierra: es una brújula para escoger por dónde empezar.",
+      "pausa_despues": 0.65,
+      "direccion": "Explica con claridad y entusiasmo tranquilo. Levanta la voz un poco en brújula, luego baja y deja una pausa amable."
+    },
+    {
+      "id": "buscar",
+      "pantallas": [
+        "02_busqueda_inicio.png",
+        "02_encontrar.png",
+        "03_ficha.png"
+      ],
+      "texto": "Ahora busco una historia. Puedo escribir lo que me apetece en español, aunque el libro esté en inglés. Abro Crime and Punishment y, antes de leer, veo si va a ser un paseo o un reto.",
+      "pausa_despues": 0.6,
+      "direccion": "Descubrimiento con energía creciente en busco una historia. Marca una pausa antes de Abro; paseo o un reto suena cómplice y curioso."
+    },
+    {
+      "id": "curva",
+      "pantallas": [
+        "03_curva.png"
+      ],
+      "texto": "La ficha me enseña cómo cambia la dificultad a lo largo de los capítulos. Si una parte se complica, lo sé antes de llegar ahí. Puedo seguir, o elegir otra lectura que me dé ganas de continuar.",
+      "pausa_despues": 0.65,
+      "direccion": "Explicación visual, con una pequeña subida al señalar la curva y un descenso sereno en la decisión final. Nada de cifras ni métricas."
+    },
+    {
+      "id": "lector",
+      "pantallas": [
+        "04_lector.png"
+      ],
+      "texto": "Dentro del lector, si una palabra me detiene, la toco. Aparecen el diccionario, el audio y su sentido en esta frase. La explicación contextual, cuando tengo cuenta, me ayuda a entenderla sin abandonar la historia.",
+      "pausa_despues": 0.6,
+      "direccion": "Ritmo ligero y didáctico. La toco suena como un gesto sencillo. Sin lista mecánica; respira después de frase."
+    },
+    {
+      "id": "practica",
+      "pantallas": [
+        "06_pronunciar_antes.png",
+        "08_grabado.png"
+      ],
+      "texto": "También puedo leer en voz alta. Abro Pronunciar y grabo una frase de este libro. Escucha cómo digo estas palabras; después veremos qué entendió la aplicación.",
+      "pausa_despues": 0.55,
+      "direccion": "Invita a escuchar, como una demostración en vivo. Escucha tiene curiosidad y una pausa clara antes de la frase en inglés."
+    },
+    {
+      "id": "eos_ingles",
+      "pantallas": [
+        "07_grabando_00.png",
+        "07_grabando_06.png",
+        "07_grabando_12.png",
+        "08_grabado.png"
+      ],
+      "texto": "The feather and matter spent their evenings in reading aloud to their children, generally from books of a serious character.",
+      "audio_existente": "D:/literalevel_video/comercial_completo_20260928/corrige_ingles_eos.wav",
+      "idioma": "en",
+      "pausa_despues": 0.7
+    },
+    {
+      "id": "correccion",
+      "pantallas": [
+        "09_corregido.png",
+        "10_boca.png"
+      ],
+      "texto": "Pulso Corrígeme. Mira: oyó feather y matter donde la frase decía father y mother. Ya sé qué palabras revisar. Puedo escuchar el sonido más despacio y ver cómo se colocan labios y lengua para volver a intentarlo.",
+      "pausa_despues": 0.65,
+      "direccion": "Haz una pausa de expectativa después de Pulso Corrígeme. Mira sube, las palabras inglesas se dicen con cuidado; después vuelve a un tono pedagógico y alentador."
+    },
+    {
+      "id": "guardar",
+      "pantallas": [
+        "05_palabras.png"
+      ],
+      "texto": "Lo que consulto se guarda en Mi espacio, para repasarlo cuando quiera. En el celular o en la computadora, la lectura sigue donde la dejé.",
+      "pausa_despues": 0.65,
+      "direccion": "Baja ligeramente la velocidad. Sensación de continuidad, no de enumerar funciones."
+    },
+    {
+      "id": "cierre",
+      "pantallas": [],
+      "texto": "No necesitas encontrar el libro perfecto a ciegas. Entra a Pléyade, elige una historia que te importe y sigue leyendo. Esta vez, el libro se queda abierto.",
+      "pausa_despues": 0.8,
+      "direccion": "Cierre íntimo y esperanzado. Pronuncia Pléyade PLÉ-ya-de. Da aire antes de Esta vez; termina despacio y con una sonrisa leve."
+    }
+  ]
+}
