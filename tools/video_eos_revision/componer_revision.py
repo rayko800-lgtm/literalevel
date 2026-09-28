@@ -25,7 +25,7 @@ BOLD_PATH = 'C:/Windows/Fonts/segoeuib.ttf'
 W, H, FPS = 1280, 720, 24
 SCREEN_X = 600
 SCREEN_W = 700
-FADE_SECONDS = 0.5
+FADE_SECONDS = 0.32
 AVATAR_BRIGHTNESS = 0.82
 # Segundos desde el inicio de cada escena. Cada cambio acompaña un gesto
 # narrado; durante el resto de la frase, la interfaz permanece inmóvil.
@@ -35,8 +35,8 @@ SCREEN_CUES = {
                (6.14, '03_ficha.png')],
     'practica': [(0, '06_pronunciar_antes.png')],
     'eos_ingles': [(float(second), f'07_grabando_{second:02d}.png')
-                   for second in range(9)] + [(8.75, '08_grabado.png')],
-    'correccion': [(0, '09_corregido.png'), (6.6, '10_boca.png')],
+                   for second in range(8)] + [(8.05, '08_grabado.png')],
+    'correccion': [(1.05, '09_corregido.png'), (6.6, '10_boca.png')],
 }
 _cache = {}
 _mask_cache = {}
@@ -93,7 +93,15 @@ def visible_screen(t, shots):
         if start <= t < end:
             before = shots[index - 1][2] if index > 0 else None
             if t - start < FADE_SECONDS and before:
-                return before, name, ease((t - start) / FADE_SECONDS), 1.0
+                elapsed = t - start
+                # El contador de grabación cambia en la misma pantalla.
+                if before.startswith('07_grabando_') and name.startswith('07_grabando_'):
+                    return before, name, ease(elapsed / 0.15), 1.0
+                # Entre vistas completas evitamos superponer textos y controles.
+                half = FADE_SECONDS / 2
+                if elapsed < half:
+                    return before, None, 0.0, 1 - ease(elapsed / half)
+                return name, None, 0.0, ease((elapsed - half) / half)
             opacity = 1.0
             if index == 0:
                 opacity = min(opacity, ease((t - start) / FADE_SECONDS))
@@ -224,7 +232,7 @@ def main():
     title_font = ImageFont.truetype(BOLD_PATH, 30)
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     output = (workdir / f'piloto_{args.clip_start:g}_{clip_duration:g}_720p.mp4'
-              if args.clip_duration is not None else workdir / 'eos_pleyade_revision_v2_720p.mp4')
+              if args.clip_duration is not None else workdir / 'eos_pleyade_revision_v3_720p.mp4')
     command = [ffmpeg, '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24',
                '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
                '-ss', str(args.clip_start), '-i', str(workdir / 'audio_revision.wav'),
