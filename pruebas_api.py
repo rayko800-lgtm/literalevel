@@ -1635,6 +1635,51 @@ def lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla():
     return "503 sin clave, clave efímera con sesión de transcripción, 502 con devolución"
 
 
+def gpt_live_intercambia_sdp_sin_exponer_clave():
+    """El JSON inicial es exacto y un fallo del proveedor devuelve el uso."""
+    import io, urllib.request
+    cabeceras = nuevo_lector()
+    assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"}).status_code == 503
+    assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": ""}).status_code == 422
+    pedidos, devueltos = [], []
+
+    class Resp(io.BytesIO):
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    def falso(req, timeout=None):
+        pedidos.append(req)
+        return Resp(json.dumps({"session": {"id": "opaque/id+123"},
+                                "transport": {"type": "webrtc", "sdp": "answer"}}).encode())
+
+    originales = (urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver,
+                  os.environ.get("OPENAI_API_KEY"))
+    urllib.request.urlopen = falso
+    api.config.falta = lambda *a, **k: []
+    api._cobrar = lambda pet: (True, "", "cuenta-prueba")
+    api._devolver = lambda codigo: devueltos.append(codigo)
+    os.environ["OPENAI_API_KEY"] = "clave-de-prueba"
+    try:
+        r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
+        assert r.status_code == 200, r.text[:200]
+        assert r.json() == {"session": {"id": "opaque/id+123"}, "transport": {"sdp": "answer"}}
+        assert "clave-de-prueba" not in r.text
+        assert pedidos[0].full_url == "https://api.openai.com/v1/live/sessions"
+        assert pedidos[0].get_header("Authorization") == "Bearer clave-de-prueba"
+        assert json.loads(pedidos[0].data) == {
+            "session": json.loads((Path("app") / "gpt_live_session.json").read_text(encoding="utf-8")),
+            "transport": {"type": "webrtc", "sdp": "v=0"},
+        }
+        urllib.request.urlopen = lambda req, timeout=None: (_ for _ in ()).throw(OSError("sin red"))
+        r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
+        assert r.status_code == 502 and devueltos == ["cuenta-prueba"]
+    finally:
+        urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver = originales[:4]
+        if originales[4] is None: os.environ.pop("OPENAI_API_KEY", None)
+        else: os.environ["OPENAI_API_KEY"] = originales[4]
+    return "JSON exacto, SDP y ID opaco, clave privada, devolución si falla"
+
+
 def ipa_de_lectura_para_la_boca_3d():
     """La boca 3D lee una frase: IPA por palabra de los diccionarios locales,
     null si no está, y topes de tamaño; sin OpenAI (sin clave también va)."""
@@ -2026,7 +2071,7 @@ if __name__ == "__main__":
                error_inesperado_sin_traza, voz_audio_por_palabra_y_falladas_con_su_frase,
                voz_prepara_temporal_antes_de_cobrar,
                dudoso_coherente_con_el_aviso_de_lexicon, corte_de_la_boca_en_svg,
-               lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla, ipa_de_lectura_para_la_boca_3d, ipa_de_lectura_con_los_tiempos_del_audio, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
+               lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla, gpt_live_intercambia_sdp_sin_exponer_clave, ipa_de_lectura_para_la_boca_3d, ipa_de_lectura_con_los_tiempos_del_audio, corte_de_una_pasada_con_la_duracion_del_audio, indice_de_romanos_de_una_letra_no_abre_el_libro,
                ritmo_de_la_lectura_con_nivel_y_audio_natural, topes_de_medir_y_de_la_curva,
                temas_para_la_portada, portada_por_ia_si_existe, plurales_de_los_minutos,
                nota_de_nivel_dice_libros_y_cuentos,

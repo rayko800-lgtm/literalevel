@@ -1864,6 +1864,47 @@ def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
 
 MINUTOS_LECTURA_VIVO = 3
 
+# Configuración de inicio de GPT-Live entregada por Miguel. El JSON se envía
+# tal cual: añadir campos aquí cambiaría los valores por defecto del servidor.
+_GPT_LIVE_SESSION = json.loads((APP_DIR / "gpt_live_session.json").read_text(encoding="utf-8"))
+
+
+class OfertaLive(BaseModel):
+    sdp: str = Field(min_length=1, max_length=65536)
+
+
+@app.post("/api/gpt-live/sesion")
+def crear_sesion_gpt_live(oferta: OfertaLive, pet: Lector) -> dict:
+    """Intercambia el SDP en el servidor; la clave del proyecto no sale al front."""
+    clave = config.obtener("OPENAI_API_KEY")
+    if not clave:
+        raise _no(503, "La conversación en vivo necesita la clave de OpenAI.")
+    if not ui._dentro_del_limite(pet, "gpt-live", ui.LIMITE_VOZ_HORA):
+        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("gpt-live", pet), "voz"))
+    puede, motivo, codigo = _cobrar(pet)
+    if not puede:
+        raise _no(403, motivo)
+    import urllib.request
+    cuerpo = {"session": _GPT_LIVE_SESSION,
+              "transport": {"type": "webrtc", "sdp": oferta.sdp}}
+    peticion = urllib.request.Request(
+        "https://api.openai.com/v1/live/sessions",
+        data=json.dumps(cuerpo).encode("utf-8"),
+        headers={"Authorization": "Bearer " + clave,
+                 "Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(peticion, timeout=25) as r:
+            datos = json.loads(r.read())
+        sesion_id = datos["session"]["id"]
+        respuesta_sdp = datos["transport"]["sdp"]
+        if not isinstance(sesion_id, str) or not sesion_id or not isinstance(respuesta_sdp, str) or not respuesta_sdp:
+            raise ValueError("Respuesta Live incompleta")
+    except Exception as e:
+        _devolver(codigo)
+        print(f"gpt-live: no se abrió la sesión ({type(e).__name__})", file=sys.stderr)
+        raise _no(502, "OpenAI no ha abierto la conversación en vivo. Prueba en un momento.") from e
+    return {"session": {"id": sesion_id}, "transport": {"sdp": respuesta_sdp}}
+
 
 @app.post("/api/lectura/vivo")
 def lectura_en_vivo(pet: Lector) -> dict:

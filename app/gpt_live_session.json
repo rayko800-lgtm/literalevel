@@ -1,0 +1,23 @@
+{
+  "model": "gpt-live-1",
+  "audio": {
+    "output": {
+      "voice": "gleam"
+    }
+  },
+  "delegation": {
+    "type": "responses",
+    "responses": {
+      "parallel_tool_calls": false,
+      "model": "gpt-6-astra",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "tools": [
+        {
+          "type": "web_search"
+        }
+      ]
+    }
+  }
+}

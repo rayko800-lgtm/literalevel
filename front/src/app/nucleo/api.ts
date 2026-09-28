@@ -498,6 +498,10 @@ export class Api {
   lecturaVivo(): Observable<{ clave: string; expira: number | null; minutos: number; restantes: number | null }> {
     return this.http.post<{ clave: string; expira: number | null; minutos: number; restantes: number | null }>(`${this.base}/lectura/vivo`, {});
   }
+  /** GPT-Live: el servidor intercambia el SDP sin entregar la clave del proyecto. */
+  sesionGptLive(sdp: string): Observable<{ session: { id: string }; transport: { sdp: string } }> {
+    return this.http.post<{ session: { id: string }; transport: { sdp: string } }>(`${this.base}/gpt-live/sesion`, { sdp });
+  }
   /** La IPA de cada palabra de una frase (diccionarios locales, sin coste):
    *  la boca 3D la lee al compás del audio. `ipa` null si no está. */
   ipaDeLectura(texto: string, acento: Acento = 'ga', audio?: string | null): Observable<{ palabras: PalabraLeida[] }> {

@@ -56,8 +56,12 @@ def cargar(rutas=RUTAS_ENV) -> None:
     """
     if os.environ.get("LITERALEVEL_SIN_CLAVES", "").strip() not in ("", "0"):
         return
+    # Una instalación local puede guardar sus claves fuera del repositorio.
+    # Las pruebas que pasan `rutas` explícitas siguen aisladas de esa ubicación.
+    if rutas is RUTAS_ENV and os.environ.get("LITERALEVEL_CLAVES_RUTA"):
+        rutas = (Path(os.environ["LITERALEVEL_CLAVES_RUTA"]), *rutas)
     for ruta in rutas:
-        if not ruta.exists():
+        if not ruta.is_file():
             continue
         for linea in ruta.read_text(encoding="utf-8").splitlines():
             linea = linea.strip()

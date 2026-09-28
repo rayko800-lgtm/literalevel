@@ -11,6 +11,7 @@ export const routes: Routes = [
   { path: 'encontrar', title: 'Encontrar · Pléyade', loadComponent: () => import('./pantallas/encontrar').then(m => m.Encontrar) },
   { path: 'nivel', title: 'Tu nivel · Pléyade', loadComponent: () => import('./pantallas/nivel').then(m => m.Nivel) },
   { path: 'pronunciar', title: 'Pronunciar · Pléyade', loadComponent: () => import('./pantallas/pronunciar').then(m => m.Pronunciar) },
+  { path: 'conversar', title: 'Conversar · Pléyade', loadComponent: () => import('./pantallas/conversar').then(m => m.Conversar) },
   { path: 'palabras', title: 'Mis palabras · Pléyade', loadComponent: () => import('./pantallas/palabras').then(m => m.Palabras) },
   { path: 'repasar', title: 'Repasar · Pléyade', loadComponent: () => import('./pantallas/repasar').then(m => m.Repasar) },
   { path: 'estado', title: 'Estado · Pléyade', loadComponent: () => import('./pantallas/estado').then(m => m.Estado) },
