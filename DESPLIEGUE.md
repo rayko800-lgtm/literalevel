@@ -626,9 +626,10 @@ frases nuevas y las sube al bucket (`/data/eos/`). Probado en producción: 150 s
 
 ## GPT-Live: cierre de la auditoría Fable (29 sep 2026)
 
-- Código: `12df0b8`. El JSON exacto de inicio no cambió. El hallazgo de su
+- Código: `12df0b8` (front y primer control) y `d3f0b22` (cupo por cuenta).
+  El JSON exacto de inicio no cambió. El hallazgo de su
   ausencia en la lista blanca ya estaba corregido en `7864da8`.
-- API: revisión del Space `8e515fb` (antes `0547de1`), solo `app/api.py`.
+- API: revisión del Space `21d48fe` (antes `8e515fb` y `0547de1`), solo `app/api.py`.
   `/api/salud` devolvió `estado: ok` y `buscador_listo: true` tras el reinicio;
   la segunda pasada de `desplegar_app.py --seco --solo app/api.py` no encontró
   diferencias.
@@ -636,8 +637,9 @@ frases nuevas y las sube al bucket (`/data/eos/`). Probado en producción: 150 s
   `main-G3QA4LYX.js`. El chunk `chunk-BQ4_lFOc.js` de Conversar coincidió
   byte a byte con el build local (SHA256
   `9B5BE16A3807705814C1A2B831C32CAFB9A48E127DC56E7053CBAE7C26A01C4F`).
-- Controles nuevos: dos altas GPT-Live por IP y hora por defecto
-  (`LITERALEVEL_LIMITE_GPT_LIVE`), corte del servidor a los 180 segundos por
+- Controles nuevos: dos altas GPT-Live por cuenta y hora por defecto, por IP
+  cuando no hay cuenta (configurable con `LITERALEVEL_LIMITE_GPT_LIVE`);
+  corte del servidor a los 180 segundos por
   `/hangup`, cancelación antes del POST sin abrir una sesión, una conexión activa
   por pestaña, gracia de ocho segundos para `disconnected`, aviso ante deltas
   sin tiempos y diagnóstico HTTP del proveedor sin registrar claves.
