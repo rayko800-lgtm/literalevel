@@ -1864,6 +1864,37 @@ def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
 
 
 MINUTOS_LECTURA_VIVO = 3
+LIMITE_GPT_LIVE_HORA = int(os.environ.get("LITERALEVEL_LIMITE_GPT_LIVE", "2"))
+SEGUNDOS_GPT_LIVE = 180
+
+
+def _cerrar_gpt_live_por_tope(sesion_id: str) -> None:
+    """Corte de respaldo del servidor, aunque el navegador omita su temporizador."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    clave = config.obtener("OPENAI_API_KEY")
+    if not clave:
+        print("gpt-live: no se pudo aplicar el tope (sin clave)", file=sys.stderr)
+        return
+    url = "https://api.openai.com/v1/live/sessions/" + urllib.parse.quote(sesion_id, safe="") + "/hangup"
+    peticion = urllib.request.Request(
+        url, headers={"Authorization": "Bearer " + clave}, method="POST")
+    try:
+        with urllib.request.urlopen(peticion, timeout=10):
+            pass
+    except urllib.error.HTTPError as e:
+        # La sesión puede haber terminado normalmente antes del corte.
+        if e.code not in (404, 409):
+            print(f"gpt-live: fallo del corte ({e.code})", file=sys.stderr)
+    except Exception as e:
+        print(f"gpt-live: fallo del corte ({type(e).__name__})", file=sys.stderr)
+
+
+def _programar_cierre_gpt_live(sesion_id: str) -> None:
+    corte = threading.Timer(SEGUNDOS_GPT_LIVE, _cerrar_gpt_live_por_tope, args=(sesion_id,))
+    corte.daemon = True
+    corte.start()
 
 # Configuración de inicio de GPT-Live entregada por Miguel. El JSON se envía
 # tal cual: añadir campos aquí cambiaría los valores por defecto del servidor.
@@ -1880,11 +1911,12 @@ def crear_sesion_gpt_live(oferta: OfertaLive, pet: Lector) -> dict:
     clave = config.obtener("OPENAI_API_KEY")
     if not clave:
         raise _no(503, "La conversación en vivo necesita la clave de OpenAI.")
-    if not ui._dentro_del_limite(pet, "gpt-live", ui.LIMITE_VOZ_HORA):
+    if not ui._dentro_del_limite(pet, "gpt-live", LIMITE_GPT_LIVE_HORA):
         raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("gpt-live", pet), "voz"))
     puede, motivo, codigo = _cobrar(pet)
     if not puede:
         raise _no(403, motivo)
+    import urllib.error
     import urllib.request
     cuerpo = {"session": _GPT_LIVE_SESSION,
               "transport": {"type": "webrtc", "sdp": oferta.sdp}}
@@ -1902,8 +1934,19 @@ def crear_sesion_gpt_live(oferta: OfertaLive, pet: Lector) -> dict:
             raise ValueError("Respuesta Live incompleta")
     except Exception as e:
         _devolver(codigo)
-        print(f"gpt-live: no se abrió la sesión ({type(e).__name__})", file=sys.stderr)
+        detalle = type(e).__name__
+        if isinstance(e, urllib.error.HTTPError):
+            detalle += f" HTTP {e.code}"
+            try:
+                error = json.loads(e.read(2048)).get("error", {})
+                codigo_proveedor = error.get("code") if isinstance(error, dict) else None
+                if isinstance(codigo_proveedor, str) and re.fullmatch(r"[a-zA-Z0-9_.-]{1,80}", codigo_proveedor):
+                    detalle += f" {codigo_proveedor}"
+            except (ValueError, OSError):
+                pass
+        print(f"gpt-live: no se abrió la sesión ({detalle})", file=sys.stderr)
         raise _no(502, "OpenAI no ha abierto la conversación en vivo. Prueba en un momento.") from e
+    _programar_cierre_gpt_live(sesion_id)
     return {"session": {"id": sesion_id}, "transport": {"sdp": respuesta_sdp}}
 
 

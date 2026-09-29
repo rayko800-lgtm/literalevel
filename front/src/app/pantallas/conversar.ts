@@ -72,11 +72,16 @@ export class Conversar implements OnDestroy {
   private readonly salida = viewChild.required<ElementRef<HTMLAudioElement>>('salida');
   private conexion: ConexionLive | null = null;
   private limite = 0;
+  private readonly alSalir = () => this.conexion?.cerrar();
   protected readonly fase = signal<Fase>('lista');
   protected readonly aviso = signal('');
   protected readonly grupos = signal<GrupoLive[]>([]);
   protected readonly uso = signal<number | null>(null);
   protected readonly razon = signal<string | null>(null);
+
+  constructor() {
+    window.addEventListener('pagehide', this.alSalir);
+  }
 
   protected tiempo(ms: number): string {
     const s = Math.floor(ms / 1000);
@@ -89,11 +94,10 @@ export class Conversar implements OnDestroy {
     this.uso.set(null);
     this.razon.set(null);
     this.fase.set('preparando');
+    this.limite = window.setTimeout(() => this.terminar(), 180_000);
     const conexion = new ConexionLive(this.salida().nativeElement, {
       alEmpezar: () => {
         if (this.fase() !== 'cerrando') this.fase.set('hablando');
-        // Límite de la interfaz para controlar el gasto de una conversación.
-        this.limite = window.setTimeout(() => this.terminar(), 180_000);
       },
       alDelta: delta => this.grupos.update(g => agregarDelta(g, delta)),
       alCerrar: (uso, razon) => {
@@ -105,7 +109,7 @@ export class Conversar implements OnDestroy {
       alIncompleto: motivo => {
         window.clearTimeout(this.limite);
         this.aviso.set(motivo);
-        this.fase.set('incompleta');
+        this.fase.set(motivo === 'Conexión cancelada.' ? 'lista' : 'incompleta');
         this.conexion = null;
       },
       alError: mensaje => this.aviso.set(mensaje),
@@ -114,7 +118,8 @@ export class Conversar implements OnDestroy {
     try {
       await conexion.abrir(sdp => firstValueFrom(this.api.sesionGptLive(sdp)));
     } catch (e) {
-      if (this.fase() !== 'incompleta') {
+      window.clearTimeout(this.limite);
+      if (this.fase() !== 'incompleta' && this.fase() !== 'lista') {
         this.aviso.set((e as { name?: string })?.name === 'NotAllowedError'
           ? 'Activa el permiso del micrófono en el navegador.' : mensajeError(e, e instanceof Error ? e.message : 'No se pudo conectar.'));
         this.fase.set('error');
@@ -131,6 +136,7 @@ export class Conversar implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('pagehide', this.alSalir);
     window.clearTimeout(this.limite);
     this.conexion?.cerrar();
   }

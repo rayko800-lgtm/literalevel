@@ -1637,11 +1637,11 @@ def lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla():
 
 def gpt_live_intercambia_sdp_sin_exponer_clave():
     """El JSON inicial es exacto y un fallo del proveedor devuelve el uso."""
-    import io, urllib.request
+    import contextlib, io, urllib.error, urllib.request
     cabeceras = nuevo_lector()
     assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"}).status_code == 503
     assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": ""}).status_code == 422
-    pedidos, devueltos = [], []
+    pedidos, devueltos, cierres, topes = [], [], [], []
 
     class Resp(io.BytesIO):
         def __enter__(self): return self
@@ -1653,11 +1653,14 @@ def gpt_live_intercambia_sdp_sin_exponer_clave():
                                 "transport": {"type": "webrtc", "sdp": "answer"}}).encode())
 
     originales = (urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver,
+                  api._programar_cierre_gpt_live, api.ui._dentro_del_limite,
                   os.environ.get("OPENAI_API_KEY"))
     urllib.request.urlopen = falso
     api.config.falta = lambda *a, **k: []
     api._cobrar = lambda pet: (True, "", "cuenta-prueba")
     api._devolver = lambda codigo: devueltos.append(codigo)
+    api._programar_cierre_gpt_live = lambda sesion_id: cierres.append(sesion_id)
+    api.ui._dentro_del_limite = lambda pet, cubo, tope: (topes.append((cubo, tope)) or True)
     os.environ["OPENAI_API_KEY"] = "clave-de-prueba"
     try:
         r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
@@ -1670,14 +1673,30 @@ def gpt_live_intercambia_sdp_sin_exponer_clave():
             "session": json.loads((Path("app") / "gpt_live_session.json").read_text(encoding="utf-8")),
             "transport": {"type": "webrtc", "sdp": "v=0"},
         }
+        assert cierres == ["opaque/id+123"]
+        api._cerrar_gpt_live_por_tope("opaque/id+123")
+        assert pedidos[1].full_url == "https://api.openai.com/v1/live/sessions/opaque%2Fid%2B123/hangup"
+        assert pedidos[1].get_method() == "POST"
         urllib.request.urlopen = lambda req, timeout=None: (_ for _ in ()).throw(OSError("sin red"))
         r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
         assert r.status_code == 502 and devueltos == ["cuenta-prueba"]
+        error_proveedor = urllib.error.HTTPError(
+            "https://api.openai.com/v1/live/sessions", 400, "bad request", {},
+            Resp(b'{"error":{"code":"invalid_model"}}'))
+        urllib.request.urlopen = lambda req, timeout=None: (_ for _ in ()).throw(error_proveedor)
+        registro = io.StringIO()
+        with contextlib.redirect_stderr(registro):
+            r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
+        assert r.status_code == 502 and devueltos == ["cuenta-prueba", "cuenta-prueba"]
+        assert "HTTP 400 invalid_model" in registro.getvalue()
+        assert "clave-de-prueba" not in registro.getvalue()
+        assert topes == [("gpt-live", api.LIMITE_GPT_LIVE_HORA)] * 3
     finally:
-        urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver = originales[:4]
-        if originales[4] is None: os.environ.pop("OPENAI_API_KEY", None)
-        else: os.environ["OPENAI_API_KEY"] = originales[4]
-    return "JSON exacto, SDP y ID opaco, clave privada, devolución si falla"
+        (urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver,
+         api._programar_cierre_gpt_live, api.ui._dentro_del_limite) = originales[:6]
+        if originales[6] is None: os.environ.pop("OPENAI_API_KEY", None)
+        else: os.environ["OPENAI_API_KEY"] = originales[6]
+    return "JSON exacto, SDP y ID opaco, corte programado, clave privada, devolución si falla"
 
 
 def ipa_de_lectura_para_la_boca_3d():
