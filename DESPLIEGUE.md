@@ -623,3 +623,29 @@ subirlo con él). El secreto `LITERALEVEL_EOS_TOKEN` lo comparte el Space con el
 trabajador de este PC (`tools/eos_pronunciar/trabajador.py`), que genera y graba las
 frases nuevas y las sube al bucket (`/data/eos/`). Probado en producción: 150 s de
 `pedir` a «listo». Detalle y relanzado en `docs/ai/HANDOFF.md`, «Eos en Pronunciar».
+
+## GPT-Live: cierre de la auditoría Fable (29 sep 2026)
+
+- Código: `12df0b8`. El JSON exacto de inicio no cambió. El hallazgo de su
+  ausencia en la lista blanca ya estaba corregido en `7864da8`.
+- API: revisión del Space `8e515fb` (antes `0547de1`), solo `app/api.py`.
+  `/api/salud` devolvió `estado: ok` y `buscador_listo: true` tras el reinicio;
+  la segunda pasada de `desplegar_app.py --seco --solo app/api.py` no encontró
+  diferencias.
+- Front principal: push de `12df0b8` a `origin/master`; Vercel entregó
+  `main-G3QA4LYX.js`. El chunk `chunk-BQ4_lFOc.js` de Conversar coincidió
+  byte a byte con el build local (SHA256
+  `9B5BE16A3807705814C1A2B831C32CAFB9A48E127DC56E7053CBAE7C26A01C4F`).
+- Controles nuevos: dos altas GPT-Live por IP y hora por defecto
+  (`LITERALEVEL_LIMITE_GPT_LIVE`), corte del servidor a los 180 segundos por
+  `/hangup`, cancelación antes del POST sin abrir una sesión, una conexión activa
+  por pestaña, gracia de ocho segundos para `disconnected`, aviso ante deltas
+  sin tiempos y diagnóstico HTTP del proveedor sin registrar claves.
+- **NO VERIFICADO:** una conversación real, el cierre remoto por `/hangup`,
+  el consumo final y el comportamiento del micrófono en un móvil. Las pruebas
+  fueron simuladas; el temporizador del servidor vive en el proceso y se pierde
+  si el Space reinicia durante una sesión.
+- **FALTA:** actualizar el Space estático de respaldo del front. La fuente
+  `front/angular.json` tiene un cambio local de otra sesión; el publicador del
+  respaldo exige todas las fuentes confirmadas. Vercel, el front principal, sí
+  contiene esta corrección.
