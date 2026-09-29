@@ -159,7 +159,7 @@ curso, por orden de Miguel (25 sep):
 |---|---|---|
 | Front en Vercel (`pleyade-app.vercel.app`) | deploy del 26 sep | `cd623f9` |
 | Front Angular (`MikeMaki1763/literalevel-front`, respaldo) | `be6a190` (26 sep) | `1df10b5` |
-| API y Gradio (`MikeMaki1763/literalevel`) | `103eef5` (26 sep) | `06a16db` |
+| API y Gradio (`MikeMaki1763/literalevel`) | `0547de1` (28 sep, noche) | `7864da8` |
 
 Incluye D1-D3 (Mi espacio, Repasar, Mi progreso; el tutorial v2 sigue detrás
 de su flag de desarrollo), el aire 2D en /f/, la boca 3D didáctica con lectura
@@ -276,10 +276,22 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   `de1e731..bceac98` (12 commits, míos y de Codex); build nuevo (`main-HPL2JHFA.js`),
   `eos/clips.json` con 85 entradas y los mp4 con Range 206. Probado en
   `pleyade-app.vercel.app` a 390 px: /ʃ/ → «Ver a Eos» → el vídeo carga y suena.
-  **La API NO está desplegada:** «Ver a Eos leerla» contesta «no ha podido» hasta
-  que se despliegue. Pasos que faltan: 2) API con `desplegar-en-spaces` (lleva
-  `app/eos.py` y las rutas nuevas); 3) para
-  las frases nuevas, `LITERALEVEL_EOS_TOKEN` en los secretos del Space y en este PC
-  `python -m http.server 8790` en `D:/literalevel_eos_pronunciar/visor` +
-  `python -X utf8 tools/eos_pronunciar/trabajador.py --api <url del Space>`.
-  Sin el paso 3, funcionan los 85 sonidos pregrabados y el front avisa en la frase.
+- **API PUBLICADA (28 sep, noche): revisión del Space `0547de1`, commit `7864da8`**
+  (`--solo app/api.py app/config.py app/eos.py app/gpt_live_session.json`; ese json
+  lo lee `api.py` al importar y no estaba en la lista blanca: sin él el Space no
+  arrancaba). Lleva también `/api/gpt-live/sesion` de `f5c1fa8`. Pruebas en árbol
+  limpio antes: `pruebas_eos.py` TODO OK y `pruebas_api.py` 71 de 71. Secreto
+  `LITERALEVEL_EOS_TOKEN` puesto en el Space (permiso de Miguel); la copia local está
+  en `C:/Users/laura/.literalevel_eos_token`, fuera del repo, nunca se imprime.
+  **Probado de punta a punta en producción:** `pedir` de un mp3 del bucket → el
+  trabajador de este PC lo hizo en 150 s → `estado` «listo» → vídeo servido con
+  Range 206 (`e48078afac94238fd3dba1c4`). Los mp4 de frases quedan en el bucket
+  (`/data/eos/`).
+  **El trabajador corre en este PC** (nohup, registro en
+  `D:/literalevel_eos_pronunciar/trabajador.log`) junto al visor del puerto 8790.
+  Muere al reiniciar el PC; para relanzarlo: en `D:/literalevel_eos_pronunciar/visor`
+  `python -m http.server 8790 --bind 127.0.0.1`, y con `LITERALEVEL_EOS_TOKEN` en el
+  entorno (leído del archivo) `python -X utf8 tools/eos_pronunciar/trabajador.py --api
+  https://mikemaki1763-literalevel.hf.space --cada 15`. Sin trabajador, la frase
+  queda «pendiente» 3 min en el front y luego manda a la boca 3D; los 85 sonidos
+  pregrabados no dependen de él.

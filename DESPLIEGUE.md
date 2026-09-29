@@ -612,3 +612,14 @@ megas —en local, `~/.literalevel/` entero son **10,9 MB** medidos el 10 de
 septiembre de 2026—, así que la
 factura de almacenamiento es despreciable. Se monta el bucket y se apunta la
 app ahí; no hace falta tocar código, solo la ruta base.
+
+## Eos en Pronunciar (28 sep 2026)
+
+Front en Vercel (push `de1e731..63f4a35`, build `main-HPL2JHFA.js`): los 85 sonidos del
+AFI en vídeo (`front/public/eos/`, 50,7 MB, 582 KB por clip) y los botones «Ver a Eos».
+API en el Space: revisión `0547de1` (commit `7864da8`), con `app/eos.py`, las rutas
+`/api/eos/*` y `app/gpt_live_session.json` (lo lee `api.py` al importar: hay que
+subirlo con él). El secreto `LITERALEVEL_EOS_TOKEN` lo comparte el Space con el
+trabajador de este PC (`tools/eos_pronunciar/trabajador.py`), que genera y graba las
+frases nuevas y las sube al bucket (`/data/eos/`). Probado en producción: 150 s de
+`pedir` a «listo». Detalle y relanzado en `docs/ai/HANDOFF.md`, «Eos en Pronunciar».
