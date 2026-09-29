@@ -241,6 +241,18 @@ def video() -> None:
              f"{seg / 60:.0f}:{seg % 60:04.1f} min ({'≤' if seg <= TOPE_VIDEO_S else '>'} 5:00), {vid.group(1) if vid else '?'} "
              f"{vid.group(2) + 'x' + vid.group(3) if vid else ''}, audio {aud.group(1) if aud else '?'}, {v.stat().st_size / 1e6:.1f} MB, "
              f"decodifica {'entero' if deco.returncode == 0 and not deco.stderr.strip() else 'CON ERRORES'}, QR final «{qr or '—'}»")
+    # El guion que de verdad se narra desde el corte del 28 sep: 13 escenas en JSON
+    # (tools/video_eos_revision). guion_video_eos.md es el borrador del 27 y lo dice.
+    narrado = RAIZ / "tools" / "video_eos_revision" / "guion_revision.json"
+    if narrado.exists():
+        try:
+            esc = json.load(open(narrado, encoding="utf-8-sig")).get("escenas", [])
+            palabras = sum(len(str(e.get("texto", "")).split()) for e in esc)
+            cifras = sorted({m for e in esc for m in re.findall(r"\d[\d.,]*", str(e.get("texto", "")))})
+            fila("Vídeo", "OK", "guion narrado (guion_revision.json)",
+                 f"{len(esc)} escenas, {palabras} palabras, cifras en la voz: {', '.join(cifras) if cifras else 'ninguna'}")
+        except Exception as e:  # noqa: BLE001
+            fila("Vídeo", "AVISO", "guion narrado (guion_revision.json)", f"{type(e).__name__}: {e}")
     contar = RAIZ / "tools" / "contar_guion.py"
     for g in ("guion_video_eos.md", "guion_video.md"):
         if contar.exists() and (ENTREGA / g).exists():
@@ -286,7 +298,7 @@ def cifras() -> None:
     for t in textos.values():
         cuentas |= set(re.findall(r"\b(5[01][0-9]) palabras", t))
     if len(cuentas) > 1:
-        fila("Cifras", "FALLO", "palabras habladas del guion", f"se citan varias cuentas: {sorted(cuentas)}")
+        fila("Cifras", "AVISO", "palabras habladas del guion", f"se citan varias cuentas: {sorted(cuentas)}; leer el párrafo (una puede ser histórica)")
 
 
 def main() -> None:

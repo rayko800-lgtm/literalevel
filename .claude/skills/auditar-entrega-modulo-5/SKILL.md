@@ -116,25 +116,37 @@ Un test unitario verde no cuenta aquí. Una captura sí.
 
 ## 6. Vídeo (20)
 
-El evaluado es el comercial narrado por Eos (el profesor aceptó que Eos hable todo el
-vídeo; confirmado por Miguel el 27 sep, sin texto archivado: dilo así). Con el mp4 final
-de `entrega/`:
+Con el mp4 final de `entrega/`:
 
-- ≤ 5:00, MP4 H.264 + AAC que decodifica entero (el guion lo mide), imagen y audio sin
-  cortes: míralo, no solo mídelo. Extrae fotogramas a 0, 25, 50, 75 y 100 % y léelos.
-- Lo que se dice coincide con el guion (`guion_video_eos.md`, cuenta de palabras con
-  `tools/contar_guion.py`) y con las cifras del documento; ninguna cifra nueva.
+- **La cara.** La rúbrica escrita exige al alumno «con su cara visible todo el rato», y en
+  el comercial habla Eos. El profesor aceptó esa excepción (confirmado por Miguel el 27 sep;
+  el texto del profesor no está archivado). El informe lo dice **siempre**, con esas dos
+  frases, en el rubro del vídeo: ni lo calla ni lo marca como fallo definitivo. Es un riesgo
+  a gestionar (pedir la confirmación por escrito; `guion_video.md` es el plan B con Miguel a
+  cámara), no un incumplimiento demostrado. Una revisión que no lo mencione está incompleta.
+- ≤ 5:00, MP4 que decodifica entero (el guion lo mide), imagen y audio sin cortes: míralo,
+  no solo mídelo. Extrae fotogramas a 0, 25, 50, 75 y 100 % y léelos. Si hay varias copias
+  (máster 4K en HEVC y 720p en H.264, mismo corte), el informe dice **cuál se sube**: para
+  Classroom, la H.264 se reproduce en cualquier sitio; la HEVC no siempre.
+- Lo que se dice coincide con el guion **que de verdad se narra**: desde el corte del 28 sep
+  es `tools/video_eos_revision/guion_revision.json` (13 escenas); `guion_video_eos.md`
+  es el borrador del 27 y lo dice en su primera línea. Coteja los subtítulos de los
+  fotogramas con las escenas del JSON; el guion mecánico cuenta sus palabras. Ninguna cifra
+  nueva (en el corte v3 no se narra ninguna: decisión documentada).
 - Enseña la app real y las funciones principales (nivel, Encontrar con la curva, palabra,
   pronunciación de una frase), con la marca desde el segundo 0 y el QR al final.
-- Si el vídeo entregado es una revisión (v3 720p, master 4K), el informe dice cuál, con
-  bytes y SHA256, y la copia de Drive si la hay.
+- El informe identifica la copia entregada con bytes y SHA256 (los registrados en
+  `docs/ai/video_eos_revision_2026-09-28.md`), y la copia de Drive si la hay.
 
 ## 7. Coherencia entre piezas y Classroom
 
 Las mismas cifras viven en documento, estrategia, presentación, guiones, notebook,
 README y mensaje al profesor (`corregir-sin-inventar`: la corrección se propaga a los
 cuatro archivos). El guion mecánico marca las variantes viejas (Space estático, 61.642,
-«menos de 500 palabras»); tú confirmas cada una leyendo el párrafo.
+514 frente a 516 palabras); tú confirmas cada una leyendo el párrafo: citada como respaldo
+o como historia fechada es HISTÓRICO CORRECTO, presentada como actual es DOCUMENTACIÓN. En
+la primera pasada (29 sep) las cinco citas del Space estático eran respaldo declarado y el
+514 era una nota de un corte anterior.
 
 Entrega en Classroom: nombre «Pléyade (proyecto LiteraLevel)», archivos antes del **4
 oct 2026, 11:59 p.m.**, demo el **10 oct, turno 5** (leído el 26 sep; la tarea viva no se

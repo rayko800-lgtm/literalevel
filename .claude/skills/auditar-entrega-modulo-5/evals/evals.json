@@ -1,0 +1,50 @@
+{
+ "skill_name": "auditar-entrega-modulo-5",
+ "evals": [
+  {
+   "id": 0,
+   "prompt": "Audita mi proyecto del módulo 5 tal como está ahora en C:/Users/laura/literalevel y dime qué nota sacaría hoy con la rúbrica de Barranco, rubro por rubro, y qué es lo más urgente. Quiero el informe para pegarlo en ChatGPT.",
+   "expected_output": "Un informe en un solo bloque markdown con nota simulada por rubro (110 puntos), hallazgos con archivo/página y evidencia medida (secciones, PDF, notebook, vídeo, QR, cifras repetidas, Vercel y Space), severidades y siguiente paso por puntos por hora.",
+   "files": [],
+   "assertions": [
+    "El informe principal va dentro de un único bloque de código ```markdown (formato para pegar en ChatGPT)",
+    "Da una nota simulada por rubro con los siete rubros y sus puntos (demo 25, vídeo 20, documento 15, estrategia 15, notebook 15, presentación 10, interfaz 10) y un total sobre 110",
+    "Cita el estado contra el que audita: commit HEAD y revisión del Space o build de Vercel",
+    "Detecta que el guion del vídeo se cita con dos cuentas de palabras distintas (514 y 516)",
+    "Detecta la salida stderr guardada en el notebook y marca la ejecución en Colab limpio como pendiente",
+    "Mide el vídeo (duración 2:12, bajo los 5 minutos) y comprueba que el QR final o el de la última diapositiva resuelve a pleyade-app.vercel.app",
+    "Cada hallazgo lleva severidad y ubicación concreta (archivo con línea o página)",
+    "No modificó el repositorio: git status y HEAD iguales a los de antes de la ejecución"
+   ]
+  },
+  {
+   "id": 1,
+   "prompt": "oye, la entrega es el 4 de octubre. revisa la carpeta entrega/ de C:/Users/laura/literalevel y dime qué me falta o qué está mal antes de subir los archivos a classroom",
+   "expected_output": "Lista priorizada de lo que falta o está mal en el paquete de entrega (documento, estrategia, notebook, presentación, vídeo, mensaje al profesor), con evidencia concreta por archivo, incluyendo las inconsistencias entre piezas (cuentas de palabras distintas, enlaces viejos) y el notebook sin ejecución en Colab limpio.",
+   "files": [],
+   "assertions": [
+    "Lista priorizada de lo que falta o está mal, por archivo del paquete (documento, estrategia, notebook, presentación, vídeo, mensaje al profesor)",
+    "Detecta que el guion del vídeo se cita con dos cuentas de palabras distintas (514 y 516)",
+    "Detecta la salida stderr guardada en el notebook o marca la ejecución en Colab limpio como pendiente",
+    "Revisa el mensaje al profesor (enlace de Vercel, sin contraseñas) y señala las citas del Space estático que hay que leer",
+    "Da el plazo correcto: archivos antes del 4 de octubre a las 11:59 p.m. y demo el 10 de octubre, turno 5",
+    "No modificó el repositorio: git status y HEAD iguales a los de antes de la ejecución"
+   ]
+  },
+  {
+   "id": 2,
+   "prompt": "Antes de subirlos a Classroom, revisa el vídeo del comercial y la presentación que están en entrega/ (repositorio C:/Users/laura/literalevel). ¿Cumplen la rúbrica del módulo 5?",
+   "expected_output": "Verificación medida del mp4 (duración ≤5 min, códec, decodifica entero, QR final, coherencia con el guion y sus cifras, la excepción de que Eos narra aceptada por el profesor) y de la presentación (17 diapositivas, QR a Vercel, coherencia con el documento), con lo que no se pudo verificar y una recomendación clara.",
+   "files": [],
+   "assertions": [
+    "Mide el mp4 del comercial: duración 2:12 (≤ 5 min), códec y que decodifica entero, no solo que el archivo existe",
+    "Decodifica el QR del último fotograma del vídeo y el de la última diapositiva a pleyade-app.vercel.app",
+    "Cuenta las 17 diapositivas de presentacion.pdf",
+    "Trata la narración de Eos como excepción aceptada por el profesor (confirmada por Miguel el 27 sep) en vez de dar por fallo definitivo que Miguel no aparezca en cámara",
+    "Comprueba la coherencia del vídeo con el guion (516 palabras habladas) y con las cifras del documento",
+    "Declara explícitamente lo que no se pudo verificar",
+    "No modificó el repositorio: git status y HEAD iguales a los de antes de la ejecución"
+   ]
+  }
+ ]
+}
