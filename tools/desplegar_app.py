@@ -68,6 +68,8 @@ LISTA_BLANCA = [
     "app/cuentas.py",
     # Eos para los audios nuevos (28 sep 2026): cola de /api/eos/*.
     "app/eos.py",
+    # api.py lo lee al importar (f5c1fa8, GPT-Live): sin el, el Space no arranca.
+    "app/gpt_live_session.json",
     "app/ficha.py",
     "app/lexicon.py",
     "app/paletas.py",
