@@ -1637,7 +1637,7 @@ def lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla():
 
 def gpt_live_intercambia_sdp_sin_exponer_clave():
     """El JSON inicial es exacto y un fallo del proveedor devuelve el uso."""
-    import contextlib, io, urllib.error, urllib.request
+    import contextlib, hashlib, io, urllib.error, urllib.request
     cabeceras = nuevo_lector()
     assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"}).status_code == 503
     assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": ""}).status_code == 422
@@ -1660,7 +1660,7 @@ def gpt_live_intercambia_sdp_sin_exponer_clave():
     api._cobrar = lambda pet: (True, "", "cuenta-prueba")
     api._devolver = lambda codigo: devueltos.append(codigo)
     api._programar_cierre_gpt_live = lambda sesion_id: cierres.append(sesion_id)
-    api.ui._dentro_del_limite = lambda pet, cubo, tope: (topes.append((cubo, tope)) or True)
+    api.ui._dentro_del_limite = lambda pet, cubo, tope, clave=None: (topes.append((cubo, tope, clave)) or True)
     os.environ["OPENAI_API_KEY"] = "clave-de-prueba"
     try:
         r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
@@ -1690,7 +1690,12 @@ def gpt_live_intercambia_sdp_sin_exponer_clave():
         assert r.status_code == 502 and devueltos == ["cuenta-prueba", "cuenta-prueba"]
         assert "HTTP 400 invalid_model" in registro.getvalue()
         assert "clave-de-prueba" not in registro.getvalue()
-        assert topes == [("gpt-live", api.LIMITE_GPT_LIVE_HORA)] * 3
+        assert topes == [("gpt-live", api.LIMITE_GPT_LIVE_HORA,
+                           "gpt-live:" + hashlib.sha256(b"cuenta-prueba").hexdigest())] * 3
+        api.ui._dentro_del_limite = lambda pet, cubo, tope, clave=None: False
+        r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
+        assert r.status_code == 429 and devueltos == ["cuenta-prueba"] * 3
+        assert len(pedidos) == 2  # El tope no abrió otra sesión en OpenAI.
     finally:
         (urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver,
          api._programar_cierre_gpt_live, api.ui._dentro_del_limite) = originales[:6]

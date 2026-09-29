@@ -1911,11 +1911,14 @@ def crear_sesion_gpt_live(oferta: OfertaLive, pet: Lector) -> dict:
     clave = config.obtener("OPENAI_API_KEY")
     if not clave:
         raise _no(503, "La conversación en vivo necesita la clave de OpenAI.")
-    if not ui._dentro_del_limite(pet, "gpt-live", LIMITE_GPT_LIVE_HORA):
-        raise _no(429, ui._mensaje_limite("es", ui._minutos_para_la_siguiente("gpt-live", pet), "voz"))
     puede, motivo, codigo = _cobrar(pet)
     if not puede:
         raise _no(403, motivo)
+    clave_limite = "gpt-live:" + hashlib.sha256(codigo.encode()).hexdigest() if codigo else None
+    if not ui._dentro_del_limite(pet, "gpt-live", LIMITE_GPT_LIVE_HORA, clave=clave_limite):
+        _devolver(codigo)
+        raise _no(429, ui._mensaje_limite(
+            "es", ui._minutos_para_la_siguiente("gpt-live", pet, clave=clave_limite), "voz"))
     import urllib.error
     import urllib.request
     cuerpo = {"session": _GPT_LIVE_SESSION,
