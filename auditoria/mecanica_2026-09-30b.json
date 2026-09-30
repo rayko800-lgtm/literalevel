@@ -1,0 +1,254 @@
+[
+ {
+  "rubro": "Repositorio",
+  "estado": "AVISO",
+  "prueba": "HEAD `4d692aa`",
+  "evidencia": "9 archivos con cambios sin commit: PENDIENTES.md, README.md, auditoria/mecanica_2026-09-29.json, corpus_abierto.parquet, docs/ai/HANDOFF.md, docs/ai/encargo_entregables.md"
+ },
+ {
+  "rubro": "Interfaz",
+  "estado": "OK",
+  "prueba": "front en Vercel",
+  "evidencia": "build `G3QA4LYX`, meta de la API «https://mikemaki1763-literalevel.hf.space», 85 clips de Eos"
+ },
+ {
+  "rubro": "Interfaz",
+  "estado": "OK",
+  "prueba": "API en el Space",
+  "evidencia": "revisión `21d48fe` (2026-09-29T23:55), RUNNING, salud ok, buscador_listo True"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "orden de las secciones",
+  "evidencia": "el orden de la rúbrica se respeta"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "referencias resueltas en el PDF",
+  "evidencia": "65 páginas; 0 marcas «??»/«[?]»"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "PDF más nuevo que el .tex",
+  "evidencia": "tex 29 Sep 15:08, pdf 29 Sep 15:09"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "menciona «Kaggle»",
+  "evidencia": "la rúbrica lo prohíbe: hay que decir que no se usó"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "menciona «Angular»",
+  "evidencia": "el profesor pidió Angular; el documento debe decirlo"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "menciona «APA»",
+  "evidencia": "referencias en APA"
+ },
+ {
+  "rubro": "Documento",
+  "estado": "OK",
+  "prueba": "referencias.bib",
+  "evidencia": "45 entradas"
+ },
+ {
+  "rubro": "Estrategia",
+  "estado": "OK",
+  "prueba": "accionables concretos",
+  "evidencia": "«accionable» aparece 5 veces"
+ },
+ {
+  "rubro": "Estrategia",
+  "estado": "OK",
+  "prueba": "descripción de usuarios",
+  "evidencia": "«usuario» aparece 27 veces"
+ },
+ {
+  "rubro": "Estrategia",
+  "estado": "OK",
+  "prueba": "usabilidad del modelo",
+  "evidencia": "«usabilidad» aparece 6 veces"
+ },
+ {
+  "rubro": "Estrategia",
+  "estado": "OK",
+  "prueba": "ciclo con una lectora real",
+  "evidencia": "«esmeralda» aparece 3 veces"
+ },
+ {
+  "rubro": "Estrategia",
+  "estado": "OK",
+  "prueba": "PDF al día",
+  "evidencia": "20 páginas"
+ },
+ {
+  "rubro": "Notebook",
+  "estado": "OK",
+  "prueba": "salidas guardadas",
+  "evidencia": "103 celdas, 57 de código, 0 errores, 0 stderr, 0 sin salida"
+ },
+ {
+  "rubro": "Notebook",
+  "estado": "OK",
+  "prueba": ".ipynb más nuevo que el .py",
+  "evidencia": "se regenera con tools/a_notebook.py (edita el .py, no el .ipynb)"
+ },
+ {
+  "rubro": "Notebook",
+  "estado": "AVISO",
+  "prueba": "ejecución en Colab limpio",
+  "evidencia": "no la hace este guion: hay que repetirla a mano (SKILL §3)"
+ },
+ {
+  "rubro": "Presentación",
+  "estado": "OK",
+  "prueba": "diapositivas",
+  "evidencia": "17 diapositivas"
+ },
+ {
+  "rubro": "Presentación",
+  "estado": "OK",
+  "prueba": "QR de la última diapositiva",
+  "evidencia": "decodifica a «https://pleyade-app.vercel.app»"
+ },
+ {
+  "rubro": "Presentación",
+  "estado": "OK",
+  "prueba": "enlace de Vercel en texto",
+  "evidencia": "búsqueda en el texto del PDF"
+ },
+ {
+  "rubro": "Vídeo",
+  "estado": "OK",
+  "prueba": "pleyade_eos_comercial_v3_4k.mp4",
+  "evidencia": "2:12.0 min (≤ 5:00), hevc 3840x2160, audio aac, 267.9 MB, decodifica entero, QR final «https://pleyade-app.vercel.app/»"
+ },
+ {
+  "rubro": "Vídeo",
+  "estado": "OK",
+  "prueba": "pleyade_eos_comercial_v3_720p.mp4",
+  "evidencia": "2:12.0 min (≤ 5:00), h264 1280x720, audio aac, 12.8 MB, decodifica entero, QR final «https://pleyade-app.vercel.app/»"
+ },
+ {
+  "rubro": "Vídeo",
+  "estado": "OK",
+  "prueba": "pleyade_eos_piloto_720p.mp4",
+  "evidencia": "3:43.0 min (≤ 5:00), h264 1280x720, audio aac, 4.6 MB, decodifica entero, QR final «—»"
+ },
+ {
+  "rubro": "Vídeo",
+  "estado": "OK",
+  "prueba": "guion narrado (guion_revision.json)",
+  "evidencia": "13 escenas, 305 palabras, cifras en la voz: ninguna"
+ },
+ {
+  "rubro": "Vídeo",
+  "estado": "OK",
+  "prueba": "palabras habladas de guion_video_eos.md",
+  "evidencia": "PALABRAS HABLADAS: 516"
+ },
+ {
+  "rubro": "Vídeo",
+  "estado": "OK",
+  "prueba": "palabras habladas de guion_video.md",
+  "evidencia": "PALABRAS HABLADAS: 516"
+ },
+ {
+  "rubro": "Demo en vivo",
+  "estado": "OK",
+  "prueba": "fecha de la demo en el guion",
+  "evidencia": "10 oct 2026, turno 5 (Classroom, leído el 26 sep)"
+ },
+ {
+  "rubro": "Demo en vivo",
+  "estado": "OK",
+  "prueba": "enlace de Vercel en el guion",
+  "evidencia": "la demo se hace sobre pleyade-app.vercel.app"
+ },
+ {
+  "rubro": "Entrega",
+  "estado": "OK",
+  "prueba": "mensaje al profesor",
+  "evidencia": "Vercel sí, Pléyade sí; sin contraseñas: sí"
+ },
+ {
+  "rubro": "Entrega",
+  "estado": "OK",
+  "prueba": "documento.pdf",
+  "evidencia": "archivo del paquete"
+ },
+ {
+  "rubro": "Entrega",
+  "estado": "OK",
+  "prueba": "estrategia.pdf",
+  "evidencia": "archivo del paquete"
+ },
+ {
+  "rubro": "Entrega",
+  "estado": "OK",
+  "prueba": "notebook_proyecto.ipynb",
+  "evidencia": "archivo del paquete"
+ },
+ {
+  "rubro": "Entrega",
+  "estado": "OK",
+  "prueba": "presentacion.pdf",
+  "evidencia": "archivo del paquete"
+ },
+ {
+  "rubro": "Entrega",
+  "estado": "AVISO",
+  "prueba": "plazo",
+  "evidencia": "archivos antes del 4 oct 2026, 11:59 p.m.; demo 10 oct, turno 5 (confirmar en Classroom)"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "OK",
+  "prueba": "libros del catálogo medido",
+  "evidencia": "en 7 archivos"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "OK",
+  "prueba": "capítulos medidos",
+  "evidencia": "en 5 archivos"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "OK",
+  "prueba": "Spearman validación interna",
+  "evidencia": "en 6 archivos"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "OK",
+  "prueba": "modelo articulatorio TCN vs reglas",
+  "evidencia": "en 1 archivos"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "OK",
+  "prueba": "palabras habladas del guion",
+  "evidencia": "en 1 archivos"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "AVISO",
+  "prueba": "enlace principal",
+  "evidencia": "en 8 archivos; variante vieja en documento.md, estrategia.md, guion_demo_en_vivo.md, mensaje_profesor.md, notebook_proyecto.py: leer el párrafo"
+ },
+ {
+  "rubro": "Cifras",
+  "estado": "OK",
+  "prueba": "nombre de la app",
+  "evidencia": "en 8 archivos"
+ }
+]

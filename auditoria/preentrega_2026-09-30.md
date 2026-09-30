@@ -53,3 +53,9 @@ cuadernos.
 2. Volver a subir a Classroom presentación, notebook, documento, estrategia y anexos; decidir el vídeo (720p H.264); «Entregar».
 3. Ensayo real de la demo con voz, móvil, cuenta y cronómetro; `uso_openai.json` a cero (25 pts).
 4. Si sobra tiempo: lectura de ortografía del documento entero.
+
+## Revisión de las 05:40 (copias bajadas de Drive/Classroom a `Descargas` entre la 01:41 y las 02:16)
+- **Documento, estrategia, presentación corregida y los tres anexos: byte a byte iguales a `entrega/`** (SHA256): `Copia de Pleyade_TrabajoFinal_Documento_2026-09-29.pdf`, `…Estrategia…pdf`, `Pleyade_TrabajoFinal_Presentacion_CORREGIDA_2026-09-29.pdf`, `Copia de Pleyade_Anexo_{Verificacion_V4,Precalculo_Catalogo,Eos_V3}_2026-09-29.ipynb`.
+- **A1 (Colab real) cerrado con evidencia:** `ENSAYO_NO_ENTREGAR_Pleyade_Notebook_2026-09-30.ipynb` trae `executionInfo` de Colab en las 57 celdas de código (30 sep, 01:45→01:47), orden 1–57, 0 errores, 0 stderr, fuentes idénticas a `entrega/` y el 0,908 en las salidas. El aviso de `HF_TOKEN` ya no aparece en Colab.
+- **Nuevo A6 (MENOR, a confirmar):** el cuaderno de Classroom `Pleyade_TrabajoFinal_Notebook_CORREGIDO_2026-09-29.ipynb` se bajó por última vez a las 02:01 **a mitad de una segunda ejecución** (40 de 57 celdas con salida, 01:54→01:55). No se puede ver desde aquí cómo quedó al terminar. Acción: abrirlo en Colab y comprobar las 57 celdas ejecutadas, o volver a bajarlo para medirlo; si quedó a medias, «Ejecutar todo» otra vez o sustituirlo por la copia del ensayo.
+- **Nota simulada revisada: 92 / 110** (notebook 14 de 15, a falta de confirmar A6).
