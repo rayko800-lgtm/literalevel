@@ -151,9 +151,9 @@ import { Sesion } from '../nucleo/sesion';
           }
           <span class="enlace">{{ perfil() ? 'Ver' : 'Medir mi nivel' }} <app-icono nombre="flecha" /></span>
         </a>
-        <a class="tarjeta-mini ancho" routerLink="/conversar">
+        <a class="tarjeta-mini ancho" routerLink="/escuchar">
           <span class="icono-mini"><app-icono nombre="micro" /></span>
-          <div><strong>Conversar con Pléyade</strong><span class="tenue">Habla y escucha una respuesta en tiempo real</span></div>
+          <div><strong>Escuchar un libro</strong><span class="tenue">Sigue la lectura con audio y texto iluminado</span></div>
           <span class="enlace">Empezar <app-icono nombre="flecha" /></span>
         </a>
       } @else {
@@ -219,9 +219,9 @@ import { Sesion } from '../nucleo/sesion';
               <p>Lee una frase del libro al micrófono y te dice qué sonido se te escapa y cómo colocar la boca.</p></div></li>
           </ol>
         </section>
-        <a class="tarjeta-mini ancho" routerLink="/conversar">
+        <a class="tarjeta-mini ancho" routerLink="/escuchar">
           <span class="icono-mini"><app-icono nombre="micro" /></span>
-          <div><strong>Conversar con Pléyade</strong><span class="tenue">Habla con ella y sigue la conversación por escrito</span></div>
+          <div><strong>Escuchar un libro</strong><span class="tenue">Escucha por fragmentos y vuelve a reproducirlos cuando quieras</span></div>
           <span class="enlace">Abrir <app-icono nombre="flecha" /></span>
         </a>
       }

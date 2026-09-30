@@ -61,6 +61,7 @@ URL = "https://mikemaki1763-literalevel.hf.space"
 # Lo unico que este guion tiene permiso para tocar.
 LISTA_BLANCA = [
     "app/api.py",
+    "app/audiolibro.py",
     "app/biblioteca.py",
     "app/catalogo.py",
     "app/config.py",

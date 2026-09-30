@@ -187,6 +187,12 @@ export interface Capitulo {
   parrafos: string[];
 }
 
+export interface AudioLectura {
+  libro_id: string; capitulo: number; titulo: string; parte: number; total: number;
+  texto: string; clave: string; guardado: boolean; tope_caracteres: number;
+  palabras: { texto: string; inicio: number; fin: number }[]; aproximado: boolean;
+}
+
 export interface FilaCurva {
   capitulo: number;
   indice: number | null;
@@ -477,6 +483,13 @@ export class Api {
   }
   capitulo(id: string, n: number): Observable<Capitulo> {
     return this.http.get<Capitulo>(`${this.base}/libros/${encodeURIComponent(id)}/capitulos/${n}`);
+  }
+  audioLectura(id: string, cap: number, parte: number, generar = false): Observable<AudioLectura> {
+    const url = `${this.base}/libros/${encodeURIComponent(id)}/capitulos/${cap}/escuchar?parte=${parte}`;
+    return generar ? this.http.post<AudioLectura>(url, {}) : this.http.get<AudioLectura>(url);
+  }
+  audioLecturaArchivo(clave: string): Observable<Blob> {
+    return this.http.get(`${this.base}/audiolibro/${encodeURIComponent(clave)}.mp3`, { responseType: 'blob' });
   }
   progreso(id: string, capitulo: number): Observable<{ ok: boolean }> {
     return this.http.put<{ ok: boolean }>(`${this.base}/libros/${encodeURIComponent(id)}/progreso`, { capitulo });

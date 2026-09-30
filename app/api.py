@@ -65,6 +65,7 @@ from starlette.formparsers import MultiPartParser  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 import animacion_articulatoria  # noqa: E402
+import audiolibro  # noqa: E402
 import articulacion  # noqa: E402
 import biblioteca  # noqa: E402
 import catalogo  # noqa: E402
@@ -1358,6 +1359,74 @@ def _cobrar(pet: _Lector) -> tuple[bool, str, str | None]:
 def _devolver(codigo: str | None) -> None:
     """Devuelve a la cuenta que se cobró, no a la que haya ahora en la sesión."""
     cuentas.devolver(ui.BASE_DATOS_LECTOR, codigo)
+
+
+# --- Escuchar un libro: se prepara únicamente el fragmento elegido ------------
+
+def _fragmento_audio(libro_id: str, n: int, parte: int, pet: _Lector) -> dict:
+    ident = _normalizar_id(libro_id)
+    _, lib = _abrir(ident, pet)
+    c = _cap(lib, n)
+    partes = audiolibro.fragmentos("\n\n".join(_parrafos(lib, n)))
+    if not partes or parte >= len(partes):
+        raise _no(404, "No hay texto en ese fragmento. Elige otro capítulo.")
+    texto = partes[parte]
+    clave = audiolibro.clave(texto)
+    base = Path(ui._dir_lector(pet))
+    listo = audiolibro.guardado(base, clave)
+    return {"libro_id": ident, "capitulo": n, "titulo": c.titulo,
+            "parte": parte, "total": len(partes), "texto": texto,
+            "clave": clave, "guardado": listo,
+            "tope_caracteres": audiolibro.TOPE_CARACTERES,
+            **(audiolibro.leer_marcas(base, clave) if listo else
+               {"palabras": [], "aproximado": False})}
+
+
+@app.get("/api/libros/{libro_id}/capitulos/{n}/escuchar")
+def fragmento_audio(libro_id: str, n: int, pet: Lector,
+                    parte: int = Query(default=0, ge=0)) -> dict:
+    return _fragmento_audio(libro_id, n, parte, pet)
+
+
+@app.post("/api/libros/{libro_id}/capitulos/{n}/escuchar")
+def generar_fragmento_audio(libro_id: str, n: int, pet: Lector,
+                            parte: int = Query(default=0, ge=0)) -> dict:
+    datos = _fragmento_audio(libro_id, n, parte, pet)
+    base = Path(ui._dir_lector(pet))
+    clave = datos["clave"]
+    with voz._candado_audio("audiolibro|" + str(audiolibro.ruta(base, clave))):
+        if not audiolibro.guardado(base, clave):
+            if config.falta():
+                raise _no(503, "La voz no está disponible ahora. Puedes escuchar los fragmentos guardados.")
+            codigo = ui._codigo_de(pet)
+            permitido, motivo = cuentas.permite(ui.BASE_DATOS_LECTOR, codigo)
+            if not permitido:
+                raise _no(403, motivo)
+            cuenta_hora = "audiolibro:" + hashlib.sha256(codigo.encode()).hexdigest() if codigo else None
+            if not ui._dentro_del_limite(pet, "audiolibro", ui.LIMITE_VOZ_HORA, clave=cuenta_hora):
+                raise _no(429, "Has llegado al límite de audio de esta hora. Sigue con los fragmentos guardados.")
+            permitido, motivo = cuentas.consumir(ui.BASE_DATOS_LECTOR, codigo)
+            if not permitido:
+                raise _no(403, motivo)
+            try:
+                audiolibro.generar(base, datos["texto"])
+            except Exception:
+                if not audiolibro.guardado(base, clave):
+                    _devolver(codigo)
+                    raise _no(502, "No he podido preparar el audio. Tu uso se ha devuelto; prueba en un momento.")
+                # Si las marcas fallaron, conservar el audio ya pagado.
+        return {**datos, "guardado": True, **audiolibro.leer_marcas(base, clave)}
+
+
+@app.get("/api/audiolibro/{clave}.mp3")
+def audio_libro_guardado(clave: str, pet: Lector):
+    if not re.fullmatch(r"[0-9a-f]{64}", clave):
+        raise _no(404, "No existe ese audio.")
+    base = Path(ui._dir_lector(pet))
+    if not audiolibro.guardado(base, clave):
+        raise _no(404, "No existe ese audio en tu espacio.")
+    return FileResponse(audiolibro.ruta(base, clave), media_type="audio/mpeg",
+                        headers={"Cache-Control": "private, no-store"})
 
 
 # Un candado por libro para la sinopsis, no uno global: otra sinopsis de otro
