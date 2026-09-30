@@ -433,3 +433,19 @@ Esperar instrucción de Miguel.
 ## Siguiente
 
 - Bajar de Colab la copia ejecutada del notebook; ensayo de la demo; adjuntar el 720p H.264.
+
+---
+
+# E2 — Segunda auditoría de la entrega (30 sep 2026, 01:40)
+
+**Status:** 🔵 VERIFY (89/110; 0 serios; falta Colab real, ensayo de la demo y las decisiones de Miguel sobre el vídeo y Classroom)
+
+## Evidencia
+
+- `auditoria/preentrega_2026-09-30.md`; `auditoria/mecanica_2026-09-30.json` (38 OK · 4 avisos · 0 fallos).
+- Notebook ejecutado en carpeta limpia fuera del repo: 57 celdas, 1–57, 0 errores, 0 stderr (segunda vez).
+- Recorrido real a 390 px en producción sin errores; vídeo 720p con SHA256 igual al registrado.
+
+## Siguiente
+
+- Colab real con Miguel delante; volver a adjuntar en Classroom; ensayo de la demo.

@@ -303,3 +303,7 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   0 stderr, 1–57) y esa copia es la de `entrega/`; aviso de `HF_TOKEN` silenciado en el `.py`; diapositiva 4
   con el catálogo final; `guion_video.md` l. 30 aclarado; commit de las rutas de `entrega/` (sin el 4K).
   Quedan para Miguel: copia del vídeo en Classroom, `uso_openai.json` a cero, «Entregar» y el ensayo.
+- **Segunda auditoría (30 sep, 01:40):** `auditoria/preentrega_2026-09-30.md`, 89/110, 0 serios. Notebook
+  ejecutado en limpio por segunda vez (0 errores, 0 stderr); Colab real no se pudo lanzar (la conexión al
+  Chrome de Miguel esperó 30 min un permiso). Para Miguel: Colab, volver a adjuntar en Classroom, vídeo
+  720p, `uso_openai.json`, «Entregar», ensayo.
