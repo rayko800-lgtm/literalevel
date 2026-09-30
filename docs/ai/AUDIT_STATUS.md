@@ -413,3 +413,23 @@ medio/alto pendiente; revisar A7-A13 antes de decidir)
 
 No iniciar automáticamente.
 Esperar instrucción de Miguel.
+
+---
+
+# E1 — Auditoría de la entrega del Módulo 5 (29 sep 2026, 18:30)
+
+**Status:** 🟠 FIX REQUIRED
+
+## Criterio de salida
+
+- Nota simulada ≥ 80 con notebook ejecutado en limpio, demo ensayada y copia del vídeo decidida.
+
+## Evidencia
+
+- `auditoria/preentrega_2026-09-29.md` (nota 86/110; A1 SERIO: copia local del notebook sin salidas por regeneración en sitio; A2–A5 menores).
+- `auditoria/mecanica_2026-09-29.json` (37 OK · 5 avisos · 1 fallo).
+- Recorrido real a 390 px en `pleyade-app.vercel.app`: 0 errores de consola, Eos y boca 3D funcionando.
+
+## Siguiente
+
+- Bajar de Colab la copia ejecutada del notebook; ensayo de la demo; adjuntar el 720p H.264.

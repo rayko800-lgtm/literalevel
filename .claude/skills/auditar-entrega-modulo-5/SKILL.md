@@ -71,7 +71,9 @@ ninguna cifra (el guion mecánico marca variantes).
 ## 3. Notebook (15) — tiene que correr en Colab limpio
 
 - `entrega/notebook_proyecto.ipynb` **se regenera desde el `.py`** con
-  `tools/a_notebook.py`; audita el `.py`, regenera a un temporal y compara celdas.
+  `tools/a_notebook.py`. **Nunca lo ejecutes sobre `entrega/`:** escribe el `.ipynb` al lado
+  del `.py` y borra las salidas de la ejecución en Colab (pasó el 29 sep). Copia el `.py`
+  a un temporal, regenera allí y compara las fuentes de las celdas.
 - La exigencia es «desde cualquier Colab sin errores ni warnings». Las salidas guardadas
   no lo demuestran: **ejecútalo en una carpeta vacía fuera del repo**, sin `.env` ni
   variables `LITERALEVEL_*`, con el modelo bajado de `MikeMaki1763/literalevel-v4`. Si se

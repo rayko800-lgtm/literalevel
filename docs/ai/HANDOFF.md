@@ -295,3 +295,7 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   https://mikemaki1763-literalevel.hf.space --cada 15`. Sin trabajador, la frase
   queda «pendiente» 3 min en el front y luego manda a la boca 3D; los 85 sonidos
   pregrabados no dependen de él.
+- **Auditoría de la entrega (29 sep, 18:30):** `auditoria/preentrega_2026-09-29.md`, nota simulada
+  86/110. **SERIO A1, mío:** `tools/a_notebook.py` sobre `entrega/notebook_proyecto.py` regeneró el
+  `.ipynb` en su sitio y borró las salidas de la ejecución en Colab de hoy; hay que volver a bajar la
+  copia ejecutada de Colab a `entrega/`. Skill `auditar-entrega-modulo-5` corregida (regenerar a un temporal).
