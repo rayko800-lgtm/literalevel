@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Api, AudioLectura, EntradaBiblioteca, Libro, mensajeError } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
@@ -8,6 +8,7 @@ import { Icono } from '../compartido/icono';
 import { ControlVelocidad } from '../compartido/control-velocidad';
 import { ConsultaPalabra } from '../compartido/consulta-palabra';
 import { velocidadValida } from '../nucleo/velocidad';
+import { RetornoAudio, retornoAudio } from '../nucleo/retorno-audio';
 
 @Component({
   selector: 'app-escuchar',
@@ -66,7 +67,7 @@ import { velocidadValida } from '../nucleo/velocidad';
           <h2>{{ f.titulo }}</h2>
           @if (audioUrl(); as url) {
             <audio #reproductor hidden preload="metadata" [src]="url" (timeupdate)="sincronizar()" (seeking)="sincronizar()"
-              (loadedmetadata)="sincronizar()" (durationchange)="sincronizar()" (play)="sincronizar()" (pause)="sincronizar()"
+              (loadedmetadata)="metadatos()" (durationchange)="sincronizar()" (play)="sincronizar()" (pause)="sincronizar()"
               (ended)="terminar()" (error)="errorAudio()"></audio>
             <section class="barra-audio" aria-label="Reproductor de lectura">
               <div class="contexto-audio">
@@ -108,7 +109,8 @@ import { velocidadValida } from '../nucleo/velocidad';
       }
     </div>
     @if (consultada(); as palabra) {
-      <app-consulta-palabra [texto]="palabra" [libro]="id()" [capitulo]="cap()" (cerrar)="cerrarConsulta()" />
+      <app-consulta-palabra [texto]="palabra" [libro]="id()" [capitulo]="cap()"
+        [regreso]="{ regreso: 'escuchar', parte: fragmento()?.parte, posicion: tiempo(), ritmo: velocidad() }" (cerrar)="cerrarConsulta()" />
     }
   `,
   styles: `
@@ -153,6 +155,7 @@ import { velocidadValida } from '../nucleo/velocidad';
 })
 export class Escuchar implements OnDestroy {
   private readonly api = inject(Api);
+  private readonly ruta = inject(ActivatedRoute);
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly sesion = inject(Sesion);
   readonly reproductor = viewChild<ElementRef<HTMLAudioElement>>('reproductor');
@@ -194,6 +197,7 @@ export class Escuchar implements OnDestroy {
   private identidad: string | null = null;
   private seleccion: ReturnType<typeof setTimeout> | undefined;
   private origenConsulta: HTMLElement | null = null;
+  private posicionPendiente: number | null = null;
   private readonly cuenta = effect(() => {
     const e = this.sesion.entrada();
     if (!e) return;
@@ -205,6 +209,7 @@ export class Escuchar implements OnDestroy {
   });
 
   private limpiarAudio(): void {
+    this.posicionPendiente = null;
     this.reproductor()?.nativeElement.pause();
     this.consultada.set('');
     const url = this.audioUrl();
@@ -235,13 +240,15 @@ export class Escuchar implements OnDestroy {
       if (v !== this.version) return;
       this.libros.set(biblioteca.libros);
       const seguir = this.sesion.inicio()?.seguir;
-      const elegido = biblioteca.libros.find(b => b.id === seguir?.id) ?? biblioteca.libros[0];
-      if (elegido) await this.elegir(elegido.id);
+      const regreso = retornoAudio(this.ruta.snapshot.queryParams);
+      const elegido = biblioteca.libros.find(b => b.id === regreso?.libro)
+        ?? biblioteca.libros.find(b => b.id === seguir?.id) ?? biblioteca.libros[0];
+      if (elegido) await this.elegir(elegido.id, elegido.id === regreso?.libro ? regreso : null);
     } catch (e) { if (v === this.version) this.aviso.set(mensajeError(e)); }
     finally { if (v === this.version) this.ocupado.set(false); }
   }
 
-  async elegir(id: string): Promise<void> {
+  async elegir(id: string, regreso: RetornoAudio | null = null): Promise<void> {
     const v = ++this.version;
     this.limpiarAudio();
     this.fragmento.set(null);
@@ -256,8 +263,13 @@ export class Escuchar implements OnDestroy {
       if (v !== this.version) return;
       this.libro.set(libro);
       const guardado = this.libros().find(b => b.id === id)?.capitulo;
-      this.cap.set(guardado ?? libro.inicial);
-      await this.cargar(0);
+      const volver = regreso && libro.capitulos.some(c => c.indice === regreso.cap) ? regreso : null;
+      this.cap.set(volver?.cap ?? guardado ?? libro.inicial);
+      await this.cargar(volver?.parte ?? 0);
+      if (volver && this.id() === id && this.cap() === volver.cap && this.fragmento()?.parte === volver.parte && this.fragmento()?.guardado) {
+        this.velocidad.set(volver.ritmo);
+        await this.escuchar(volver.posicion);
+      }
     } catch (e) { if (v === this.version) this.aviso.set(mensajeError(e)); }
     finally { if (v === this.version) this.ocupado.set(false); }
   }
@@ -293,7 +305,7 @@ export class Escuchar implements OnDestroy {
     await this.cargar(parte);
   }
 
-  async escuchar(): Promise<void> {
+  async escuchar(posicionRestaurada?: number): Promise<void> {
     const f = this.fragmento();
     if (!f || this.ocupado()) return;
     const v = ++this.version;
@@ -307,6 +319,7 @@ export class Escuchar implements OnDestroy {
       const blob = await firstValueFrom(this.api.audioLecturaArchivo(listo.clave));
       if (v !== this.version) return;
       this.limpiarAudio();
+      this.posicionPendiente = posicionRestaurada ?? null;
       this.audioUrl.set(URL.createObjectURL(blob));
     } catch (e) { if (v === this.version) this.aviso.set(mensajeError(e)); }
     finally {
@@ -315,6 +328,17 @@ export class Escuchar implements OnDestroy {
         if (!f.guardado) void this.sesion.refrescar();
       }
     }
+  }
+
+  metadatos(): void {
+    const audio = this.reproductor()?.nativeElement;
+    const posicion = this.posicionPendiente;
+    if (audio && posicion !== null && Number.isFinite(audio.duration)) {
+      this.posicionPendiente = null;
+      audio.currentTime = Math.min(posicion, audio.duration);
+      this.desplazamiento = requestAnimationFrame(() => this.elemento.nativeElement.querySelector('.actual')?.scrollIntoView({ block: 'center' }));
+    }
+    this.sincronizar();
   }
 
   sincronizar(): void {

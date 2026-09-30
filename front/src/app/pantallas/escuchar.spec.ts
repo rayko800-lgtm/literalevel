@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { vi } from 'vitest';
@@ -19,8 +19,10 @@ describe('Escuchar libros', () => {
   let sesion: any;
   let fixture: ReturnType<typeof TestBed.createComponent<Escuchar>>;
   let componente: Escuchar;
+  let ruta: { snapshot: { queryParams: Record<string, string> } };
 
   beforeEach(async () => {
+    ruta = { snapshot: { queryParams: {} } };
     api = {
       biblioteca: vi.fn(() => of({ libros: [{ id: 'PG11', titulo: 'Alice', capitulo: 0 }] })),
       libro: vi.fn(() => of({ id: 'PG11', titulo: 'Alice', inicial: 0, capitulos: [{ indice: 0, titulo: 'Chapter I' }, { indice: 1, titulo: 'Chapter II' }] })),
@@ -36,7 +38,7 @@ describe('Escuchar libros', () => {
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:lectura'), revokeObjectURL: vi.fn() }));
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
     await TestBed.configureTestingModule({
-      imports: [Escuchar], providers: [provideRouter([]), { provide: Api, useValue: api }, { provide: Sesion, useValue: sesion }],
+      imports: [Escuchar], providers: [provideRouter([]), { provide: ActivatedRoute, useValue: ruta }, { provide: Api, useValue: api }, { provide: Sesion, useValue: sesion }],
     }).compileComponents();
     fixture = TestBed.createComponent(Escuchar);
     componente = fixture.componentInstance;
@@ -214,6 +216,42 @@ describe('Escuchar libros', () => {
     await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('Sin cupo para explicar'); });
     expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('Meaning');
     expect(window.getSelection()!.isCollapsed).toBe(true); expect(api.audioLecturaArchivo).not.toHaveBeenCalled();
+  });
+
+  it('ofrece pronunciar la frase consultada con el fragmento, posición y velocidad de regreso', async () => {
+    api.palabra.mockImplementation((p: any) => of({ palabra: p.palabra, oracion: 'Hello world.', avisos: [], etiquetas: [] }));
+    await componente.escuchar(); fixture.detectChanges();
+    const audio = componente.reproductor()!.nativeElement;
+    audio.currentTime = 1.4; componente.cambiarVelocidad(1.37);
+    componente.consultar('world'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const enlace = fixture.nativeElement.querySelector('a[href*="pronunciar"]') as HTMLAnchorElement;
+    expect(enlace.textContent).toContain('Leer esta frase en voz alta');
+    const params = new URL(enlace.href).searchParams;
+    expect(Object.fromEntries(params)).toMatchObject({ frase: 'Hello world.', libro: 'PG11', cap: '0', parte: '0', posicion: '1.4', ritmo: '1.37', regreso: 'escuchar' });
+    expect(audio.currentTime).toBe(1.4); expect(api.audioLecturaArchivo).toHaveBeenCalledOnce();
+  });
+
+  it('al volver de Pronunciar recupera el capítulo, fragmento, posición y velocidad desde el audio guardado', async () => {
+    ruta.snapshot.queryParams = { regreso: 'escuchar', libro: 'PG11', cap: '1', parte: '1', posicion: '1.4', ritmo: '.83' };
+    api.audioLectura.mockImplementation((_id: string, cap: number, parte: number) => of({ ...fragmento, capitulo: cap, parte, guardado: true }));
+    await componente.iniciar(); fixture.detectChanges();
+    expect(componente.cap()).toBe(1); expect(componente.fragmento()?.parte).toBe(1);
+    expect(api.audioLectura).toHaveBeenLastCalledWith('PG11', 1, 1);
+    expect(api.audioLectura.mock.calls.every((args: any[]) => !args[3])).toBe(true);
+    const audio = componente.reproductor()!.nativeElement;
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 2 });
+    audio.dispatchEvent(new Event('loadedmetadata')); fixture.detectChanges();
+    expect(audio.currentTime).toBe(1.4); expect(audio.playbackRate).toBe(.83);
+    expect(componente.activa()).toBe(1); expect(componente.reproduciendo()).toBe(false);
+    expect(sesion.refrescar).not.toHaveBeenCalled();
+  });
+
+  it('no genera audio al volver si el fragmento ya no está guardado', async () => {
+    ruta.snapshot.queryParams = { regreso: 'escuchar', libro: 'PG11', cap: '0', parte: '0', posicion: '1.4', ritmo: '1' };
+    await componente.iniciar(); fixture.detectChanges();
+    expect(api.audioLecturaArchivo).not.toHaveBeenCalled();
+    expect(api.audioLectura.mock.calls.every((args: any[]) => !args[3])).toBe(true);
+    expect(componente.audioUrl()).toBe('');
   });
 
   it('si falla la generación muestra el motivo y refresca el cupo', async () => {

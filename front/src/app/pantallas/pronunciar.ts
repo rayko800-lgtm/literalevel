@@ -26,6 +26,7 @@ import { marcarVista, sinVer } from '../nucleo/banderas';
 import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 import { Tutorial } from '../nucleo/tutorial';
+import { retornoAudio } from '../nucleo/retorno-audio';
 
 type Grabacion = 'lista' | 'grabando' | 'grabada';
 type Detalle = CorreccionVoz['detalles'][number];
@@ -45,6 +46,22 @@ export class Pronunciar implements OnInit, OnDestroy {
   readonly frase_ = input<string>(undefined, { alias: 'frase' });
   readonly libro = input<string>();
   readonly cap = input<string>();
+  readonly regreso = input<string>();
+  readonly parte = input<string>();
+  readonly posicion = input<string>();
+  readonly ritmo = input<string>();
+  protected readonly vueltaAudio = computed(() => retornoAudio({
+    regreso: this.regreso(), libro: this.libro(), cap: this.cap(),
+    parte: this.parte(), posicion: this.posicion(), ritmo: this.ritmo(),
+  }));
+  protected readonly rutaRegreso = computed(() => {
+    const c = this.contexto();
+    return this.vueltaAudio() ? ['/escuchar'] : ['/leer', c?.id, c?.cap];
+  });
+  protected readonly parametrosRegreso = computed(() => {
+    const audio = this.vueltaAudio();
+    return audio ? { ...audio, regreso: 'escuchar' } : null;
+  });
 
   private readonly api = inject(Api);
   protected readonly sesion = inject(Sesion);

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, input, model, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, inject, input, model, output, signal, viewChild } from '@angular/core';
 import { etiquetaVelocidad, velocidadValida } from '../nucleo/velocidad';
 
 @Component({
@@ -39,7 +39,7 @@ import { etiquetaVelocidad, velocidadValida } from '../nucleo/velocidad';
     .extremos button { min-height: 36px; color: var(--acento-texto); }
   `,
 })
-export class ControlVelocidad {
+export class ControlVelocidad implements OnDestroy {
   readonly valor = model(1);
   readonly compacto = input(false);
   readonly ajustada = output<void>();
@@ -51,9 +51,12 @@ export class ControlVelocidad {
   private readonly boton = viewChild<ElementRef<HTMLButtonElement>>('boton');
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
   private readonly barra = viewChild<ElementRef<HTMLInputElement>>('barra');
+  private apertura = 0;
   alternar(): void {
-    this.abierta.update(v => !v);
-    if (this.abierta()) requestAnimationFrame(() => {
+    if (this.abierta()) { this.cerrar(); return; }
+    this.abierta.set(true);
+    this.apertura = requestAnimationFrame(() => {
+      if (!this.abierta()) return;
       const panel = this.panel()?.nativeElement, boton = this.boton()?.nativeElement;
       if (!panel || !boton) return;
       if (typeof panel.showPopover === 'function') panel.showPopover();
@@ -61,15 +64,23 @@ export class ControlVelocidad {
       const caja = panel.getBoundingClientRect(), origen = boton.getBoundingClientRect();
       const ancho = document.documentElement.clientWidth || innerWidth;
       this.izquierda.set(Math.max(12, Math.min(ancho - 12 - caja.width, origen.left + origen.width / 2 - caja.width / 2)));
-      this.arriba.set(Math.max(12, origen.top - caja.height - 10));
+      const arriba = origen.top - caja.height - 10;
+      this.arriba.set(arriba >= 12 ? arriba : Math.min(innerHeight - caja.height - 12, origen.bottom + 10));
       this.barra()?.nativeElement.focus({ preventScroll: true });
     });
   }
   cambiar(valor: number): void { this.valor.set(velocidadValida(valor)); }
-  cerrar(): void { this.abierta.set(false); this.boton()?.nativeElement.focus({ preventScroll: true }); }
+  cerrar(enfocar = true): void {
+    cancelAnimationFrame(this.apertura);
+    const panel = this.panel()?.nativeElement;
+    if (panel?.isConnected && typeof panel.hidePopover === 'function') panel.hidePopover();
+    this.abierta.set(false);
+    if (enfocar) this.boton()?.nativeElement.focus({ preventScroll: true });
+  }
   @HostListener('document:pointerdown', ['$event']) fuera(ev: PointerEvent): void {
-    if (this.abierta() && !this.elemento.nativeElement.contains(ev.target as Node)) this.abierta.set(false);
+    if (this.abierta() && !this.elemento.nativeElement.contains(ev.target as Node)) this.cerrar(false);
   }
   @HostListener('keydown.escape', ['$event']) escape(ev: Event): void { if (this.abierta()) { ev.stopPropagation(); this.cerrar(); } }
-  @HostListener('window:resize') redimensionar(): void { this.abierta.set(false); }
+  @HostListener('window:resize') redimensionar(): void { this.cerrar(false); }
+  ngOnDestroy(): void { this.cerrar(false); }
 }

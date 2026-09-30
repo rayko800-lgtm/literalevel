@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, afterNextRender, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { Params, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Api, Palabra, mensajeError } from '../nucleo/api';
 import { Preferencias } from '../nucleo/preferencias';
@@ -10,7 +11,7 @@ import { urlMotor } from '../nucleo/api';
 
 @Component({
   selector: 'app-consulta-palabra',
-  imports: [Icono, ControlVelocidad],
+  imports: [Icono, ControlVelocidad, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="velo" (click)="cerrar.emit()"></div>
@@ -49,7 +50,12 @@ import { urlMotor } from '../nucleo/api';
           @if (w.desde_cache) { <p class="tenue pequeno">Respuesta guardada: esta consulta no ha gastado usos.</p> }
         }
       </div>
-      <footer><button type="button" class="boton secundario" (click)="cerrar.emit()">Volver a la lectura</button></footer>
+      <footer>
+        <a class="boton" routerLink="/pronunciar" [queryParams]="parametrosPronunciar()">
+          <app-icono nombre="micro" />Leer esta frase en voz alta
+        </a>
+        <button type="button" class="boton secundario" (click)="cerrar.emit()">Volver a la lectura</button>
+      </footer>
     </aside>
   `,
   styles: `
@@ -63,14 +69,19 @@ import { urlMotor } from '../nucleo/api';
     .contenido-consulta { overflow-y: auto; padding: .5rem 1.25rem 1rem; }
     .pron { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-top: .25rem; }
     blockquote { border-left: 3px solid var(--acento); padding-left: .75rem; margin: 1rem 0; }
-    footer { padding: .75rem 1.25rem max(.75rem, env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); }
-    footer button { width: 100%; }
+    footer { display: grid; gap: .5rem; padding: .75rem 1.25rem max(.75rem, env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); }
+    footer .boton { width: 100%; }
   `,
 })
 export class ConsultaPalabra implements OnDestroy {
   readonly texto = input.required<string>();
   readonly libro = input.required<string>();
   readonly capitulo = input.required<number>();
+  readonly regreso = input<Params>({});
+  readonly parametrosPronunciar = computed(() => ({
+    ...this.regreso(), libro: this.libro(), cap: this.capitulo(),
+    frase: this.palabra()?.cita || this.palabra()?.oracion || this.texto(),
+  }));
   readonly cerrar = output<void>();
   readonly palabra = signal<Palabra | null>(null);
   readonly buscando = signal(false);
@@ -113,7 +124,7 @@ export class ConsultaPalabra implements OnDestroy {
   @HostListener('document:keydown.escape') escape(): void { this.cerrar.emit(); }
   @HostListener('keydown.tab', ['$event']) tabular(evento: Event): void {
     const ev = evento as KeyboardEvent;
-    const elementos = [...(this.hoja()?.nativeElement.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled)') ?? [])];
+    const elementos = [...(this.hoja()?.nativeElement.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]') ?? [])];
     const primero = elementos[0], ultimo = elementos.at(-1);
     if (!primero || !ultimo) return;
     if (ev.shiftKey && (document.activeElement === primero || document.activeElement === this.hoja()?.nativeElement)) { ev.preventDefault(); ultimo.focus(); }

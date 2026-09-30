@@ -84,8 +84,8 @@
            resultado, explorando IPA/3D): la barra entera es `position: fixed`
            en móvil. Sin contexto, no se muestra nada aquí. -->
       @if (contexto(); as c) {
-        <a class="continuar-sticky" [routerLink]="['/leer', c.id, c.cap]" data-tutorial="pronunciar-continuar">
-          <app-icono nombre="libro" />Continuar leyendo
+        <a class="continuar-sticky" [routerLink]="rutaRegreso()" [queryParams]="parametrosRegreso()" data-tutorial="pronunciar-continuar">
+          <app-icono nombre="libro" />{{ vueltaAudio() ? 'Volver a leer y escuchar' : 'Continuar leyendo' }}
         </a>
       }
       @if (lineaBarra(); as l) {
@@ -509,7 +509,7 @@
            abajo (UX0, Miguel: quedaba enterrado bajo IPA/sonidos) — se
            oculta solo ahí. En escritorio no hay ese problema de scroll, así
            que se conserva. -->
-      <a class="volver-contextual" [routerLink]="['/leer', c.id, c.cap]">Continuar leyendo</a>
+      <a class="volver-contextual" [routerLink]="rutaRegreso()" [queryParams]="parametrosRegreso()">{{ vueltaAudio() ? 'Volver a leer y escuchar' : 'Continuar leyendo' }}</a>
     } @else {
       <a routerLink="/leer">Volver al libro</a>
     }
