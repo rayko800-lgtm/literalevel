@@ -107,7 +107,11 @@ puede estar usando Unreal) a **390×844 con emulación táctil** y en escritorio
   Cada «Hace:» del guion tiene que existir con ese nombre en pantalla. Apunta segundos
   reales de cada espera (despertar el motor, la explicación de la IA, el audio).
 - Cuenta de la demo: `/api/entrar` devuelve `restantes`; que no llegue a la demo con el
-  cupo gastado. Contraseñas: nunca en el informe.
+  cupo gastado. Contraseñas: nunca en el informe. **Compara `/api/perfil` con el perfil
+  que dice el guion** (1,20): el 30 sep la cuenta estaba en 0,72/B1 desde la grabación del
+  comercial y los pasos 1–3 del guion no salían como están escritos. El id de lector va en
+  `localStorage['literalevel.lector']`: entrando por la API con un id propio se recorre el
+  front con la cuenta sin teclear la contraseña; al acabar, `/api/salir`.
 - Consola sin errores, nada cortado a 390 px, botones alcanzables con la barra inferior,
   modo Noche si la demo va en Noche.
 - Plan B escrito: Space estático de respaldo, vídeo si cae la red, qué se dice si un paso

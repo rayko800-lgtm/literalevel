@@ -438,7 +438,7 @@ Esperar instrucción de Miguel.
 
 # E2 — Segunda auditoría de la entrega (30 sep 2026, 01:40)
 
-**Status:** 🔵 VERIFY (89/110; 0 serios; falta Colab real, ensayo de la demo y las decisiones de Miguel sobre el vídeo y Classroom)
+**Status:** 🟠 FIX REQUIRED (96/110 tras la revisión ampliada; B1: la cuenta de la demo está en 0,72/B1 y el guion pide 1,20; documento recompilado a 66 páginas, hay que volver a subirlo)
 
 ## Evidencia
 

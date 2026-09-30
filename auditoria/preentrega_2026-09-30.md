@@ -59,3 +59,25 @@ cuadernos.
 - **A1 (Colab real) cerrado con evidencia:** `ENSAYO_NO_ENTREGAR_Pleyade_Notebook_2026-09-30.ipynb` trae `executionInfo` de Colab en las 57 celdas de código (30 sep, 01:45→01:47), orden 1–57, 0 errores, 0 stderr, fuentes idénticas a `entrega/` y el 0,908 en las salidas. El aviso de `HF_TOKEN` ya no aparece en Colab.
 - **Nuevo A6 (MENOR, a confirmar):** el cuaderno de Classroom `Pleyade_TrabajoFinal_Notebook_CORREGIDO_2026-09-29.ipynb` se bajó por última vez a las 02:01 **a mitad de una segunda ejecución** (40 de 57 celdas con salida, 01:54→01:55). No se puede ver desde aquí cómo quedó al terminar. Acción: abrirlo en Colab y comprobar las 57 celdas ejecutadas, o volver a bajarlo para medirlo; si quedó a medias, «Ejecutar todo» otra vez o sustituirlo por la copia del ensayo.
 - **Nota simulada revisada: 92 / 110** (notebook 14 de 15, a falta de confirmar A6).
+
+## Revisión ampliada (30 sep, tarde): todo lo que se puede comprobar sin Miguel
+**Nota simulada: 96 / 110** (documento 14, estrategia 14, notebook 14, presentación 9, interfaz 10, demo 17, vídeo 18).
+
+### Hecho y medido
+- **Documento, las 65 páginas** vistas en hojas de contacto y 12 leídas a tamaño real; corrector sobre las 4.425 formas distintas del PDF (sin erratas: lo que marca son flexiones que el diccionario no trae, identificadores de código y artefactos de extracción). **Dos defectos de maquetación corregidos y recompilados** (tectonic, 0 errores, 0 «??», ahora **66 páginas**): los apartados 3.7 y 3.8 quedaban como dos títulos vacíos (sus cuadros 7 y 8 flotaban tres páginas más allá) y los cuadros 3 y 6 tenían una columna de una palabra por línea. Copia anterior en `D:/Temp/claude/lectura/documento_antes.pdf`.
+- **Estrategia:** las 20 páginas vistas; corrector sin erratas.
+- **Presentación:** las 17 diapositivas vistas a tamaño legible; sin texto cortado.
+- **Vídeo, audio incluido:** transcripción local (whisper) del 720p frente a `guion_revision.json`: 305 palabras dichas de 305, similitud 0,93; las diferencias son el reconocedor oyendo «Playjari/Egoz» por Pléyade/Eos y tres palabras sueltas. No se narra ninguna cifra.
+- **Interfaz:** además del móvil, escritorio a 1366 px en cinco pantallas: sin desbordamiento ni errores de consola.
+- **Demo con la cuenta real** (`miguel`, sin ninguna acción de pago): entrar 0,4 s; la cuenta no tiene tope de usos; búsqueda 0,8–1,0 s; ficha 1,2 s; curva 0,35 s; diccionario de *poverty* 0,8 s; Mis palabras (6 palabras, 16 consultas, «Repasa cinco» visible) y Mi espacio («Donde lo dejaste»: *Crime and Punishment*) en menos de 2,5 s; «Una frase de mi libro» existe en Pronunciar.
+- **Notebook ↔ documento:** en las salidas ejecutadas aparecen 0,908, 97,2 %, 53.179, 4.724 y las medias por nivel 0,504…1,495. 0,860, 0,807, 0,668, 585.111 y los errores ordinales 1,39/0,93/0,67 están en el texto del cuaderno, no como salida calculada (el documento dice que salen de `validar_local.py` y del precálculo).
+
+### B1 — La cuenta de la demo no tiene el perfil que dice el guion (SERIO para la demo)
+- **Afirmación:** `guion_demo_en_vivo.md` paso 1: «Lees en inglés a nivel B2» y 1,20 en «Ver el detalle»; pasos 2 y 3 descritos «con el perfil de 1,20».
+- **Evidencia:** `/api/perfil` de la cuenta `miguel`: **0,72, B1**, origen cuestionario, creado el 27 sep 19:02 (la tarde en que se grabó el comercial). En pantalla: «Lees en inglés a nivel B1». Con ese perfil, «Crimen y castigo de Dostoyevski» abre «En tu nivel» con *The Punishment* y el libro no está en la primera pantalla; el guion espera el aviso «no hay libros en tu nivel» y el libro el primero en «De otros niveles».
+- **Acción (dos caminos):** (a) dejar la cuenta en 1,20 antes de ensayar: en *Tu nivel* → repetir el cuestionario marcando la **quinta opción en las seis preguntas** y, en los fragmentos, fácil «Lo entiendo con naturalidad», medio «Capto bien la idea…», difícil «Me pierdo…» (da 1,197, que la app enseña como 1,20; calculado con `perfil.desde_cuestionario`); o (b) reescribir los pasos 1–3 del guion para 0,72/B1, que es además el perfil que se ve en el vídeo.
+
+### Para Miguel
+1. **Volver a subir `documento.pdf`** a Classroom (cambió hoy: 66 páginas).
+2. Resolver B1 y ensayar la demo.
+3. Confirmar el cuaderno adjunto (A6) y la copia del vídeo.

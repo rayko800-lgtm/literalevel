@@ -307,3 +307,7 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   ejecutado en limpio por segunda vez (0 errores, 0 stderr); Colab real no se pudo lanzar (la conexión al
   Chrome de Miguel esperó 30 min un permiso). Para Miguel: Colab, volver a adjuntar en Classroom, vídeo
   720p, `uso_openai.json`, «Entregar», ensayo.
+- **Revisión ampliada (30 sep, tarde):** 96/110. `documento.tex/.pdf` recompilado (**66 páginas**: cuadros 7 y 8
+  bajo sus títulos 3.7 y 3.8, columnas de los cuadros 3 y 6): **volver a subirlo a Classroom**; PENDIENTES aún
+  dice 65. **B1, serio para la demo:** la cuenta `miguel` está en 0,72/B1 (cuestionario del 27 sep) y el guion de
+  la demo pide 1,20/B2; receta para 1,20 y detalle en `auditoria/preentrega_2026-09-30.md`.
