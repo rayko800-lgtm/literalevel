@@ -6,6 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
+import { ControlVelocidad } from '../compartido/control-velocidad';
+import { velocidadValida } from '../nucleo/velocidad';
 import { LecturaVivo } from '../compartido/lectura-vivo/lectura-vivo';
 import { familiaDe, paletaDe } from '../compartido/portada';
 import { tinteLector } from '../compartido/tinte';
@@ -52,7 +54,7 @@ function marcarBandera(clave: string): void {
 @Component({
   selector: 'app-lector',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, Icono, LecturaVivo],
+  imports: [RouterLink, FormsModule, Icono, LecturaVivo, ControlVelocidad],
   templateUrl: './lector.html',
   styleUrl: './lector.css',
 })
@@ -662,6 +664,8 @@ export class Lector implements OnDestroy {
     if (src) {
       this.audio?.pause();
       this.audio = new Audio(src);
+      this.audio.playbackRate = this.velocidadAudio();
+      this.audio.preservesPitch = true;
       void this.audio.play().catch(() => this.hablar(palabra, acento));
       return;
     }
@@ -672,7 +676,7 @@ export class Lector implements OnDestroy {
     if (!texto || typeof speechSynthesis === 'undefined') return;
     const frase = new SpeechSynthesisUtterance(texto);
     frase.lang = acento;
-    frase.rate = 0.85;
+    frase.rate = 0.85 * this.velocidadAudio();
     const voz = speechSynthesis.getVoices().find(v => v.lang === acento)
       ?? speechSynthesis.getVoices().find(v => v.lang.startsWith('en'));
     if (voz) frase.voice = voz;
@@ -681,6 +685,11 @@ export class Lector implements OnDestroy {
   }
 
   protected readonly vozDelNavegador = typeof speechSynthesis !== 'undefined';
+  protected readonly velocidadAudio = signal(1);
+  protected cambiarVelocidadAudio(valor: number): void {
+    this.velocidadAudio.set(velocidadValida(valor));
+    if (this.audio) this.audio.playbackRate = this.velocidadAudio();
+  }
 
   protected abrirAjustes(): void { this.sesion.ajustesAbiertos.set(true); }
   /** El «Entrar» de la hoja de la palabra: los ajustes ya en «Tu perfil». */

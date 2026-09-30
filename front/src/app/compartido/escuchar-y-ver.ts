@@ -1,4 +1,6 @@
 import { signal } from '@angular/core';
+import { velocidadValida } from '../nucleo/velocidad';
+export { velocidadValida } from '../nucleo/velocidad';
 
 /** Voz del navegador para cuando no hay mp3. */
 export type VozNavegador = 'en-US' | 'en-GB';
@@ -21,7 +23,7 @@ export interface PeticionEscuchar {
   voz?: VozNavegador;
   /** Los cortes que vuelven a empezar cuando empieza a sonar. */
   cortes: CorteEnPantalla[];
-  /** Velocidad discreta elegida por el lector. El audio va a esa velocidad
+  /** Velocidad elegida por el lector entre 0,25× y 2×. El audio va a esa velocidad
    *  sin cambiar el tono y el corte dura lo que dura el audio así. */
   velocidad?: number;
 }
@@ -67,20 +69,13 @@ const entornoNavegador: EntornoEscuchar = {
  *  y a 0,25× pasa de 30. */
 export const DURACION_MAXIMA = 30;
 
-/** Únicas velocidades admitidas por audio, corte 2D y visor 3D. */
-export const VELOCIDADES_REPRODUCCION = [0.25, 0.5, 1, 1.25] as const;
-export type VelocidadReproduccion = (typeof VELOCIDADES_REPRODUCCION)[number];
+export type VelocidadReproduccion = number;
 
 /** La duración que se le pide al SVG: la del audio, redondeada a 0,1 s (así la
  *  caché no se multiplica) y dentro de lo que acepta la API, 0,3..30. */
 export function duracionParaCorte(segundos: number): number | null {
   if (!Number.isFinite(segundos) || segundos <= 0) return null;
   return Math.min(DURACION_MAXIMA, Math.max(0.3, Math.round(segundos * 10) / 10));
-}
-
-/** Velocidades de «Más lento»: 1, 0,5 y 0,25; lo demás vuelve a 1. */
-export function velocidadValida(v: number | undefined): VelocidadReproduccion {
-  return VELOCIDADES_REPRODUCCION.includes(v as VelocidadReproduccion) ? v as VelocidadReproduccion : 1;
 }
 
 /** «Escuchar y ver» (Miguel, 14 sep): un botón que hace sonar el sonido o la
@@ -106,6 +101,7 @@ export class EscucharYVer {
   private audio: HTMLAudioElement | null = null;
   private turno = 0;
   private vuelta = 0;
+  private ultima: PeticionEscuchar | null = null;
   /** Cuenta las pulsaciones: la boca 3D la escucha para lanzar su ciclo. */
   readonly pulsaciones = signal(0);
 
@@ -133,6 +129,7 @@ export class EscucharYVer {
     const velocidad = velocidadValida(p.velocidad);
     this.pulsaciones.update(n => n + 1);
     this.parar(false);
+    this.ultima = p;
 
     let arrancado = false;
     const arrancar = (dur: number | null) => {
@@ -165,6 +162,13 @@ export class EscucharYVer {
     this.audio?.pause();
     this.audio = null;
     this.entorno.callar();
+  }
+
+  /** El audio cambia al mover la barra; al soltarla, el ejemplo corto vuelve
+   *  a empezar con el corte a su nueva velocidad. No se genera audio nuevo. */
+  cambiarVelocidad(valor: number): void { if (this.audio) this.audio.playbackRate = velocidadValida(valor); }
+  ajustarVelocidad(valor: number): void {
+    if (this.ultima && this.audio && !this.audio.paused && !this.audio.ended) this.escuchar({ ...this.ultima, velocidad: velocidadValida(valor) });
   }
 
   destruir(): void {

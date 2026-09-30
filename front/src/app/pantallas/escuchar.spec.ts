@@ -26,6 +26,8 @@ describe('Escuchar libros', () => {
       libro: vi.fn(() => of({ id: 'PG11', titulo: 'Alice', inicial: 0, capitulos: [{ indice: 0, titulo: 'Chapter I' }, { indice: 1, titulo: 'Chapter II' }] })),
       audioLectura: vi.fn((_id, _cap, _parte, generar) => of({ ...fragmento, guardado: !!generar })),
       audioLecturaArchivo: vi.fn(() => of(new Blob(['audio'], { type: 'audio/mpeg' }))),
+      palabra: vi.fn((p) => of({ palabra: p.palabra, sentido: 'A meaning from Wiktionary.', etapa: p.etapa,
+        avisos: [], etiquetas: [], explicacion_pendiente: false, desde_cache: true })),
     };
     sesion = {
       entrada: signal<Entrada>({ puerta: true, dentro: true, openai: true, restantes: 3, nombre: 'lectora', mensaje: '' }),
@@ -175,6 +177,43 @@ describe('Escuchar libros', () => {
     expect(componente.tiempo()).toBe(0);
     expect(componente.duracion()).toBe(0);
     expect(componente.reproduciendo()).toBe(false);
+  });
+
+  it('modula el audio con una barra continua y conserva el punto de lectura', async () => {
+    await componente.escuchar(); fixture.detectChanges();
+    const audio = componente.reproductor()!.nativeElement; audio.currentTime = 1.4;
+    fixture.nativeElement.querySelector('.disparador-velocidad').click(); fixture.detectChanges();
+    const barra = fixture.nativeElement.querySelector('[aria-label="Velocidad de reproducción"]') as HTMLInputElement;
+    barra.value = '1.37'; barra.dispatchEvent(new Event('input')); fixture.detectChanges();
+    expect(audio.playbackRate).toBe(1.37); expect(audio.currentTime).toBe(1.4);
+    expect(componente.activa()).toBe(1); expect(api.audioLecturaArchivo).toHaveBeenCalledOnce();
+  });
+
+  it('tocar una palabra pausa el audio y consulta diccionario y contexto del capítulo', async () => {
+    await componente.escuchar(); fixture.detectChanges();
+    const audio = componente.reproductor()!.nativeElement; audio.currentTime = 1.4;
+    fixture.nativeElement.querySelector('[aria-label="Consultar world."]').click(); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
+    await vi.waitFor(() => { fixture.detectChanges(); expect(api.palabra).toHaveBeenCalledTimes(2); });
+    expect(componente.consultada()).toBe('world'); expect(audio.pause).toHaveBeenCalled();
+    expect(audio.currentTime).toBe(1.4);
+    expect(api.palabra).toHaveBeenCalledWith(expect.objectContaining({ palabra: 'world', libro_id: 'PG11', capitulo: 0, etapa: 'diccionario' }));
+    expect(api.palabra).toHaveBeenLastCalledWith(expect.objectContaining({ etapa: 'completa' }));
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('A meaning from Wiktionary.');
+    fixture.nativeElement.querySelector('[aria-label="Cerrar consulta"]').click(); fixture.detectChanges();
+    expect(componente.consultada()).toBe(''); expect(audio.currentTime).toBe(1.4);
+    expect(api.audioLecturaArchivo).toHaveBeenCalledOnce();
+  });
+
+  it('consulta la selección dentro de la lectura y conserva el diccionario si falla el contexto', async () => {
+    api.palabra.mockImplementation((p: any) => p.etapa === 'diccionario' ? of({ palabra: p.palabra, sentido: 'Meaning', avisos: [], etiquetas: [] }) : throwError(() => new HttpErrorResponse({ status: 403, error: { detail: 'Sin cupo para explicar' } })));
+    const span = fixture.nativeElement.querySelector('.texto span');
+    const rango = document.createRange(); rango.selectNodeContents(span.firstChild!);
+    window.getSelection()!.removeAllRanges(); window.getSelection()!.addRange(rango); componente.alSoltar();
+    await vi.waitFor(() => { fixture.detectChanges(); expect(componente.consultada()).toBe('Hello'); });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('Sin cupo para explicar'); });
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('Meaning');
+    expect(window.getSelection()!.isCollapsed).toBe(true); expect(api.audioLecturaArchivo).not.toHaveBeenCalled();
   });
 
   it('si falla la generación muestra el motivo y refresca el cupo', async () => {

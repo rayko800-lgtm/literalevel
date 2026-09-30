@@ -1,17 +1,20 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Api, AudioLectura, EntradaBiblioteca, Libro, mensajeError } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
 import { Icono } from '../compartido/icono';
+import { ControlVelocidad } from '../compartido/control-velocidad';
+import { ConsultaPalabra } from '../compartido/consulta-palabra';
+import { velocidadValida } from '../nucleo/velocidad';
 
 @Component({
   selector: 'app-escuchar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icono],
+  imports: [FormsModule, RouterLink, Icono, ControlVelocidad, ConsultaPalabra],
   template: `
-    <div class="pagina estrecha">
+    <div class="pagina estrecha" [attr.inert]="consultada() ? '' : null">
       <header class="cabecera-pagina">
         <span class="antetitulo">Mi espacio</span>
         <h1>Escuchar un libro</h1>
@@ -82,10 +85,7 @@ import { Icono } from '../compartido/icono';
                 </button>
                 <button class="control-audio salto adelante" type="button" aria-label="Avanzar 10 segundos" title="Avanzar 10 segundos"
                   (click)="saltar(10)" [disabled]="!duracion()"><app-icono nombre="recargar" /><span>10</span></button>
-                <select class="velocidad" aria-label="Velocidad del audio" [ngModel]="velocidad()" (ngModelChange)="cambiarVelocidad(+$event)">
-                  <option [ngValue]="0.75">0,75×</option><option [ngValue]="1">1×</option>
-                  <option [ngValue]="1.25">1,25×</option><option [ngValue]="1.5">1,5×</option>
-                </select>
+                <app-control-velocidad class="velocidad" [compacto]="true" [valor]="velocidad()" (valorChange)="cambiarVelocidad($event)" />
                 <button class="control-audio siguiente" type="button" aria-label="Siguiente fragmento" title="Siguiente fragmento"
                   (click)="mover(1)" [disabled]="ocupado() || !haySiguiente()"><app-icono nombre="ultimo" /></button>
               </div>
@@ -99,11 +99,17 @@ import { Icono } from '../compartido/icono';
             </section>
             <p class="tenue pequeno">Voz generada por IA.@if (f.aproximado) { El resaltado es aproximado. }</p>
           }
-          <p class="texto" lang="en">@for (p of palabras(); track $index) {<span [class.leida]="$index < leidas()" [class.actual]="$index === activa()">{{ p }}</span>}</p>
+          <p class="tenue pequeno">Toca una palabra o selecciónala para consultar su significado. El audio se pausa y conserva tu lugar.</p>
+          <p #texto class="texto" lang="en">@for (p of palabras(); track $index) {<span role="button" tabindex="0" [attr.aria-label]="'Consultar ' + p.trim()"
+            (click)="consultar(p)" (keydown.enter)="consultar(p)" (keydown.space)="$event.preventDefault(); consultar(p)"
+            [class.leida]="$index < leidas()" [class.actual]="$index === activa()">{{ p }}</span>}</p>
           @if (finalizado()) { <p role="status">Fragmento terminado. Puedes repetirlo o pasar al siguiente.</p> }
         </section>
       }
     </div>
+    @if (consultada(); as palabra) {
+      <app-consulta-palabra [texto]="palabra" [libro]="id()" [capitulo]="cap()" (cerrar)="cerrarConsulta()" />
+    }
   `,
   styles: `
     .controles { display: grid; gap: .85rem; margin-bottom: 1.25rem; }
@@ -130,11 +136,11 @@ import { Icono } from '../compartido/icono';
     .salto app-icono { width: 32px; height: 32px; }
     .salto span { position: absolute; font-size: .65rem; font-weight: 700; }
     .adelante app-icono { transform: scaleX(-1); }
-    .velocidad { width: 78px; min-height: 44px; padding: .5rem .25rem; border-radius: .75rem; background: var(--superficie-2); font-size: .85rem; }
+    .velocidad { width: 78px; }
     .progreso-audio { display: flex; align-items: center; gap: .6rem; font-size: .75rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
     .progreso-audio input { flex: 1; min-width: 0; height: 32px; margin: 0; accent-color: var(--acento); cursor: pointer; }
     .texto { font-family: Georgia, serif; font-size: 1.2rem; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .texto span { border-radius: .2rem; }
+    .texto span { border-radius: .2rem; cursor: pointer; }
     .leida { color: var(--acento-texto); }
     .actual { background: #ffe08a; color: #172a43; box-shadow: 0 2px 0 #bd8300; }
     @media (max-width: 760px) {
@@ -150,6 +156,8 @@ export class Escuchar implements OnDestroy {
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly sesion = inject(Sesion);
   readonly reproductor = viewChild<ElementRef<HTMLAudioElement>>('reproductor');
+  readonly texto = viewChild<ElementRef<HTMLElement>>('texto');
+  readonly consultada = signal('');
   readonly libros = signal<EntradaBiblioteca[]>([]);
   readonly libro = signal<Libro | null>(null);
   readonly id = signal('');
@@ -184,6 +192,8 @@ export class Escuchar implements OnDestroy {
   private version = 0;
   private desplazamiento = 0;
   private identidad: string | null = null;
+  private seleccion: ReturnType<typeof setTimeout> | undefined;
+  private origenConsulta: HTMLElement | null = null;
   private readonly cuenta = effect(() => {
     const e = this.sesion.entrada();
     if (!e) return;
@@ -196,6 +206,7 @@ export class Escuchar implements OnDestroy {
 
   private limpiarAudio(): void {
     this.reproductor()?.nativeElement.pause();
+    this.consultada.set('');
     const url = this.audioUrl();
     if (url) URL.revokeObjectURL(url);
     this.audioUrl.set('');
@@ -362,11 +373,37 @@ export class Escuchar implements OnDestroy {
     const total = Math.max(0, Math.floor(segundos));
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
   }
-  cambiarVelocidad(valor: number): void { this.velocidad.set(valor); this.sincronizar(); }
+  cambiarVelocidad(valor: number): void { this.velocidad.set(velocidadValida(valor)); this.sincronizar(); }
+  consultar(valor: string): void {
+    const palabra = valor.trim().replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+    if (!palabra || palabra.length > 40 || palabra.split(/\s+/).length > 4) return;
+    this.origenConsulta = document.activeElement as HTMLElement | null;
+    this.reproductor()?.nativeElement.pause();
+    this.reproduciendo.set(false);
+    cancelAnimationFrame(this.desplazamiento);
+    this.consultada.set(palabra);
+  }
+  cerrarConsulta(): void {
+    this.consultada.set('');
+    requestAnimationFrame(() => this.origenConsulta?.focus({ preventScroll: true }));
+  }
+  @HostListener('document:selectionchange') alSeleccionar(): void { this.programarSeleccion(450); }
+  @HostListener('document:mouseup') alSoltar(): void { this.programarSeleccion(30); }
+  private programarSeleccion(ms: number): void {
+    clearTimeout(this.seleccion);
+    this.seleccion = setTimeout(() => {
+      if (this.consultada()) return;
+      const sel = window.getSelection(), texto = this.texto()?.nativeElement;
+      if (!sel || sel.isCollapsed || !sel.anchorNode || !sel.focusNode || !texto?.contains(sel.anchorNode) || !texto.contains(sel.focusNode)) return;
+      const palabra = sel.toString().trim().replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+      if (!palabra || palabra.length > 40 || palabra.split(/\s+/).length > 4) return;
+      sel.removeAllRanges(); this.consultar(palabra);
+    }, ms);
+  }
   terminar(): void {
     this.reproduciendo.set(false);
     this.activa.set(this.palabras().length); this.leidas.set(this.palabras().length); this.finalizado.set(true);
   }
   errorAudio(): void { this.aviso.set('No se ha podido reproducir el audio. Vuelve a cargarlo.'); this.limpiarAudio(); }
-  ngOnDestroy(): void { ++this.version; this.limpiarAudio(); }
+  ngOnDestroy(): void { ++this.version; clearTimeout(this.seleccion); this.limpiarAudio(); }
 }

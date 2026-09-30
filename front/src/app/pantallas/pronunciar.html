@@ -60,7 +60,8 @@
   <section class="tarjeta pila paso">
     <div class="cab-paso"><span class="numero">2</span><span class="etiqueta-paso">Tu voz</span></div>
     @if (estado() === 'grabada') {
-      @if (audioUrl(); as u) { <audio class="mi-voz" [src]="u" controls></audio> }
+      @if (audioUrl(); as u) { <audio class="mi-voz" [src]="u" controls controlsList="noplaybackrate" [playbackRate]="velocidad()"></audio>
+        <app-control-velocidad [valor]="velocidad()" (valorChange)="elegirVelocidad($event)" /> }
     }
     <p class="estado-voz" aria-live="polite">
       @switch (estado()) {
@@ -210,7 +211,7 @@
               @if (corteDelSonido(d) || corteDeLaPalabra(d)) {
                 <!-- Cerrado no descarga nada: el <img loading="lazy"> espera a que se abra.
                      Si una imagen falla, se quita en vez de dejar el icono roto. -->
-                <!-- La primera, abierta: «Escuchar y ver» y «🐢 Despacio» a la vista, sin buscarlos.
+                <!-- La primera, abierta: «Escuchar y ver» y la velocidad a la vista, sin buscarlos.
                      Solo la primera: abrir prepara su mp3 y sus cortes, y con ocho palabras
                      falladas se bajaban los de todas a la vez (4e, visto bueno de b4782a5). -->
                 <details class="boca" [open]="$first" (toggle)="cerrarBoca($event, d, $index)">
@@ -246,7 +247,7 @@
                 }
                   }
                   @if (visorEos() === 'detalle-' + $index && clipEos(d.fonema?.audio); as clip) {
-                    <app-eos [src]="urlEos(clip)" [titulo]="'el sonido /' + d.fonema?.simbolo + '/ y sus ejemplos'" />
+                    <app-eos [velocidad]="velocidad()" (velocidadChange)="elegirVelocidad($event)" [src]="urlEos(clip)" [titulo]="'el sonido /' + d.fonema?.simbolo + '/ y sus ejemplos'" />
                   }
                   <!-- Pegada a la animación: debajo de los cortes y del 3D, y fija abajo
                        mientras se ve la boca, para pulsar y mirar a la vez. -->
@@ -255,27 +256,7 @@
                             [attr.aria-label]="'Escuchar y ver cómo se mueve la boca al decir ' + d.palabra">
                       <app-icono nombre="altavoz" />Escuchar y ver
                     </button>
-                    <div class="control-velocidad">
-                      <button type="button" class="boton secundario disparador-velocidad"
-                              (click)="abrirVelocidad('detalle-' + $index, $event)"
-                              [attr.aria-expanded]="selectorVelocidad() === 'detalle-' + $index"
-                              [attr.aria-label]="'Despacio. Velocidad actual: ' + opcionVelocidad().etiqueta + ', ' + opcionVelocidad().multiplicador">
-                        <span>🐢 Despacio</span>
-                        <small>{{ opcionVelocidad().etiqueta }} · {{ opcionVelocidad().multiplicador }}</small>
-                      </button>
-                      @if (selectorVelocidad() === 'detalle-' + $index) {
-                        <div class="selector-velocidad" role="radiogroup" aria-label="Velocidad de reproducción">
-                          @for (o of opcionesVelocidad; track o.valor; let i = $index) {
-                            <button type="button" role="radio" [attr.aria-checked]="velocidad() === o.valor"
-                                    [attr.tabindex]="velocidad() === o.valor ? 0 : -1"
-                                    [attr.data-velocidad]="o.valor" [class.elegida]="velocidad() === o.valor"
-                                    (click)="elegirVelocidad(o.valor)" (keydown)="teclaVelocidad($event, i)">
-                              <strong>{{ o.multiplicador }}</strong><span>{{ o.etiqueta }}</span>
-                            </button>
-                          }
-                        </div>
-                      }
-                    </div>
+                    <app-control-velocidad [valor]="velocidad()" (valorChange)="elegirVelocidad($event)" (ajustada)="ajustarVelocidad()" />
                     @if (boca3d) {
                     <button type="button" class="boton secundario" (click)="alternarBoca('detalle-' + $index, $event)"
                             [attr.aria-expanded]="visor3d() === 'detalle-' + $index">
@@ -372,7 +353,7 @@
         @if (eosFrase(); as e) {
           @switch (e.estado) {
             @case ('listo') {
-              @if (eosFraseVideo(); as v) { <app-eos [src]="v" titulo="la frase leída" /> }
+              @if (eosFraseVideo(); as v) { <app-eos [velocidad]="velocidad()" (velocidadChange)="elegirVelocidad($event)" [src]="v" titulo="la frase leída" /> }
             }
             @case ('pendiente') {
               <div class="espera eos-estado" role="status"><span class="giro"></span>Eos está preparando la frase. Suele tardar un minuto.</div>
@@ -465,7 +446,7 @@
               }
               <!-- Eos dice el sonido y sus ejemplos (vídeo pregrabado; Miguel, 28 sep). -->
               @if (visorEos() === 'sonido' && clipEos(s.audio); as clip) {
-                <app-eos [src]="urlEos(clip)" [titulo]="'el sonido /' + s.simbolo + '/ y sus ejemplos'" />
+                <app-eos [velocidad]="velocidad()" (velocidadChange)="elegirVelocidad($event)" [src]="urlEos(clip)" [titulo]="'el sonido /' + s.simbolo + '/ y sus ejemplos'" />
               }
               <!-- Pegada a la animación, como en la corrección. Con Eos abierta, suelta: la
                    barra tapaba el vídeo a 390 px (medido el 28 sep). -->
@@ -474,27 +455,7 @@
                         [attr.aria-label]="'Escuchar y ver cómo se mueve la boca con /' + s.simbolo + '/'">
                   <app-icono nombre="altavoz" />Escuchar y ver
                 </button>
-                <div class="control-velocidad">
-                  <button type="button" class="boton secundario disparador-velocidad"
-                          (click)="abrirVelocidad('sonido', $event)"
-                          [attr.aria-expanded]="selectorVelocidad() === 'sonido'"
-                          [attr.aria-label]="'Despacio. Velocidad actual: ' + opcionVelocidad().etiqueta + ', ' + opcionVelocidad().multiplicador">
-                    <span>🐢 Despacio</span>
-                    <small>{{ opcionVelocidad().etiqueta }} · {{ opcionVelocidad().multiplicador }}</small>
-                  </button>
-                  @if (selectorVelocidad() === 'sonido') {
-                    <div class="selector-velocidad" role="radiogroup" aria-label="Velocidad de reproducción">
-                      @for (o of opcionesVelocidad; track o.valor; let i = $index) {
-                        <button type="button" role="radio" [attr.aria-checked]="velocidad() === o.valor"
-                                [attr.tabindex]="velocidad() === o.valor ? 0 : -1"
-                                [attr.data-velocidad]="o.valor" [class.elegida]="velocidad() === o.valor"
-                                (click)="elegirVelocidad(o.valor)" (keydown)="teclaVelocidad($event, i)">
-                          <strong>{{ o.multiplicador }}</strong><span>{{ o.etiqueta }}</span>
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
+                <app-control-velocidad [valor]="velocidad()" (valorChange)="elegirVelocidad($event)" (ajustada)="ajustarVelocidad()" />
                 @if (boca3d) {
                 <button type="button" class="boton secundario" (click)="alternarBoca('sonido', $event)"
                         [attr.aria-expanded]="visor3d() === 'sonido'">

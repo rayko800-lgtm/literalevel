@@ -406,9 +406,18 @@ export class Boca3d {
   /** Para la lectura (audio y boca) si está sonando. */
   parar(): void {
     this.peticion++;
+    this.repetirHasta = 0;
     this.sonador.parar();
     const R = this.catalogo().reposo;
     this.escena?.irA(R, 0.3);
+  }
+
+  private repetirAudio: (() => void) | null = null;
+  private repetirHasta = 0;
+  /** Al soltar la barra, vuelve a sincronizar el ejemplo activo con su audio
+   *  ya preparado; un ejemplo terminado no arranca por cambiar la velocidad. */
+  ajustarVelocidad(): void {
+    if (performance.now() < this.repetirHasta) this.repetirAudio?.();
   }
 
   private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number; fin: number; tramos: Tramo[] }) => Linea,
@@ -427,6 +436,8 @@ export class Boca3d {
     // la misma velocidad, así que el desfase del silencio inicial se estira igual.
     const v = this.velocidad();
     const l = this.lenta(linea(listo));
+    this.repetirAudio = () => { void this.conAudio(url, linea, opciones); };
+    this.repetirHasta = performance.now() + l.total * 1000;
     this.escena.reproducir(l, opciones);
     // Con la boca despacio el audio puede no poder ralentizarse (sin
     // preservesPitch): suena a 1× y su silencio dura lo de siempre.

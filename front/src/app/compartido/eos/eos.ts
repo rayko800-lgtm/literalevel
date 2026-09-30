@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, ElementRef, Injectable, afterNextRender, effect, inject, input, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injectable, afterNextRender, effect, inject, input, model, signal, untracked, viewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
+import { ControlVelocidad } from '../control-velocidad';
+import { velocidadValida } from '../../nucleo/velocidad';
 
 /** El índice de los vídeos pregrabados de Eos (`front/public/eos/clips.json`,
  *  lo escribe `tools/eos_pronunciar/grabar_clips.py`): «ga/0283» → duración.
@@ -37,13 +39,15 @@ export class EosClips {
 @Component({
   selector: 'app-eos',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ControlVelocidad],
   template: `
     <figure class="eos">
       @if (fallo()) {
         <p class="sin" role="status">Eos no ha podido cargar este vídeo.</p>
       } @else {
-        <video #video [src]="src()" playsinline controls preload="metadata" poster="eos/reposo.webp"
-               [attr.aria-label]="titulo()" (error)="fallo.set(true)"></video>
+        <video #video [src]="src()" playsinline controls controlsList="noplaybackrate" preload="metadata" poster="eos/reposo.webp"
+               [attr.aria-label]="titulo()" (loadedmetadata)="aplicarVelocidad()" (error)="fallo.set(true)"></video>
+        <app-control-velocidad [valor]="velocidad()" (valorChange)="cambiarVelocidad($event)" />
       }
       <figcaption>Eos · {{ titulo() }}</figcaption>
     </figure>
@@ -61,22 +65,30 @@ export class Eos {
   /** URL del mp4, ya resuelta (relativa al front o contra el motor). */
   readonly src = input.required<string>();
   readonly titulo = input('');
+  readonly velocidad = model(1);
   protected readonly fallo = signal(false);
   private readonly video = viewChild<ElementRef<HTMLVideoElement>>('video');
 
   constructor() {
     afterNextRender(() => this.arrancar());
     // Otro clip en el mismo panel (otro sonido de la tabla): vuelve a arrancar.
-    effect(() => { this.src(); this.fallo.set(false); this.arrancar(); });
+    effect(() => { this.src(); this.fallo.set(false); untracked(() => this.arrancar()); });
+    effect(() => { this.video(); this.velocidad(); untracked(() => this.aplicarVelocidad()); });
   }
 
   private arrancar(): void {
     const v = this.video()?.nativeElement;
     if (!v) return;
     v.load();
+    this.aplicarVelocidad();
     // Sin gesto reciente el navegador lo deja parado, con sus controles a la vista
     // (y en las pruebas, jsdom no implementa play()).
     const p = v.play();
     if (p && typeof p.catch === 'function') p.catch(() => {});
+  }
+  protected cambiarVelocidad(valor: number): void { this.velocidad.set(velocidadValida(valor)); this.aplicarVelocidad(); }
+  protected aplicarVelocidad(): void {
+    const v = this.video()?.nativeElement;
+    if (v) { v.playbackRate = velocidadValida(this.velocidad()); v.preservesPitch = true; }
   }
 }

@@ -9,11 +9,13 @@ class AudioFalso {
   currentTime = 5;
   pausado = 0;
   falla = false;
+  paused = true;
+  ended = false;
   private oyentes: Record<string, (() => void)[]> = {};
   addEventListener(tipo: string, fn: () => void) { (this.oyentes[tipo] ??= []).push(fn); }
   disparar(tipo: string) { const fns = this.oyentes[tipo] ?? []; this.oyentes[tipo] = []; fns.forEach(f => f()); }
-  play() { return this.falla ? Promise.reject(new Error('bloqueado')) : Promise.resolve(); }
-  pause() { this.pausado++; }
+  play() { this.paused = false; return this.falla ? Promise.reject(new Error('bloqueado')) : Promise.resolve(); }
+  pause() { this.paused = true; this.pausado++; }
 }
 
 function montar() {
@@ -132,8 +134,8 @@ describe('Escuchar y ver', () => {
     expect(eyv.src('ficha', corte().base)).toBe('/dos.svg?una=1&r=1');
   });
 
-  it('las cuatro velocidades conservan tono y sincronizan duración de audio y SVG', () => {
-    for (const [velocidad, duracion] of [[0.25, 16], [0.5, 8], [1, 4], [1.25, 3.2]] as const) {
+  it('velocidades intermedias y extremos conservan tono y sincronizan duración de audio y SVG', () => {
+    for (const [velocidad, duracion] of [[0.25, 16], [0.5, 8], [1, 4], [1.25, 3.2], [0.8, 5], [2, 2]] as const) {
       const { eyv, audios } = montar();
       eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad });
       expect(audios[0].playbackRate).toBe(velocidad);
@@ -144,13 +146,27 @@ describe('Escuchar y ver', () => {
     }
   });
 
-  it('rechaza velocidades fuera del conjunto y conserva 0,25× en la voz del navegador', () => {
+  it('rechaza velocidades fuera del rango y conserva 0,25× en la voz del navegador', () => {
     const { eyv, audios, habladas } = montar();
-    // Una velocidad que no está entre las cuatro vuelve a 1×.
+    // Una velocidad fuera de 0,25×..2× vuelve a 1×.
     eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad: 3 });
     expect(audios[0].playbackRate).toBe(1);
     eyv.escuchar({ audio: null, texto: 'war', cortes: [corte()], velocidad: 0.25 });
     expect(habladas.map(h => h.velocidad)).toEqual([0.25]);
+  });
+
+  it('la barra cambia el audio activo y al soltar sincroniza el corte sin crear otro audio', () => {
+    const { eyv, audios } = montar();
+    eyv.escuchar({ audio: 'a.mp3', cortes: [corte()], velocidad: .83 });
+    audios[0].duration = 4; audios[0].disparar('playing');
+    audios[0].currentTime = 1.5;
+    eyv.cambiarVelocidad(1.37);
+    expect(audios[0].playbackRate).toBe(1.37); expect(audios[0].currentTime).toBe(1.5);
+    eyv.ajustarVelocidad(1.37); audios[0].disparar('playing');
+    expect(audios).toHaveLength(1); expect(audios[0].currentTime).toBe(0);
+    expect(eyv.src('ficha', corte().base)).toContain('dur=2.9&una=1');
+    const pulsaciones = eyv.pulsaciones(); audios[0].ended = true;
+    eyv.ajustarVelocidad(2); expect(eyv.pulsaciones()).toBe(pulsaciones);
   });
 
   it('si cambia la base (otro sonido), pinta la base nueva', () => {
