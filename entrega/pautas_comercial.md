@@ -79,8 +79,10 @@ de **orden y de foco**, no de estructura:
 | V | Catálogo y cifras a escala | Escena del espectador leyendo esta noche | 8 |
 | A | «Pruébalo» + enlace | Acción concreta sin cuenta + QR + «sin instalar» | 10 |
 
-Las reglas de la rúbrica mandan sobre estas pautas: Miguel a cámara todo el
-rato, diapositivas de fondo y menos de 5:00.
+La rúbrica pide al alumno hablando a cámara y un máximo de 5:00. Miguel informó
+el 27 de septiembre que el profesor aceptó a Eos como presentadora en su lugar;
+no tenemos archivada la respuesta escrita. El vídeo de Eos mantiene la app real
+de fondo y el límite de duración.
 
 ---
 

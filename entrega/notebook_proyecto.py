@@ -7,7 +7,7 @@
 # Estimar la dificultad de un texto en inglés para un lector hispanohablante, y
 # usar esa estimación para que el lector elija bien qué libro abrir.
 #
-# **Entrega web al 26 de septiembre de 2026:** la aplicación se llama **Pléyade**;
+# **Entrega web al 29 de septiembre de 2026:** la aplicación se llama **Pléyade**;
 # Angular es la interfaz principal, publicada en Vercel, sobre una API FastAPI;
 # Gradio conserva el motor y la interfaz de respaldo.
 # Enlace del lector: https://pleyade-app.vercel.app (respaldo, la misma app:
@@ -59,6 +59,8 @@
 # La sección 6.5 lo descarga sin credenciales, de modo que este cuadernillo
 # no depende del disco de la máquina de desarrollo para conseguir esos pesos.
 # La fecha de la última ejecución completa está en §9.3.
+# Si Colab ofrece acceso a un secreto `HF_TOKEN` que exista en la cuenta,
+# se puede pulsar «Cancelar»: el repositorio es público y la descarga sigue.
 #
 # **El cuadernillo no se rompe por eso.** Las celdas que necesitan los pesos
 # comprueban primero si están disponibles: si no lo están, imprimen qué falta y
@@ -84,6 +86,12 @@ import os
 import re
 import collections
 import urllib.request
+import warnings
+
+# Colab avisa por stderr si la cuenta guarda un secreto HF_TOKEN y no se concede al
+# cuaderno; el modelo es público y no hace falta, y la rúbrica pide una ejecución sin
+# avisos. Solo se silencia ese aviso concreto.
+warnings.filterwarnings("ignore", message=r"(?s).*HF_TOKEN.*")
 
 import numpy as np
 import pandas as pd
@@ -1574,26 +1582,22 @@ if URL_MODELO.strip():
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        # El Hub avisa por stderr de que se está descargando SIN credenciales:
-        # "You are sending unauthenticated requests to the HF Hub. Please set a
-        # HF_TOKEN to enable higher rate limits and faster downloads." Es un
-        # consejo sobre el límite de peticiones, no un problema del código, y
-        # descargar sin credenciales es justo lo que este cuadernillo tiene que
-        # hacer: cualquiera debe poder ejecutarlo sin cuenta en Hugging Face.
-        # Se silencia ese canal para que la ejecución salga limpia; un fallo de
-        # descarga de verdad sigue apareciendo, porque lo levanta el `except` de
-        # abajo y no el registro.
+        # El repositorio es público. token=False indica que estas descargas
+        # son anónimas. En una cuenta Colab con HF_TOKEN guardado, la integración
+        # del Hub puede aun así ofrecer acceso al secreto: se cancela y sigue.
+        # Cualquier lector puede ejecutar el cuaderno sin credenciales.
+        # Los errores de descarga reales se muestran en el `except` de abajo.
         import huggingface_hub.utils.logging as _registro_hub
         _registro_hub.set_verbosity_error()
         # Lo mismo con la barra «Loading weights 0/105 … 105/105» de transformers,
         # que también va a stderr y en Colab sale en rojo como si fuera un fallo.
-        # Comprobado: con estas dos llamadas stderr queda vacío y la carga no cambia.
+        # La barra no aporta resultados analíticos.
         import transformers
         transformers.utils.logging.set_verbosity_error()
         transformers.utils.logging.disable_progress_bar()
 
-        tokenizador_v4 = AutoTokenizer.from_pretrained(URL_MODELO)
-        modelo_v4 = AutoModelForSequenceClassification.from_pretrained(URL_MODELO)
+        tokenizador_v4 = AutoTokenizer.from_pretrained(URL_MODELO, token=False)
+        modelo_v4 = AutoModelForSequenceClassification.from_pretrained(URL_MODELO, token=False)
         modelo_v4.eval()
         MODELO_DISPONIBLE = True
         print("Modelo v4 cargado desde:", URL_MODELO)
@@ -2496,8 +2500,10 @@ plt.show()
 #    575 MB en disco. Eso **descarta cualquier plan de 512 MB de memoria**.
 # 4. **Repetir el ciclo de usuario sobre Angular.** Esmeralda y Laura encontraron
 #    problemas de la interfaz anterior; esos ciclos no validan automáticamente
-#    los cambios posteriores. Faltan recorrido con nuevos lectores, ensayo con
-#    micrófono físico y grabación del video. Las portadas FLUX no se generaron.
+#    los cambios posteriores. Faltan recorrido con nuevos lectores y ensayo con
+#    micrófono físico. El vídeo de presentación con Eos está grabado; su utilidad
+#    didáctica y naturalidad no se han validado con lectores. Las portadas FLUX
+#    no se generaron.
 #    La boca 3D didáctica está publicada desde el 24 de septiembre y se mueve
 #    con un segundo modelo, aprendido de caras reales (documento, §7.8), que
 #    este cuaderno no reproduce.
@@ -2577,7 +2583,7 @@ plt.show()
 #    documentos. Sí son verificables: se recalcularon idénticas (§9.3).
 # 6. **El corpus de anclaje es de una sola fuente** (ELG CEFR English, 654
 #    documentos). Por eso UniversalCEFR no sirve para validar el v4 (§7.2).
-# 7. **Ejecutado de principio a fin en Colab el 16 de septiembre de 2026 (CPU), con las salidas
+# 7. **Ejecutado de principio a fin en Colab el 29 de septiembre de 2026 (CPU), con las salidas
 #    guardadas.** Con el matiz que se explica abajo: correr no es lo mismo que
 #    recalcular.
 #
@@ -2589,7 +2595,7 @@ plt.show()
 #
 # | | ¿Se hace? |
 # |---|---|
-# | **Ejecutarse de principio a fin** en Colab | **Sí**: ejecutado de principio a fin en Colab el 16 de septiembre de 2026 (CPU), con las salidas guardadas |
+# | **Ejecutarse de principio a fin** en Colab | **Sí**: ejecutado de principio a fin en Colab el 29 de septiembre de 2026 (CPU), con las salidas guardadas |
 # | **Recalcular los modelos clásicos** —rasgos, partición, métricas— | **Sí**, desde el corpus que se descarga solo |
 # | **Demostrar la inferencia del v4** sobre texto real | **Sí**, desde los pesos públicos |
 # | **Recalcular la validación con British Council** (medias por nivel, Cuadro 13) | **Sí, fuera del cuadernillo**: descarga manual de los 59 PDF y verificación de hashes aquí (§7.2); el recálculo pide `validar_local.py`, que se comparte a petición |

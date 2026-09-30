@@ -554,14 +554,19 @@ registrado en `DESPLIEGUE.md`:
 - **La boca 3D didáctica** y **los datos por cuenta**, descritos arriba. La
   boca se mueve con un segundo modelo, aprendido de vídeos de caras reales, que
   se describe en el apartado 7.8 del documento principal.
+- **Eos en Pronunciar.** Desde el 28 de septiembre hay 85 sonidos pregrabados
+  con la cara de frente. Las frases nuevas dependen de un trabajador en esta PC;
+  si no responde, queda disponible la boca 3D didáctica. Su utilidad para
+  aprender todavía no se ha medido con lectores (documento, apartado 7.9).
 - **La marca Pléyade**: nombre, emblema, un texto «Sobre Pléyade» que se abre
   al pulsar el logo, y un fondo de galaxia en todas las pantallas, con cada una
   sobre una lámina translúcida de su tema (claro, noche o papel). **El
   contraste de este tema sobre la galaxia no se ha medido**: las pruebas de
   contraste del front cubren las portadas y el lector teñido, no el fondo.
 
-Las capturas de todo esto, hechas el 26 de septiembre desde la app publicada,
-están en `capturas/` con su procedencia en `capturas/registro.txt`.
+Las capturas de la interfaz hasta el 26 de septiembre están en `capturas/`,
+con su procedencia en `capturas/registro.txt`; no documentan Eos, publicada
+después.
 
 ---
 
@@ -713,7 +718,7 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 
 | # | Acción | Por qué | Coste | Terminado cuando |
 |---|---|---|---|---|
-| **A1** | **Publicar el modelo y el diccionario** como repositorios abiertos | Desbloquea la reproducibilidad del cuaderno, que antes no corría en un Colab ajeno | ~30 min; gratuito. Requiere un token que solo el autor puede crear | **HECHO a medias**: el modelo (328 MB) está en `MikeMaki1763/literalevel-v4`, público y con la descarga sin credenciales verificada. El diccionario (243 MB) sigue sin publicar |
+| **A1** | **Publicar modelo y diccionario** | El modelo público permite inferencia en Colab; el diccionario ampliaría la reproducción léxica, pero no interviene en este cuaderno | ~30 min; gratuito; requiere token del autor | **PARCIAL**: v4 público y descargable en `MikeMaki1763/literalevel-v4`; diccionario (243 MB) pendiente. No bloquea el cuaderno |
 | **A2** | **Desplegar en enlace permanente** | El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega | **7 USD/mes**: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware `cpu-basic` no añade coste, y el front, en Vercel y en el Space estático, es gratuito | **HECHO**: el front en Vercel (https://pleyade-app.vercel.app), con respaldo en `MikeMaki1763/literalevel-front` (el front) y `MikeMaki1763/literalevel` (API y motor), públicos y en marcha. El disco persistente es A4 |
 | ~~**A3**~~ **HECHO** | **Terminar la remedición del catálogo** con el modelo v4, libro entero | Sustituye las etiquetas heredadas —predicciones de un modelo v1 sobre las primeras ~190 palabras— por medidas reales | T4 gratuita; la descarga por `common-pile/project_gutenberg` (Kandpal et al., 2025; 57.226 textos en 7,7 minutos) y los resultados en Hugging Face, no en Drive, que pedía un permiso en cada sesión | **Cumplido el 12 de septiembre de 2026**: 53.179 libros y 585.111 capítulos medidos, y la aplicación los usa |
 | ~~**A4**~~ **HECHO** | **Montar almacenamiento persistente** para los datos del lector | Un servicio que duerme y despierta con la estantería vacía deja en ridículo «Mis libros» | 18 USD por TB y mes en repositorio privado; los datos del lector ocupan **10,9 MB** medidos, así que el coste es despreciable | **Cumplido y verificado**: bucket montado en `/data`, se fijó un perfil, se reinició el Space y el perfil seguía ahí. Desde el 26 de septiembre, con cuenta, los datos son de la cuenta y se ven en cualquier aparato |
@@ -727,7 +732,7 @@ por hora de trabajo. Cada una lleva coste real y criterio de terminado. No son
 *Cuadro 2. Accionables, con coste y criterio de terminado.*
 
 **Orden de ejecución actualizado:** volver a ensayar la voz con cuenta (A5),
-recorrer Angular con usuarios (A8), grabar el video y comprobar los archivos
+recorrer Angular con usuarios (A8), revisar el comercial terminado y comprobar los archivos
 de entrega. A2, A3, A4 y la sustitución del catálogo de A6 ya tienen evidencia
 de cierre; no se vuelven a presentar como trabajo por empezar. Las mejoras
 visuales pendientes no deben desplazar el ensayo de la demo.

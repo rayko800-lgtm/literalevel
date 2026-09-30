@@ -70,3 +70,9 @@
 3. Decidir y adjuntar la copia del vídeo (720p H.264) y confirmarlo en el mensaje (20 pts).
 4. Commit de las rutas de `entrega/` que se suben; «Entregar» en Classroom antes del 4 oct.
 5. Si sobra tiempo: lectura de ortografía del documento y nota en la diapositiva 4.
+
+## Correcciones hechas (29 sep, 19:15, misma sesión; medidas antes de escribirlas)
+- **A1 y A2 cerradas:** `notebook_proyecto.py` silencia solo el aviso de `HF_TOKEN` (celda 1, `warnings.filterwarnings`); `.ipynb` regenerado desde el `.py` a un temporal y **ejecutado en una carpeta vacía fuera del repo**, sin `.env` ni variables `LITERALEVEL_*`, con `nbconvert` y el modelo bajado de Hugging Face: 103 celdas, 57 de código, ejecución secuencial 1–57, **0 errores, 0 stderr**, ≈60 s en esta máquina. Esa copia ejecutada es ahora `entrega/notebook_proyecto.ipynb`. La ejecución en Colab de verdad sigue siendo la prueba que pide la rúbrica: repetirla allí antes del 4 oct (ya sin aviso).
+- **A6 cerrada:** diapositiva 4: «61.642 libros objetivo, Gutenberg (7 sep. 2026) / catálogo final medido: 53.179»; `presentacion.pdf` recompilado con tectonic (17 páginas, QR decodifica a Vercel); `guion_video.md` l. 30 aclara que 514 era el conteo de entonces. Mecánica tras corregir: `auditoria/mecanica_2026-09-29b.json`, **36 OK · 4 avisos · 0 fallos** (los avisos son el plazo, la ejecución en Colab, los archivos sin commit y el Space estático como respaldo).
+- **A5 cerrada en parte:** commit de las rutas de `entrega/` que se entregan (documento, estrategia, presentación, notebook, guiones, mensaje, anexos y el comercial 720p). El máster 4K (268 MB) no cabe en GitHub y queda fuera de git.
+- **Quedan para Miguel:** A3 (qué copia del vídeo va en Classroom; recomendado el 720p H.264), A4 (respuesta escrita del profesor si llega), A7 (`uso_openai.json` a cero: escribir en el bucket necesita su permiso explícito; y pulsar «Entregar»), y el ensayo de la demo.

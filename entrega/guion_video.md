@@ -13,8 +13,9 @@ Vercel. Las capturas de referencia están hechas: `capturas/01`–`22`
 > conserva por si el comercial no llega a tiempo o no convence. Las pautas de
 > `entrega/pautas_comercial.md` valen para los dos.
 
-**Formato exigido:** MP4, **máximo 5 minutos**, Miguel **hablando a cámara todo el
-tiempo** con las diapositivas de fondo. Vale 20 de los 110 puntos.
+**Formato de esta versión de respaldo:** MP4, **máximo 5 minutos**,
+Miguel **hablando a cámara todo el tiempo** con las diapositivas de fondo.
+Vale 20 de los 110 puntos.
 Recomendación del profesor: grabar con **OBS**.
 
 **Duración objetivo: 4:40.** Los cinco minutos son un tope, no una meta, y pasarse
@@ -26,7 +27,7 @@ audio, leer la frase en voz alta—, unos 45 segundos. Si al ensayar te sale
 muy corto, no metas más texto: ve más despacio y deja respirar las pausas.
 
 Esta versión fusiona el guion de b9 (698b804) con tres cambios del de Codex
-(13281a9): el texto recortado y vuelto a contar (514 palabras habladas), la hoja de la palabra
+(13281a9): el texto recortado y vuelto a contar (entonces daba 514; hoy son 516 palabras habladas), la hoja de la palabra
 contada en dos tiempos (lo local al instante; la traducción y la explicación
 después, con IA) con el perfil 1,20 dicho como preparado para el ejemplo, y la
 preparación de la toma (respaldo rotulado, privacidad y ensayo cronometrado).

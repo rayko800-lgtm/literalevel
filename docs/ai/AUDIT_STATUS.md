@@ -418,7 +418,7 @@ Esperar instrucción de Miguel.
 
 # E1 — Auditoría de la entrega del Módulo 5 (29 sep 2026, 18:30)
 
-**Status:** 🟠 FIX REQUIRED
+**Status:** 🔵 VERIFY (A1, A2, A6 corregidas y medidas a las 19:15; falta la ejecución en Colab real, el ensayo de la demo y las decisiones de Miguel A3/A4/A7)
 
 ## Criterio de salida
 

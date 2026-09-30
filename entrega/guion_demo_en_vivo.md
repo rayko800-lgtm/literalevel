@@ -1,7 +1,7 @@
 # Guion de la demo en vivo — Pléyade, proyecto LiteraLevel (Módulo 5)
 
-*Puesto al día el 26 de septiembre de 2026: Vercel, datos por cuenta, boca 3D
-didáctica y Mi espacio. Las capturas de referencia están en `capturas/`
+*Puesto al día el 29 de septiembre de 2026: Vercel, datos por cuenta, boca 3D,
+Eos en Pronunciar y Mi espacio. Las capturas de referencia están en `capturas/`
 (`registro.txt` dice de dónde sale cada una).*
 
 **Formato de la rúbrica:** 5 minutos, **pantalla compartida** y foco en la
@@ -11,7 +11,7 @@ busca resolver y la interfaz de uso donde se evidencie cómo a través de su(s)
 modelo(s) seleccionado(s) se da resolución a la problemática planteada».
 
 **Cuándo:** la demo de Miguel es el **10 de octubre de 2026, turno 5** (lista
-«M5G34 - Proyectos.pdf» de la tarea «Trabajo Final», leída el 26 de septiembre;
+«M5G34 - Proyectos.pdf» de la tarea «Trabajo Final», verificada el 29 de septiembre;
 el otro día es el 8 de octubre). Los archivos se entregan en Classroom antes del
 **4 de octubre, 11:59 p.m.** Si no se puede presentar ninguno de los dos días,
 hay que avisar al profesor antes para presentar la semana anterior; si no, los
@@ -393,9 +393,10 @@ derechos, el de British Council, no se redistribuye: se reconstruye con su
 manifiesto.»
 
 **¿Qué haría con más tiempo?**
-**Dice:** «Terminar la cara que lee de frente, que está en desarrollo, repetir la
-prueba de usuario con cinco lectores sobre el front nuevo y
-medir cuántos libros empezados se terminan, que es la métrica que valida la
+**Dice:** «Eos ya muestra 85 sonidos de frente en Pronunciar. Con más tiempo
+mediría con lectores si les ayuda, haría independientes de esta PC las frases
+nuevas y repetiría la prueba de usuario con cinco lectores sobre el front nuevo.
+También mediría cuántos libros empezados se terminan, que es la métrica que valida la
 idea. Y calibrar la escala y ampliar el corpus de anclaje del Marco Común, que hoy
 tiene 654 documentos.»
 

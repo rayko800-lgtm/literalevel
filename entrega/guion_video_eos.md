@@ -1,5 +1,16 @@
 # Guion del vídeo narrado por Eos, en formato de anuncio
 
+> **Archivo de planificación del 27 sep; no describe el corte entregable.**
+> Miguel eligió después la voz Willow y descartó Ava. El comercial v3 final
+> dura 2:12,04, usa Eos con composición suave y pantallas de la app, y está en
+> `entrega/pleyade_eos_comercial_v3_4k.mp4`. Su versión actual de Drive es
+> <https://drive.google.com/file/d/1kZPGOBQz9WUBf-mtlfee5h__Z_3w0PVx/view>.
+> El texto y los planos vigentes se documentan en
+> `docs/ai/video_eos_revision_2026-09-28.md` y
+> `tools/video_eos_revision/`. Eos ya aparece en *Pronunciar* con 85 sonidos
+> pregrabados; las frases nuevas requieren el trabajador de esta PC. Los
+> párrafos y marcas de pantalla siguientes se conservan como historial.
+
 Versión del 27 de septiembre de 2026. Reparto al 27 sep (HANDOFF 6 bis): **guion y voz,
 literalevel-d0**; **planos y montaje, literalevel-86 (f3)**, en `docs/ai/guion_eos_planos.md`;
 **rúbrica y entrega, literalevel-d9**. d6 y c2 ya no están activas.

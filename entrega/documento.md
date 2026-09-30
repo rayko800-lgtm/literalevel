@@ -1126,12 +1126,16 @@ vídeo frontal es débil. Y la boca de la aplicación es un corte de media cabez
 no una cara de vídeo: los controles se trasladan a ella con una calibración por
 poses comunes, que es una decisión de diseño y no algo medido.
 
-### 7.9 En desarrollo: la cara que habla de frente (Eos)
+### 7.9 Eos: cara que habla de frente, integración y límites
 
 La boca 3D del apartado 7.8 enseña la articulación en corte. Una cara completa
 que lea las frases de frente —**Eos**, una cara MetaHuman de Epic exportada a
-GLB con 52 coeficientes de expresión ARKit— está en desarrollo, **no forma
-parte de la aplicación publicada** y se enseña en el vídeo de la entrega.
+GLB con 52 coeficientes de expresión ARKit— se integró en *Pronunciar* el
+28 de septiembre de 2026 con **85 sonidos pregrabados**. Para una frase nueva,
+la app solicita un vídeo a un trabajador que corre en esta PC; si no está
+disponible, ofrece la boca 3D didáctica. Eos también presenta el vídeo de la
+entrega. Su naturalidad y utilidad pedagógica siguen pendientes de evaluación
+con lectores.
 Se documenta aquí porque el camino hasta
 ella ya tiene medidas, y porque dos de esas medidas cambiaron el plan
 (`docs/ai/informe_eos_v3_a2f_2026-09-26.md`).
@@ -1185,9 +1189,9 @@ no copia una trayectoria sino que genera una plausible.
 | Labios, mandíbula y mejillas al hablar | Audio2Face-3D (52 ARKit) | captura 4D: articula más y mejor que cualquier etiqueta 2D |
 | Precisión pedagógica de la boca | modelo articulatorio de Blender (apartado 7.8) | es lo que enseña la pronunciación |
 | Sonrisa, ojos, cejas y cabeza | no verbal generativo v3 | la voz no los determina |
-| Voz | edge-tts (en-US-AvaNeural) | sin coste |
+| Voz del comercial | Willow (GPT-Live) | dirección expresiva elegida por Miguel; no representa el audio de los 85 clips |
 
-*Cuadro 15. Cómo queda Eos a 26 de septiembre de 2026. Fuente: el informe citado.*
+*Cuadro 15. Modelos de Eos medidos el 26 de septiembre; integración y voz del comercial actualizadas el 29. Fuentes: informe citado y `docs/ai/HANDOFF.md`.*
 
 **La boca propia (v3): entrenada y descartada con medida.** La noche del 26 se
 entrenó también una boca por regresión (un *transformer* sobre HuBERT y la
@@ -1199,11 +1203,13 @@ frente a 0,502. Coincide con la prueba de legibilidad: con etiquetas 2D la boca
 no pasa de *r* ≈ 0,3. Audio2Face queda como boca de Eos con números, no por
 preferencia. El coste del día fue de unas 30 unidades de cómputo.
 
-**Lo que falta, y por qué no entra.** Queda comparar en vídeo tres versiones de
-la misma frase: la fusión anterior, Audio2Face con el no verbal v3, y la boca
-v3 con el no verbal v3. Ninguna cifra de Eos se ha medido con lectores, y la
-cara no está integrada en *Pronunciar*. Se presenta como trabajo en curso, con
-sus medidas, no como parte de la entrega.
+**Estado y límites al 29 de septiembre.** Eos aparece en *Pronunciar* con los
+85 sonidos pregrabados; el flujo de frases nuevas se probó de punta a punta
+en el Space, pero depende del trabajador de esta PC. El comercial v3 de
+2:12,04 está en `entrega/pleyade_eos_comercial_v3_4k.mp4` y en Drive; el QR
+fue probado por Miguel en su móvil. Ninguna cifra de Eos se ha medido con
+lectores y la naturalidad de su expresión sigue en revisión humana. La
+integración técnica no demuestra por sí sola mejora de pronunciación.
 
 ---
 
@@ -1772,10 +1778,10 @@ repetirlo en cada párrafo corregido.
 6. Medir el efecto real sobre el abandono: comparar la tasa de libros
    terminados entre lectores que eligen con recomendación y sin ella. Es la
    única métrica que verdaderamente valida la propuesta.
-7. **Una cara que habla de frente.** La boca 3D enseña la articulación en
-   corte; una cara completa que lea las frases de frente (*Eos*, sobre un
-   MetaHuman de Epic) está en desarrollo, **no está en la aplicación publicada**
-   y se enseña en el vídeo (apartado 7.9).
+7. **Validar la cara que habla de frente.** Eos ya muestra 85 sonidos
+   pregrabados en *Pronunciar* y presenta el comercial (apartado 7.9).
+   Falta medir con lectores si ayuda a entender la articulación, mejorar su
+   naturalidad y hacer que las frases nuevas no dependan de esta PC.
 8. **Convertir las cinco acciones en herramientas de un agente**
    (*function calling*). Hoy cada una tiene su botón: medir un capítulo,
    buscar por significado, abrir un libro, explicar una palabra y corregir la

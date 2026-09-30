@@ -1,6 +1,6 @@
 # Mensaje para el profesor: entrega final de Pléyade
 
-Versión del 26 de septiembre de 2026, para acompañar la entrega en Classroom
+Versión del 29 de septiembre de 2026, para acompañar la entrega en Classroom
 («Trabajo Final», fecha límite 4 de octubre, 11:59 p.m.; la demo en vivo es el
 10 de octubre, turno 5).
 El adelanto del 16 de septiembre ya se envió; este es otro mensaje.
@@ -34,6 +34,9 @@ Desde el adelanto añadí:
 - **Repasar**: las palabras guardadas, con su frase, para recordarlas.
 - **Una boca en 3D** en *Pronunciar*, que se mueve con un modelo entrenado con
   vídeos de caras reales. Tiene zoom, cámara lenta y giro libre.
+- **Eos en Pronunciar**: 85 sonidos pregrabados en vídeo muestran la cara de
+  frente al articularlos. La utilidad para aprender todavía no se ha medido
+  con lectores.
 - **Leer en voz alta en vivo**: en el lector, la aplicación sigue lo que usted
   va leyendo y marca las palabras que se saltó.
 - **Datos por cuenta**: si entra con su usuario, sus libros, palabras y nivel se
@@ -52,9 +55,16 @@ seguir leyendo, buscar y consultar el diccionario.
 El motor se duerme si pasa dos días sin visitas. Si la primera búsqueda tarda,
 es que está despertando: en uno o dos minutos responde.
 
-Con la entrega van el documento, la estrategia, el cuaderno de Colab, la
-presentación y el vídeo. En el documento están separados lo que está medido y lo
-que todavía no se ha validado con lectores.
+Con la entrega van el documento, la estrategia, el cuaderno principal de Colab,
+la presentación y el vídeo. Adjunto también tres cuadernos técnicos como anexos:
+reproducción del modelo v4, precálculo del catálogo y gestos no verbales de Eos.
+El cuaderno principal es el evaluable; los anexos explican procesos de producción
+y sus requisitos de datos o cómputo aparecen en la primera celda de cada uno.
+En el documento están separados lo que está medido y lo que todavía no se ha
+validado con lectores.
+
+En el vídeo presenta Eos, como usted me autorizó; yo haré la demostración en
+vivo el 10 de octubre.
 
 Gracias por las recomendaciones de la revisión, profe.
 
@@ -63,8 +73,9 @@ Gracias por las recomendaciones de la revisión, profe.
 - El enlace principal es Vercel. El Space estático
   (`mikemaki1763-literalevel-front.static.hf.space`) sirve la misma aplicación
   de respaldo. Gradio sigue en `MikeMaki1763/literalevel` como motor y respaldo.
-- **Eos** (la cara MetaHuman) está en desarrollo: no la menciones como
-  terminada.
+- **Eos** está publicada con los 85 sonidos pregrabados. Las frases nuevas
+  requieren el trabajador de esta PC; la boca 3D es el respaldo. No afirmes
+  que su naturalidad o utilidad didáctica ya estén validadas.
 - Los topes son los de `app/ui.py:493-503` y `app/api.py:228-229` a fecha de
   `06a16db`. Si cambian, cambia este párrafo.
 - La lectura en vivo solo se ha probado con una lectura sintética. Antes de

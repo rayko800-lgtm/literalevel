@@ -299,3 +299,7 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   86/110. **SERIO A1, mío:** `tools/a_notebook.py` sobre `entrega/notebook_proyecto.py` regeneró el
   `.ipynb` en su sitio y borró las salidas de la ejecución en Colab de hoy; hay que volver a bajar la
   copia ejecutada de Colab a `entrega/`. Skill `auditar-entrega-modulo-5` corregida (regenerar a un temporal).
+  **19:15, corregido:** el notebook se ejecutó en una carpeta limpia fuera del repo (57 celdas, 0 errores,
+  0 stderr, 1–57) y esa copia es la de `entrega/`; aviso de `HF_TOKEN` silenciado en el `.py`; diapositiva 4
+  con el catálogo final; `guion_video.md` l. 30 aclarado; commit de las rutas de `entrega/` (sin el 4K).
+  Quedan para Miguel: copia del vídeo en Classroom, `uso_openai.json` a cero, «Entregar» y el ensayo.

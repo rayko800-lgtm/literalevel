@@ -1213,7 +1213,7 @@ terminado. No son «se podría»: son «se hace».
 \caption{Accionables, con coste y criterio de terminado.}
 \label{cuad:accionables}
 \endlastfoot
-\textbf{A1} & \textbf{Publicar el modelo y el diccionario} como repositorios abiertos & Desbloquea que el cuaderno corra en un Colab ajeno. Es el mayor rendimiento por hora de todo el proyecto & $\sim$30 min; gratuito. Requiere un token que solo el autor puede crear & \textbf{HECHO a medias}: el modelo está en \cod{MikeMaki1763/\allowbreak literalevel-v4}, público y con la descarga sin credenciales verificada; el diccionario (243 MB) sigue sin publicar \\
+\textbf{A1} & \textbf{Publicar modelo y diccionario} & El modelo público permite inferencia en Colab; el diccionario ampliaría la reproducción léxica, pero no interviene en este cuaderno & $\sim$30 min; gratuito; requiere token del autor & \textbf{PARCIAL}: v4 público y descargable en \cod{MikeMaki1763/\allowbreak literalevel-v4}; diccionario (243 MB) pendiente. No bloquea el cuaderno \\
 \addlinespace
 \textbf{A2} & \textbf{Desplegar en enlace permanente} & El enlace anterior era un túnel temporal que moría al apagar el equipo, y era el mayor riesgo de la entrega & \textbf{7 USD/mes}: el Space de Gradio que aloja el motor y la API exige cuenta Hugging Face Pro (9 USD de tarifa, 7 con descuento); el hardware \cod{cpu-basic} no añade coste, y el \emph{front}, en Vercel y en el Space estático, es gratuito & \textbf{HECHO}: el \emph{front} en Vercel (\url{https://pleyade-app.vercel.app}), con respaldo en \cod{MikeMaki1763/\allowbreak literalevel-\allowbreak front}, y \cod{MikeMaki1763/\allowbreak literalevel} (API y motor), públicos y en marcha; el disco persistente es A4 \\
 \addlinespace
@@ -1236,7 +1236,7 @@ terminado. No son «se podría»: son «se hace».
 \end{small}
 
 \noindent\textbf{Orden de ejecución actualizado:} volver a ensayar la voz con cuenta
-(A5), recorrer Angular con usuarios (A8), grabar el video y comprobar los archivos
+(A5), recorrer Angular con usuarios (A8), revisar el comercial terminado y comprobar los archivos
 de entrega. A2, A3, A4 y la sustitución del catálogo de A6 ya tienen evidencia de
 cierre; no se vuelven a presentar como trabajo por empezar. Las mejoras visuales
 pendientes no deben desplazar el ensayo de la demo.
@@ -2684,13 +2684,17 @@ boca 3D ayude a pronunciar mejor, que nadie ha medido con lectores. GRID no ve e
 aplicación es un corte de media cabeza, no una cara de vídeo: los controles se trasladan a ella
 con una calibración por poses comunes, que es una decisión de diseño y no algo medido.
 
-\subsection{En desarrollo: la cara que habla de frente (Eos)}
+\subsection{Eos: cara que habla de frente, integración y límites}
 \label{sec:eos}
 
 La boca 3D del apartado anterior enseña la articulación en corte. Una cara completa que lea
 las frases de frente ---\textbf{Eos}, una cara MetaHuman de Epic exportada a GLB con 52
-coeficientes de expresión ARKit--- está en desarrollo, \textbf{no forma parte de la
-aplicación publicada} y se enseña en el vídeo de la entrega. Se documenta aquí porque el camino hasta ella ya tiene medidas, y
+coeficientes de expresión ARKit--- se integró en \emph{Pronunciar} el 28 de septiembre
+de 2026 con \textbf{85 sonidos pregrabados}. Para una frase nueva, la aplicación
+solicita un vídeo a un trabajador que corre en esta PC; si no está disponible,
+ofrece la boca 3D didáctica. Eos también presenta el vídeo de la entrega. Su
+naturalidad y utilidad pedagógica siguen pendientes de evaluación con lectores.
+Se documenta aquí porque el camino hasta ella ya tiene medidas, y
 porque dos de esas medidas cambiaron el plan
 (\cod{docs/ai/\allowbreak informe\_eos\_v3\_a2f\_2026-09-26.md}).
 
@@ -2743,11 +2747,12 @@ una plausible.
 Labios, mandíbula y mejillas al hablar & Audio2Face-3D (52 ARKit) & captura 4D: articula más y mejor que cualquier etiqueta 2D \\
 Precisión pedagógica de la boca & modelo articulatorio de Blender (apartado~\ref{sec:articulatorio}) & es lo que enseña la pronunciación \\
 Sonrisa, ojos, cejas y cabeza & no verbal generativo v3 & la voz no los determina \\
-Voz & edge-tts (en-US-AvaNeural) & sin coste \\
+Voz del comercial & Willow (GPT-Live) & elegida por Miguel; distinta del audio de los 85 clips \\
 \bottomrule
 \end{tabularx}
-\caption[Cómo queda Eos]{Cómo queda Eos a 26 de septiembre de 2026. Fuente:
-\url{docs/ai/informe_eos_v3_a2f_2026-09-26.md}.}
+\caption[Cómo queda Eos]{Modelos de Eos medidos el 26 de septiembre;
+integración y voz del comercial actualizadas el 29. Fuentes: informe de Eos y
+\cod{docs/ai/HANDOFF.md}.}
 \label{tab:eos}
 \end{table}
 
@@ -2760,11 +2765,13 @@ ronda 0,45---; cierre en /p b m/ de 0,225 frente a 0,155 en las caras reales, y 
 no pasa de $r \approx 0{,}3$. Audio2Face queda como boca de Eos con números, no por preferencia.
 El coste del día fue de unas 30 unidades de cómputo.
 
-\textbf{Lo que falta, y por qué no entra.} Queda comparar en vídeo tres versiones de la misma
-frase: la fusión anterior, Audio2Face con el no verbal v3, y la boca v3 con el no verbal v3.
-Ninguna cifra de Eos se ha medido con lectores, y la cara no está integrada en
-\emph{Pronunciar}. Se presenta como trabajo en curso, con sus medidas, no como parte de la
-aplicación entregada.
+\textbf{Estado y límites al 29 de septiembre.} Eos aparece en \emph{Pronunciar} con
+los 85 sonidos pregrabados; el flujo de frases nuevas se probó de punta a punta
+en el Space, pero depende del trabajador de esta PC. El comercial v3 de 2:12,04
+está en \cod{entrega/pleyade\_eos\_comercial\_v3\_4k.mp4} y en Drive; Miguel
+probó el QR en su móvil. Ninguna cifra de Eos se ha medido con lectores y la
+naturalidad de su expresión sigue en revisión humana. La integración técnica
+no demuestra por sí sola mejora de pronunciación.
 
 % ===========================================================================
 \section{Resolución del problema}
@@ -3515,10 +3522,11 @@ vez, al principio de la lista, en lugar de repetirlo en cada párrafo corregido.
   \item Medir el efecto real sobre el abandono: comparar la tasa de libros terminados
         entre lectores que eligen con recomendación y sin ella. Es la única métrica que
         verdaderamente valida la propuesta.
-  \item \textbf{Una cara que habla de frente.} La boca 3D enseña la articulación en corte;
-        una cara completa que lea las frases de frente (\emph{Eos}, sobre un MetaHuman de
-        Epic) está en desarrollo, \textbf{no está en la aplicación publicada} y se
-        enseña en el vídeo (apartado~\ref{sec:eos}).
+  \item \textbf{Validar la cara que habla de frente.} Eos ya muestra 85 sonidos
+        pregrabados en \emph{Pronunciar} y presenta el comercial
+        (apartado~\ref{sec:eos}). Falta medir con lectores si ayuda a entender la
+        articulación, mejorar su naturalidad y hacer que las frases nuevas no
+        dependan de esta PC.
   \item \textbf{Convertir las cinco acciones en herramientas de un agente}
         (\emph{function calling}). Hoy cada una tiene su botón: medir un capítulo,
         buscar por significado, abrir un libro, explicar una palabra y corregir la
