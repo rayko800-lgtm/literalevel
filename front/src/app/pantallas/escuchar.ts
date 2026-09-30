@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Api, AudioLectura, EntradaBiblioteca, Libro, mensajeError } from '../nucleo/api';
 import { Sesion } from '../nucleo/sesion';
+import { Icono } from '../compartido/icono';
 
 @Component({
   selector: 'app-escuchar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, Icono],
   template: `
     <div class="pagina estrecha">
       <header class="cabecera-pagina">
@@ -61,14 +62,41 @@ import { Sesion } from '../nucleo/sesion';
         <section class="tarjeta lectura" aria-label="Texto de la lectura">
           <h2>{{ f.titulo }}</h2>
           @if (audioUrl(); as url) {
-            <audio #reproductor controls preload="metadata" [src]="url" (timeupdate)="sincronizar()" (seeking)="sincronizar()"
-              (loadedmetadata)="sincronizar()" (ended)="terminar()" (error)="errorAudio()"></audio>
-            <label class="velocidad">Velocidad
-              <select [ngModel]="velocidad()" (ngModelChange)="cambiarVelocidad(+$event)">
-                <option [ngValue]="0.75">0,75×</option><option [ngValue]="1">1×</option>
-                <option [ngValue]="1.25">1,25×</option><option [ngValue]="1.5">1,5×</option>
-              </select>
-            </label>
+            <audio #reproductor hidden preload="metadata" [src]="url" (timeupdate)="sincronizar()" (seeking)="sincronizar()"
+              (loadedmetadata)="sincronizar()" (durationchange)="sincronizar()" (play)="sincronizar()" (pause)="sincronizar()"
+              (ended)="terminar()" (error)="errorAudio()"></audio>
+            <section class="barra-audio" aria-label="Reproductor de lectura">
+              <div class="contexto-audio">
+                <app-icono nombre="libro" />
+                <strong>{{ f.titulo }}</strong>
+                <span>{{ f.parte + 1 }} / {{ f.total }}</span>
+              </div>
+              <div class="acciones-audio">
+                <button class="control-audio salto" type="button" aria-label="Retroceder 10 segundos" title="Retroceder 10 segundos"
+                  (click)="saltar(-10)" [disabled]="!duracion()"><app-icono nombre="recargar" /><span>10</span></button>
+                <button class="control-audio reproducir" type="button" [attr.aria-label]="reproduciendo() ? 'Pausar audio' : 'Reproducir audio'"
+                  (click)="alternar()" [disabled]="iniciando()">
+                  @if (reproduciendo()) {
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+                  } @else { <app-icono nombre="play" /> }
+                </button>
+                <button class="control-audio salto adelante" type="button" aria-label="Avanzar 10 segundos" title="Avanzar 10 segundos"
+                  (click)="saltar(10)" [disabled]="!duracion()"><app-icono nombre="recargar" /><span>10</span></button>
+                <select class="velocidad" aria-label="Velocidad del audio" [ngModel]="velocidad()" (ngModelChange)="cambiarVelocidad(+$event)">
+                  <option [ngValue]="0.75">0,75×</option><option [ngValue]="1">1×</option>
+                  <option [ngValue]="1.25">1,25×</option><option [ngValue]="1.5">1,5×</option>
+                </select>
+                <button class="control-audio siguiente" type="button" aria-label="Siguiente fragmento" title="Siguiente fragmento"
+                  (click)="mover(1)" [disabled]="ocupado() || !haySiguiente()"><app-icono nombre="ultimo" /></button>
+              </div>
+              <div class="progreso-audio">
+                <span>{{ reloj(tiempo()) }}</span>
+                <input type="range" aria-label="Posición del audio" min="0" [max]="duracion() || 1" step="0.1" [value]="tiempo()"
+                  [disabled]="!duracion()" [attr.aria-valuetext]="reloj(tiempo()) + ' de ' + reloj(duracion())"
+                  (input)="buscar(+$any($event.target).value)" />
+                <span>{{ reloj(duracion()) }}</span>
+              </div>
+            </section>
             <p class="tenue pequeno">Voz generada por IA.@if (f.aproximado) { El resaltado es aproximado. }</p>
           }
           <p class="texto" lang="en">@for (p of palabras(); track $index) {<span [class.leida]="$index < leidas()" [class.actual]="$index === activa()">{{ p }}</span>}</p>
@@ -80,16 +108,40 @@ import { Sesion } from '../nucleo/sesion';
   styles: `
     .controles { display: grid; gap: .85rem; margin-bottom: 1.25rem; }
     select { width: 100%; min-height: 44px; padding: .65rem; border: 1px solid var(--borde); border-radius: .5rem; background: var(--fondo); color: inherit; }
-    .partes { justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
-    .partes span { font-size: .85rem; }
+    :host { display: block; }
+    :host:has(.barra-audio) { padding-bottom: 11rem; }
+    .partes { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .partes span { grid-column: 1 / -1; grid-row: 1; text-align: center; font-size: .85rem; }
     .lectura h2 { font-size: 1.2rem; margin-bottom: 1rem; }
-    audio { width: 100%; margin-bottom: .75rem; }
-    .velocidad { display: flex; align-items: center; gap: .75rem; }
-    .velocidad select { width: auto; }
+    .barra-audio { position: fixed; z-index: 45; bottom: 1rem; left: 50%; transform: translateX(-50%); width: min(640px, calc(100% - 2rem));
+      padding: .75rem 1rem; border: 1px solid var(--borde-fuerte); border-radius: 1.25rem; background: var(--superficie);
+      box-shadow: 0 8px 32px -8px #0006; }
+    .contexto-audio { display: flex; align-items: center; gap: .5rem; color: var(--acento-texto); font-size: .8rem; }
+    .contexto-audio strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .contexto-audio span { margin-left: auto; white-space: nowrap; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+    .acciones-audio { display: flex; align-items: center; justify-content: center; gap: .65rem; padding-top: .45rem; }
+    .control-audio { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0;
+      border: 0; border-radius: 50%; background: transparent; color: var(--acento-texto); cursor: pointer; }
+    .control-audio:hover { background: var(--acento-suave); }
+    .control-audio:disabled { opacity: .4; cursor: default; }
+    .reproducir { width: 52px; height: 52px; background: var(--acento); color: var(--sobre-acento); font-size: 1.35rem; }
+    .reproducir:hover { background: var(--acento-hondo); }
+    .reproducir svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; }
+    .salto app-icono { width: 32px; height: 32px; }
+    .salto span { position: absolute; font-size: .65rem; font-weight: 700; }
+    .adelante app-icono { transform: scaleX(-1); }
+    .velocidad { width: 78px; min-height: 44px; padding: .5rem .25rem; border-radius: .75rem; background: var(--superficie-2); font-size: .85rem; }
+    .progreso-audio { display: flex; align-items: center; gap: .6rem; font-size: .75rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+    .progreso-audio input { flex: 1; min-width: 0; height: 32px; margin: 0; accent-color: var(--acento); cursor: pointer; }
     .texto { font-family: Georgia, serif; font-size: 1.2rem; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
     .texto span { border-radius: .2rem; }
-    .leida { color: #3769a0; }
+    .leida { color: var(--acento-texto); }
     .actual { background: #ffe08a; color: #172a43; box-shadow: 0 2px 0 #bd8300; }
+    @media (max-width: 760px) {
+      .barra-audio { left: 0; right: 0; transform: none; width: auto; bottom: var(--barra-inf); border-radius: 1rem 1rem 0 0;
+        padding: .6rem max(1rem, env(safe-area-inset-left)); transition: bottom .25s ease; }
+      :host-context(body:has(.nav-movil.oculta)) .barra-audio { bottom: 0; padding-bottom: max(.6rem, env(safe-area-inset-bottom)); }
+    }
     @media (max-width: 420px) { .partes .boton { padding: .6rem .65rem; } .texto { font-size: 1.1rem; } }
   `,
 })
@@ -111,6 +163,10 @@ export class Escuchar implements OnDestroy {
   readonly leidas = signal(0);
   readonly finalizado = signal(false);
   readonly velocidad = signal(1);
+  readonly reproduciendo = signal(false);
+  readonly iniciando = signal(false);
+  readonly tiempo = signal(0);
+  readonly duracion = signal(0);
   readonly palabras = computed(() => this.fragmento()?.texto.match(/\S+\s*/g) ?? []);
   readonly hayAnterior = computed(() => !!this.fragmento() && (this.fragmento()!.parte > 0 || this.cap() > 0));
   readonly haySiguiente = computed(() => !!this.fragmento() && (this.fragmento()!.parte + 1 < this.fragmento()!.total || this.cap() + 1 < (this.libro()?.capitulos.length ?? 0)));
@@ -147,6 +203,10 @@ export class Escuchar implements OnDestroy {
     this.leidas.set(0);
     cancelAnimationFrame(this.desplazamiento);
     this.finalizado.set(false);
+    this.reproduciendo.set(false);
+    this.iniciando.set(false);
+    this.tiempo.set(0);
+    this.duracion.set(0);
   }
 
   async iniciar(): Promise<void> {
@@ -252,6 +312,10 @@ export class Escuchar implements OnDestroy {
     if (!audio || !f) return;
     audio.playbackRate = this.velocidad();
     const tiempo = audio.currentTime;
+    this.tiempo.set(tiempo);
+    this.duracion.set(Number.isFinite(audio.duration) ? audio.duration : 0);
+    this.reproduciendo.set(!audio.paused && !audio.ended);
+    if (audio.ended) { this.terminar(); return; }
     this.finalizado.set(false);
     if (f.palabras.length === this.palabras().length && f.palabras.length) {
       this.activa.set(f.palabras.findIndex(p => tiempo >= p.inicio && tiempo < p.fin));
@@ -268,14 +332,41 @@ export class Escuchar implements OnDestroy {
       this.desplazamiento = requestAnimationFrame(() => {
         const palabra = this.elemento.nativeElement.querySelector('.actual');
         const caja = palabra?.getBoundingClientRect();
-        if (caja && (caja.top < 80 || caja.bottom > window.innerHeight - 100)) {
+        const barra = this.elemento.nativeElement.querySelector('.barra-audio')?.getBoundingClientRect();
+        if (caja && (caja.top < 80 || caja.bottom > (barra?.top ?? window.innerHeight - 100) - 16)) {
           palabra?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
         }
       });
     }
   }
+  async alternar(): Promise<void> {
+    const audio = this.reproductor()?.nativeElement;
+    if (!audio || this.iniciando()) return;
+    if (!audio.paused) { audio.pause(); return; }
+    const v = this.version;
+    this.iniciando.set(true);
+    this.aviso.set('');
+    if (audio.ended || this.finalizado()) audio.currentTime = 0;
+    try { await audio.play(); }
+    catch { if (v === this.version) this.aviso.set('No se ha podido iniciar el audio. Pulsa reproducir para intentarlo de nuevo.'); }
+    finally { if (v === this.version) { this.iniciando.set(false); this.sincronizar(); } }
+  }
+  buscar(valor: number): void {
+    const audio = this.reproductor()?.nativeElement;
+    if (!audio || !Number.isFinite(valor) || !this.duracion()) return;
+    audio.currentTime = Math.max(0, Math.min(this.duracion(), valor));
+    this.sincronizar();
+  }
+  saltar(segundos: number): void { this.buscar(this.tiempo() + segundos); }
+  reloj(segundos: number): string {
+    const total = Math.max(0, Math.floor(segundos));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  }
   cambiarVelocidad(valor: number): void { this.velocidad.set(valor); this.sincronizar(); }
-  terminar(): void { this.activa.set(this.palabras().length); this.leidas.set(this.palabras().length); this.finalizado.set(true); }
+  terminar(): void {
+    this.reproduciendo.set(false);
+    this.activa.set(this.palabras().length); this.leidas.set(this.palabras().length); this.finalizado.set(true);
+  }
   errorAudio(): void { this.aviso.set('No se ha podido reproducir el audio. Vuelve a cargarlo.'); this.limpiarAudio(); }
   ngOnDestroy(): void { ++this.version; this.limpiarAudio(); }
 }

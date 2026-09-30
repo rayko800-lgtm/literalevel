@@ -110,6 +110,73 @@ describe('Escuchar libros', () => {
     expect(fixture.nativeElement.textContent).toContain('resaltado es aproximado');
   });
 
+  it('el reproductor propio permite reproducir, pausar y repetir el audio terminado', async () => {
+    await componente.escuchar();
+    fixture.detectChanges();
+    const audio = componente.reproductor()!.nativeElement;
+    let pausado = true;
+    Object.defineProperty(audio, 'paused', { configurable: true, get: () => pausado });
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 144 });
+    const play = vi.spyOn(audio, 'play').mockImplementation(async () => { pausado = false; audio.dispatchEvent(new Event('play')); });
+    const pause = vi.spyOn(audio, 'pause').mockImplementation(() => { pausado = true; audio.dispatchEvent(new Event('pause')); });
+    audio.dispatchEvent(new Event('loadedmetadata'));
+    fixture.detectChanges();
+    expect(audio.controls).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('2:24');
+    fixture.nativeElement.querySelector('[aria-label="Reproducir audio"]').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(play).toHaveBeenCalledOnce();
+    expect(componente.reproduciendo()).toBe(true);
+    fixture.nativeElement.querySelector('[aria-label="Pausar audio"]').click();
+    expect(pause).toHaveBeenCalledOnce();
+    expect(componente.reproduciendo()).toBe(false);
+    audio.currentTime = 144;
+    audio.dispatchEvent(new Event('ended'));
+    await componente.alternar();
+    expect(audio.currentTime).toBe(0);
+    expect(componente.finalizado()).toBe(false);
+    expect(play).toHaveBeenCalledTimes(2);
+    expect(api.audioLecturaArchivo).toHaveBeenCalledOnce();
+  });
+
+  it('la barra de progreso y los saltos actualizan la guía sin pedir más audio', async () => {
+    await componente.escuchar();
+    fixture.detectChanges();
+    const audio = componente.reproductor()!.nativeElement;
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 2 });
+    audio.dispatchEvent(new Event('loadedmetadata'));
+    fixture.detectChanges();
+    const progreso = fixture.nativeElement.querySelector('[aria-label="Posición del audio"]');
+    progreso.value = '1.4';
+    progreso.dispatchEvent(new Event('input'));
+    expect(audio.currentTime).toBe(1.4);
+    expect(componente.activa()).toBe(1);
+    fixture.nativeElement.querySelector('[aria-label="Retroceder 10 segundos"]').click();
+    expect(audio.currentTime).toBe(0);
+    expect(componente.activa()).toBe(0);
+    fixture.nativeElement.querySelector('[aria-label="Avanzar 10 segundos"]').click();
+    expect(audio.currentTime).toBe(2);
+    expect(api.audioLecturaArchivo).toHaveBeenCalledOnce();
+    expect(api.audioLectura.mock.calls.filter((llamada: any[]) => llamada[3])).toHaveLength(1);
+  });
+
+  it('si el navegador rechaza reproducir permite reintentar sin regenerar', async () => {
+    await componente.escuchar();
+    fixture.detectChanges();
+    const audio = componente.reproductor()!.nativeElement;
+    vi.spyOn(audio, 'play').mockRejectedValueOnce(new DOMException('Bloqueado', 'NotAllowedError'));
+    await componente.alternar();
+    expect(componente.aviso()).toContain('Pulsa reproducir');
+    expect(componente.iniciando()).toBe(false);
+    expect(componente.audioUrl()).toBe('blob:lectura');
+    expect(api.audioLecturaArchivo).toHaveBeenCalledOnce();
+    await componente.mover(1);
+    expect(componente.tiempo()).toBe(0);
+    expect(componente.duracion()).toBe(0);
+    expect(componente.reproduciendo()).toBe(false);
+  });
+
   it('si falla la generación muestra el motivo y refresca el cupo', async () => {
     api.audioLectura.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403, error: { detail: 'Sin cupo' } })));
     await componente.escuchar();
