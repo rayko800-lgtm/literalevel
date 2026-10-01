@@ -311,3 +311,6 @@ audio nuevo, el vídeo se genera **por fuera** y vuelve a la app. Hecho, sin pub
   bajo sus títulos 3.7 y 3.8, columnas de los cuadros 3 y 6): **volver a subirlo a Classroom**; PENDIENTES aún
   dice 65. **B1, serio para la demo:** la cuenta `miguel` está en 0,72/B1 (cuestionario del 27 sep) y el guion de
   la demo pide 1,20/B2; receta para 1,20 y detalle en `auditoria/preentrega_2026-09-30.md`.
+- **Auditoría completa (30 sep, noche):** documento (66 pp.), estrategia (20) y cuaderno leídos enteros; `estrategia.md/.pdf`
+  (Cuadro 21→28, PDF regenerado con `tmp/pdfs/make_strategy.mjs` + Chrome) y `notebook_proyecto.py/.ipynb` (599→598,
+  reejecutado en limpio) corregidos. Volver a subir a Classroom documento, estrategia y cuaderno. 96/110.

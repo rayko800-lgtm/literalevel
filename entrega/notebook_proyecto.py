@@ -878,7 +878,7 @@ print("Proporción C1-C2:", round(float(medido_v4[["C1", "C2"]].sum() / medido_v
 # %% [markdown]
 # **El catálogo medido dice lo contrario que el heredado.** Donde el v1 veía un
 # 60 % de libros A1, el v4 leyendo cada libro entero ve un **93 % en C1–C2**, y
-# solo 599 libros en A1–B1. Es lo esperable: la literatura del XIX es difícil.
+# solo 598 libros en A1–B1. Es lo esperable: la literatura del XIX es difícil.
 #
 # Dos cautelas. La letra es orientativa, porque la escala del modelo sale
 # comprimida y desplazada hacia arriba (§7.2). Y entre los libros «fáciles» había

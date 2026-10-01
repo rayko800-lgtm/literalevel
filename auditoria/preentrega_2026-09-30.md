@@ -81,3 +81,23 @@ cuadernos.
 1. **Volver a subir `documento.pdf`** a Classroom (cambió hoy: 66 páginas).
 2. Resolver B1 y ensayar la demo.
 3. Confirmar el cuaderno adjunto (A6) y la copia del vídeo.
+
+## Auditoría completa (30 sep, noche): lectura íntegra y cierre de lo que salió
+**Nota simulada: 96 / 110** (sin cambio respecto a la tarde: lo nuevo confirma, no resta).
+
+### Leído entero
+- **Documento:** las 66 páginas, texto completo (unas 35.000 palabras), tras la recompilación de la tarde. Coherente en cifras y fechas con estrategia, presentación, guion de la demo y cuaderno; las salvedades (validación interna no ciega, 38 frente a 47 textos, escala comprimida, Eos sin validar con lectores) están en los tres sitios. Sin erratas detectadas. Referencias en APA con DOI o URL.
+- **Estrategia:** las 20 páginas. **Una referencia cruzada caducada corregida:** citaba «Cuadro 21 del PDF —el 16 de la copia de lectura—» para las velocidades y hoy son el **Cuadro 28** del PDF y el **17** del `.md`. Corregido en `estrategia.md` y **`estrategia.pdf` regenerado con la misma receta de la otra sesión** (`tmp/pdfs/make_strategy.mjs` + impresión con Chrome): 20 páginas, maquetación idéntica.
+- **Cuaderno:** las 46 celdas de texto (12.000 palabras). **Una cifra desalineada corregida:** decía «solo 599 libros en A1–B1» y el Cuadro 11 del documento suma 1 + 40 + 557 = **598** (tras la corrección de PG2242). Corregido en el `.py`, `.ipynb` regenerado y **ejecutado otra vez en carpeta limpia: 57 celdas, 1–57, 0 errores, 0 stderr**. Las cifras centrales (0,908, 97,2 %, 53.179, 4.724, medias por nivel) salen de las celdas ejecutadas; 0,860, 0,807, 0,668 y 585.111 van en el texto, calculadas fuera (`validar_local.py`, precálculo), y el propio cuaderno lo declara.
+- **Presentación:** texto completo de las 17 diapositivas; la 13 declara el 1,20 como «caso ilustrativo, no una sesión registrada», coherente con B1 (la cuenta está en 0,72).
+- **Mensaje al profesor:** completo; sin contraseñas, enlace de Vercel, topes iguales a los del documento, Eos presentada como está.
+- **Interfaz, de nuevo en el build de hoy** (`main-G2GOFZ7O.js`, con los tres commits del reproductor de lectura de la otra sesión): el recorrido de la demo a 390×844 sigue entero, sin errores de consola, Eos y boca 3D funcionando.
+
+### Para volver a subir a Classroom
+1. `documento.pdf` (tarde: 66 páginas).
+2. `estrategia.pdf` (noche: referencia al Cuadro 28).
+3. `notebook_proyecto.ipynb` (noche: 598; ejecutado en limpio aquí; lo ideal, ejecutarlo en Colab y adjuntar esa copia).
+
+### Sigue en pie
+- **B1:** perfil de la cuenta `miguel` en 0,72/B1 frente al 1,20 del guion de la demo (receta arriba).
+- Ensayo de la demo con voz; copia del vídeo (720p H.264); `uso_openai.json` a cero; «Entregar».

@@ -438,7 +438,7 @@ Esperar instrucción de Miguel.
 
 # E2 — Segunda auditoría de la entrega (30 sep 2026, 01:40)
 
-**Status:** 🟠 FIX REQUIRED (96/110 tras la revisión ampliada; B1: la cuenta de la demo está en 0,72/B1 y el guion pide 1,20; documento recompilado a 66 páginas, hay que volver a subirlo)
+**Status:** 🟠 FIX REQUIRED (96/110; auditoría completa la noche del 30: documento, estrategia y cuaderno leídos enteros, dos cruces corregidos; falta B1 —perfil de la demo 0,72/B1 frente a 1,20—, volver a subir documento, estrategia y cuaderno, y el ensayo)
 
 ## Evidencia
 
