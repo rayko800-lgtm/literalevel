@@ -1689,7 +1689,13 @@ def indice_de_romanos_de_una_letra_no_abre_el_libro():
              "other name, and in his eyes she eclipsed and predominated the whole of her sex; it was not "
              "that he felt any emotion akin to love for Irene Adler, as V. said.")
     assert api._parece_indice(prosa) is False, "prosa con dos romanos sueltos se toma por índice"
-    lib = api._cargar_libro(ui._descargar_gutenberg("PG1661"))
+    # Regresión del filtro, sin depender de cambios de prólogo en Gutenberg.
+    comienzo = ("To Sherlock Holmes she is always _the_ woman. I have seldom heard him mention her "
+                "under any other name. In his eyes she eclipses and predominates the whole of her sex. "
+                "It was not that he felt any emotion akin to love for Irene Adler. All emotions, and "
+                "that one particularly, were abhorrent to his cold, precise but admirably balanced mind.")
+    lib = api.reader.Libro("The Adventures of Sherlock Holmes", "Arthur Conan Doyle",
+                           [api.reader.Capitulo("Texto completo", "Contents\n\n" + indice + "\n\n" + comienzo)])
     primero = api._parrafos(lib, 0)[0]
     assert primero.startswith("To Sherlock Holmes she is always _the_ woman."), primero[:80]
     return primero[:40]
