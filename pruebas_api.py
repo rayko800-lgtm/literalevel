@@ -281,15 +281,16 @@ def con_perfiles_sin_entrar_no_paga():
         # El motivo no puede mandar al lector a donde estaba la puerta en Gradio.
         assert "entres con tu perfil" in r.json()["detail"], r.text
         assert "arriba del todo" not in r.json()["detail"], r.text
-        mal = _ok(cliente.post("/api/entrar", headers=B,
-                               json={"usuario": "profe", "clave": "otra"}))
-        assert not mal["dentro"] and mal["mensaje"]
+        mal = cliente.post("/api/entrar", headers=B, json={"usuario": "profe", "clave": "otra"})
+        assert mal.status_code == 401
         bien = _ok(cliente.post("/api/entrar", headers=B,
                                 json={"usuario": "profe", "clave": "una-clave-larga"}))
         assert bien["dentro"] and bien["nombre"] == "profe" and bien["restantes"] == 3
+        B["Authorization"] = "Bearer " + bien["token"]
         # Entrar en B no deja dentro a A.
         assert not _ok(cliente.get("/api/entrada", headers=A))["dentro"]
         fuera = _ok(cliente.post("/api/salir", headers=B))
+        B.pop("Authorization", None)
         assert not fuera["dentro"]
     finally:
         os.environ.pop("LITERALEVEL_CUENTAS", None)
@@ -306,26 +307,30 @@ def datos_de_la_cuenta_en_cualquier_aparato():
         # Lo que el movil tenia ANTES de entrar se queda en el navegador (las cuentas empiezan en cero).
         _ok(cliente.post("/api/perfil/cuestionario", headers=movil,
                          json={"respuestas": {"fragmento_medio": 0.4}, "nombre": "Antes"}))
-        assert _ok(cliente.post("/api/entrar", headers=movil,
-                                json={"usuario": "profe", "clave": "una-clave-larga"}))["dentro"]
+        e = _ok(cliente.post("/api/entrar", headers=movil,
+                                json={"usuario": "profe", "clave": "una-clave-larga"}))
+        movil["Authorization"] = "Bearer " + e["token"]
         assert _ok(cliente.get("/api/perfil", headers=movil))["perfil"] is None, "la cuenta no empieza en cero"
         _ok(cliente.post("/api/perfil/cuestionario", headers=movil,
                          json={"respuestas": {"fragmento_medio": 1.5}, "nombre": "Miguel"}))
         # Otro aparato, misma cuenta (el usuario no distingue mayusculas): lo ve.
-        assert _ok(cliente.post("/api/entrar", headers=tablet,
-                                json={"usuario": "PROFE", "clave": "una-clave-larga"}))["dentro"]
+        e = _ok(cliente.post("/api/entrar", headers=tablet,
+                                json={"usuario": "PROFE", "clave": "una-clave-larga"}))
+        tablet["Authorization"] = "Bearer " + e["token"]
         pt = _ok(cliente.get("/api/perfil", headers=tablet))["perfil"]
         assert pt and pt["nivel"] == 1.5 and pt["nombre"] == "Miguel", pt
         # Otra cuenta no lo ve.
-        _ok(cliente.post("/api/entrar", headers=ajeno, json={"usuario": "ana", "clave": "otra-clave-larga"}))
+        e = _ok(cliente.post("/api/entrar", headers=ajeno, json={"usuario": "ana", "clave": "otra-clave-larga"}))
+        ajeno["Authorization"] = "Bearer " + e["token"]
         assert _ok(cliente.get("/api/perfil", headers=ajeno))["perfil"] is None
         # La atadura sobrevive a un reinicio (sin la sesion de pago en memoria).
         ui._CODIGO_SESION.clear(); ui._reiniciar_ataduras()
         pt = _ok(cliente.get("/api/perfil", headers=tablet))["perfil"]
         assert pt and pt["nivel"] == 1.5, f"tras reiniciar: {pt}"
-        assert "una-clave-larga" not in (ui.BASE_DATOS_LECTOR / ui._ARCHIVO_ATADURAS).read_text(encoding="utf-8")
+        assert b"una-clave-larga" not in (ui.BASE_DATOS_LECTOR / "seguridad.sqlite3").read_bytes()
         # Al salir, el movil vuelve a lo suyo de antes.
         _ok(cliente.post("/api/salir", headers=movil))
+        movil.pop("Authorization", None)
         pm = _ok(cliente.get("/api/perfil", headers=movil))["perfil"]
         assert pm and pm["nombre"] == "Antes", pm
     finally:
@@ -571,12 +576,12 @@ def voz_audio_por_palabra_y_falladas_con_su_frase():
     assert r["detalles"][2]["fonema"]["simbolo"] == "r" and r["detalles"][2]["fonema"]["acento"] == "rp", r["detalles"][2]
     assert malo.status_code == 422, malo.status_code
     assert vistas.get("frase") == "The red raincoat.", "no llego a corregir"
-    assert r["detalles"][0]["audio"] == f"/api/audio/{mp3.name}", r["detalles"]
-    assert r["detalles"][1]["audio"] == f"/api/audio/{compuesto.name}", r["detalles"]
+    assert r["detalles"][0]["audio"] is None, "sin cuenta no se emite enlace privado"
+    assert r["detalles"][1]["audio"] is None
     f = _ok(cliente.get("/api/voz/falladas", headers=lector))["palabras"]
     assert [(x["palabra"], x["fallos"], x["frase"]) for x in f] == [("raincoat", 1, "The red raincoat.")], f
     assert _ok(cliente.get("/api/voz/falladas", headers=B))["palabras"] == []
-    return f"audio {r['detalles'][0]['audio'][:24]}… · falladas 1 con frase"
+    return "sin cuenta, audio privado oculto; falladas 1 con frase"
 
 
 def voz_prepara_temporal_antes_de_cobrar():
@@ -1084,51 +1089,17 @@ def precarga_y_peticion_comparten_el_catalogo():
 
 
 def silencio_devuelve_el_uso_con_tope_diario():
-    """Central, reinicio 26: una grabacion en la que whisper responde sin voz devuelve el uso,
-    por cuenta y con 10 al dia; el 11 no devuelve. Otro dia empieza de cero. Una cuenta sin
-    tope no tiene nada que devolver. Veinte devoluciones a la vez dejan el contador exacto."""
-    import json
-    import threading
     import cuentas
-
-    viejo = os.environ.get("LITERALEVEL_CUENTAS")
-    os.environ["LITERALEVEL_CUENTAS"] = "jefe:LLAVE-A:0,invitado:LLAVE-B:40"
-    try:
-        with tempfile.TemporaryDirectory(prefix="ll_devol_") as carpeta:
+    from unittest.mock import patch
+    with patch.dict(os.environ, {"LITERALEVEL_CUENTAS": "silencioprueba:fixture:40"}):
+        with tempfile.TemporaryDirectory() as carpeta:
             base = Path(carpeta)
             for _ in range(12):
-                assert cuentas.consumir(base, "invitado:LLAVE-B")[0]
-            hechas = [cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") for _ in range(11)]
-            assert hechas == [True] * 10 + [False], hechas
-            assert cuentas.gastado(base, "invitado") == 2, cuentas.gastado(base, "invitado")
-            assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-16") is True, "otro dia"
-            assert cuentas.gastado(base, "invitado") == 1
-            assert cuentas.devolver_por_silencio(base, "jefe:LLAVE-A", hoy="2026-09-16") is False, "sin tope"
-            assert cuentas.devolver_por_silencio(base, None, hoy="2026-09-16") is False, "sin codigo"
-        with tempfile.TemporaryDirectory(prefix="ll_devol_hilos_") as carpeta:
-            base = Path(carpeta)
-            for _ in range(20):
-                cuentas.consumir(base, "invitado:LLAVE-B")
-            devueltas = []
+                assert cuentas.consumir(base, "silencioprueba:fixture")[0]
+            assert not any(cuentas.devolver_por_silencio(base, "silencioprueba:fixture") for _ in range(20))
+            assert cuentas.gastado(base, "silencioprueba") == 12
+    return "silencio ya facturable: no devuelve usos ni permite consumo infinito"
 
-            def devolver():
-                if cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15"):
-                    devueltas.append(1)
-            hilos = [threading.Thread(target=devolver) for _ in range(20)]
-            for h in hilos:
-                h.start()
-            for h in hilos:
-                h.join()
-            registro = json.loads((base / "devoluciones_silencio.json").read_text(encoding="utf-8"))
-            assert len(devueltas) == 10, f"{len(devueltas)} devueltas de 20 a la vez"
-            assert cuentas.gastado(base, "invitado") == 10, cuentas.gastado(base, "invitado")
-            assert registro == {"2026-09-15": {"invitado": 20}}, registro
-    finally:
-        if viejo is None:
-            os.environ.pop("LITERALEVEL_CUENTAS", None)
-        else:
-            os.environ["LITERALEVEL_CUENTAS"] = viejo
-    return "10 al dia y el 11 no; otro dia de cero; sin tope ni codigo, no; 20 a la vez, 10 y contador exacto"
 
 
 def voz_sin_voz_devuelve_a_la_cuenta_cobrada():
@@ -1225,35 +1196,18 @@ def curva_de_un_solo_capitulo_sin_forma():
 
 
 def devolucion_sin_cobro_ni_registro_raro():
-    """Reinicio 27 (menores de 4e): sin nada cobrado, `devolver_por_silencio` da False y no gasta un hueco del
-    dia; si restar lanza, tampoco; y una entrada no numerica en el registro cuenta como 0 en vez de dejar sin
-    devolucion el resto del dia."""
-    import json
-    from unittest.mock import patch
     import cuentas
-
-    viejo = os.environ.get("LITERALEVEL_CUENTAS")
-    os.environ["LITERALEVEL_CUENTAS"] = "invitado:LLAVE-B:40"
-    try:
-        with tempfile.TemporaryDirectory(prefix="ll_devol_menores_") as carpeta:
+    from unittest.mock import patch
+    with patch.dict(os.environ, {"LITERALEVEL_CUENTAS": "silenciomenor:fixture:40"}):
+        with tempfile.TemporaryDirectory() as carpeta:
             base = Path(carpeta)
             registro = base / "devoluciones_silencio.json"
-            assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") is False, "sin cobro"
-            assert not registro.exists(), f"sin cobro se apunto: {registro.read_text(encoding='utf-8')}"
-            cuentas.consumir(base, "invitado:LLAVE-B")
-            with patch.object(cuentas, "_restar_ya_con_candado", side_effect=OSError("disco")):
-                assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") is False
-            assert not registro.exists(), "si restar lanza, no se apunta"
-            registro.write_text(json.dumps({"2026-09-15": {"invitado": "abc"}}), encoding="utf-8")
-            assert cuentas.devolver_por_silencio(base, "invitado:LLAVE-B", hoy="2026-09-15") is True, "entrada rara"
-            assert json.loads(registro.read_text(encoding="utf-8")) == {"2026-09-15": {"invitado": 1}}
-            assert cuentas.gastado(base, "invitado") == 0
-    finally:
-        if viejo is None:
-            os.environ.pop("LITERALEVEL_CUENTAS", None)
-        else:
-            os.environ["LITERALEVEL_CUENTAS"] = viejo
-    return "sin cobro y con restar roto no apunta; una entrada rara cuenta como 0 y devuelve"
+            registro.write_text('{"registro":"corrupto"}', encoding="utf-8")
+            assert cuentas.consumir(base, "silenciomenor:fixture")[0]
+            assert not cuentas.devolver_por_silencio(base, "silenciomenor:fixture")
+            assert cuentas.gastado(base, "silenciomenor") == 1
+    return "un registro extraño no devuelve un coste facturable"
+
 
 
 def voz_subida_y_palabra_no_bloquean_a_los_demas():
@@ -1599,109 +1553,23 @@ def corte_de_la_boca_en_svg():
 
 
 def lectura_en_vivo_da_clave_efimera_y_devuelve_si_falla():
-    """D5: sin clave de OpenAI, 503 sin cobrar; con clave, una clave EFÍMERA
-    (nunca la de la cuenta) y la sesión de solo transcripción; si OpenAI falla,
-    502 y el uso se devuelve. Sin red: urlopen fingido."""
-    import io, json as _json, urllib.request
-    assert cliente.post("/api/lectura/vivo", headers=A).status_code == 503
-    pedidas, devueltas = [], []
-    class Resp(io.BytesIO):
-        def __enter__(self): return self
-        def __exit__(self, *a): return False
-    def falso(req, timeout=None):
-        pedidas.append(_json.loads(req.data))
-        return Resp(_json.dumps({"value": "ek_prueba", "expires_at": 123}).encode())
-    orig = (urllib.request.urlopen, api.config.falta, api._devolver, os.environ.get("OPENAI_API_KEY"))
-    urllib.request.urlopen = falso
-    api.config.falta = lambda *a, **k: False
-    api._devolver = lambda codigo: devueltas.append(codigo)
-    os.environ["OPENAI_API_KEY"] = "sk-de-la-cuenta"
-    try:
+    from unittest.mock import patch
+    with patch("urllib.request.urlopen", side_effect=AssertionError("no salir al proveedor")):
         r = cliente.post("/api/lectura/vivo", headers=A)
-        assert r.status_code == 200, (r.status_code, r.text[:200])
-        d = r.json()
-        assert d["clave"] == "ek_prueba" and "sk-de-la-cuenta" not in r.text and d["minutos"] >= 1, d
-        sesion = pedidas[0]["session"]
-        assert sesion["type"] == "transcription"
-        assert sesion["audio"]["input"]["transcription"]["model"] == "gpt-live-transcribe"
-        def rota(req, timeout=None): raise OSError("sin red")
-        urllib.request.urlopen = rota
-        r = cliente.post("/api/lectura/vivo", headers=A)
-        assert r.status_code == 502 and len(devueltas) == 1, (r.status_code, devueltas)
-    finally:
-        urllib.request.urlopen, api.config.falta, api._devolver = orig[:3]
-        if orig[3] is None: os.environ.pop("OPENAI_API_KEY", None)
-        else: os.environ["OPENAI_API_KEY"] = orig[3]
-    return "503 sin clave, clave efímera con sesión de transcripción, 502 con devolución"
+    assert r.status_code == 503
+    assert "desactivado" in r.json()["detail"]
+    return "lectura en vivo bloqueada en servidor, sin credencial ni gasto"
+
 
 
 def gpt_live_intercambia_sdp_sin_exponer_clave():
-    """El JSON inicial es exacto y un fallo del proveedor devuelve el uso."""
-    import contextlib, hashlib, io, urllib.error, urllib.request
-    cabeceras = nuevo_lector()
-    assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"}).status_code == 503
-    assert cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": ""}).status_code == 422
-    pedidos, devueltos, cierres, topes = [], [], [], []
+    from unittest.mock import patch
+    with patch("urllib.request.urlopen", side_effect=AssertionError("no salir al proveedor")):
+        for datos in ({"sdp": "oferta"}, {"sdp": ""}):
+            r = cliente.post("/api/gpt-live/sesion", headers=A, json=datos)
+            assert r.status_code == 503
+    return "GPT-Live bloqueado en servidor aunque se manipule el cliente"
 
-    class Resp(io.BytesIO):
-        def __enter__(self): return self
-        def __exit__(self, *a): return False
-
-    def falso(req, timeout=None):
-        pedidos.append(req)
-        return Resp(json.dumps({"session": {"id": "opaque/id+123"},
-                                "transport": {"type": "webrtc", "sdp": "answer"}}).encode())
-
-    originales = (urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver,
-                  api._programar_cierre_gpt_live, api.ui._dentro_del_limite,
-                  os.environ.get("OPENAI_API_KEY"))
-    urllib.request.urlopen = falso
-    api.config.falta = lambda *a, **k: []
-    api._cobrar = lambda pet: (True, "", "cuenta-prueba")
-    api._devolver = lambda codigo: devueltos.append(codigo)
-    api._programar_cierre_gpt_live = lambda sesion_id: cierres.append(sesion_id)
-    api.ui._dentro_del_limite = lambda pet, cubo, tope, clave=None: (topes.append((cubo, tope, clave)) or True)
-    os.environ["OPENAI_API_KEY"] = "clave-de-prueba"
-    try:
-        r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
-        assert r.status_code == 200, r.text[:200]
-        assert r.json() == {"session": {"id": "opaque/id+123"}, "transport": {"sdp": "answer"}}
-        assert "clave-de-prueba" not in r.text
-        assert pedidos[0].full_url == "https://api.openai.com/v1/live/sessions"
-        assert pedidos[0].get_header("Authorization") == "Bearer clave-de-prueba"
-        assert json.loads(pedidos[0].data) == {
-            "session": json.loads((Path("app") / "gpt_live_session.json").read_text(encoding="utf-8")),
-            "transport": {"type": "webrtc", "sdp": "v=0"},
-        }
-        assert cierres == ["opaque/id+123"]
-        api._cerrar_gpt_live_por_tope("opaque/id+123")
-        assert pedidos[1].full_url == "https://api.openai.com/v1/live/sessions/opaque%2Fid%2B123/hangup"
-        assert pedidos[1].get_method() == "POST"
-        urllib.request.urlopen = lambda req, timeout=None: (_ for _ in ()).throw(OSError("sin red"))
-        r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
-        assert r.status_code == 502 and devueltos == ["cuenta-prueba"]
-        error_proveedor = urllib.error.HTTPError(
-            "https://api.openai.com/v1/live/sessions", 400, "bad request", {},
-            Resp(b'{"error":{"code":"invalid_model"}}'))
-        urllib.request.urlopen = lambda req, timeout=None: (_ for _ in ()).throw(error_proveedor)
-        registro = io.StringIO()
-        with contextlib.redirect_stderr(registro):
-            r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
-        assert r.status_code == 502 and devueltos == ["cuenta-prueba", "cuenta-prueba"]
-        assert "HTTP 400 invalid_model" in registro.getvalue()
-        assert "clave-de-prueba" not in registro.getvalue()
-        assert topes == [("gpt-live", api.LIMITE_GPT_LIVE_HORA,
-                           "gpt-live:" + hashlib.sha256(b"cuenta-prueba").hexdigest())] * 3
-        api.ui._dentro_del_limite = lambda pet, cubo, tope, clave=None: False
-        r = cliente.post("/api/gpt-live/sesion", headers=cabeceras, json={"sdp": "v=0"})
-        assert r.status_code == 429 and devueltos == ["cuenta-prueba"] * 3
-        assert len(pedidos) == 2  # El tope no abrió otra sesión en OpenAI.
-    finally:
-        (urllib.request.urlopen, api.config.falta, api._cobrar, api._devolver,
-         api._programar_cierre_gpt_live, api.ui._dentro_del_limite) = originales[:6]
-        if originales[6] is None: os.environ.pop("OPENAI_API_KEY", None)
-        else: os.environ["OPENAI_API_KEY"] = originales[6]
-    return "JSON exacto, SDP y ID opaco, corte programado, clave privada, devolución si falla"
 
 
 def ipa_de_lectura_para_la_boca_3d():
@@ -1733,11 +1601,21 @@ def ipa_de_lectura_con_los_tiempos_del_audio():
     lado.parent.mkdir(parents=True, exist_ok=True)
     lado.write_text(json.dumps({"texto": "The cat sat.", "duracion": 1.5, "palabras": [
         {"palabra": "The", "inicio": 0.1, "fin": 0.25}, {"palabra": "cat", "inicio": 0.25, "fin": 0.6}]}), encoding="utf-8")
+    from unittest.mock import patch
+    import seguridad
     try:
-        d = cliente.get("/api/lectura/ipa", params={"texto": "The cat sat.", "audio": mp3.name}).json()["palabras"]
+        with patch.dict(os.environ, {"LITERALEVEL_CUENTAS": "tiemposprueba:fixture-solo-prueba:40"}):
+            h = nuevo_lector()
+            token = _ok(cliente.post("/api/entrar", headers=h, json={"usuario": "tiemposprueba", "clave": "fixture-solo-prueba"}))["token"]
+            h["Authorization"] = "Bearer " + token
+            p = seguridad.resolver(token)
+            with seguridad.operacion(p):
+                seguridad.permitir_recurso("audio:" + mp3.name)
+                seguridad.permitir_recurso("audio:no_existe.mp3")
+            d = cliente.get("/api/lectura/ipa", headers=h, params={"texto": "The cat sat.", "audio": mp3.name}).json()["palabras"]
+            sin = cliente.get("/api/lectura/ipa", headers=h, params={"texto": "The cat sat.", "audio": "no_existe.mp3"}).json()["palabras"]
         assert [(w["palabra"], w.get("inicio"), w.get("fin")) for w in d] == [
             ("the", 0.1, 0.25), ("cat", 0.25, 0.6), ("sat", None, None)], d
-        sin = cliente.get("/api/lectura/ipa", params={"texto": "The cat sat.", "audio": "no_existe.mp3"}).json()["palabras"]
         assert all("inicio" not in w for w in sin), sin
         raro = cliente.get("/api/lectura/ipa", params={"texto": "The cat", "audio": "../" + mp3.name})
         assert raro.status_code == 200 and all("inicio" not in w for w in raro.json()["palabras"]), raro.text[:200]
@@ -1873,7 +1751,7 @@ def ritmo_de_la_lectura_con_nivel_y_audio_natural():
          api._va_a_costar, api._perfil_de) = originales
         mp3.unlink(missing_ok=True)
     assert vistas.get("nivel") == 1.6, vistas
-    esperado = {**ritmo, "natural": {**ritmo["natural"], "audio_natural": f"/api/audio/{mp3.name}"}}
+    esperado = {**ritmo, "natural": {**ritmo["natural"], "audio_natural": None}}
     assert r["ritmo"] == esperado, r.get("ritmo")
     # Se guarda el ritmo de voz (con su ruta), no el JSON ya convertido.
     assert guardados == [(ritmo, "You know.", "voz.db")], guardados
@@ -1883,7 +1761,7 @@ def ritmo_de_la_lectura_con_nivel_y_audio_natural():
     assert vistas.get("evolucion") == ("You know.", 10, "voz.db"), vistas
     assert rota == {"intentos": [], "aviso": "No he podido leer tu historial de voz."}, rota
     assert cliente.get("/api/voz/ritmo", headers=lector, params={"frase": ""}).status_code == 422
-    return f"nivel 1.6, audio natural {r['ritmo']['natural']['audio_natural'][:22]}…, 1 intento"
+    return "nivel 1.6, sin cuenta audio privado oculto, 1 intento"
 
 
 def temas_para_la_portada():
@@ -2075,7 +1953,7 @@ def topes_de_medir_y_de_la_curva():
         audio = cliente.get(f"/api/audio/{mp3.name}")
     finally:
         mp3.unlink(missing_ok=True)
-    assert audio.status_code == 200 and audio.headers.get("x-content-type-options") == "nosniff", audio.headers
+    assert audio.status_code == 403 and audio.headers.get("x-content-type-options") == "nosniff", audio.headers
     return f"medidas 3×200 y 3×429, curva 1 ficha, cola llena 503 sin ficha, audio nosniff"
 
 

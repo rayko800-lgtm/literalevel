@@ -62,6 +62,8 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, Response  # noqa: E402
 from starlette.concurrency import run_in_threadpool  # noqa: E402
 from starlette.formparsers import MultiPartParser  # noqa: E402
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
+from starlette.middleware import Middleware  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 import animacion_articulatoria  # noqa: E402
@@ -78,10 +80,11 @@ import fonemas  # noqa: E402
 import perfil as perfil_mod  # noqa: E402
 import reader  # noqa: E402
 import scoring  # noqa: E402
+import seguridad  # noqa: E402
 import ui  # noqa: E402
 import voz  # noqa: E402
 
-VERSION = "0.2.0"
+VERSION = "0.3.0-seguridad"
 
 app = FastAPI(
     title="LiteraLevel API",
@@ -98,21 +101,88 @@ _ORIGENES = [o.strip() for o in os.environ.get("LITERALEVEL_ORIGENES", "").split
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_ORIGENES,
-    allow_origin_regex=(r"^(https://[a-z0-9-]+\.(static\.)?hf\.space"
+    allow_origin_regex=(r"^(https://mikemaki1763-literalevel(-front)?\.(static\.)?hf\.space"
                         r"|https://pleyade-(app|phi)\.vercel\.app"
                         r"|http://(localhost|127\.0\.0\.1)(:\d+)?)$"),
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "X-Lector"],
+    allow_headers=["Content-Type", "X-Lector", "Authorization"],
 )
+
+
+class ProteccionHTTP(BaseHTTPMiddleware):
+    """Se instala también en el FastAPI creado por Gradio en producción."""
+    async def dispatch(self, request, call_next):
+        origen = request.headers.get("origin")
+        permitidos = {"https://pleyade-app.vercel.app", "https://pleyade-phi.vercel.app",
+            "https://mikemaki1763-literalevel.hf.space", "https://mikemaki1763-literalevel-front.static.hf.space", *_ORIGENES}
+        local = bool(origen and re.fullmatch(r"http://(?:localhost|127\.0\.0\.1)(?::\d+)?", origen))
+        cabeceras = {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
+            "X-Frame-Options": "DENY", "Cache-Control": "private, no-store",
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"}
+        if origen in permitidos or (local and not ui.EN_LA_NUBE):
+            cabeceras.update({"Access-Control-Allow-Origin": origen, "Vary": "Origin",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, X-Lector, Authorization"})
+        try:
+            if origen and origen not in permitidos and not (local and not ui.EN_LA_NUBE):
+                raise _no(403, "Este origen no está autorizado.")
+            if ui.EN_LA_NUBE and not request.url.path.startswith("/api/"):
+                if request.method == "GET" and request.url.path == "/":
+                    return JSONResponse({"aplicacion": "Pléyade", "web": "https://pleyade-app.vercel.app"}, headers=cabeceras)
+                raise _no(404, "Abre Pléyade en https://pleyade-app.vercel.app")
+            if request.method == "OPTIONS":
+                return Response(status_code=204, headers=cabeceras)
+            # Se cuenta el cuerpo real antes de Pydantic o del parser multipart.
+            path = request.url.path
+            maximo = (eos.TOPE_MP4 + _HOLGURA_FORMULARIO if path.startswith("/api/eos/entregar/") else
+                      _TOPE_AUDIO + _HOLGURA_FORMULARIO if path == "/api/voz" else
+                      _TOPE_SUBIDA + _HOLGURA_FORMULARIO if path == "/api/libros" else 128 * 1024)
+            if int(request.headers.get("content-length", "0")) > maximo:
+                raise _no(413, "La solicitud supera el tamaño permitido.")
+            # Los multipart ya tienen parser acotado; JSON se limita también
+            # cuando llega sin Content-Length, antes de que FastAPI lo lea.
+            if request.method in ("POST", "PUT") and maximo == 128 * 1024:
+                cuerpo = bytearray()
+                async for trozo in request.stream():
+                    cuerpo.extend(trozo)
+                    if len(cuerpo) > maximo:
+                        raise _no(413, "La solicitud supera el tamaño permitido.")
+                request._body = bytes(cuerpo)
+            token = request.headers.get("authorization", "")
+            token = token[7:] if token.startswith("Bearer ") else None
+            request.state.token = token
+            request.state.principal = seguridad.resolver(token) if path not in ("/api/entrar", "/api/recuperar", "/api/salud") else None
+            p = request.state.principal
+            pagada = request.method == "POST" and (path in ("/api/voz", "/api/palabra") or path.endswith(("/sinopsis", "/escuchar")))
+            if path in ("/api/gpt-live/sesion", "/api/lectura/vivo"):
+                raise _no(503, "El audio en vivo está desactivado hasta garantizar su límite de gasto en el servidor. Puedes usar la pronunciación grabada.")
+            contexto = seguridad.CONTEXTO.set(p)
+            try:
+                if pagada and p:
+                    with seguridad.operacion(p):
+                        respuesta = await call_next(request)
+                else:
+                    respuesta = await call_next(request)
+            finally:
+                seguridad.CONTEXTO.reset(contexto)
+        except HTTPException as e:
+            respuesta = JSONResponse(status_code=e.status_code, content={"detail": e.detail})
+        except ValueError:
+            respuesta = JSONResponse(status_code=400, content={"detail": "Cabecera de tamaño inválida."})
+        for clave, valor in cabeceras.items():
+            respuesta.headers[clave] = valor
+        return respuesta
+
+
+app.add_middleware(ProteccionHTTP)
 
 
 @app.exception_handler(Exception)
 async def _error_inesperado(request: Request, exc: Exception):
     """La regla de toda la app: nunca una traza en la cara del lector."""
-    print(f"api {request.method} {request.url.path}: {type(exc).__name__}: {exc}",
+    print(f"api {request.method}: {type(exc).__name__}",
           file=sys.stderr)
-    traceback.print_exc(limit=4, file=sys.stderr)
     return JSONResponse(status_code=500, content={
         "detail": "Algo ha fallado en el servidor. Vuelve a intentarlo en un momento."})
 
@@ -166,6 +236,12 @@ class _Lector:
         self.session_hash = ident
         self.headers = request.headers
         self.client = request.client
+        self.principal = getattr(request.state, "principal", None)
+        self.token = getattr(request.state, "token", None)
+        self.codigo_seguro = "sesion:" + self.token if self.principal else None
+        # Nunca consultar cuentas_atadas.json a partir de X-Lector.
+        self.directorio_seguro = (ui.BASE_DATOS_LECTOR / "cuentas" / self.principal.nombre
+            if self.principal else ui.BASE_DATOS_LECTOR / "lectores" / (ident or "sin-identidad"))
 
 
 # Un id corto seria facil de adivinar o de repetir por casualidad. `crypto.
@@ -795,13 +871,15 @@ class EntrarPeticion(BaseModel):
 
 
 def _entrada_json(pet: _Lector, mensaje: str = "") -> dict:
-    abierta = not cuentas.hay_codigos()
+    abierta = False
     codigo = ui._codigo_de(pet)
     cuenta = cuentas.validar(codigo) if codigo else None
     return {"puerta": not abierta, "dentro": abierta or cuenta is not None,
             "nombre": cuenta.nombre if cuenta else None,
             "restantes": (cuentas.queda(ui.BASE_DATOS_LECTOR, cuenta)
                           if cuenta else None),
+            "audio_en_vivo": False,
+            "admin": seguridad.es_admin(pet.principal),
             "openai": not config.falta(), "mensaje": _llano(mensaje)}
 
 
@@ -812,15 +890,63 @@ def entrada(pet: Lector) -> dict:
 
 @app.post("/api/entrar")
 def entrar(datos: EntrarPeticion, pet: Lector) -> dict:
-    # `ui._entrar` trae el freno de intentos fallidos, la comparacion en tiempo
-    # constante y el mensaje que no dice si fallo el usuario o la clave.
-    mensaje = ui._entrar(datos.usuario, datos.clave, pet)
-    return _entrada_json(pet, mensaje)
+    # Intentos persistentes, comparación PBKDF2 y errores sin enumerar cuentas.
+    token = seguridad.entrar(datos.usuario, datos.clave, ui._ip(pet), cuentas._tabla())
+    pet.principal = seguridad.resolver(token)
+    pet.token = token
+    pet.codigo_seguro = "sesion:" + token
+    return {**_entrada_json(pet, "Has entrado. Tu sesión caduca en ocho horas."), "token": token,
+            "expira_en": seguridad.SESION_SEGUNDOS}
 
 
 @app.post("/api/salir")
 def salir(pet: Lector) -> dict:
-    return _entrada_json(pet, ui._salir(pet))
+    if pet.token:
+        seguridad.salir(pet.token)
+    pet.codigo_seguro = None
+    pet.principal = None
+    return _entrada_json(pet, "Has salido. Lo gratuito sigue funcionando.")
+
+
+class CambiarClave(BaseModel):
+    actual: str = Field(min_length=1, max_length=200)
+    nueva: str = Field(min_length=12, max_length=200)
+
+
+@app.post("/api/cuenta/clave")
+def cambiar_clave(datos: CambiarClave, pet: Lector):
+    if not pet.principal:
+        raise _no(401, "Entra para cambiar tu contraseña.")
+    # Cinco intentos por hora y cuenta (ataques a la clave actual).
+    _frenar(pet, "clave", 5)
+    seguridad.cambiar(pet.principal, datos.actual, datos.nueva)
+    return {"mensaje": "Contraseña cambiada. Vuelve a entrar en tus dispositivos."}
+
+
+class RecuperarClave(BaseModel):
+    codigo: str = Field(min_length=43, max_length=43)
+    nueva: str = Field(min_length=12, max_length=200)
+
+
+class RecuperacionAdmin(BaseModel):
+    usuario: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    actual: str = Field(min_length=1, max_length=200)
+
+
+@app.post("/api/admin/recuperacion")
+def emitir_recuperacion(datos: RecuperacionAdmin, pet: Lector):
+    _frenar(pet, "admin-recuperacion", 5)
+    seguridad.autorizar_admin(pet.principal, datos.actual)
+    if datos.usuario.lower() not in cuentas._tabla():
+        raise _no(404, "Esa cuenta no está habilitada.")
+    return {"codigo": seguridad.emitir_recuperacion(datos.usuario), "expira_en": seguridad.RECUPERACION_SEGUNDOS}
+
+
+@app.post("/api/recuperar")
+def recuperar_clave(datos: RecuperarClave, pet: Lector):
+    _frenar(pet, "recuperar", 5)
+    seguridad.recuperar(datos.codigo, datos.nueva)
+    return {"mensaje": "Contraseña restablecida. Ya puedes entrar."}
 
 
 # --- Punto 1: nivel ------------------------------------------------------------
@@ -914,7 +1040,8 @@ def _frenar(pet: _Lector, cubo: str, tope: int) -> None:
     """Gasta una ficha del cubo por IP y hora, o 429 con los minutos que faltan.
     Va DESPUÉS de lo que se rechaza sin coste (texto que no es prosa, capítulo
     que no existe), para que un error no gaste ficha."""
-    if not ui._dentro_del_limite(pet, cubo, tope):
+    clave = "cuenta:" + pet.principal.nombre + ":" + cubo if pet.principal else None
+    if not ui._dentro_del_limite(pet, cubo, tope, clave=clave):
         raise _no(429, _mensaje_tope_medir(cubo, ui._minutos_para_la_siguiente(cubo, pet)))
 
 
@@ -1529,7 +1656,8 @@ def _url_audio(ruta) -> str | None:
     try:
         p = Path(s).resolve()
         if p.is_file() and p.parent == _DIR_AUDIO.resolve():
-            return f"/api/audio/{p.name}"
+            acceso = seguridad.permitir_recurso("audio:" + p.name)
+            return f"/api/audio/{p.name}?acceso={acceso}" if acceso else None
     except OSError:
         pass
     return None
@@ -1735,15 +1863,16 @@ def portada_ia(nombre: str):
 
 
 @app.get("/api/audio/{nombre}")
-def audio(nombre: str):
+def audio(nombre: str, acceso: str = Query(default="", max_length=43)):
     if not re.fullmatch(r"[\w.-]{1,160}\.(?:mp3|wav|ogg)", nombre) or ".." in nombre:
         raise _no(404, "No existe ese audio.")
     p = _DIR_AUDIO / nombre
     if not p.is_file():
         raise _no(404, "No existe ese audio.")
+    seguridad.validar_recurso("audio:" + nombre, acceso)
     # nosniff, como los SVG: el nombre lo elige el cliente (revisión de 4e, 7).
     return FileResponse(p, media_type="audio/mpeg",
-                        headers={"Cache-Control": "public, max-age=604800",
+                        headers={"Cache-Control": "private, no-store",
                                  "X-Content-Type-Options": "nosniff"})
 
 
@@ -1893,7 +2022,7 @@ _TOPE_PALABRAS_LECTURA = 400
 
 
 @app.get("/api/lectura/ipa")
-def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
+def ipa_de_lectura(pet: LectorOpcional, texto: str = Query(..., min_length=1, max_length=2000),
                    acento: Literal["US", "UK"] = "US",
                    audio: str | None = Query(default=None, max_length=160)) -> dict:
     """La IPA de cada palabra de una frase o párrafo, de los diccionarios
@@ -1911,6 +2040,8 @@ def ipa_de_lectura(texto: str = Query(..., min_length=1, max_length=2000),
     palabras = voz.normalizar_palabras(texto)[:_TOPE_PALABRAS_LECTURA]
     marcas: dict[int, tuple[float, float]] = {}
     if audio and re.fullmatch(r"[\w.-]{1,160}\.mp3", audio) and ".." not in audio:
+        if not seguridad.tiene_recurso(pet.principal, "audio:" + audio):
+            raise _no(403, "Ese audio no está en tu cuenta.")
         lado = _DIR_AUDIO / (audio + ".tiempos.json")
         try:
             if lado.is_file():
@@ -2085,13 +2216,13 @@ def corte_de_sonido(acento: Literal["ga", "rp"], archivo: str, quieto: bool = Fa
 
 
 class EosPeticion(BaseModel):
-    audio: str = Field(min_length=5, max_length=170)
+    audio: str = Field(min_length=5, max_length=250)
     texto: str = Field(default="", max_length=600)
 
 
 def _nombre_audio_de(audio: str) -> str:
     """Acepta «/api/audio/x.mp3» o «x.mp3»; solo mp3 que existan en la caché de audio."""
-    nombre = audio.rsplit("/", 1)[-1]
+    nombre = audio.split("?", 1)[0].rsplit("/", 1)[-1]
     if not eos.nombre_audio_valido(nombre) or not (_DIR_AUDIO / nombre).is_file():
         raise _no(404, "No existe ese audio.")
     return nombre
@@ -2100,24 +2231,40 @@ def _nombre_audio_de(audio: str) -> str:
 @app.post("/api/eos/pedir")
 def eos_pedir(pet: Lector, peticion: EosPeticion) -> dict:
     """Encola el vídeo de Eos leyendo un mp3 generado (audio_correcto). Sin coste."""
-    return eos.pedir(_nombre_audio_de(peticion.audio), peticion.texto)
+    nombre = _nombre_audio_de(peticion.audio)
+    if not seguridad.tiene_recurso(pet.principal, "audio:" + nombre):
+        raise _no(403, "Solo puedes pedir vídeos de los audios de tu cuenta.")
+    _frenar(pet, "eos", 6)
+    seguridad.permitir_recurso("eos:" + eos.clave_de(nombre) + ".mp4")
+    return _eos_privado(eos.pedir(nombre, peticion.texto))
+
+
+def _eos_privado(datos):
+    if datos.get("video"):
+        archivo = datos["video"].rsplit("/", 1)[-1]
+        acceso = seguridad.permitir_recurso("eos:" + archivo)
+        datos["video"] += "?acceso=" + acceso
+    return datos
 
 
 @app.get("/api/eos/estado/{clave}")
-def eos_estado(clave: str) -> dict:
-    return eos.estado(clave)
+def eos_estado(clave: str, pet: Lector) -> dict:
+    if not seguridad.tiene_recurso(pet.principal, "eos:" + clave + ".mp4"):
+        raise _no(403, "Ese vídeo no está en tu cuenta.")
+    return _eos_privado(eos.estado(clave))
 
 
 @app.get("/api/eos/video/{archivo}")
-def eos_video(archivo: str):
+def eos_video(archivo: str, acceso: str = Query(default="", max_length=43)):
     if not re.fullmatch(r"[0-9a-f]{24}\.mp4", archivo):
         raise _no(404, "No existe ese vídeo.")
+    seguridad.validar_recurso("eos:" + archivo, acceso)
     p = eos.ruta_video(archivo[:-4])
     if not p.is_file() or p.stat().st_size == 0:
         raise _no(404, "No existe ese vídeo.")
     # FileResponse de Starlette contesta a Range (el móvil lo pide para el <video>).
     return FileResponse(p, media_type="video/mp4",
-                        headers={"Cache-Control": "public, max-age=2592000",
+                        headers={"Cache-Control": "private, no-store",
                                  "X-Content-Type-Options": "nosniff"})
 
 
@@ -2129,8 +2276,9 @@ def _trabajador(request: Request) -> None:
 @app.get("/api/eos/cola")
 def eos_cola(request: Request) -> dict:
     _trabajador(request)
-    return {"trabajos": [{**t, "audio_url": f"/api/audio/{t['audio']}"} for t in eos.cola()
-                         if eos.nombre_audio_valido(t.get("audio"))]}
+    return {"trabajos": [{**t, "audio_url": f"/api/audio/{t['audio']}?acceso=" + acceso} for t in eos.cola()
+                         if eos.nombre_audio_valido(t.get("audio"))
+                         and (acceso := seguridad.recurso_para_trabajador("audio:" + t["audio"]))]}
 
 
 @app.post("/api/eos/entregar/{clave}")
@@ -2659,7 +2807,7 @@ def para_gradio() -> dict:
     rutas = [r for r in app.router.routes if str(getattr(r, "path", "")).startswith("/api/")]
     # El Space solo pasa por aqui al arrancar (app.py): es donde se lanza la precarga (reinicio 26).
     precargar_en_segundo_plano()
-    return {"routes": rutas, "exception_handlers": {Exception: _error_inesperado,
+    return {"routes": rutas, "middleware": [Middleware(ProteccionHTTP)], "exception_handlers": {Exception: _error_inesperado,
                                                     RequestValidationError: _validacion_sin_eco}}
 
 

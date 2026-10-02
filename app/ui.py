@@ -370,6 +370,8 @@ def _dir_lector(peticion=None) -> Path:
     primera carga -mientras el `demo.load` de registro no haya llegado- y para
     quien tenga `localStorage` desactivado.
     """
+    if peticion is not None and hasattr(peticion, "directorio_seguro"):
+        return peticion.directorio_seguro
     if not EN_LA_NUBE:
         return BASE_DATOS_LECTOR
     sesion = getattr(peticion, "session_hash", None) if peticion is not None else None
@@ -684,6 +686,8 @@ def _sesion_de(peticion) -> str:
 
 
 def _codigo_de(peticion) -> str | None:
+    if peticion is not None and hasattr(peticion, "codigo_seguro"):
+        return peticion.codigo_seguro
     with _CANDADO_CODIGO:
         return _CODIGO_SESION.get(_sesion_de(peticion))
 

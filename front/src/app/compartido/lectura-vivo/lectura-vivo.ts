@@ -117,31 +117,7 @@ export class LecturaVivo {
 
   /** Arranca: llamar dentro del clic que abre la hoja (micrófono). */
   async empezar(): Promise<void> {
-    this.parrafo.set(this.desde());
-    this.cargarParrafo();
-    this.conexion = new ConexionLectura({
-      alOir: t => this.oir(t),
-      alCerrarTramo: () => this.oir(' '),
-      alError: m => this.fallo(m),
-    });
-    try {
-      this.segundosRestantes.set(180);
-      await this.conexion.microfono();
-      const sesion = await firstValueFrom(this.api.lecturaVivo());
-      await this.conexion.abrir(sesion.clave);
-      this.fase.set('escuchando');
-      this.inicio = Date.now();
-      this.limite = this.inicio + sesion.minutos * 60_000;
-      this.reloj = window.setInterval(() => {
-        const queda = Math.max(0, Math.round((this.limite - Date.now()) / 1000));
-        this.segundosRestantes.set(queda);
-        if (!queda) this.terminar();
-      }, 500);
-    } catch (e) {
-      const nombre = (e as { name?: string })?.name;
-      this.fallo(nombre === 'NotAllowedError' ? 'Sin permiso para el micrófono. Actívalo en el navegador y vuelve a probar.'
-        : mensajeError(e));
-    }
+    this.fallo('La lectura en vivo está temporalmente desactivada. Puedes grabar una frase en Pronunciar.');
   }
 
   private cargarParrafo(): void {

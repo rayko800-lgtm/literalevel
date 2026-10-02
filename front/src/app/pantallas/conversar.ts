@@ -20,7 +20,7 @@ type Fase = 'lista' | 'preparando' | 'hablando' | 'cerrando' | 'cerrada' | 'inco
       <section class="tarjeta conversacion" aria-label="Conversación">
         <p role="status" class="estado">
           @switch (fase()) {
-            @case ('lista') { Lista para conversar. }
+            @case ('lista') { La conversación en vivo está temporalmente desactivada. Puedes practicar en Pronunciar. }
             @case ('preparando') { Conectando el micrófono… }
             @case ('hablando') { Te escucho. }
             @case ('cerrando') { Terminando la conversación… }
@@ -31,7 +31,7 @@ type Fase = 'lista' | 'preparando' | 'hablando' | 'cerrando' | 'cerrada' | 'inco
         </p>
         @if (aviso()) { <p class="aviso" role="alert">{{ aviso() }}</p> }
         @if (fase() === 'lista' || fase() === 'cerrada' || fase() === 'incompleta' || fase() === 'error') {
-          <button type="button" class="boton" (click)="empezar()">{{ fase() === 'lista' ? 'Empezar a hablar' : 'Nueva conversación' }}</button>
+          <button type="button" class="boton" disabled>Conversación no disponible</button>
         } @else if (fase() === 'preparando' || fase() === 'hablando') {
           <button type="button" class="boton secundario" (click)="terminar()">Terminar</button>
         }

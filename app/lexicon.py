@@ -941,10 +941,10 @@ class ConsultorLexico:
         # diciendo RUNNING todo el rato-.
         #
         # 60 s es holgado: la explicacion contextual esta medida en 14,9 s con
-        # `reasoning.effort="low"`. Un reintento, no dos. Peor caso 2 minutos
-        # en vez de 30.
-        self._cliente_openai = OpenAI(api_key=clave, timeout=60.0,
-                                      max_retries=1)
+        # `reasoning.effort="low"`. Sin reintentos automáticos: cada llamada debe reservar su gasto.
+        from seguridad import ClienteProtegido
+        self._cliente_openai = ClienteProtegido(OpenAI(api_key=clave, timeout=60.0,
+                                      max_retries=0))
         return self._cliente_openai
 
     def consultar(self, palabra_superficie: str, oracion: str, nivel: float,

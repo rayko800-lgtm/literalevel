@@ -1,6 +1,8 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs';
+import { guardarSesion } from './lector';
 
 /** Dónde vive el motor: la etiqueta <meta name="literalevel-api"> de index.html.
  *  Vacía = el mismo origen (el proxy de `ng serve`). */
@@ -419,6 +421,9 @@ export interface EntradaBiblioteca {
 }
 
 export interface Entrada {
+  admin?: boolean;
+  audio_en_vivo?: boolean;
+  token?: string;
   puerta: boolean;
   dentro: boolean;
   nombre: string | null;
@@ -450,9 +455,19 @@ export class Api {
 
   entrada(): Observable<Entrada> { return this.http.get<Entrada>(`${this.base}/entrada`); }
   entrar(usuario: string, clave: string): Observable<Entrada> {
-    return this.http.post<Entrada>(`${this.base}/entrar`, { usuario, clave });
+    return this.http.post<Entrada>(`${this.base}/entrar`, { usuario, clave }).pipe(
+      tap(e => guardarSesion(e.token ?? null)));
   }
-  salir(): Observable<Entrada> { return this.http.post<Entrada>(`${this.base}/salir`, {}); }
+  salir(): Observable<Entrada> { return this.http.post<Entrada>(`${this.base}/salir`, {}).pipe(tap(() => guardarSesion(null))); }
+  cambiarClave(actual: string, nueva: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${this.base}/cuenta/clave`, { actual, nueva }).pipe(tap(() => guardarSesion(null)));
+  }
+  recuperarClave(codigo: string, nueva: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${this.base}/recuperar`, { codigo, nueva }).pipe(tap(() => guardarSesion(null)));
+  }
+  emitirRecuperacion(usuario: string, actual: string): Observable<{ codigo: string; expira_en: number }> {
+    return this.http.post<{ codigo: string; expira_en: number }>(`${this.base}/admin/recuperacion`, { usuario, actual });
+  }
 
   cuestionario(): Observable<Cuestionario> { return this.http.get<Cuestionario>(`${this.base}/cuestionario`); }
   perfil(): Observable<{ perfil: Perfil | null }> { return this.http.get<{ perfil: Perfil | null }>(`${this.base}/perfil`); }
@@ -529,7 +544,7 @@ export class Api {
   ipaDeLectura(texto: string, acento: Acento = 'ga', audio?: string | null): Observable<{ palabras: PalabraLeida[] }> {
     // «Alinea el TTS» (25 sep): con el mp3 generado de esa frase, las palabras
     // que whisper ya marcó traen `inicio` y `fin` (sin coste: lo guardó la corrección).
-    const nombre = /^\/api\/audio\/([\w.-]{1,160}\.mp3)$/.exec(audio ?? '')?.[1];
+    const nombre = /^\/api\/audio\/([\w.-]{1,160}\.mp3)(?:\?|$)/.exec(audio ?? '')?.[1];
     return this.http.get<{ palabras: PalabraLeida[] }>(`${this.base}/lectura/ipa`,
       { params: { texto: texto.slice(0, 2000), acento: acento === 'rp' ? 'UK' : 'US', ...(nombre ? { audio: nombre } : {}) } });
   }

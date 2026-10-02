@@ -16,14 +16,7 @@
   <link rel="icon" type="image/png" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <script>
-    // El tema ANTES de pintar: sin esto la página parpadea en claro y luego se
-    // oscurece, que en un móvil de noche es un fogonazo.
-    try {
-      var t = localStorage.getItem('literalevel.tema');
-      if (t && t !== 'sistema') document.documentElement.setAttribute('data-tema', t);
-    } catch (e) {}
-  </script>
+  <script src="tema.js"></script>
 </head>
 <body>
   <app-root>

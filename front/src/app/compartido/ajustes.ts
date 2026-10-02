@@ -94,6 +94,33 @@ import { Icono } from './icono';
               } @else { Sin límite de usos. }
             </p>
             <button class="boton secundario" type="button" (click)="salir()">Salir</button>
+            <form class="pila entrar" (ngSubmit)="cambiarClave()">
+              <label class="campo"><span>Contraseña actual</span>
+                <input class="entrada" name="actual" type="password" autocomplete="current-password" [(ngModel)]="actual" required>
+              </label>
+              <label class="campo"><span>Nueva contraseña (mínimo 12 caracteres)</span>
+                <input class="entrada" name="nueva" type="password" autocomplete="new-password" [(ngModel)]="nueva" minlength="12" maxlength="200" required>
+              </label>
+              <button class="boton secundario" type="submit" [disabled]="entrando()">Cambiar contraseña</button>
+            </form>
+            @if (mensaje()) { <p class="aviso" role="status">{{ mensaje() }}</p> }
+            @if (e.admin) {
+              <details><summary>Recuperación de una cuenta</summary>
+                <form class="pila entrar" (ngSubmit)="emitirRecuperacion()">
+                  <label class="campo"><span>Usuario que necesita recuperar su cuenta</span>
+                    <input class="entrada" name="usuarioRecuperar" [(ngModel)]="usuarioRecuperar" maxlength="64" required>
+                  </label>
+                  <label class="campo"><span>Tu contraseña actual</span>
+                    <input class="entrada" name="claveAdmin" type="password" autocomplete="current-password" [(ngModel)]="actual" required>
+                  </label>
+                  <button class="boton secundario" type="submit" [disabled]="entrando()">Crear código de recuperación</button>
+                </form>
+                @if (codigoEmitido()) {
+                  <p class="suave pequeno">Entrégalo en privado a la persona: caduca en 15 minutos y solo sirve una vez.</p>
+                  <input class="entrada" aria-label="Código de recuperación emitido" readonly [value]="codigoEmitido()">
+                }
+              </details>
+            }
           } @else {
             <p class="suave pequeno">Leer, buscar, medir y el diccionario son libres. La explicación en contexto,
               «¿de qué trata?» y la corrección de pronunciación usan OpenAI y necesitan entrar.</p>
@@ -107,6 +134,18 @@ import { Icono } from './icono';
               @if (mensaje()) { <p class="aviso" [class.error]="!sesion.entrada()?.dentro" role="status">{{ mensaje() }}</p> }
               <button class="boton" type="submit" [disabled]="entrando()">{{ entrando() ? 'Comprobando…' : 'Entrar' }}</button>
             </form>
+            <details><summary>Recuperar contraseña</summary>
+              <p class="suave pequeno">Solicita al responsable de Pléyade un código de recuperación. Caduca a los 15 minutos y solo sirve una vez.</p>
+              <form class="pila entrar" (ngSubmit)="recuperarClave()">
+                <label class="campo"><span>Código de recuperación</span>
+                  <input class="entrada" name="recuperacion" autocomplete="off" [(ngModel)]="recuperacion" required>
+                </label>
+                <label class="campo"><span>Nueva contraseña (mínimo 12 caracteres)</span>
+                  <input class="entrada" name="nuevaRecuperacion" type="password" autocomplete="new-password" [(ngModel)]="nueva" minlength="12" maxlength="200" required>
+                </label>
+                <button class="boton secundario" type="submit" [disabled]="entrando()">Restablecer contraseña</button>
+              </form>
+            </details>
           }
         } @else {
           <p class="suave">Conectando con el motor…</p>
@@ -194,6 +233,11 @@ export class Ajustes {
 
   protected usuario = '';
   protected clave = '';
+  protected actual = '';
+  protected nueva = '';
+  protected recuperacion = '';
+  protected usuarioRecuperar = '';
+  protected readonly codigoEmitido = signal('');
   protected readonly entrando = signal(false);
   protected readonly mensaje = signal('');
 
@@ -250,5 +294,38 @@ export class Ajustes {
     } catch (err) {
       this.mensaje.set(mensajeError(err));
     }
+  }
+
+  protected async cambiarClave(): Promise<void> {
+    this.entrando.set(true);
+    try {
+      const r = await firstValueFrom(this.api.cambiarClave(this.actual, this.nueva));
+      this.actual = this.nueva = '';
+      await this.sesion.cambioDeCuenta();
+      this.mensaje.set(r.mensaje);
+    } catch (error) { this.mensaje.set(mensajeError(error)); }
+    finally { this.entrando.set(false); }
+  }
+
+  protected async recuperarClave(): Promise<void> {
+    this.entrando.set(true);
+    try {
+      const r = await firstValueFrom(this.api.recuperarClave(this.recuperacion, this.nueva));
+      this.recuperacion = this.nueva = '';
+      await this.sesion.cambioDeCuenta();
+      this.mensaje.set(r.mensaje);
+    } catch (error) { this.mensaje.set(mensajeError(error)); }
+    finally { this.entrando.set(false); }
+  }
+
+  protected async emitirRecuperacion(): Promise<void> {
+    this.entrando.set(true);
+    this.codigoEmitido.set('');
+    try {
+      const r = await firstValueFrom(this.api.emitirRecuperacion(this.usuarioRecuperar, this.actual));
+      this.actual = '';
+      this.codigoEmitido.set(r.codigo);
+    } catch (error) { this.mensaje.set(mensajeError(error)); }
+    finally { this.entrando.set(false); }
   }
 }

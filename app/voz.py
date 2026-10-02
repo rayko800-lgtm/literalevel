@@ -69,7 +69,8 @@ def _cliente():
     # y reintenta dos veces, y un hilo atascado se lleva por delante la cola
     # entera de Gradio. La voz son whisper + gpt + tts encadenados, asi que se
     # le da mas margen que a la consulta lexica.
-    return OpenAI(api_key=clave, timeout=90.0, max_retries=1)
+    from seguridad import ClienteProtegido
+    return ClienteProtegido(OpenAI(api_key=clave, timeout=60.0, max_retries=0))
 
 
 # --- Normalizacion y comparacion (sin red, siempre disponible) --------

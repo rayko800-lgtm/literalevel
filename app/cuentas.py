@@ -1,58 +1,24 @@
-"""Perfiles de acceso a lo que cuesta dinero.
+"""Acceso a funciones de pago con cuentas administradas.
 
-La aplicacion entera es libre: buscar, medir un libro, leerlo, el diccionario,
-el cuestionario de nivel. **Nada de eso pide cuenta ni gasta un centimo.**
+El entorno declara las cuentas habilitadas. La API autentica mediante sesiones
+revocables; X-Lector no concede acceso a una cuenta. SQLite conserva los usos
+y migra uso_openai.json sin reiniciarlo. Toda cuota es finita (máximo 100):
+un tope heredado 0 se interpreta como 100. Los fallos de almacenamiento bloquean
+el gasto. ClienteProtegido aplica además reservas globales y por llamada.
 
-Lo que si cuesta son TRES cosas, porque van a la API de OpenAI: la explicacion
-de una palabra en su contexto, la correccion de pronunciacion y el resumen de
-"¿de que trata?" de la ficha. La tercera estuvo abierta sin codigo ni tope
-durante un tiempo -la encontro una auditoria del codigo- y era la mas cara por
-uso: cuatro pasajes de 900 palabras por pulsacion. Si se dejan
-abiertas en una direccion publica, cualquiera puede agotar el saldo de Miguel
-en una tarde. Y si se cierra la app entera detras de un inicio de sesion, se
-pierde justo lo que hace util enseniarla: que alguien entre y la use sin
-registrarse.
-
-La solucion es un PERFIL: un usuario y una contrasena que se dan a una
-persona concreta.
-
-  - sin entrar -> la app funciona entera menos esas tres cosas, y lo dice
-  - con perfil -> se activan, con un tope de usos por perfil
-
-Antes esto era un codigo suelto tipo "QQHT-P5V2-V4DM". Se cambio porque un
-codigo no le dice nada a quien lo recibe -no sabe si es suyo, ni cuanto le
-queda- y porque la caja para canjearlo vivia dentro de un acordeon cerrado,
-dentro de una de ocho pestanas: Miguel probo su propia aplicacion y no la
-encontro. Un usuario y una contrasena se entienden sin explicacion, y el
-saludo puede decir quien eres y cuanto te queda.
-
-Los perfiles NO viven en el repositorio. Se leen de la variable de entorno
-`LITERALEVEL_CUENTAS`, que en el Space es un secreto. Formato:
-
-    usuario:contrasena:tope,usuario:contrasena:tope,...
-
-`tope` es el numero de llamadas de pago permitidas; `0` significa sin limite.
-Ejemplo:
-
-    miguel:unaclavelarga:0,invitado1:otraclave:40
-
-El recuento se guarda en un JSON junto a los datos del lector, y se comprueba
-y se incrementa BAJO CANDADO en una sola operacion (`consumir`). Preguntar
-primero y apuntar despues no valia: esta reproducido que con un tope de 2 y
-veinte peticiones simultaneas pasaban las veinte.
-
-Sigue sin ser una contabilidad seria: el candado es de proceso, no entre
-procesos, y un reinicio del Space con almacenamiento efimero pierde la cuenta.
-Cumple lo que tiene que cumplir -que un codigo suelto no vacie la cuenta- y no
-mas.
+LITERALEVEL_CUENTAS_AUDITORIA permite cuentas sintéticas temporales con el mismo
+contrato; retirarlo deshabilita sus sesiones. Los helpers JSON restantes son
+compatibilidad local y no autorizan llamadas al proveedor.
 """
 from __future__ import annotations
 
 import hmac
 import json
 import os
+import re
 import sys
 import threading
+import seguridad
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -70,7 +36,7 @@ _SIN_CODIGO = ("Esta parte necesita que **entres con tu perfil** (arriba del "
 @dataclass(frozen=True)
 class Cuenta:
     nombre: str
-    tope: int          # 0 = sin limite
+    tope: int          # 0 heredado se limita a 100
 
 
 def _analizar(crudo: str, con_nombre: bool = True,
@@ -116,9 +82,11 @@ def _analizar(crudo: str, con_nombre: bool = True,
         try:
             n = int(tope)
         except ValueError:
-            avisos.append(f"entrada {i}{con(usuario)}: el tope «{tope}» no es "
-                          "un número; se toma 0, o sea sin límite")
-            n = 0
+            avisos.append(f"entrada {i}: tope inválido; descartada")
+            continue
+        if n < 0 or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", usuario):
+            avisos.append(f"entrada {i}: usuario o tope inválido; descartada")
+            continue
         u = usuario.lower()
         if u in fuera:
             avisos.append(f"entrada {i}{con(usuario)}: repite un usuario ya "
@@ -138,7 +106,9 @@ def _tabla() -> dict[str, tuple[str, Cuenta]]:
     con mayuscula; la contrasena, tal cual, porque esa si es una credencial.
     """
     global _YA_AVISADO
-    fuera, avisos = _analizar(os.environ.get("LITERALEVEL_CUENTAS", "").strip())
+    crudo = ",".join(filter(None, (os.environ.get("LITERALEVEL_CUENTAS", "").strip(),
+                                  os.environ.get("LITERALEVEL_CUENTAS_AUDITORIA", "").strip())))
+    fuera, avisos = _analizar(crudo)
     # Una vez por proceso, no en cada `verificar`: esto se llama en cada
     # intento de entrar y el registro del Space no necesita la misma queja
     # cien veces. La carrera con otro hilo solo puede duplicar una linea.
@@ -200,6 +170,9 @@ def validar(credencial: str | None) -> Cuenta | None:
     """
     if not credencial or ":" not in credencial:
         return None
+    if credencial.startswith("sesion:"):
+        p = seguridad.resolver(credencial.partition(":")[2])
+        return Cuenta(p.nombre, p.tope) if p else None
     usuario, _, clave = credencial.partition(":")
     return verificar(usuario, clave)
 
@@ -218,14 +191,12 @@ def _leer(base: Path) -> dict[str, int]:
 
 
 def gastado(base: Path, nombre: str) -> int:
-    return _leer(base).get(nombre, 0)
+    return seguridad.usos(base, nombre)
 
 
 def queda(base: Path, cuenta: Cuenta) -> int | None:
-    """Usos restantes, o None si la cuenta no tiene tope."""
-    if cuenta.tope == 0:
-        return None
-    return max(0, cuenta.tope - gastado(base, cuenta.nombre))
+    """Usos restantes; las cuentas heredadas sin tope se limitan a 100."""
+    return max(0, min(cuenta.tope or 100, 100) - gastado(base, cuenta.nombre))
 
 
 def apuntar(base: Path, cuenta: Cuenta) -> None:
@@ -271,8 +242,7 @@ def _restar_ya_con_candado(base: Path, cuenta: Cuenta) -> bool:
 def _restar(base: Path, cuenta: Cuenta) -> None:
     """Baja un uso, sin bajar nunca de cero. Bajo el mismo candado que `_sumar`."""
     try:
-        with _CANDADO:
-            _restar_ya_con_candado(base, cuenta)
+        seguridad.devolver(cuenta.nombre, base)
     except Exception:
         # Si no se puede devolver, el lector pierde un uso. Es lo malo menos
         # malo: lo contrario seria no cobrar por no poder escribir.
@@ -296,7 +266,7 @@ def devolver(base: Path, codigo: str | None) -> None:
     if not hay_codigos():
         return
     cuenta = validar(codigo)
-    if cuenta is None or cuenta.tope == 0:
+    if cuenta is None:
         return
     _restar(base, cuenta)
 
@@ -311,109 +281,21 @@ def _ruta_devoluciones(base: Path) -> Path:
 
 
 def devolver_por_silencio(base: Path, codigo: str | None, hoy: str | None = None) -> bool:
-    """Devuelve el uso cobrado por una grabacion en la que whisper respondio y no oyo ninguna
-    palabra (`SesionVoz.sin_voz`), no por la red caida ni por la falta de clave. True si se
-    devolvio. La llaman /api/voz y Gradio con el codigo COBRADO, no el de la sesion de ahora.
-
-    Por CUENTA y por dia UTC (decision de la Central: la cabecera X-Lector la elige el cliente y
-    cambiandola se reiniciaria el tope), en `devoluciones_silencio.json` junto al contador de
-    usos y bajo el mismo `_CANDADO`: la cuenta de devoluciones y la del cupo no pueden
-    desincronizarse entre hilos. Del MAX_DEVOLUCIONES_SILENCIO + 1 en adelante suma, no devuelve
-    y lo dice por stderr. Sin perfiles, con una cuenta sin tope o sin poder escribir, False.
-    """
-    if not hay_codigos():
-        return False
-    cuenta = validar(codigo)
-    if cuenta is None or cuenta.tope == 0:
-        return False
-    hoy = hoy or datetime.now(timezone.utc).date().isoformat()
-    try:
-        with _CANDADO:  # el cobro y la devolucion, bajo el mismo candado
-            b = Path(base)
-            b.mkdir(parents=True, exist_ok=True)
-            try:
-                with open(_ruta_devoluciones(b), encoding="utf-8") as f:
-                    todas = json.load(f)
-            except Exception:
-                todas = {}
-            dia = todas.get(hoy) if isinstance(todas, dict) and isinstance(todas.get(hoy), dict) else {}
-            try:
-                previas = int(dia.get(cuenta.nombre, 0))
-            except (TypeError, ValueError):
-                previas = 0      # una entrada rara no deja sin devoluciones el resto del dia (4e, reinicio 27)
-            n = previas + 1
-            tmp = _ruta_devoluciones(b).with_suffix(".tmp")
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({hoy: {**dia, cuenta.nombre: n}}, f)      # solo el dia de hoy
-            if n > MAX_DEVOLUCIONES_SILENCIO:
-                os.replace(tmp, _ruta_devoluciones(b))
-                print(f"cuentas: {cuenta.nombre} lleva {n} grabaciones sin voz hoy; no se devuelve",
-                      file=sys.stderr)
-                return False
-            # Solo cuenta si de verdad se devuelve: con el contador a 0 (nada cobrado) o si restar lanza, el
-            # intento no gasta un hueco de los del dia (4e, reinicio 27).
-            if not _restar_ya_con_candado(b, cuenta):
-                tmp.unlink(missing_ok=True)
-                return False
-            os.replace(tmp, _ruta_devoluciones(b))
-            return True
-    except Exception:
-        return False
+    """Nunca devuelve una transcripción potencialmente facturada."""
+    # Una transcripción de silencio puede estar facturada. No se devuelve.
+    return False
 
 
 def consumir(base: Path, codigo: str | None) -> tuple[bool, str]:
-    """Comprueba el cupo Y lo consume, en una sola operacion atomica.
-
-    Esto existe porque `permite` seguido de `apuntar` NO es lo mismo, y el
-    fallo esta reproducido: con un codigo de tope 2 y veinte peticiones
-    simultaneas pasaban LAS VEINTE y el contador acababa en 1. Las veinte leian
-    el mismo valor antes de que ninguna hubiera escrito. En una direccion
-    publica eso convierte un cupo de 40 usos en barra libre.
-
-    La comprobacion y el incremento van ahora dentro del mismo candado, y es el
-    INCREMENTO el que decide: si al sumar el total supera el tope, la peticion
-    se rechaza. Asi dos hilos no pueden obtener el mismo numero.
-
-    El candado es de proceso, no entre procesos. Para un Space con un solo
-    trabajador es suficiente; si algun dia se sirve con varios, esto hay que
-    llevarlo a una base de datos con transaccion de verdad, y conviene que
-    quede escrito aqui antes de que sorprenda a alguien.
-    """
-    if not hay_codigos():
-        return True, ""
+    """Reserva un uso de forma atómica en SQLite; sin cuenta o sin disco bloquea."""
     cuenta = validar(codigo)
     if cuenta is None:
         return False, _SIN_CODIGO
-    if cuenta.tope == 0:
-        return True, ""
-    total = _sumar(base, cuenta)
-    if total is None:
-        # No se pudo contar. Se deja pasar, como antes: es preferible regalar
-        # un uso a tumbar la aplicacion porque el disco no admite escrituras.
-        return True, ""
-    if total > cuenta.tope:
-        # Se deshace el incremento que acaba de rechazarse. Antes no: el
-        # contador seguia subiendo con cada intento fallido, asi que un perfil
-        # de tope 5 podia acabar marcando 40 usos, `queda()` daba negativo y el
-        # numero del diagnostico dejaba de significar nada. La decision de
-        # rechazar ya se tomo de forma atomica al sumar, asi que devolverlo
-        # despues no reabre la carrera que este metodo cerro.
-        _restar(base, cuenta)
-        return False, (f"El perfil de **{cuenta.nombre}** ha agotado su cupo de "
-                       f"{cuenta.tope} usos. El resto de la aplicación sigue "
-                       "funcionando.")
-    return True, ""
+    return seguridad.consumir(base, cuenta)
 
 
 def permite(base: Path, codigo: str | None) -> tuple[bool, str]:
-    """(¿puede usar OpenAI?, motivo para ensenar al usuario).
-
-    Si no hay codigos declarados, todo el mundo pasa: es el caso de la
-    aplicacion corriendo en el ordenador de casa, donde no hay nadie a quien
-    limitar.
-    """
-    if not hay_codigos():
-        return True, ""
+    """Comprueba identidad y cuota finita; consumir debe reservar antes de generar."""
     cuenta = validar(codigo)
     if cuenta is None:
         return False, _SIN_CODIGO
