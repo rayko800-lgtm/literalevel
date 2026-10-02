@@ -388,6 +388,7 @@ def audio_acotado(archivo):
             negar(503, "No se puede verificar la duración del audio ahora.")
     try:
         r = subprocess.run([ejecutable, "-nostdin", "-v", "error", "-protocol_whitelist", "file,pipe",
+            "-format_whitelist", "wav,mp3,ogg,matroska,webm,mov,flac,aac",
             "-i", ruta, "-t", str(MAX_AUDIO_SEGUNDOS + 1), "-vn", "-ac", "1", "-ar", "16000",
             "-f", "s16le", "pipe:1"], capture_output=True, timeout=20, check=True)
     except (subprocess.SubprocessError, OSError):

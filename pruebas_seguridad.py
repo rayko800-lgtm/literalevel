@@ -317,6 +317,18 @@ print(sum(s.consumir(config.dir_datos(),SimpleNamespace(nombre='auditora',tope=2
             with self.assertRaises(HTTPException): self.proveedor(llamadas).audio.transcriptions.create(model="whisper-1", file=archivo)
         self.assertEqual(llamadas, [])
 
+    def test_audio_no_lee_archivos_referenciados(self):
+        import wave
+        propia = Path(self.tmp.name) / "referencia.wav"
+        with wave.open(str(propia), "wb") as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000)
+            w.writeframes(b"\0" * 32000)
+        lista = Path(self.tmp.name) / "lista.wav"
+        lista.write_text("ffconcat version 1.0\nfile 'referencia.wav'\n", encoding="utf-8")
+        with lista.open("rb") as archivo:
+            with self.assertRaises(HTTPException) as error: s.audio_acotado(archivo)
+        self.assertEqual(error.exception.status_code, 422)
+
     def test_audio_duracion_real(self):
         import wave
         f = Path(self.tmp.name, "audio.wav")
