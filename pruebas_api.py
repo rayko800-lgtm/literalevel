@@ -1695,7 +1695,8 @@ def indice_de_romanos_de_una_letra_no_abre_el_libro():
                 "It was not that he felt any emotion akin to love for Irene Adler. All emotions, and "
                 "that one particularly, were abhorrent to his cold, precise but admirably balanced mind.")
     lib = api.reader.Libro("The Adventures of Sherlock Holmes", "Arthur Conan Doyle",
-                           [api.reader.Capitulo("Texto completo", "Contents\n\n" + indice + "\n\n" + comienzo)])
+                           [api.reader.Capitulo("Texto completo",
+                            "*** START OF THE PROJECT GUTENBERG EBOOK THE ADVENTURES OF SHERLOCK HOLMES ***\n\nContents\n\n" + indice + "\n\n" + comienzo)])
     primero = api._parrafos(lib, 0)[0]
     assert primero.startswith("To Sherlock Holmes she is always _the_ woman."), primero[:80]
     return primero[:40]
