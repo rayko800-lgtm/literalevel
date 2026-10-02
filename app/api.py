@@ -132,7 +132,7 @@ class ProteccionHTTP(BaseHTTPMiddleware):
                     # Gradio comprueba esta URL al lanzar el servidor. No se
                     # ejecutan eventos ni se abre su cola: solo usamos la API.
                     return JSONResponse({"estado": "api"}, headers=cabeceras)
-                if request.method == "GET" and request.url.path == "/":
+                if request.method in ("GET", "HEAD") and request.url.path == "/":
                     return JSONResponse({"aplicacion": "Pléyade", "web": "https://pleyade-app.vercel.app"}, headers=cabeceras)
                 raise _no(404, "Abre Pléyade en https://pleyade-app.vercel.app")
             if request.method == "OPTIONS":
