@@ -128,6 +128,10 @@ class ProteccionHTTP(BaseHTTPMiddleware):
             if origen and origen not in permitidos and not (local and not ui.EN_LA_NUBE):
                 raise _no(403, "Este origen no está autorizado.")
             if ui.EN_LA_NUBE and not request.url.path.startswith("/api/"):
+                if request.method == "GET" and request.url.path == "/gradio_api/startup-events":
+                    # Gradio comprueba esta URL al lanzar el servidor. No se
+                    # ejecutan eventos ni se abre su cola: solo usamos la API.
+                    return JSONResponse({"estado": "api"}, headers=cabeceras)
                 if request.method == "GET" and request.url.path == "/":
                     return JSONResponse({"aplicacion": "Pléyade", "web": "https://pleyade-app.vercel.app"}, headers=cabeceras)
                 raise _no(404, "Abre Pléyade en https://pleyade-app.vercel.app")

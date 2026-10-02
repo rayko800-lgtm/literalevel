@@ -33,6 +33,26 @@ def consumir_proceso(datos):
 
 
 class Seguridad(unittest.TestCase):
+    def test_arranque_gradio_real_con_interfaz_cerrada(self):
+        import socket
+        import gradio as gr
+        import httpx
+        with socket.socket() as reserva:
+            reserva.bind(("127.0.0.1", 0))
+            puerto = reserva.getsockname()[1]
+        with gr.Blocks(analytics_enabled=False) as demo:
+            gr.Textbox()
+        try:
+            demo.launch(server_name="127.0.0.1", server_port=puerto, ssr_mode=False,
+                        app_kwargs=api.para_gradio(), prevent_thread_lock=True, quiet=True,
+                        share=False)
+            base = f"http://127.0.0.1:{puerto}"
+            self.assertEqual(httpx.get(base + "/api/salud").json()["api"], api.VERSION)
+            self.assertEqual(httpx.get(base + "/config").status_code, 404)
+            self.assertEqual(httpx.get(base + "/gradio_api/info").status_code, 404)
+        finally:
+            demo.close()
+
     def test_metadatos_audio_privados_y_capacidad_trabajador(self):
         nombre = "auditoria-privada.mp3"
         with s.operacion(self.p): s.permitir_recurso("audio:" + nombre)

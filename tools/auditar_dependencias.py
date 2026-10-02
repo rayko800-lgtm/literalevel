@@ -7,12 +7,16 @@ from pathlib import Path
 
 import requests
 from packaging.requirements import Requirement
+from packaging.utils import parse_wheel_filename
+from urllib.parse import urlparse
 
 raiz = Path(__file__).resolve().parents[1]
 pendientes = []
 for linea in (raiz / "requirements.txt").read_text(encoding="utf-8").splitlines():
     linea = linea.split("#")[0].strip()
-    if linea:
+    if linea.startswith("https://") and linea.endswith(".whl"):
+        pendientes.append(str(parse_wheel_filename(Path(urlparse(linea).path).name)[0]))
+    elif linea and not linea.startswith("--"):
         pendientes.append(Requirement(linea).name)
 vistas = {}
 while pendientes:
