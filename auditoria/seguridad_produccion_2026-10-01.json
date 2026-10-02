@@ -1,0 +1,231 @@
+{
+  "momento_utc": "2026-10-02T02:45:19Z",
+  "pruebas": [
+    {
+      "prueba": "API publicada con protección",
+      "correcto": true
+    },
+    {
+      "prueba": "Gradio y esquema público cerrados /config",
+      "correcto": true
+    },
+    {
+      "prueba": "Gradio y esquema público cerrados /gradio_api/info",
+      "correcto": true
+    },
+    {
+      "prueba": "Gradio y esquema público cerrados /docs",
+      "correcto": true
+    },
+    {
+      "prueba": "Gradio y esquema público cerrados /openapi.json",
+      "correcto": true
+    },
+    {
+      "prueba": "CORS origen ajeno rechazado",
+      "correcto": true
+    },
+    {
+      "prueba": "CORS del front permite autenticación",
+      "correcto": true
+    },
+    {
+      "prueba": "X-Lector no autentica",
+      "correcto": true
+    },
+    {
+      "prueba": "token manipulado rechazado",
+      "correcto": true
+    },
+    {
+      "prueba": "inicio de sesión sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "inicio de sesión sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "cuota finita",
+      "correcto": true
+    },
+    {
+      "prueba": "rol de administrador separado",
+      "correcto": true
+    },
+    {
+      "prueba": "perfil propio guardado",
+      "correcto": true
+    },
+    {
+      "prueba": "perfiles entre cuentas separados",
+      "correcto": true
+    },
+    {
+      "prueba": "cambiar X-Lector no cambia la cuenta",
+      "correcto": true
+    },
+    {
+      "prueba": "subida de archivo sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "otro usuario no abre el archivo",
+      "correcto": true
+    },
+    {
+      "prueba": "visitante no abre el archivo",
+      "correcto": true
+    },
+    {
+      "prueba": "audio en vivo cerrado /api/gpt-live/sesion",
+      "correcto": true
+    },
+    {
+      "prueba": "audio en vivo cerrado /api/lectura/vivo",
+      "correcto": true
+    },
+    {
+      "prueba": "sinopsis directa sin cuenta bloqueada",
+      "correcto": true
+    },
+    {
+      "prueba": "audiolibro directo sin cuenta bloqueado",
+      "correcto": true
+    },
+    {
+      "prueba": "trabajador Eos privado",
+      "correcto": true
+    },
+    {
+      "prueba": "no administrador no emite recuperación",
+      "correcto": true
+    },
+    {
+      "prueba": "administrador debe reautenticarse",
+      "correcto": true
+    },
+    {
+      "prueba": "recuperación emitida solo por administrador",
+      "correcto": true
+    },
+    {
+      "prueba": "recuperación emitida solo por administrador",
+      "correcto": true
+    },
+    {
+      "prueba": "reemisión revoca recuperación anterior",
+      "correcto": true
+    },
+    {
+      "prueba": "recuperación de contraseña",
+      "correcto": true
+    },
+    {
+      "prueba": "código de recuperación de un solo uso",
+      "correcto": true
+    },
+    {
+      "prueba": "recuperación revoca sesión previa",
+      "correcto": true
+    },
+    {
+      "prueba": "inicio de sesión sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "cambio de contraseña",
+      "correcto": true
+    },
+    {
+      "prueba": "cambio revoca sesión previa",
+      "correcto": true
+    },
+    {
+      "prueba": "contraseña anterior inválida",
+      "correcto": true
+    },
+    {
+      "prueba": "inicio de sesión sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "borrado del archivo sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre de sesión",
+      "correcto": true
+    },
+    {
+      "prueba": "reutilizar sesión cerrada falla",
+      "correcto": true
+    },
+    {
+      "prueba": "sesión y cuota conservadas tras reinicio",
+      "correcto": true
+    },
+    {
+      "prueba": "inicio de sesión sintético",
+      "correcto": true
+    },
+    {
+      "prueba": "contraseña cambiada y perfil conservados tras reinicio",
+      "correcto": true
+    },
+    {
+      "prueba": "sesión de cuenta retirada ya no válida",
+      "correcto": true
+    },
+    {
+      "prueba": "salud del despliegue final",
+      "correcto": true
+    },
+    {
+      "prueba": "cabeceras de seguridad API",
+      "correcto": true
+    },
+    {
+      "prueba": "cuentas gratuitas no dan barra libre",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre Gradio del despliegue final /config",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre Gradio del despliegue final /gradio_api/info",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre Gradio del despliegue final /gradio_api/queue/join",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre audio vivo del despliegue final /api/gpt-live/sesion",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre audio vivo del despliegue final /api/lectura/vivo",
+      "correcto": true
+    },
+    {
+      "prueba": "generación de audiolibro final sin cuenta rechazada",
+      "correcto": true
+    }
+  ],
+  "despliegue_final": {
+    "commit_codigo": "5128df0",
+    "space_revision": "b60a6cfe0416130d3ed8df40c1f2f169f4e54e0e",
+    "fase": "RUNNING",
+    "presupuesto_diario_centavos": "500",
+    "presupuesto_acumulado_centavos": "2000",
+    "administrador_real_configurado": false,
+    "credenciales_temporales_locales_retiradas": true
+  },
+  "front": {
+    "bundle": "main-D2L26KL7.js",
+    "sha256": "5e76cb2444ceee2e3beebf761a5c03f71857c1e26ba57ef2f3f33fab91b0ee7d",
+    "igual_a_compilacion_local": true
+  }
+}

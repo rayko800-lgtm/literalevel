@@ -76,8 +76,10 @@ def probar():
     for ruta in ("/config", "/gradio_api/info", "/docs", "/openapi.json"):
         comprobar("Gradio y esquema público cerrados " + ruta, peticion("GET", ruta).status_code == 404)
     comprobar("CORS origen ajeno rechazado", peticion("GET", "/api/salud", headers={"Origin": "https://ajeno.example"}).status_code == 403)
-    opciones = peticion("OPTIONS", "/api/entrar", headers={"Origin": "https://pleyade-app.vercel.app", "Access-Control-Request-Headers": "authorization,x-lector"})
-    comprobar("CORS del front permite autenticación", opciones.status_code == 204 and "Authorization" in opciones.headers.get("access-control-allow-headers", ""))
+    opciones = peticion("OPTIONS", "/api/entrar", headers={"Origin": "https://pleyade-app.vercel.app", "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,x-lector"})
+    comprobar("CORS del front permite autenticación", opciones.status_code in (200, 204)
+        and "authorization" in opciones.headers.get("access-control-allow-headers", "").lower()
+        and opciones.headers.get("access-control-allow-origin") == "https://pleyade-app.vercel.app")
     comprobar("X-Lector no autentica", peticion("GET", "/api/entrada").json().get("dentro") is False)
     comprobar("token manipulado rechazado", peticion("GET", "/api/perfil", token="x" * 43).status_code == 401)
     a, b = login(e["a"], e["clave"]), login(e["b"], e["clave"])
@@ -147,12 +149,44 @@ def retirada():
     guardar_resultados()
 
 
+def reiniciar():
+    from huggingface_hub import HfApi
+    HfApi(token=despliegue.token()).restart_space(despliegue.REPO)
+    print("Reinicio solicitado para verificar persistencia, sin reconstruir la imagen.")
+
+
+def persistencia():
+    e = json.loads(ESTADO.read_text(encoding="utf-8"))
+    if RESULTADO.exists(): REGISTRO.extend(json.loads(RESULTADO.read_text(encoding="utf-8"))["pruebas"])
+    r = peticion("GET", "/api/entrada", e["token_b"])
+    comprobar("sesión y cuota conservadas tras reinicio", r.status_code == 200 and r.json().get("dentro") is True and r.json().get("restantes") == 40)
+    a = login(e["a"], e["nueva_a"])
+    comprobar("contraseña cambiada y perfil conservados tras reinicio", peticion("GET", "/api/perfil", a).json().get("perfil", {}).get("nombre") == "Prueba sintética de seguridad")
+    peticion("POST", "/api/salir", a)
+    guardar_resultados()
+
+
+def smoke():
+    if RESULTADO.exists(): REGISTRO.extend(json.loads(RESULTADO.read_text(encoding="utf-8"))["pruebas"])
+    r = peticion("GET", "/api/salud")
+    comprobar("salud del despliegue final", r.status_code == 200 and r.json().get("estado") == "ok" and r.json().get("api") == "0.3.0-seguridad")
+    comprobar("cabeceras de seguridad API", r.headers.get("x-content-type-options") == "nosniff" and r.headers.get("x-frame-options") == "DENY" and "default-src 'none'" in r.headers.get("content-security-policy", ""))
+    comprobar("cuentas gratuitas no dan barra libre", peticion("GET", "/api/entrada").json().get("dentro") is False)
+    for ruta in ("/config", "/gradio_api/info", "/gradio_api/queue/join"):
+        comprobar("cierre Gradio del despliegue final " + ruta, peticion("GET", ruta).status_code == 404)
+    for ruta in ("/api/gpt-live/sesion", "/api/lectura/vivo"):
+        comprobar("cierre audio vivo del despliegue final " + ruta, peticion("POST", ruta, json={}).status_code == 503)
+    comprobar("generación de audiolibro final sin cuenta rechazada", peticion("POST", "/api/libros/SWV369/capitulos/0/escuchar").status_code == 403)
+    guardar_resultados()
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("accion", choices=("preparar", "probar", "retirar", "retirada"))
+    p.add_argument("accion", choices=("preparar", "probar", "reiniciar", "persistencia", "retirar", "retirada", "smoke"))
     args = p.parse_args()
     try:
-        {"preparar": preparar, "probar": probar, "retirar": retirar, "retirada": retirada}[args.accion]()
+        {"preparar": preparar, "probar": probar, "reiniciar": reiniciar,
+         "persistencia": persistencia, "retirar": retirar, "retirada": retirada, "smoke": smoke}[args.accion]()
     except Exception as error:
         # No imprimir respuestas ni datos de peticiones que contienen credenciales.
         guardar_resultados()
