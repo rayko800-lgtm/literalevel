@@ -8,7 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { Icono } from '../compartido/icono';
 import { ControlVelocidad } from '../compartido/control-velocidad';
 import { velocidadValida } from '../nucleo/velocidad';
-import { LecturaVivo } from '../compartido/lectura-vivo/lectura-vivo';
+import { LECTURA_VIVO_CERRADA, LecturaVivo } from '../compartido/lectura-vivo/lectura-vivo';
 import { familiaDe, paletaDe } from '../compartido/portada';
 import { tinteLector } from '../compartido/tinte';
 import { Api, Capitulo, Libro, Medida, Palabra, mensajeError, urlMotor } from '../nucleo/api';
@@ -150,6 +150,7 @@ export class Lector implements OnDestroy {
   /** D5: lectura en voz alta en vivo. Necesita cuenta con OpenAI y un
    *  navegador con WebRTC y micrófono. */
   protected readonly lecturaVivoDisponible = computed(() => {
+    if (LECTURA_VIVO_CERRADA) return false;  // 4 oct: cerrada por seguridad, el botón no se enseña
     const e = this.entrada();
     return !!e && e.openai && (!e.puerta || e.dentro)
       && typeof RTCPeerConnection !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;

@@ -5,6 +5,11 @@ import { Icono } from '../icono';
 import { ConexionLectura } from './conexion';
 import { PalabraTexto, Seguidor, trocearTexto } from './alinear';
 
+/** Cerrada desde la auditoría de seguridad del 1 oct (cac5dcf): `empezar` solo avisa. Mientras
+ *  siga así, el lector no enseña el botón «Leer en voz alta (en vivo)»: en la demo grabada del
+ *  4 oct llevaba a «No se pudo». Al reabrirla, poner esto a `false` y devolver la lógica a `empezar`. */
+export const LECTURA_VIVO_CERRADA = true;
+
 /** D5 · lectura guiada en vivo (Miguel, 25 sep). Una hoja sobre el lector con
  *  el párrafo que toca: mientras el lector lee en voz alta, la transcripción en
  *  vivo de OpenAI marca cada palabra leída, la que toca ahora y las saltadas, y
@@ -117,6 +122,7 @@ export class LecturaVivo {
 
   /** Arranca: llamar dentro del clic que abre la hoja (micrófono). */
   async empezar(): Promise<void> {
+    // LECTURA_VIVO_CERRADA: la lógica real (micrófono, WebRTC, seguimiento) está en el historial (dd0b3e5).
     this.fallo('La lectura en vivo está temporalmente desactivada. Puedes grabar una frase en Pronunciar.');
   }
 
