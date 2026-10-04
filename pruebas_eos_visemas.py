@@ -112,9 +112,10 @@ class Explosion(unittest.TestCase):
         self.assertLess(c["jawOpen"][marco(tb + 0.05)], 0.2)
         self.assertGreaterEqual(c["cheekPuff"][marco(tb - 0.04)], 0.1)
         self.assertLess(c["cheekPuff"][marco(tb - 0.04)], 0.2)
-        # la /m/ cierra y suelta suave: sin soplo
+        # la /m/ cierra y suelta suave: sin soplo, la boca se abre solo lo que pide la vocal siguiente
         self.assertLessEqual(c["jawOpen"][marco(1.3)], 0.03)
-        self.assertLessEqual(c["jawOpen"][marco(1.48)], 0.05)
+        suelo_vocal = cv.poses_didacticas()["ʌ"]["mandibula"] * cv.MANDIBULA_ESCALA * cv.MANDIBULA_EN_PALABRA
+        self.assertLessEqual(c["jawOpen"][marco(1.48)], suelo_vocal + 0.01)
         self.assertLessEqual(max(c["cheekPuff"][marco(1.0):marco(1.6)]), 0.02)
 
 
@@ -158,6 +159,57 @@ class Aislado(unittest.TestCase):
         jaw = salida["curvas"]["jawOpen"]
         self.assertLessEqual(jaw[marco(0.9)], 0.03)        # cerrada antes del soplo (t0 = 1,0)
         self.assertGreaterEqual(jaw[marco(1.06)], 0.2)     # y abierta 60 ms después, no 130 ms más tarde
+
+
+class Mandibula(unittest.TestCase):
+    def test_vocal_suelta_mantiene_la_boca_abierta(self):
+        datos = curvas_abiertas(3.0, jaw=0.1)        # Audio2Face casi cerrada durante toda la /ɑː/
+        datos["curvas"]["mouthPucker"] = [0.5] * len(datos["curvas"]["jawOpen"])
+        fon = cv.normalizar_fonemas([["aa", 0.5, 2.0]])
+        salida, informe = cv.corregir(datos, fon)
+        c = salida["curvas"]
+        objetivo = cv.poses_didacticas()["ɑ"]["mandibula"] * cv.MANDIBULA_ESCALA
+        self.assertGreater(objetivo, 0.6)
+        for tt in (0.6, 1.2, 1.9):
+            self.assertAlmostEqual(c["jawOpen"][marco(tt)], objetivo, places=2, msg=str(tt))
+            self.assertLessEqual(c["mouthPucker"][marco(tt)], cv.LABIOS_NEUTROS_TOPE + 0.01)   # /ɑ/ no redondea
+        self.assertAlmostEqual(c["jawOpen"][marco(0.3)], 0.1, places=3)                          # antes, A2F
+        self.assertAlmostEqual(c["jawOpen"][marco(2.3)], 0.1, places=3)                          # después, A2F
+        self.assertAlmostEqual(c["mouthPucker"][marco(2.3)], 0.5, places=3)
+        self.assertGreater(informe["mandibula"]["fotogramas_subidos"], 60)
+
+    def test_en_palabra_sube_menos_y_la_interdental_entera(self):
+        datos = curvas_abiertas(2.0, jaw=0.02)
+        fon = cv.normalizar_fonemas([["dh", 0.50, 0.62], ["eh", 0.62, 0.80], ["m", 0.80, 0.95], ["ah", 0.95, 1.05]])
+        salida, _ = cv.corregir(datos, fon)
+        jaw = salida["curvas"]["jawOpen"]
+        P = cv.poses_didacticas()
+        self.assertAlmostEqual(jaw[marco(0.56)], P["ð"]["mandibula"] * cv.MANDIBULA_ESCALA, places=2)          # entera
+        self.assertAlmostEqual(jaw[marco(0.71)], P["ɛ"]["mandibula"] * cv.MANDIBULA_ESCALA * cv.MANDIBULA_EN_PALABRA, places=2)
+        self.assertLessEqual(jaw[marco(0.88)], 0.03)                                                       # la /m/ cierra igual
+        self.assertAlmostEqual(jaw[marco(1.5)], 0.02, places=3)
+
+    def test_p_suelta_sigue_cerrada_aunque_la_pose_tenga_mandibula(self):
+        datos = curvas_abiertas(2.0, jaw=0.04)
+        salida, _ = cv.corregir(datos, cv.normalizar_fonemas([["p", 1.0, 1.17]]))
+        jaw = salida["curvas"]["jawOpen"]
+        self.assertLessEqual(jaw[marco(0.95)], 0.03)
+        self.assertGreaterEqual(jaw[marco(1.06)], 0.2)
+
+    def test_arranque_suave_solo_si_habla_desde_el_principio(self):
+        datos = curvas_abiertas(1.0, jaw=0.5)
+        datos["curvas"]["browInnerUp"] = [0.3] * len(datos["curvas"]["jawOpen"])
+        salida, informe = cv.corregir(datos, cv.normalizar_fonemas([["aa", 0.07, 0.9]]))
+        c = salida["curvas"]
+        self.assertTrue(informe["arranque_suave"])
+        self.assertLessEqual(c["jawOpen"][0], 0.001)
+        self.assertLessEqual(c["browInnerUp"][0], 0.001)
+        self.assertGreater(c["jawOpen"][marco(0.06)], 0.1)
+        self.assertGreaterEqual(c["jawOpen"][marco(0.2)], 0.5)
+        self.assertAlmostEqual(c["browInnerUp"][marco(0.2)], 0.3, places=3)
+        tarde, informe2 = cv.corregir(curvas_abiertas(1.0, jaw=0.5), cv.normalizar_fonemas([["aa", 0.5, 0.9]]))
+        self.assertFalse(informe2["arranque_suave"])
+        self.assertAlmostEqual(tarde["curvas"]["jawOpen"][0], 0.5, places=3)
 
 
 class Fonemas(unittest.TestCase):

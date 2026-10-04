@@ -31,6 +31,17 @@ Qué hace, por fotograma:
   `mouthLowerDown*`, `mouthUpperUp*` suben en 30 ms y vuelven en 200 ms a lo que diga
   Audio2Face; `mouthClose`/`mouthPress*` caen), y en los 100 ms anteriores los carrillos se
   hinchan un poco con la presión (`cheekPuff`). En /p/ más que en /b/; en /m/ no hay.
+- Mandíbula mínima por fonema (4 oct, tarde: el revisor del vídeo vio que la /ɑː/ suena 1,8 s con la
+  boca abierta solo 0,24 s). Medido en los 85 clips: en 82 de 122 fonos sueltos largos la mandíbula
+  media de Audio2Face queda por debajo de la mitad de la pose didáctica (`poses.ejemplo.json`;
+  /ɑː/ 0,18 frente a 0,69, /æ/ 0,07 frente a 0,75). A cada fono con pose se le impone un suelo a
+  `jawOpen`: `mandibula` de la pose × 0,75 (la escala del laboratorio) si es un sonido suelto y
+  × 0,6 dentro de palabra (los interdentales /θ ð/ entero, para que la punta quepa entre los
+  dientes), con rampas de 80 ms. Los cierres de /p b m/ mandan después. En las vocales de labios
+  neutros (ɑ ɛ ɪ ʌ ə…) `mouthPucker`/`mouthFunnel` se acotan a 0,15.
+- Arranque suave. Si el primer fono empieza antes de 0,2 s, todas las curvas suben desde la cara
+  neutra en los primeros 120 ms: antes el primer fotograma ya tenía la boca abierta y el salto
+  desde la imagen de reposo era de un solo fotograma.
 - Lengua. Cualquier curva de lengua con «left»/«right» en el nombre se pone a cero (en
   inglés ningún sonido la mueve de lado) y las de «out» se acotan a 0,10, salvo en /θ ð/
   (ARPAbet th/dh), donde se permite hasta 0,55 (la punta sí asoma entre los dientes).
@@ -91,6 +102,20 @@ EXPLOSION = {"p": {"jawOpen": 0.22, "mouthLowerDownLeft": 0.30, "mouthLowerDownR
 EXPLOSION_APAGA = ("mouthClose", "mouthPressLeft", "mouthPressRight")
 CARRILLOS = {"p": 0.25, "b": 0.12}
 CARRILLOS_ANTES_S = 0.12
+# Suelo de mandíbula por fonema (pose didáctica de boca3d).
+POSES = RAIZ / "front" / "src" / "app" / "compartido" / "boca3d" / "poses.ejemplo.json"
+MANDIBULA_ESCALA = 0.75          # jawOpen = mandibula de la pose × 0,75 (lengua_lab.html)
+MANDIBULA_EN_PALABRA = 0.6
+MANDIBULA_RAMPA_S = 0.08
+ARPA_IPA = {"aa": "ɑ", "ae": "æ", "ah": "ʌ", "ao": "ɔ", "aw": "aʊ", "ay": "aɪ", "b": "b", "ch": "tʃ", "d": "d",
+            "dh": "ð", "eh": "ɛ", "er": "ɝ", "ey": "eɪ", "f": "f", "g": "ɡ", "hh": "h", "ih": "ɪ", "iy": "i",
+            "jh": "dʒ", "k": "k", "l": "l", "m": "m", "n": "n", "ng": "ŋ", "ow": "oʊ", "oy": "ɔɪ", "p": "p",
+            "r": "ɹ", "s": "s", "sh": "ʃ", "t": "t", "th": "θ", "uh": "ʊ", "uw": "u", "v": "v", "w": "w",
+            "y": "j", "z": "z", "zh": "ʒ"}
+LABIOS_NEUTROS_TOPE = 0.15
+LABIOS_REDONDEAN = ("mouthPucker", "mouthFunnel")
+ARRANQUE_SI_EMPIEZA_ANTES_S = 0.2
+ARRANQUE_S = 0.12
 LENGUA_FUERA_MAX = 0.10
 LENGUA_FUERA_INTERDENTAL = 0.55
 MARGEN_INTERDENTAL_S = 0.04
@@ -294,6 +319,57 @@ def pesos_explosion(n: int, fps: float, fonemas: list[dict]) -> tuple[dict[str, 
     return soplo, carrillos
 
 
+_POSES_CACHE: dict | None = None
+
+
+def poses_didacticas() -> dict:
+    """{ipa: pose} de boca3d, o {} si el json no está (entonces no hay suelo de mandíbula)."""
+    global _POSES_CACHE
+    if _POSES_CACHE is None:
+        try:
+            _POSES_CACHE = json.loads(POSES.read_text(encoding="utf-8")).get("sonidos") or {}
+        except (OSError, ValueError):
+            _POSES_CACHE = {}
+    return _POSES_CACHE
+
+
+def _mandibula_pose(pose: dict) -> float:
+    m = float(pose.get("mandibula", 0.0))
+    hacia = pose.get("hacia")
+    if isinstance(hacia, dict):                      # diptongos: media entre el arranque y la meta
+        m = (m + float(hacia.get("mandibula", m))) / 2
+    return m
+
+
+def suelo_mandibula(n: int, fps: float, fonemas: list[dict]) -> tuple[np.ndarray, np.ndarray]:
+    """(suelo de jawOpen por fotograma, envolvente 0..1 de las vocales de labios neutros)."""
+    t = np.arange(n) / fps
+    suelo = np.zeros(n)
+    neutros = np.zeros(n)
+    poses = poses_didacticas()
+    for f in fonemas:
+        pose = poses.get(ARPA_IPA.get(f["arpabet"], ""))
+        if not pose:
+            continue
+        factor = 1.0 if (f["aislado"] or f["arpabet"] in INTERDENTALES) else MANDIBULA_EN_PALABRA
+        objetivo = _mandibula_pose(pose) * MANDIBULA_ESCALA * factor
+        subida = np.clip((t - (f["t0"] - MANDIBULA_RAMPA_S / 2)) / MANDIBULA_RAMPA_S, 0, 1)
+        bajada = np.clip((f["t1"] + MANDIBULA_RAMPA_S / 2 - t) / MANDIBULA_RAMPA_S, 0, 1)
+        env = _suavizar(subida) * _suavizar(bajada)
+        suelo = np.maximum(suelo, objetivo * env)
+        if f["aislado"] and pose.get("labios") == "neutros":
+            neutros = np.maximum(neutros, env)
+    return suelo, neutros
+
+
+def arranque_suave(n: int, fps: float, fonemas: list[dict]) -> np.ndarray | None:
+    """Rampa 0→1 en los primeros 120 ms si el clip empieza a hablar casi desde el primer fotograma."""
+    if not fonemas or min(f["t0"] for f in fonemas) > ARRANQUE_SI_EMPIEZA_ANTES_S:
+        return None
+    t = np.arange(n) / fps
+    return _suavizar(np.clip(t / ARRANQUE_S, 0, 1))
+
+
 def peso_interdental(n: int, fps: float, fonemas: list[dict]) -> np.ndarray:
     t = np.arange(n) / fps
     w = np.zeros(n, dtype=bool)
@@ -321,6 +397,16 @@ def corregir(datos: dict, fonemas: list[dict] | None = None) -> tuple[dict, dict
         origen = "parametro"
     informe: dict = {"fps": fps, "fotogramas": n, "fonemas": origen, "cierres": 0, "lengua": {}}
 
+    informe["mandibula"] = {}
+    if fonemas and "jawOpen" in curvas:
+        suelo, neutros = suelo_mandibula(n, fps, fonemas)
+        antes = curvas["jawOpen"].copy()
+        curvas["jawOpen"] = np.maximum(curvas["jawOpen"], suelo)
+        informe["mandibula"] = {"fotogramas_subidos": int(np.sum(curvas["jawOpen"] > antes + 1e-6)),
+                                "suelo_max": round(float(suelo.max()), 3) if n else 0.0}
+        for clave in LABIOS_REDONDEAN:
+            if clave in curvas:
+                curvas[clave] = np.minimum(curvas[clave], LABIOS_NEUTROS_TOPE + (1 - neutros) * 10)
     w = peso_cierre(n, fps, fonemas) if fonemas else np.zeros(n)
     informe["cierres"] = int(np.sum((w[1:] > 0.5) & (w[:-1] <= 0.5)) + (1 if n and w[0] > 0.5 else 0))
     if "jawOpen" in curvas:
@@ -352,6 +438,12 @@ def corregir(datos: dict, fonemas: list[dict] | None = None) -> tuple[dict, dict
         if "cheekPuff" in curvas:
             curvas["cheekPuff"] = np.maximum(curvas["cheekPuff"], CARRILLOS[a] * carrillos[a])
 
+    rampa = arranque_suave(n, fps, fonemas) if fonemas else None
+    informe["arranque_suave"] = rampa is not None
+    if rampa is not None:
+        for k in curvas:
+            curvas[k] = curvas[k] * rampa
+
     lengua = [k for k in curvas if _es_lengua(k)]
     informe["lengua"]["curvas"] = lengua
     if lengua:
@@ -376,7 +468,8 @@ def corregir(datos: dict, fonemas: list[dict] | None = None) -> tuple[dict, dict
 
     salida = dict(datos)
     salida["curvas"] = {**(datos.get("curvas") or {}), **{k: np.round(v, 5).tolist() for k, v in curvas.items()}}
-    salida["visemas_corregidos"] = {"version": 2, "cierres": informe["cierres"], "explosiones": informe["explosiones"], "fonemas": origen,
+    salida["visemas_corregidos"] = {"version": 3, "cierres": informe["cierres"], "explosiones": informe["explosiones"], "fonemas": origen,
+                                    "mandibula": informe["mandibula"], "arranque_suave": informe["arranque_suave"],
                                     "lengua_lateral_a_cero": bool(lengua), "lengua_fuera_max": LENGUA_FUERA_MAX}
     return salida, informe
 
@@ -422,6 +515,7 @@ def main() -> None:
         else:
             resumen_lengua = "sin curvas (la pone el visor)"
         print(f"{inf['clip']}: fonemas={inf['fonemas']} cierres={inf['cierres']} explosiones={inf.get('explosiones', 0)} "
+              f"mandíbula↑{inf.get('mandibula', {}).get('fotogramas_subidos', 0)} "
               f"jawOpen en cierre {inf.get('jawOpen_en_cierre_antes')}→{inf.get('jawOpen_en_cierre_despues')} "
               f"lengua={resumen_lengua}", flush=True)
     print(f"{len(rutas)} clips {'medidos' if a.informe else 'corregidos'}. Después: grabar_clips.py --rehacer")
