@@ -79,6 +79,15 @@ solo en transiciones. 85 clips regrabados (`366d168`), `master` → Vercel
 `auditoria/demo_2026-10-04/hallazgos.md` § «Segunda vuelta». Trabajador relanzado
 (`20720`). Sigue sin probarse con oído en el móvil.
 
+**Tercera vuelta (4 oct, 16 h): mandíbula por fonema.** El revisor del vídeo (Opus, lente lengua;
+las otras dos lentes no llegaron a correr: dos cortes de sesión) vio la /ɑː/ con la boca casi cerrada
+1,6 de sus 1,8 s. Medido en los 85 clips: Audio2Face deja la mandíbula por debajo de la mitad de la
+pose didáctica en 82 de 122 fonos sueltos. `corregir_visemas.py` (`6af5d46`, 17 pruebas) impone el
+suelo de `poses.ejemplo.json` (× 0,75; × 0,6 en palabra; /θ ð/ entero), acota pucker/funnel en
+vocales neutras y arranca suave desde la cara neutra (`reposo.webp` regenerado). 85 clips regrabados
+(`f71b08b`) y publicados: push `fa57c83..f71b08b` a las 16:23:04; `clips.json` nuevo servido a las 16:24:06; md5 de `ga/0251.mp4` y `reposo.webp` iguales al local; paquete JS sin cambio (`main-RKY73FGO.js`). Medida: ga_0251 /ɑ/, ga_03b8 /θ/, ga_006c /l/: lateral 0 mm, techo ≤ 3,9 mm en transiciones, saltos ≤ 5 mm por fotograma. Detalle en `hallazgos.md` H13 y § «Revisión
+del vídeo con agentes». Sigue pendiente el oído en el móvil.
+
 **Para la demo en vivo del 10 oct**: ensayar con la cuenta `miguel` (en el
 vídeo tenía 98 usos y nivel 1,88 · C2: decidir si se deja así o se baja el
 nivel para que la franja de Encontrar enseñe libros más accesibles); Space

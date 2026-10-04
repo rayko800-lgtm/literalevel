@@ -1,0 +1,235 @@
+{
+ "hallazgos": [
+  {
+   "id": "L1",
+   "lente": "lengua",
+   "t_ini": 3.73,
+   "t_fin": 5.47,
+   "pantalla": "Pronunciar · Eos a pantalla completa, clip /ɑː/ (se repite igual en la 2.ª reproducción: 10,90-11,30 y 12,40-12,75 s)",
+   "que_se_ve": "En la /ɑ/ corta (3,73-4,17 s) y en la /ɑː/ de «father» (5,15-5,46 s) la lengua aparece muy ladeada. El lado izquierdo de la imagen (el derecho de Eos) sube hasta el borde de los incisivos superiores y el otro cae, dejando bajo una diagonal una cuña roja oscura (suelo de la boca o costado de la lengua). El surco central queda visiblemente inclinado (a ojo, 20-30° respecto a la vertical). No es un vaivén de un lado a otro: siempre se inclina hacia el mismo lado, y más cuanto más abierta está la boca. El momento más visible es «father», a pantalla completa.",
+   "por_que_esta_mal": "En /ɑ/ la lengua debe quedar baja, simétrica y con la punta tras los incisivos inferiores; una lengua inclinada así no ocurre al hablar y enseña una postura falsa. Además coincide con el ejemplo («father») de la ficha que se está enseñando. Como se repite idéntico en las dos reproducciones, el fallo es del clip y no de la reproducción.",
+   "gravedad": "alta",
+   "confianza": 0.9,
+   "estado": "cubierto",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zB_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zC_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa2_02.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa2_03.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L2",
+   "lente": "lengua",
+   "t_ini": 28.28,
+   "t_fin": 32.22,
+   "pantalla": "Pronunciar · «Ver a Eos leerla», frase a pantalla completa",
+   "que_se_ve": "En la frase la lengua casi no se ve, porque la boca habla enseñando los dientes con poca apertura. Cuando asoma, se inclina hacia el mismo lado que en el clip de /ɑː/: en 28,35 s está alta a la izquierda de la imagen con una cavidad oscura a la derecha, y en 28,38 s cae. En 32,08-32,22 s vuelve a verse más alta a la izquierda, aunque más leve.",
+   "por_que_esta_mal": "Es el mismo giro lateral, ahora en habla continua. Es menos llamativo porque la boca se abre poco, pero sigue a la vista a pantalla completa.",
+   "gravedad": "media",
+   "confianza": 0.75,
+   "estado": "cubierto",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frz1_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frz3_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L3",
+   "lente": "lengua",
+   "t_ini": 1.21,
+   "t_fin": 1.45,
+   "pantalla": "Pronunciar · Eos a pantalla completa, clip /ɑː/ (2.ª reproducción: 8,33-8,60 s)",
+   "que_se_ve": "Al abrir para /ɑː/, el dorso de la lengua llena toda la abertura, desde los incisivos inferiores hasta el borde de los superiores, y no queda cavidad oscura por encima. En los instantes en que la lengua se nivela (4,03-4,10 s y 5,47-5,55 s) sigue alta, casi tocando los incisivos superiores. Comparación: al final de la frase (32,62 s) el mismo modelo sí muestra la lengua baja, con hueco bajo los dientes de arriba.",
+   "por_que_esta_mal": "La ficha visible en la app dice «lengua baja y atrás» y el vídeo muestra lo contrario. Encaja con la causa ya corregida: la bajada prevista para las vocales abiertas se aplicaba sobre el eje lateral, así que la lengua se iba de lado en vez de bajar. Conviene comprobar en el clip nuevo que la lengua baja de verdad en /ɑ/.",
+   "gravedad": "media",
+   "confianza": 0.75,
+   "estado": "cubierto",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zA_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque1.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque2.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frz3_01.jpg"
+   ]
+  },
+  {
+   "id": "L4",
+   "lente": "lengua",
+   "t_ini": 28.57,
+   "t_fin": 29.37,
+   "pantalla": "Pronunciar · frase a pantalla completa (también vista pequeña 24,97-25,07 s y clip /ɑː/ 1,21-1,45 y 3,83-3,97 s)",
+   "que_se_ve": "La lengua atraviesa los dientes inferiores del lado derecho de Eos (izquierda de la imagen). En la frase (28,57-28,77 y 29,03-29,37 s) aparecen manchas rosas o rojas encima de los premolares y caninos inferiores, con trocitos de diente sueltos (29,30 s); en la vista pequeña, en 25,07 s, queda un fragmento de diente aislado. En el clip /ɑː/, en 1,21-1,45 s, la fila de dientes inferiores se ve por el lado derecho de la imagen y desaparece por el izquierdo, donde la lengua llega hasta el labio.",
+   "por_que_esta_mal": "La lengua nunca puede estar por delante de la arcada dental: da la impresión de dientes rotos o de que la lengua los muerde. Siempre ocurre en el mismo lado hacia el que se ladea, así que es consecuencia del desplazamiento lateral ya corregido (lateral de 0 mm debería eliminarlo). Riesgo residual: según la nota de memoria, topeDientes() vigila la punta frente a los incisivos y no consta que vigile los dientes laterales. Convendría revisar el clip nuevo de una frase con la boca entreabierta.",
+   "gravedad": "media",
+   "confianza": 0.7,
+   "estado": "cubierto",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frz2_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frpz_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque1.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zB_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L5",
+   "lente": "lengua",
+   "t_ini": 5.46,
+   "t_fin": 5.47,
+   "pantalla": "Pronunciar · Eos a pantalla completa, «father» (también en la frase, 28,32-28,35 s)",
+   "que_se_ve": "Salto de un solo fotograma: en 5,46 s la lengua sigue muy inclinada, con la cuña oscura a la derecha, y en 5,47 s ya está nivelada, con el surco central vertical. Lo he localizado con búsqueda exacta. En la frase pasa lo contrario de 28,32 a 28,35 s: de nivelada a ladeada. De 4,10 a 4,17 s cae de golpe de arriba abajo.",
+   "por_que_esta_mal": "Una lengua real no gira 20-30° en 33 ms: se percibe como un tirón. Corresponde a la «continuidad entre fotogramas» del arreglo de hoy (saltos de hasta 4 mm por fotograma, antes 10).",
+   "gravedad": "media",
+   "confianza": 0.8,
+   "estado": "cubierto",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/salto_father_exacto.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_father.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frz1_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zB_01.jpg"
+   ]
+  },
+  {
+   "id": "L6",
+   "lente": "lengua",
+   "t_ini": 5.62,
+   "t_fin": 6.07,
+   "pantalla": "Pronunciar · Eos a pantalla completa, final de «father» (2.ª reproducción: 12,80-13,30 s)",
+   "que_se_ve": "En «-ther» la mandíbula se cierra hasta juntar los incisivos (labios separados, dientes en oclusión) y la punta de la lengua no asoma entre los dientes ni tras ellos en ningún fotograma, ni en la primera reproducción ni en la segunda. En el audio, la /ð/ es el bajón de energía de 6,02-6,12 s y la /ə/ dura hasta 6,86 s. Aunque la imagen vaya 0,3-0,4 s adelantada (ver L9), todos los fotogramas candidatos tienen los dientes cerrados.",
+   "por_que_esta_mal": "La /ð/ (como la /θ/) es dental o interdental: de frente debe verse la punta de la lengua contra el borde de los incisivos superiores. Es justo el gesto que más cuesta a los hispanohablantes. Además, la /ə/ final no lleva los dientes apretados. No está en la lista de arreglos de hoy. Hay que comprobar los clips de /θ/ y /ð/ ya corregidos: la regla de topeDientes «punta bajo el borde de los incisivos» podría chocar con la postura interdental; no puedo verificarlo desde el vídeo.",
+   "gravedad": "media",
+   "confianza": 0.6,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zD_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa2_03.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/espec_aa1_zoom.png",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L7",
+   "lente": "mandíbula/labios (afecta a la lengua)",
+   "t_ini": 1.45,
+   "t_fin": 3.4,
+   "pantalla": "Pronunciar · Eos a pantalla completa, clip /ɑː/ (2.ª reproducción: 8,60-10,65 s)",
+   "que_se_ve": "La /ɑː/ aislada suena 1,84 s (audio 1,54-3,38 s; F1 estable cerca de 1 kHz y voz rasposa al final). Sin embargo, la boca solo está abierta entre 1,21 y 1,45 s. Desde 1,50 s los incisivos casi se tocan y los labios entreabiertos enseñan los dientes; de 2,9 a 3,6 s está casi cerrada. La lengua, por tanto, solo se ve un cuarto de segundo. En la segunda reproducción pasa igual: abierta en 8,33-8,60 s y casi cerrada mientras el audio sigue hasta 10,65 s.",
+   "por_que_esta_mal": "La ficha de la app dice «boca muy abierta, lengua baja y atrás; larga», y el clip muestra lo contrario durante unos 1,5 de los 1,84 s. Es el sonido principal de la lección, y la lengua, que es lo que se quiere enseñar, apenas aparece. No está en la lista de arreglos. Habría que comprobar en el clip nuevo de /ɑː/ si se mantiene, y si comparte causa con el tratamiento de los sonidos «aislados» que retrasaba la /p/ (es una hipótesis, no algo medido).",
+   "gravedad": "alta",
+   "confianza": 0.75,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa1_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa1_02.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa2_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/espec_aa1.png",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L8",
+   "lente": "reproducción/clip (afecta a la lengua)",
+   "t_ini": 1.204,
+   "t_fin": 1.217,
+   "pantalla": "Pronunciar · Eos a pantalla completa, inicio de cada reproducción del clip /ɑː/ (también 8,330 → 8,338 s)",
+   "que_se_ve": "El último fotograma antes de reproducir (boca cerrada, sonrisa con dientes) pasa en un solo fotograma real a la boca abierta, redondeada, con la lengua llenándola. No hay fotogramas neutros de entrada ni apertura progresiva. Ocurre igual en las dos reproducciones.",
+   "por_que_esta_mal": "Cada vez que se repite el clip, cosa que la app invita a hacer, hay un salto visible y la lengua aparece de golpe. Indica que el clip empieza ya en mitad del gesto, sin colchón de silencio al principio.",
+   "gravedad": "baja",
+   "confianza": 0.75,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque1.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque2.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L9",
+   "lente": "sincronía (fuera de mi lente; condiciona la lectura de la lengua)",
+   "t_ini": 1.21,
+   "t_fin": 27.81,
+   "pantalla": "Pronunciar · clip /ɑː/ y frase",
+   "que_se_ve": "En la grabación la imagen va unos 0,3-0,45 s por delante del sonido. Medidas: arranque del clip en 1,21 s frente a la voz en 1,54 s (0,33); en la 2.ª reproducción 8,335 frente a 8,73 s (0,40). /ɑ/ corta: la boca se abre en 3,73 s y suena en 4,17 s (0,44); en la 2.ª, 10,90 frente a 11,37 s (0,47). «father»: mandíbula abierta en 5,15-5,18 s y vocal en 5,53 s (~0,36). Frase: los labios se cierran en la pausa entre 26,9 y 27,4 s, y en el audio la pausa va de 27,39 a 27,81 s (~0,4).",
+   "por_que_esta_mal": "La mandíbula puede adelantarse ~0,1 s a la vocal, pero no 0,3-0,45 s, y en el arranque del clip no hay anticipación posible. Quien vea esta grabación nota el desfase. Como varía entre reproducciones (0,33 frente a 0,40), apunta más a la cadena del móvil o del grabador que al clip, pero no puedo separarlo desde el vídeo. Lo deja la lente de sincronía.",
+   "gravedad": "media",
+   "confianza": 0.65,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/espec_aa1.png",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa1_02.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/aa2_02.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/fr0_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque1.jpg"
+   ]
+  },
+  {
+   "id": "L10",
+   "lente": "labios (fuera de mi lente)",
+   "t_ini": 1.21,
+   "t_fin": 1.45,
+   "pantalla": "Pronunciar · Eos a pantalla completa, ataque de /ɑː/ (2.ª reproducción: 8,33-8,60 s)",
+   "que_se_ve": "En el único momento abierto de la /ɑː/, la abertura es circular y los labios van adelantados, como para una «o».",
+   "por_que_esta_mal": "/ɑː/ es una vocal no redondeada; la propia ficha de la app dice «Labios: sin redondear, relajados».",
+   "gravedad": "baja",
+   "confianza": 0.55,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/zA_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque1.jpg"
+   ]
+  },
+  {
+   "id": "L11",
+   "lente": "lengua",
+   "t_ini": 43.6,
+   "t_fin": 56.9,
+   "pantalla": "Pronunciar · AFI /p/ · clip de Eos en pequeño (dos reproducciones: 43,6-48,1 y 52,5-56,9 s)",
+   "que_se_ve": "Con los labios cerrados la lengua no asoma nunca. En las sueltas de /p/ los labios apenas se separan (44,9, 45,8, 54,3 y 55,2 s) y solo se ven los dientes. En la vocal de la palabra final (46,9-47,0 s y 56,4-56,5 s) el interior se ve oscuro, con la lengua baja.",
+   "por_que_esta_mal": "Está bien: en /p/ la lengua no interviene y se comporta así. La poca apertura en la explosión corresponde al fallo de labios ya corregido, no a la lengua.",
+   "gravedad": "ninguna",
+   "confianza": 0.85,
+   "estado": "cubierto",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/p1_02.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/p1_03.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/p2_02.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/p2_03.jpg"
+   ]
+  },
+  {
+   "id": "L12",
+   "lente": "lengua",
+   "t_ini": 32.28,
+   "t_fin": 32.68,
+   "pantalla": "Pronunciar · frase a pantalla completa, final («…hypochondria»)",
+   "que_se_ve": "Con la boca abierta, la lengua se ve baja, detrás de los incisivos inferiores, nivelada y con hueco bajo los dientes superiores. No se inclina ni atraviesa dientes.",
+   "por_que_esta_mal": "Está bien. Sirve de referencia: el modelo sí puede mostrar una lengua baja y simétrica, así que lo de L1-L4 no es un límite de la malla.",
+   "gravedad": "ninguna",
+   "confianza": 0.7,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/frz3_01.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/lamina_lengua.jpg"
+   ]
+  },
+  {
+   "id": "L13",
+   "lente": "lengua",
+   "t_ini": 1.217,
+   "t_fin": 1.341,
+   "pantalla": "Pronunciar · Eos a pantalla completa, clip /ɑː/",
+   "que_se_ve": "En las fases quietas, como 1,217-1,341 s (16 fotogramas reales) y 8,338-8,470 s, la lengua se mantiene estable: no tiembla ni parpadea. En ningún momento del vídeo sale de los labios ni desaparece de golpe con la boca abierta.",
+   "por_que_esta_mal": "Está bien: no hay temblor de alta frecuencia; los saltos que se ven (L5) son puntuales y van ligados al giro.",
+   "gravedad": "ninguna",
+   "confianza": 0.7,
+   "estado": "nuevo",
+   "evidencia": [
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque1.jpg",
+    "D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/real_arranque2.jpg"
+   ]
+  }
+ ],
+ "resumen": "Lente LENGUA. Fotogramas y espectrogramas propios en D:/Temp/claude/c--Users-laura-literalevel/c9269dbb-a77a-4e8f-898f-8e4b6f74b02d/scratchpad/video2/agentes/lengua/v2/ (lámina con un fotograma clave por hallazgo: lamina_lengua.jpg). He respetado -threads 2, un solo ffmpeg cada vez y tramos de 30 s como máximo.\n\nQué hace la lengua en cada tramo:\n\n- 0-15 s, clip /ɑː/. Según el espectrograma, el clip dice: /ɑː/ aislada de 1,84 s, una /ɑ/ corta y «father».\n  - Al arrancar la /ɑː/ (1,21-1,45 s), la lengua está alta y llena toda la boca, en vez de baja y atrás (L3); en ese lado tapa los dientes inferiores (L4).\n  - En la /ɑ/ corta y en «father» se ladea mucho, siempre hacia el mismo lado: sube el lado derecho de Eos y aparece una cuña roja oscura en el otro (L1).\n  - Pasa de ladeada a nivelada en un solo fotograma, entre 5,46 y 5,47 s (L5).\n  - La segunda reproducción es idéntica, así que el fallo está en el clip.\n- 27-36 s, frase. La lengua casi no se ve porque la boca se abre poco. Cuando asoma, está ladeada (28,35 s) y atraviesa los dientes inferiores izquierdos de la imagen (28,57-29,37 s). Al final (32,28-32,68 s) está baja y nivelada, bien.\n- 45-57 s, /p/ en pequeño. No asoma con los labios cerrados y en la vocal se ve una cavidad oscura. Bien.\n\nLo cubierto por los arreglos de hoy se ve en el vídeo así:\n- giro lateral: alta;\n- lengua alta en /ɑː/ (la bajada iba al eje equivocado): media;\n- lengua que atraviesa los dientes laterales: media (consecuencia del desplazamiento; topeDientes no consta que vigile los dientes laterales);\n- saltos de un fotograma: media.\n\nNuevo, por orden de valor:\n- L7: durante la /ɑː/ larga la mandíbula está casi cerrada unos 1,5 de 1,84 s y la lengua solo se ve 0,25 s, contra lo que dice la propia ficha. Gravedad alta.\n- L6: en la /ð/ de «father» los dientes quedan en oclusión y no asoma la punta de la lengua; hay que comprobar los clips de /θ/ y /ð/.\n- L8: cada reproducción empieza ya con la boca abierta, de golpe.\n- L9: en la grabación la imagen va unos 0,3-0,45 s por delante del audio; varía entre reproducciones, así que probablemente viene del móvil o del grabador.\n- L10: labios redondeados en /ɑː/.\n\nAviso para la Central: los clips de la pasada anterior que hay en agentes/lengua/ no sirven de referencia fotograma a fotograma para este vídeo.\n- old_04e3c5f_0061_026a y new_ga0061_026a son el clip de /ɑː/ (los intervalos del audio cuadran a ±0,02 s), pero no el render grabado: la lengua se inclina al lado contrario y la cola de «father» dura ~0,4 s menos. No hay espejo; lo comprobé con la peca de la mejilla.\n- 0070 es el clip de /p/ (su patrón cuadra con la segunda reproducción).\n\nNo he tocado el repositorio ni D:/literalevel_eos_pronunciar."
+}

@@ -354,9 +354,51 @@ Dos causas, las dos en `tools/eos_pronunciar/corregir_visemas.py` (lo de la mañ
 Pruebas: `pruebas_eos_visemas.py` pasa de 9 a 13 (explosión de /p/ suelta, /b/ en palabra y /m/
 sin soplo, deducción de `aislado`, /p/ suelta sin bandera abre con el soplo).
 
+### H13 · Audio2Face deja la boca casi cerrada en los sonidos sostenidos (vía el revisor del vídeo)
+
+El revisor de la lente «lengua» (Opus, sobre el vídeo de Miguel) vio que la /ɑː/ suena 1,84 s con la
+boca abierta solo 0,24 s y que en «father» la /ð/ no asoma porque los incisivos se juntan. **Medido
+en las curvas de los 85 clips:** en 82 de 122 fonos sueltos de más de 0,3 s la mandíbula media de
+Audio2Face (20-80 % del fono) queda por debajo de la mitad de la pose didáctica de `poses.ejemplo.json`:
+
+| clip · fono | dur | jaw media A2F | pose × 0,75 |
+|---|---|---|---|
+| ga_0251 /ɑː/ | 1,53 s | 0,18 | 0,69 |
+| ga_00e6 /æ/ | 1,58 s | 0,07 | 0,75 |
+| ga_025b /ɛ/ | 2,02 s | 0,03 | 0,32 |
+| ga_026a /ɪ/ | 2,05 s | 0,01 | 0,20 |
+| ga_0254 /ɔ/ | 1,59 s | 0,08 | 0,51 |
+| ga_00f0 /ð/ | 1,34 s | 0,20 | 0,27 |
+
+**Arreglo** (`corregir_visemas.py`, `6af5d46`, 17 pruebas): suelo de `jawOpen` por fonema = `mandibula`
+de la pose × 0,75 (× 0,6 dentro de palabra; /θ ð/ entero para que la punta quepa entre los dientes),
+rampas de 80 ms, los cierres de /p b m/ mandan después; `mouthPucker`/`mouthFunnel` ≤ 0,15 en las
+vocales de labios neutros (el revisor veía la /ɑː/ redondeada como una «o»); y **arranque suave**: si el
+clip habla antes de 0,2 s, todas las curvas suben desde la cara neutra en 120 ms (antes el primer
+fotograma ya tenía la boca abierta: salto de un fotograma desde la imagen de reposo, que además se
+regenera con la cara neutra). Los 85 clips se regrabaron por tercera vez con esto.
+
+### Revisión del vídeo con agentes (qué salió)
+
+Primera tanda (tres lentes en paralelo, 13:15): el PC se reinició a las 14:01. Segunda (de uno en
+uno, 14:36): la lente **lengua** (Opus) terminó con 13 hallazgos (`lengua/revision_video_lente_lengua.json`,
+lámina `revision_video_lamina_lengua.jpg`); la sesión se cortó mientras los escépticos verificaban el
+primero, y las lentes «labios y /p/» y «resto» no llegaron a correr. Lo que dijo la lente lengua:
+
+| Hallazgo | Estado |
+|---|---|
+| L1-L5 lengua ladeada hacia el mismo lado en /ɑ/ y en la frase, atraviesa los dientes de abajo, salto de un fotograma | cubiertos por H11 (medido 0 mm lateral y saltos ≤ 4 mm en los clips nuevos) |
+| L6 la /ð/ de «father» no asoma: los incisivos se juntan | **H13** (suelo de mandíbula; /ð/ entero) |
+| L7 la /ɑː/ suena 1,8 s con la boca abierta 0,24 s | **H13** |
+| L8 arranque brusco: del reposo a la boca abierta en un fotograma | **H13** (arranque suave) |
+| L9 la imagen va 0,3-0,45 s por delante del sonido en la grabación del móvil | en el mp4 las dos pistas empiezan en 0,000 y los fotogramas se pintan en el reloj del audio: es la grabación de pantalla del móvil, no el clip; pendiente de oído en el teléfono |
+| L10 la /ɑː/ se abre redonda, como una «o» | **H13** (pucker/funnel ≤ 0,15 en labios neutros) |
+| L11-L13 (bien): la lengua no asoma con los labios cerrados, no tiembla, no desaparece | — |
+
 ### Cómo se hizo (para repetirlo)
 
-1. `python -X utf8 tools/eos_pronunciar/corregir_visemas.py` (parte siempre de `curvas.sin_corregir.json`).
+1. `python -X utf8 tools/eos_pronunciar/corregir_visemas.py` (parte siempre de `curvas.sin_corregir.json`;
+   borrar antes `front/public/eos/reposo.webp` si cambia la cara del primer fotograma).
 2. `python -X utf8 tools/eos_pronunciar/grabar_clips.py --rehacer` con el visor en 8790 (≈40 s por clip,
    85 clips ≈ 1 h). El PC se reinició a las 14:01 con 52 clips hechos mientras tres agentes revisaban el
    vídeo en paralelo (ffmpeg + Chrome con GPU); se relanzó solo lo pendiente filtrando `clips.json` a los

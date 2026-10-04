@@ -705,3 +705,19 @@ arreglos: `auditoria/demo_2026-10-04/hallazgos.md` § «Segunda vuelta» (H11 y 
   `auditoria/demo_2026-10-04/lengua/`.
 - **No verificado:** la sincronía con oído en el móvil; el aspecto a tamaño real en el
   teléfono de Miguel (las medidas son geométricas, a 640 px).
+
+## Eos: mandíbula por fonema y arranque suave (4 oct 2026, 16 h)
+
+Tercera regrabación del día. El revisor del vídeo (lente lengua) vio que la /ɑː/ suena 1,8 s con la
+boca abierta 0,24 s; medido: en 82 de 122 fonos sueltos la mandíbula de Audio2Face queda por debajo de
+la mitad de la pose didáctica (`hallazgos.md` H13). `corregir_visemas.py` (`6af5d46`) impone el suelo
+de mandíbula de `poses.ejemplo.json`, acota el redondeo en vocales neutras y arranca suave desde la
+cara neutra; `reposo.webp` regenerado con la cara neutra.
+
+- **En producción:** solo el front estático: los 85 clips y `reposo.webp` (`f71b08b`); API sin
+  cambios. Vercel: push `fa57c83..f71b08b` a las 16:23:04; `clips.json` nuevo servido a las 16:24:06; md5 de `ga/0251.mp4` y `reposo.webp` iguales al local; paquete JS sin cambio (`main-RKY73FGO.js`).
+- **Verificación:** `pruebas_eos_visemas.py` 17/17; 85 mp4 nuevos con duración = audio; `medir_lengua.py`:
+  ga_0251 /ɑ/, ga_03b8 /θ/, ga_006c /l/: lateral 0 mm, techo ≤ 3,9 mm en transiciones, saltos ≤ 5 mm por fotograma.
+- **Trabajador** relanzado tras el commit del corrector (importa `corregir_visemas` al arrancar).
+- **No verificado:** oído en el móvil; L9 del revisor (imagen 0,3-0,45 s por delante del sonido en la
+  grabación de pantalla) no se reproduce en el mp4 (pistas en 0,000): comprobar en el teléfono.
