@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { urlMotor } from '../nucleo/api';
-import { EstadoPronunciar } from './pronunciar.estado';
+import { ESPERAS_EOS_MAX, EstadoPronunciar } from './pronunciar.estado';
 import { Pronunciar } from './pronunciar';
 
 /** Miguel (4 oct, tras grabar la demo): pidió el vídeo de Eos de su frase, tardó, se
@@ -190,5 +190,30 @@ describe('Pronunciar: el estado sobrevive al cambio de pestaña (EstadoPronuncia
     expect(c5.frase).toBe('From the book.');
     expect(c5.resultado()).toBeNull();
     expect(guardado.contexto).toBe('PG11|3');
+  });
+
+  it('Eos pendiente: se sigue preguntando seis minutos antes de rendirse («tarda demasiado»)', () => {
+    // Demo grabada del 4 oct: la frase tardó 2 min 50 s y el tope era de tres minutos.
+    const http = TestBed.inject(HttpTestingController);
+    const guardado = TestBed.inject(EstadoPronunciar);
+    const { fixture, c } = montar();
+    c.resultado.set(resultado);
+    fixture.detectChanges();
+    http.match('eos/clips.json').forEach(p => p.flush({}));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    c.verEosFrase();
+    http.expectOne(r => r.url.endsWith('/api/eos/pedir')).flush({ estado: 'pendiente', clave: CLAVE, video: null });
+    expect(ESPERAS_EOS_MAX).toBeGreaterThanOrEqual(90);
+    for (let i = 1; i < ESPERAS_EOS_MAX; i++) {
+      vi.advanceTimersByTime(4000);
+      http.expectOne(r => r.url.endsWith('/api/eos/estado/' + CLAVE)).flush({ estado: 'pendiente', clave: CLAVE, video: null });
+    }
+    expect(guardado.eosFrase()?.estado).toBe('pendiente');   // a los 5 min 56 s sigue esperando
+    vi.advanceTimersByTime(4000);
+    http.expectOne(r => r.url.endsWith('/api/eos/estado/' + CLAVE)).flush({ estado: 'pendiente', clave: CLAVE, video: null });
+    expect(guardado.eosFrase()?.estado).toBe('fallo');
+    expect(guardado.eosFrase()?.motivo).toBe('tarda demasiado');
+    vi.advanceTimersByTime(4000);                        // rendido: no se pregunta más
+    http.expectNone(r => r.url.includes('/api/eos/estado/'));
   });
 });

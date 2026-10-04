@@ -693,7 +693,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected alternarEos(id: string): void { this.visorEos.update(actual => actual === id ? null : id); }
 
   /** «Ver a Eos leerla»: pide a la API el vídeo del mp3 de la frase. Mientras un PC
-   *  con Eos lo hace, el servicio pregunta cada 4 s (tres minutos como mucho), esté
+   *  con Eos lo hace, el servicio pregunta cada 4 s (seis minutos como mucho), esté
    *  o no esta pantalla montada; el botón, con el vídeo abierto, lo cierra. */
   protected verEosFrase(): void {
     const audio = this.resultado()?.audio_correcto;

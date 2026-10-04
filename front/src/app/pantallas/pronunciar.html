@@ -356,7 +356,7 @@
               @if (eosFraseVideo(); as v) { <app-eos [velocidad]="velocidad()" (velocidadChange)="elegirVelocidad($event)" [src]="v" titulo="la frase leída" /> }
             }
             @case ('pendiente') {
-              <div class="espera eos-estado" role="status"><span class="giro"></span>Eos está preparando la frase. Suele tardar un minuto.</div>
+              <div class="espera eos-estado" role="status"><span class="giro"></span>Eos está preparando la frase. Suele tardar entre uno y tres minutos.</div>
             }
             @case ('sin_trabajador') {
               <p class="tenue pequeno eos-estado" role="status">Eos no puede leer frases nuevas ahora mismo. Mira la boca en 3D.</p>

@@ -3,6 +3,11 @@ import { Api, CorreccionVoz, EstadoEos, PalabraLeida } from '../nucleo/api';
 
 export type Grabacion = 'lista' | 'grabando' | 'grabada';
 
+/** Sondeos de 4 s antes de rendirse («tarda demasiado»). En la demo grabada del 4 oct la frase
+ *  tardó 2 min 50 s (el PC genera en 100-190 s, el trabajador pregunta cada 15 s y sube el mp4):
+ *  con 45 (tres minutos) se quedaba al borde. 90 = seis minutos. */
+export const ESPERAS_EOS_MAX = 90;
+
 /** Lo que Pronunciar deja al salir de la pantalla y encuentra al volver.
  *
  *  Miguel (4 oct, tras grabar la demo): pidió el vídeo de Eos de su frase, tardó,
@@ -81,7 +86,7 @@ export class EstadoPronunciar {
   }
 
   /** «Ver a Eos leerla»: pide el vídeo del mp3 de la frase y, mientras un PC con
-   *  Eos lo hace, pregunta cada 4 s (tres minutos como mucho), esté o no la
+   *  Eos lo hace, pregunta cada 4 s (seis minutos como mucho), esté o no la
    *  pantalla montada. */
   pedirEos(audio: string, texto: string): void {
     const turno = ++this.turnoEos;
@@ -105,7 +110,7 @@ export class EstadoPronunciar {
     clearTimeout(this.relojEos);
     if (r.estado === 'listo' && !this.montada) this.avisoEos.set(true);
     if (r.estado !== 'pendiente') return;
-    if (++this.esperasEos > 45) { this.eosFrase.set({ ...r, estado: 'fallo', motivo: 'tarda demasiado' }); return; }
+    if (++this.esperasEos > ESPERAS_EOS_MAX) { this.eosFrase.set({ ...r, estado: 'fallo', motivo: 'tarda demasiado' }); return; }
     this.relojEos = setTimeout(() => this.api.eosEstado(r.clave).subscribe({
       next: s => this.seguirEos(s, turno),
       error: () => { if (turno === this.turnoEos) this.eosFrase.set({ ...r, estado: 'fallo' }); },
