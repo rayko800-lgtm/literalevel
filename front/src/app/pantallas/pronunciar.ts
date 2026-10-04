@@ -19,7 +19,7 @@ import {
 } from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
-  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido,
+  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, PalabraLeida, mensajeError, urlCortePalabra, urlCorteSonido,
   urlMotor,
 } from '../nucleo/api';
 import { marcarVista, sinVer } from '../nucleo/banderas';
@@ -401,6 +401,13 @@ export class Pronunciar implements OnInit, OnDestroy {
   /** La IPA de cada palabra de las frases que lee el 3D, por texto; se queda
    *  con el resto del estado para no pedirla otra vez al volver. */
   private readonly ipaLectura = this.guardado.ipaLectura;
+  /** 4 oct: las peticiones de IPA aún en vuelo, por texto, para que «Leer la
+   *  frase» las espere (hasta `esperaIpaMs`) en vez de leer por letras. Son de
+   *  esta pantalla: al volver, la IPA que llegó ya está en `ipaLectura`. */
+  private readonly ipaEnVuelo = new Map<string, Promise<PalabraLeida[] | null>>();
+  /** Cuánto espera «Leer la frase» a esa IPA: lo que tarda el Space en
+   *  responder sin que el lector note que el botón no hace nada. */
+  protected esperaIpaMs = 1500;
   /** Lo que se leyó (las palabras de la frase) y su versión natural. */
   protected readonly textoLeido = computed(() => this.resultado()?.palabras.map(p => p.palabra).join(' ') ?? '');
   protected readonly textoNatural = computed(() => this.vista()?.versionNatural ?? this.textoLeido());
@@ -411,8 +418,20 @@ export class Pronunciar implements OnInit, OnDestroy {
     const visor = this.visor(), audio = urlMotor(url);
     if (!visor || this.visor3d() !== 'lectura' || !audio) { this.sonar(url); return; }
     this.eyv.parar();
-    const ipa = this.ipaLectura.get(texto);
-    visor.leerFrase(audio, ipa ?? texto.split(/\s+/).filter(Boolean).map(palabra => ({ palabra, ipa: null })));
+    // 4 oct (Miguel, demo en el móvil): si la IPA con las marcas de whisper,
+    // pedida al abrir el 3D, aún no ha llegado, se espera un poco: sin ella la
+    // frase se articulaba por letras y repartida por tramos, desalineada del
+    // audio. Mientras tanto el gesto ya cuenta para el audio (iOS) y el mp3
+    // empieza a bajar.
+    visor.anticipar(audio);
+    const ipa = this.ipaLectura.get(texto), enVuelo = ipa ? null : this.ipaEnVuelo.get(texto);
+    const leer = (palabras: PalabraLeida[] | null | undefined) => {
+      if (this.visor() !== visor || this.visor3d() !== 'lectura') return;    // cerró el 3D mientras tanto
+      visor.leerFrase(audio, palabras ?? texto.split(/\s+/).filter(Boolean).map(palabra => ({ palabra, ipa: null })));
+    };
+    if (!enVuelo) { leer(ipa); return; }
+    const tope = new Promise<null>(resolver => setTimeout(() => resolver(null), this.esperaIpaMs));
+    void Promise.race([enVuelo, tope]).then(palabras => leer(palabras ?? this.ipaLectura.get(texto)));
   }
 
   /** Abre o cierra la boca que lee; al abrir, pide la IPA de las dos frases
@@ -425,11 +444,12 @@ export class Pronunciar implements OnInit, OnDestroy {
     const pares: [string, string | null][] = [[this.textoLeido(), this.resultado()?.audio_correcto ?? null],
       [this.textoNatural(), this.vista()?.audioNatural ?? null]];
     for (const [texto, audio] of pares) {
-      if (!texto || this.ipaLectura.has(texto)) continue;
-      this.api.ipaDeLectura(texto, this.acento(), audio).subscribe({
-        next: r => this.ipaLectura.set(texto, r.palabras),
-        error: () => { /* sin IPA: se aproxima por letras */ },
-      });
+      if (!texto || this.ipaLectura.has(texto) || this.ipaEnVuelo.has(texto)) continue;
+      const peticion = firstValueFrom(this.api.ipaDeLectura(texto, this.acento(), audio))
+        .then(r => { this.ipaLectura.set(texto, r.palabras); return r.palabras; })
+        .catch(() => null)                                  // sin IPA: se aproxima por letras
+        .finally(() => this.ipaEnVuelo.delete(texto));
+      this.ipaEnVuelo.set(texto, peticion);
     }
   }
 

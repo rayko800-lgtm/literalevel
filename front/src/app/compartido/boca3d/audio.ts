@@ -8,7 +8,16 @@
  *  tramo con energía) y se programa el arranque con precisión de muestra.
  *  Si no se puede (sin AudioContext, sin CORS, archivo roto), un `<audio>`
  *  normal con la duración de sus metadatos y un desfase fijo de 120 ms. Y si
- *  ni eso, `preparar` devuelve null y la boca se mueve sola. */
+ *  ni eso, `preparar` devuelve null y la boca se mueve sola.
+ *
+ *  4 oct 2026 (Miguel, tras grabar la demo en el móvil: «el modelo se
+ *  desfasa respecto al audio»): fuera de 1× el `<audio>` se creaba al tocar
+ *  con la URL del Space, que responde `Cache-Control: private, no-store` para
+ *  las palabras y las frases, así que el mp3 volvía a bajar por la red y
+ *  empezaba a sonar cientos de ms después de arrancar la boca. Ahora los
+ *  bytes ya bajados se guardan y el `<audio>` se crea precargado desde un
+ *  `blob:` al preparar; y, pase lo que pase, `tocar` avisa (`alEmpezar`) de
+ *  cuánto se retrasó el arranque real para que la línea se desplace. */
 
 export interface AudioListo {
   /** Segundos del archivo entero. */
@@ -23,11 +32,14 @@ export interface AudioListo {
    *  si no se pudo medir. */
   tramos: Tramo[];
   /** Arranca el audio dentro de `retrasoS` segundos (negativo: ya empezado,
-   *  salta ese tramo) a `velocidad` (0,25, 0,5, 1 o 1,25) conservando el tono.
+   *  salta ese tramo) a `velocidad` (0,25..2) conservando el tono.
+   *  `alEmpezar` recibe, una sola vez y cuando el audio de verdad empieza a
+   *  sonar, los segundos que llegó tarde respecto a lo previsto (negativo si
+   *  se adelantó): quien anima desplaza su línea en ese tiempo.
    *  Devuelve la función que lo para y la velocidad a la que de verdad suena:
    *  1 si el navegador no sabe ralentizar sin cambiar el tono (entonces la
    *  boca va despacio y el audio no; quien llama lo avisa). */
-  tocar(retrasoS: number, velocidad?: number): { parar: () => void; velocidad: number };
+  tocar(retrasoS: number, velocidad?: number, alEmpezar?: (desfaseS: number) => void): { parar: () => void; velocidad: number };
 }
 
 /** El navegador ralentiza un `<audio>` conservando el tono (`preservesPitch`;
@@ -46,14 +58,38 @@ function ralentizar(a: HTMLMediaElement, velocidad: number): number {
 }
 
 /** Un `<audio>` que arranca dentro de `retrasoS` a `velocidad`; el salto
- *  inicial (retraso negativo) va en tiempo del archivo: `-retraso * velocidad`. */
-function tocarElemento(a: HTMLAudioElement, retrasoS: number, velocidad: number): { parar: () => void; velocidad: number } {
+ *  inicial (retraso negativo) va en tiempo del archivo: `-retraso * velocidad`.
+ *  Al primer `playing` mide cuánto llegó tarde respecto a lo previsto (el
+ *  archivo en `inicio` a los `retrasoS` del tocar, avanzando a `velocidad`) y
+ *  se lo da a `alEmpezar`; el `currentTime` de ese instante descuenta lo que
+ *  ya hubiera avanzado. */
+function tocarElemento(a: HTMLAudioElement, retrasoS: number, velocidad: number,
+                       alEmpezar?: (desfaseS: number) => void): { parar: () => void; velocidad: number } {
   const real = ralentizar(a, velocidad);
+  const t0 = performance.now();
+  const inicio = retrasoS < 0 ? -retrasoS * real : 0;
   let id = 0;
-  const arrancar = () => { a.currentTime = retrasoS < 0 ? -retrasoS * real : 0; void a.play().catch(() => {}); };
+  const empezo = () => {
+    if (!alEmpezar) return;
+    const avanzado = Number.isFinite(a.currentTime) ? Math.max(0, a.currentTime - inicio) : 0;
+    const previsto = Math.max(retrasoS, 0) + avanzado / real;
+    alEmpezar((performance.now() - t0) / 1000 - previsto);
+  };
+  a.addEventListener('playing', empezo, { once: true });
+  const arrancar = () => { a.currentTime = inicio; void a.play().catch(() => {}); };
   if (retrasoS > 0) id = window.setTimeout(arrancar, retrasoS * 1000);
   else arrancar();
-  return { parar: () => { clearTimeout(id); a.pause(); }, velocidad: real };
+  return { parar: () => { clearTimeout(id); a.removeEventListener('playing', empezo); a.pause(); }, velocidad: real };
+}
+
+/** Lo que tarda lo programado en Web Audio en salir por el altavoz, si el
+ *  navegador lo dice (`baseLatency` del grafo más `outputLatency` del
+ *  dispositivo; Safari no da la segunda). Acotado: un valor disparatado no
+ *  debe mover la boca medio segundo. */
+export function latenciaSalida(ctx: { baseLatency?: number; outputLatency?: number }): number {
+  const base = Number.isFinite(ctx.baseLatency) ? ctx.baseLatency! : 0;
+  const salida = Number.isFinite(ctx.outputLatency) ? ctx.outputLatency! : 0;
+  return Math.min(0.3, Math.max(0, base) + Math.max(0, salida));
 }
 
 const SILENCIO_FIJO = 0.12;
@@ -108,7 +144,11 @@ export function silencioInicial(canales: Float32Array[], frecuencia: number): nu
 
 export class Sonador {
   private ctx: AudioContext | null = null;
+  /** La promesa del último `resume()`: `esperarContexto` la espera. */
+  private reanudando: Promise<void> | null = null;
   private readonly cache = new Map<string, Promise<AudioListo | null>>();
+  /** Los `blob:` de los mp3 ya bajados (uno por URL), para revocarlos al destruir. */
+  private readonly blobs: string[] = [];
   private parando: (() => void) | null = null;
   /** Tras `destruir`, nada vuelve a sonar: ni lo que se estaba preparando ni un `tocar` tardío. */
   private destruido = false;
@@ -120,8 +160,24 @@ export class Sonador {
     try {
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!this.ctx && Ctx) this.ctx = new Ctx();
-      if (this.ctx?.state === 'suspended') void this.ctx.resume();
+      if (this.ctx && this.ctx.state !== 'running') this.reanudando = this.ctx.resume().catch(() => {});
     } catch { this.ctx = null; }
+  }
+
+  /** 4 oct 2026: el reloj de Web Audio (`currentTime`) no avanza hasta que el
+   *  contexto corre, y en Android reanudarlo tras el gesto tarda 100–500 ms la
+   *  primera vez: si la línea arrancaba antes, la fuente programada salía
+   *  tarde. Espera a que corra, como mucho `topeMs`. True si corre; false si
+   *  no llegó a tiempo o no hay contexto (entonces `tocar` usa el `<audio>`). */
+  esperarContexto(topeMs = 600): Promise<boolean> {
+    const ctx = this.ctx;
+    if (!ctx || this.destruido) return Promise.resolve(false);
+    if (ctx.state === 'running') return Promise.resolve(true);
+    const reanudar = this.reanudando ?? (this.reanudando = ctx.resume().catch(() => {}));
+    return new Promise(resolver => {
+      const id = setTimeout(() => resolver(ctx.state === 'running'), topeMs);
+      void reanudar.then(() => { clearTimeout(id); resolver(ctx.state === 'running'); });
+    });
   }
 
   preparar(url: string): Promise<AudioListo | null> {
@@ -145,6 +201,23 @@ export class Sonador {
     this.parar();
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
+    for (const u of this.blobs) { try { URL.revokeObjectURL(u); } catch { /* sin blobs */ } }
+    this.blobs.length = 0;
+  }
+
+  /** El mp3 ya bajado en un `<audio>` precargado desde un `blob:` (la CSP de
+   *  producción lo permite en `media-src`); si el navegador no sabe hacer
+   *  blobs, la URL de siempre. Se crea al preparar, no al tocar, para que al
+   *  tocar ya esté listo. */
+  private elementoDe(blob: Blob, url: string): HTMLAudioElement {
+    let src = url;
+    try {
+      if (typeof URL.createObjectURL === 'function') { src = URL.createObjectURL(blob); this.blobs.push(src); }
+    } catch { src = url; }
+    const a = new Audio(src);
+    a.preload = 'auto';
+    try { a.load(); } catch { /* jsdom */ }
+    return a;
   }
 
   private async decodificar(url: string): Promise<AudioListo> {
@@ -152,21 +225,26 @@ export class Sonador {
     if (!ctx) throw new Error('sin AudioContext');
     const r = await fetch(url);
     if (!r.ok) throw new Error(String(r.status));
-    const buffer = await ctx.decodeAudioData(await r.arrayBuffer());
+    // Los bytes se guardan (Blob) antes de decodificar: `decodeAudioData`
+    // vacía el ArrayBuffer que recibe, y hacen falta para el <audio>.
+    const blob = await r.blob();
+    const buffer = await ctx.decodeAudioData(await blob.arrayBuffer());
     const canales = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
     const silencio = silencioInicial(canales, buffer.sampleRate);
+    const elemento = this.destruido ? null : this.elementoDe(blob, url);
     return {
       duracion: buffer.duration,
       silencio,
       fin: Math.max(silencio, finSonoro(canales, buffer.sampleRate)),
       tramos: tramosSonoros(canales, buffer.sampleRate),
-      tocar: (retrasoS, velocidad = 1) => {
+      tocar: (retrasoS, velocidad = 1, alEmpezar) => {
         this.parar();
-        if (this.destruido) return { parar: () => {}, velocidad };
-        if (velocidad !== 1) {
-          // Fuera de 1×: un <audio> con preservesPitch; Web Audio cambiaría el tono.
-          const a = new Audio(url);
-          const r = tocarElemento(a, retrasoS, velocidad);
+        if (this.destruido || !elemento) return { parar: () => {}, velocidad };
+        if (velocidad !== 1 || ctx.state !== 'running') {
+          // Fuera de 1×: el <audio> con preservesPitch (Web Audio cambiaría el
+          // tono). Y con el contexto parado (no se reanudó a tiempo), también:
+          // su reloj no avanza y la fuente no sonaría cuando toca.
+          const r = tocarElemento(elemento, retrasoS, velocidad, alEmpezar);
           this.parando = r.parar;
           return r;
         }
@@ -177,6 +255,9 @@ export class Sonador {
         else fuente.start(ctx.currentTime, Math.min(buffer.duration, -retrasoS));
         const parar = () => { try { fuente.stop(); } catch { /* ya parada */ } fuente.disconnect(); };
         this.parando = parar;
+        // Programado con precisión de muestra: lo único que llega tarde es lo
+        // que tarda en salir por el altavoz.
+        alEmpezar?.(latenciaSalida(ctx));
         return { parar, velocidad: 1 };
       },
     };
@@ -195,10 +276,10 @@ export class Sonador {
           silencio: SILENCIO_FIJO,
           fin: Number.isFinite(a.duration) ? a.duration : 1,
           tramos: [],
-          tocar: (retrasoS, velocidad = 1) => {
+          tocar: (retrasoS, velocidad = 1, alEmpezar) => {
             this.parar();
             if (this.destruido) return { parar: () => {}, velocidad };
-            const r = tocarElemento(a, retrasoS, velocidad);
+            const r = tocarElemento(a, retrasoS, velocidad, alEmpezar);
             this.parando = r.parar;
             return r;
           },

@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import posesCompletas from './poses.ejemplo.json';
 import ajustes3d from './poses.ajustes3d.json';
 import { AjustesPoses3d, CatalogoPoses, conAjustes3d, ipaPorLetras, poseDe, trocearIpa } from './poses';
 import palabrasAudio from './palabras_audio.json';
-import { ADELANTO, alAudio, alCompasDeTramos, cicloSonido, lineaFrase } from './animacion';
+import { ADELANTO, aVelocidad, alAudio, alCompasDeTramos, cicloSonido, lineaFrase, retrasoAudio } from './animacion';
 import { finSonoro, tramosSonoros } from './audio';
+import { CadenciaSombreado, EscenaBoca } from './escena';
 
 const catalogo = conAjustes3d(posesCompletas as unknown as CatalogoPoses, ajustes3d as unknown as AjustesPoses3d);
 const ciclo = (s: string) => cicloSonido(poseDe(catalogo, s)!, catalogo);
@@ -174,5 +175,118 @@ describe('25 sep: la frase del TTS alineada por palabras', () => {
     const tramos = [{ inicio: 0.1, fin: 0.9 }];
     const pocas = lineaFrase(palabras, catalogo, tramos, 0.1, 1.2, [{ inicio: 0.1, fin: 0.2 }, null, null]);
     expect(pocas).toEqual(lineaFrase(palabras, catalogo, tramos, 0.1, 1.2));
+  });
+});
+
+/** 4 oct 2026 (Miguel, tras grabar la demo en el móvil: la boca «desfasada
+ *  completamente respecto al audio», también al cambiar la velocidad). */
+describe('4 oct: la línea del visor se ancla al audio real', () => {
+  let reloj = 0;
+  beforeEach(() => { vi.spyOn(performance, 'now').mockImplementation(() => reloj); });
+  afterEach(() => vi.restoreAllMocks());
+
+  /** Una escena sin three: solo lo que usan `reproducir` y la línea. */
+  function escenaMinima(): EscenaBoca {
+    return Object.assign(Object.create(EscenaBoca.prototype), {
+      exploracionDidactica: false, corteDidactico: false, reducirMovimiento: false,
+      linea: null, desde: null, hacia: null, giroLinea: 0, arrastrando: false, libre: false, sucio: false,
+    }) as EscenaBoca;
+  }
+  /** La pose de la línea en el segundo `t` (método privado de la escena). */
+  const poseEn = (e: EscenaBoca, t: number): Float64Array =>
+    (e as unknown as { poseDeLinea(t: number): Float64Array }).poseDeLinea(t);
+
+  it('al llegar «playing» 300 ms tarde, la línea se desplaza 0,3 s', () => {
+    const e = escenaMinima();
+    reloj = 1000;
+    e.reproducir(ciclo('f'));
+    reloj = 1500;
+    expect(e.tiempoLinea).toBeCloseTo(0.5, 6);
+    e.desplazarLinea(0.3);
+    expect(e.tiempoLinea).toBeCloseTo(0.2, 6);
+    // La pose que se enseña es la de 0,2 s de la línea, no la de 0,5.
+    expect(Array.from(poseEn(e, e.tiempoLinea!))).toEqual(Array.from(poseEn(e, 0.2)));
+    e.desplazarLinea(Number.NaN);
+    expect(e.tiempoLinea).toBeCloseTo(0.2, 6);
+    e.detener();
+    expect(e.tiempoLinea).toBeNull();
+    e.desplazarLinea(1);                                 // sin línea, nada
+    expect(e.tiempoLinea).toBeNull();
+  });
+
+  it('al cambiar la velocidad en marcha, la nueva línea sigue por el mismo punto del gesto', () => {
+    const base = ciclo('s');
+    const a1 = escenaMinima(), a05 = escenaMinima();
+    reloj = 0;
+    a1.reproducir(aVelocidad(base, 1));
+    reloj = 1200;                                        // a 1× va por 1,2 s
+    const t = a1.tiempoLinea!;
+    // A 0,5× ese punto del gesto está en 2,4 s de la línea (el doble de larga).
+    a05.reproducir(aVelocidad(base, 0.5), {}, t * 1 / 0.5);
+    expect(a05.tiempoLinea).toBeCloseTo(2.4, 6);
+    const p1 = poseEn(a1, 1.2), p05 = poseEn(a05, 2.4);
+    expect(p05.length).toBe(p1.length);
+    for (let i = 0; i < p1.length; i++) expect(p05[i]).toBeCloseTo(p1[i], 9);
+    // Un `desde` fuera de rango no adelanta la línea.
+    a05.reproducir(aVelocidad(base, 0.5), {}, -3);
+    expect(a05.tiempoLinea).toBeCloseTo(0, 6);
+  });
+
+  it('a cualquier velocidad, y siguiendo por donde iba, la primera energía del audio cae en sonidoEn', () => {
+    const base = alAudio(ciclo('f'), 'fricativa', 1.4), silencio = 0.35;
+    // Instante de la línea en que el archivo llega a `silencio` si `tocar(retraso, v)`
+    // se llamó cuando la línea iba por `desde`: con retraso positivo espera y
+    // arranca en 0; con negativo arranca ya en `-retraso * v` del archivo.
+    const llega = (retraso: number, v: number, desde: number) =>
+      desde + (retraso >= 0 ? retraso + silencio / v : (silencio - (-retraso * v)) / v);
+    for (const v of [0.25, 0.5, 1, 1.5, 2]) {
+      const l = aVelocidad(base, v);
+      const retraso = retrasoAudio(l.sonidoEn, silencio, v);
+      expect(llega(retraso, v, 0)).toBeCloseTo(l.sonidoEn, 9);
+      for (const desde of [0.2, l.sonidoEn, l.sonidoEn + 0.5]) expect(llega(retraso - desde, v, desde)).toBeCloseTo(l.sonidoEn, 9);
+    }
+  });
+});
+
+describe('4 oct: la cadencia del sombreado del gesto en la cabeza didáctica', () => {
+  const pose = (x: number) => Float64Array.from([x, 0, 0]);
+
+  it('la primera vez y sin movimiento recalcula al momento; una pose igual no repite', () => {
+    const c = new CadenciaSombreado();
+    expect(c.toca(pose(0), 0, false)).toBe(true);
+    c.anotar(pose(0), 0, 20);
+    expect(c.toca(pose(0), 5, false)).toBe(false);
+    expect(c.toca(pose(0), 5, true)).toBe(false);
+    expect(c.toca(pose(0.5), 5, false)).toBe(true);      // parada y distinta: ya
+    expect(c.pendiente).toBe(false);
+  });
+
+  it('en movimiento espera tres veces lo que costó (tope 100 ms); lo aplazado se hace en cuanto la pose se sostiene', () => {
+    const c = new CadenciaSombreado();
+    c.anotar(pose(0), 0, 20);                            // costó 20 ms: cada 60
+    expect(c.toca(pose(0.1), 30, true)).toBe(false);
+    expect(c.pendiente).toBe(true);
+    expect(c.toca(pose(0.2), 59, true)).toBe(false);
+    expect(c.toca(pose(0.3), 60, true)).toBe(true);
+    c.anotar(pose(0.3), 60, 20);
+    expect(c.pendiente).toBe(false);
+    // La pose se sostiene (un cierre, una vocal larga) con un cambio aplazado:
+    // se recalcula una vez y ya no se repite.
+    expect(c.toca(pose(0.35), 70, true)).toBe(false);
+    expect(c.toca(pose(0.35), 80, true)).toBe(true);
+    c.anotar(pose(0.35), 80, 20);
+    expect(c.toca(pose(0.35), 90, true)).toBe(false);
+    // Tope: aunque costara 200 ms no se espera más de 100 (poses distintas en
+    // cada cuadro: la boca sigue moviéndose).
+    c.anotar(pose(1), 100, 200);
+    expect(c.toca(pose(1.1), 150, true)).toBe(false);
+    expect(c.toca(pose(1.15), 199, true)).toBe(false);
+    expect(c.toca(pose(1.2), 200, true)).toBe(true);
+    // Barato (2 ms, un escritorio): cada 6 ms, es decir, cada cuadro.
+    c.anotar(pose(2), 300, 2);
+    expect(c.toca(pose(2.1), 316, true)).toBe(true);
+    // Un coste sin medida válida no bloquea nada.
+    c.anotar(pose(3), 400, Number.NaN);
+    expect(c.toca(pose(3.1), 401, true)).toBe(true);
   });
 });

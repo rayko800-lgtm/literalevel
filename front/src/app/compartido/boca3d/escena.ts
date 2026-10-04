@@ -121,6 +121,63 @@ export function normalesDelGesto(malla: THREE.Mesh, conservarNariz = false, paso
     destino.needsUpdate=true;
   };
 }
+
+/** 4 oct 2026 (Miguel, tras grabar la demo en el móvil: la boca «no
+ *  coincide» con el audio). Recalcular en cada cuadro las normales de la
+ *  piel (9.205 vértices con 10 morfos: 2,6 ms en un escritorio, medido con
+ *  el GLB real) y las de la lengua (3 pasadas: 1,5 ms) se come en un móvil
+ *  buena parte del presupuesto del cuadro, y a pocos cuadros por segundo los
+ *  gestos cortos (el cierre de /p b m/, 80 ms) se pierden. Esta cadencia deja
+ *  ese sombreado en como mucho un cuarto del tiempo de cuadro: mientras la
+ *  boca se mueve se recalcula cuando la pose cambió y han pasado al menos
+ *  tres veces lo que costó la última vez (tope 100 ms); en cuanto la pose se
+ *  queda quieta, o nada se mueve, se recalcula sin esperar, así el reposo y
+ *  la pose sostenida se ven exactamente como antes. La forma (los morfos) va
+ *  a la GPU cada cuadro como siempre: solo el sombreado puede ir un cuadro o
+ *  dos por detrás. En un escritorio (coste de 2 a 4 ms) sigue siendo cada cuadro. */
+export class CadenciaSombreado {
+  static readonly TOPE_MS = 100;
+  static readonly UMBRAL = 1e-4;
+  static readonly FACTOR = 3;
+  /** La última pose que se sombreó, y la última que se vio (cuadro anterior). */
+  private sombreada: number[] | null = null;
+  private vista: number[] | null = null;
+  private t = -Infinity;
+  private coste = 0;
+  /** Hubo un cambio que se aplazó: toca recalcular en cuanto se pueda. */
+  pendiente = false;
+
+  /** Si toca recalcular ahora para la pose `n`. */
+  toca(n: ArrayLike<number>, ahora: number, enMovimiento: boolean): boolean {
+    const anterior = this.vista;
+    this.vista = Array.from(n);
+    const cambio = this.sombreada ? diferenciaMaxima(n, this.sombreada) : Infinity;
+    if (cambio <= CadenciaSombreado.UMBRAL) { this.pendiente = false; return false; }   // ya está sombreada así
+    // La pose se sostiene (un cierre, una vocal larga, el final del gesto):
+    // se recalcula sin esperar, para que se vea exactamente como siempre.
+    const quieta = anterior !== null && diferenciaMaxima(n, anterior) <= CadenciaSombreado.UMBRAL;
+    if (enMovimiento && !quieta && ahora - this.t < Math.min(CadenciaSombreado.TOPE_MS, CadenciaSombreado.FACTOR * this.coste)) {
+      this.pendiente = true;
+      return false;
+    }
+    return true;
+  }
+
+  /** Tras recalcular: la pose sombreada, cuándo y lo que costó. */
+  anotar(n: ArrayLike<number>, ahora: number, costeMs: number): void {
+    this.sombreada = Array.from(n);
+    this.t = ahora;
+    this.coste = Number.isFinite(costeMs) ? Math.max(0, costeMs) : 0;
+    this.pendiente = false;
+  }
+}
+
+function diferenciaMaxima(a: ArrayLike<number>, b: ArrayLike<number>): number {
+  if (a.length !== b.length) return Infinity;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d = Math.max(d, Math.abs(a[i] - b[i]));
+  return d;
+}
 import { Linea } from './animacion';
 import { Familia, Labios, PoseSonido, REPOSO } from './poses';
 
@@ -1258,6 +1315,11 @@ interface PielDeformable {
   retraso: Float32Array;
   seguimientoMaximo?: number;
   ultimoGiro: number;
+  /** 4 oct: las normales de esta piel las pone `normalesDelGesto` (con los
+   *  morfos aplicados), así que `deformarPiel` no las recalcula: lo hacía
+   *  cada cuadro (2,1 ms) para que se sobrescribieran en el mismo cuadro, y
+   *  con el sombreado a su cadencia dejaría un cuadro con normales sin morfos. */
+  normalesAparte?: boolean;
 }
 
 const suave01 = (t: number) => { const s = Math.min(1, Math.max(0, t)); return s * s * (3 - 2 * s); };
@@ -1352,6 +1414,7 @@ function deformarPiel(piel: PielDeformable, giro: number): void {
     salida[3 * i + 1] = PIVOTE_MAND.y + dx * s + dy * c;
   }
   pos.needsUpdate = true;
+  if (piel.normalesAparte) return;
   piel.geometria.computeVertexNormals();
   {
     const normales = piel.geometria.getAttribute('normal');
@@ -1626,6 +1689,8 @@ export class EscenaBoca {
   private corteDidactico = false;
   private actualizarNormalesPiel: (() => void) | null = null;
   private actualizarNormalesLengua: (() => void) | null = null;
+  /** 4 oct: cuándo recalcular las normales del gesto (ver `CadenciaSombreado`). */
+  private readonly cadencia = new CadenciaSombreado();
   reducirMovimiento: boolean;
 
   constructor(private readonly contenedor: HTMLElement, opciones: OpcionesEscena = {}) {
@@ -1896,9 +1961,11 @@ export class EscenaBoca {
   }
 
   /** Reproduce una línea de tiempo (`cicloSonido` o `lineaPalabra`) desde el
-   *  principio; al acabar se queda en su última clave. Con reducir movimiento
-   *  no se mueve nada: va de golpe a la pose quieta de la línea. */
-  reproducir(linea: Linea, opciones: { giro?: number } = {}): void {
+   *  principio (o desde el segundo `desdeS`: al cambiar la velocidad en
+   *  marcha, 4 oct, la nueva línea sigue por donde iba la anterior); al
+   *  acabar se queda en su última clave. Con reducir movimiento no se mueve
+   *  nada: va de golpe a la pose quieta de la línea. */
+  reproducir(linea: Linea, opciones: { giro?: number } = {}, desdeS = 0): void {
     this.elevacionFrontalPara(linea.quieta);
     this.desde = this.hacia = null;
     this.giroLinea = 0;
@@ -1913,7 +1980,7 @@ export class EscenaBoca {
       return { t: c.t, n: c.hacia ? mezclar(n, poseNumerica(c.hacia), c.f ?? 0.5) : n };
     });
     this.linea = { claves, total: linea.total, aspiracion: linea.aspiracion };
-    this.lineaT0 = performance.now();
+    this.lineaT0 = performance.now() - Math.max(0, Number.isFinite(desdeS) ? desdeS : 0) * 1000;
     // El giro de cámara que acompaña al sonido (labios redondeados o
     // estirados se ven de frente): solo si el usuario no está arrastrando.
     if (opciones.giro && !this.arrastrando && !this.libre) {
@@ -1950,6 +2017,22 @@ export class EscenaBoca {
   /** Corta la línea en marcha y se queda donde está. */
   detener(): void {
     this.linea = null;
+  }
+
+  /** 4 oct 2026: desplaza la línea en marcha `segundos` hacia atrás (positivo:
+   *  la boca vuelve ese tiempo; negativo: salta adelante). Es lo que hace
+   *  `Boca3d` cuando el audio avisa de que arrancó tarde (`alEmpezar` de
+   *  `AudioListo.tocar`): la línea se ancla al arranque real del sonido en
+   *  vez de al instante en que se pidió. Sin línea, no hace nada. */
+  desplazarLinea(segundos: number): void {
+    if (!this.linea || !Number.isFinite(segundos)) return;
+    this.lineaT0 += segundos * 1000;
+    this.sucio = true;
+  }
+
+  /** Segundos que lleva la línea en marcha, o null si no hay línea. */
+  get tiempoLinea(): number | null {
+    return this.linea ? (performance.now() - this.lineaT0) / 1000 : null;
   }
 
   /** D4.4b v4: el soplo de aspiración de una oclusiva sorda. Tras la
@@ -2720,7 +2803,9 @@ export class EscenaBoca {
           pieza.layers.set(1);
           pieza.userData['sinSombraRecibida'] = true;
           this.escena.add(pieza);
-          this.pielesDeformables.push(pielQueSigueLaMandibula(geometria, true, true, true));
+          const piel = pielQueSigueLaMandibula(geometria, true, true, true);
+          piel.normalesAparte = fotografica;          // sus normales las pone normalesDelGesto
+          this.pielesDeformables.push(piel);
           this.conMorfosDeLabios(pieza, exteriores[0]);
           if (fotografica) this.actualizarNormalesPiel = normalesDelGesto(pieza,true);
         }
@@ -3064,6 +3149,11 @@ export class EscenaBoca {
       this.aplicar(this.actual);
       if (t >= 1) this.desde = this.hacia = null;
       this.sucio = true;
+    } else if (this.cadencia.pendiente) {
+      // La boca se paró con el sombreado aplazado: se calcula ahora, una vez,
+      // para que la pose quieta se vea exactamente como siempre.
+      this.sombrearGesto(this.actual);
+      this.sucio = true;
     }
     this.controles.update();
     this.ocultarLaterales();
@@ -3406,18 +3496,31 @@ export class EscenaBoca {
         if ('compresion_labios' in dic) inf[dic['compresion_labios']] = n[I_COMPRESION_LABIOS];
       }
     }
-    if (!this.corteDidactico) this.actualizarNormalesPiel?.();
     if (this.lenguaGlb?.morphTargetInfluences) {
       const inf = this.lenguaGlb.morphTargetInfluences;
       this.indicesMorfos.forEach((idx, i) => { if (idx !== undefined) inf[idx] = n[I_MORFOS + i]; });
       if (this.puntaFuera) this.puntaFuera.value = n[I_MORFOS + MORFOS_LENGUA.indexOf('punta_interdental')] ?? 0;
-      this.actualizarNormalesLengua?.();
-      // Antes de que WebGL suba atributos: onBeforeRender es demasiado
-      // tarde y dejaba el relleno con la pose anterior al mantener un gesto.
-      this.seccionLingual?.actualizar();
     } else {
       deformarLengua(this.lengua.geometry, n);
     }
+    // 4 oct: las normales del gesto (piel y lengua) a su cadencia; la sección
+    // lingual, barata, cada cuadro y antes de que WebGL suba atributos
+    // (onBeforeRender es demasiado tarde y dejaba el relleno con la pose
+    // anterior al mantener un gesto).
+    this.sombrearGesto(n);
+    this.seccionLingual?.actualizar();
     this.sucio = true;
+  }
+
+  /** El sombreado del gesto: las normales de la piel (en la vista frontal) y
+   *  de la lengua, recalculadas en JS con los morfos ya aplicados. Se mide lo
+   *  que cuesta y `CadenciaSombreado` decide con eso cuándo repetirlo. */
+  private sombrearGesto(n: PoseNumerica): void {
+    const ahora = performance.now();
+    const enMovimiento = this.linea !== null || this.hacia !== null;
+    if (this.cadencia && !this.cadencia.toca(n, ahora, enMovimiento)) return;
+    if (!this.corteDidactico) this.actualizarNormalesPiel?.();
+    if (this.lenguaGlb?.morphTargetInfluences) this.actualizarNormalesLengua?.();
+    this.cadencia?.anotar(n, ahora, performance.now() - ahora);
   }
 }

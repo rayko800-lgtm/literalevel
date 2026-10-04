@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { BOCA3D_ACTIVO } from '../compartido/boca3d/interruptor';
 import { Pronunciar } from './pronunciar';
@@ -55,5 +55,73 @@ describe('Pronunciar con la boca 3D encendida', () => {
     expect(raiz.querySelector('.ficha-sonido .botones-corte button')?.textContent).toContain('Escuchar y ver');
     expect(raiz.querySelector('details.boca .botones-corte button')?.textContent).toContain('Escuchar y ver');
     expect([...raiz.querySelectorAll('button')].filter(b => /Escuchar y ver/.test(b.textContent ?? '')).length).toBe(2);
+  });
+});
+
+/** 4 oct 2026 (Miguel, tras grabar la demo en el móvil): «Leer la frase» leía
+ *  por letras y sin las marcas de whisper si la IPA pedida al abrir el 3D aún
+ *  no había llegado, y la boca quedaba desalineada del audio. */
+describe('4 oct: la frase en 3D espera a su IPA', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Pronunciar],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+  });
+
+  const AUDIO = '/api/audio/frase.mp3?acceso=abc';
+  const vuelta = (ms = 0) => new Promise(r => setTimeout(r, ms));
+
+  function preparar() {
+    const fixture = TestBed.createComponent(Pronunciar);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = fixture.componentInstance as any;
+    const visor = { anticipar: vi.fn(), leerFrase: vi.fn() };
+    c.visor = () => visor;
+    c.resultado.set({
+      puntuacion: 80, transcripcion_ok: true, transcripcion: 'the cat',
+      palabras: [{ palabra: 'the', bien: true }, { palabra: 'cat', bien: true }],
+      entendidas: [], resumen: null, audio_correcto: AUDIO, restantes: null, detalles: [],
+    });
+    c.alternarLectura3d();
+    expect(c.visor3d()).toBe('lectura');
+    const http = TestBed.inject(HttpTestingController);
+    const peticion = http.match(r => r.url.endsWith('/lectura/ipa') && r.params.get('texto') === 'the cat')[0];
+    expect(peticion).toBeTruthy();
+    expect(peticion.request.params.get('audio')).toBe('frase.mp3');
+    return { c, visor, peticion };
+  }
+
+  it('con la IPA en vuelo, el audio se anticipa en el clic y la lectura espera a las marcas', async () => {
+    const { c, visor, peticion } = preparar();
+    c.oirLectura(AUDIO, 'the cat');
+    expect(visor.anticipar).toHaveBeenCalledWith(expect.stringContaining('/api/audio/frase.mp3'));
+    await vuelta();
+    expect(visor.leerFrase).not.toHaveBeenCalled();
+    peticion.flush({ palabras: [{ palabra: 'the', ipa: 'ðə', inicio: 0.1, fin: 0.2 }, { palabra: 'cat', ipa: 'kæt', inicio: 0.2, fin: 0.5 }] });
+    await vuelta();
+    expect(visor.leerFrase).toHaveBeenCalledTimes(1);
+    const [audio, palabras] = visor.leerFrase.mock.calls[0];
+    expect(audio).toContain('/api/audio/frase.mp3');
+    expect(palabras[1]).toEqual({ palabra: 'cat', ipa: 'kæt', inicio: 0.2, fin: 0.5 });
+    // La segunda vez ya la tiene: lee en el acto.
+    c.oirLectura(AUDIO, 'the cat');
+    expect(visor.leerFrase).toHaveBeenCalledTimes(2);
+  });
+
+  it('si la IPA no llega a tiempo lee por letras sin esperar más; con el 3D cerrado mientras tanto, no lee', async () => {
+    const { c, visor } = preparar();
+    c.esperaIpaMs = 20;
+    c.oirLectura(AUDIO, 'the cat');
+    await vuelta(60);
+    expect(visor.leerFrase).toHaveBeenCalledTimes(1);
+    expect(visor.leerFrase.mock.calls[0][1]).toEqual([{ palabra: 'the', ipa: null }, { palabra: 'cat', ipa: null }]);
+
+    const otra = preparar();
+    otra.c.esperaIpaMs = 20;
+    otra.c.oirLectura(AUDIO, 'the cat');
+    otra.c.visor3d.set(null);
+    await vuelta(60);
+    expect(otra.visor.leerFrase).not.toHaveBeenCalled();
   });
 });
