@@ -375,4 +375,5 @@ sin soplo, deducción de `aislado`, /p/ suelta sin bandera abre con el soplo).
 - **Hallazgo lateral (sin corregir):** 23 de los 32 pares GA/RP de consonantes (`ga_0062`/`rp_0062`,
   `ga_006c`/`rp_006c`, …) llevan **exactamente el mismo `voz.mp3`**: el clip «británico» es el mismo
   audio que el americano. Las vocales con nombre distinto (`0251_02d0`, `0069_02d0`…) sí son otra voz.
-  Viene de `generar_clips.py`; decidir si se regeneran con la voz UK (≈2 min por clip) o se deja.
+  Viene de `generar_clips.py`. **Decisión de Miguel (4 oct, 14:45): se deja así; lo que importaba eran
+  las vocales, que sí van con su voz.**
