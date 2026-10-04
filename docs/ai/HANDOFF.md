@@ -50,12 +50,16 @@ y de frente se ve arriba y dentro, sin irse de lado. El trabajador de frases se
 relanzó con el código nuevo (registro en
 `D:/literalevel_eos_pronunciar/trabajador_2026-10-04.log`).
 
-**Parte 3 · publicar: pendiente del visto bueno de Miguel.** Además, el Space
-`mikemaki1763/literalevel` está **PAUSED** desde el 2 oct (02:40 UTC):
-`/api/salud` → 503 «The space is paused»; el trabajador lleva desde el 3 oct
-recibiendo 503. Antes de publicar hay que reanudarlo (Settings del Space) y,
-tras `desplegar_app.py --solo …`, reponer el cupo de `miguel` si hace falta
-(`HANDOFF_SEGURIDAD_2026-10-01.md`, nota del 4 oct). Pasos en el encargo § 3.
+**Parte 3 · publicado (4 oct, 08:03-08:20).** Miguel dio el visto bueno y
+pagó la suscripción Pro (el Space estaba **PAUSED** desde el 2 oct por el cobro
+pendiente). Reanudado con `restart_space`; `master` avanzó a `92e7c9d` (Vercel
+entregó `main-RKY73FGO.js`, CSP con `connect-src blob:`, cabeza 3D con textura
+comprobada en producción); API en la revisión del Space `becd67c` (commit
+`92e7c9d`): `/api/salud` ok con `buscador_listo`, segunda pasada `--seco` sin
+nada que subir, `auditar_produccion.py smoke` 9/9. Pruebas en árbol limpio:
+API 72/72, seguridad 43 (dos errores solo de `tearDown` en Windows). Cupo de
+`miguel` sin tocar (98 usos). Detalle en `DESPLIEGUE.md` § «Demo grabada del 4
+oct: arreglos publicados».
 
 **Para la demo en vivo del 10 oct**: ensayar con la cuenta `miguel` (en el
 vídeo tenía 98 usos y nivel 1,88 · C2: decidir si se deja así o se baja el

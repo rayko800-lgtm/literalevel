@@ -651,3 +651,36 @@ frases nuevas y las sube al bucket (`/data/eos/`). Probado en producción: 150 s
   `front/angular.json` tiene un cambio local de otra sesión; el publicador del
   respaldo exige todas las fuentes confirmadas. Vercel, el front principal, sí
   contiene esta corrección.
+
+## Demo grabada del 4 oct: arreglos publicados (4 oct 2026)
+
+- Código: `claude/hola-vpznit` fusionada en `master` por avance rápido,
+  `29b56cd` → `92e7c9d` (21 commits: CSP `connect-src blob:`, scroll 2D/3D,
+  estado de Pronunciar, cambio de contraseña sin salir, contexto de seguridad en
+  los hilos, enlaces de 4 h, boca 3D anclada al audio, corrector de visemas y 85
+  clips de Eos regrabados, espera de Eos de 6 min, compuestos por su cabeza,
+  botón de lectura en vivo oculto). Informe: `auditoria/demo_2026-10-04/`.
+- Space: estaba **PAUSED** desde el 2 oct (la suscripción Pro no se había
+  cobrado; Miguel pagó el 4 oct). Reanudado con `restart_space` a las 08:03
+  (RUNNING a las 08:03:49). API: revisión del Space `becd67c` (commit `92e7c9d`),
+  `--solo app/api.py app/seguridad.py app/lexicon.py app/voz.py`; RUNNING a las
+  08:13:11, `/api/salud` con `estado: ok` y `buscador_listo: true` a los 22 s;
+  segunda pasada de `--seco`: «No hay nada que subir». `auditar_produccion.py
+  smoke`: 9 de 9 OK (resultados en `auditoria/seguridad_produccion_2026-10-01.json`).
+- Front: Vercel construyó el push de `92e7c9d` a `origin/master` y entregó
+  `main-RKY73FGO.js`, el mismo nombre que el build local; la CSP publicada ya
+  lleva `connect-src 'self' blob: https://mikemaki1763-literalevel.hf.space`. La
+  cabeza 3D en producción (Chrome 390×844 por Playwright, Pronunciar → /m/ →
+  «Boca en 3D») sale con textura: centro del lienzo RGB 158·106·94, sin avisos
+  de CSP en consola (`auditoria/demo_2026-10-04/real/boca3d_produccion.jpg`).
+- Pruebas en árbol limpio (`git archive 92e7c9d` + datos enlazados):
+  `pruebas_api.py` 72/72; `pruebas_seguridad.py` 43 comprobaciones bien, dos con
+  error solo en el `tearDown` de Windows (`cuaderno.db` abierto al borrar el
+  temporal). Front 533/533, build y `tsc` en verde.
+- Trabajador de Eos del PC relanzado con el código nuevo (corrector de visemas);
+  desde que el Space despertó la cola responde (sin 503 desde las 08:02).
+- Variables nuevas (`LITERALEVEL_LLAMADAS_*`, `LITERALEVEL_RECURSO_SEGUNDOS`) no
+  se añadieron al Space: aplican los valores por defecto. Cupo de `miguel` sin
+  tocar (tenía 98 usos en el vídeo).
+- **NO VERIFICADO:** la sincronía boca/audio del 3D con oído en el móvil y una
+  frase de Eos de punta a punta en producción tras el despliegue.

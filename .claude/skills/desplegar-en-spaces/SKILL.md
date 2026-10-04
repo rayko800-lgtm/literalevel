@@ -257,6 +257,24 @@ la app entera libre, y con llave solo lo que llama a la API.
 
 ---
 
+## 5 bis. El Space aparece PAUSED (4 oct 2026)
+
+Si `/api/salud` devuelve 503 «The space is paused, ask a maintainer to restart
+it» y `get_space_runtime(...).stage` dice `PAUSED` con `hardware None`, lo más
+probable es que **la suscripción Pro no se haya cobrado** (pasó el 2 oct 2026:
+la renovación del 1 oct no se pagó hasta el 4). No es un fallo del código ni
+del despliegue, y un `--solo` no lo despierta. Comprobar `isPro`/`periodEnd`
+con `whoami-v2` y, una vez pagado, reanudarlo con el token de escritura de
+`C:\Users\laura\.hf_token`:
+
+```python
+HfApi(token=tok).restart_space("mikemaki1763/literalevel")   # BUILDING → APP_STARTING → RUNNING en ~1 min
+```
+
+Mientras está en pausa, el trabajador de Eos del PC acumula líneas `cola:
+HTTPError: HTTP Error 503` cada 15 s en su registro; en cuanto despierta, dejan
+de salir (no hace falta relanzarlo por eso).
+
 ## 6. Comprobar que arrancó
 
 ```python

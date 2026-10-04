@@ -1,0 +1,19 @@
+{
+ "base": "https://pleyade-app.vercel.app",
+ "modo": "3d",
+ "etiqueta": "produccion",
+ "boca3d": {
+  "canvas": "produccion_07_boca3d_canvas.png",
+  "color_centro": {
+   "rgb": [
+    158,
+    106,
+    94
+   ],
+   "saturacion": 0.404
+  },
+  "csp_bloqueos": [],
+  "errores": []
+ },
+ "consola_errores": []
+}

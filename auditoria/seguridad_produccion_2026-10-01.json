@@ -1,5 +1,5 @@
 {
-  "momento_utc": "2026-10-02T02:45:19Z",
+  "momento_utc": "2026-10-04T14:14:12Z",
   "pruebas": [
     {
       "prueba": "API publicada con protección",
@@ -212,20 +212,42 @@
     {
       "prueba": "generación de audiolibro final sin cuenta rechazada",
       "correcto": true
+    },
+    {
+      "prueba": "salud del despliegue final",
+      "correcto": true
+    },
+    {
+      "prueba": "cabeceras de seguridad API",
+      "correcto": true
+    },
+    {
+      "prueba": "cuentas gratuitas no dan barra libre",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre Gradio del despliegue final /config",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre Gradio del despliegue final /gradio_api/info",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre Gradio del despliegue final /gradio_api/queue/join",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre audio vivo del despliegue final /api/gpt-live/sesion",
+      "correcto": true
+    },
+    {
+      "prueba": "cierre audio vivo del despliegue final /api/lectura/vivo",
+      "correcto": true
+    },
+    {
+      "prueba": "generación de audiolibro final sin cuenta rechazada",
+      "correcto": true
     }
-  ],
-  "despliegue_final": {
-    "commit_codigo": "5128df0",
-    "space_revision": "b60a6cfe0416130d3ed8df40c1f2f169f4e54e0e",
-    "fase": "RUNNING",
-    "presupuesto_diario_centavos": "500",
-    "presupuesto_acumulado_centavos": "2000",
-    "administrador_real_configurado": false,
-    "credenciales_temporales_locales_retiradas": true
-  },
-  "front": {
-    "bundle": "main-D2L26KL7.js",
-    "sha256": "5e76cb2444ceee2e3beebf761a5c03f71857c1e26ba57ef2f3f33fab91b0ee7d",
-    "igual_a_compilacion_local": true
-  }
+  ]
 }
