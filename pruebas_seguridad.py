@@ -410,6 +410,28 @@ print(sum(s.consumir(config.dir_datos(),SimpleNamespace(nombre='auditora',tope=2
         s.salir(self.token)
         with self.assertRaises(HTTPException): s.validar_recurso("audio:prueba.mp3", acceso)
 
+    def test_enlaces_privados_duran_lo_configurado(self):
+        # Miguel (4 oct): pide una corrección, lee 20 minutos y los enlaces de audio y
+        # de Eos daban 403 (15 min fijos). Cuatro horas por defecto, configurables;
+        # la caducidad y la revocación siguen vigentes.
+        antes = time.time()
+        with s.operacion(self.p): acceso = s.permitir_recurso("audio:demo.mp3")
+        cap = s.recurso_para_trabajador("audio:demo.mp3")
+        with s.transaccion() as db:
+            vidas = [f[0] - antes for f in db.execute("SELECT expira FROM recursos ORDER BY expira")]
+        self.assertEqual(len(vidas), 2)
+        for vida in vidas:
+            self.assertGreater(vida, 4 * 3600 - 5)
+            self.assertLess(vida, 4 * 3600 + 5)
+        with patch.dict(os.environ, {"LITERALEVEL_RECURSO_SEGUNDOS": "0"}):
+            with s.operacion(self.p): caducado = s.permitir_recurso("audio:demo.mp3")
+            with self.assertRaises(HTTPException): s.validar_recurso("audio:demo.mp3", caducado)
+        s.validar_recurso("audio:demo.mp3", acceso)
+        s.validar_recurso("audio:demo.mp3", cap)
+        with s.transaccion() as db: db.execute("UPDATE recursos SET expira=0")
+        for token in (acceso, cap):
+            with self.assertRaises(HTTPException): s.validar_recurso("audio:demo.mp3", token)
+
     def test_audio_no_valido_sin_gasto(self):
         f = Path(self.tmp.name, "audio.webm")
         f.write_bytes(b"falso" * 1000)

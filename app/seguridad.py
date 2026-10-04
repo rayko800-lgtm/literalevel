@@ -244,6 +244,18 @@ def _cambiar(db, nombre, clave):
     db.execute("DELETE FROM recursos WHERE nombre=?", (nombre,))
 
 
+def recurso_segundos() -> int:
+    """Vida de un enlace a un archivo generado (audio, vídeo de Eos).
+
+    La auditoría del 1 oct los dejó en 15 minutos fijos. En la demo, Miguel pide
+    una corrección, se va a leer y vuelve 20 minutos después: «Escuchar la frase
+    bien leída», «Oírla» de cada palabra y el vídeo de Eos daban 403 y el front no
+    sonaba ni explicaba nada (4 oct 2026). Cuatro horas por defecto; el token sigue
+    siendo aleatorio de 256 bits y se revoca al salir o cambiar la contraseña.
+    """
+    return limite("LITERALEVEL_RECURSO_SEGUNDOS", 4 * 3600)
+
+
 def permitir_recurso(recurso: str) -> str | None:
     principal = CONTEXTO.get()
     if principal is None:
@@ -253,7 +265,7 @@ def permitir_recurso(recurso: str) -> str | None:
         db.execute("DELETE FROM recursos WHERE expira<=?", (time.time(),))
         db.execute("INSERT OR IGNORE INTO permisos VALUES(?,?)", (principal.nombre, recurso))
         db.execute("INSERT INTO recursos VALUES(?,?,?,?)",
-                   (huella(token), principal.nombre, recurso, time.time() + 900))
+                   (huella(token), principal.nombre, recurso, time.time() + recurso_segundos()))
     return token
 
 
@@ -281,7 +293,7 @@ def recurso_para_trabajador(recurso: str) -> str | None:
         if fila is None:
             return None
         db.execute("INSERT INTO recursos VALUES(?,?,?,?)",
-                   (huella(token), fila[0], recurso, time.time() + 900))
+                   (huella(token), fila[0], recurso, time.time() + recurso_segundos()))
     return token
 
 
