@@ -1,0 +1,52 @@
+{
+ "base": "http://localhost:4200",
+ "modo": "completo",
+ "etiqueta": "dev",
+ "entrar": "Has entrado como prueba. Te quedan 100 usos.",
+ "cambio_clave": {
+  "mensaje": "Contraseña cambiada. En tus otros dispositivos tendrás que volver a entrar.",
+  "formulario_de_entrada_visible": false,
+  "sigue_dentro": true,
+  "cabecera": "Pléyade prueba Ajustes"
+ },
+ "tras_recargar": {
+  "sigue_dentro": true,
+  "pide_entrar": false
+ },
+ "clave_restaurada": true,
+ "lector": {
+  "boton_en_vivo": 0,
+  "titulo": "The Red Raincoat",
+  "palabra": "Sunday"
+ },
+ "ficha": {
+  "403_sesion": false,
+  "avisos": [],
+  "sin_grabacion": true
+ },
+ "boca3d": {
+  "canvas": "dev_07_boca3d_canvas.png",
+  "color_centro": {
+   "rgb": [
+    158,
+    106,
+    94
+   ],
+   "saturacion": 0.404
+  },
+  "csp_bloqueos": [],
+  "errores": [
+   "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+ },
+ "scroll_2d_3d": {
+  "antesScroll": 2427,
+  "canvasTop": 357.546875,
+  "figTop": 84.390625,
+  "figTag": "IMG.corte",
+  "despuesScroll": 2427
+ },
+ "consola_errores": [
+  "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "base": "http://127.0.0.1:8081",
+ "modo": "3d",
+ "etiqueta": "csp_nueva",
+ "boca3d": {
+  "canvas": "csp_nueva_07_boca3d_canvas.png",
+  "color_centro": {
+   "rgb": [
+    158,
+    106,
+    94
+   ],
+   "saturacion": 0.404
+  },
+  "csp_bloqueos": [],
+  "errores": []
+ },
+ "consola_errores": []
+}

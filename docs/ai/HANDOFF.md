@@ -4,6 +4,67 @@ Estado operativo, corto y vigente. La historia está en
 `docs/ai/legacy_architecture/` (los dos HANDOFF anteriores completos, del
 árbol y de la rama de desarrollo, hasta el 24-25 sep) y en `git log`.
 
+## Sesión local en el PC de Miguel · 4 oct 2026 (rama `claude/hola-vpznit`, encargo `docs/ai/ENCARGO_LOCAL_2026-10-04.md`)
+
+Hecho en el PC lo que la nube no podía: el vídeo, la regrabación de Eos y la
+prueba en navegador. **Nada publicado todavía** (parte 3, solo con el visto
+bueno de Miguel). Informe completo: `auditoria/demo_2026-10-04/hallazgos.md`
+(y `transcripcion.md`, mosaicos de Eos, capturas en `real/`).
+
+**Parte 1 · el vídeo.** `para fable.mp4` estaba en
+`D:/pleyade_ettin_local/checkpoints/20261003T022117Z_a8fff0_foco/`, no en
+Descargas: 19:10, 1080×2340, 823 MB. **No hay narración**: el audio es el del
+teléfono (silencio, la app y Miguel leyendo las dos frases al micrófono);
+whisper solo transcribe inglés de la app. Diez hallazgos (H1-H10) con minuto,
+cruzados con la tabla de arreglos de la nube:
+
+| Hallazgo | Cubierto por | Estado |
+|---|---|---|
+| H1 ficha con sesión: «403: Hace falta una sesión autenticada» + «no se pudo generar audio» (98 usos; la sinopsis del libro subido sí llegó) | `54c39ba` (ContextVar en los hilos) | confirmado: la causa coincide; probado en local sin 403 |
+| H2 cambiar la contraseña echa de la sesión («Vuelve a entrar en tus dispositivos») | `22fce02` | probado en local: sigue dentro, también tras recargar |
+| H3 cabeza 3D blanca (también en «Lado · interior») | `8a225a3` (`connect-src blob:`) | **reproducido y verificado** sirviendo el `dist` con la CSP vieja (gris, «Refused to connect… blob:») y la nueva (piel) |
+| H4 velocidad/sincronía del 3D | `2319d37` `63d23f9` `e1971ae` | el vídeo no lo decide (2 fps, sin audio útil); falta oído en el móvil |
+| H5 Eos no cierra labios en /m/, lengua entre dientes en /d/ | `27e2595` + regrabación (parte 2) | hecho, ver abajo |
+| H6 «Suele tardar un minuto» y tardó 2 min 56 s; el front se rendía a los 3 min | **nuevo** `b18ef2a` | `ESPERAS_EOS_MAX = 90` (6 min), texto «entre uno y tres minutos», prueba |
+| H7 Pronunciar pierde frase/corrección/espera al cambiar de pestaña | `1a994b6` | cubierto por su spec |
+| H8 «five-storied» → ficha de «five», «muy común», en Mis palabras «A person who is five years old» | **nuevo** `5422de9` | la parte es la cabeza del compuesto («storied», adj, «Having multiple storeys») y la rareza la del compuesto (rara); prueba en `pruebas_api.py` |
+| H9 «Leer en voz alta (en vivo)» → «No se pudo» | **nuevo** `49d24b4` | `LECTURA_VIVO_CERRADA`: el botón no se enseña; spec `lector.vivo.spec.ts` |
+| H10 subir un libro: bien | — | — |
+
+Verificación en este PC: `pruebas_api.py` 72/72 (ya con `kaikki`),
+`pruebas_seguridad.py` 43 comprobaciones bien (dos acaban con error solo en el
+`tearDown` en Windows: `cuaderno.db` aún abierto al borrar el temporal; en Linux no pasa), `pruebas_eos_visemas.py` 9/9, front 533/533,
+`tsc` y `npm run build` en verde. Prueba en real (Chrome 390×844 con GPU por
+Playwright, API local con cuenta de prueba y clave de OpenAI inválida a
+propósito): tabla en `hallazgos.md` § «Prueba en real». **No probado**: la
+sincronía con oído, el móvil real, OpenAI real.
+
+**Parte 2 · Eos.** `corregir_visemas.py` sobre los 89 `curvas.json` (85 +
+4 frases; todos «sin curvas de lengua: la pone el visor»), 85 clips
+regrabados en 56 min (`04e3c5f`); `grabar_clips.py --rehacer` ahora deja fuera
+las `frase_*` del trabajador, que antes se colaban en `clips.json` (`8be1276`).
+`/m/` y `/p/` cierran (mosaicos `eos_ga_006d.jpg`, `eos_ga_0070.jpg`, con
+`antes/` al lado); `/l/` no cambia: la lengua la pone el visor
+(`D:/literalevel_eos_pronunciar/visor/index.html`, función `lengua`, l. 365-437)
+y de frente se ve arriba y dentro, sin irse de lado. El trabajador de frases se
+relanzó con el código nuevo (registro en
+`D:/literalevel_eos_pronunciar/trabajador_2026-10-04.log`).
+
+**Parte 3 · publicar: pendiente del visto bueno de Miguel.** Además, el Space
+`mikemaki1763/literalevel` está **PAUSED** desde el 2 oct (02:40 UTC):
+`/api/salud` → 503 «The space is paused»; el trabajador lleva desde el 3 oct
+recibiendo 503. Antes de publicar hay que reanudarlo (Settings del Space) y,
+tras `desplegar_app.py --solo …`, reponer el cupo de `miguel` si hace falta
+(`HANDOFF_SEGURIDAD_2026-10-01.md`, nota del 4 oct). Pasos en el encargo § 3.
+
+**Para la demo en vivo del 10 oct**: ensayar con la cuenta `miguel` (en el
+vídeo tenía 98 usos y nivel 1,88 · C2: decidir si se deja así o se baja el
+nivel para que la franja de Encontrar enseñe libros más accesibles); Space
+despierto y trabajador del PC encendido (las frases de Eos tardan 2-3 min);
+probar la sincronía 1×/0,5×/2× y «Lado · interior» con oído; la caché de
+respuestas no guarda la ficha de «five-storied»: la próxima consulta sale bien
+sin tocar nada, pero la entrada vieja sigue en Mis palabras de `miguel`.
+
 ## Auditoría de la demo grabada (4 oct 2026, sesión literalevel-5e, rama `claude/hola-vpznit`)
 
 Miguel grabó en el móvil un recorrido de la demo tras la auditoría de seguridad
