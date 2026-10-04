@@ -476,15 +476,25 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.colocarALaVista(ev?.currentTarget as HTMLElement | null);
   }
 
+  /** Qué animación llevar a la vista al pulsar «Escuchar y ver»: el 3D si está
+   *  abierto y es lo que más se ve; si no, los cortes 2D. Miguel (4 oct, tras
+   *  grabar la demo): la primera vez que abre el 3D y pulsa, sí al 3D (al
+   *  montarse `alternarBoca` ya lo ha colocado, así que es lo que más se ve);
+   *  pero si después sube con el dedo hasta el corte 2D y pulsa, es que quiere
+   *  mirar el 2D, y la página no debe volver a bajar al 3D. Con empate, 2D. */
   private colocarALaVista(boton: HTMLElement | null): void {
+    if (typeof window === 'undefined') return;
     const grupo = boton?.closest?.('details.boca, .ficha-sonido');
-    const blanco = grupo?.querySelector<HTMLElement>('app-boca3d') ?? grupo?.querySelector<HTMLElement>('.cortes, img.corte');
-    this.colocarElementoALaVista(blanco, boton);
+    const visor = grupo?.querySelector<HTMLElement>('app-boca3d');
+    const cortes = grupo?.querySelector<HTMLElement>('.cortes, img.corte');
+    const franja = this.franjaVisible(boton);
+    const al3d = !!visor && this.fraccionVisible(visor, franja) > this.fraccionVisible(cortes, franja);
+    this.colocarElementoALaVista(al3d ? visor : cortes ?? visor, boton);
   }
 
-  private colocarElementoALaVista(blanco: HTMLElement | null | undefined, boton: HTMLElement | null): void {
-    if (!blanco || typeof window === 'undefined') return;
-    const r = blanco.getBoundingClientRect();
+  /** La franja útil de la pantalla: entre la cabecera fija y el borde superior
+   *  de la barra pegada de los botones (si la hay y está pegada). */
+  private franjaVisible(boton: HTMLElement | null): { arriba: number; abajo: number } {
     const arriba = 64;                                   // la cabecera fija
     // Dónde QUEDA la barra pegada, no dónde está ahora: mientras no se pega puede
     // estar más arriba o fuera de pantalla, y medirla ahí dejaba la boca debajo.
@@ -492,6 +502,22 @@ export class Pronunciar implements OnInit, OnDestroy {
     const pegada = barra ? parseFloat(getComputedStyle(barra).bottom) : NaN;
     const abajo = barra && getComputedStyle(barra).position === 'sticky' && Number.isFinite(pegada)
       ? window.innerHeight - pegada - barra.offsetHeight : window.innerHeight;
+    return { arriba, abajo };
+  }
+
+  /** Qué parte del elemento (0..1) cae dentro de la franja útil. */
+  private fraccionVisible(el: HTMLElement | null | undefined, franja: { arriba: number; abajo: number }): number {
+    if (!el) return 0;
+    const r = el.getBoundingClientRect();
+    if (!(r.height > 0)) return 0;
+    const visible = Math.min(r.bottom, franja.abajo) - Math.max(r.top, franja.arriba);
+    return Math.max(0, visible) / r.height;
+  }
+
+  private colocarElementoALaVista(blanco: HTMLElement | null | undefined, boton: HTMLElement | null): void {
+    if (!blanco || typeof window === 'undefined') return;
+    const r = blanco.getBoundingClientRect();
+    const { arriba, abajo } = this.franjaVisible(boton);
     if (r.top >= arriba && r.bottom <= abajo) return;
     // Si no cabe entera, arriba pegada a la cabecera: lo que se pierde es el pie, no la lengua.
     const destino = r.height <= abajo - arriba ? r.top + r.height / 2 - (arriba + abajo) / 2 : r.top - arriba;
@@ -574,11 +600,14 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (!abre || typeof window === 'undefined') return;
     // Al abrir, la boca entera a la vista en cuanto el @defer la monta: antes se
     // quedaba donde cayera y la barra pegada tapaba lengua y dientes (f4, 390 px).
+    // Al 3D directamente, sin pasar por la regla de «lo que más se ve» de
+    // colocarALaVista: recién montado suele estar debajo del corte 2D, y esa
+    // regla lo dejaría fuera de la vista.
     const boton = ev?.currentTarget as HTMLElement | null;
     const t0 = performance.now();
     const paso = () => {
-      const lista = boton?.closest('details.boca, .ficha-sonido')?.querySelector('app-boca3d .visor');
-      if (lista) this.colocarALaVista(boton);
+      const visor = boton?.closest('details.boca, .ficha-sonido')?.querySelector<HTMLElement>('app-boca3d');
+      if (visor?.querySelector('.visor')) this.colocarElementoALaVista(visor, boton);
       else if (performance.now() - t0 < 4000) requestAnimationFrame(paso);
     };
     requestAnimationFrame(paso);
