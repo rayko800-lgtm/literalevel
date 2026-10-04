@@ -240,6 +240,28 @@ def palabra_sin_clave_no_sale_a_la_red():
     return f"{d1['lema']} · {d1['sentido'] and d1['sentido'][:30]}"
 
 
+def compuesto_sin_entrada_usa_su_cabeza_y_su_rareza():
+    """Demo grabada del 4 oct: «five-storied» (no esta en Kaikki) salia con la entrada de
+    «five» («A person who is five years old») y marcada «muy comun» (el zipf de «five»).
+    La parte que se ensena es la cabeza del compuesto («storied», adj, «Having multiple
+    storeys») y la rareza es la del compuesto entero."""
+    oracion = ("His garret was under the roof of a high, five-storied house and was more "
+               "like a cupboard than a room.")
+    d = _ok(cliente.post("/api/palabra", headers=A, json={
+        "palabra": "five-storied", "oracion": oracion, "etapa": "diccionario"}))
+    assert d["compuesto"] == "five-storied", d
+    assert d["parte_del_diccionario"] == "storied" and d["lema"] == "storied", d
+    assert d["categoria"] == "adj", d["categoria"]
+    assert d["sentido"] and "storey" in d["sentido"].lower(), d["sentido"]
+    assert d["rareza"] in ("rara", "poco_frecuente"), (d["rareza"], d["zipf"])
+    # Otra cabeza que si esta («chant» de «war-chant»), y la rareza sigue siendo la del compuesto.
+    d2 = _ok(cliente.post("/api/palabra", headers=A, json={
+        "palabra": "war-chant", "oracion": "They sang a war-chant.", "etapa": "diccionario"}))
+    assert d2["compuesto"] == "war-chant" and d2["parte_del_diccionario"] == "chant", d2
+    assert d2["rareza"] != "muy_comun", (d2["rareza"], d2["zipf"])
+    return f"{d['lema']} ({d['categoria']}, {d['rareza']}) · {d['sentido'][:34]}"
+
+
 def palabra_larguisima_y_frase():
     r = cliente.post("/api/palabra", headers=A, json={"palabra": "a" * 80})
     assert r.status_code == 422
@@ -1971,7 +1993,8 @@ if __name__ == "__main__":
                respuestas_de_fuera_se_validan, muestra_que_no_es_prosa_no_carga_el_modelo,
                id_que_es_ruta_no_pasa, abrir_libro_libre, progreso_y_estanteria_aislados,
                progreso_fuera_de_rango, subir_txt_y_solo_lo_ve_quien_lo_subio,
-               palabra_sin_clave_no_sale_a_la_red, palabra_larguisima_y_frase,
+               palabra_sin_clave_no_sale_a_la_red, compuesto_sin_entrada_usa_su_cabeza_y_su_rareza,
+               palabra_larguisima_y_frase,
                cuaderno_aislado, lo_de_pago_sin_clave_no_cobra_ni_gasta_ficha,
                con_perfiles_sin_entrar_no_paga, datos_de_la_cuenta_en_cualquier_aparato,
                audio_y_fonemas_sin_traversal,

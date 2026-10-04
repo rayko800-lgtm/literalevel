@@ -991,6 +991,18 @@ class ConsultorLexico:
                 lema_buscado = lema_simple = superficie
             else:
                 compuesto = superficie
+                # Demo grabada del 4 oct: «five-storied» salia con la entrada de «five»
+                # («A person who is five years old», «muy comun»). spaCy parte el compuesto
+                # y el ancla era la primera pieza; en ingles la cabeza es la ultima
+                # («storied», «chant» en «war-chant»). Si el diccionario la trae, la parte
+                # que se ensena es esa, con su categoria.
+                cabeza = superficie.split("-")[-1]
+                _, cabeza_lema, cabeza_categoria, cabeza_pos = _resolver_lema_y_categoria(oracion, cabeza)
+                for candidata in dict.fromkeys((cabeza, cabeza_lema)):
+                    if candidata != lema_buscado and self.diccionario.buscar(candidata):
+                        lema_buscado = lema_simple = candidata
+                        categoria, pos_spacy = cabeza_categoria, cabeza_pos
+                        break
 
         entradas = self.diccionario.buscar(lema_buscado)
         if not entradas and lema_buscado != lema_simple:
@@ -1290,7 +1302,8 @@ class ConsultorLexico:
             explicacion_adaptada=explicacion_adaptada,
             ejemplo_simplificado=ejemplo_simplificado,
             banda_lector=banda,
-            frecuencia_zipf=_frecuencia_zipf(lema_simple),
+            # La rareza es la del compuesto entero («five-storied» 2,99, no «five» 5,45).
+            frecuencia_zipf=_frecuencia_zipf(compuesto or lema_simple),
             desde_cache=desde_cache, avisos=avisos,
             llamadas_de_pago=llamadas_de_pago,
             traduccion=traduccion, definicion_ia=definicion_ia,
