@@ -74,6 +74,9 @@ def main():
     from playwright.sync_api import sync_playwright
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     clips = sorted(p.name for p in CLIPS.iterdir() if (p / "curvas.json").exists())
+    # Las frases del trabajador (`frase_<clave>`) viven en la misma carpeta pero no van al
+    # front: con --rehacer acabarían en `front/public/eos/frase/` y en clips.json (4 oct).
+    clips = [c for c in clips if not c.startswith("frase_")]
     if a.solo:
         clips = [c for c in clips if c == a.solo]
     indice_ruta = SALIDA / "clips.json"
