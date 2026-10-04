@@ -110,6 +110,21 @@ class Seguridad(unittest.TestCase):
         r = self.c.post("/api/entrar", headers=self.guest, json={"usuario": "auditora", "clave": nueva})
         self.assertEqual(r.status_code, 200)
 
+    def test_cambiar_clave_conserva_este_dispositivo(self):
+        # Miguel (demo, 4 oct): cambiar la contraseña no debe echar al que la cambia.
+        # El token nuevo de la respuesta sirve; el viejo de este mismo dispositivo, no.
+        r = self.c.post("/api/cuenta/clave", headers=self.auth,
+                        json={"actual": self.clave, "nueva": secrets.token_urlsafe(20)})
+        self.assertEqual(r.status_code, 200)
+        cuerpo = r.json()
+        self.assertTrue(cuerpo["dentro"])
+        self.assertEqual(cuerpo["nombre"], "auditora")
+        self.assertEqual(cuerpo["expira_en"], s.SESION_SEGUNDOS)
+        self.assertNotEqual(cuerpo["token"], self.token)
+        nuevo = {**self.guest, "Authorization": "Bearer " + cuerpo["token"]}
+        self.assertTrue(self.c.get("/api/entrada", headers=nuevo).json()["dentro"])
+        self.assertEqual(self.c.get("/api/perfil", headers=self.auth).status_code, 401)
+
     def test_clave_actual_incorrecta(self):
         r = self.c.post("/api/cuenta/clave", headers=self.auth, json={"actual": "incorrecta", "nueva": secrets.token_urlsafe(20)})
         self.assertEqual(r.status_code, 401)

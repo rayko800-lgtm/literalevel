@@ -923,8 +923,15 @@ def cambiar_clave(datos: CambiarClave, pet: Lector):
         raise _no(401, "Entra para cambiar tu contraseña.")
     # Cinco intentos por hora y cuenta (ataques a la clave actual).
     _frenar(pet, "clave", 5)
-    seguridad.cambiar(pet.principal, datos.actual, datos.nueva)
-    return {"mensaje": "Contraseña cambiada. Vuelve a entrar en tus dispositivos."}
+    # El dispositivo que cambia la clave se queda dentro con la sesión nueva que
+    # emite `seguridad.cambiar`; los demás quedan revocados (Miguel, 4 oct 2026).
+    # Misma respuesta que `entrar`: el cliente guarda el token y refresca la entrada.
+    token = seguridad.cambiar(pet.principal, datos.actual, datos.nueva)
+    pet.principal = seguridad.resolver(token)
+    pet.token = token
+    pet.codigo_seguro = "sesion:" + token
+    return {**_entrada_json(pet, "Contraseña cambiada. En tus otros dispositivos tendrás que volver a entrar."),
+            "token": token, "expira_en": seguridad.SESION_SEGUNDOS}
 
 
 class RecuperarClave(BaseModel):

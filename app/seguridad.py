@@ -213,13 +213,28 @@ def autorizar_admin(principal: Principal | None, actual: str):
             negar(401, "No se ha podido verificar tu contraseña actual.")
 
 
-def cambiar(principal: Principal, actual: str, nueva: str):
+def cambiar(principal: Principal, actual: str, nueva: str) -> str:
+    """Cambia la contraseña y devuelve una sesión nueva para ESTE dispositivo.
+
+    `_cambiar` sigue revocando todas las sesiones anteriores (también la que hace
+    el cambio), las recuperaciones y los enlaces a archivos. Antes aquí acababa
+    todo y el que cambiaba la clave aparecía fuera de la app y volvía a ver el
+    formulario de entrar, como si se la pidieran otra vez (Miguel, demo del 4 oct
+    2026). La sesión nueva se emite en la misma transacción, con la versión ya
+    incrementada de la cuenta, exactamente como en `entrar`.
+    """
     nueva_clave(nueva)
+    ahora = time.time()
     with transaccion() as db:
         c = db.execute("SELECT clave FROM cuentas WHERE nombre=?", (principal.nombre,)).fetchone()
         if c is None or not comprobar(actual, c["clave"]):
             negar(401, "La contraseña actual no coincide.")
         _cambiar(db, principal.nombre, nueva)
+        version = db.execute("SELECT version FROM cuentas WHERE nombre=?", (principal.nombre,)).fetchone()[0]
+        token = secrets.token_urlsafe(32)
+        db.execute("INSERT INTO sesiones VALUES(?,?,?,?)",
+                   (huella(token), principal.nombre, version, ahora + SESION_SEGUNDOS))
+    return token
 
 
 def _cambiar(db, nombre, clave):

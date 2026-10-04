@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { Entrada } from '../nucleo/api';
+import { guardarSesion, tokenSesion } from '../nucleo/lector';
 import { Sesion } from '../nucleo/sesion';
 import { Ajustes } from './ajustes';
 
@@ -41,5 +42,38 @@ describe('Entrar y salir recargan los datos', () => {
       cuaderno: { consultas: 0, palabras: 0, libros: 0 }, entrada: FUERA });
     await saliendo;
     expect(sesion.entrada()?.dentro).toBe(false);
+  });
+
+  /** 4 oct (Miguel, demo): cambiar la contraseña le echaba y el panel volvía a enseñar
+   *  «Entrar», como si se la pidiera otra vez. Ahora el motor emite una sesión nueva para
+   *  este aparato, se guarda y se sigue dentro, sin volver a pedir /api/inicio. */
+  it('cambiar la contraseña deja al usuario dentro con la sesión nueva', async () => {
+    const sesion = TestBed.inject(Sesion);
+    const http = TestBed.inject(HttpTestingController);
+    guardarSesion('sesion-vieja');
+    sesion.entrada.set({ ...DENTRO, restantes: 7 });
+    const fixture = TestBed.createComponent(Ajustes);
+    fixture.detectChanges();
+    const raiz = fixture.nativeElement as HTMLElement;
+    const plegable = raiz.querySelector('details.cambiar-clave') as HTMLDetailsElement;
+    expect(plegable?.open).toBe(false);
+    expect(plegable.querySelector('summary')?.textContent).toContain('Cambiar contraseña');
+    const ajustes = fixture.componentInstance as unknown as { actual: string; nueva: string; cambiarClave(): Promise<void> };
+    ajustes.actual = 'la-de-antes'; ajustes.nueva = 'la-nueva-de-doce';
+    const cambiando = ajustes.cambiarClave();
+    http.expectOne(r => r.url.endsWith('/api/cuenta/clave')).flush({
+      ...DENTRO, restantes: 7, token: 'sesion-nueva',
+      mensaje: 'Contraseña cambiada. En tus otros dispositivos tendrás que volver a entrar.' });
+    await cambiando;
+    http.expectNone(r => r.url.endsWith('/api/inicio'));
+    fixture.detectChanges();
+    expect(tokenSesion()).toBe('sesion-nueva');
+    expect(sesion.entrada()?.dentro).toBe(true);
+    expect(sesion.entrada()?.restantes).toBe(7);
+    expect(ajustes.actual).toBe('');
+    expect(ajustes.nueva).toBe('');
+    expect(raiz.querySelector('input[name=usuario]')).toBeNull();
+    expect(raiz.querySelector('.aviso')?.textContent).toContain('Contraseña cambiada');
+    guardarSesion(null);
   });
 });
