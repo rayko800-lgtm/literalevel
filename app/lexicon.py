@@ -46,6 +46,7 @@ lectura, no un andamiaje en la lengua materna.
 """
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import json
 import os
@@ -875,6 +876,20 @@ def _escribir_audio_atomico(respuesta, ruta: Path) -> None:
         temporal.unlink(missing_ok=True)
 
 
+def _motivo_de(e: BaseException) -> str | None:
+    """El texto llano de una negativa de `seguridad` (tope, sesión), o None.
+
+    `ClienteProtegido` niega con una HTTPException cuyo `detail` ya es una frase
+    para el lector («Has alcanzado el límite de llamadas de pago de tu cuenta.»).
+    Antes el aviso salía como «OpenAI no disponible: HTTPException: 429: …» y
+    `ui._humanizar` lo confundía, por el «429», con el presupuesto mensual del
+    proveedor (Miguel, demo del 4 oct 2026). Sin `detail` se sigue contando el
+    tipo del error, que es lo que distingue una clave rechazada de un timeout.
+    """
+    detalle = getattr(e, "detail", None)
+    return detalle if isinstance(detalle, str) and detalle else None
+
+
 def _generar_audio_tts(cliente, palabra: str, destino_dir: Path) -> tuple[str, bool]:
     """Genera audio de respaldo con tts-1 cuando la BD no trae ninguno.
 
@@ -1119,14 +1134,23 @@ class ConsultorLexico:
             audio_pagado = False
             if pedir_audio or pedir_explicacion:
                 from concurrent.futures import ThreadPoolExecutor
+                # Cada hilo recibe una COPIA del contexto de la peticion. `seguridad.
+                # CONTEXTO` (la cuenta que paga) es un ContextVar, y los hilos de un pool
+                # nacen con el contexto vacio: `ClienteProtegido` no veia ninguna cuenta,
+                # negaba con 403 y la explicacion nunca llegaba aunque el lector hubiera
+                # entrado (Miguel, demo del 4 oct 2026). La copia se hace aqui, en el
+                # hilo que lanza, y es una por llamada: un Context no se puede entrar
+                # dos veces a la vez.
                 with ThreadPoolExecutor(max_workers=2) as grupo:
                     f_audio = grupo.submit(
+                        contextvars.copy_context().run,
                         _generar_audio_tts, cliente, texto_audio, RUTA_AUDIO_GENERADO
                     ) if pedir_audio else None
                     if not pedir_explicacion:
                         f_expl = None
                     elif modo_ia:
                         f_expl = grupo.submit(
+                            contextvars.copy_context().run,
                             _pedir_definicion_ia, cliente,
                             palabra=palabra_superficie, oracion=oracion,
                             categoria=categoria, banda=banda,
@@ -1140,6 +1164,7 @@ class ConsultorLexico:
                         if pedir_ipa:
                             extra_kw["pedir_ipa"] = True
                         f_expl = grupo.submit(
+                            contextvars.copy_context().run,
                             _pedir_explicacion_openai, cliente,
                             palabra=palabra_superficie, oracion=oracion,
                             glosa=sentido.glosa, categoria=categoria,
@@ -1150,12 +1175,12 @@ class ConsultorLexico:
                         try:
                             ruta_audio_nueva, audio_pagado = f_audio.result()
                         except Exception as e:
-                            avisos.append(f"no se pudo generar audio: {type(e).__name__}")
+                            avisos.append("no se pudo generar audio: " + (_motivo_de(e) or type(e).__name__))
                     if f_expl is not None:
                         try:
                             extra = f_expl.result()
                         except Exception as e:
-                            avisos.append(f"OpenAI no disponible: {type(e).__name__}: {e}")
+                            avisos.append("OpenAI no disponible: " + (_motivo_de(e) or f"{type(e).__name__}: {e}"))
                             extra = None
 
             # Lo que se ha pagado DE VERDAD, contado DESPUES de pedirlo. Antes se

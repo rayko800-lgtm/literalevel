@@ -1463,9 +1463,18 @@ def audios_de_palabras(palabras: list[str]) -> dict[str, str]:
     unicas = list(dict.fromkeys(p for p in palabras if p))[:MAX_AUDIOS_PALABRA]
     if not unicas:
         return {}
+    import contextvars
     from concurrent.futures import ThreadPoolExecutor
+    # Cada hilo con una COPIA del contexto de la peticion: `seguridad.CONTEXTO` (la
+    # cuenta que paga) es un ContextVar y los hilos del pool nacen sin el, asi que
+    # `ClienteProtegido` negaba el tts-1 de cada palabra con 403 y `generar_audio_
+    # correcto` lo tragaba: la correccion salia sin el audio de las palabras falladas
+    # salvo las ya cacheadas (mismo fallo que la explicacion de `lexicon`, 4 oct 2026).
+    # Una copia por llamada: un Context no se puede entrar dos veces a la vez.
     with ThreadPoolExecutor(max_workers=min(4, len(unicas))) as grupo:
-        rutas = list(grupo.map(generar_audio_correcto, unicas))
+        futuros = [grupo.submit(contextvars.copy_context().run, generar_audio_correcto, p)
+                   for p in unicas]
+        rutas = [f.result() for f in futuros]
     return {p: r for p, r in zip(unicas, rutas) if r}
 
 

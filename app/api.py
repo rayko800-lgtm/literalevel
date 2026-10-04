@@ -1798,6 +1798,14 @@ def palabra(datos: PalabraPeticion, pet: Lector) -> dict:
             _devolver(cobrado)
         registrar = bool(r.sentido)
         avisos = _avisos_palabra(r, idioma, quitar_sin_clave=False)
+        # Si OpenAI no se pudo llamar —un tope de `seguridad`, la red—, la ficha del
+        # diccionario sale igual (200) y el motivo va también en `motivo_sin_explicacion`,
+        # que es donde el front lo enseña en el sitio de la explicación, como cuando no
+        # hay clave o se agotó el cupo (Miguel, demo del 4 oct 2026).
+        if puede and not (r.definicion_contextual or getattr(r, "definicion_ia", None)):
+            fallo = next((a for a in r.avisos if a.startswith("OpenAI no disponible")), None)
+            if fallo:
+                motivo_sin_explicacion = _llano(ui._humanizar(fallo, "es"))
 
     if registrar:
         cuaderno.registrar(

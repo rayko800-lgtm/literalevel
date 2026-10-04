@@ -379,7 +379,17 @@ def reservar(centavos: int, tipo: str):
         cuenta_total, cuenta_dia, hora, minuto = db.execute("""SELECT count(*),
             coalesce(sum(momento>=?),0), coalesce(sum(momento>=?),0), coalesce(sum(momento>=?),0)
             FROM cargos WHERE nombre=?""", (dia, ahora - 3600, ahora - 60, principal.nombre)).fetchone()
-        if cuenta_total >= 200 or cuenta_dia >= 40 or hora >= 30 or minuto >= 6:
+        # Topes de LLAMADAS por cuenta, configurables por entorno (Miguel, 4 oct 2026).
+        # La auditoría del 1 oct los dejó fijos en 6/min, 30/h, 40/día y 200 acumuladas:
+        # una sola corrección de pronunciación encadena whisper, gpt-4o-mini y un tts-1
+        # por frase y por palabra fallada (seis o más llamadas en un minuto), y 40 al
+        # día se agotan en una tarde de pruebas. Los valores por defecto admiten una
+        # sesión real de uso; la barrera de gasto sigue siendo el presupuesto en
+        # centavos de arriba. Como en `limite`, un valor inválido cierra la puerta.
+        if (cuenta_total >= limite("LITERALEVEL_LLAMADAS_TOTAL", 5000)
+                or cuenta_dia >= limite("LITERALEVEL_LLAMADAS_DIA", 400)
+                or hora >= limite("LITERALEVEL_LLAMADAS_HORA", 120)
+                or minuto >= limite("LITERALEVEL_LLAMADAS_MINUTO", 20)):
             negar(429, "Has alcanzado el límite de llamadas de pago de tu cuenta.")
         db.execute("INSERT INTO cargos(nombre,momento,centavos,tipo) VALUES(?,?,?,?)",
                    (principal.nombre, ahora, centavos, tipo))
