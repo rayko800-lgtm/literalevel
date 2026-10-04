@@ -69,6 +69,10 @@
   border-top: 1px solid var(--borde); text-align: center;
 }
 .motor.error { color: var(--rojo); background: var(--rojo-suave); }
+/* El aviso de Eos: buena noticia, en verde; el enlace y la ✕ a la altura del texto. */
+.motor.eos { color: var(--verde); background: var(--verde-suave); }
+.motor.eos .boton { color: inherit; }
+.motor.eos .boton-icono { min-height: 36px; min-width: 36px; color: inherit; }
 
 .contenido { flex: 1; width: 100%; }
 

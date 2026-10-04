@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -10,6 +10,7 @@ import { Preferencias } from './nucleo/preferencias';
 import { Sesion } from './nucleo/sesion';
 import { Tutorial } from './nucleo/tutorial';
 import { buscarVersionNueva } from './nucleo/version';
+import { EstadoPronunciar } from './pantallas/pronunciar.estado';
 
 @Component({
   selector: 'app-root',
@@ -40,6 +41,13 @@ export class App {
   /** «Sobre Pléyade», al pulsar el logo. */
   protected readonly sobreAbierto = signal(false);
 
+  /** Eos terminó el vídeo de la frase mientras el usuario estaba en otra pestaña
+   *  (Miguel, 4 oct): la franja de arriba lo dice y lleva a Pronunciar, donde el
+   *  vídeo ya está abierto. En Pronunciar no hace falta: ahí se ve directamente. */
+  protected readonly pronunciar = inject(EstadoPronunciar);
+  protected readonly enPronunciar = signal(false);
+  protected readonly avisoEos = computed(() => this.pronunciar.avisoEos() && !this.enPronunciar());
+
   /** La barra de abajo se esconde al bajar leyendo y vuelve al subir. */
   protected readonly barraOculta = signal(false);
   private ultimoY = 0;
@@ -47,9 +55,10 @@ export class App {
   constructor() {
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed())
-      .subscribe(() => {
+      .subscribe(e => {
         this.barraOculta.set(false);
         this.ultimoY = 0;
+        this.enPronunciar.set(/^\/pronunciar(?:[/?#]|$)/.test(e.urlAfterRedirects));
         // Al cambiar de pestaña, como mucho una vez por minuto: ¿hay build nuevo?
         void buscarVersionNueva();
       });
