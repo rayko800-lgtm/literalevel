@@ -270,3 +270,101 @@ describe('Boca3d', () => {
     }
   });
 });
+
+/** 4 oct 2026 (Miguel, tras grabar la demo en el móvil: la boca desfasada del
+ *  audio, también al cambiar la velocidad). La escena se sustituye por una de
+ *  mentira: aquí no hay WebGL. */
+describe('4 oct: Boca3d ancla la boca al audio', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({ imports: [Boca3d] }).compileComponents();
+  });
+
+  function escenaFalsa() {
+    return {
+      vistaParaFamilia: vi.fn(), girarLibre: vi.fn(), reproducir: vi.fn(), irA: vi.fn(), desplazarLinea: vi.fn(),
+      mostrarMejilla: vi.fn(), destruir: vi.fn(), vistaDidactica: vi.fn(), tiempoLinea: null as number | null,
+    };
+  }
+  const siguienteVuelta = () => new Promise(r => setTimeout(r, 0));
+
+  it('mover la barra de velocidad no relanza la boca; cambiar el sonido sí, ya a la nueva velocidad', async () => {
+    const fixture = TestBed.createComponent(Boca3d);
+    fixture.componentRef.setInput('sonido', 'f');
+    fixture.componentRef.setInput('svg2dUrl', '');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = fixture.componentInstance as any;
+    const escena = escenaFalsa();
+    c.escena = escena;
+    fixture.componentRef.setInput('sonido', 's');
+    fixture.detectChanges();
+    expect(escena.reproducir).toHaveBeenCalledTimes(1);
+    expect(escena.reproducir.mock.calls[0][0].total).toBeCloseTo(2.8, 6);
+    // La barra de velocidad, sola, no toca la línea que va con el audio.
+    fixture.componentRef.setInput('velocidad', 0.5);
+    fixture.detectChanges();
+    expect(escena.reproducir).toHaveBeenCalledTimes(1);
+    expect(escena.irA).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('sonido', 'p');
+    fixture.detectChanges();
+    expect(escena.reproducir).toHaveBeenCalledTimes(2);
+    expect(escena.reproducir.mock.calls[1][0].total).toBeCloseTo(5.6, 6);
+    // «Frente · labios» con la línea en marcha no la corta; parada, va a la pose.
+    escena.tiempoLinea = 0.5;
+    c.verFrente(true);
+    expect(escena.irA).not.toHaveBeenCalled();
+    escena.tiempoLinea = null;
+    c.verFrente(true);
+    expect(escena.irA).toHaveBeenCalledTimes(1);
+  });
+
+  it('espera al contexto de audio antes de arrancar, desplaza la línea lo que el audio llega tarde y sigue por donde iba al cambiar la velocidad', async () => {
+    const fixture = TestBed.createComponent(Boca3d);
+    fixture.componentRef.setInput('sonido', 'f');
+    fixture.componentRef.setInput('audioSonido', '/api/fonemas/f.mp3');
+    fixture.componentRef.setInput('svg2dUrl', '');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = fixture.componentInstance as any;
+    const escena = escenaFalsa();
+    const orden: string[] = [];
+    escena.reproducir.mockImplementation(() => { orden.push('reproducir'); });
+    let alEmpezar: ((d: number) => void) | undefined;
+    const tocar = vi.fn((_retraso: number, v: number, cb?: (d: number) => void) => { alEmpezar = cb; orden.push('tocar'); return { parar: vi.fn(), velocidad: v }; });
+    const listo = { duracion: 1.5, silencio: 0.1, fin: 1.4, tramos: [{ inicio: 0.1, fin: 1.4 }], tocar };
+    c.sonador = {
+      despertar: vi.fn(), parar: vi.fn(), destruir: vi.fn(),
+      preparar: vi.fn(async () => listo),
+      esperarContexto: vi.fn(async () => { orden.push('contexto'); return true; }),
+    };
+    c.escena = escena;
+    c.escucharYVer();
+    await siguienteVuelta();
+    expect(orden).toEqual(['contexto', 'reproducir', 'tocar']);
+    // El audio arranca para que su primera energía (0,1 s) caiga en sonidoEn (ADELANTO + 0,1).
+    expect(tocar.mock.calls[0][0]).toBeCloseTo(0.45, 6);
+    expect(tocar.mock.calls[0][1]).toBe(1);
+    expect(escena.reproducir.mock.calls[0][2]).toBe(0);
+    // «playing» 300 ms tarde: la línea vuelve 0,3 s. Menos de 10 ms no se toca.
+    alEmpezar!(0.3);
+    expect(escena.desplazarLinea).toHaveBeenCalledWith(0.3);
+    alEmpezar!(0.004);
+    expect(escena.desplazarLinea).toHaveBeenCalledTimes(1);
+
+    // Al soltar la barra a 0,5× con la línea por 1,2 s: la nueva línea (el
+    // doble de larga) sigue por 2,4 s y el audio salta a ese punto del archivo.
+    escena.tiempoLinea = 1.2;
+    fixture.componentRef.setInput('velocidad', 0.5);
+    fixture.detectChanges();
+    c.ajustarVelocidad();
+    await siguienteVuelta();
+    expect(escena.reproducir).toHaveBeenCalledTimes(2);
+    expect(escena.reproducir.mock.calls[1][2]).toBeCloseTo(2.4, 6);
+    expect(escena.reproducir.mock.calls[1][0].total).toBeCloseTo(escena.reproducir.mock.calls[0][0].total * 2, 6);
+    // retrasoAudio(1,1; 0,1; 0,5) = 0,9, menos los 2,4 s ya recorridos: el archivo arranca en 1,5·0,5 = 0,75 s.
+    expect(tocar.mock.calls[1][0]).toBeCloseTo(0.9 - 2.4, 6);
+    expect(tocar.mock.calls[1][1]).toBe(0.5);
+  });
+});

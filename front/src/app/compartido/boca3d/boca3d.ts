@@ -1,6 +1,6 @@
 import {
   ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, isDevMode, signal,
-  viewChild,
+  untracked, viewChild,
 } from '@angular/core';
 import { Acento, urlCorteSonido, urlMotor } from '../../nucleo/api';
 import { Icono } from '../icono';
@@ -334,8 +334,16 @@ export class Boca3d {
       if (!this.didactica()) escena.vistaParaFamilia(familiaDe(p));
       this.giroLibre.set(false);
       escena.girarLibre(false);
-      if (this.autoReproducir() && this.elegido()) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), this.opcionesGiro(p));
-      else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
+      const auto = this.autoReproducir() && !!this.elegido();
+      // 4 oct (Miguel, demo en el móvil): la velocidad se lee sin seguirla.
+      // Este efecto reacciona al sonido; al seguir también la velocidad, mover
+      // la barra con una palabra o una frase sonando lo relanzaba: la línea
+      // sincronizada con el audio se cambiaba por el ciclo solo (o, en el visor
+      // de la frase, `irA` la cortaba) y la boca iba desfasada hasta soltar.
+      untracked(() => {
+        if (auto) escena.reproducir(this.lenta(cicloSonido(p, this.catalogo())), this.opcionesGiro(p));
+        else escena.irA(p, Math.max(0.45, (DURACION_S[p.movimiento] ?? 0.3) * 1.6) / this.velocidad());
+      });
     });
     destruir.onDestroy(() => {
       // Invalida la petición en curso: un mp3 que termina de prepararse después de
@@ -415,13 +423,26 @@ export class Boca3d {
   private repetirAudio: (() => void) | null = null;
   private repetirHasta = 0;
   /** Al soltar la barra, vuelve a sincronizar el ejemplo activo con su audio
-   *  ya preparado; un ejemplo terminado no arranca por cambiar la velocidad. */
+   *  ya preparado, siguiendo por donde iba (4 oct); un ejemplo terminado no
+   *  arranca por cambiar la velocidad. */
   ajustarVelocidad(): void {
     if (performance.now() < this.repetirHasta) this.repetirAudio?.();
   }
 
+  /** 4 oct: lo que puede hacerse ya, dentro del clic, mientras quien llama
+   *  espera otra cosa (Pronunciar espera la IPA de la frase): despertar el
+   *  audio (iOS) y empezar a bajar y decodificar el mp3. `leerFrase` lo
+   *  encuentra preparado. */
+  anticipar(url: string): void {
+    this.sonador.despertar();
+    void this.sonador.preparar(url);
+  }
+
+  /** Audio y boca a la vez. `desdeDe` da el segundo de la línea (ya a la
+   *  velocidad elegida) por el que empezar: 0 salvo al cambiar la velocidad en
+   *  marcha, que sigue por donde iba. */
   private async conAudio(url: string, linea: (listo: { duracion: number; silencio: number; fin: number; tramos: Tramo[] }) => Linea,
-                         opciones: { giro?: number } = {}): Promise<void> {
+                         opciones: { giro?: number } = {}, desdeDe: () => number = () => 0): Promise<void> {
     this.sonador.despertar();                    // dentro del clic, por iOS
     this.sonador.parar();
     const numero = ++this.peticion;
@@ -432,19 +453,39 @@ export class Boca3d {
       this.escena.reproducir(this.lenta(linea({ duracion: 0, silencio: 0, fin: 0, tramos: [] })), opciones);
       return;
     }
+    // 4 oct (Miguel, demo en el móvil): el reloj de Web Audio no avanza hasta
+    // que el contexto corre, y en Android reanudarlo tras el gesto tarda
+    // (100–500 ms la primera vez). Si la boca arrancaba antes, el audio
+    // salía tarde: se espera a que corra (con tope) y entonces arrancan los dos.
+    await this.sonador.esperarContexto();
+    if (numero !== this.peticion || !this.escena) return;
     // La línea se ajusta al audio a 1× y después se estira; el audio suena a
     // la misma velocidad, así que el desfase del silencio inicial se estira igual.
     const v = this.velocidad();
     const l = this.lenta(linea(listo));
-    this.repetirAudio = () => { void this.conAudio(url, linea, opciones); };
-    this.repetirHasta = performance.now() + l.total * 1000;
-    this.escena.reproducir(l, opciones);
+    const desde = Math.min(Math.max(0, desdeDe()), l.total);
+    // Al soltar la barra de velocidad: la misma línea a la nueva velocidad, por
+    // donde iba la anterior (el instante se convierte entre velocidades: a
+    // 1,2 s de la línea a 1× le corresponden 2,4 s de la línea a 0,5×).
+    this.repetirAudio = () => { void this.conAudio(url, linea, opciones, () => (this.escena?.tiempoLinea ?? 0) * v / this.velocidad()); };
+    this.repetirHasta = performance.now() + (l.total - desde) * 1000;
+    this.escena.reproducir(l, opciones, desde);
+    // Cuando el audio de verdad empieza a sonar más tarde de lo previsto (un
+    // <audio> que aún no estaba listo, la latencia del altavoz), la línea se
+    // desplaza lo mismo: queda anclada al sonido real, no al instante en que
+    // se pidió. Por debajo de 10 ms no se toca nada.
+    const alEmpezar = (desfase: number) => {
+      if (numero !== this.peticion || !this.escena || !(Math.abs(desfase) >= 0.01)) return;
+      const d = Math.max(-1, Math.min(3, desfase));
+      this.escena.desplazarLinea(d);
+      this.repetirHasta += d * 1000;
+    };
     // Con la boca despacio el audio puede no poder ralentizarse (sin
     // preservesPitch): suena a 1× y su silencio dura lo de siempre.
-    const r = listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, v), v);
+    const r = listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, v) - desde, v, alEmpezar);
     if (r.velocidad !== v) {
       r.parar();
-      listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1), 1);
+      listo.tocar(retrasoAudio(l.sonidoEn, listo.silencio, 1) - desde, 1, alEmpezar);
       this.aviso.set('Este navegador no puede usar esta velocidad sin cambiar el tono: el audio y la boca vuelven a velocidad normal.');
     }
   }
@@ -486,7 +527,9 @@ export class Boca3d {
     this.escena?.girarLibre(false);
     this.escena?.vistaDidactica(frente);
     const p = this.pose();
-    if (p && frente) this.escena?.irA(p, 0);
+    // 4 oct: con una línea en marcha (la frase o la palabra sonando), `irA`
+    // la cortaba y la boca se quedaba quieta mientras el audio seguía.
+    if (p && frente && this.escena?.tiempoLinea === null) this.escena.irA(p, 0);
   }
 
   alternarGiro(): void {
