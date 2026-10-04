@@ -4,6 +4,82 @@ Estado operativo, corto y vigente. La historia está en
 `docs/ai/legacy_architecture/` (los dos HANDOFF anteriores completos, del
 árbol y de la rama de desarrollo, hasta el 24-25 sep) y en `git log`.
 
+## Auditoría de la demo grabada (4 oct 2026, sesión literalevel-5e, rama `claude/hola-vpznit`)
+
+Miguel grabó en el móvil un recorrido de la demo tras la auditoría de seguridad
+de Codex (1 oct) y pidió corregir lo que vio. **El vídeo («para fable.mp4»,
+823 MB, Drive `1qEOtbC9uDqK5XP9dDxyQhJfijKpKBOxJ`) NO se pudo bajar**: la red
+del entorno de Claude en la nube deniega `drive.google.com` y
+`drive.usercontent.google.com`; GitHub sí pasa (verificado: un adjunto de
+release se baja con `gh api -H "Accept: application/octet-stream"
+repos/rayko800-lgtm/literalevel/releases/assets/<id>`). Pendiente: que Miguel
+suba el mp4 como adjunto de una release (`demo-2026-10-04`) o abra la red
+(«Network access» → Full) y una sesión lo revise, vídeo y audio. Todo lo de
+abajo se hizo a partir de su descripción y del código; **nada está publicado**
+(ni en Vercel ni en el Space) ni probado en un móvil real.
+
+Corregido en la rama (tres agentes en worktrees + la sesión principal; suite del
+front, `pruebas_seguridad.py` y `pruebas_eos_visemas.py` en verde; `pruebas_api.py`
+64/71, los 7 fallos son del entorno sin `kaikki_diccionario.db` ni red, igual
+que antes de los cambios):
+
+1. **Cabeza 3D en blanco** (`8a225a3`): la CSP de `front/vercel.json` no
+   permitía `connect-src blob:`; three.js carga la textura WebP embebida de
+   `boca3d/didactica/cara.glb` con `fetch` sobre un `blob:` (ImageBitmapLoader)
+   y el navegador lo bloqueaba → material sin textura. Añadido `blob:`.
+2. **«Escuchar y ver» no baja al 3D si el usuario subió al 2D** (`fa8d808`):
+   `colocarALaVista` elige el bloque más visible (3D solo si gana
+   estrictamente; empate → 2D); al abrir el 3D sigue bajando a él.
+3. **Pronunciar conserva su estado al cambiar de pestaña** (`1a994b6`):
+   servicio raíz `pantallas/pronunciar.estado.ts` (frase, grabación, corrección,
+   Eos y su sondeo, IPA); franja verde en la cabecera «Eos ya tiene lista tu
+   frase» con enlace cuando el vídeo llega estando en otra pestaña.
+4. **Cambiar la contraseña ya no echa al usuario** (`22fce02`): `POST
+   /api/cuenta/clave` devuelve la entrada con `token` y `expira_en` (sesión
+   nueva; las demás se revocan); el formulario va plegado en Ajustes.
+5. **La explicación de OpenAI no llegaba con sesión** (`54c39ba`): causa real,
+   `seguridad.CONTEXTO` (ContextVar) no llegaba a los hilos del
+   `ThreadPoolExecutor` de `lexicon.consultar` y `voz.audios_de_palabras`, y
+   `ClienteProtegido` negaba con 403 (también el tts por palabra fallada).
+   Arreglado con `contextvars.copy_context().run`. Además los topes de llamadas
+   por cuenta de `seguridad.reservar` (antes 6/min, 30/h, 40/día, 200 en total)
+   son configurables: `LITERALEVEL_LLAMADAS_MINUTO` (20), `_HORA` (120), `_DIA`
+   (400), `_TOTAL` (5000); un tope devuelve la ficha con el motivo llano.
+6. **Enlaces de audio y vídeo de Eos** (`b8ffe6e`): de 15 min a
+   `LITERALEVEL_RECURSO_SEGUNDOS` (14400 = 4 h).
+7. **Boca 3D desfasada del audio** (`2319d37`, `63d23f9`, `e1971ae`): a ≠1× el
+   `<audio>` volvía a bajar el mp3 por red (`no-store`) → ahora suena desde los
+   bytes ya bajados (`blob:`), la línea se ancla al `playing` real
+   (`EscenaBoca.desplazarLinea`) y espera al AudioContext; el sombreado de la
+   piel fotográfica (6,5 ms de CPU por cuadro medidos) se recalcula con cadencia
+   mientras se mueve; «Leer la frase» espera (1,5 s) la IPA con marcas; mover la
+   barra de velocidad ya no relanza la animación y al soltar sigue por donde
+   iba; «Frente» ya no corta la línea. **Probar en el móvil**: sonido, palabra,
+   frase, 1×/0,5×/2× y «Lado · interior».
+8. **Eos: /p b m/ sin cierre de labios, lengua de lado** (`27e2595`, sesión
+   principal): comprobado en `front/public/eos/ga/006d.mp4` y `0070.mp4`
+   (ningún fotograma con los labios juntos). Nuevo
+   `tools/eos_pronunciar/corregir_visemas.py` (actúa sobre `curvas.json` con la
+   línea de fonemas que ahora guarda `generar_clips.py`; `trabajador.py` lo
+   llama para las frases). **Falta regrabar los 85 clips en el PC de Miguel**:
+   `python -X utf8 tools/eos_pronunciar/corregir_visemas.py` (sobre
+   `D:/literalevel_eos_pronunciar/visor/clips`, idempotente; `--informe` solo
+   mide) y después `python -X utf8 tools/eos_pronunciar/grabar_clips.py
+   --rehacer` (≈35 s por clip con el visor del puerto 8790), commit de
+   `front/public/eos/`. La lengua de Eos la mueve el visor con las poses de
+   Blender, no las curvas: si tras regrabar sigue saliendo de lado o fuera de
+   los dientes en /l/, el mapeo de los huesos Tongue está en
+   `D:/literalevel_eos_pronunciar/visor/index.html` (sin lateral; punta arriba y
+   no adelante en /l/; fuera solo en /θ ð/).
+
+Para publicar (con permiso de Miguel): fusionar `claude/hola-vpznit` en
+`master` y hacer push (Vercel construye solo); API con
+`tools/desplegar_app.py --solo app/api.py app/seguridad.py app/lexicon.py
+app/voz.py` tras `pruebas_seguridad.py` en árbol limpio. Las variables nuevas no
+hacen falta en el Space (los valores por defecto aplican). Cupo «Te quedan N
+usos»: tabla `acciones` de `/data/seguridad.sqlite3` (ver nota del 4 oct en
+`HANDOFF_SEGURIDAD_2026-10-01.md`).
+
 ## Objetivo actual
 
 Entrega del Módulo 5: archivos en Classroom («Trabajo Final») el **4 de octubre
