@@ -684,3 +684,24 @@ frases nuevas y las sube al bucket (`/data/eos/`). Probado en producción: 150 s
   tocar (tenía 98 usos en el vídeo).
 - **NO VERIFICADO:** la sincronía boca/audio del 3D con oído en el móvil y una
   frase de Eos de punta a punta en producción tras el despliegue.
+
+## Eos: lengua sobre el eje x y explosión de /p/ (4 oct 2026, tarde)
+
+Miguel probó lo publicado por la mañana (vídeo «para fable2.1.mp4») y vio la lengua de Eos
+«caótica, hacia los lados» en todos los sonidos y la /p/ sin explosión. Causas medidas y
+arreglos: `auditoria/demo_2026-10-04/hallazgos.md` § «Segunda vuelta» (H11 y H12).
+
+- **Qué cambia en producción:** solo el front estático: los 85 clips `front/public/eos/**`
+  regrabados con el visor arreglado (`ef0889b` herramientas, `366d168` clips) y
+  `clips.json`. La API del Space no cambia (revisión `becd67c` sigue). Las frases nuevas del
+  trabajador salen ya con el visor nuevo (lo carga en cada frase) y el corrector nuevo
+  (trabajador relanzado, PID `20720`, registro
+  `D:/literalevel_eos_pronunciar/trabajador_2026-10-04_tarde.log`).
+- **Vercel:** push de `master` ``6057319..366d168` (14:29:58)` → build `sin paquete nuevo (`main-RKY73FGO.js`, solo cambian los assets); `clips.json` nuevo servido a las 14:30:53`; comprobado que
+  `pleyade-app.vercel.app/eos/ga/006c.mp4` sirve los bytes nuevos (`md5 `db270b70fca2`, igual que el local`).
+- **Verificación antes de subir:** `pruebas_eos_visemas.py` 13/13; `medir_lengua.py` en
+  `ga_006c ga_0074 ga_006b ga_0069 ga_03b8 ga_0070 ga_0283 ga_0279 ga_0251 rp_006c rp_006b rp_03b8`: lateral 0 mm, saltos ≤ 4 mm/fotograma, techo ≤ 4 mm en transiciones;
+  85 mp4 con duración = audio, H.264 + AAC; hojas antes/después en
+  `auditoria/demo_2026-10-04/lengua/`.
+- **No verificado:** la sincronía con oído en el móvil; el aspecto a tamaño real en el
+  teléfono de Miguel (las medidas son geométricas, a 640 px).

@@ -262,3 +262,117 @@ verdad (el Space está en pausa) y nada con OpenAI real.
 - `transcripcion.md`: lo que whisper oyó, con marcas.
 - `hallazgos.md`: este informe.
 - `eos_*.jpg`: mosaicos (fps=10, 2,4 s) de los clips regrabados; `antes/`, los mismos clips antes de regrabar; `real/`, capturas y resultados de la prueba en navegador (parte 1.5).
+
+
+## Segunda vuelta (4 oct, tarde): la lengua se iba de lado y la /p/ no explotaba
+
+Miguel, tras probar lo publicado por la mañana (vídeo «para fable2.1.mp4» en su Drive, 93 MB,
+subido a las 15:43 UTC; no se pudo bajar desde este PC —Drive exige su sesión y el Chrome de
+depuración no está abierto—, pero el problema se reprodujo y midió directamente en el visor):
+«la lengua se mueve hacia los lados, caótica dentro de la boca, en todos los sonidos; en la P los
+labios no hacen la explosión». Las dos cosas eran ciertas y tenían causa concreta.
+
+### H11 · La lengua giraba sobre el eje equivocado (todos los sonidos)
+
+**Medido** (`tools/eos_pronunciar/medir_lengua.py`, Chrome con GPU sobre el visor aislado): girando
+cada hueso de la lengua 0,3 rad sobre cada eje local y mirando a dónde va la punta, en ejes de la
+cabeza (x lateral, y arriba, z adelante):
+
+| Hueso · eje | punta (mm) x / y / z |
+|---|---|
+| Tongue1 · **x** | 0 / **−11,1** / −3,3 |
+| Tongue1 · y | **+7,0** / 0,9 / −0,5 |
+| Tongue1 · z | **−9,0** / −0,7 / −1,2 |
+| Tongue2 · x | 0 / −6,8 / −4,0 |
+| Tongue2 · y | +2,9 / 0,4 / 0 |
+| Tongue3 · x | 0 / −3,4 / −2,0 |
+
+El cabeceo (subir o bajar) es el eje **x**; **y y z llevan la punta de lado**. El visor
+(`D:/literalevel_eos_pronunciar/visor/index.html`, función `lengua`) aplicaba *todos* los canales
+de la lengua (altura, velo, alveolar, interdental, postalveolar, retrofleja) como giros sobre
+**y**, con constantes puestas a ojo en `lengua_lab.html` (cuyo comentario decía «eje local y =
+cabeceo»). Resultado en los clips publicados por la mañana: la punta se iba de lado hasta
+**12,1 mm** en /l/ (`ga_006c`), 7,9 en /m/, 6,2 en /p/, con correlación −0,9 con el canal
+`altura`: cada vocal la empujaba a un lado. Eso es lo que Miguel veía.
+
+**Arreglo** (visor; copia versionada en `tools/eos_pronunciar/visor/index.html`):
+
+- Todos los giros pasan al eje x (negativo = sube la parte delantera del hueso).
+- Constantes nuevas, calibradas en mm contra la geometría real de la boca con
+  `tools/eos_pronunciar/calibrar_lengua.py` (pone la pose canónica de cada sonido de
+  `poses.ejemplo.json`, mide los vértices de la lengua y guarda un corte sagital): /i j u/ dorso
+  a 1-2 mm del paladar y punta recogida tras los incisivos de abajo; /t d n l s z/ la pala toca
+  el alvéolo (z 7-10 mm, y 18-22) retrayendo la lengua 13 mm para no subir a los dientes; /k g
+  ŋ/ la lengua se dobla en Tongue2 y la joroba toca el velo a 2 cm del alvéolo con la punta baja;
+  /θ ð/ la punta asoma 3 mm entre los dientes y el cuerpo se aplana; /ʃ ʒ tʃ dʒ/ y /ɹ ɝ/ punta
+  arriba y atrás sin tocar; /ɑ ɔ/ baja y atrás (la retracción por `adelante` y `raiz` se bajó a
+  10 y 6 mm: antes la lengua se iba 29 mm a la garganta).
+- **Techo de la boca** medido en la malla al cargar (paladar, encía e incisivos de arriba, por
+  bandas de 3 mm en la línea media, solo huesos del maxilar porque la malla es escasa): ningún
+  vértice de la lengua se hunde más de 1 mm; el hueso que corrige es el que tiene al menos 10 mm
+  de palanca por detrás del vértice.
+- La regla «punta bajo el borde de los incisivos de abajo» del 27 sep solo actúa con la boca
+  abierta y recoge primero la punta (Tongue3) antes de bajar la raíz: antes, con la boca casi
+  cerrada, anulaba la altura de /i ɪ/.
+- **Continuidad**: entre fotogramas seguidos cada hueso gira como mucho 0,08 rad y Tongue1 se
+  desplaza como mucho 1,5 mm. Sin esto, los topes (que trabajan vértice a vértice) hacían saltar
+  la punta hasta 10 mm en un fotograma en /l k ɹ/.
+
+**Resultado medido en los clips** (`medir_lengua.py`, punta de la lengua en mm):
+
+| Clip | lateral máx antes | lateral máx ahora | salto máx/fotograma ahora | hundido en el techo (>1 mm) |
+|---|---|---|---|---|
+| ga_006c /l/ | 12,1 | 0 | 3,7 | 65/328 fotogramas, máx 3,9 |
+| ga_006b /k/ | — | 0 | 4,1 | 25/346, máx 2,5 |
+| ga_0279 /ɹ/ | — | 0 | 3,8 | 102/315, máx 2,4 |
+| ga_03b8 /θ/ | — | 0 | 3,1 | 15/337, máx 2,6 |
+| ga_0069 /i/ | — | 0 | 2,0 | 8/342, máx 2,4 |
+| ga_006d /m/ | 7,9 | 0 | — | — |
+| ga_0070 /p/ | 6,2 | 0 | — | 0 |
+
+(Los hundimientos que quedan son de 1-4 mm dentro de la boca, detrás de los incisivos de arriba,
+durante transiciones; a 640 px de frente no se distinguen.) Cortes sagitales de las poses
+calibradas en `lengua/cortes/` y hojas frontales antes/después en `lengua/antes/` y
+`lengua/despues/`.
+
+### H12 · La explosión de /p/ llegaba 130 ms tarde y sin gesto
+
+Dos causas, las dos en `tools/eos_pronunciar/corregir_visemas.py` (lo de la mañana):
+
+1. Los `curvas.json` de `generar_clips.py` traen los fonemas como `[arpabet, t0, t1]`, **sin la
+   bandera `aislado`** que el corrector esperaba. Las tres /p/ sueltas de cada clip se trataban
+   como /p/ dentro de palabra: el cierre se mantenía hasta `t1 − 35 ms` = 130 ms **después** del
+   soplo (medido en `voz.wav` de `ga_0070`: el soplo empieza en 0,075 s, el fono va de 0,07 a
+   0,24, y los labios se abrían en 0,205). Ahora la bandera se deduce: un fono es suelto si no
+   empieza otro en los 50 ms siguientes.
+2. Tras el cierre no había gesto de explosión: Audio2Face deja `jawOpen` en 0,04 después del
+   soplo de una /p/ sola. Ahora, en el instante del soplo, `jawOpen` sube a 0,22, los labios se
+   separan (`mouthLowerDown*` 0,30, `mouthUpperUp*` 0,12) en 30 ms y vuelven en 200 ms a lo que
+   diga Audio2Face; `mouthClose`/`mouthPress*` caen; y en los 120 ms anteriores los carrillos se
+   hinchan (`cheekPuff` 0,25). /b/ igual con la mitad; /m/ no explota.
+
+Pruebas: `pruebas_eos_visemas.py` pasa de 9 a 13 (explosión de /p/ suelta, /b/ en palabra y /m/
+sin soplo, deducción de `aislado`, /p/ suelta sin bandera abre con el soplo).
+
+### Cómo se hizo (para repetirlo)
+
+1. `python -X utf8 tools/eos_pronunciar/corregir_visemas.py` (parte siempre de `curvas.sin_corregir.json`).
+2. `python -X utf8 tools/eos_pronunciar/grabar_clips.py --rehacer` con el visor en 8790 (≈40 s por clip,
+   85 clips ≈ 1 h). El PC se reinició a las 14:01 con 52 clips hechos mientras tres agentes revisaban el
+   vídeo en paralelo (ffmpeg + Chrome con GPU); se relanzó solo lo pendiente filtrando `clips.json` a los
+   52 hechos (sin `--rehacer`, el guion graba lo que no está en el índice) y sin nada más en paralelo.
+3. `tools/eos_pronunciar/medir_lengua.py <clips>` sobre el visor: lateral 0, saltos ≤ 4 mm, techo ≤ 4 mm.
+4. Hojas de contacto antes/después (`lengua/antes`, `lengua/despues`), commit solo de `front/public/eos`.
+
+### Qué queda
+
+- La sincronía fina con el oído sigue sin probarse en el móvil (la medida es geométrica).
+- Las frases nuevas del trabajador salen ya con el visor arreglado (lo carga en cada frase); el
+  trabajador se relanzó para que recoja el corrector nuevo.
+- El vídeo `para fable2.1.mp4` se bajó al PC a las 13:10 (Miguel, a mano) y se repartió a tres agentes
+  (lengua / labios y p / resto) con verificación adversaria; la primera tanda se perdió con el reinicio
+  del PC y se repitió con los revisores de uno en uno. Resultado: § «Revisión del vídeo con agentes».
+- **Hallazgo lateral (sin corregir):** 23 de los 32 pares GA/RP de consonantes (`ga_0062`/`rp_0062`,
+  `ga_006c`/`rp_006c`, …) llevan **exactamente el mismo `voz.mp3`**: el clip «británico» es el mismo
+  audio que el americano. Las vocales con nombre distinto (`0251_02d0`, `0069_02d0`…) sí son otra voz.
+  Viene de `generar_clips.py`; decidir si se regeneran con la voz UK (≈2 min por clip) o se deja.

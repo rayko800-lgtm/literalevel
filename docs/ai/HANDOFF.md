@@ -61,6 +61,24 @@ API 72/72, seguridad 43 (dos errores solo de `tearDown` en Windows). Cupo de
 `miguel` sin tocar (98 usos). Detalle en `DESPLIEGUE.md` § «Demo grabada del 4
 oct: arreglos publicados».
 
+**Segunda vuelta (4 oct, tarde · vídeo «para fable2.1.mp4»): la lengua de lado y la /p/ sin
+explosión.** Miguel probó lo publicado y vio la lengua de Eos «caótica, hacia los lados» y la /p/
+sin explosión. Medido en el visor (`tools/eos_pronunciar/medir_lengua.py`): el eje local **x** de
+`FACIAL_C_Tongue1-4` es el cabeceo y **y/z la llevan de lado**; el visor giraba todos los canales
+sobre y (la punta se iba hasta 12 mm de lado con cada vocal). Arreglo en
+`D:/literalevel_eos_pronunciar/visor/index.html` (copia versionada en
+`tools/eos_pronunciar/visor/index.html`): cabeceo sobre x, constantes calibradas en mm contra
+paladar/encía/incisivos (`calibrar_lengua.py`, cortes en `auditoria/demo_2026-10-04/lengua/cortes/`),
+techo de la boca medido en la malla (≤1 mm de contacto), regla de los incisivos solo con la boca
+abierta y continuidad entre fotogramas (≤0,08 rad, ≤1,5 mm). La /p/: los `curvas.json` no traen
+`aislado` (los labios se abrían 130 ms después del soplo) y no había gesto; `corregir_visemas.py`
+deduce la bandera y añade la explosión (jaw 0,22, labios separados en 30 ms, carrillos antes).
+Medido en 9 clips: lateral 0 mm (antes 6-12), saltos ≤4 mm/fotograma (antes 10), techo ≤4 mm
+solo en transiciones. 85 clips regrabados (`366d168`), `master` → Vercel
+`sin paquete nuevo (main-RKY73FGO.js, solo assets; clips.json nuevo servido a las 14:30:53, md5 de ga/0070 igual al local)`; API sin cambios. Revisión del vídeo con tres agentes y verificación adversaria:
+`auditoria/demo_2026-10-04/hallazgos.md` § «Segunda vuelta». Trabajador relanzado
+(`20720`). Sigue sin probarse con oído en el móvil.
+
 **Para la demo en vivo del 10 oct**: ensayar con la cuenta `miguel` (en el
 vídeo tenía 98 usos y nivel 1,88 · C2: decidir si se deja así o se baja el
 nivel para que la franja de Encontrar enseñe libros más accesibles); Space
