@@ -459,8 +459,11 @@ export class Api {
       tap(e => guardarSesion(e.token ?? null)));
   }
   salir(): Observable<Entrada> { return this.http.post<Entrada>(`${this.base}/salir`, {}).pipe(tap(() => guardarSesion(null))); }
-  cambiarClave(actual: string, nueva: string): Observable<{ mensaje: string }> {
-    return this.http.post<{ mensaje: string }>(`${this.base}/cuenta/clave`, { actual, nueva }).pipe(tap(() => guardarSesion(null)));
+  /** El motor revoca las sesiones anteriores y emite una nueva para este aparato: se
+   *  guarda esa, no se borra la sesión (Miguel, 4 oct: cambiar la clave le echaba). */
+  cambiarClave(actual: string, nueva: string): Observable<Entrada> {
+    return this.http.post<Entrada>(`${this.base}/cuenta/clave`, { actual, nueva }).pipe(
+      tap(e => guardarSesion(e.token ?? null)));
   }
   recuperarClave(codigo: string, nueva: string): Observable<{ mensaje: string }> {
     return this.http.post<{ mensaje: string }>(`${this.base}/recuperar`, { codigo, nueva }).pipe(tap(() => guardarSesion(null)));

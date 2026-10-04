@@ -3,6 +3,7 @@ import concurrent.futures
 import json
 import os
 import secrets
+import sqlite3
 import sys
 import tempfile
 import time
@@ -20,7 +21,9 @@ os.environ["LITERALEVEL_DATOS"] = _inicial.name
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 import api
+import config
 import cuentas
+import lexicon
 import seguridad as s
 import ui
 
@@ -109,6 +112,21 @@ class Seguridad(unittest.TestCase):
         self.assertEqual(r.status_code, 401)
         r = self.c.post("/api/entrar", headers=self.guest, json={"usuario": "auditora", "clave": nueva})
         self.assertEqual(r.status_code, 200)
+
+    def test_cambiar_clave_conserva_este_dispositivo(self):
+        # Miguel (demo, 4 oct): cambiar la contraseña no debe echar al que la cambia.
+        # El token nuevo de la respuesta sirve; el viejo de este mismo dispositivo, no.
+        r = self.c.post("/api/cuenta/clave", headers=self.auth,
+                        json={"actual": self.clave, "nueva": secrets.token_urlsafe(20)})
+        self.assertEqual(r.status_code, 200)
+        cuerpo = r.json()
+        self.assertTrue(cuerpo["dentro"])
+        self.assertEqual(cuerpo["nombre"], "auditora")
+        self.assertEqual(cuerpo["expira_en"], s.SESION_SEGUNDOS)
+        self.assertNotEqual(cuerpo["token"], self.token)
+        nuevo = {**self.guest, "Authorization": "Bearer " + cuerpo["token"]}
+        self.assertTrue(self.c.get("/api/entrada", headers=nuevo).json()["dentro"])
+        self.assertEqual(self.c.get("/api/perfil", headers=self.auth).status_code, 401)
 
     def test_clave_actual_incorrecta(self):
         r = self.c.post("/api/cuenta/clave", headers=self.auth, json={"actual": "incorrecta", "nueva": secrets.token_urlsafe(20)})
@@ -243,9 +261,92 @@ class Seguridad(unittest.TestCase):
         self.assertEqual(len(llamadas), 1)
 
     def test_maximo_6_llamadas_minuto(self):
-        with s.operacion(self.p):
+        # El tope por minuto es configurable desde el 4 oct 2026; la regresión fija 6.
+        with patch.dict(os.environ, {"LITERALEVEL_LLAMADAS_MINUTO": "6"}), s.operacion(self.p):
             for _ in range(6): s.reservar(1, "texto")
             with self.assertRaises(HTTPException): s.reservar(1, "texto")
+
+    def test_topes_por_defecto_admiten_una_correccion(self):
+        # Una corrección de pronunciación encadena whisper, gpt-4o-mini y un tts-1 por
+        # frase y por palabra fallada: diez llamadas seguidas en el mismo minuto no
+        # pueden dar 429 con los valores por defecto (Miguel, demo del 4 oct 2026).
+        for variable in ("LITERALEVEL_LLAMADAS_MINUTO", "LITERALEVEL_LLAMADAS_HORA",
+                         "LITERALEVEL_LLAMADAS_DIA", "LITERALEVEL_LLAMADAS_TOTAL"):
+            self.assertNotIn(variable, os.environ)
+        with s.operacion(self.p):
+            for _ in range(10): s.reservar(1, "texto")
+        with patch.dict(os.environ, {"LITERALEVEL_LLAMADAS_DIA": "invalido"}), s.operacion(self.p):
+            with self.assertRaises(HTTPException): s.reservar(1, "texto")
+
+    def consultor_con_hilos(self, llamadas):
+        """Un `ConsultorLexico` REAL (hilos, caché y captura de errores) sobre un Kaikki
+        de una palabra, sin spaCy ni MiniLM, con el proveedor doblado tras
+        `ClienteProtegido`. Es el camino de `/api/palabra` que falló en la demo."""
+        ruta = Path(self.tmp.name, "kaikki_fixture.db")
+        db = sqlite3.connect(ruta)
+        db.execute("CREATE TABLE entradas (palabra TEXT, pos TEXT, sentidos TEXT, ipa_uk TEXT, "
+                   "ipa_us TEXT, audio_uk TEXT, audio_us TEXT)")
+        db.execute("INSERT INTO entradas VALUES (?,?,?,?,?,?,?)",
+                   ("house", "noun", json.dumps([{"glosa": "A structure built for habitation.", "tags": []}]),
+                    "/haʊs/", "/haʊs/", "https://upload.wikimedia.org/house.ogg", None))
+        db.commit()
+        db.close()
+        c = lexicon.ConsultorLexico(ruta_diccionario=ruta, ruta_cache=Path(self.tmp.name, "lexicon.db"))
+
+        def parse(**kw):
+            llamadas.append(kw)
+            return SimpleNamespace(output_parsed=SimpleNamespace(model_dump=lambda: {
+                "traduccion": "casa", "acepcion_usada": "",
+                "definicion_contextual": "Aquí es el edificio donde vive la familia.",
+                "explicacion_gramatical": "Sustantivo contable.",
+                "explicacion_adaptada": "Un lugar para vivir.",
+                "ejemplo_simplificado": "The house is big."}))
+        f = lambda **kw: llamadas.append(kw)
+        raw = SimpleNamespace(responses=SimpleNamespace(parse=parse), chat=SimpleNamespace(completions=SimpleNamespace(parse=f)),
+            audio=SimpleNamespace(speech=SimpleNamespace(create=f), transcriptions=SimpleNamespace(create=f)))
+        c._cliente_openai = s.ClienteProtegido(raw)
+        return c
+
+    def palabra_completa(self, llamadas):
+        c = self.consultor_con_hilos(llamadas)
+        with patch.object(lexicon, "_resolver_lema_y_categoria", lambda oracion, palabra: ("house", "house", "noun", "NOUN")), \
+             patch.object(lexicon, "_elegir_sentido", lambda oracion, pares: (pares[0][1], 0.9, []) if pares else (None, None, [])), \
+             patch.object(lexicon, "_fonetica_de_la_forma", lambda *a: ("/haʊs/", "/haʊs/", "https://upload.wikimedia.org/house.ogg", None)), \
+             patch.object(ui, "consultor", lambda: c), patch.object(config, "falta", lambda: []):
+            return self.c.post("/api/palabra", headers=self.auth,
+                               json={"palabra": "house", "oracion": "The house was quiet.", "etapa": "completa"})
+
+    def test_palabra_explica_desde_el_hilo_con_la_cuenta(self):
+        # Miguel (demo, 4 oct): con sesión, la explicación de la palabra nunca llegaba.
+        # `lexicon` pide a OpenAI desde un ThreadPoolExecutor, cuyos hilos nacían sin
+        # `seguridad.CONTEXTO`, y `ClienteProtegido` negaba con 403.
+        llamadas = []
+        r = self.palabra_completa(llamadas)
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        cuerpo = r.json()
+        self.assertEqual(cuerpo["definicion_contextual"], "Aquí es el edificio donde vive la familia.")
+        self.assertIsNone(cuerpo["motivo_sin_explicacion"])
+        self.assertEqual(len(llamadas), 1)
+        self.assertEqual(llamadas[0]["model"], "gpt-5")
+        self.assertEqual(self.c.get("/api/entrada", headers=self.auth).json()["restantes"], 39)
+        with s.transaccion() as db:
+            self.assertEqual(db.execute("SELECT count(*) FROM cargos WHERE nombre='auditora'").fetchone()[0], 1)
+
+    def test_palabra_con_tope_devuelve_ficha_y_motivo_llano(self):
+        # Un tope de `seguridad` no es un 503 del diccionario: la ficha sale, el motivo va
+        # en texto llano (sin «HTTPException») y el uso cobrado se devuelve.
+        llamadas = []
+        with patch.dict(os.environ, {"LITERALEVEL_LLAMADAS_MINUTO": "0"}):
+            r = self.palabra_completa(llamadas)
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        cuerpo = r.json()
+        self.assertEqual(cuerpo["sentido"], "A structure built for habitation.")
+        self.assertIsNone(cuerpo["definicion_contextual"])
+        self.assertIn("Has alcanzado el límite de llamadas de pago de tu cuenta.", cuerpo["motivo_sin_explicacion"])
+        self.assertIn(cuerpo["motivo_sin_explicacion"], cuerpo["avisos"])
+        self.assertNotIn("HTTPException", json.dumps(cuerpo, ensure_ascii=False))
+        self.assertEqual(llamadas, [])
+        self.assertEqual(self.c.get("/api/entrada", headers=self.auth).json()["restantes"], 40)
 
     def test_salida_revoca_entre_llamadas(self):
         with s.operacion(self.p):
@@ -308,6 +409,28 @@ print(sum(s.consumir(config.dir_datos(),SimpleNamespace(nombre='auditora',tope=2
         with self.assertRaises(HTTPException): s.validar_recurso("audio:otro.mp3", acceso)
         s.salir(self.token)
         with self.assertRaises(HTTPException): s.validar_recurso("audio:prueba.mp3", acceso)
+
+    def test_enlaces_privados_duran_lo_configurado(self):
+        # Miguel (4 oct): pide una corrección, lee 20 minutos y los enlaces de audio y
+        # de Eos daban 403 (15 min fijos). Cuatro horas por defecto, configurables;
+        # la caducidad y la revocación siguen vigentes.
+        antes = time.time()
+        with s.operacion(self.p): acceso = s.permitir_recurso("audio:demo.mp3")
+        cap = s.recurso_para_trabajador("audio:demo.mp3")
+        with s.transaccion() as db:
+            vidas = [f[0] - antes for f in db.execute("SELECT expira FROM recursos ORDER BY expira")]
+        self.assertEqual(len(vidas), 2)
+        for vida in vidas:
+            self.assertGreater(vida, 4 * 3600 - 5)
+            self.assertLess(vida, 4 * 3600 + 5)
+        with patch.dict(os.environ, {"LITERALEVEL_RECURSO_SEGUNDOS": "0"}):
+            with s.operacion(self.p): caducado = s.permitir_recurso("audio:demo.mp3")
+            with self.assertRaises(HTTPException): s.validar_recurso("audio:demo.mp3", caducado)
+        s.validar_recurso("audio:demo.mp3", acceso)
+        s.validar_recurso("audio:demo.mp3", cap)
+        with s.transaccion() as db: db.execute("UPDATE recursos SET expira=0")
+        for token in (acceso, cap):
+            with self.assertRaises(HTTPException): s.validar_recurso("audio:demo.mp3", token)
 
     def test_audio_no_valido_sin_gasto(self):
         f = Path(self.tmp.name, "audio.webm")

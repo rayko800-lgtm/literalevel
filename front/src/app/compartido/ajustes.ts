@@ -94,15 +94,19 @@ import { Icono } from './icono';
               } @else { Sin límite de usos. }
             </p>
             <button class="boton secundario" type="button" (click)="salir()">Salir</button>
-            <form class="pila entrar" (ngSubmit)="cambiarClave()">
-              <label class="campo"><span>Contraseña actual</span>
-                <input class="entrada" name="actual" type="password" autocomplete="current-password" [(ngModel)]="actual" required>
-              </label>
-              <label class="campo"><span>Nueva contraseña (mínimo 12 caracteres)</span>
-                <input class="entrada" name="nueva" type="password" autocomplete="new-password" [(ngModel)]="nueva" minlength="12" maxlength="200" required>
-              </label>
-              <button class="boton secundario" type="submit" [disabled]="entrando()">Cambiar contraseña</button>
-            </form>
+            <!-- Plegado: desplegado siempre bajo «Has entrado como…» parecía que la app
+                 pedía cambiar la contraseña nada más entrar (Miguel, demo del 4 oct). -->
+            <details class="cambiar-clave"><summary>Cambiar contraseña</summary>
+              <form class="pila entrar" (ngSubmit)="cambiarClave()">
+                <label class="campo"><span>Contraseña actual</span>
+                  <input class="entrada" name="actual" type="password" autocomplete="current-password" [(ngModel)]="actual" required>
+                </label>
+                <label class="campo"><span>Nueva contraseña (mínimo 12 caracteres)</span>
+                  <input class="entrada" name="nueva" type="password" autocomplete="new-password" [(ngModel)]="nueva" minlength="12" maxlength="200" required>
+                </label>
+                <button class="boton secundario" type="submit" [disabled]="entrando()">Cambiar contraseña</button>
+              </form>
+            </details>
             @if (mensaje()) { <p class="aviso" role="status">{{ mensaje() }}</p> }
             @if (e.admin) {
               <details><summary>Recuperación de una cuenta</summary>
@@ -296,13 +300,18 @@ export class Ajustes {
     }
   }
 
+  /** Se sigue dentro: el motor devuelve la entrada con la sesión nueva de este aparato
+   *  (`Api.cambiarClave` ya la guardó). Antes se salía y volvía a aparecer el formulario
+   *  de entrar, que en la demo pareció «me vuelve a pedir la contraseña» (Miguel, 4 oct).
+   *  La cuenta es la misma, así que no hay datos cacheados que cambien de dueño. */
   protected async cambiarClave(): Promise<void> {
     this.entrando.set(true);
     try {
-      const r = await firstValueFrom(this.api.cambiarClave(this.actual, this.nueva));
+      const e = await firstValueFrom(this.api.cambiarClave(this.actual, this.nueva));
       this.actual = this.nueva = '';
-      await this.sesion.cambioDeCuenta();
-      this.mensaje.set(r.mensaje);
+      if (e.dentro) this.sesion.entrada.set(e);
+      else await this.sesion.cambioDeCuenta();
+      this.mensaje.set(e.mensaje);
     } catch (error) { this.mensaje.set(mensajeError(error)); }
     finally { this.entrando.set(false); }
   }

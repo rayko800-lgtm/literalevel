@@ -213,13 +213,28 @@ def autorizar_admin(principal: Principal | None, actual: str):
             negar(401, "No se ha podido verificar tu contraseña actual.")
 
 
-def cambiar(principal: Principal, actual: str, nueva: str):
+def cambiar(principal: Principal, actual: str, nueva: str) -> str:
+    """Cambia la contraseña y devuelve una sesión nueva para ESTE dispositivo.
+
+    `_cambiar` sigue revocando todas las sesiones anteriores (también la que hace
+    el cambio), las recuperaciones y los enlaces a archivos. Antes aquí acababa
+    todo y el que cambiaba la clave aparecía fuera de la app y volvía a ver el
+    formulario de entrar, como si se la pidieran otra vez (Miguel, demo del 4 oct
+    2026). La sesión nueva se emite en la misma transacción, con la versión ya
+    incrementada de la cuenta, exactamente como en `entrar`.
+    """
     nueva_clave(nueva)
+    ahora = time.time()
     with transaccion() as db:
         c = db.execute("SELECT clave FROM cuentas WHERE nombre=?", (principal.nombre,)).fetchone()
         if c is None or not comprobar(actual, c["clave"]):
             negar(401, "La contraseña actual no coincide.")
         _cambiar(db, principal.nombre, nueva)
+        version = db.execute("SELECT version FROM cuentas WHERE nombre=?", (principal.nombre,)).fetchone()[0]
+        token = secrets.token_urlsafe(32)
+        db.execute("INSERT INTO sesiones VALUES(?,?,?,?)",
+                   (huella(token), principal.nombre, version, ahora + SESION_SEGUNDOS))
+    return token
 
 
 def _cambiar(db, nombre, clave):
@@ -227,6 +242,18 @@ def _cambiar(db, nombre, clave):
     db.execute("DELETE FROM sesiones WHERE nombre=?", (nombre,))
     db.execute("DELETE FROM recuperaciones WHERE nombre=?", (nombre,))
     db.execute("DELETE FROM recursos WHERE nombre=?", (nombre,))
+
+
+def recurso_segundos() -> int:
+    """Vida de un enlace a un archivo generado (audio, vídeo de Eos).
+
+    La auditoría del 1 oct los dejó en 15 minutos fijos. En la demo, Miguel pide
+    una corrección, se va a leer y vuelve 20 minutos después: «Escuchar la frase
+    bien leída», «Oírla» de cada palabra y el vídeo de Eos daban 403 y el front no
+    sonaba ni explicaba nada (4 oct 2026). Cuatro horas por defecto; el token sigue
+    siendo aleatorio de 256 bits y se revoca al salir o cambiar la contraseña.
+    """
+    return limite("LITERALEVEL_RECURSO_SEGUNDOS", 4 * 3600)
 
 
 def permitir_recurso(recurso: str) -> str | None:
@@ -238,7 +265,7 @@ def permitir_recurso(recurso: str) -> str | None:
         db.execute("DELETE FROM recursos WHERE expira<=?", (time.time(),))
         db.execute("INSERT OR IGNORE INTO permisos VALUES(?,?)", (principal.nombre, recurso))
         db.execute("INSERT INTO recursos VALUES(?,?,?,?)",
-                   (huella(token), principal.nombre, recurso, time.time() + 900))
+                   (huella(token), principal.nombre, recurso, time.time() + recurso_segundos()))
     return token
 
 
@@ -266,7 +293,7 @@ def recurso_para_trabajador(recurso: str) -> str | None:
         if fila is None:
             return None
         db.execute("INSERT INTO recursos VALUES(?,?,?,?)",
-                   (huella(token), fila[0], recurso, time.time() + 900))
+                   (huella(token), fila[0], recurso, time.time() + recurso_segundos()))
     return token
 
 
@@ -364,7 +391,17 @@ def reservar(centavos: int, tipo: str):
         cuenta_total, cuenta_dia, hora, minuto = db.execute("""SELECT count(*),
             coalesce(sum(momento>=?),0), coalesce(sum(momento>=?),0), coalesce(sum(momento>=?),0)
             FROM cargos WHERE nombre=?""", (dia, ahora - 3600, ahora - 60, principal.nombre)).fetchone()
-        if cuenta_total >= 200 or cuenta_dia >= 40 or hora >= 30 or minuto >= 6:
+        # Topes de LLAMADAS por cuenta, configurables por entorno (Miguel, 4 oct 2026).
+        # La auditoría del 1 oct los dejó fijos en 6/min, 30/h, 40/día y 200 acumuladas:
+        # una sola corrección de pronunciación encadena whisper, gpt-4o-mini y un tts-1
+        # por frase y por palabra fallada (seis o más llamadas en un minuto), y 40 al
+        # día se agotan en una tarde de pruebas. Los valores por defecto admiten una
+        # sesión real de uso; la barrera de gasto sigue siendo el presupuesto en
+        # centavos de arriba. Como en `limite`, un valor inválido cierra la puerta.
+        if (cuenta_total >= limite("LITERALEVEL_LLAMADAS_TOTAL", 5000)
+                or cuenta_dia >= limite("LITERALEVEL_LLAMADAS_DIA", 400)
+                or hora >= limite("LITERALEVEL_LLAMADAS_HORA", 120)
+                or minuto >= limite("LITERALEVEL_LLAMADAS_MINUTO", 20)):
             negar(429, "Has alcanzado el límite de llamadas de pago de tu cuenta.")
         db.execute("INSERT INTO cargos(nombre,momento,centavos,tipo) VALUES(?,?,?,?)",
                    (principal.nombre, ahora, centavos, tipo))

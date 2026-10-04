@@ -49,10 +49,20 @@ describe('sesión emitida por el servidor', () => {
     expect(tokenSesion()).toBeNull();
   });
 
-  it('retira el token tras cambiar la contraseña', () => {
+  it('guarda la sesión nueva que emite el motor al cambiar la contraseña', () => {
+    // Miguel (4 oct): cambiar la clave no echa a este aparato; los demás quedan revocados.
     guardarSesion('fixture-de-sesion');
     TestBed.inject(Api).cambiarClave('actual-fixture', 'nueva-fixture-larga').subscribe();
-    mock.expectOne('/api/cuenta/clave').flush({ mensaje: 'Cambiada' });
+    const cambio = mock.expectOne('/api/cuenta/clave');
+    expect(cambio.request.headers.get('Authorization')).toBe('Bearer fixture-de-sesion');
+    cambio.flush({ dentro: true, mensaje: 'Cambiada', token: 'fixture-nueva-sesion' });
+    expect(tokenSesion()).toBe('fixture-nueva-sesion');
+  });
+
+  it('retira el token si el motor no devuelve sesión nueva al cambiar la contraseña', () => {
+    guardarSesion('fixture-de-sesion');
+    TestBed.inject(Api).cambiarClave('actual-fixture', 'nueva-fixture-larga').subscribe();
+    mock.expectOne('/api/cuenta/clave').flush({ dentro: false, mensaje: 'Cambiada' });
     expect(tokenSesion()).toBeNull();
   });
 });
