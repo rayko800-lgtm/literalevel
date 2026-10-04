@@ -29,6 +29,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grabar_clips import CLIPS, grabar  # noqa: E402
+import corregir_visemas  # noqa: E402
 
 GENERADOR = RAIZ / ".claude" / "worktrees" / "cara-parlante" / "tools" / "cara_parlante" / "eos_demo" / "generar.py"
 NOVERBAL = Path("D:/literalevel_cara/v3_solo_noverbal")
@@ -60,6 +61,14 @@ def hacer(trabajo: dict, api: str, token: str, pag, ff: str, url_visor: str, fps
              "--salida", str(carpeta), "--boca", "a2f", "--gestos", "v3", "--modelo_v3", str(NOVERBAL),
              "--estilo_v3", "real", "--semilla", str(int(clave[:6], 16) % 1000)]
     subprocess.run(orden, check=True, cwd=str(GENERADOR.parent))
+    # 4 oct: cierre de labios en /p b m/ y lengua acotada (corregir_visemas.py). Para una
+    # frase, los fonemas salen de las palabras con tiempos que deje `generar.py` en el json;
+    # si no las deja, solo se corrige la lengua. Un fallo aquí no debe perder el vídeo.
+    try:
+        informe = corregir_visemas.corregir_archivo(carpeta / "curvas.json")
+        print(f"{clave}: visemas fonemas={informe['fonemas']} cierres={informe['cierres']}", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"{clave}: visemas sin corregir ({type(e).__name__}: {e})", flush=True)
     salida = carpeta / "eos.mp4"
     grabar(pag, clip, fps, ff, url_visor, salida, "0,-0.035,0.62", 24)
     with open(salida, "rb") as f:

@@ -42,6 +42,9 @@ INVENTARIO = {acento: list(articulacion.inventario(acento)) for acento in ("ga",
 sys.path.remove(str(RAIZ / "app"))
 del sys.modules["articulacion"]
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import corregir_visemas  # noqa: E402
+
 GENERADOR = RAIZ / ".claude" / "worktrees" / "cara-parlante" / "tools" / "cara_parlante" / "eos_demo"
 TRABAJO = Path(os.environ.get("LITERALEVEL_EOS_TRABAJO", "D:/literalevel_eos_pronunciar"))
 CLIPS = TRABAJO / "visor" / "clips"
@@ -144,8 +147,18 @@ def generar_clip(acento: str, sonido, boca: str, semilla: int, ff: str) -> Path:
     finally:
         os.chdir(cwd)
     datos = json.load(open(salida / "curvas.json", encoding="utf-8"))
-    datos["guion"] = {"acento": acento, "simbolo": sonido.simbolo, "palabras": palabras}
+    # Los tramos del sonido aislado van primero (`guion`): en ellos el tramo sonoro de
+    # una /p b/ es la explosión y el cierre tiene que ir delante (corregir_visemas.py).
+    aislados = len(palabras) - 2
+    datos["guion"] = {"acento": acento, "simbolo": sonido.simbolo, "palabras": palabras,
+                      "fonemas": [{"arpabet": str(f[0]), "t0": float(f[1]), "t1": float(f[2]), "aislado": i < aislados}
+                                  for i, f in enumerate(fons)]}
     json.dump(datos, open(salida / "curvas.json", "w", encoding="utf-8"))
+    # 4 oct (Miguel, tras la demo): A2F no junta los labios en /p b m/ y la lengua se iba
+    # de lado. Se corrige sobre las curvas, antes de grabar; idempotente.
+    informe = corregir_visemas.corregir_archivo(salida / "curvas.json")
+    print(f"   visemas: cierres {informe['cierres']}, jawOpen en cierre "
+          f"{informe.get('jawOpen_en_cierre_antes')}→{informe.get('jawOpen_en_cierre_despues')}", flush=True)
     return salida
 
 
