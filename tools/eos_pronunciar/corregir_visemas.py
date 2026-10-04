@@ -26,6 +26,11 @@ Qué hace, por fotograma:
   a 0,02, `mouthClose` y `mouthPress*` suben, y lo que separa los labios (`mouthLowerDown*`,
   `mouthUpperUp*`, `mouthFunnel`, `mouthPucker`, `mouthRoll*`, `mouthShrug*`,
   `mouthStretch*`, `jawForward/Left/Right`) se apaga casi del todo.
+- Explosión de /p b/ (4 oct, tarde: Miguel seguía sin ver la explosión en la P). En el
+  momento del soplo los labios se separan de golpe y la boca se abre un poco (`jawOpen`,
+  `mouthLowerDown*`, `mouthUpperUp*` suben en 30 ms y vuelven en 200 ms a lo que diga
+  Audio2Face; `mouthClose`/`mouthPress*` caen), y en los 100 ms anteriores los carrillos se
+  hinchan un poco con la presión (`cheekPuff`). En /p/ más que en /b/; en /m/ no hay.
 - Lengua. Cualquier curva de lengua con «left»/«right» en el nombre se pone a cero (en
   inglés ningún sonido la mueve de lado) y las de «out» se acotan a 0,10, salvo en /θ ð/
   (ARPAbet th/dh), donde se permite hasta 0,55 (la punta sí asoma entre los dientes).
@@ -75,6 +80,17 @@ TRAS_EXPLOSION_S = 0.015
 # /p b/ dentro de una palabra: el fono cubre cierre + explosión.
 ANTES_FONO_S = 0.06
 SUELTA_ANTES_DEL_FIN_S = 0.035
+# Explosión de /p b/: subida, meseta y vuelta; lo que sube como mínimo; carrillos antes del soplo.
+EXPLOSION_SUBIDA_S = 0.03
+EXPLOSION_MESETA_S = 0.06
+EXPLOSION_BAJADA_S = 0.20
+EXPLOSION = {"p": {"jawOpen": 0.22, "mouthLowerDownLeft": 0.30, "mouthLowerDownRight": 0.30,
+                   "mouthUpperUpLeft": 0.12, "mouthUpperUpRight": 0.12},
+             "b": {"jawOpen": 0.16, "mouthLowerDownLeft": 0.22, "mouthLowerDownRight": 0.22,
+                   "mouthUpperUpLeft": 0.08, "mouthUpperUpRight": 0.08}}
+EXPLOSION_APAGA = ("mouthClose", "mouthPressLeft", "mouthPressRight")
+CARRILLOS = {"p": 0.25, "b": 0.12}
+CARRILLOS_ANTES_S = 0.12
 LENGUA_FUERA_MAX = 0.10
 LENGUA_FUERA_INTERDENTAL = 0.55
 MARGEN_INTERDENTAL_S = 0.04
@@ -84,15 +100,25 @@ def _arpabet(simbolo: str) -> str:
     return re.sub(r"\d", "", str(simbolo or "")).strip().lower()
 
 
+# Un fono sin otro detrás en este margen es un sonido suelto (las tres repeticiones de cada clip).
+HUECO_AISLADO_S = 0.05
+
+
 def normalizar_fonemas(fonemas) -> list[dict]:
-    """Admite [(arpa, t0, t1)], [[arpa, t0, t1]] y [{'arpabet', 't0', 't1', 'aislado'}]."""
+    """Admite [(arpa, t0, t1)], [[arpa, t0, t1]] y [{'arpabet', 't0', 't1', 'aislado'}].
+
+    Si la línea no dice si el fono es un sonido suelto (los `curvas.json` de `generar_clips.py`
+    traen solo arpabet y tiempos: el 4 oct por la mañana las tres /p/ sueltas de cada clip se
+    trataron como /p/ dentro de palabra y los labios se abrían 130 ms después del soplo), se
+    deduce: es suelto si ningún otro fono empieza en los 50 ms siguientes a su fin."""
     salida = []
     for f in fonemas or []:
         if isinstance(f, dict):
-            arpa, t0, t1, aislado = f.get("arpabet", ""), f.get("t0"), f.get("t1"), bool(f.get("aislado"))
+            arpa, t0, t1 = f.get("arpabet", ""), f.get("t0"), f.get("t1")
+            aislado = None if f.get("aislado") is None else bool(f.get("aislado"))
         else:
             arpa, t0, t1 = f[0], f[1], f[2]
-            aislado = bool(f[3]) if len(f) > 3 else False
+            aislado = bool(f[3]) if len(f) > 3 else None
         try:
             t0, t1 = float(t0), float(t1)
         except (TypeError, ValueError):
@@ -100,6 +126,11 @@ def normalizar_fonemas(fonemas) -> list[dict]:
         if t1 <= t0:
             continue
         salida.append({"arpabet": _arpabet(arpa), "t0": t0, "t1": t1, "aislado": aislado})
+    salida.sort(key=lambda f: f["t0"])
+    for i, f in enumerate(salida):
+        if f["aislado"] is None:
+            siguiente = salida[i + 1]["t0"] if i + 1 < len(salida) else None
+            f["aislado"] = siguiente is None or siguiente - f["t1"] > HUECO_AISLADO_S
     return salida
 
 
@@ -237,6 +268,32 @@ def peso_cierre(n: int, fps: float, fonemas: list[dict]) -> np.ndarray:
     return w
 
 
+def _soltado(f: dict) -> float:
+    """Instante del soplo de un /p b/: donde termina su cierre (ver `peso_cierre`)."""
+    if f["aislado"]:
+        return f["t0"] + TRAS_EXPLOSION_S
+    return max(f["t0"] + 0.03, f["t1"] - SUELTA_ANTES_DEL_FIN_S)
+
+
+def pesos_explosion(n: int, fps: float, fonemas: list[dict]) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Por sonido (p, b): envolventes 0..1 por fotograma del soplo y de los carrillos previos."""
+    t = np.arange(n) / fps
+    soplo = {a: np.zeros(n) for a in EXPLOSION}
+    carrillos = {a: np.zeros(n) for a in EXPLOSION}
+    for f in fonemas:
+        a = f["arpabet"]
+        if a not in EXPLOSION:
+            continue
+        tb = _soltado(f)
+        subida = np.clip((t - tb) / EXPLOSION_SUBIDA_S, 0, 1)
+        bajada = np.clip((tb + EXPLOSION_SUBIDA_S + EXPLOSION_MESETA_S + EXPLOSION_BAJADA_S - t) / EXPLOSION_BAJADA_S, 0, 1)
+        soplo[a] = np.maximum(soplo[a], _suavizar(subida) * _suavizar(bajada))
+        hinchan = np.clip((t - (tb - CARRILLOS_ANTES_S)) / (CARRILLOS_ANTES_S - 0.03), 0, 1)
+        sueltan = np.clip((tb + EXPLOSION_SUBIDA_S - t) / EXPLOSION_SUBIDA_S, 0, 1)
+        carrillos[a] = np.maximum(carrillos[a], _suavizar(hinchan) * _suavizar(sueltan))
+    return soplo, carrillos
+
+
 def peso_interdental(n: int, fps: float, fonemas: list[dict]) -> np.ndarray:
     t = np.arange(n) / fps
     w = np.zeros(n, dtype=bool)
@@ -280,6 +337,20 @@ def corregir(datos: dict, fonemas: list[dict] | None = None) -> tuple[dict, dict
                 curvas[clave] = curvas[clave] * (1 - (1 - APAGAR) * w)
         if "jawOpen" in curvas and dentro.any():
             informe["jawOpen_en_cierre_despues"] = round(float(curvas["jawOpen"][dentro].mean()), 3)
+    soplo, carrillos = pesos_explosion(n, fps, fonemas) if fonemas else ({}, {})
+    informe["explosiones"] = 0
+    for a, e in soplo.items():
+        if not (e > 0.5).any():
+            continue
+        informe["explosiones"] += int(np.sum((e[1:] > 0.5) & (e[:-1] <= 0.5)) + (1 if e[0] > 0.5 else 0))
+        for clave, minimo in EXPLOSION[a].items():
+            if clave in curvas:
+                curvas[clave] = np.maximum(curvas[clave], minimo * e)
+        for clave in EXPLOSION_APAGA:
+            if clave in curvas:
+                curvas[clave] = curvas[clave] * (1 - e)
+        if "cheekPuff" in curvas:
+            curvas["cheekPuff"] = np.maximum(curvas["cheekPuff"], CARRILLOS[a] * carrillos[a])
 
     lengua = [k for k in curvas if _es_lengua(k)]
     informe["lengua"]["curvas"] = lengua
@@ -305,7 +376,7 @@ def corregir(datos: dict, fonemas: list[dict] | None = None) -> tuple[dict, dict
 
     salida = dict(datos)
     salida["curvas"] = {**(datos.get("curvas") or {}), **{k: np.round(v, 5).tolist() for k, v in curvas.items()}}
-    salida["visemas_corregidos"] = {"version": 1, "cierres": informe["cierres"], "fonemas": origen,
+    salida["visemas_corregidos"] = {"version": 2, "cierres": informe["cierres"], "explosiones": informe["explosiones"], "fonemas": origen,
                                     "lengua_lateral_a_cero": bool(lengua), "lengua_fuera_max": LENGUA_FUERA_MAX}
     return salida, informe
 
@@ -350,7 +421,7 @@ def main() -> None:
                               f"fuera {len(lengua.get('fuera_acotadas', []))}")
         else:
             resumen_lengua = "sin curvas (la pone el visor)"
-        print(f"{inf['clip']}: fonemas={inf['fonemas']} cierres={inf['cierres']} "
+        print(f"{inf['clip']}: fonemas={inf['fonemas']} cierres={inf['cierres']} explosiones={inf.get('explosiones', 0)} "
               f"jawOpen en cierre {inf.get('jawOpen_en_cierre_antes')}→{inf.get('jawOpen_en_cierre_despues')} "
               f"lengua={resumen_lengua}", flush=True)
     print(f"{len(rutas)} clips {'medidos' if a.informe else 'corregidos'}. Después: grabar_clips.py --rehacer")

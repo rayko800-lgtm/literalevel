@@ -79,6 +79,45 @@ class Cierre(unittest.TestCase):
         self.assertLessEqual(max(salida["curvas"]["tongueOut"]), cv.LENGUA_FUERA_MAX)
 
 
+class Explosion(unittest.TestCase):
+    def test_p_aislada_abre_de_golpe_tras_el_cierre(self):
+        datos = curvas_abiertas(2.0, jaw=0.04)          # un /p/ solo: A2F apenas abre la boca tras el soplo
+        datos["curvas"]["cheekPuff"] = [0.0] * len(datos["curvas"]["jawOpen"])
+        datos["curvas"]["mouthUpperUpLeft"] = [0.0] * len(datos["curvas"]["jawOpen"])
+        fon = [{"arpabet": "p", "t0": 1.0, "t1": 1.15, "aislado": True}]
+        salida, informe = cv.corregir(datos, fon)
+        c = salida["curvas"]
+        tb = 1.0 + cv.TRAS_EXPLOSION_S
+        self.assertEqual(informe["explosiones"], 1)
+        self.assertLessEqual(c["jawOpen"][marco(tb - 0.03)], 0.03)            # cerrada hasta el soplo
+        self.assertGreaterEqual(c["cheekPuff"][marco(tb - 0.04)], 0.2)        # carrillos hinchados antes
+        self.assertGreaterEqual(c["jawOpen"][marco(tb + 0.05)], 0.2)          # se abre de golpe
+        self.assertGreaterEqual(c["mouthLowerDownLeft"][marco(tb + 0.05)], 0.28)
+        self.assertGreaterEqual(c["mouthUpperUpLeft"][marco(tb + 0.05)], 0.1)
+        self.assertLessEqual(c["mouthClose"][marco(tb + 0.05)], 0.05)
+        self.assertLessEqual(c["cheekPuff"][marco(tb + 0.06)], 0.02)          # y los carrillos se vacían
+        self.assertAlmostEqual(c["jawOpen"][marco(tb + 0.5)], 0.04, places=2)  # luego, lo que diga A2F
+        self.assertEqual(salida["visemas_corregidos"]["explosiones"], 1)
+
+    def test_b_en_palabra_explota_menos_y_la_m_no(self):
+        datos = curvas_abiertas(2.0, jaw=0.04)
+        datos["curvas"]["cheekPuff"] = [0.0] * len(datos["curvas"]["jawOpen"])
+        fon = cv.normalizar_fonemas([("B", 0.60, 0.72, False), ("AH0", 0.72, 0.80, False),
+                                     ("M", 1.20, 1.40, False), ("AH0", 1.40, 1.50, False)])
+        salida, informe = cv.corregir(datos, fon)
+        c = salida["curvas"]
+        tb = max(0.63, 0.72 - cv.SUELTA_ANTES_DEL_FIN_S)
+        self.assertEqual(informe["explosiones"], 1)
+        self.assertGreaterEqual(c["jawOpen"][marco(tb + 0.05)], 0.15)
+        self.assertLess(c["jawOpen"][marco(tb + 0.05)], 0.2)
+        self.assertGreaterEqual(c["cheekPuff"][marco(tb - 0.04)], 0.1)
+        self.assertLess(c["cheekPuff"][marco(tb - 0.04)], 0.2)
+        # la /m/ cierra y suelta suave: sin soplo
+        self.assertLessEqual(c["jawOpen"][marco(1.3)], 0.03)
+        self.assertLessEqual(c["jawOpen"][marco(1.48)], 0.05)
+        self.assertLessEqual(max(c["cheekPuff"][marco(1.0):marco(1.6)]), 0.02)
+
+
 class Lengua(unittest.TestCase):
     def test_lateral_a_cero_y_fuera_acotada_salvo_interdental(self):
         datos = curvas_abiertas(2.0)
@@ -102,6 +141,23 @@ class Lengua(unittest.TestCase):
         _, informe = cv.corregir(datos)
         self.assertEqual(informe["lengua"]["curvas"], [])
         self.assertIn("visor", informe["lengua"]["nota"])
+
+
+class Aislado(unittest.TestCase):
+    def test_sin_bandera_se_deduce_por_el_hueco(self):
+        # Como los curvas.json de generar_clips.py: tres /p/ sueltas y luego «pen».
+        fon = cv.normalizar_fonemas([["p", 0.07, 0.24], ["p", 0.86, 1.08], ["p", 2.81, 2.852], ["eh", 2.852, 2.938]])
+        self.assertEqual([f["aislado"] for f in fon], [True, True, False, True])
+        # Con bandera explícita no se toca.
+        fon = cv.normalizar_fonemas([{"arpabet": "p", "t0": 0.1, "t1": 0.3, "aislado": False}])
+        self.assertFalse(fon[0]["aislado"])
+
+    def test_p_suelta_sin_bandera_abre_con_el_soplo(self):
+        datos = curvas_abiertas(2.0, jaw=0.04)
+        salida, _ = cv.corregir(datos, cv.normalizar_fonemas([["p", 1.0, 1.17]]))
+        jaw = salida["curvas"]["jawOpen"]
+        self.assertLessEqual(jaw[marco(0.9)], 0.03)        # cerrada antes del soplo (t0 = 1,0)
+        self.assertGreaterEqual(jaw[marco(1.06)], 0.2)     # y abierta 60 ms después, no 130 ms más tarde
 
 
 class Fonemas(unittest.TestCase):

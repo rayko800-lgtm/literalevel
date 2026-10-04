@@ -1,0 +1,653 @@
+<!-- Copia versionada del visor aislado de Eos (D:/literalevel_eos_pronunciar/visor/index.html),
+     el que graba los clips de Pronunciar (grabar_clips.py) y las frases del trabajador. Los
+     binarios (eos.glb, gafas.glb, textures/, clips/) no van en el repositorio. Si cambias el de D:,
+     copia aquí; si cambias este, copia a D:. Lengua: ejes, constantes y topes del 4 oct 2026. -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eos · Pléyade</title>
+<style>
+  :root { --azul: #0b1840; --azul2: #16296b; --oro-rosa: #e7a98c; --oro: #f3c768; --texto: #f6ece4; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 35%, #25397f 0%, var(--azul) 55%, #050a1f 100%); color: var(--texto); font-family: Georgia, 'Times New Roman', serif; overflow: hidden; }
+  canvas { display: block; }
+  #ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+  #subt { min-height: 2.6em; max-width: 760px; text-align: center; font-size: clamp(16px, 2.4vw, 22px); line-height: 1.3; text-shadow: 0 1px 6px #000a; }
+  #subt .ya { color: var(--oro); }
+  #barra { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; pointer-events: auto; }
+  button, select { font: inherit; font-size: 15px; background: #0b1840cc; color: var(--texto); border: 1px solid var(--oro-rosa); border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+  button:hover { background: var(--azul2); }
+  #titulo { position: fixed; top: 14px; left: 0; right: 0; text-align: center; letter-spacing: .25em; color: var(--oro-rosa); font-size: 15px; }
+  #estado { position: fixed; top: 38px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .7; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="titulo">PLÉYADE · EOS</div>
+<div id="estado">cargando…</div>
+<div id="ui">
+  <div id="subt"></div>
+  <div id="barra">
+    <select id="clip"></select>
+    <button id="hablar">▶ Hablar</button>
+    <button id="lentes">Gafas</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const CLIPS = await fetch('clips.json').then(r => r.json());   // [{id, titulo}]
+const estado = document.getElementById('estado');
+const subt = document.getElementById('subt');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+// luz de amanecer: una llave cálida alta a un lado, relleno frío y un contraluz dorado
+const llave = new THREE.DirectionalLight(0xffd6a8, 2.6); llave.position.set(0.6, 1.9, 1.2); scene.add(llave);
+const relleno = new THREE.DirectionalLight(0xbfd0ff, 0.7); relleno.position.set(-1.2, 1.5, 0.8); scene.add(relleno);
+const contra = new THREE.DirectionalLight(0xffc36b, 2.2); contra.position.set(-0.4, 2.0, -1.2); scene.add(contra);
+
+const camara = new THREE.PerspectiveCamera(22, innerWidth / innerHeight, 0.01, 50);
+const controles = new OrbitControls(camara, renderer.domElement);
+controles.enableDamping = true;
+
+const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
+const cargador = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
+const MODELO = new URLSearchParams(location.search).get('modelo') || 'eos.glb';   // eos_web.glb: la versión comprimida
+
+const gltf = await cargador.loadAsync(MODELO);
+const eos = gltf.scene; scene.add(eos);
+window.__eos = eos; window.__THREE = THREE;
+const morphs = [];            // [{mesh, dict}]
+let cabeza = null; const cabezas = [];
+eos.traverse(o => {
+  if (o.isMesh && o.morphTargetDictionary) morphs.push(o);
+  if (o.isBone && /^head$/i.test(o.name)) { cabezas.push(o); cabeza = cabeza ?? o; }
+  if (o.isMesh) o.frustumCulled = false;
+});
+// materiales que el GLB de MetaHuman trae planos (ver mh_materials.json del exportador):
+// pelo y cejas son tarjetas cuya cobertura va en el canal R del atlas de atributos, y el G
+// va de la raíz a la punta; con eso se pinta el degradado raíz castaña → puntas rubias.
+async function atlasPelo(url, raiz, punta, reflejo) {
+  const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = url; });
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const cob = p[i], t = p[i + 1] / 255, v = ((i * 2654435761) >>> 24) / 255;   // v: variación por hebra
+    const mezcla = k => raiz[k] + (punta[k] - raiz[k]) * t + (reflejo[k] - raiz[k]) * 0.18 * v;
+    p[i] = mezcla(0); p[i + 1] = mezcla(1); p[i + 2] = mezcla(2); p[i + 3] = cob;
+  }
+  g.putImageData(d, 0, 0);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false;
+  return tex;
+}
+const TEX = 'textures/';
+// tela de la blusa: café con florecitas crema y rosa palo, pintada en un lienzo que se repite
+function telaFlores() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3f2416'; g.fillRect(0, 0, 256, 256);
+  const flor = (x, y, r, color) => {
+    g.fillStyle = color;
+    for (let k = 0; k < 5; k++) { const a = k * 2 * Math.PI / 5; g.beginPath(); g.arc(x + r * Math.cos(a), y + r * Math.sin(a), r * 0.62, 0, 2 * Math.PI); g.fill(); }
+    g.fillStyle = '#e8c36a'; g.beginPath(); g.arc(x, y, r * 0.45, 0, 2 * Math.PI); g.fill();
+  };
+  const r = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  for (let i = 0; i < 34; i++) {
+    const x = r() * 256, y = r() * 256, t = 2.2 + r() * 1.8, col = r() < 0.55 ? '#f1e2cc' : '#e7b4a8';
+    for (const dx of [-256, 0, 256]) for (const dy of [-256, 0, 256]) flor(x + dx, y + dy, t, col);   // costuras sin corte
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(8, 8); tex.anisotropy = 8;
+  return tex;
+}
+const peloMap = await atlasPelo(TEX + 'Hair_M_Layered_CardsAtlas_Attribute.png', [92, 60, 38], [214, 170, 112], [190, 96, 52]);
+const cejaMap = await atlasPelo(TEX + 'Eyebrows_M_Full_CardsAtlas_Attribute.png', [96, 64, 40], [128, 88, 56], [140, 84, 48]);   // castañas, como la raíz del pelo
+const pestanaMap = await new THREE.TextureLoader().loadAsync(TEX + 'T_Eyelashes_L_ThickCurl_Coverage.png');
+pestanaMap.flipY = false;
+eos.traverse(o => {
+  if (!o.isMesh) return;
+  for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+    const n = m.name;
+    if (/Hair_.*CardMat|Eyebrows_.*CardMat/.test(n)) {
+      m.map = /Hair/.test(n) ? peloMap : cejaMap; m.color.set(0xffffff);
+      m.alphaTest = /Hair/.test(n) ? 0.06 : 0.015; m.alphaToCoverage = true; m.transparent = false; m.side = THREE.DoubleSide;
+      m.roughness = 0.5; m.metalness = 0; m.needsUpdate = true;
+    } else if (/LashMat/.test(n)) {
+      m.alphaMap = pestanaMap; m.color.setRGB(0.03, 0.02, 0.012); m.transparent = true; m.depthWrite = false; m.needsUpdate = true;
+    } else if (/M_Hide|EyeShell|LacrimalFluid/.test(n)) {
+      o.visible = false;
+    } else if (/DefaultGarment.*Shirt/.test(n)) {
+      m.color.set(0xffffff); m.map = telaFlores(); m.roughness = 0.8; m.needsUpdate = true;   // blusa café con florecitas
+    }
+  }
+});
+
+// cuero cabelludo: las tarjetas de pelo del GLB dejan ver la piel del cráneo; se tiñe la piel
+// por encima de la línea del pelo con el color de la raíz (en la pose de reposo de la malla).
+{
+  eos.updateMatrixWorld(true);
+  const ojos = ['FACIAL_L_Eye', 'FACIAL_R_Eye'].map(n => eos.getObjectByName(n).getWorldPosition(new THREE.Vector3()));
+  const ojoW = ojos[0].add(ojos[1]).multiplyScalar(0.5);
+  eos.traverse(o => {
+    if (!o.isMesh || !/MI_Face_Skin/.test(o.material.name)) return;
+    // las posiciones pueden venir cuantizadas (meshopt): se pasan a mundo con la recta que une
+    // la caja de la geometría con la caja de la malla en reposo, eje por eje
+    const pos = o.geometry.attributes.position;
+    const cg = new THREE.Box3().setFromBufferAttribute(pos), cw = new THREE.Box3().setFromObject(o, true);
+    const esc = new THREE.Vector3().subVectors(cw.max, cw.min).divide(new THREE.Vector3().subVectors(cg.max, cg.min));
+    const mascara = new Float32Array(pos.count), v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).sub(cg.min).multiply(esc).add(cw.min);
+      const h = v.y - ojoW.y, f = v.z - ojoW.z;
+      const ondas = 0.0015 * Math.sin(v.x * 260) + 0.001 * Math.sin(v.x * 710 + 1.3);  // borde apenas irregular
+      const linea = 0.065 + ondas - 0.35 * Math.max(0, 0.06 - f);     // la línea baja hacia las sienes y la nuca
+      mascara[i] = THREE.MathUtils.smoothstep(h, linea, linea + 0.05);   // transición ancha: sin borde pintado
+    }
+    o.geometry.setAttribute('aPelo', new THREE.BufferAttribute(mascara, 1));
+    const m = o.material;
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uRaiz = { value: new THREE.Color(0.105, 0.048, 0.022) };   // lineal ≈ sRGB (92, 60, 38), la raíz del pelo
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+attribute float aPelo; varying float vPelo; varying vec3 vPos;`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+vPelo = aPelo; vPos = position;`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying float vPelo; varying vec3 vPos; uniform vec3 uRaiz;`)
+        .replace('#include <map_fragment>', `#include <map_fragment>
+diffuseColor.rgb = mix(diffuseColor.rgb, uRaiz * (0.9 + 0.2 * fract(sin(dot(floor(vPos * 1500.0), vec3(12.9898, 78.233, 37.719))) * 43758.5)), 0.75 * smoothstep(0.35, 1.0, vPelo));
+{ float g = dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15));            // menos rojo: el bake trae párpados y mejillas muy rojos
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(g) * vec3(1.08, 1.0, 0.94), 0.12) * vec3(0.97, 0.94, 0.9); }   // un pelín más cálida y menos pálida`);
+    };
+    m.needsUpdate = true;
+  });
+}
+
+// blusa que deja ver los hombros (Miguel, 26 sep): se recorta la camisa por encima de un escote
+// recto sobre el pecho y la parte alta de los brazos; en la piel que queda al aire se tapan los
+// tirantes grises que el bake del cuerpo trae pintados (píxeles poco saturados → tono de piel).
+// PRUEBA, solo con ?hombros=1: el cuerpo exportado viene recortado bajo la camisa (hombros sin
+// malla) y el corte se ve tosco; la blusa de verdad se hará en Unreal/Blender y se volverá a exportar.
+if (new URLSearchParams(location.search).get('hombros') === '1') {
+  eos.updateMatrixWorld(true);
+  const ALTURA_ESCOTE = 0.095;          // m por debajo de lo más alto de la camisa (base del cuello)
+  let techo = -Infinity;
+  eos.traverse(o => { if (o.isMesh && /Shirt/.test(o.material.name)) techo = Math.max(techo, new THREE.Box3().setFromObject(o, true).max.y); });
+  const escote = techo - ALTURA_ESCOTE;
+  const mascaraAltura = (o, fn) => {    // atributo por vértice con la altura en mundo (reposo), como el cuero cabelludo
+    const pos = o.geometry.attributes.position;
+    const cg = new THREE.Box3().setFromBufferAttribute(pos), cw = new THREE.Box3().setFromObject(o, true);
+    const esc = new THREE.Vector3().subVectors(cw.max, cw.min).divide(new THREE.Vector3().subVectors(cg.max, cg.min));
+    const a = new Float32Array(pos.count), v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).sub(cg.min).multiply(esc).add(cw.min); a[i] = fn(v); }
+    return a;
+  };
+  const linea = () => escote;          // escote recto (bardot)
+  eos.traverse(o => {
+    if (!o.isMesh) return;
+    const m = o.material;
+    if (/Shirt/.test(m.name)) {
+      o.geometry.setAttribute('aSobre', new THREE.BufferAttribute(mascaraAltura(o, v => v.y - linea(v)), 1));
+      m.side = THREE.DoubleSide;
+      m.onBeforeCompile = sh => {
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+attribute float aSobre; varying float vSobre;`).replace('#include <begin_vertex>', `#include <begin_vertex>
+vSobre = aSobre;`);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying float vSobre;`).replace('#include <map_fragment>', `#include <map_fragment>
+if (vSobre > 0.0) discard;
+diffuseColor.rgb *= mix(1.0, 0.75, smoothstep(-0.012, 0.0, vSobre));   // un dobladillo algo más oscuro en el borde`);
+      };
+      m.needsUpdate = true;
+    } else if (/MI_Body/.test(m.name)) {
+      o.geometry.setAttribute('aSobre', new THREE.BufferAttribute(mascaraAltura(o, v => v.y - linea(v)), 1));
+      m.onBeforeCompile = sh => {
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+attribute float aSobre; varying float vSobre;`).replace('#include <begin_vertex>', `#include <begin_vertex>
+vSobre = aSobre;`);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying float vSobre;`).replace('#include <map_fragment>', `#include <map_fragment>
+{ vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+  float gris = 1.0 - smoothstep(0.08, 0.2, (mx - mn) / max(mx, 1e-3));      // tirante: casi sin saturación
+  vec3 piel = vec3(0.62, 0.40, 0.31);                                        // tono medio de la piel (lineal)
+  diffuseColor.rgb = mix(c, piel * (0.85 + 0.3 * mx), gris * step(-0.16, vSobre)); }`);   // la parte alta del cuerpo (en su propia escala, donde van los tirantes)
+      };
+      m.needsUpdate = true;
+    }
+  });
+}
+
+// pelo y cejas: el GLB los trae como mallas sueltas (sin piel ni huesos), así que no siguen a la
+// cabeza al moverse; se cuelgan del hueso `head`. El pelo lleva además dos capas más: una
+// translúcida para rellenar y otra un 4 % más grande, escalada desde la coronilla, que da
+// volumen y baja el flequillo (menos frente).
+const tarjetas = [];
+eos.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && /(Hair|Eyebrows)_.*CardMat/.test(o.material.name)) tarjetas.push(o); });
+eos.updateMatrixWorld(true);
+const cabezaHueso = eos.getObjectByName('head');
+const cajaPelo = new THREE.Box3();
+tarjetas.filter(o => /Hair/.test(o.material.name)).forEach(o => cajaPelo.expandByObject(o));
+const coronilla = new THREE.Vector3((cajaPelo.min.x + cajaPelo.max.x) / 2, cajaPelo.max.y, (cajaPelo.min.z + cajaPelo.max.z) / 2);
+for (const o of tarjetas) {
+  const esPelo = /Hair/.test(o.material.name);
+  if (!esPelo) {                                  // cejas: sin pelea de profundidad con la piel
+    o.material.polygonOffset = true; o.material.polygonOffsetFactor = -2; o.material.polygonOffsetUnits = -2;
+  }
+  const capas = [o];
+  if (!esPelo) {                                  // cejas: la pasada translúcida es la que se ve
+    const mc = o.material.clone(); mc.alphaTest = 0; mc.alphaToCoverage = false; mc.transparent = true; mc.depthWrite = false;
+    const c2 = o.clone(); c2.material = mc; c2.renderOrder = 3; o.parent.add(c2); capas.push(c2);
+  }
+  if (esPelo) {
+    const m2 = o.material.clone(); m2.alphaTest = 0; m2.alphaToCoverage = false; m2.transparent = true; m2.opacity = 0.85; m2.depthWrite = false;
+    const relleno = o.clone(); relleno.material = m2; relleno.renderOrder = 2; o.parent.add(relleno); capas.push(relleno);
+    const vol = o.clone(); vol.material = o.material; o.parent.add(vol);
+    const ew = new THREE.Matrix4().makeTranslation(coronilla.x, coronilla.y, coronilla.z)
+      .multiply(new THREE.Matrix4().makeScale(1.04, 1.05, 1.06))
+      .multiply(new THREE.Matrix4().makeTranslation(-coronilla.x, -coronilla.y + 0.004, -coronilla.z));
+    vol.updateMatrixWorld(true);
+    const w = ew.multiply(vol.matrixWorld.clone());
+    vol.parent.updateMatrixWorld(true);
+    vol.matrix.copy(vol.parent.matrixWorld.clone().invert().multiply(w)); vol.matrix.decompose(vol.position, vol.quaternion, vol.scale);
+    capas.push(vol);
+    // tercera capa, un 8 % más grande y translúcida: rellena la coronilla (se veía calva)
+    const vol2 = o.clone(); const m3 = m2.clone(); m3.opacity = 0.7; vol2.material = m3; vol2.renderOrder = 2; o.parent.add(vol2);
+    const ew2 = new THREE.Matrix4().makeTranslation(coronilla.x, coronilla.y, coronilla.z)
+      .multiply(new THREE.Matrix4().makeScale(1.07, 1.03, 1.09))
+      .multiply(new THREE.Matrix4().makeTranslation(-coronilla.x, -coronilla.y + 0.002, -coronilla.z));
+    vol2.updateMatrixWorld(true);
+    const w2 = ew2.multiply(vol2.matrixWorld.clone());
+    vol2.matrix.copy(vol2.parent.matrixWorld.clone().invert().multiply(w2)); vol2.matrix.decompose(vol2.position, vol2.quaternion, vol2.scale);
+    capas.push(vol2);
+  }
+  if (cabezaHueso) capas.forEach(c => { c.updateMatrixWorld(true); cabezaHueso.attach(c); });
+}
+
+// encuadre: la cabeza (el hueso, o el punto más alto del modelo)
+const caja = new THREE.Box3().setFromObject(eos);
+const centro = new THREE.Vector3();
+if (cabeza) cabeza.getWorldPosition(centro); else { caja.getCenter(centro); centro.y = caja.max.y - 0.12; }
+centro.y += 0.03;
+controles.target.copy(centro);
+camara.position.set(centro.x, centro.y + 0.02, centro.z + 0.95);
+if (new URLSearchParams(location.search).get('plano') !== 'cara') {   // de presentadora: cabeza, hombros y escote
+  controles.target.set(centro.x, centro.y - 0.09, centro.z);
+  camara.position.set(centro.x, centro.y - 0.05, centro.z + 1.3);
+}
+// ?vista=boca: de cerca y un poco de lado, para ver labios, dientes y lengua
+if (new URLSearchParams(location.search).get('vista') === 'boca') {
+  const b = eos.getObjectByName('FACIAL_C_Tongue3')?.getWorldPosition(new THREE.Vector3()) ?? centro;
+  controles.target.set(b.x, b.y, b.z + 0.03);
+  camara.position.set(b.x + 0.06, b.y + 0.01, b.z + 0.26);
+}
+// ?camara=dx,dy,dz: cámara libre respecto a los ojos (para revisar gafas, lengua, etc. desde cualquier lado)
+const camLibre = new URLSearchParams(location.search).get('camara');
+if (camLibre) {
+  const [dx, dy, dz] = camLibre.split(',').map(Number);
+  const o = eos.getObjectByName('FACIAL_L_Eye').getWorldPosition(new THREE.Vector3())
+    .add(eos.getObjectByName('FACIAL_R_Eye').getWorldPosition(new THREE.Vector3())).multiplyScalar(0.5);
+  controles.target.copy(o); camara.position.set(o.x + dx, o.y + dy, o.z + dz);
+}
+controles.update();
+const bases = cabezas.map(b => b.quaternion.clone());
+function girar(e) { const q = new THREE.Quaternion().setFromEuler(e); cabezas.forEach((b, i) => b.quaternion.copy(bases[i]).multiply(q)); }
+
+// gafas: se cuelgan del hueso de la cabeza con la pose de descanso
+let gafas = null;
+try {
+  // gafas.glb sale de Blender con los aros en (±3,25; 12,4; 168,3) cm y el frente hacia -Z
+  const g = (await cargador.loadAsync('gafas.glb')).scene;
+  gafas = new THREE.Group(); gafas.add(g);
+  g.rotation.y = Math.PI;                                   // frente hacia +Z, como la cara
+  g.position.set(0, -1.683, -0.124);                        // centro de los aros al origen del grupo
+  const ojoI = eos.getObjectByName('FACIAL_L_Eye'), ojoD = eos.getObjectByName('FACIAL_R_Eye');
+  eos.updateMatrixWorld(true);
+  const pI = ojoI.getWorldPosition(new THREE.Vector3()), pD = ojoD.getWorldPosition(new THREE.Vector3());
+  const medio = pI.clone().add(pD).multiplyScalar(0.5);
+  const esc = pI.distanceTo(pD) / 0.065;
+  // aros de ~41 mm (su cara es pequeña), pero la montura algo más ancha que alta para que las
+  // patillas pasen por fuera de las sienes y no atraviesen la cabeza
+  const [gDz, gAncho] = (new URLSearchParams(location.search).get('gafas') || '0.029,0.95').split(',').map(Number);
+  gafas.scale.set(esc * gAncho, esc * 0.88, esc * 0.88);
+  // los ojos (huesos) están en el centro del globo: la córnea queda ~12 mm delante, las pestañas
+  // ~8 mm más y los cristales van por delante de ellas; así el aro no atraviesa cejas, pestañas ni mejillas
+  gafas.position.copy(medio).add(new THREE.Vector3(0, -0.004, gDz));
+  gafas.traverse(o => { if (o.isMesh && /cristal/i.test(o.material.name)) { o.material.transparent = true; o.material.opacity = 0.06; o.material.roughness = 0.02; o.material.depthWrite = false; } });
+  scene.add(gafas); gafas.updateMatrixWorld(true);
+  if (cabeza) cabeza.attach(gafas);
+} catch (e) { console.warn('sin gafas', e); }
+document.getElementById('lentes').onclick = () => { if (gafas) gafas.visible = !gafas.visible; };
+
+function poner(nombre, v) {
+  for (const m of morphs) {
+    const i = m.morphTargetDictionary[nombre];
+    if (i !== undefined) m.morphTargetInfluences[i] = v;
+  }
+}
+
+// Lengua: las poses de Blender (boca3d) en los huesos FACIAL_C_Tongue1-4 de Eos. generar.py
+// (lengua.py) da por fotograma canales suaves (cuerpo, dorso, punta); aquí se pasan a cabeceos de
+// los cuatro huesos y a un avance de Tongue1 a lo largo de la lengua.
+//
+// Medido el 4 oct 2026 (medir_lengua.py, auditoria/demo_2026-10-04): el eje local **x** de los
+// huesos de la lengua es el transversal (+0,3 rad en Tongue1 baja la punta 11 mm, en Tongue2 7 mm,
+// en Tongue3 3,4 mm); los ejes y y z la llevan DE LADO (7-9 mm por 0,3 rad). Hasta hoy los giros
+// iban sobre y, con constantes puestas a ojo en lengua_lab.html: cada sonido movía la lengua hacia
+// un lado (hasta 12 mm en /l/) en vez de subirla o bajarla. Ahora todo es cabeceo sobre x
+// (negativo = sube la parte delantera del hueso), con constantes calibradas en mm contra la
+// geometría de la boca (calibrar_lengua.py): paladar, encía e incisivos.
+const LENGUA = ['FACIAL_C_Tongue1', 'FACIAL_C_Tongue2', 'FACIAL_C_Tongue3', 'FACIAL_C_Tongue4']
+  .map(n => eos.getObjectByName(n)).filter(Boolean);
+const lenguaReposo = LENGUA.map(h => ({ q: h.quaternion.clone(), p: h.position.clone() }));
+const KL = {
+  // cuerpo (altura 0..1, reposo 0,45): la raíz y el medio suben; al subir, la punta compensa para
+  // quedarse tras los incisivos de abajo en vez de trepar a los de arriba (i, u, j)
+  h1: -0.38, h2: -0.30, h3: 0.45, h4: 0.30,
+  // dorso contra el velo (k g ŋ): la lengua se dobla en Tongue2 (raíz arriba, resto abajo) y se
+  // retrae 6 mm: la joroba toca el velo a unos 2 cm por detrás del alvéolo y la punta queda baja
+  v1: -0.50, v2: 0.30, v3: 0.30, v4: 0.20, vAtras: 0.006,
+  // dorso alto (l oscura, w)
+  a2: -0.30, a3: 0.20,
+  // punta: alveolar (t d n l s z), interdental (θ ð), postalveolar (ʃ ʒ tʃ dʒ), retrofleja (ɹ ɝ ɚ).
+  // Las alveolares se retraen 13 mm para que la punta suba al alvéolo y no a los incisivos.
+  alv2: -0.15, alv3: -0.40, alv4: -0.70, alvAtras: 0.013,
+  inter2: 0.25, inter3: 0.10, inter4: 0.25, interAdel: 0.012,   // al asomar, el cuerpo se aplana (inter2)
+  post2: -0.20, post3: -0.50, post4: -0.40, postAtras: 0.012,
+  retro2: -0.15, retro3: -0.50, retro4: -1.00, retroAtras: 0.008,
+  // avance del cuerpo (adelante 0..1, reposo 0,5) y raíz retraída (ɑ ɔ ɹ)
+  adel: 0.010, raizM: 0.006,
+};
+// todo en el espacio del padre de Tongue1 (se mueve con la cabeza): dirección «adelante» y escala
+const padreL = LENGUA[0]?.parent;
+if (padreL) eos.updateMatrixWorld(true);
+const adelanteL = LENGUA.length === 4 ? padreL.worldToLocal(LENGUA[3].getWorldPosition(new THREE.Vector3()))
+  .sub(padreL.worldToLocal(LENGUA[0].getWorldPosition(new THREE.Vector3()))).normalize() : null;
+const escalaL = LENGUA.length === 4 ? padreL.getWorldScale(new THREE.Vector3()).x : 1;   // m por unidad local
+// ejes de la cabeza en reposo con origen en el padre de Tongue1 (x lateral, y arriba, z adelante, m):
+// la mandíbula abre por morph, así que este espacio es rígido con el cráneo aunque la cabeza gire
+const qPadreReposo = padreL ? padreL.getWorldQuaternion(new THREE.Quaternion()) : null;
+const _ep = new THREE.Vector3(), _op = new THREE.Vector3(), _qp = new THREE.Quaternion();
+function prepararBoca() { padreL.getWorldPosition(_op); padreL.getWorldQuaternion(_qp).invert(); }
+function enBoca(p) { return _ep.copy(p).sub(_op).applyQuaternion(_qp).applyQuaternion(qPadreReposo); }
+
+function lengua(c, jaw = 0.2) {           // c: {altura, adelante, velo, alto, raiz, alveolar, interdental, postalveolar, retrofleja}
+  if (!adelanteL) return;
+  LENGUA.forEach((h, i) => { h.quaternion.copy(lenguaReposo[i].q); h.position.copy(lenguaReposo[i].p); });
+  const d = c.altura - 0.45, sube = Math.max(0, d), cab = [0, 0, 0, 0];
+  cab[0] = KL.h1 * d + KL.v1 * c.velo;
+  cab[1] = KL.h2 * d + KL.v2 * c.velo + KL.a2 * c.alto + KL.alv2 * c.alveolar + KL.inter2 * c.interdental + KL.post2 * c.postalveolar + KL.retro2 * c.retrofleja;
+  cab[2] = KL.h3 * sube + KL.v3 * c.velo + KL.a3 * c.alto + KL.alv3 * c.alveolar + KL.inter3 * c.interdental + KL.post3 * c.postalveolar + KL.retro3 * c.retrofleja;
+  cab[3] = KL.h4 * sube + KL.v4 * c.velo + KL.alv4 * c.alveolar + KL.inter4 * c.interdental + KL.post4 * c.postalveolar + KL.retro4 * c.retrofleja;
+  LENGUA.forEach((h, i) => h.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(cab[i], 0, 0))));
+  const avance = KL.adel * (c.adelante - 0.5) - KL.raizM * c.raiz - KL.vAtras * c.velo + KL.interAdel * c.interdental
+    - KL.alvAtras * c.alveolar - KL.postAtras * c.postalveolar - KL.retroAtras * c.retrofleja;
+  LENGUA[0].position.addScaledVector(adelanteL, avance / escalaL);
+  // Topes medidos sobre los vértices reales (morphs + skinning) de lengua, incisivos y techo de la
+  // boca: la lengua no pasa la cara delantera de los incisivos de abajo (salvo θ ð, que asoman
+  // 3 mm), con la boca abierta y la punta libre no se queda montada sobre su borde, y nada de la
+  // lengua se hunde más de 1 mm en el paladar, la encía o los incisivos de arriba.
+  topeDientes(c, jaw);
+  // Continuidad: los topes trabajan vértice a vértice y de un fotograma al siguiente pueden pedir
+  // otro giro; entre fotogramas seguidos cada hueso gira como mucho 0,08 rad (unos 3 mm en la
+  // punta) y Tongue1 avanza o retrocede como mucho 1,5 mm. Medido el 4 oct: sin esto la punta
+  // saltaba hasta 10 mm entre fotogramas en /l k ɹ/.
+  if (lenguaPrev) {
+    LENGUA.forEach((h, i) => { const objetivo = h.quaternion.clone(); h.quaternion.copy(lenguaPrev.q[i]).rotateTowards(objetivo, 0.08); });
+    const dp = LENGUA[0].position.clone().sub(lenguaPrev.p), paso = 0.0015 / escalaL;
+    if (dp.length() > paso) LENGUA[0].position.copy(lenguaPrev.p).addScaledVector(dp.normalize(), paso);
+  }
+  lenguaPrev = { q: LENGUA.map(h => h.quaternion.clone()), p: LENGUA[0].position.clone() };
+}
+let lenguaPrev = null;
+
+// Vértices de la malla de dientes/lengua (misma malla en MetaHuman): la lengua es lo que
+// mueven los huesos Tongue*, y los incisivos inferiores son, de lo que mueve TeethLower, lo que
+// queda a menos de 12 mm de la línea media y a menos de 3 mm del frente en reposo.
+const bocaM = (() => { let m = null; eos.traverse(o => { if (o.isSkinnedMesh && [].concat(o.material).some(x => /Teeth/.test(x.name))) m = o; }); return m; })();
+const bocaIdx = { lengua: [], incisivos: [] };
+if (bocaM && LENGUA.length === 4) {
+  const g = bocaM.geometry, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, nombres = bocaM.skeleton.bones.map(b => b.name);
+  const pos = g.attributes.position, v = new THREE.Vector3(); const inf = [];
+  for (let i = 0; i < pos.count; i++) {
+    let mejor = 0, wb = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > wb) { wb = w; mejor = si.getComponent(i, k); } }
+    const nb = nombres[mejor]; v.fromBufferAttribute(pos, i);
+    if (/Tongue/.test(nb)) bocaIdx.lengua.push(i);
+    else if (nb === 'FACIAL_C_TeethLower' && Math.abs(v.x) < 0.012) inf.push([i, v.z]);
+  }
+  const mz = Math.max(...inf.map(p => p[1]));
+  bocaIdx.incisivos = inf.filter(p => p[1] > mz - 0.003).map(p => p[0]);
+}
+const _vb = new THREE.Vector3();
+function verticeBoca(i) {                 // posición mundial del vértice i con morphs y skinning
+  const g = bocaM.geometry; _vb.fromBufferAttribute(g.attributes.position, i);
+  const mp = g.morphAttributes.position, inf = bocaM.morphTargetInfluences;
+  if (mp && inf) for (let k = 0; k < mp.length; k++) { const w = inf[k]; if (w) { const d = mp[k]; _vb.x += w * d.getX(i); _vb.y += w * d.getY(i); _vb.z += w * d.getZ(i); } }
+  bocaM.applyBoneTransform(i, _vb); return _vb.applyMatrix4(bocaM.matrixWorld);
+}
+
+// Techo de la boca en la línea media (paladar, encía y cara interna de los incisivos de arriba):
+// por bandas de 3 mm en z, la y mínima de los vértices del maxilar (dientes y encía de arriba,
+// paladar del interior de la boca) a menos de 6 mm de la línea media que quedan por encima de la
+// lengua en reposo. La malla es escasa en la línea media: las bandas sin dato se interpolan.
+// Se mide una vez, en reposo, en los ejes de la cabeza (enBoca).
+const TECHO_PASO = 0.003, TECHO_Z0 = -0.042, TECHO_N = 24;   // z de -42 a +30 mm
+const techoBoca = new Array(TECHO_N).fill(null);
+if (bocaM && LENGUA.length === 4) {
+  eos.updateMatrixWorld(true); prepararBoca();
+  const banda = z => Math.floor((z - TECHO_Z0) / TECHO_PASO);
+  const dominante = (m, i) => { const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight; let mejor = 0, wb = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > wb) { wb = w; mejor = si.getComponent(i, k); } } return m.skeleton.bones[mejor].name; };
+  const rellenar = arr => {                 // bandas sin dato: entre vecinas con dato; en los extremos, la más cercana
+    const con = arr.map((y, k) => [k, y]).filter(p => p[1] != null);
+    if (!con.length) return arr.slice();
+    return arr.map((y, k) => { if (y != null) return y; let a = null, c = null; for (const p of con) { if (p[0] < k) a = p; else if (c === null) c = p; } if (!a) return c[1]; if (!c) return a[1]; return a[1] + (c[1] - a[1]) * (k - a[0]) / (c[0] - a[0]); });
+  };
+  bocaM.skeleton.update();
+  let cima = new Array(TECHO_N).fill(null);   // lo alto de la lengua en reposo por banda
+  for (const i of bocaIdx.lengua) { const p = enBoca(verticeBoca(i)); const k = banda(p.z); if (k >= 0 && k < TECHO_N && Math.abs(p.x) < 0.006 && (cima[k] === null || p.y > cima[k])) cima[k] = p.y; }
+  cima = rellenar(cima);
+  const fuentes = []; eos.traverse(m => { if (m.isSkinnedMesh && m.visible && [].concat(m.material).some(x => /Face_Skin|Teeth/.test(x.name))) fuentes.push(m); });
+  const v = new THREE.Vector3();
+  for (const m of fuentes) {
+    m.skeleton.update();
+    const pos = m.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const hueso = dominante(m, i);
+      if (!/TeethUpper|^head$|MouthInteriorUpper/.test(hueso)) continue;
+      v.fromBufferAttribute(pos, i); m.applyBoneTransform(i, v); v.applyMatrix4(m.matrixWorld);
+      const p = enBoca(v); if (Math.abs(p.x) > 0.006) continue;
+      const k = banda(p.z); if (k < 0 || k >= TECHO_N) continue;
+      if (TECHO_Z0 + (k + 0.5) * TECHO_PASO < 0.025) { if (p.y < cima[k] + 0.0005 || p.y > cima[k] + 0.03) continue; }   // sobre la lengua, a menos de 3 cm
+      else if (!/TeethUpper/.test(hueso)) continue;                                   // delante de la lengua: el borde de los incisivos de arriba
+      if (techoBoca[k] === null || p.y < techoBoca[k]) techoBoca[k] = p.y;
+    }
+  }
+  rellenar(techoBoca).forEach((y, k) => { techoBoca[k] = y; });
+}
+function techoEn(z) {                     // y del techo en z, interpolando entre los centros de banda
+  const f = (z - TECHO_Z0) / TECHO_PASO - 0.5, b = Math.max(0, Math.min(TECHO_N - 2, Math.floor(f))), a = Math.max(0, Math.min(1, f - b));
+  const y0 = techoBoca[b], y1 = techoBoca[b + 1];
+  if (y0 == null || y1 == null) return null;
+  return y0 * (1 - a) + y1 * a;
+}
+const _giroX = a => new THREE.Quaternion().setFromEuler(new THREE.Euler(a, 0, 0));
+function topeDientes(c, jaw = 0.2) {
+  if (!bocaM || !bocaIdx.incisivos.length || !bocaIdx.lengua.length) return;
+  const interdental = Math.min(1, Math.max(0, c.interdental || 0));
+  const puntaFija = Math.min(1, (c.alveolar || 0) + interdental + (c.postalveolar || 0) + (c.retrofleja || 0));
+  eos.updateMatrixWorld(true); bocaM.skeleton.update(); prepararBoca();
+  let frente = -Infinity, bordeAbajo = Infinity, bordeArriba = -Infinity;
+  for (const i of bocaIdx.incisivos) { const p = enBoca(verticeBoca(i)); if (p.z > frente) frente = p.z; if (p.y < bordeAbajo) bordeAbajo = p.y; if (p.y > bordeArriba) bordeArriba = p.y; }
+  // 1) altura: con la boca abierta y la punta libre, la punta de la lengua (los 6 mm delanteros)
+  //    queda bajo el borde de los incisivos de abajo, no montada sobre él. Con la boca cerrada no hace falta.
+  const abierta = Math.min(1, Math.max(0, (jaw - 0.15) / 0.2));
+  if (puntaFija < 0.99 && abierta > 0) {
+    const alto = () => { let a = -Infinity; for (const i of bocaIdx.lengua) { const p = enBoca(verticeBoca(i)); if (p.z > frente - 0.006 && p.y > a) a = p.y; } return a; };
+    let exceso = alto() - (bordeArriba - 0.003);
+    if (exceso > 0) {                       // primero se recoge la punta (Tongue3: 11 mm/rad en la punta)...
+      LENGUA[2].quaternion.multiply(_giroX(Math.min(0.35, exceso / 0.011) * (1 - puntaFija) * abierta));
+      eos.updateMatrixWorld(true); bocaM.skeleton.update();
+      exceso = alto() - (bordeArriba - 0.003);
+    }
+    if (exceso > 0) {                       // ...y si no basta, baja la lengua entera desde la raíz
+      LENGUA[0].quaternion.multiply(_giroX(Math.min(0.35, exceso / 0.04) * (1 - puntaFija) * abierta));
+      eos.updateMatrixWorld(true); bocaM.skeleton.update();
+    }
+  }
+  // 2) frente: nada de la lengua por delante de la cara de los incisivos (menos 4 mm), salvo θ ð
+  const limite = frente - 0.004 + 0.007 * interdental;
+  let sobra = 0;
+  for (const i of bocaIdx.lengua) { const p = enBoca(verticeBoca(i)); if (p.y > bordeAbajo - 0.002 && p.z - limite > sobra) sobra = p.z - limite; }
+  if (sobra > 0) LENGUA[0].position.addScaledVector(adelanteL, -sobra / escalaL);
+  // 3) techo: como mucho 1 mm dentro del paladar, la encía o los incisivos de arriba. Cada vértice
+  //    que se hunde se baja girando el hueso más cercano que le quede al menos 10 mm por detrás
+  //    (brazo de palanca): lo que está junto a Tongue3 lo baja Tongue2, lo del dorso la raíz.
+  for (let paso = 0; paso < 3; paso++) {
+    eos.updateMatrixWorld(true); bocaM.skeleton.update();
+    const zH = LENGUA.map(h => enBoca(h.getWorldPosition(new THREE.Vector3())).z);
+    const ang = [0, 0, 0, 0]; let hay = false;
+    for (const i of bocaIdx.lengua) {
+      const p = enBoca(verticeBoca(i)); if (Math.abs(p.x) > 0.006) continue;
+      const t = techoEn(p.z); if (t === null) continue;
+      const pen = p.y - (t + 0.001); if (pen <= 0) continue;
+      let j = -1; for (let k = 3; k >= 0; k--) if (p.z - zH[k] > 0.010) { j = k; break; }
+      if (j < 0) continue;
+      const a = pen / (p.z - zH[j]); if (a > ang[j]) ang[j] = a; hay = true;
+    }
+    if (!hay) break;
+    ang.forEach((a, j) => { if (a > 0) LENGUA[j].quaternion.multiply(_giroX(Math.min(a, 0.5))); });
+  }
+}
+
+window.__lab = { KL, lengua, poner, topeDientes, LENGUA, lenguaReposo, bocaM, bocaIdx, verticeBoca, padreL, techoBoca, enBoca, prepararBoca, renderer, camara, controles, scene, morphs };
+
+// Mirada: Eos nos mira (nos está guiando). Cada fotograma, los huesos de los ojos apuntan a la
+// cámara aunque la cabeza se mueva, con microsacadas pequeñas cada 0,4-1,5 s y, en algunas pausas,
+// una mirada breve a un lado y abajo (como quien piensa) antes de volver a la cámara.
+const OJOS = ['FACIAL_L_Eye', 'FACIAL_R_Eye'].map(n => eos.getObjectByName(n)).filter(Boolean);
+eos.updateMatrixWorld(true);
+const ojosReposo = OJOS.map(o => ({
+  q: o.quaternion.clone(),
+  // «al frente» (+Z del mundo en la pose de reposo) en el espacio del padre del ojo
+  dir: new THREE.Vector3(0, 0, 1).applyQuaternion(o.parent.getWorldQuaternion(new THREE.Quaternion()).invert()),
+}));
+function azar(k) { const x = Math.sin(k * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function sacada(t) {                   // desplazamiento de la mirada (radianes) en el instante t
+  let t0 = 0, k = 0;
+  while (true) { const d = 0.4 + 1.1 * azar(k); if (t0 + d > t) break; t0 += d; k++; }
+  return [(azar(k + 0.5) - 0.5) * 0.035, (azar(k + 0.7) - 0.5) * 0.025];
+}
+let pausasMirada = [];
+function mirar(t) {
+  if (!OJOS.length) return;
+  let [dx, dy] = sacada(t);
+  for (const [p0, p1] of pausasMirada) if (t > p0 + 0.08 && t < Math.min(p1, p0 + 0.55)) { dx += 0.16; dy -= 0.06; }
+  OJOS.forEach((o, i) => {
+    o.quaternion.copy(ojosReposo[i].q);
+    o.updateMatrixWorld(true);
+    const hacia = camara.position.clone().sub(o.getWorldPosition(new THREE.Vector3())).normalize()
+      .applyEuler(new THREE.Euler(-dy, dx, 0, 'YXZ'));                                     // sacada, en ejes del mundo
+    const enPadre = hacia.applyQuaternion(o.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
+    const giro = new THREE.Quaternion().setFromUnitVectors(ojosReposo[i].dir, enPadre);
+    const ang = 2 * Math.acos(Math.min(1, Math.abs(giro.w)));
+    if (ang > 0.4) giro.slerp(new THREE.Quaternion(), 1 - 0.4 / ang);                // como mucho ~23°
+    o.quaternion.copy(giro.multiply(ojosReposo[i].q));
+  });
+}
+
+// reposo con vida: parpadeo y respiración aunque no hable
+let reposoParp = 2 + Math.random() * 2, tReposo = 0;
+function reposo(dt) {
+  tReposo += dt; reposoParp -= dt;
+  let b = 0;
+  if (reposoParp < 0) { b = Math.max(0, 1 - Math.abs(reposoParp + 0.08) / 0.08); if (reposoParp < -0.16) reposoParp = 2 + Math.random() * 3.5; }
+  poner('eyeBlinkLeft', b); poner('eyeBlinkRight', b);
+  poner('mouthSmileLeft', 0.16); poner('mouthSmileRight', 0.16);
+  poner('cheekSquintLeft', 0.03); poner('cheekSquintRight', 0.03);
+  if (cabeza) {
+    const e = new THREE.Euler(0.02 * Math.sin(tReposo * 0.9), 0.03 * Math.sin(tReposo * 0.37), 0.035, 'YXZ');
+    girar(e);
+  }
+  mirar(tReposo);
+}
+
+let actual = null;   // {datos, audio, t0}
+const ctx = new AudioContext();
+const sel = document.getElementById('clip');
+for (const c of CLIPS) sel.add(new Option(c.titulo, c.id));
+
+document.getElementById('hablar').onclick = async () => {
+  await ctx.resume();
+  const id = sel.value;
+  const [datos, buf] = await Promise.all([
+    fetch(`${id}/curvas.json`).then(r => r.json()),
+    fetch(`${id}/voz.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)),
+  ]);
+  if (actual) actual.fuente.stop();
+  const fuente = ctx.createBufferSource(); fuente.buffer = buf; fuente.connect(ctx.destination);
+  const t0 = ctx.currentTime + 0.05; fuente.start(t0);
+  actual = { datos, fuente, t0 };
+  fuente.onended = () => { if (actual && actual.fuente === fuente) { actual = null; subt.textContent = ''; } };
+};
+
+function aplicar(datos, t) {
+  const f = Math.max(0, Math.min(datos.cabeza.length - 1, t * datos.fps));
+  const i = Math.floor(f), a = f - i, j = Math.min(i + 1, datos.cabeza.length - 1);
+  for (const [n, arr] of Object.entries(datos.curvas)) poner(n, arr[i] * (1 - a) + arr[j] * a);
+  if (datos.lengua) {
+    const jaw = datos.curvas.jawOpen ? datos.curvas.jawOpen[i] * (1 - a) + datos.curvas.jawOpen[j] * a : 0.2;
+    lengua(Object.fromEntries(Object.entries(datos.lengua).map(([k, arr]) => [k, arr[i] * (1 - a) + arr[j] * a])), jaw);
+  }
+  if (cabeza) {
+    const g = datos.cabeza[i].map((v, k) => v * (1 - a) + datos.cabeza[j][k] * a);
+    girar(new THREE.Euler(THREE.MathUtils.degToRad(-g[1]), THREE.MathUtils.degToRad(g[0]), THREE.MathUtils.degToRad(g[2]), 'YXZ'));
+  }
+  if (datos !== mirar.ultimos) { mirar.ultimos = datos; pausasMirada = datos.palabras.slice(1).map((w, k) => [datos.palabras[k][2], w[1]]).filter(([a, b]) => b - a > 0.3 && azar(a * 7) < 0.6); }
+  mirar(t);
+  subt.innerHTML = datos.palabras.map(([w, x]) => `<span class="${t >= x ? 'ya' : ''}">${w}</span>`).join(' ');
+}
+
+// ?grabar=<clip>: sin bucle ni audio; quien graba llama a window.pintar(t) fotograma a fotograma
+const grabar = new URLSearchParams(location.search).get('grabar');
+if (grabar) {
+  const datos = await fetch(`${grabar}/curvas.json`).then(r => r.json());
+  document.getElementById('barra').style.display = 'none';
+  estado.style.display = 'none';
+  window.duracion = datos.duracion;
+  window.pintar = t => { aplicar(datos, t); controles.update(); renderer.render(scene, camara); return true; };
+  window.listo = true;
+} else {
+  const reloj = new THREE.Clock();
+  function cuadro() {
+    requestAnimationFrame(cuadro);
+    const dt = reloj.getDelta();
+    if (actual) aplicar(actual.datos, ctx.currentTime - actual.t0); else reposo(dt);
+    controles.update();
+    renderer.render(scene, camara);
+  }
+  cuadro();
+}
+if (!grabar) estado.textContent = `${morphs.length} mallas con gestos · ${Object.keys(morphs[0]?.morphTargetDictionary ?? {}).length} gestos · ${cabeza ? 'cabeza articulada' : 'sin hueso de cabeza'}`;
+addEventListener('resize', () => { camara.aspect = innerWidth / innerHeight; camara.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+</script>
+</body>
+</html>
