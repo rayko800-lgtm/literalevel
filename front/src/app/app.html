@@ -42,6 +42,15 @@
       <button class="boton pequeno secundario" type="button" (click)="sesion.comprobar()">Reintentar</button>
     </div>
   }
+  <!-- Eos terminó mientras se estaba en otra pestaña (Miguel, 4 oct). Se cierra con la ✕
+       o al entrar en Pronunciar, donde el vídeo ya aparece abierto. -->
+  @if (avisoEos()) {
+    <div class="motor eos" role="status">
+      <span>Eos ya tiene lista tu frase.</span>
+      <a class="boton pequeno secundario" routerLink="/pronunciar">Verla</a>
+      <button type="button" class="boton-icono" (click)="pronunciar.avisoEos.set(false)" aria-label="Cerrar el aviso"><app-icono nombre="cerrar" /></button>
+    </div>
+  }
 </header>
 
 <main id="contenido" class="contenido">

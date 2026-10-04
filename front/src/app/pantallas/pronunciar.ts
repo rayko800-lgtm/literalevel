@@ -19,7 +19,7 @@ import {
 } from '../compartido/escuchar-y-ver';
 import { vistaRitmo } from '../compartido/ritmo';
 import {
-  Acento, Api, CorreccionVoz, EstadoEos, Fonema, InventarioSonidos, PalabraLeida, mensajeError, urlCortePalabra, urlCorteSonido,
+  Acento, Api, CorreccionVoz, Fonema, InventarioSonidos, mensajeError, urlCortePalabra, urlCorteSonido,
   urlMotor,
 } from '../nucleo/api';
 import { marcarVista, sinVer } from '../nucleo/banderas';
@@ -27,8 +27,8 @@ import { Preferencias } from '../nucleo/preferencias';
 import { Sesion } from '../nucleo/sesion';
 import { Tutorial } from '../nucleo/tutorial';
 import { retornoAudio } from '../nucleo/retorno-audio';
+import { EstadoPronunciar } from './pronunciar.estado';
 
-type Grabacion = 'lista' | 'grabando' | 'grabada';
 type Detalle = CorreccionVoz['detalles'][number];
 
 /** Pronunciar: leer una frase en voz alta y saber qué sonido se escapa.
@@ -70,16 +70,21 @@ export class Pronunciar implements OnInit, OnDestroy {
   // cuándo hay error, y le pasa el {libro, cap} de origen para que
   // «Continuar leyendo» se pueda reconocer al volver.
   private readonly tutorial = inject(Tutorial);
+  /** La frase, la grabación, la corrección y Eos viven en la raíz (Miguel, 4 oct):
+   *  al cambiar de pestaña y volver, todo sigue donde se dejó. Aquí solo quedan
+   *  los nombres que usa la plantilla, apuntando a las señales del servicio. */
+  private readonly guardado = inject(EstadoPronunciar);
 
-  protected frase = '';
-  protected readonly estado = signal<Grabacion>('lista');
+  protected get frase(): string { return this.guardado.frase(); }
+  protected set frase(valor: string) { this.guardado.frase.set(valor); }
+  protected readonly estado = this.guardado.estado;
   protected readonly segundos = signal(0);
-  protected readonly audioUrl = signal<string | null>(null);
+  protected readonly audioUrl = this.guardado.audioUrl;
   protected readonly corrigiendo = signal(false);
-  protected readonly resultado = signal<CorreccionVoz | null>(null);
+  protected readonly resultado = this.guardado.resultado;
   /** La grabación de ahora ya tiene su corrección: «Corrígeme» otra vez sería otra
    *  llamada de pago con el mismo audio (Central, 15 sep). Vuelve a false al grabar. */
-  protected readonly corregida = signal(false);
+  protected readonly corregida = this.guardado.corregida;
   protected readonly error = signal('');
   protected readonly necesitaEntrar = signal(false);
   protected readonly trayendo = signal(false);
@@ -97,16 +102,15 @@ export class Pronunciar implements OnInit, OnDestroy {
    *  que la genera fuera del Space (`app/eos.py`). Un panel abierto a la vez, por id. */
   private readonly eosClips = inject(EosClips);
   protected readonly visorEos = signal<string | null>(null);
-  protected readonly eosFrase = signal<EstadoEos | null>(null);
+  protected readonly eosFrase = this.guardado.eosFrase;
   protected readonly eosFraseVideo = computed(() => urlMotor(this.eosFrase()?.video ?? null));
-  private relojEos: ReturnType<typeof setTimeout> | undefined;
-  private esperasEos = 0;
   protected readonly debiles = signal<{ palabra: string; fallos: number }[]>([]);
   protected readonly avisoDebiles = signal<string | null>(null);
 
   private grabador: MediaRecorder | null = null;
   private trozos: Blob[] = [];
-  private blob: Blob | null = null;
+  private get blob(): Blob | null { return this.guardado.blob; }
+  private set blob(valor: Blob | null) { this.guardado.blob = valor; }
   private tipo = 'audio/webm';
   private reloj: ReturnType<typeof setInterval> | undefined;
   /** «Escuchar y ver»: el audio y el corte 2D arrancan juntos (compartido/escuchar-y-ver.ts). */
@@ -163,9 +167,20 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const f = (this.frase_() ?? '').trim();
-    if (f) this.frase = f.slice(0, 300);
-    else if (this.libro()) void this.traerFrase();
+    this.guardado.entrar();
+    // Lo nuevo manda: una frase en la URL, o un libro/capítulo distinto del que
+    // hizo el estado guardado, lo sustituyen. Sin parámetros (la pestaña de abajo),
+    // se encuentra todo como se dejó. La misma frase del mismo sitio no borra nada.
+    const f = (this.frase_() ?? '').trim().slice(0, 300);
+    const contexto = `${this.libro() ?? ''}|${this.cap() ?? ''}`;
+    const mismoContexto = contexto === this.guardado.contexto;
+    if (f) {
+      if (f !== this.frase || !mismoContexto) { this.guardado.limpiar(); this.frase = f; }
+    } else if (this.libro() && !mismoContexto) {
+      this.guardado.limpiar();
+      void this.traerFrase();
+    }
+    this.guardado.contexto = contexto;
     this.cargarDebiles();
     this.eosClips.cargar();
     // D1.4: registra de dónde viene (si viene de un libro concreto) para que
@@ -177,11 +192,11 @@ export class Pronunciar implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destruido = true;
     clearTimeout(this.relojPermiso);
-    clearTimeout(this.relojEos);
     this.pararGrabacion(true);
     this.eyv.destruir();
-    const u = this.audioUrl();
-    if (u) URL.revokeObjectURL(u);
+    // La grabación y su blob: siguen en el servicio para cuando se vuelva; el
+    // sondeo de Eos también sigue allí.
+    this.guardado.salir();
   }
 
   protected async traerFrase(): Promise<void> {
@@ -292,12 +307,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       this.grabador.ondataavailable = ev => { if (ev.data.size) this.trozos.push(ev.data); };
       this.grabador.onstop = () => {
         flujo.getTracks().forEach(t => t.stop());
-        this.blob = new Blob(this.trozos, { type: this.grabador?.mimeType || this.tipo || 'audio/webm' });
-        const previa = this.audioUrl();
-        if (previa) URL.revokeObjectURL(previa);
-        this.audioUrl.set(URL.createObjectURL(this.blob));
-        this.corregida.set(false);
-        this.estado.set('grabada');
+        this.guardado.guardarGrabacion(new Blob(this.trozos, { type: this.grabador?.mimeType || this.tipo || 'audio/webm' }));
       };
       this.grabador.start();
       this.estado.set('grabando');
@@ -331,13 +341,7 @@ export class Pronunciar implements OnInit, OnDestroy {
   }
 
   protected descartar(): void {
-    const u = this.audioUrl();
-    if (u) URL.revokeObjectURL(u);
-    this.audioUrl.set(null);
-    this.blob = null;
-    this.estado.set('lista');
-    this.resultado.set(null);
-    this.corregida.set(false);
+    this.guardado.descartar();
   }
 
   protected async corregir(): Promise<void> {
@@ -365,7 +369,7 @@ export class Pronunciar implements OnInit, OnDestroy {
       const r = await firstValueFrom(this.api.practicar(this.frase.trim(), this.blob, `voz.${ext}`, this.acento()));
       this.resultado.set(r);
       this.corregida.set(true);
-      this.eosFrase.set(null);
+      this.guardado.cancelarEos();
       this.visorEos.set(null);
       const e = this.entrada();
       if (e && r.restantes !== null) this.sesion.entrada.set({ ...e, restantes: r.restantes });
@@ -382,12 +386,11 @@ export class Pronunciar implements OnInit, OnDestroy {
 
   /** «Otra frase ↺»: lo que pidió Laura en vez de borrar a mano. */
   protected otraFrase(): void {
-    this.descartar();
-    this.eosFrase.set(null);
+    // Lo guardado se va con la frase: al volver a la pestaña no reaparece.
+    this.guardado.limpiar();
     this.visorEos.set(null);
     this.error.set('');
     if (this.contexto()) void this.traerFrase();
-    else this.frase = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -395,8 +398,9 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.eyv.escuchar({ audio: urlMotor(url), cortes: [], velocidad: this.velocidad() });
   }
 
-  /** La IPA de cada palabra de las frases que lee el 3D, por texto. */
-  private readonly ipaLectura = new Map<string, PalabraLeida[]>();
+  /** La IPA de cada palabra de las frases que lee el 3D, por texto; se queda
+   *  con el resto del estado para no pedirla otra vez al volver. */
+  private readonly ipaLectura = this.guardado.ipaLectura;
   /** Lo que se leyó (las palabras de la frase) y su versión natural. */
   protected readonly textoLeido = computed(() => this.resultado()?.palabras.map(p => p.palabra).join(' ') ?? '');
   protected readonly textoNatural = computed(() => this.vista()?.versionNatural ?? this.textoLeido());
@@ -476,15 +480,25 @@ export class Pronunciar implements OnInit, OnDestroy {
     this.colocarALaVista(ev?.currentTarget as HTMLElement | null);
   }
 
+  /** Qué animación llevar a la vista al pulsar «Escuchar y ver»: el 3D si está
+   *  abierto y es lo que más se ve; si no, los cortes 2D. Miguel (4 oct, tras
+   *  grabar la demo): la primera vez que abre el 3D y pulsa, sí al 3D (al
+   *  montarse `alternarBoca` ya lo ha colocado, así que es lo que más se ve);
+   *  pero si después sube con el dedo hasta el corte 2D y pulsa, es que quiere
+   *  mirar el 2D, y la página no debe volver a bajar al 3D. Con empate, 2D. */
   private colocarALaVista(boton: HTMLElement | null): void {
+    if (typeof window === 'undefined') return;
     const grupo = boton?.closest?.('details.boca, .ficha-sonido');
-    const blanco = grupo?.querySelector<HTMLElement>('app-boca3d') ?? grupo?.querySelector<HTMLElement>('.cortes, img.corte');
-    this.colocarElementoALaVista(blanco, boton);
+    const visor = grupo?.querySelector<HTMLElement>('app-boca3d');
+    const cortes = grupo?.querySelector<HTMLElement>('.cortes, img.corte');
+    const franja = this.franjaVisible(boton);
+    const al3d = !!visor && this.fraccionVisible(visor, franja) > this.fraccionVisible(cortes, franja);
+    this.colocarElementoALaVista(al3d ? visor : cortes ?? visor, boton);
   }
 
-  private colocarElementoALaVista(blanco: HTMLElement | null | undefined, boton: HTMLElement | null): void {
-    if (!blanco || typeof window === 'undefined') return;
-    const r = blanco.getBoundingClientRect();
+  /** La franja útil de la pantalla: entre la cabecera fija y el borde superior
+   *  de la barra pegada de los botones (si la hay y está pegada). */
+  private franjaVisible(boton: HTMLElement | null): { arriba: number; abajo: number } {
     const arriba = 64;                                   // la cabecera fija
     // Dónde QUEDA la barra pegada, no dónde está ahora: mientras no se pega puede
     // estar más arriba o fuera de pantalla, y medirla ahí dejaba la boca debajo.
@@ -492,6 +506,22 @@ export class Pronunciar implements OnInit, OnDestroy {
     const pegada = barra ? parseFloat(getComputedStyle(barra).bottom) : NaN;
     const abajo = barra && getComputedStyle(barra).position === 'sticky' && Number.isFinite(pegada)
       ? window.innerHeight - pegada - barra.offsetHeight : window.innerHeight;
+    return { arriba, abajo };
+  }
+
+  /** Qué parte del elemento (0..1) cae dentro de la franja útil. */
+  private fraccionVisible(el: HTMLElement | null | undefined, franja: { arriba: number; abajo: number }): number {
+    if (!el) return 0;
+    const r = el.getBoundingClientRect();
+    if (!(r.height > 0)) return 0;
+    const visible = Math.min(r.bottom, franja.abajo) - Math.max(r.top, franja.arriba);
+    return Math.max(0, visible) / r.height;
+  }
+
+  private colocarElementoALaVista(blanco: HTMLElement | null | undefined, boton: HTMLElement | null): void {
+    if (!blanco || typeof window === 'undefined') return;
+    const r = blanco.getBoundingClientRect();
+    const { arriba, abajo } = this.franjaVisible(boton);
     if (r.top >= arriba && r.bottom <= abajo) return;
     // Si no cabe entera, arriba pegada a la cabecera: lo que se pierde es el pie, no la lengua.
     const destino = r.height <= abajo - arriba ? r.top + r.height / 2 - (arriba + abajo) / 2 : r.top - arriba;
@@ -574,11 +604,14 @@ export class Pronunciar implements OnInit, OnDestroy {
     if (!abre || typeof window === 'undefined') return;
     // Al abrir, la boca entera a la vista en cuanto el @defer la monta: antes se
     // quedaba donde cayera y la barra pegada tapaba lengua y dientes (f4, 390 px).
+    // Al 3D directamente, sin pasar por la regla de «lo que más se ve» de
+    // colocarALaVista: recién montado suele estar debajo del corte 2D, y esa
+    // regla lo dejaría fuera de la vista.
     const boton = ev?.currentTarget as HTMLElement | null;
     const t0 = performance.now();
     const paso = () => {
-      const lista = boton?.closest('details.boca, .ficha-sonido')?.querySelector('app-boca3d .visor');
-      if (lista) this.colocarALaVista(boton);
+      const visor = boton?.closest('details.boca, .ficha-sonido')?.querySelector<HTMLElement>('app-boca3d');
+      if (visor?.querySelector('.visor')) this.colocarElementoALaVista(visor, boton);
       else if (performance.now() - t0 < 4000) requestAnimationFrame(paso);
     };
     requestAnimationFrame(paso);
@@ -640,28 +673,13 @@ export class Pronunciar implements OnInit, OnDestroy {
   protected alternarEos(id: string): void { this.visorEos.update(actual => actual === id ? null : id); }
 
   /** «Ver a Eos leerla»: pide a la API el vídeo del mp3 de la frase. Mientras un PC
-   *  con Eos lo hace, se pregunta cada 4 s (tres minutos como mucho); el botón,
-   *  con el vídeo abierto, lo cierra. */
+   *  con Eos lo hace, el servicio pregunta cada 4 s (tres minutos como mucho), esté
+   *  o no esta pantalla montada; el botón, con el vídeo abierto, lo cierra. */
   protected verEosFrase(): void {
     const audio = this.resultado()?.audio_correcto;
     if (!audio) return;
-    if (this.eosFrase()?.estado === 'listo') { this.eosFrase.set(null); return; }
-    this.esperasEos = 0;
-    this.api.eosPedir(audio, this.textoLeido()).subscribe({
-      next: r => this.seguirEos(r),
-      error: () => this.eosFrase.set({ estado: 'fallo', clave: '', video: null }),
-    });
-  }
-
-  private seguirEos(r: EstadoEos): void {
-    this.eosFrase.set(r);
-    clearTimeout(this.relojEos);
-    if (r.estado !== 'pendiente' || this.destruido) return;
-    if (++this.esperasEos > 45) { this.eosFrase.set({ ...r, estado: 'fallo', motivo: 'tarda demasiado' }); return; }
-    this.relojEos = setTimeout(() => this.api.eosEstado(r.clave).subscribe({
-      next: s => this.seguirEos(s),
-      error: () => this.eosFrase.set({ ...r, estado: 'fallo' }),
-    }), 4000);
+    if (this.eosFrase()?.estado === 'listo') { this.guardado.cancelarEos(); return; }
+    this.guardado.pedirEos(audio, this.textoLeido());
   }
 
   /** Tocar un símbolo: suena, abre su ficha debajo de su grupo y su corte arranca con el audio. */
