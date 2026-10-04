@@ -15,7 +15,7 @@ y Three.js se descargan con `@defer`, solo al abrirlo.
 | `animacion.ts` | Las líneas de tiempo: ciclo de un sonido y palabra entera, con los tiempos del 2D. |
 | `poses.ts` | El contrato de poses (`PoseSonido`, `CatalogoPoses`), las cinco embebidas del prototipo, `poseDe`, `resolver` y `trocearIpa`. |
 | `poses.ejemplo.json` | Snapshot completo de 46 sonidos + 6 de RP de `PARAMETROS`, incluido en el chunk diferido. |
-| `audio.ts` | `Sonador`: descarga y decodifica el mp3 (Web Audio), mide su silencio inicial y lo arranca a la vez que la línea; sin Web Audio, un `<audio>` con desfase fijo. |
+| `audio.ts` | `Sonador`: descarga y decodifica el mp3 (Web Audio), mide su silencio inicial y lo arranca a la vez que la línea; sin Web Audio, un `<audio>` con desfase fijo. Desde el 4 oct guarda los bytes bajados en un `<audio>` precargado (`blob:`) para las velocidades distintas de 1× y para cuando el contexto no corre, espera a que el contexto corra (`esperarContexto`) y avisa (`alEmpezar`) de cuánto llegó tarde el arranque real, con lo que `EscenaBoca.desplazarLinea` ancla la boca al sonido. |
 | `boca3d.spec.ts` | Pruebas de poses, líneas de tiempo y del respaldo 2D en jsdom. |
 
 Fuera de la carpeta: `tools/exportar_poses_boca3d.py` genera el JSON;
