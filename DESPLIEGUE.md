@@ -719,5 +719,10 @@ cara neutra; `reposo.webp` regenerado con la cara neutra.
 - **Verificación:** `pruebas_eos_visemas.py` 17/17; 85 mp4 nuevos con duración = audio; `medir_lengua.py`:
   ga_0251 /ɑ/, ga_03b8 /θ/, ga_006c /l/: lateral 0 mm, techo ≤ 3,9 mm en transiciones, saltos ≤ 5 mm por fotograma.
 - **Trabajador** relanzado tras el commit del corrector (importa `corregir_visemas` al arrancar).
+- **Frases viejas borradas del bucket** (5 `eos/<clave>.mp4` generados hoy entre las 6:14 y las 8:43,
+  antes de los arreglos): Miguel lo autorizó y lo ejecutó él a las 17:48 con
+  `D:/literalevel_eos_pronunciar/borrar_frases_viejas.py --borrar` (el modo automático de Claude Code
+  bloquea los borrados en la nube); copia en `D:/literalevel_eos_pronunciar/respaldo_frases_2026-10-04/`.
+  La API no guarda estado aparte: la frase vuelve a «pedir» y el trabajador la regenera.
 - **No verificado:** oído en el móvil; L9 del revisor (imagen 0,3-0,45 s por delante del sonido en la
   grabación de pantalla) no se reproduce en el mp4 (pistas en 0,000): comprobar en el teléfono.
