@@ -3,7 +3,8 @@ import { RouterLink } from '@angular/router';
 import { Icono } from './icono';
 
 /** «Sobre Pléyade»: se abre al pulsar el logo (Miguel, 26 sep). El texto es
- *  el de Miguel («Pleyade_Acerca_de_la_App.md»), tal cual. */
+ *  el de Miguel («Pleyade_Acerca_de_la_App.md»), tal cual; el guiño al Quijote y el vídeo de Eos
+ *  se añadieron a petición suya el 8 oct para la demo. */
 @Component({
   selector: 'app-sobre-pleyade',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,21 @@ import { Icono } from './icono';
           otra lengua. Para nosotros, Pléyade es un punto de encuentro entre libros, lectores y aprendizaje:
           un espacio donde cada historia puede abrir una nueva manera de mirar el mundo.</p>
 
+        <h3>Un guiño a don Quijote</h3>
+        <p>En la segunda parte del <em>Quijote</em> (1615), don Quijote y Sancho montan con los ojos vendados a
+          <strong>Clavileño el Alígero</strong>, un caballo de madera que, según les cuentan, vuela por los aires.
+          Al volver, Sancho jura que pasó junto a las <strong>siete cabrillas</strong>, que es el nombre popular
+          de las Pléyades (<a href="https://dle.rae.es/cabrilla" target="_blank" rel="noopener">DLE: cabrilla</a>),
+          y que se bajó a jugar con ellas:</p>
+        <blockquote>«Y sucedió que íbamos por parte donde están las siete cabrillas; […] bonita y pasitamente me
+          apeé de Clavileño, y me entretuve con las cabrillas, que son como unos alhelíes y como unas flores, casi
+          tres cuartos de hora».
+          <cite>Miguel de Cervantes, <em>Don Quijote de la Mancha</em>, II, cap. XLI
+            (<a href="https://www.gutenberg.org/ebooks/2000" target="_blank" rel="noopener">texto completo</a>)</cite>
+        </blockquote>
+        <p>Por eso nuestro emblema es un caballo con alas: como Clavileño, un buen libro te lleva hasta las
+          estrellas sin moverte de tu sitio.</p>
+
         <h3>¿Qué puedes hacer aquí?</h3>
         <ul>
           <li><strong>Encontrar tu próxima lectura:</strong> explorar libros de acuerdo con tu nivel de inglés
@@ -59,6 +75,14 @@ import { Icono } from './icono';
           (<a href="https://www.thelatinlibrary.com/hyginus/hyginus2.shtml" target="_blank" rel="noopener">Higino, <em>De astronomia</em>, II, VII</a>).</p>
 
         <p class="lema cierre">Tu próxima lectura empieza aquí.</p>
+
+        <h3>Eos te explica Pléyade</h3>
+        <!-- 4K tal como se renderizó (HEVC 10 bits); si el navegador no lo decodifica, la copia H.264 4K. -->
+        <video class="video-eos" controls playsinline preload="metadata" [poster]="poster" width="3840" height="2160">
+          <source [src]="videoBase + 'eos_pleyade_4k_hevc.mp4'" type='video/mp4; codecs="hvc1.2.4.L150.B0, mp4a.40.2"'>
+          <source [src]="videoBase + 'eos_pleyade_4k_h264.mp4'" type="video/mp4">
+        </video>
+        <p class="nota-video">Vídeo en 4K (2:12). Para verlo a toda resolución, usa la pantalla completa.</p>
 
         <div class="fila pie-sobre">
           <a class="boton secundario pequeno" routerLink="/" (click)="cerrar.emit()"><app-icono nombre="casa" />Ir a Mi espacio</a>
@@ -89,6 +113,13 @@ import { Icono } from './icono';
     .cuerpo .lema { font-family: var(--fuente-libro); font-size: 1.15rem; font-style: italic; color: var(--texto); }
     .cuerpo .cierre { margin-top: 1.2rem; }
     .antetitulo { color: var(--oro-rosa-texto); }
+    .cuerpo blockquote { margin: .4rem 0 .8rem; padding: .5rem .9rem; border-left: 3px solid var(--acento-texto);
+      font-family: var(--fuente-libro); font-style: italic; color: var(--texto); }
+    .cuerpo blockquote cite { display: block; margin-top: .4rem; font-family: inherit; font-style: normal;
+      font-size: .85rem; color: var(--texto-suave); }
+    .video-eos { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; margin: .4rem 0 .3rem;
+      background: #000; border-radius: var(--radio-lg); }
+    .cuerpo .nota-video { font-size: .85rem; }
     .pie-sobre { justify-content: flex-end; margin-top: 1.5rem; }
     @keyframes aparecer { from { opacity: 0; } }
     @keyframes subir { from { opacity: 0; transform: translateY(12px); } }
@@ -96,6 +127,9 @@ import { Icono } from './icono';
 })
 export class SobrePleyade {
   readonly cerrar = output<void>();
+  /** El vídeo pesa 268 MB: no cabe en GitHub/Vercel (100 MB por archivo) y se sirve desde Hugging Face. */
+  protected readonly videoBase = 'https://huggingface.co/datasets/MikeMaki1763/pleyade-video/resolve/main/';
+  protected readonly poster = 'marca/eos-video-poster.webp';
   private readonly cerrarBoton = viewChild<ElementRef<HTMLButtonElement>>('cerrarBoton');
 
   constructor() {
