@@ -118,8 +118,8 @@ El conector de Colab siguió roto; no hizo falta.
 3. **Cuidado con la cuenta.** Su Chrome puede estar dentro con otra cuenta de
    Google. Mira el `aria-label` del botón de cuenta y, si hace falta, cambia
    con `?authuser=1` en la URL. Aquí casi se monta el Drive equivocado: la
-   cuenta con `literalevel_bigdata` y Colab Pro es `rayko800@gmail.com`, y el
-   navegador estaba dentro con `miguel.reyes.carrillo19@gmail.com`.
+   cuenta con `literalevel_bigdata` y Colab Pro es `xxxxxx@xxxxxx.com`, y el
+   navegador estaba dentro con `xxxxxx@xxxxxx.com`.
 
 **Las tres trampas del DOM de Colab**, que costaron media hora:
 

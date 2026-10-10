@@ -132,7 +132,7 @@ queda colgada** hasta que alguien pulsa. Desde aquí se resuelve con
 1. `take_snapshot` de la pestaña de Colab → botón «Conectar con Google Drive»
 2. `click` → se abre una pestaña nueva de `accounts.google.com`
 3. `take_snapshot` de **esa** pestaña → **comprueba la cuenta**: el Colab Pro
-   está en `rayko800@gmail.com`, no en la otra
+   está en `xxxxxx@xxxxxx.com`, no en la otra
 4. `click` en «Continuar», dos veces (elegir cuenta y confirmar permisos)
 
 El MCP de Colab devuelve **timeout a los 90 s** en cualquier celda larga. Eso

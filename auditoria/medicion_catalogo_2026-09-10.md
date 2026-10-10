@@ -1,6 +1,6 @@
 # La medición del catálogo, jueves 10 de septiembre de 2026
 
-Tanda en Colab con **T4 gratuita**, cuenta `rayko800@gmail.com`. Todo lo de aquí
+Tanda en Colab con **T4 gratuita**, cuenta `xxxxxx@xxxxxx.com`. Todo lo de aquí
 está impreso por el cuaderno, no estimado.
 
 ---
