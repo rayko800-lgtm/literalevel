@@ -888,7 +888,7 @@ Referencias (APA)
     Devuelve `net::ERR_ABORTED`, que **es lo esperado en una descarga**: el archivo cae igual en
     `C:\Users\laura\Downloads`.
   - Los `fileId` se sacan del DOM de Drive en el navegador, no del conector.
-- **De la carpeta `[G34] Módulo 1`** (de `xxxxxx@xxxxxx.com`) quedan sin leer:
+- **De la carpeta `[G34] Módulo 1`** (de `CORREO_PROFESOR_M1`) quedan sin leer:
   `Modulo1_Tarea2.pdf` (id `1N1sqEfWYItYPU8Tu9iVcLFFufUmOnz5C`), `Modulo1_Examen.pdf`
   (`1DWvzDx4v39P4CI1rV8mrr2YuPnLVD1ks`), `G34_Modulo1_Calif.pdf`
   (`1tmGTAbqaDzu9sgZegl_NqMYEdlqgr7Qt`), los CSV de práctica (`grupos`, `hipertension`,
@@ -940,5 +940,5 @@ Referencias (APA)
   `Modulo2_Proyecto.pdf` (instrucciones), `Proyecto_módulo_2_.pdf` (entrega, 98/100),
   `Base_de_datos_para_el_proyecto_del_módulo_2.pdf` (100/100), `Durrett.pdf`, `LuisRincon.pdf`,
   `Módulo 3\` (datos NHANES + entrega), `Módulo 4\Proyecto\` (PDF LaTeX + notebook).
-- Google Drive de `xxxxxx@xxxxxx.com` — `Tareas del diplomado/Módulo 2/` (notebook del proyecto
+- Google Drive de `CUENTA_PRINCIPAL` — `Tareas del diplomado/Módulo 2/` (notebook del proyecto
   del módulo 2, id `1sj4hhh7n0G6fhm7FvBpLihek8Tb3EZV1`) y `Colab Notebooks/` (módulo 5).

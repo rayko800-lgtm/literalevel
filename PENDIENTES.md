@@ -173,7 +173,7 @@ actual se resume al principio de este archivo y enlaza sus informes de cierre.
 | **Cupo de Codex** | la auditoría de cifras | **La ventana es corta, no semanal**: el aviso del 11 anunciaba el martes 15 y el 12 por la mañana ya respondía. Pero se agotó otra vez a mitad del encargo —`auditoria/encargo_12.md`— **sin emitir un solo hallazgo**: murió recopilando con `grep`, que es el modo de fallo que esta casa ya tiene documentado dos veces. Vuelve a la 1:56 p. m. del 12. Si se relanza, hay que partirlo en trozos de un solo archivo |
 | ~~Token de Hugging Face~~ | **HECHO** | Modelo en `MikeMaki1763/literalevel-v4`, público, descarga sin credenciales verificada. El token vive en `C:\Users\laura\.hf_token` y **hay que revocarlo** cuando se acabe de subir |
 | ~~Despliegue permanente~~ | **HECHO** | `MikeMaki1763/literalevel`, público, `cpu-basic`, RUNNING. Cuesta 7 USD/mes (cuenta Pro, ya pagada). Arranque medido: 31 s hasta `RUNNING`, 32 s hasta que responde |
-| ~~Aceptar la pestaña de Colab~~ | **HECHO** | Conectado a `xxxxxx@xxxxxx.com`, que es la cuenta con Colab Pro y con `literalevel_bigdata` |
+| ~~Aceptar la pestaña de Colab~~ | **HECHO** | Conectado a `CUENTA_PRINCIPAL`, que es la cuenta con Colab Pro y con `literalevel_bigdata` |
 
 El **conector de Drive de claude.ai** sigue devolviendo `Operation is not
 implemented, or supported, or enabled`. Ya no bloquea nada: el Drive se lee

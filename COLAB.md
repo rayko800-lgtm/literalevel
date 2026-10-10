@@ -13,7 +13,7 @@ token guardado en los Secretos de Colab, y la tanda se reanuda sin pedir nada.
 
 ## Lo que ya está hecho y no hay que repetir
 
-- **El token `HF_TOKEN` está en los Secretos de Colab** de `xxxxxx@xxxxxx.com`.
+- **El token `HF_TOKEN` está en los Secretos de Colab** de `CUENTA_PRINCIPAL`.
   Los Secretos van por cuenta: vale para cualquier cuaderno de esa cuenta.
 - **El rescate de Drive**: la celda 2c subió a Hugging Face los libros que ya
   estaban medidos. Se decide sola: si el repositorio ya tiene shards, no toca
@@ -32,7 +32,7 @@ nuevo, Colab cortó la sesión**: sigue abajo.
 ## Si Colab corta la sesión (va a pasar, y no se pierde nada)
 
 1. Abre el cuaderno `colab_precalculo.ipynb` en Colab **con la cuenta
-   xxxxxx@xxxxxx.com** (arriba a la derecha tiene que salir esa cuenta).
+   CUENTA_PRINCIPAL** (arriba a la derecha tiene que salir esa cuenta).
 2. Pulsa **Conectar** (arriba a la derecha). Sale una T4, que es gratis.
 3. Panel izquierdo → icono de la llave (**Secretos**) → comprueba que el
    interruptor de **HF_TOKEN** está **encendido** para este cuaderno. El
